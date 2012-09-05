@@ -1,3 +1,5 @@
+var game, data, input;
+
 window.onload = function() {
 	window.game = new Game( document.getElementById( 'game' ) );
 	window.data = new DataManager();
@@ -10,6 +12,12 @@ window.onload = function() {
 		window.oRequestAnimationFrame      || 
 		window.msRequestAnimationFrame     || 
 		null;
+		
+	//load sprites
+	window.game.sprites['player'] = new Sprite("/img/dude.png", {offset:new Point(7, 30)});
+	window.game.sprites['tree_trunk_ash'] = new Sprite("/img/tree_trunk_ash.png", {offset:new Point(14, 145)});
+	window.game.sprites['tree_brush_ash'] = new Sprite("/img/tree_brush_ash.png", {offset:new Point(26, 16)});
+	window.game.sprites['grass_dry'] = new Sprite("/img/grass_dry.png");
 	
 	delete_me_create_map();
 	loop();
@@ -24,6 +32,25 @@ function loop() {
 	}
 }
 
+/* Object for wrapping sprites */
+
+function Sprite(url, options) {
+	options = options || {};
+	
+	var offset = options['offset'] || new Point();
+	
+	this.img = new Image();
+	this.img.src = url;
+	this.offset = offset;
+}
+Sprite.prototype.render = function( g, pos ) {
+	g.drawImage( 
+		this.img, 
+		pos.x - this.offset.x,
+		pos.y - this.offset.y
+	);
+}
+
 /* MAIN GAME OBJECT */
 
 function Game( elm ) {
@@ -31,8 +58,12 @@ function Game( elm ) {
 	
 	this.objects = new Array();
 	this.camera = new Point();
+	this.collisions = new Array();
 	
 	this.element = elm;
+	this.g = elm.getContext('2d');
+	
+	this.sprites = {};
 }
 
 Game.prototype.addObject = function( obj ) {
@@ -43,40 +74,85 @@ Game.prototype.addObject = function( obj ) {
 window.__time = 0;
 
 Game.prototype.update = function( ) {
+	//Update logic
 	for ( var i in this.objects ) {
 		if ( this.objects[i] instanceof GameObject ) {
 			var obj = this.objects[i];
-			
 			obj.update();
-			obj.element.style.left = Math.floor( obj.position.x - ( this.camera.x - 400 ) ) + "px";
-			obj.element.style.top = Math.floor( obj.position.y - this.camera.y + 300 ) + "px";
 		}		
-	}
+	}	
 	
 	window.__time++;
 	window.__wind = 0.2 * Math.abs( Math.sin( window.__time * 0.003 ) * Math.sin( window.__time * 0.007 ) );
+	
+	this.render();
 }
+
+Game.prototype.render = function( ) {
+	var camera_center = new Point( this.camera.x - 160, this.camera.y - 120 );
+	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
+	
+	for ( var i in this.objects ) {
+		if ( this.objects[i] instanceof GameObject ) {
+			var obj = this.objects[i];
+			obj.render( this.g, camera_center );
+		}		
+	}
+	
+	//Debug, show collisions
+	for ( var i = 0; i < this.collisions.length; i++ ){
+		this.collisions[i].render( this.g, camera_center );
+	}
+}
+
+Game.prototype.c_move = function( obj, x, y ) {
+	//Attempt to move a game object without hitting a colliding line
+	var collide = false;
+	obj.transpose( x, y );
+	
+	for ( var i = 0; i < this.collisions.length; i++ ){
+		line = this.collisions[i];
+		if ( obj.intersects( line ) ){
+			collide = true;
+			break;
+		}
+	}
+	
+	if( collide ) {
+		obj.transpose( -x, -y );
+	}
+}
+
 /* GAME PRIMITIVES */
 
 function GameObject() {
-	this.elementType = 'img';
 	this.position = new Point();
-	this.element = document.createElement( this.elementType );
+	this.sprite;
+	this.width = 8;
+	this.height = 8;
+}
+GameObject.prototype.transpose = function(x, y) {
+	this.position.x += x;
+	this.position.y += y;
+}
+GameObject.prototype.intersects = function(a) {
+	var half_width = Math.floor( this.width * 0.5 );
+	var half_height = Math.floor( this.width * 0.5 );
+	
+	this._hitbox = new Polygon();
+	this._hitbox.addPoint( new Point(this.position.x-half_width , this.position.y-half_height) );
+	this._hitbox.addPoint( new Point(this.position.x+half_width , this.position.y-half_height) );
+	this._hitbox.addPoint( new Point(this.position.x+half_width , this.position.y+half_height) );
+	this._hitbox.addPoint( new Point(this.position.x-half_width , this.position.y+half_height) );
+	
+	return this._hitbox.intersects(a);
 }
 GameObject.prototype.update = function(){ }
+GameObject.prototype.render = function( g, camera ){ 
+	if ( this.sprite instanceof Sprite ) {
+		this.sprite.render( g, new Point(this.position.x - camera.x, this.position.y - camera.y) );
+	}
+}
 GameObject.prototype.assignParent = function ( parent ) {
 	this.parent = parent;
-	this.parent.element.appendChild( this.element );
-}
-
-
-function Point(x,y) {
-	this.x = x || 0;
-	this.y = y || 0;
-}
-Point.prototype.distance = function(d){
-	return Math.sqrt (
-		Math.pow( Math.abs( this.x - d.x ), 2 ) +
-		Math.pow( Math.abs( this.y - d.y ), 2 )
-	);
 }

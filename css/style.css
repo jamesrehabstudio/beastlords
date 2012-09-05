@@ -3,11 +3,14 @@ body { font-family:arial; font-size:14px; }
 h1, h2, h3, h4 { font-size:14px; font-weight:normal; }
 
 #game { 
-	background:url(/img/grass_dry.png);
-	width:800px;
-	height:600px;
+/*
+	width:320px;
+	height:240px;
+*/
 	position:relative;
 	overflow:hidden;
+	image-rendering: -webkit-optimize-contrast; /* webkit */
+	image-rendering: -moz-crisp-edges /* Firefox */
 }
 
 #game * {
