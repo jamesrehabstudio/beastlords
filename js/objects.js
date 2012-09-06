@@ -8,6 +8,8 @@ function Player(x, y){
 	this.position.x = x;
 	this.position.y = y;
 	
+	window._player = this;
+	
 	this.sprite = game.sprites.player;
 	this._ani = 0;
 }
@@ -53,6 +55,45 @@ Player.prototype.update = function(){
 	this.parent.camera.y = this.position.y;
 }
 
+Zombie.prototype = new GameObject();
+Zombie.prototype.constructor = GameObject;
+
+function Zombie(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	
+	this.sprite = game.sprites.player;
+	this._ani = 0;
+	this.health = 100;
+}
+Zombie.prototype.update = function() {
+	var angle_to_player = Math.atan2(
+		this.position.x - _player.position.x,
+		this.position.y - _player.position.y
+	);
+	if ( this.heath > 0 ) {
+		game.c_move( this, 
+			-Math.sin( angle_to_player ),
+			-Math.cos( angle_to_player )
+		);
+		
+		var overlap = game.overlap( this );
+		for( var i = 0; i < overlap.length; i++ ){
+			if ( overlap[i] instanceof Player ) {
+				game.removeObject( overlap[i] );
+			}
+		}
+		
+		this.frame_row = Math.floor( ( (2*Math.PI) - ( angle_to_player + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
+		this.frame_row %= 8;
+	
+	} else { 
+		game.removeObject( this );
+	}
+}
+
+
 Bullet.prototype = new GameObject();
 Bullet.prototype.constructor = GameObject;
 function Bullet(x, y, angle){
@@ -63,7 +104,7 @@ function Bullet(x, y, angle){
 	this.height = 4;
 	
 	this.angle = angle;
-	this.speed = 10.0;
+	this.speed = 5.0;
 	this.age = 0;
 }
 Bullet.prototype.oncollide = function(){
@@ -77,6 +118,14 @@ Bullet.prototype.update = function(){
 	);
 	if( this.age > 100 ){
 		this.parent.removeObject( this );
+	} else {
+		var overlap = game.overlap( this );
+		for( var i = 0; i < overlap.length; i++ ){
+			if ( overlap[i] instanceof Zombie ) {
+				game.removeObject( overlap[i] );
+				game.removeObject( this );
+			}
+		}
 	}
 }
 Bullet.prototype.render = function(g, camera){

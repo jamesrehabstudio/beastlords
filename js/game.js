@@ -145,6 +145,22 @@ Game.prototype.render = function( ) {
 	}
 }
 
+Game.prototype.overlap = function( obj ) {
+	//Returns a list of objcets the provided object is currently on top of
+	var out = new Array();
+	
+	for ( var i = 0; i < this.objects.length; i++ ) {
+		var temp = this.objects[i];
+		if ( obj != temp ) {
+			if ( obj.intersects( temp ) ){
+				out.push( temp );
+			}
+		}
+	}
+	
+	return out;
+}
+
 Game.prototype.c_move = function( obj, x, y ) {
 	//Attempt to move a game object without hitting a colliding line
 	var collide = false;
@@ -180,7 +196,7 @@ GameObject.prototype.transpose = function(x, y) {
 	this.position.x += x;
 	this.position.y += y;
 }
-GameObject.prototype.intersects = function(a) {
+GameObject.prototype.hitbox = function() {
 	var half_width = Math.floor( this.width * 0.5 );
 	var half_height = Math.floor( this.width * 0.5 );
 	
@@ -190,7 +206,13 @@ GameObject.prototype.intersects = function(a) {
 	this._hitbox.addPoint( new Point(this.position.x+half_width , this.position.y+half_height) );
 	this._hitbox.addPoint( new Point(this.position.x-half_width , this.position.y+half_height) );
 	
-	return this._hitbox.intersects(a);
+	return this._hitbox;
+}
+GameObject.prototype.intersects = function(a) {
+	if ( a instanceof GameObject ) {
+		a = a.hitbox();
+	}
+	return this.hitbox().intersects(a);
 }
 GameObject.prototype.oncollide = function() {}
 GameObject.prototype.update = function(){ }
