@@ -1,5 +1,5 @@
 function Input() {
-	this.CHROME_MAP = { 65:'left', 68:'right', 83:'down', 87:'up', 32:'jump', 67:'crouch',16:'look' }
+	this.CHROME_MAP = { "-1":'click', 65:'left', 68:'right', 83:'down', 87:'up', 32:'jump', 67:'crouch',16:'look' }
 
 	this.states;
 	this.mouseCenter;
@@ -15,6 +15,8 @@ Input.prototype.init = function() {
 	window.onkeydown = function(e){ input_self.stateDown( e.keyCode ); }
 	window.onkeyup = function(e){ input_self.stateUp( e.keyCode ); }
 	window.onmousemove = function(e){ input_self.stateMove(e);}
+	window.onmousedown = function(e){ input_self.stateDown(-1);}
+	window.onmouseup = function(e){ input_self.stateUp(-1);}
 	
 	window.onblur = function(e){ input_self.clearAll(); }
 }

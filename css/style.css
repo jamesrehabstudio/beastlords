@@ -7,6 +7,7 @@ h1, h2, h3, h4 { font-size:14px; font-weight:normal; }
 	width:320px;
 	height:240px;
 */
+	background:#EEE;
 	position:relative;
 	overflow:hidden;
 	image-rendering: -webkit-optimize-contrast; /* webkit */

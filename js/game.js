@@ -14,7 +14,7 @@ window.onload = function() {
 		null;
 		
 	//load sprites
-	window.game.sprites['player'] = new Sprite("/img/dude.png", {offset:new Point(7, 30)});
+	window.game.sprites['player'] = new Sprite("/img/dude.png", {offset:new Point(12, 28),width:24,height:32});
 	window.game.sprites['tree_trunk_ash'] = new Sprite("/img/tree_trunk_ash.png", {offset:new Point(14, 145)});
 	window.game.sprites['tree_brush_ash'] = new Sprite("/img/tree_brush_ash.png", {offset:new Point(26, 16)});
 	window.game.sprites['grass_dry'] = new Sprite("/img/grass_dry.png");
@@ -41,13 +41,40 @@ function Sprite(url, options) {
 	
 	this.img = new Image();
 	this.img.src = url;
+	this.img.sprite = this;
+	this.img.onload = function(){ this.sprite.imageLoaded(); }
 	this.offset = offset;
+	
+	this.frame_width = options['width'] || 0;
+	this.frame_height = options['height'] || 0;
 }
-Sprite.prototype.render = function( g, pos ) {
+Sprite.prototype.imageLoaded = function() {
+	if ( this.frame_width < 1 || this.frame_height < 1 ) {
+		this.frame_width = this.img.width;
+		this.frame_height = this.img.height;
+	}
+	if ( this.frame_width < 1 || this.frame_height < 1 ) {
+		this.frame_width = this.img.width;
+		this.frame_height = this.img.height;
+	}
+}
+Sprite.prototype.render = function( g, pos, frame, row ) {
+	frame = frame || 0;
+	row = row || 0;
+	
+	var x_off = frame * this.frame_width;
+	var y_off = row * this.frame_height;
+
 	g.drawImage( 
 		this.img, 
+		x_off, y_off, 
+		this.frame_width, 
+		this.frame_height,
 		pos.x - this.offset.x,
-		pos.y - this.offset.y
+		pos.y - this.offset.y,
+		this.frame_width,
+		this.frame_height
+		
 	);
 }
 
@@ -64,12 +91,18 @@ function Game( elm ) {
 	this.g = elm.getContext('2d');
 	
 	this.sprites = {};
+	this._objectsDeleteList = new Array();
 }
 
 Game.prototype.addObject = function( obj ) {
 	obj.assignParent( this );
 	this.objects.push ( obj );
 }
+
+Game.prototype.removeObject = function( obj ) {
+	this._objectsDeleteList.push(obj)
+}
+
 
 window.__time = 0;
 
@@ -81,9 +114,16 @@ Game.prototype.update = function( ) {
 			obj.update();
 		}		
 	}	
-	
+	input.update();
 	window.__time++;
 	window.__wind = 0.2 * Math.abs( Math.sin( window.__time * 0.003 ) * Math.sin( window.__time * 0.007 ) );
+
+	//Cleanup
+	for( var i = 0; i < this._objectsDeleteList.length; i++) {
+		var index = this.objects.indexOf( this._objectsDeleteList[i] );
+		this.objects.remove( index );
+	}
+	this._objectsDeleteList = new Array();
 	
 	this.render();
 }
@@ -120,6 +160,7 @@ Game.prototype.c_move = function( obj, x, y ) {
 	
 	if( collide ) {
 		obj.transpose( -x, -y );
+		obj.oncollide();
 	}
 }
 
@@ -130,6 +171,10 @@ function GameObject() {
 	this.sprite;
 	this.width = 8;
 	this.height = 8;
+	this.frame = 0;
+	this.frame_row = 0;
+	
+	this.visible = true;
 }
 GameObject.prototype.transpose = function(x, y) {
 	this.position.x += x;
@@ -147,12 +192,22 @@ GameObject.prototype.intersects = function(a) {
 	
 	return this._hitbox.intersects(a);
 }
+GameObject.prototype.oncollide = function() {}
 GameObject.prototype.update = function(){ }
 GameObject.prototype.render = function( g, camera ){ 
 	if ( this.sprite instanceof Sprite ) {
-		this.sprite.render( g, new Point(this.position.x - camera.x, this.position.y - camera.y) );
+		this.sprite.render( g, 
+			new Point(this.position.x - camera.x, this.position.y - camera.y), 
+			this.frame, this.frame_row
+		);
 	}
 }
 GameObject.prototype.assignParent = function ( parent ) {
 	this.parent = parent;
 }
+
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};

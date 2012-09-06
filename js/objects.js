@@ -9,6 +9,7 @@ function Player(x, y){
 	this.position.y = y;
 	
 	this.sprite = game.sprites.player;
+	this._ani = 0;
 }
 Player.prototype.update = function(){
 	var speed = 2.5;
@@ -21,19 +22,70 @@ Player.prototype.update = function(){
 	if ( input.state('left') > 0 ) { x -= 1; }
 	if ( input.state('right') > 0 ) { x += 1; }
 	
+	var mouse_x = input.mouseCenter.x - 160;
+	var mouse_y = input.mouseCenter.y - 120;
+	
+	var mouse_angle = ( Math.atan2( mouse_x, mouse_y ) ) + Math.PI;
+	this.frame_row = Math.floor( ( (2*Math.PI) - ( mouse_angle + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
+	
+	if ( input.state('click') == 1 ) { 
+		this.parent.addObject( new Bullet( 
+			this.position.x,
+			this.position.y,
+			mouse_angle-Math.PI
+		) );
+	}
+	
 	var angle = Math.atan2( x, y );
 	if ( x != 0 || y != 0 ) {
+		this._ani = ( this._ani + 0.3 ) % 3;
+		this.frame = Math.floor( this._ani );
 		this.parent.c_move( 
 			this, 
 			speed * Math.sin(angle), 
 			speed * Math.cos(angle) 
 		);
+	} else {
+		this.frame = 0;
 	}
 	
 	this.parent.camera.x = this.position.x;
 	this.parent.camera.y = this.position.y;
 }
 
+Bullet.prototype = new GameObject();
+Bullet.prototype.constructor = GameObject;
+function Bullet(x, y, angle){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 4;
+	this.height = 4;
+	
+	this.angle = angle;
+	this.speed = 10.0;
+	this.age = 0;
+}
+Bullet.prototype.oncollide = function(){
+	this.parent.removeObject( this );
+}
+Bullet.prototype.update = function(){
+	this.age++;
+	game.c_move( this,
+		this.speed * Math.sin( this.angle ),
+		this.speed * Math.cos( this.angle )
+	);
+	if( this.age > 100 ){
+		this.parent.removeObject( this );
+	}
+}
+Bullet.prototype.render = function(g, camera){
+	g.fillRect(
+		this.position.x - camera.x,
+		this.position.y - camera.y,
+		4, 4
+	);
+}
 ///////////////////////////////////////////
 // PROPS
 ///////////////////////////////////////////
