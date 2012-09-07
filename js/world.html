@@ -1,0 +1,152 @@
+<html>
+<head>
+	<script>
+function World(){
+	this.zones = {};
+	
+	this.zones['0_0'] = new Zone(0, 0);
+	
+	var pos = new Point();	
+	for ( var i = 0; i < 20; i++ ) {
+		pos = this.addZone( pos );
+		
+		if ( Math.random() > 0.8 ) {
+			//Random fork
+			this.addZone( pos );
+		}
+	}
+	
+	this.render();
+}
+
+World.prototype.addZone = function( cords ) {
+	direction = Math.floor( Math.random() * 4 );
+	
+	if ( direction == 0 ){ var pos = new Point( cords.x, cords.y-1 ); }	
+	if ( direction == 1 ){ var pos = new Point( cords.x+1, cords.y ); }
+	if ( direction == 2 ){ var pos = new Point( cords.x, cords.y+1 ); }
+	if ( direction == 3 ){ var pos = new Point( cords.x-1, cords.y ); }
+		
+	
+	var key = pos.x +"_"+ pos.y;
+	if( this.zones[ key ] != undefined ) { return cords; }
+
+	this.zones[ key ] = new Zone (pos.x, pos.y);
+	return pos;	
+}
+var zone_size = 20;
+World.prototype.render = function() {
+	var canvas = document.getElementById( 'canvas' );
+	var g = canvas.getContext('2d');
+	
+	for( var i in this.zones ) {
+		this.zones[i].render( g );
+	}
+}
+
+function Zone(x, y){
+	this.type = Math.floor( Math.random * Zone.types.length);
+	this.x = x;
+	this.y = y;	
+	this.tiles = new Matrix(20,20);
+	
+	this.generateTown()
+}
+Zone.prototype.generateTown = function() {
+	var start = new Point( 10, 0 );
+	var end = new Point( 10, 20 );
+	
+	var direction = new Point();
+	direction.x = start.x == 0 ? 1 : direction.x;
+	direction.x = start.x == 20 ? -1 : direction.x;
+	
+	direction.y = start.y == 0 ? 1 : direction.y;
+	direction.y = start.y == 20 ? -1 : direction.y;
+	
+	var count = 0
+	var current = new Point( start.x, start.y );
+	var change_chance = 0.0;
+
+	while( ( current.x != end.x || current.y != end.y ) && count < 50 ) {
+		count++;
+		current.x += direction.x;
+		current.y += direction.y;
+		this.tiles.tile(current.x, current.y, true );
+		
+		if ( Math.random() < change_chance ) {
+			change_chance = 0.0;  
+			if ( direction.x != 0 ) {
+				direction.x = 0;
+				direction.y = Math.random() > 0.5 ? 1 : -1 ;
+			} else {
+				direction.y = 0;
+				direction.x = Math.random() > 0.5 ? 1 : -1 ;
+			}
+		} else {
+			change_chance += 0.1;
+		}
+		
+	}
+}
+Zone.prototype.render = function(g) {
+	g.fillStyle = "#AA0000";
+	g.fillRect(
+		200 + this.x * zone_size,
+		200 + this.y * zone_size,
+		zone_size,
+		zone_size
+	);
+	
+	g.fillStyle = "#FF0000";
+	for(var x=0; x< this.tiles.width; x++ ){
+		for(var y=0; y<this.tiles.height; y++ ){
+			if ( this.tiles.tile(x,y) ) {
+				g.fillRect(
+					200 + this.x * zone_size + x,
+					200 + this.y * zone_size + y,
+					1,1
+				);
+			}
+		}
+	}
+}
+
+Zone.types = [ "moors", "farm", "hills", "forest", "town", "village" ];
+
+window.onload = function(){
+	window.world = new World();
+}
+
+function Matrix(w, h) {
+	this._m = new Array();
+	this.width = w;
+	this.height = h;
+	for(var x=0; x< this.width; x++ ){
+		for(var y=0; y<this.height; y++ ){
+			this._m.push( false );
+		}
+	}
+}
+Matrix.prototype.tile = function(x,y,value) {
+	if( x < 0 || x >= this.width || y < 0 || y >= this.height ) {
+		return; 
+	}
+	var index = ( x * this.height ) + y;
+	if ( value != undefined ) {
+		this._m[index] = value;
+	} 
+	
+	return this._m[index];	
+}
+
+function Point(x,y) {
+	this.x = x || 0;
+	this.y = y || 0;
+}
+
+	</script>
+</head>
+<body>
+	<canvas id="canvas" width="600" height="600" style="background:#FED"></canvas>
+</body>
+</html>	
