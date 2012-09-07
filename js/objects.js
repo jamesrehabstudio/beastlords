@@ -1,5 +1,18 @@
 /* GAME OBJECTS */
 
+Hud.prototype = new GameObject();
+Hud.prototype.constructor = GameObject;
+
+function Hud(){
+	this.constructor();
+	window._hud = this;
+}
+Hud.prototype.render = function(g, camera){	
+	var health = _player.health || 0;
+	health = Math.max( 10 - Math.floor( health / 10 ) , 0 );
+	game.sprites.health_bar.render(g, new Point(0,224), 0, health );
+}
+
 Player.prototype = new GameObject();
 Player.prototype.constructor = GameObject;
 
@@ -9,9 +22,12 @@ function Player(x, y){
 	this.position.y = y;
 	
 	window._player = this;
+	game.addObject( new Hud() );
 	
+	this.health = 100;
 	this.sprite = game.sprites.player;
 	this._ani = 0;
+	this.team = 1;
 }
 Player.prototype.update = function(){
 	var speed = 2.5;
@@ -34,7 +50,8 @@ Player.prototype.update = function(){
 		this.parent.addObject( new Bullet( 
 			this.position.x,
 			this.position.y,
-			mouse_angle-Math.PI
+			mouse_angle-Math.PI,
+			this.team
 		) );
 	}
 	
@@ -53,6 +70,10 @@ Player.prototype.update = function(){
 	
 	this.parent.camera.x = this.position.x;
 	this.parent.camera.y = this.position.y;
+	
+	if ( this.health < 1 ) {
+		game.removeObject( this );
+	}
 }
 
 Zombie.prototype = new GameObject();
@@ -62,68 +83,126 @@ function Zombie(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
+	this.width = 30;
+	this.height = 30;
+	this.speed = 1.5;
 	
-	this.sprite = game.sprites.player;
+	this.sprite = game.sprites.bullman;
 	this._ani = 0;
 	this.health = 100;
+	this.team = 2;
+	
+	this.attack_charge = 0;
 }
 Zombie.prototype.update = function() {
 	var angle_to_player = Math.atan2(
 		this.position.x - _player.position.x,
 		this.position.y - _player.position.y
 	);
-	if ( this.heath > 0 ) {
-		game.c_move( this, 
-			-Math.sin( angle_to_player ),
-			-Math.cos( angle_to_player )
-		);
-		
-		var overlap = game.overlap( this );
-		for( var i = 0; i < overlap.length; i++ ){
-			if ( overlap[i] instanceof Player ) {
-				game.removeObject( overlap[i] );
+	if ( this.health > 0 ) {
+		if ( this.position.distance( _player.position ) < 24 || this.attack_charge > 0 ) {
+			//Warming a melee attack
+			this.attack_charge++;
+			if ( this.attack_charge > 20 ) {
+				bullet = new Bullet( 
+					this.position.x, 
+					this.position.y,
+					angle_to_player-Math.PI,
+					this.team
+				);
+				bullet.age = 10;
+				bullet.damage = 10;
+				game.addObject( bullet );
+				this.attack_charge = 0;
 			}
+		} else {
+			this.attack_charge = 0;
+			
+			game.c_move( this, 
+				-Math.sin( angle_to_player ) * this.speed,
+				-Math.cos( angle_to_player ) * this.speed
+			);
 		}
 		
-		this.frame_row = Math.floor( ( (2*Math.PI) - ( angle_to_player + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
-		this.frame_row %= 8;
+		this._ani++;
+		this.frame = Math.floor( this._ani * 0.2 ) % 4;
+		//this.frame_row = Math.floor( ( (2*Math.PI) - ( angle_to_player + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
+		//this.frame_row %= 8;
 	
 	} else { 
 		game.removeObject( this );
 	}
 }
 
-
-Bullet.prototype = new GameObject();
-Bullet.prototype.constructor = GameObject;
-function Bullet(x, y, angle){
+ZombieSpawner.prototype = new GameObject();
+ZombieSpawner.prototype.constructor = GameObject;
+function ZombieSpawner(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 4;
-	this.height = 4;
+	this.width = 40;
+	this.height = 40;
 	
+	this.sprite = game.sprites.spawner;
+	this.health = 300;
+	this.time = 0;
+	this.team = 2;
+}
+ZombieSpawner.prototype.update = function(){
+	if ( this.health > 0 ) {
+		if ( window._player instanceof Player ) {
+			if( this.time < 0 ) {
+				this.time = 900;
+				temp = new Zombie( this.position.x, this.position.y + 32 );
+				game.addObject( temp );
+			}
+			if ( window._player.health > 0 ) {
+				this.time--;
+			}
+		}
+	} else {
+		this.frame_row = 1;
+		this.team = 0;
+	}
+}
+
+Bullet.prototype = new GameObject();
+Bullet.prototype.constructor = GameObject;
+function Bullet(x, y, angle, team){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 8;
+	this.height = 8;
+	
+	this.damage = 20;
 	this.angle = angle;
 	this.speed = 5.0;
-	this.age = 0;
+	this.age = 40;
+	this.team = team || 1;
 }
 Bullet.prototype.oncollide = function(){
 	this.parent.removeObject( this );
 }
 Bullet.prototype.update = function(){
-	this.age++;
+	this.age--;
 	game.c_move( this,
 		this.speed * Math.sin( this.angle ),
 		this.speed * Math.cos( this.angle )
 	);
-	if( this.age > 100 ){
+	if( this.age < 1 ){
 		this.parent.removeObject( this );
 	} else {
 		var overlap = game.overlap( this );
 		for( var i = 0; i < overlap.length; i++ ){
-			if ( overlap[i] instanceof Zombie ) {
-				game.removeObject( overlap[i] );
+			if ( overlap[i].team != undefined && overlap[i].team > 0 && overlap[i].team != this.team ) {
+				overlap[i].health -= this.damage;
+				game.c_move( overlap[i], 
+					Math.sin( this.angle ) * 10, 
+					Math.cos( this.angle ) * 10 
+				);
 				game.removeObject( this );
+				break;
 			}
 		}
 	}
@@ -142,18 +221,22 @@ Bullet.prototype.render = function(g, camera){
 Prop.prototype = new GameObject();
 Prop.prototype.constructor = GameObject;
 
-function Prop(sprite){
+function Prop(x,y,sprite){
 	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
 	this.sprite = sprite;
+	this.zIndex = -9999;
 }
 
-Tree.prototype = new Prop();
+Tree.prototype = new GameObject();
 Tree.prototype.constructor = GameObject;
-function Tree() {
+function Tree(x,y) {
 	this.constructor();
-	//replace div with image
+	
+	this.position.x = x;
+	this.position.y = y;
 	this.sprite = game.sprites.tree_trunk_ash;
-	//this.trunk.src = "/img/tree_trunk_ash.png";
 	
 	this.brushes = [];
 	var positions = [

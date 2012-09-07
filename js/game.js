@@ -17,7 +17,12 @@ window.onload = function() {
 	window.game.sprites['player'] = new Sprite("/img/dude.png", {offset:new Point(12, 28),width:24,height:32});
 	window.game.sprites['tree_trunk_ash'] = new Sprite("/img/tree_trunk_ash.png", {offset:new Point(14, 145)});
 	window.game.sprites['tree_brush_ash'] = new Sprite("/img/tree_brush_ash.png", {offset:new Point(26, 16)});
-	window.game.sprites['grass_dry'] = new Sprite("/img/grass_dry.png");
+	window.game.sprites['health_bar'] = new Sprite("/img/health_bar.png",{offset:new Point(),width:88,height:16});
+	window.game.sprites['spawner'] = new Sprite("/img/spawner.png",{offset:new Point(20,24),height:48});
+	window.game.sprites['bullman'] = new Sprite("/img/bullman.png",{offset:new Point(20,32),width:40,height:40});
+	
+	window.game.sprites['tile_road'] = new Sprite("/img/tiles/road_center.png");
+	window.game.sprites['tile_grass'] = new Sprite("/img/tiles/grass.png");
 	
 	delete_me_create_map();
 	loop();
@@ -49,12 +54,10 @@ function Sprite(url, options) {
 	this.frame_height = options['height'] || 0;
 }
 Sprite.prototype.imageLoaded = function() {
-	if ( this.frame_width < 1 || this.frame_height < 1 ) {
+	if ( this.frame_width < 1 ) {
 		this.frame_width = this.img.width;
-		this.frame_height = this.img.height;
 	}
-	if ( this.frame_width < 1 || this.frame_height < 1 ) {
-		this.frame_width = this.img.width;
+	if ( this.frame_height < 1 ) {
 		this.frame_height = this.img.height;
 	}
 }
@@ -86,6 +89,7 @@ function Game( elm ) {
 	this.objects = new Array();
 	this.camera = new Point();
 	this.collisions = new Array();
+	this.renderTree;
 	
 	this.element = elm;
 	this.g = elm.getContext('2d');
@@ -108,10 +112,16 @@ window.__time = 0;
 
 Game.prototype.update = function( ) {
 	//Update logic
+	this.renderTree = new SortTree();
+	
 	for ( var i in this.objects ) {
 		if ( this.objects[i] instanceof GameObject ) {
 			var obj = this.objects[i];
 			obj.update();
+			
+			if ( obj.visible ) {
+				this.renderTree.push( obj, obj.zIndex || obj.position.y );
+			}
 		}		
 	}	
 	input.update();
@@ -129,12 +139,13 @@ Game.prototype.update = function( ) {
 }
 
 Game.prototype.render = function( ) {
+	var renderList = this.renderTree.toArray();
 	var camera_center = new Point( this.camera.x - 160, this.camera.y - 120 );
 	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
 	
-	for ( var i in this.objects ) {
-		if ( this.objects[i] instanceof GameObject ) {
-			var obj = this.objects[i];
+	for ( var i in renderList ) {
+		if ( renderList[i] instanceof GameObject ) {
+			var obj = renderList[i];
 			obj.render( this.g, camera_center );
 		}		
 	}
@@ -189,6 +200,7 @@ function GameObject() {
 	this.height = 8;
 	this.frame = 0;
 	this.frame_row = 0;
+	this.zIndex = null;
 	
 	this.visible = true;
 }
@@ -226,6 +238,37 @@ GameObject.prototype.render = function( g, camera ){
 }
 GameObject.prototype.assignParent = function ( parent ) {
 	this.parent = parent;
+}
+
+function SortTree() {
+	//For sorting objects
+	this.object = null;
+	this.value = 0;
+	this.lower = null;
+	this.higher = null;
+}
+SortTree.prototype.push = function(object, value){
+	if (this.object == null ){
+		this.object = object;
+		this.value = value;
+	} else if ( value > this.value ) {
+		if ( this.higher == null ) { this.higher = new SortTree(); }
+		this.higher.push( object, value );
+	} else {
+		if ( this.lower == null ) { this.lower = new SortTree(); }
+		this.lower.push( object, value );
+	}
+}
+SortTree.prototype.toArray = function(){
+	var out = [];
+	if ( this.lower instanceof SortTree ) {
+		out = out.concat( this.lower.toArray() );
+	}
+	out = out.concat( [ this.object ] );
+	if ( this.higher instanceof SortTree ) {
+		out = out.concat( this.higher.toArray() );
+	}
+	return out;
 }
 
 Array.prototype.remove = function(from, to) {
