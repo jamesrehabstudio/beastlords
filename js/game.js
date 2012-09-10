@@ -12,18 +12,8 @@ window.onload = function() {
 		window.oRequestAnimationFrame      || 
 		window.msRequestAnimationFrame     || 
 		null;
-		
-	//load sprites
-	window.game.sprites['player'] = new Sprite("/img/dude.png", {offset:new Point(12, 28),width:24,height:32});
-	window.game.sprites['tree_trunk_ash'] = new Sprite("/img/tree_trunk_ash.png", {offset:new Point(14, 145)});
-	window.game.sprites['tree_brush_ash'] = new Sprite("/img/tree_brush_ash.png", {offset:new Point(26, 16)});
-	window.game.sprites['health_bar'] = new Sprite("/img/health_bar.png",{offset:new Point(),width:88,height:16});
-	window.game.sprites['spawner'] = new Sprite("/img/spawner.png",{offset:new Point(20,24),height:48});
-	window.game.sprites['bullman'] = new Sprite("/img/bullman.png",{offset:new Point(20,32),width:40,height:40});
 	
-	window.game.sprites['tile_road'] = new Sprite("/img/tiles/road_center.png");
-	window.game.sprites['tile_grass'] = new Sprite("/img/tiles/grass.png");
-	
+	load_sprites();
 	delete_me_create_map();
 	loop();
 }

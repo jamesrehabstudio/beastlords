@@ -1,0 +1,117 @@
+<html>
+<head>
+	<style>*{margin:0;padding:0;} </style>
+	<script>
+function World(){
+	this.things = new Array();
+	this.lines = new Array();
+}
+
+render = function() {
+	
+	for(var i = 0; i < world.things.length; i++) {
+		t = world.things[i];
+		t.sprite.render(g, t.position );
+	}
+		
+}
+
+window.onkeydown = function(e){
+	if ( e.keyCode == 45 ) {
+		temp = {
+			sprite : sprites.tile_grass,
+			position: new Point( mouse_x, mouse_y ),
+			isOver : function( p ){ 
+				var out = (
+				p.x > this.position.x && p.y > this.position.y &&
+				p.x < this.position.x + 32 && p.y < this.position.y + 32 );
+				return out;
+			}
+		};
+		world.things.push( temp );
+		render();
+	}
+}
+
+var canvas, g;
+var mouse_x, mouse_y;
+var selected_thing = null;
+window.onload = function(){
+	canvas = document.getElementById( 'canvas' );
+	g = canvas.getContext('2d');
+	window.world = new World();
+	
+	canvas.onmousemove = function(e){
+		mouse_x = e.clientX;
+		mouse_y = e.clientY;
+	}
+	canvas.onclick = function(e){
+		mouse = new Point( mouse_x, mouse_y );
+		for( var i=0; i < world.things.length; i++ ) {
+			console.log( world.things[i].position );
+			console.log( mouse );
+			if ( world.things[i].isOver( mouse ) ) {
+				selected_thing = world.things[i];
+				console.log( selected_thing );
+				break;
+			}
+		}
+		return false;
+	}
+	
+	load_sprites();
+}
+
+function Sprite(url, options) {
+	options = options || {};
+	
+	var offset = options['offset'] || new Point();
+	
+	this.img = new Image();
+	this.img.src = url;
+	this.img.sprite = this;
+	this.img.onload = function(){ this.sprite.imageLoaded(); }
+	this.offset = offset;
+	
+	this.frame_width = options['width'] || 0;
+	this.frame_height = options['height'] || 0;
+}
+Sprite.prototype.imageLoaded = function() {
+	if ( this.frame_width < 1 ) {
+		this.frame_width = this.img.width;
+	}
+	if ( this.frame_height < 1 ) {
+		this.frame_height = this.img.height;
+	}
+}
+Sprite.prototype.render = function( g, pos, frame, row ) {
+	frame = frame || 0;
+	row = row || 0;
+	
+	var x_off = frame * this.frame_width;
+	var y_off = row * this.frame_height;
+
+	g.drawImage( 
+		this.img, 
+		x_off, y_off, 
+		this.frame_width, 
+		this.frame_height,
+		pos.x - this.offset.x,
+		pos.y - this.offset.y,
+		this.frame_width,
+		this.frame_height
+		
+	);
+}
+	</script>
+	<script src="polygons.js"></script>
+	<script src="data.js"></script>
+</head>
+<body>
+	<canvas id="canvas" width="1200" height="1200" style="background:#FED"></canvas>
+	<div>
+		<label for="grid_snap">Grid Snap</label>
+		<input type="text" id="grid_snap" />
+	</div>
+</body>
+</html>	

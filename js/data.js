@@ -22,12 +22,12 @@ function delete_me_create_map () {
 	var size = 7;
 	for( x = -size; x < size; x++ ) {
 		for( y = -size; y < size; y++ ) {
-			game.addObject( new Prop(x*prop_size,y*prop_size, game.sprites.tile_grass) );
+			game.addObject( new Prop(x*prop_size,y*prop_size, sprites.tile_grass) );
 		}
 	}
 	
 	for( y = -size; y < size; y++ ){
-		temp = new Prop(-168,y*prop_size, game.sprites.tile_road);
+		temp = new Prop(-168,y*prop_size, sprites.tile_road);
 		temp.zIndex = -9998;
 		game.addObject( temp );
 	}
@@ -46,6 +46,20 @@ function delete_me_create_map () {
 	game.collisions.push( new Line( new Point( 800, 800 ), new Point( -800, 800 ) ) );
 	game.collisions.push( new Line( new Point( -800, 800 ), new Point( -800, -800 ) ) );
 	
+}
+
+var sprites = {}
+
+function load_sprites (){
+	sprites['player'] = new Sprite("/img/dude.png", {offset:new Point(12, 28),width:24,height:32});
+	sprites['tree_trunk_ash'] = new Sprite("/img/tree_trunk_ash.png", {offset:new Point(14, 145)});
+	sprites['tree_brush_ash'] = new Sprite("/img/tree_brush_ash.png", {offset:new Point(26, 16)});
+	sprites['health_bar'] = new Sprite("/img/health_bar.png",{offset:new Point(),width:88,height:16});
+	sprites['spawner'] = new Sprite("/img/spawner.png",{offset:new Point(20,24),height:48});
+	sprites['bullman'] = new Sprite("/img/bullman.png",{offset:new Point(20,32),width:40,height:40});
+
+	sprites['tile_road'] = new Sprite("/img/tiles/road_center.png");
+	sprites['tile_grass'] = new Sprite("/img/tiles/grass.png");
 }
 
 function _randompos(){

@@ -10,7 +10,7 @@ function Hud(){
 Hud.prototype.render = function(g, camera){	
 	var health = _player.health || 0;
 	health = Math.max( 10 - Math.floor( health / 10 ) , 0 );
-	game.sprites.health_bar.render(g, new Point(0,224), 0, health );
+	sprites.health_bar.render(g, new Point(0,224), 0, health );
 }
 
 Player.prototype = new GameObject();
@@ -25,7 +25,7 @@ function Player(x, y){
 	game.addObject( new Hud() );
 	
 	this.health = 100;
-	this.sprite = game.sprites.player;
+	this.sprite = sprites.player;
 	this._ani = 0;
 	this.team = 1;
 }
@@ -87,7 +87,7 @@ function Zombie(x, y){
 	this.height = 30;
 	this.speed = 1.5;
 	
-	this.sprite = game.sprites.bullman;
+	this.sprite = sprites.bullman;
 	this._ani = 0;
 	this.health = 100;
 	this.team = 2;
@@ -143,7 +143,7 @@ function ZombieSpawner(x, y){
 	this.width = 40;
 	this.height = 40;
 	
-	this.sprite = game.sprites.spawner;
+	this.sprite = sprites.spawner;
 	this.health = 300;
 	this.time = 0;
 	this.team = 2;
@@ -236,7 +236,7 @@ function Tree(x,y) {
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = game.sprites.tree_trunk_ash;
+	this.sprite = sprites.tree_trunk_ash;
 	
 	this.brushes = [];
 	var positions = [
@@ -265,7 +265,7 @@ function Tree(x,y) {
 	window.__wind = window.__wind || 0.002;
 	for ( var i = 0; i < positions.length; i++  ) {
 		temp = {}
-		temp.sprite = game.sprites.tree_brush_ash;
+		temp.sprite = sprites.tree_brush_ash;
 		
 		var thickness = Math.floor( 5 - (i * 0.4) );
 		
