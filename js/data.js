@@ -2,12 +2,15 @@ function DataManager() {
 	//Main pipeline for level assests
 }
 
-DataManager.prototype.getLevel = function( callback, context ) {
-	/*
-	$.ajax( {
-		url : ""
-	} );
-	*/
+DataManager.prototype.getLevel = function( callback, context, name ) {
+	$.ajax({
+		url: "/save.php",
+		type : "GET",
+		data : { name : name },
+		contentType : "JSON",
+		success: callback
+	})
+	
 }
 
 function delete_me_create_map () {
@@ -60,6 +63,10 @@ function load_sprites (){
 
 	sprites['tile_road'] = new Sprite("/img/tiles/road_center.png");
 	sprites['tile_grass'] = new Sprite("/img/tiles/grass.png");
+	
+	for( var i in sprites ) {
+		sprites[i].name = i;
+	}
 }
 
 function _randompos(){

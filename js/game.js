@@ -1,22 +1,5 @@
 var game, data, input;
 
-window.onload = function() {
-	window.game = new Game( document.getElementById( 'game' ) );
-	window.data = new DataManager();
-	window.input = new Input();
-	
-	window.requestAnimationFrame = 
-		window.requestAnimationFrame       || 
-		window.webkitRequestAnimationFrame || 
-		window.mozRequestAnimationFrame    || 
-		window.oRequestAnimationFrame      || 
-		window.msRequestAnimationFrame     || 
-		null;
-	
-	load_sprites();
-	delete_me_create_map();
-	loop();
-}
 function loop() {
 	game.update();
 	
@@ -42,6 +25,8 @@ function Sprite(url, options) {
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
+	
+	this.name = "";
 }
 Sprite.prototype.imageLoaded = function() {
 	if ( this.frame_width < 1 ) {
@@ -74,7 +59,7 @@ Sprite.prototype.render = function( g, pos, frame, row ) {
 /* MAIN GAME OBJECT */
 
 function Game( elm ) {
-	this.queues = new QueueManager();
+	//this.queues = new QueueManager();
 	
 	this.objects = new Array();
 	this.camera = new Point();
@@ -114,7 +99,8 @@ Game.prototype.update = function( ) {
 			}
 		}		
 	}	
-	input.update();
+	
+	if ( input != undefined ) { input.update(); }
 	window.__time++;
 	window.__wind = 0.2 * Math.abs( Math.sin( window.__time * 0.003 ) * Math.sin( window.__time * 0.007 ) );
 

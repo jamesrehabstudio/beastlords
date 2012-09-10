@@ -1,117 +1,275 @@
 <html>
 <head>
-	<style>*{margin:0;padding:0;} </style>
-	<script>
-function World(){
-	this.things = new Array();
-	this.lines = new Array();
-}
-
-render = function() {
+	<style>
+		*{margin:0;padding:0;} 
+		body { 
+			font-family:arial; 
+			font-size:12px;
+		}
+		#menu {
+			position:fixed;
+			width:180px;
+			height:100%;
+			background:#ADCCFF;
+			padding:10px;
+		}
+		#menu .input {
+			margin-bottom:10px;
+		}
+		
+		#tile_select {
+			background:#FFF;
+			height:180px;
+			border:1px solid #AAA;
+			overflow:auto;
+			padding:10px;
+		}
+		#tile_select li {
+			float:left;
+			width:24px;
+			height:32px;
+			border:1px solid #AAA;
+			margin:0 5px 5px 0;
+			padding:4px;
+			cursor:pointer;
+		}
+		#tile_select li img {
+			width:24px;
+			max-height:32px;
+		}
+		#tile_select li.active {
+			border:1px solid #FD0;
+		}
+		
+		#menu .area {
+			border:1px solid #AAA;
+			background:#FFF;
+			padding:20px 10px 10px;
+			position:relative;
+			margin-bottom:10px;
+		}
+		#menu .area h2 {
+			border:1px solid #AAA;
+			background:#FFF;
+			padding:5px;
+			font-size:12px;
+			position:absolute;
+			top:-10px;
+		}	
 	
-	for(var i = 0; i < world.things.length; i++) {
-		t = world.things[i];
-		t.sprite.render(g, t.position );
+	</style>
+	<script src="polygons.js"></script>
+	<script src="data.js"></script>
+	<script src="game.js"></script>
+	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+	<script>
+render = function() {
+	world.update();
+	
+	if ( selected_thing ) {
+		world.g.setStrokeColor( "#FF0000" );
+		world.g.strokeRect( 
+			selected_thing.position.x - selected_thing.sprite.offset.x,
+			selected_thing.position.y - selected_thing.sprite.offset.y,
+			selected_thing.sprite.frame_width,
+			selected_thing.sprite.frame_height
+		);
 	}
 		
+}
+
+save = function(){
+	var name = document.getElementById('map_name').value;
+	document.getElementById('save_button').value = "Saving";
+
+	var objects = "";
+	for( var i=0; i<world.objects.length;i++){
+		obj = world.objects[i];
+		objects += '{"x":'+obj.position.x+',';
+		objects += '"y":'+obj.position.y+',';
+		objects += '"type":"'+obj.type+'",';
+		objects += '"sprite":"'+obj.sprite.name+'"},';
+	}
+	objects = objects.substr(0,objects.length-1);
+	
+	var lines = "";
+	for( var i=0; i<world.collisions.length;i++){
+		line = world.collisions[i];
+		lines += '{"start_x":'+line.start.x+',';
+		lines += '"start_y":'+line.start.y+',';
+		lines += '"end_y":'+line.end.x+',';
+		lines += '"end_y":'+line.end.y+'},';
+	}
+	lines = lines.substr(0,lines.length-1);
+	out = '{"data":{"name":"'+name+'","objects":['+objects+'],"collisions":['+lines+']}}';
+	
+	$.ajax( {
+		"url":"/save.php",
+		"type":"POST",
+		"data": { "name":name,data:out },
+		complete : function() {
+			document.getElementById('save_button').value = "Save";
+		}
+	} )
 }
 
 window.onkeydown = function(e){
 	if ( e.keyCode == 45 ) {
-		temp = {
-			sprite : sprites.tile_grass,
-			position: new Point( mouse_x, mouse_y ),
-			isOver : function( p ){ 
-				var out = (
-				p.x > this.position.x && p.y > this.position.y &&
-				p.x < this.position.x + 32 && p.y < this.position.y + 32 );
-				return out;
-			}
-		};
-		world.things.push( temp );
-		render();
+		if ( selected_sprite != null ) {
+			temp = new GameObject();
+			temp.position.x = mouse_snap_x;
+			temp.position.y = mouse_snap_y;
+			temp.sprite = selected_sprite;
+			temp.type = "prop";
+			world.addObject( temp );
+			render();
+		}
 	}
 }
 
 var canvas, g;
+var world;
 var mouse_x, mouse_y;
+var mouse_snap_x, mouse_snap_y
 var selected_thing = null;
+var selected_sprite = null;
+var type_field;
+
 window.onload = function(){
 	canvas = document.getElementById( 'canvas' );
-	g = canvas.getContext('2d');
-	window.world = new World();
+	type_field = document.getElementById( 'thing_type' );
+	
+	dataManager = new DataManager();
+	window.world = new Game( canvas );
+	window.world.camera.x = 160;
+	window.world.camera.y = 120;
+	load_sprites();
+	
+	//add sprites to sprite_select
+	sprite_select = document.getElementById( 'tile_select' );
+	for( var i in sprites ) {
+		var temp = document.createElement('li');
+		var image = document.createElement('img');
+		image.src = sprites[i].img.src;
+		temp.sprite = sprites[i];
+		temp.appendChild( image );
+		temp.onclick = function(e){
+			window.selected_sprite = this.sprite;
+			$('#tile_select li').removeClass('active');
+			$(this).addClass('active');
+			return false;
+		}
+		sprite_select.appendChild( temp );
+	}
 	
 	canvas.onmousemove = function(e){
-		mouse_x = e.clientX;
-		mouse_y = e.clientY;
+		mouse_x = e.pageX;
+		mouse_y = e.pageY;
+		
+		var snap = Math.max( document.getElementById( 'grid_snap' ).value, 1 );
+		mouse_snap_x = Math.floor( mouse_x / snap ) * snap;
+		mouse_snap_y = Math.floor( mouse_y/ snap ) * snap;
+		
+		if ( window.drag && selected_thing ) {
+			selected_thing.position.x = Math.floor( (mouse_x - drag.x) / snap ) * snap ;
+			selected_thing.position.y = Math.floor( (mouse_y - drag.y) / snap ) * snap ;
+			render();
+		}
 	}
-	canvas.onclick = function(e){
+	canvas.onmouseup = canvas.onblur = function(e){
+		window.drag = false;
+	};
+	canvas.onmousedown = function(e){
+		type_field.onchange();
+		
 		mouse = new Point( mouse_x, mouse_y );
-		for( var i=0; i < world.things.length; i++ ) {
-			console.log( world.things[i].position );
-			console.log( mouse );
-			if ( world.things[i].isOver( mouse ) ) {
-				selected_thing = world.things[i];
-				console.log( selected_thing );
-				break;
+		largest_zIndex = -Math.pow( 10, 10 );
+		for( var i=0; i < world.objects.length; i++ ) {
+			var object =  world.objects[i]
+			var zIndex = object.zIndex || object.position.y;
+			if ( object.isOver( mouse ) && zIndex > largest_zIndex ) {
+				selected_thing = object;
+				render();
+				window.drag = new Point(
+					mouse_x - ( object.position.x - object.sprite.offset.x ),
+					mouse_y - ( object.position.y - object.sprite.offset.y )
+				);
+				largest_zIndex = zIndex;
 			}
+		}
+		
+		if ( selected_thing ) {
+			type_field.value = selected_thing.type;
 		}
 		return false;
 	}
-	
-	load_sprites();
+	type_field.onchange = function(e){
+		if ( selected_thing ){
+			selected_thing.type = this.value;
+		}
+	}
+	document.getElementById('load_button').onclick = function(){
+		var map = prompt("Enter map name");
+		if ( map ) {
+			dataManager.getLevel( function( res ) {
+				window.world = new Game( canvas );
+				window.world.camera.x = 160;
+				window.world.camera.y = 120;
+				
+				for( var i = 0; i < res.data.objects.length; i++ ){
+					temp = new GameObject();
+					temp.position.x = res.data.objects[i].x;
+					temp.position.y = res.data.objects[i].y;
+					temp.sprite = sprites[ res.data.objects[i].sprite ];
+					window.world.addObject( temp );
+				}
+				
+				document.getElementById('map_name').value = res.data.name;
+				render();
+			}, window, map );
+		}
+		document.getElementById('save_button').onclick = save;
+	}
 }
 
-function Sprite(url, options) {
-	options = options || {};
-	
-	var offset = options['offset'] || new Point();
-	
-	this.img = new Image();
-	this.img.src = url;
-	this.img.sprite = this;
-	this.img.onload = function(){ this.sprite.imageLoaded(); }
-	this.offset = offset;
-	
-	this.frame_width = options['width'] || 0;
-	this.frame_height = options['height'] || 0;
-}
-Sprite.prototype.imageLoaded = function() {
-	if ( this.frame_width < 1 ) {
-		this.frame_width = this.img.width;
-	}
-	if ( this.frame_height < 1 ) {
-		this.frame_height = this.img.height;
-	}
-}
-Sprite.prototype.render = function( g, pos, frame, row ) {
-	frame = frame || 0;
-	row = row || 0;
-	
-	var x_off = frame * this.frame_width;
-	var y_off = row * this.frame_height;
-
-	g.drawImage( 
-		this.img, 
-		x_off, y_off, 
-		this.frame_width, 
-		this.frame_height,
-		pos.x - this.offset.x,
-		pos.y - this.offset.y,
-		this.frame_width,
-		this.frame_height
-		
-	);
+GameObject.prototype.isOver = function( p ){ 
+	var out = (
+	p.x > this.position.x - this.sprite.offset.x && 
+	p.y > this.position.y - this.sprite.offset.y &&
+	p.x < this.position.x + this.sprite.frame_width && 
+	p.y < this.position.y + this.sprite.frame_height );
+	return out;
 }
 	</script>
-	<script src="polygons.js"></script>
-	<script src="data.js"></script>
 </head>
 <body>
-	<canvas id="canvas" width="1200" height="1200" style="background:#FED"></canvas>
-	<div>
-		<label for="grid_snap">Grid Snap</label>
-		<input type="text" id="grid_snap" />
+	<div id="menu">
+		<div class="input">
+			<label for="grid_snap">Grid Snap</label>
+			<input type="text" id="grid_snap" />
+		</div>
+		
+		<div class="input">
+			<label>Tile Select</label>
+			<ul id="tile_select"></ul>
+		</div>
+		
+		<div class="area">
+			<h2>Selected</h2>
+			<label>Type</label>
+			<input type="text" id="thing_type" name="type" />
+		</div>
+		<div class="area">
+			<h2>File</h2>
+			<div class="input">
+				<label>Map name</label>
+				<input type="text" id="map_name" value="" />
+			</div>
+			
+			<input type="submit" id="load_button" value="Load" />
+			<input type="submit" id="save_button" value="Save" />
+		</div>
 	</div>
+	<canvas id="canvas" width="1200" height="1200" style="background:#FED"></canvas>
 </body>
 </html>	
