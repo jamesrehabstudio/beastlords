@@ -63,14 +63,22 @@
 	<script src="game.js"></script>
 	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 	<script>
+window.onresize = function() {
+	if ( world != undefined ) {
+		world.g.canvas.width  = window.innerWidth;
+		world.g.canvas.height = window.innerHeight;
+		render();
+	}
+}
+	
 render = function() {
 	world.update();
 	
 	if ( selected_thing ) {
 		world.g.setStrokeColor( "#FF0000" );
 		world.g.strokeRect( 
-			selected_thing.position.x - selected_thing.sprite.offset.x,
-			selected_thing.position.y - selected_thing.sprite.offset.y,
+			( selected_thing.position.x - selected_thing.sprite.offset.x ) - ( world.camera.x - 160 ),
+			( selected_thing.position.y - selected_thing.sprite.offset.y ) - ( world.camera.y - 120 ),
 			selected_thing.sprite.frame_width,
 			selected_thing.sprite.frame_height
 		);
@@ -97,7 +105,7 @@ save = function(){
 		line = world.collisions[i];
 		lines += '{"start_x":'+line.start.x+',';
 		lines += '"start_y":'+line.start.y+',';
-		lines += '"end_y":'+line.end.x+',';
+		lines += '"end_x":'+line.end.x+',';
 		lines += '"end_y":'+line.end.y+'},';
 	}
 	lines = lines.substr(0,lines.length-1);
@@ -114,26 +122,58 @@ save = function(){
 }
 
 window.onkeydown = function(e){
+	//console.log( e.keyCode );
 	if ( e.keyCode == 45 ) {
-		if ( selected_sprite != null ) {
-			temp = new GameObject();
-			temp.position.x = mouse_snap_x;
-			temp.position.y = mouse_snap_y;
-			temp.sprite = selected_sprite;
-			temp.type = "prop";
-			world.addObject( temp );
-			render();
+		if ( mode == 0 ) {
+			if ( selected_sprite != null ) {
+				temp = new GameObject();
+				temp.position.x = mouse_snap_x;
+				temp.position.y = mouse_snap_y;
+				temp.sprite = selected_sprite;
+				temp.type = "Prop";
+				world.addObject( temp );
+				selected_thing = temp;
+				render();
+			}
+		} else {
+			temp = new Line(
+				new Point(mouse_snap_x,mouse_snap_y),
+				new Point(mouse_snap_x,mouse_snap_y) );
+			selected_line = temp;
+			selected_line_side = 2;
+			world.collisions.push( temp );
 		}
+	} else if ( e.keyCode == 46 ) {
+		if ( selected_sprite != null ) {
+			if ( selected_thing ) {
+				world.objects.remove( world.objects.indexOf( selected_thing ) );
+				selected_thing = null;
+				render();
+			}
+		}
+	} else if ( e.keyCode == 17 ) {
+		camera_drag = new Point( world.camera.x + abs_x, world.camera.y + abs_y );
+	}
+}
+window.onkeyup = window.onblur = function(e){
+	if( e instanceof KeyboardEvent ) {
+		if ( e.keyCode == 17 ) { camera_drag = false; }
+	} else {
+		camera_drag = false;
 	}
 }
 
 var canvas, g;
 var world;
+var abs_x, abs_y;
 var mouse_x, mouse_y;
 var mouse_snap_x, mouse_snap_y
 var selected_thing = null;
 var selected_sprite = null;
+var camera_drag = false;
 var type_field;
+var mode = 0;
+var selected_line, selected_line_side;
 
 window.onload = function(){
 	canvas = document.getElementById( 'canvas' );
@@ -163,38 +203,56 @@ window.onload = function(){
 	}
 	
 	canvas.onmousemove = function(e){
-		mouse_x = e.pageX;
-		mouse_y = e.pageY;
+		abs_x = e.pageX;
+		abs_y = e.pageY;
+		mouse_x = abs_x + world.camera.x - 160;
+		mouse_y = abs_y + world.camera.y - 120;
+		
+		if ( camera_drag instanceof Point ) {
+			world.camera.x = camera_drag.x - abs_x;
+			world.camera.y = camera_drag.y - abs_y;
+			render();
+			return false;
+		}
 		
 		var snap = Math.max( document.getElementById( 'grid_snap' ).value, 1 );
 		mouse_snap_x = Math.floor( mouse_x / snap ) * snap;
-		mouse_snap_y = Math.floor( mouse_y/ snap ) * snap;
+		mouse_snap_y = Math.floor( mouse_y / snap ) * snap;
 		
 		if ( window.drag && selected_thing ) {
-			selected_thing.position.x = Math.floor( (mouse_x - drag.x) / snap ) * snap ;
-			selected_thing.position.y = Math.floor( (mouse_y - drag.y) / snap ) * snap ;
+			selected_thing.position.x = Math.floor( (mouse_x - drag.x) / snap ) * snap;
+			selected_thing.position.y = Math.floor( (mouse_y - drag.y) / snap ) * snap;
+			render();
+		}
+		if ( window.selected_line && window.selected_line_side ) {
+			var _side = window.selected_line_side == 1 ? 'start' : 'end';
+			selected_line[_side].x = mouse_snap_x;
+			selected_line[_side].y = mouse_snap_y;
 			render();
 		}
 	}
 	canvas.onmouseup = canvas.onblur = function(e){
 		window.drag = false;
+		window.selected_line_side = false;
 	};
 	canvas.onmousedown = function(e){
 		type_field.onchange();
-		
 		mouse = new Point( mouse_x, mouse_y );
-		largest_zIndex = -Math.pow( 10, 10 );
-		for( var i=0; i < world.objects.length; i++ ) {
-			var object =  world.objects[i]
-			var zIndex = object.zIndex || object.position.y;
-			if ( object.isOver( mouse ) && zIndex > largest_zIndex ) {
-				selected_thing = object;
-				render();
-				window.drag = new Point(
-					mouse_x - ( object.position.x - object.sprite.offset.x ),
-					mouse_y - ( object.position.y - object.sprite.offset.y )
-				);
-				largest_zIndex = zIndex;
+		
+		if( mode == 0 ){
+			largest_zIndex = -Math.pow( 10, 10 );
+			for( var i=0; i < world.objects.length; i++ ) {
+				var object =  world.objects[i]
+				var zIndex = object.zIndex || object.position.y;
+				if ( object.isOver( mouse ) && zIndex > largest_zIndex ) {
+					selected_thing = object;
+					render();
+					window.drag = new Point(
+						mouse_x - object.position.x,
+						mouse_y - object.position.y
+					);
+					largest_zIndex = zIndex;
+				}
 			}
 		}
 		
@@ -220,16 +278,37 @@ window.onload = function(){
 					temp = new GameObject();
 					temp.position.x = res.data.objects[i].x;
 					temp.position.y = res.data.objects[i].y;
+					temp.type = res.data.objects[i].type;
 					temp.sprite = sprites[ res.data.objects[i].sprite ];
 					window.world.addObject( temp );
+				}
+				
+				for( var i = 0; i < res.data.collisions.length; i++ ){
+					var line = res.data.collisions[i];
+					temp = new Line( 
+						new Point( line.start_x, line.start_y ),
+						new Point( line.end_x, line.end_y )
+					);
+					window.world.collisions.push( temp );
 				}
 				
 				document.getElementById('map_name').value = res.data.name;
 				render();
 			}, window, map );
 		}
-		document.getElementById('save_button').onclick = save;
 	}
+	
+	document.getElementById('save_button').onclick = save;
+	
+	document.getElementById('toggle_mode').onclick = function(){
+		if ( mode > 0 ) {
+			mode = 0;
+			this.value = "Prop Mode";
+		} else {
+			mode = 1;
+			this.value = "Line Mode";
+		}
+	};
 }
 
 GameObject.prototype.isOver = function( p ){ 
@@ -248,10 +327,18 @@ GameObject.prototype.isOver = function( p ){
 			<label for="grid_snap">Grid Snap</label>
 			<input type="text" id="grid_snap" />
 		</div>
+		<div class="input">
+			<label for="toggle_mode">Mode</label>
+			<input type="button" id="toggle_mode" value="Prop Mode" />
+		</div>
 		
 		<div class="input">
 			<label>Tile Select</label>
 			<ul id="tile_select"></ul>
+		</div>
+		<div class="input">
+			<label>Filter</label>
+			<input type="text" id="tile_filter" />
 		</div>
 		
 		<div class="area">
