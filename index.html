@@ -22,8 +22,7 @@
 	
 	<script>
 	window.onload = function() {
-		window.game = new Game( document.getElementById( 'game' ) );
-		window.data = new DataManager();
+		window.dataManger = new DataManager();
 		window.input = new Input();
 		
 		window.requestAnimationFrame = 
@@ -35,8 +34,32 @@
 			null;
 		
 		load_sprites();
-		delete_me_create_map();
-		loop();
+		
+		dataManger.getLevel(function( res ){
+			window.game = new Game( document.getElementById( 'game' ) );
+			
+			for( var i = 0; i < res.data.objects.length; i++ ){
+				obj = res.data.objects[i];
+				if ( window[obj.type] instanceof Function ) {
+					temp = new window[obj.type]();
+					temp.position.x = res.data.objects[i].x;
+					temp.position.y = res.data.objects[i].y;
+					temp.sprite = sprites[ res.data.objects[i].sprite ];
+					window.game.addObject( temp );
+				}
+			}
+			
+			for( var i = 0; i < res.data.collisions.length; i++ ){
+				var line = res.data.collisions[i];
+				temp = new Line( 
+					new Point( line.start_x, line.start_y ),
+					new Point( line.end_x, line.end_y )
+				);
+				window.world.collisions.push( temp );
+			}
+			
+			loop();
+		}, window, "map0001" );
 	}
 	</script>
 </body>

@@ -226,8 +226,9 @@ function Prop(x,y,sprite){
 	this.position.x = x;
 	this.position.y = y;
 	this.sprite = sprite;
-	this.zIndex = -9999;
+	this.zIndex = -99999;
 }
+Prop.prototype.update = function(){ this.zIndex = this.position.y - 99999; }
 
 Tree.prototype = new GameObject();
 Tree.prototype.constructor = GameObject;

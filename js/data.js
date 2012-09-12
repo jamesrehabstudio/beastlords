@@ -61,8 +61,17 @@ function load_sprites (){
 	sprites['spawner'] = new Sprite("/img/spawner.png",{offset:new Point(20,24),height:48});
 	sprites['bullman'] = new Sprite("/img/bullman.png",{offset:new Point(20,32),width:40,height:40});
 
-	sprites['tile_road'] = new Sprite("/img/tiles/road_center.png");
 	sprites['tile_grass'] = new Sprite("/img/tiles/grass.png");
+	sprites['tile_road'] = new Sprite("/img/tiles/road_center.png");
+	sprites['tile_road_parking_h'] = new Sprite("/img/tiles/road_parking_h.png");
+	
+	sprites['tile_electricbox_small'] = new Sprite("/img/tiles/electricbox_small.png",{offset:new Point(0,16)});
+	sprites['tile_stonewall_h'] = new Sprite("/img/tiles/stonewall_h.png",{offset:new Point(0,24)});
+	sprites['tile_stonewall_v'] = new Sprite("/img/tiles/stonewall_v.png",{offset:new Point(0,24)});
+	sprites['cobblestonewall_h'] = new Sprite("/img/tiles/cobblestonewall_h.png",{offset:new Point(0,24)});
+	sprites['cobblestonewall_v'] = new Sprite("/img/tiles/cobblestonewall_v.png",{offset:new Point(0,24)});
+	sprites['manholecover'] = new Sprite("/img/tiles/manholecover.png");
+	
 	
 	for( var i in sprites ) {
 		sprites[i].name = i;
