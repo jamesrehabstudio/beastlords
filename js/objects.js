@@ -6,6 +6,7 @@ Hud.prototype.constructor = GameObject;
 function Hud(){
 	this.constructor();
 	window._hud = this;
+	this.zIndex = 9999;
 }
 Hud.prototype.render = function(g, camera){	
 	var health = _player.health || 0;
@@ -20,6 +21,7 @@ function Player(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
+	this.interactive = true;
 	
 	window._player = this;
 	game.addObject( new Hud() );
@@ -86,6 +88,7 @@ function Zombie(x, y){
 	this.width = 30;
 	this.height = 30;
 	this.speed = 1.5;
+	this.interactive = true;
 	
 	this.sprite = sprites.bullman;
 	this._ani = 0;
@@ -142,6 +145,7 @@ function ZombieSpawner(x, y){
 	this.position.y = y;
 	this.width = 40;
 	this.height = 40;
+	this.interactive = true;
 	
 	this.sprite = sprites.spawner;
 	this.health = 300;
@@ -215,20 +219,29 @@ Bullet.prototype.render = function(g, camera){
 	);
 }
 ///////////////////////////////////////////
-// PROPS
+// PROPS AND TILES
 ///////////////////////////////////////////
 
-Prop.prototype = new GameObject();
-Prop.prototype.constructor = GameObject;
+Tile.prototype = new GameObject();
+Tile.prototype.constructor = GameObject;
 
-function Prop(x,y,sprite){
+function Tile(x,y,sprite){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.sprite = sprite;
 	this.zIndex = -99999;
 }
-Prop.prototype.update = function(){ this.zIndex = this.position.y - 99999; }
+Tile.prototype.update = function(){ this.zIndex = this.position.y - 99999; }
+
+Prop.prototype = new GameObject();
+Prop.prototype.constructor = GameObject;
+function Prop(x,y,sprite){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = sprite;
+}
 
 Tree.prototype = new GameObject();
 Tree.prototype.constructor = GameObject;

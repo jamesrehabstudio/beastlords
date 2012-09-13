@@ -28,8 +28,8 @@ Input.prototype.clearAll = function(e){
 }
 
 Input.prototype.stateMove = function(e){
-	this.mouseCenter.x = e.clientX; 
-	this.mouseCenter.y = e.clientY; 
+	this.mouseCenter.x = e.clientX / 3; 
+	this.mouseCenter.y = e.clientY / 3; 
 }
 
 Input.prototype.state = function( key ) {

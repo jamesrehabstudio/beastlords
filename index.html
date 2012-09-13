@@ -38,6 +38,8 @@
 		dataManger.getLevel(function( res ){
 			window.game = new Game( document.getElementById( 'game' ) );
 			
+			window.game.renderCollisions = false;
+			
 			for( var i = 0; i < res.data.objects.length; i++ ){
 				obj = res.data.objects[i];
 				if ( window[obj.type] instanceof Function ) {

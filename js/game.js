@@ -60,11 +60,16 @@ Sprite.prototype.render = function( g, pos, frame, row ) {
 
 function Game( elm ) {
 	//this.queues = new QueueManager();
+	//Options
+	this.renderCollisions = true;
 	
 	this.objects = new Array();
 	this.camera = new Point();
 	this.collisions = new Array();
+	
+	//Per frame datastructures
 	this.renderTree;
+	this.interactive = new Array();
 	
 	this.element = elm;
 	this.g = elm.getContext('2d');
@@ -88,6 +93,7 @@ window.__time = 0;
 Game.prototype.update = function( ) {
 	//Update logic
 	this.renderTree = new SortTree();
+	var temp_interactive = new Array(); //rebuild Interactive Objects
 	
 	for ( var i in this.objects ) {
 		if ( this.objects[i] instanceof GameObject ) {
@@ -97,14 +103,18 @@ Game.prototype.update = function( ) {
 			if ( obj.visible ) {
 				this.renderTree.push( obj, obj.zIndex || obj.position.y );
 			}
+			if ( obj.interactive ) {
+				temp_interactive.push ( obj );
+			}
 		}		
-	}	
+	}
 	
 	if ( input != undefined ) { input.update(); }
 	window.__time++;
 	window.__wind = 0.2 * Math.abs( Math.sin( window.__time * 0.003 ) * Math.sin( window.__time * 0.007 ) );
 
 	//Cleanup
+	this.interactive = temp_interactive;
 	for( var i = 0; i < this._objectsDeleteList.length; i++) {
 		var index = this.objects.indexOf( this._objectsDeleteList[i] );
 		this.objects.remove( index );
@@ -127,17 +137,19 @@ Game.prototype.render = function( ) {
 	}
 	
 	//Debug, show collisions
-	for ( var i = 0; i < this.collisions.length; i++ ){
-		this.collisions[i].render( this.g, camera_center );
+	if ( this.renderCollisions ) {
+		for ( var i = 0; i < this.collisions.length; i++ ){
+			this.collisions[i].render( this.g, camera_center );
+		}
 	}
 }
 
 Game.prototype.overlap = function( obj ) {
-	//Returns a list of objcets the provided object is currently on top of
+	//Returns a list of objects the provided object is currently on top of
 	var out = new Array();
 	
-	for ( var i = 0; i < this.objects.length; i++ ) {
-		var temp = this.objects[i];
+	for ( var i = 0; i < this.interactive.length; i++ ) {
+		var temp = this.interactive[i];
 		if ( obj != temp ) {
 			if ( obj.intersects( temp ) ){
 				out.push( temp );
@@ -177,6 +189,7 @@ function GameObject() {
 	this.frame = 0;
 	this.frame_row = 0;
 	this.zIndex = null;
+	this.interactive = false;
 	
 	this.visible = true;
 }

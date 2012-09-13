@@ -61,16 +61,37 @@ function load_sprites (){
 	sprites['spawner'] = new Sprite("/img/spawner.png",{offset:new Point(20,24),height:48});
 	sprites['bullman'] = new Sprite("/img/bullman.png",{offset:new Point(20,32),width:40,height:40});
 
-	sprites['tile_grass'] = new Sprite("/img/tiles/grass.png");
 	sprites['tile_road'] = new Sprite("/img/tiles/road_center.png");
 	sprites['tile_road_parking_h'] = new Sprite("/img/tiles/road_parking_h.png");
+	sprites['manholecover'] = new Sprite("/img/tiles/manholecover.png");
+	sprites['pavement_h'] = new Sprite("/img/tiles/pavement_h.png");
+	
+	sprites['tile_grass'] = new Sprite("/img/tiles/grass.png");
+	sprites['grass_ditch1'] = new Sprite("/img/tiles/grass_ditch1.png");
+	sprites['grass_path_v'] = new Sprite("/img/tiles/grass_path_v.png");
+	sprites['grass_pavement1'] = new Sprite("/img/tiles/grass_pavement1.png");
+	sprites['grass_pavement2'] = new Sprite("/img/tiles/grass_pavement2.png");
+	sprites['grass_pavement3'] = new Sprite("/img/tiles/grass_pavement3.png");
+	sprites['grass_pavement4'] = new Sprite("/img/tiles/grass_pavement4.png");
+	sprites['grass_weeds1'] = new Sprite("/img/tiles/grass_weeds1.png");
+	
+	sprites['rock01'] = new Sprite("/img/tiles/rock01.png");
+	sprites['rock02'] = new Sprite("/img/tiles/rock02.png");
+	sprites['rock03'] = new Sprite("/img/tiles/rock03.png");
+	sprites['rock04'] = new Sprite("/img/tiles/rock04.png");
+	sprites['rock05'] = new Sprite("/img/tiles/rock05.png");
+	sprites['rock06'] = new Sprite("/img/tiles/rock06.png");
 	
 	sprites['tile_electricbox_small'] = new Sprite("/img/tiles/electricbox_small.png",{offset:new Point(0,16)});
-	sprites['tile_stonewall_h'] = new Sprite("/img/tiles/stonewall_h.png",{offset:new Point(0,24)});
-	sprites['tile_stonewall_v'] = new Sprite("/img/tiles/stonewall_v.png",{offset:new Point(0,24)});
+	sprites['stonewall_h'] = new Sprite("/img/tiles/stonewall_h.png",{offset:new Point(0,24)});
+	sprites['stonewall_v'] = new Sprite("/img/tiles/stonewall_v.png",{offset:new Point(0,24)});
 	sprites['cobblestonewall_h'] = new Sprite("/img/tiles/cobblestonewall_h.png",{offset:new Point(0,24)});
 	sprites['cobblestonewall_v'] = new Sprite("/img/tiles/cobblestonewall_v.png",{offset:new Point(0,24)});
-	sprites['manholecover'] = new Sprite("/img/tiles/manholecover.png");
+	sprites['ivy_small'] = new Sprite("/img/tiles/ivy_small.png");
+	sprites['picket_fence_h'] = new Sprite("/img/tiles/picket_fence_h.png",{offset:new Point(24,24)});
+	sprites['woodpost1'] = new Sprite("/img/tiles/woodpost1.png",{offset:new Point(3,15)});
+	sprites['woodpost2'] = new Sprite("/img/tiles/woodpost2.png",{offset:new Point(3,15)});
+	sprites['woodpost3'] = new Sprite("/img/tiles/woodpost3.png",{offset:new Point(3,15)});
 	
 	
 	for( var i in sprites ) {
