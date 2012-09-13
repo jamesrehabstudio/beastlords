@@ -55,7 +55,11 @@
 			font-size:12px;
 			position:absolute;
 			top:-10px;
-		}	
+		}
+		#thing_type {
+			display:block;
+			width:100%;
+		}
 	
 	</style>
 	<script src="polygons.js"></script>
@@ -124,13 +128,13 @@ save = function(){
 window.onkeydown = function(e){
 	//console.log( e.keyCode );
 	if ( e.keyCode == 45 ) {
-		if ( mode == 0 ) {
+		if ( mode != MODE_LINES ) {
 			if ( selected_sprite != null ) {
 				temp = new GameObject();
 				temp.position.x = mouse_snap_x;
 				temp.position.y = mouse_snap_y;
 				temp.sprite = selected_sprite;
-				temp.type = "Prop";
+				temp.type = ( mode == MODE_TILES ? "Tile" : ( mode == MODE_PROPS ? "Prop" : "GameObject" ) );
 				world.addObject( temp );
 				selected_thing = temp;
 				render();
@@ -173,6 +177,12 @@ var selected_sprite = null;
 var camera_drag = false;
 var type_field;
 var mode = 0;
+
+var MODE_TILES = 0;
+var MODE_PROPS = 1;
+var MODE_OBJECTS = 2;
+var MODE_LINES = 3;
+
 var selected_line, selected_line_side;
 
 window.onload = function(){
@@ -236,34 +246,51 @@ window.onload = function(){
 		window.selected_line_side = false;
 	};
 	canvas.onmousedown = function(e){
-		type_field.onchange();
 		mouse = new Point( mouse_x, mouse_y );
 		
-		if( mode == 0 ){
+		if( mode != MODE_LINES ){
+			//Find clicked on Tile
 			largest_zIndex = -Math.pow( 10, 10 );
 			for( var i=0; i < world.objects.length; i++ ) {
-				var object =  world.objects[i]
-				var zIndex = object.zIndex || object.position.y;
-				if ( object.isOver( mouse ) && zIndex > largest_zIndex ) {
-					selected_thing = object;
-					render();
-					window.drag = new Point(
-						mouse_x - object.position.x,
-						mouse_y - object.position.y
-					);
-					largest_zIndex = zIndex;
+				var object =  world.objects[i];
+				if ( matchMode( object ) ) {
+					//The object is a prop (if prop mode) a tile (if Tile mode), etc.
+					var zIndex = object.zIndex || object.position.y;
+					if ( object.isOver( mouse ) && zIndex > largest_zIndex ) {
+						selected_thing = object;
+						render();
+						window.drag = new Point(
+							mouse_x - object.position.x,
+							mouse_y - object.position.y
+						);
+						largest_zIndex = zIndex;
+					}
 				}
+			}
+		} else {			
+			//Find line end clicked on
+			for( var i = 0; i < world.collisions.length; i++ ) {
+				var line = world.collisions[i];
+				if ( line.start.distance( mouse ) < 10 ) {
+					selected_line = line;
+					selected_line_side = 1;
+				} else if ( line.end.distance( mouse ) < 10 ) {
+					selected_line = line;
+					selected_line_side = 2;
+				}
+				console.log( line );
 			}
 		}
 		
-		if ( selected_thing ) {
-			type_field.value = selected_thing.type;
-		}
+		if ( selected_thing ){ type_field.value = selected_thing.type; }
+		
 		return false;
 	}
-	type_field.onchange = function(e){
+	type_field.onclick = function(e){
 		if ( selected_thing ){
-			selected_thing.type = this.value;
+			var type = prompt( "Set Thing Type", selected_thing.type );
+			this.value = type;
+			selected_thing.type = type;
 		}
 	}
 	document.getElementById('load_button').onclick = function(){
@@ -301,13 +328,11 @@ window.onload = function(){
 	document.getElementById('save_button').onclick = save;
 	
 	document.getElementById('toggle_mode').onclick = function(){
-		if ( mode > 0 ) {
-			mode = 0;
-			this.value = "Prop Mode";
-		} else {
-			mode = 1;
-			this.value = "Line Mode";
-		}
+		mode = ( mode + 1 ) % 4
+		if ( mode == MODE_TILES ) { this.value = "Tile Mode"; }
+		if ( mode == MODE_PROPS ) { this.value = "Prop Mode"; }
+		if ( mode == MODE_OBJECTS ) { this.value = "Object Mode"; }
+		if ( mode == MODE_LINES ) { this.value = "Line Mode"; }
 	};
 }
 
@@ -319,6 +344,17 @@ GameObject.prototype.isOver = function( p ){
 	p.y < this.position.y + this.sprite.frame_height );
 	return out;
 }
+
+function matchMode( object ) {
+	if ( mode == MODE_TILES ) {
+		return object.type == "Tile";
+	}else if ( mode == MODE_PROPS ) {
+		return object.type == "Prop";
+	}else if ( mode == MODE_OBJECTS ) {
+		return ( object.type != "Tile" && object.type != "Prop" );
+	}
+	return false;
+}
 	</script>
 </head>
 <body>
@@ -329,7 +365,7 @@ GameObject.prototype.isOver = function( p ){
 		</div>
 		<div class="input">
 			<label for="toggle_mode">Mode</label>
-			<input type="button" id="toggle_mode" value="Prop Mode" />
+			<input type="button" id="toggle_mode" value="Tile Mode" />
 		</div>
 		
 		<div class="input">
@@ -344,7 +380,7 @@ GameObject.prototype.isOver = function( p ){
 		<div class="area">
 			<h2>Selected</h2>
 			<label>Type</label>
-			<input type="text" id="thing_type" name="type" />
+			<input type="button" id="thing_type" name="type" />
 		</div>
 		<div class="area">
 			<h2>File</h2>
