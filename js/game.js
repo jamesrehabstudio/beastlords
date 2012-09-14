@@ -48,8 +48,8 @@ Sprite.prototype.render = function( g, pos, frame, row ) {
 		x_off, y_off, 
 		this.frame_width, 
 		this.frame_height,
-		pos.x - this.offset.x,
-		pos.y - this.offset.y,
+		~~( pos.x - this.offset.x ),
+		~~( pos.y - this.offset.y ),
 		this.frame_width,
 		this.frame_height
 		

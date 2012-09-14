@@ -82,6 +82,13 @@ function load_sprites (){
 	sprites['rock05'] = new Sprite("/img/tiles/rock05.png");
 	sprites['rock06'] = new Sprite("/img/tiles/rock06.png");
 	
+	sprites['house_roof1'] = new Sprite("/img/tiles/house_roof1.png");
+	sprites['house_roof_dec1'] = new Sprite("/img/tiles/house_roof_dec1.png");
+	sprites['house_wall1'] = new Sprite("/img/tiles/house_wall1.png");
+	sprites['house_door1'] = new Sprite("/img/tiles/house_door1.png");
+	sprites['house_window1'] = new Sprite("/img/tiles/house_window1.png");
+	sprites['house_trapdoor'] = new Sprite("/img/tiles/house_trapdoor.png",{height:32});
+	
 	sprites['tile_electricbox_small'] = new Sprite("/img/tiles/electricbox_small.png",{offset:new Point(0,16)});
 	sprites['stonewall_h'] = new Sprite("/img/tiles/stonewall_h.png",{offset:new Point(0,24)});
 	sprites['stonewall_v'] = new Sprite("/img/tiles/stonewall_v.png",{offset:new Point(0,24)});
