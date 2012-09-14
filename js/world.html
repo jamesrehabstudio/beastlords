@@ -1,31 +1,8 @@
 <html>
 <head>
+	<script src="game.js"></script>
+	<script src="polygons.js"></script>
 	<script>
-function World(){
-	this.matrix = new Matrix(20, 20)
-	
-	this.render();
-}
-
-World.prototype.render = function() {
-	g.strokeStyle = '#FF0000';
-	g.fillStyle = '#AA0000';
-	
-	for(var y = 0; y < this.matrix.height; y++) {
-		for(var x = 0; x < this.matrix.width; x++) {
-			g.fillRect(x*block_size,y*block_size,block_size,block_size);
-		}
-	}
-		
-}
-var block_size = 10;
-var canvas, g;
-window.onload = function(){
-	canvas = document.getElementById( 'canvas' );
-	g = canvas.getContext('2d');
-	window.world = new World();
-}
-
 function Matrix(w, h) {
 	this._m = new Array();
 	this.width = w;
@@ -47,12 +24,163 @@ Matrix.prototype.tile = function(x,y,value) {
 	
 	return this._m[index];	
 }
+	</script>
+	
+	<script>
+var world;
+var canvas;
+var perimeter;
+window.onload = function() {
+	canvas = document.getElementById( 'canvas' );
+	world = new Game( canvas );
+	world.camera.x = -130;
+	world.camera.y = -150;
+	
+	//create perimeter
+	points_count = 15;
+	size = 180;
+	perimeter = new Polygon();
+	for( var i = 0; i < points_count; i++ ) {
+		var pos = i /  points_count;
+		var angle = pos * ( 2 * Math.PI );
+		
+		perimeter.addPoint( new Point( 
+			size * Math.sin( angle ),
+			size * Math.cos( angle )
+		) );
+	}
+	
+	//Add medium points
+	perimeter.jitter(1.2 * size);
 
-function Point(x,y) {
-	this.x = x || 0;
-	this.y = y || 0;
+	perimeter.jitter(0.5 * size);
+	perimeter.jitter(0.5 * size);
+	perimeter.subdivide();
+	perimeter.jitter(0.5 * size);
+	perimeter.merge(0.2 * size);
+	perimeter.subdivide();
+	perimeter.jitter(0.1 * size,5);
+	perimeter.subdivide();
+	perimeter.jitter(0.1 * size,5);
+	perimeter.smooth();
+	perimeter.merge(1);
+	
+	world.collisions = perimeter._lines;
+	world.update();
+	/*
+	world.g.fillStyle = "#000";
+	var bounds = perimeter.bounds();
+	var m = new Matrix(~~Math.abs(bounds.start.x-bounds.end.x), ~~Math.abs(bounds.start.y-bounds.end.y) );
+	for(var x=0; x<m.width;x++){
+		for(var y=0; y<m.height;y++){
+			var land = perimeter.intersects(new Point(x+bounds.start.x,y+bounds.start.y));
+			m.tile(x,y, land );
+			if ( land ) {
+				world.g.fillRect(
+					bounds.start.x+x+160-world.camera.x,
+					bounds.start.y+y+120-world.camera.y,
+					1,1
+				);
+			}
+		}
+	}*/
 }
 
+Polygon.prototype.smooth = function( strength ){
+	var temp = new Array();
+	for( var i = 0; i < this.points.length; i++ ) {
+		var prev_index = i == 0 ? this.points.length - 1 : i - 1;
+		prev = this.points[prev_index];
+		current = this.points[i];
+		next = this.points[ (i + 1) % this.points.length ];
+		
+		mid = new Point( 
+			( prev.x + current.x + next.x ) / 3,
+			( prev.y + current.y + next.y ) / 3
+		);
+		
+		temp.push( mid );
+	}
+	this.points = temp;
+	this._rebuildLines();
+}
+
+Polygon.prototype.jitter = function( strength, times ){
+	times = times || 0;
+	for( var i = 0; i < this.points.length; i++ ) {
+		this.points[i].x += (Math.random() - 0.5) * strength;
+		this.points[i].y += (Math.random() - 0.5) * strength;
+	}
+	this._rebuildLines();
+	
+	if ( times > 0 ) {
+		this.jitter(strength, times - 1 );
+	}
+}
+
+Polygon.prototype.merge = function( threshold ){
+	threshold = threshold || 0.00000001;
+	var temp = new Array();
+	for( var i = 0; i < this.points.length; i++ ) {
+		if ( temp.length > 0 ) {
+			var prev = temp[temp.length - 1];
+			if ( this.points[i].distance( prev ) > threshold ) {
+				temp.push( this.points[i] );
+			}
+		}else {
+			temp.push( this.points[i] );
+		}
+	}
+	console.log ( "Merged "+ (this.points.length - temp.length) +" points" );
+	this.points = temp;
+	this._rebuildLines();
+}
+
+Polygon.prototype.bounds = function(){
+	if ( this.points.length < 1 ) {
+		return false;
+	}
+	var top_left = new Point( this.points[0].x, this.points[0].y );
+	var bottom_right = new Point( this.points[0].x, this.points[0].y );
+	
+	for( var i = 0; i < this.points.length; i++ ) {
+		if ( this.points[i].x < top_left.x ) { top_left.x = this.points[i].x }
+		if ( this.points[i].y < top_left.y ) { top_left.y = this.points[i].y }
+		if ( this.points[i].x > bottom_right.x ) { bottom_right.x = this.points[i].x }
+		if ( this.points[i].y > bottom_right.y ) { bottom_right.y = this.points[i].y }
+	}
+	return new Line( top_left, bottom_right );
+}
+
+Polygon.prototype.subdivide = function(){
+	var temp = new Array();
+	for( var i = 0; i < this.points.length; i++ ) {
+		var prev_index = i == 0 ? this.points.length - 1 : i - 1;
+		prev = this.points[prev_index];
+		current = this.points[i];
+		next = this.points[ (i + 1) % this.points.length ];
+		
+		mid1 = new Point( 
+			( current.x + prev.x ) * 0.5,
+			( current.y + prev.y ) * 0.5
+		);
+		
+		mid2 = new Point( 
+			( current.x + next.x ) * 0.5,
+			( current.y + next.y ) * 0.5
+		);
+		
+		mid3 = new Point( 
+			( current.x + mid1.x + mid2.x ) / 3,
+			( current.y + mid1.y + mid2.y ) / 3
+		);
+		
+		temp.push( mid3 );
+		temp.push( mid2 );
+	}
+	this.points = temp;
+	this._rebuildLines();
+}
 	</script>
 </head>
 <body>

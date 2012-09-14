@@ -69,6 +69,9 @@ Polygon.prototype.transpose = function( x, y ){
 }
 Polygon.prototype.intersects = function( p ){
 	var lines;
+	if ( p instanceof Point ){ 
+		return this.pointInside( p );
+	}
 	if ( p instanceof Polygon ) {
 		lines = p._lines;
 	} else {
@@ -84,6 +87,18 @@ Polygon.prototype.intersects = function( p ){
 	}
 	
 	return false;
+}
+
+Polygon.prototype.pointInside = function( p ){
+	var temp = new Line( new Point( -99999999999999999, p.y ),p	);
+	var count = 0;
+	
+	for( var i = 0; i < this._lines.length; i++ ) {
+		if ( this._lines[i].intersects( temp ) ) {
+			count++;
+		}
+	}
+	return ( count % 2 == 1 );
 }
 		
 function Line ( p, q ) {
@@ -136,7 +151,7 @@ Line.prototype.intersects = function( l ){
 	//Returns false if no intersection, a point if there is a instersection
 	p = this.getIntersectionPoint( l );
 	
-	var thres = 0.2;
+	var thres = 0.001;
 	
 	if (
 		(p.x + thres) > Math.min( this.start.x, this.end.x ) &&
