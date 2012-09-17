@@ -38,7 +38,7 @@ window.onload = function() {
 	
 	//create perimeter
 	points_count = 15;
-	size = 300;
+	size = 200;
 	perimeter = new Polygon();
 	for( var i = 0; i < points_count; i++ ) {
 		var pos = i /  points_count;
@@ -148,6 +148,7 @@ window.onload = function() {
 		var temp_y = 0;
 		for(var f=0;f<100;f++){
 			var lowest = 5000000;
+			var lowest_tile = null;
 			for(var a=0;a<Math.PI*2;a+=Math.PI/4) {
 				a += Math.random() * 0.1;
 				test_x = x + ( Math.sin(a) * rivers[i].force );
@@ -159,16 +160,20 @@ window.onload = function() {
 				if( tile ){
 					if( tile.height < lowest ){
 						lowest = tile.height;
+						lowest_tile = tile;
 						temp_x = test_x;
 						temp_y = test_y;
 					}
 				}
 			}
+			lowest_tile.height -= 1;
 			var line = new Line(new Point(~~x,~~y),new Point(~~temp_x,~~temp_y) );
 			rivers[i].flow.push( line );
 			x = temp_x;
 			y = temp_y;
 			line.render(world.g,world.camera);
+			
+			if ( lowest_tile.sea ) { break; }
 		}
 	}
 	console.log ( rivers );

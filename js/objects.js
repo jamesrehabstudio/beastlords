@@ -70,8 +70,8 @@ Player.prototype.update = function(){
 		this.frame = 0;
 	}
 	
-	this.parent.camera.x = this.position.x;
-	this.parent.camera.y = this.position.y;
+	this.parent.camera.x = this.position.x - 160;
+	this.parent.camera.y = this.position.y - 120;
 	
 	if ( this.health < 1 ) {
 		game.removeObject( this );
