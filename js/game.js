@@ -126,7 +126,7 @@ Game.prototype.update = function( ) {
 
 Game.prototype.render = function( ) {
 	var renderList = this.renderTree.toArray();
-	var camera_center = new Point( this.camera.x - 160, this.camera.y - 120 );
+	var camera_center = new Point( this.camera.x, this.camera.y );
 	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
 	
 	for ( var i in renderList ) {
