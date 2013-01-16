@@ -4,8 +4,8 @@ $database_user = "root";
 $database_pass = "";
 $database_host = "localhost";
 
-mysql_connect( $database_host, $database_user, $database_pass );
-mysql_select_db( $database );
+//mysql_connect( $database_host, $database_user, $database_pass );
+//mysql_select_db( $database );
 
 
 header('Cache-Control: no-cache, must-revalidate');
