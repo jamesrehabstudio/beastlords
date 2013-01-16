@@ -183,6 +183,7 @@ Game.prototype.c_move = function( obj, x, y ) {
 
 function GameObject() {
 	this.position = new Point();
+	this.angle = 0; //Angle the sprite is facing (if any)
 	this.sprite;
 	this.width = 8;
 	this.height = 8;

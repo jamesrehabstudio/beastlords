@@ -26,16 +26,73 @@ function Player(x, y){
 	window._player = this;
 	game.addObject( new Hud() );
 	
+	this.weapon = 1;
 	this.health = 100;
 	this.sprite = sprites.player;
 	this._ani = 0;
 	this.team = 1;
+	
+	this._weapontimeout = 0;
+}
+Player.prototype.fire = function(weapon){
+	weapon = weapon || this.weapon;
+	if ( weapon == 1 && input.state('click') == 1) {
+		//Pistols
+		this.parent.addObject( new Bullet( 
+			this.position.x,
+			this.position.y,
+			this.angle-Math.PI,
+			this.team
+		) );
+	} else if ( weapon == 2 && this._weapontimeout < 1) {
+		//Shot gun
+		var delta = 0.5;
+		var pellets = 5;
+		for ( var i = 0; i < pellets; i++ ){
+			var spread = (delta*.5) - ( Math.random() * delta );
+			this.parent.addObject( new Bullet( 
+				this.position.x,
+				this.position.y,
+				(this.angle+spread)-Math.PI,
+				this.team
+			) );
+		}
+		this._weapontimeout = 30;
+	} else if ( weapon == 3 && this._weapontimeout < 1) {
+		//Rifle
+		var bullet = new Bullet( 
+			this.position.x,
+			this.position.y,
+			this.angle-Math.PI,
+			this.team
+		);
+		bullet.damage = 100;
+		this.parent.addObject( bullet );
+		this._weapontimeout = 40;
+	} else if ( weapon == 4 && this._weapontimeout < 1) {
+		//Rifle
+		var gernade = new Gernade( 
+			this.position.x,
+			this.position.y,
+			this.angle-Math.PI,
+			this.team
+		);
+		this.parent.addObject( gernade );
+		this._weapontimeout = 40;
+	}
+	
 }
 Player.prototype.update = function(){
 	var speed = 2.5;
 	
 	var x = 0;
 	var y = 0;
+	
+	if ( input.state('key1') == 1 ) { this.weapon = 0; }
+	if ( input.state('key2') == 1 ) { this.weapon = 1; }
+	if ( input.state('key3') == 1 ) { this.weapon = 2; }
+	if ( input.state('key4') == 1 ) { this.weapon = 3; }
+	if ( input.state('key5') == 1 ) { this.weapon = 4; }
 	
 	if ( input.state('up') > 0 ) { y -= speed; }
 	if ( input.state('down') > 0 ) { y += speed; }
@@ -45,17 +102,11 @@ Player.prototype.update = function(){
 	var mouse_x = input.mouseCenter.x - 160;
 	var mouse_y = input.mouseCenter.y - 120;
 	
-	var mouse_angle = ( Math.atan2( mouse_x, mouse_y ) ) + Math.PI;
-	this.frame_row = Math.floor( ( (2*Math.PI) - ( mouse_angle + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
+	this.angle = ( Math.atan2( mouse_x, mouse_y ) ) + Math.PI;
+	this.frame_row = Math.floor( ( (2*Math.PI) - ( this.angle + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
 	
-	if ( input.state('click') == 1 ) { 
-		this.parent.addObject( new Bullet( 
-			this.position.x,
-			this.position.y,
-			mouse_angle-Math.PI,
-			this.team
-		) );
-	}
+	this._weapontimeout--;
+	if ( input.state('click') > 0 ) this.fire();
 	
 	var angle = Math.atan2( x, y );
 	if ( x != 0 || y != 0 ) {
@@ -172,14 +223,14 @@ ZombieSpawner.prototype.update = function(){
 
 Bullet.prototype = new GameObject();
 Bullet.prototype.constructor = GameObject;
-function Bullet(x, y, angle, team){
+function Bullet(x, y, angle, team, damage){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 8;
 	this.height = 8;
 	
-	this.damage = 20;
+	this.damage = damage || 20;
 	this.angle = angle;
 	this.speed = 5.0;
 	this.age = 40;
@@ -216,6 +267,63 @@ Bullet.prototype.render = function(g, camera){
 		this.position.x - camera.x,
 		this.position.y - camera.y,
 		4, 4
+	);
+}
+
+Gernade.prototype = new GameObject();
+Gernade.prototype.constructor = GameObject;
+function Gernade(x, y, angle, team){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 8;
+	this.height = 8;
+	
+	this.damage = 80;
+	this.radius = 100;
+	this.angle = angle;
+	this.speed = 1.0;
+	this.age = 50;
+	this.team = team || 1;
+}
+Gernade.prototype.oncollide = function(){
+	this.speed = -this.speed;
+}
+Gernade.prototype.update = function(){
+	this.age--;
+	
+	if( this.age < 1 ){
+		this.width = this.radius;
+		this.height = this.radius;
+		var overlap = game.overlap( this );
+		for( var i = 0; i < overlap.length; i++ ){
+			var target = overlap[i];
+			if ( target.team != undefined && target.team > 0 && target.team != this.team ) {
+				knock_angle = Math.atan2(
+					target.position.x - this.position.x,
+					target.position.y - this.position.y
+				) + Math.pi;
+				game.c_move( target, 
+					Math.sin( this.angle ) * 10, 
+					Math.cos( this.angle ) * 10 
+				);
+				game.health -= this.damage;
+			}
+		}
+		game.removeObject(this);
+	}else {
+		var move_speed = 0.125 * this.age * this.speed;
+		game.c_move( this,
+			move_speed * Math.sin( this.angle ),
+			move_speed * Math.cos( this.angle )
+		);
+	}
+}
+Gernade.prototype.render = function(g, camera){
+	g.fillRect(
+		this.position.x - ( camera.x + (this.width*.5)),
+		this.position.y - ( camera.y + (this.width*.5)),
+		8, 8
 	);
 }
 ///////////////////////////////////////////

@@ -30,6 +30,7 @@ Matrix.prototype.tile = function(x,y,value) {
 var world;
 var canvas;
 var perimeter;
+var bounds;
 window.onload = function() {
 	canvas = document.getElementById( 'canvas' );
 	world = new Game( canvas );
@@ -68,7 +69,7 @@ window.onload = function() {
 	world.collisions = perimeter._lines;
 	world.update();
 	
-	var bounds = perimeter.bounds();
+	bounds = perimeter.bounds();
 	
 	var mount_count = 15;
 	var mount_inc = 0;
@@ -104,7 +105,8 @@ window.onload = function() {
 	
 	world.g.fillStyle = "#000";
 	var rivers = new Array();
-	var m = new Matrix(~~Math.abs(bounds.start.x-bounds.end.x), ~~Math.abs(bounds.start.y-bounds.end.y) );
+	var lakes = new Array();
+	window.m = new Matrix(~~Math.abs(bounds.start.x-bounds.end.x), ~~Math.abs(bounds.start.y-bounds.end.y) );
 	for(var x=0; x<m.width;x++){
 		for(var y=0; y<m.height;y++){
 			
@@ -146,11 +148,12 @@ window.onload = function() {
 		var angle = Math.random() * Math.PI * 2;
 		var temp_x = 0;
 		var temp_y = 0;
+		var lake = false;
 		for(var f=0;f<100;f++){
 			var lowest = 5000000;
 			var lowest_tile = null;
 			for(var a=0;a<Math.PI*2;a+=Math.PI/4) {
-				a += Math.random() * 0.1;
+				//a += Math.random() * 0.1;
 				test_x = x + ( Math.sin(a) * rivers[i].force );
 				test_y = y + ( Math.cos(a) * rivers[i].force );
 				var tile = m.tile(
@@ -166,17 +169,56 @@ window.onload = function() {
 					}
 				}
 			}
-			lowest_tile.height -= 1;
+			//lowest_tile.height -= 1;
+			lake = lowest_tile;
 			var line = new Line(new Point(~~x,~~y),new Point(~~temp_x,~~temp_y) );
 			rivers[i].flow.push( line );
 			x = temp_x;
 			y = temp_y;
 			line.render(world.g,world.camera);
 			
-			if ( lowest_tile.sea ) { break; }
+			if ( lowest_tile.sea ) { lake = false; break; }
+		}
+		
+		if ( lake ) {
+			lakes.push( lake );
 		}
 	}
-	console.log ( rivers );
+	
+	for( var i=0; i < lakes.length; i++ ){
+		fillLake(lakes[i], m, lakes[i].height + 5);
+	}
+	console.log( lakes );
+}
+
+function fillLake(tile, m, h, levels ) {
+	if ( !tile || levels < 1 ) return;
+	levels = levels - 1 || 200;
+	world.g.fillStyle = "#3AF";
+	
+	var r = 0, i = 0, c = 0;
+	var previous = [ tile ];
+	while( r < 9 ) {
+		r++;
+		c = r * 8;
+		
+		for( var x = 0; x < (r*2+1); x++ ){
+			for( var y = 0; y < (r*2+1); y++ ){
+				var _xoff = tile.x + x - r;
+				var _yoff = tile.y + y - r;
+				var t = m.tile(_xoff, _yoff );
+				
+				if( t.height < h ){
+					world.g.fillRect(
+						(_xoff+world.camera.x)-bounds.start.x, 
+						(_yoff+world.camera.y)-bounds.start.y, 
+						1, 1 );
+				}
+				
+				if(y==0&&x!=0&&x!=(r*2)){ y=(r*2)-1; }
+			}
+		}
+	}
 }
 
 Polygon.prototype.smooth = function( strength ){

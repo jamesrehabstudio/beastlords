@@ -81,8 +81,8 @@ render = function() {
 	if ( selected_thing ) {
 		world.g.setStrokeColor( "#FF0000" );
 		world.g.strokeRect( 
-			( selected_thing.position.x - selected_thing.sprite.offset.x ) - ( world.camera.x - 160 ),
-			( selected_thing.position.y - selected_thing.sprite.offset.y ) - ( world.camera.y - 120 ),
+			( selected_thing.position.x - selected_thing.sprite.offset.x ) - ( world.camera.x ),
+			( selected_thing.position.y - selected_thing.sprite.offset.y ) - ( world.camera.y ),
 			selected_thing.sprite.frame_width,
 			selected_thing.sprite.frame_height
 		);
@@ -215,8 +215,8 @@ window.onload = function(){
 	canvas.onmousemove = function(e){
 		abs_x = e.pageX;
 		abs_y = e.pageY;
-		mouse_x = abs_x + world.camera.x - 160;
-		mouse_y = abs_y + world.camera.y - 120;
+		mouse_x = abs_x + world.camera.x;
+		mouse_y = abs_y + world.camera.y;
 		
 		if ( camera_drag instanceof Point ) {
 			world.camera.x = camera_drag.x - abs_x;
