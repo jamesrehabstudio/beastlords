@@ -70,6 +70,8 @@ function Game( elm ) {
 	//Per frame datastructures
 	this.renderTree;
 	this.interactive = new Array();
+	this.time = new Date();
+	this.delta = 1;
 	
 	this.element = elm;
 	this.g = elm.getContext('2d');
@@ -92,13 +94,33 @@ window.__time = 0;
 
 Game.prototype.update = function( ) {
 	//Update logic
+	var newTime = new Date();
+	this.delta = (newTime - this.time) / 30;
+	this.time = newTime;
+	
 	this.renderTree = new SortTree();
 	var temp_interactive = new Array(); //rebuild Interactive Objects
 	
 	for ( var i in this.objects ) {
 		if ( this.objects[i] instanceof GameObject ) {
 			var obj = this.objects[i];
-			obj.update();
+			var mods = obj.modules;
+			//Update Functions
+			if ( mods.length > 0 ) {
+				for ( var i = 0; i < mods.length; i++ ) {
+					if ( mods[i].beforeupdate instanceof Function ) {
+						mods[i].beforeupdate.apply(obj);
+					}
+				}
+				obj.update();
+				for ( var i = 0; i < mods.length; i++ ) {
+					if ( mods[i].update instanceof Function ) {
+						mods[i].update.apply(obj);
+					}
+				}
+			} else {
+				obj.update();
+			}
 			
 			if ( obj.visible ) {
 				this.renderTree.push( obj, obj.zIndex || obj.position.y );
@@ -193,6 +215,7 @@ function GameObject() {
 	this.interactive = false;
 	
 	this.visible = true;
+	this.modules = new Array();
 }
 GameObject.prototype.transpose = function(x, y) {
 	this.position.x += x;
@@ -209,6 +232,12 @@ GameObject.prototype.hitbox = function() {
 	this._hitbox.addPoint( new Point(this.position.x-half_width , this.position.y+half_height) );
 	
 	return this._hitbox;
+}
+GameObject.prototype.addModule = function(x){
+	if ( x.init instanceof Function ){
+		x.init.apply(this);
+	}
+	this.modules.push(x);
 }
 GameObject.prototype.intersects = function(a) {
 	if ( a instanceof GameObject ) {

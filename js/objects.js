@@ -33,6 +33,8 @@ function Player(x, y){
 	this.team = 1;
 	
 	this._weapontimeout = 0;
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_camera );
 }
 Player.prototype.fire = function(weapon){
 	weapon = weapon || this.weapon;
@@ -83,10 +85,10 @@ Player.prototype.fire = function(weapon){
 	
 }
 Player.prototype.update = function(){
-	var speed = 2.5;
+	var speed = 3.5;
 	
-	var x = 0;
-	var y = 0;
+	this.force.x = 0;
+	this.force.y = 0;
 	
 	if ( input.state('key1') == 1 ) { this.weapon = 0; }
 	if ( input.state('key2') == 1 ) { this.weapon = 1; }
@@ -94,10 +96,10 @@ Player.prototype.update = function(){
 	if ( input.state('key4') == 1 ) { this.weapon = 3; }
 	if ( input.state('key5') == 1 ) { this.weapon = 4; }
 	
-	if ( input.state('up') > 0 ) { y -= speed; }
-	if ( input.state('down') > 0 ) { y += speed; }
-	if ( input.state('left') > 0 ) { x -= 1; }
-	if ( input.state('right') > 0 ) { x += 1; }
+	if ( input.state('up') > 0 ) { this.force.y -= speed; }
+	if ( input.state('down') > 0 ) { this.force.y += speed; }
+	if ( input.state('left') > 0 ) { this.force.x -= speed; }
+	if ( input.state('right') > 0 ) { this.force.x += speed; }
 	
 	var mouse_x = input.mouseCenter.x - 160;
 	var mouse_y = input.mouseCenter.y - 120;
@@ -108,21 +110,13 @@ Player.prototype.update = function(){
 	this._weapontimeout--;
 	if ( input.state('click') > 0 ) this.fire();
 	
-	var angle = Math.atan2( x, y );
-	if ( x != 0 || y != 0 ) {
-		this._ani = ( this._ani + 0.3 ) % 3;
+	var angle = Math.atan2( this.force.x, this.force.y );
+	if ( this.force.x != 0 || this.force.y != 0 ) {
+		this._ani = ( this._ani + (0.3 * game.delta) ) % 3;
 		this.frame = Math.floor( this._ani );
-		this.parent.c_move( 
-			this, 
-			speed * Math.sin(angle), 
-			speed * Math.cos(angle) 
-		);
 	} else {
 		this.frame = 0;
 	}
-	
-	this.parent.camera.x = this.position.x - 160;
-	this.parent.camera.y = this.position.y - 120;
 	
 	if ( this.health < 1 ) {
 		game.removeObject( this );
@@ -147,6 +141,8 @@ function Zombie(x, y){
 	this.team = 2;
 	
 	this.attack_charge = 0;
+	this.addModule( mod_rigidbody );
+	this.mass = 0.5;
 }
 Zombie.prototype.update = function() {
 	var angle_to_player = Math.atan2(
@@ -154,31 +150,31 @@ Zombie.prototype.update = function() {
 		this.position.y - _player.position.y
 	);
 	if ( this.health > 0 ) {
-		if ( this.position.distance( _player.position ) < 24 || this.attack_charge > 0 ) {
+		if ( this.position.distance( _player.position ) < 24 ) {
 			//Warming a melee attack
-			this.attack_charge++;
-			if ( this.attack_charge > 20 ) {
+			this.attack_charge -= game.delta;
+			if ( this.attack_charge <= 0 ) {
 				bullet = new Bullet( 
 					this.position.x, 
 					this.position.y,
 					angle_to_player-Math.PI,
 					this.team
 				);
-				bullet.age = 10;
+				bullet.age = 5;
 				bullet.damage = 10;
 				game.addObject( bullet );
-				this.attack_charge = 0;
+				this.attack_charge = 20;
 			}
+			this.force.x = 0;
+			this.force.y = 0;
 		} else {
-			this.attack_charge = 0;
+			this.attack_charge = Math.max(5,this.attack_charge);
 			
-			game.c_move( this, 
-				-Math.sin( angle_to_player ) * this.speed,
-				-Math.cos( angle_to_player ) * this.speed
-			);
+			this.force.x = -Math.sin( angle_to_player ) * this.speed;
+			this.force.y = -Math.cos( angle_to_player ) * this.speed;
 		}
 		
-		this._ani++;
+		this._ani += 1 * game.delta;
 		this.frame = Math.floor( this._ani * 0.2 ) % 4;
 		//this.frame_row = Math.floor( ( (2*Math.PI) - ( angle_to_player + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
 		//this.frame_row %= 8;
@@ -207,12 +203,12 @@ ZombieSpawner.prototype.update = function(){
 	if ( this.health > 0 ) {
 		if ( window._player instanceof Player ) {
 			if( this.time < 0 ) {
-				this.time = 900;
+				this.time = 700;
 				temp = new Zombie( this.position.x, this.position.y + 32 );
 				game.addObject( temp );
 			}
 			if ( window._player.health > 0 ) {
-				this.time--;
+				this.time-=game.delta;
 			}
 		}
 	} else {
@@ -232,7 +228,7 @@ function Bullet(x, y, angle, team, damage){
 	
 	this.damage = damage || 20;
 	this.angle = angle;
-	this.speed = 5.0;
+	this.speed = 8.0;
 	this.age = 40;
 	this.team = team || 1;
 }
@@ -240,10 +236,10 @@ Bullet.prototype.oncollide = function(){
 	this.parent.removeObject( this );
 }
 Bullet.prototype.update = function(){
-	this.age--;
+	this.age -= game.delta;
 	game.c_move( this,
-		this.speed * Math.sin( this.angle ),
-		this.speed * Math.cos( this.angle )
+		this.speed * Math.sin( this.angle ) * game.delta,
+		this.speed * Math.cos( this.angle ) * game.delta
 	);
 	if( this.age < 1 ){
 		this.parent.removeObject( this );
@@ -252,10 +248,10 @@ Bullet.prototype.update = function(){
 		for( var i = 0; i < overlap.length; i++ ){
 			if ( overlap[i].team != undefined && overlap[i].team > 0 && overlap[i].team != this.team ) {
 				overlap[i].health -= this.damage;
-				game.c_move( overlap[i], 
-					Math.sin( this.angle ) * 10, 
-					Math.cos( this.angle ) * 10 
-				);
+				if ( overlap[i].momentum instanceof Point ) {
+					overlap[i].momentum.x += Math.sin( this.angle ) * this.damage * 0.25;
+					overlap[i].momentum.y += Math.cos( this.angle ) * this.damage * 0.25;
+				}
 				game.removeObject( this );
 				break;
 			}
@@ -418,5 +414,29 @@ Tree.prototype.render = function( g, camera ){
 			this.brushes[i].position.x + (this.position.x - camera.x),
 			this.brushes[i].position.y + (this.position.y - camera.y)
 		) );
+	}
+}
+
+/* Modules */
+var mod_rigidbody = {
+	'init' : function(){
+		this.mass = 0.125;
+		this.momentum = new Point();
+		this.force = new Point();
+	},
+	'update' : function(){
+		this.momentum.x *= (1-this.mass) * game.delta;
+		this.momentum.y *= (1-this.mass) * game.delta;
+		game.c_move( this,
+			(this.force.x + this.momentum.x) * game.delta,
+			(this.force.y + this.momentum.y) * game.delta
+		);
+	}
+}
+
+var mod_camera = {
+	'update' : function(){
+		this.parent.camera.x = this.position.x - 160;
+		this.parent.camera.y = this.position.y - 120;
 	}
 }
