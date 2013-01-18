@@ -425,8 +425,8 @@ var mod_rigidbody = {
 		this.force = new Point();
 	},
 	'update' : function(){
-		this.momentum.x *= (1-this.mass) * game.delta;
-		this.momentum.y *= (1-this.mass) * game.delta;
+		this.momentum.x *= (1-(this.mass * game.delta ) );
+		this.momentum.y *= (1-(this.mass * game.delta ) );
 		game.c_move( this,
 			(this.force.x + this.momentum.x) * game.delta,
 			(this.force.y + this.momentum.y) * game.delta
