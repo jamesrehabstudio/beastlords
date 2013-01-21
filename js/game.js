@@ -95,7 +95,7 @@ window.__time = 0;
 Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
-	this.delta = (newTime - this.time) / 30;
+	this.delta = Math.min( (newTime - this.time) / 30, 2);
 	this.time = newTime;
 	
 	this.renderTree = new SortTree();
@@ -184,20 +184,32 @@ Game.prototype.overlap = function( obj ) {
 
 Game.prototype.c_move = function( obj, x, y ) {
 	//Attempt to move a game object without hitting a colliding line
-	var collide = false;
+	var lines = new Array();
+	var max_collides = 1;//Prevent slide if any more lines are touched
 	obj.transpose( x, y );
 	
 	for ( var i = 0; i < this.collisions.length; i++ ){
-		line = this.collisions[i];
-		if ( obj.intersects( line ) ){
-			collide = true;
-			break;
+		if ( obj.intersects( this.collisions[i] ) ){
+			lines.push( this.collisions[i] );
+			if ( lines.length > max_collides ) break;
 		}
 	}
 	
-	if( collide ) {
+	if( lines.length > 0 ) {
 		obj.transpose( -x, -y );
-		obj.oncollide();
+		if ( lines.length <= max_collides ) {
+			var line = lines[0];
+			
+			var v = new Point(x,y).normalize();
+			var n = line.normal().normalize();
+			
+			obj.transpose( 
+				(v.x + n.x) * 0.8,
+				(v.y + n.y) * 0.8
+			);
+			//obj.transpose( collide.normal() );
+		}
+		obj.oncollide(line);
 	}
 }
 
@@ -213,13 +225,18 @@ function GameObject() {
 	this.frame_row = 0;
 	this.zIndex = null;
 	this.interactive = false;
+	this.properties = false;
 	
 	this.visible = true;
 	this.modules = new Array();
 }
 GameObject.prototype.transpose = function(x, y) {
-	this.position.x += x;
-	this.position.y += y;
+	if ( x instanceof Point ){
+		this.position.add(x);
+	} else {
+		this.position.x += x;
+		this.position.y += y;
+	}
 }
 GameObject.prototype.hitbox = function() {
 	var half_width = Math.floor( this.width * 0.5 );

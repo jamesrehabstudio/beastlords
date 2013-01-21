@@ -10,7 +10,8 @@ DataManager.prototype.getLevel = function( callback, context, name ) {
 		type : "GET",
 		data : { name : name },
 		contentType : "JSON",
-		success: callback
+		success: callback,
+		error: function(a,b,c){ alert("unable to level:\n"+c); }
 	})
 	
 }
@@ -103,7 +104,7 @@ function load_sprites (){
 	sprites['woodpost3'] = new Sprite(RT+"img/tiles/woodpost3.png",{offset:new Point(3,15)});
 	
 	sprites['terrace_01'] = new Sprite(RT+"img/tiles/terrace_01.png",{offset:new Point(0,300)});
-	
+	sprites['hotspot'] = new Sprite(RT+"img/tiles/manholecover.png",{offset:new Point(16,16)});
 	
 	for( var i in sprites ) {
 		sprites[i].name = i;
