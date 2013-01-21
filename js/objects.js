@@ -14,6 +14,25 @@ Hud.prototype.render = function(g, camera){
 	sprites.health_bar.render(g, new Point(0,224), 0, health );
 }
 
+CameraLock.prototype = new GameObject();
+CameraLock.prototype.constructor = GameObject;
+
+function CameraLock(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = this.height = 32;
+	
+	this.interactive = true;
+}
+CameraLock.prototype.update = function(){
+	if ( window._player.intersects(this) ){
+		window._player.lock = this.properties.lock;
+	}	
+}
+CameraLock.prototype.render = function(){}
+
+
 Player.prototype = new GameObject();
 Player.prototype.constructor = GameObject;
 
@@ -101,8 +120,8 @@ Player.prototype.update = function(){
 	if ( input.state('left') > 0 ) { this.force.x -= speed; }
 	if ( input.state('right') > 0 ) { this.force.x += speed; }
 	
-	var mouse_x = input.mouseCenter.x - 160;
-	var mouse_y = input.mouseCenter.y - 120;
+	var mouse_x = input.mouseCenter.x + ( game.camera.x - this.position.x );
+	var mouse_y = input.mouseCenter.y + ( game.camera.y - this.position.y );
 	
 	this.angle = ( Math.atan2( mouse_x, mouse_y ) ) + Math.PI;
 	this.frame_row = Math.floor( ( (2*Math.PI) - ( this.angle + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
@@ -282,8 +301,18 @@ function Gernade(x, y, angle, team){
 	this.age = 50;
 	this.team = team || 1;
 }
-Gernade.prototype.oncollide = function(){
-	this.speed = -this.speed;
+Gernade.prototype.oncollide = function(line){
+	var n = line.normal();
+	var v = Point.fromAngle(this.angle);
+	var u = n.scale( v.dot(n) );
+	var w = v.subtract(u);
+	
+	var a = w.subtract(u);
+	this.angle = Math.atan2(a.x,a.y);
+	console.log( this.angle );
+	
+	//var langle = Math.atan2(line.start.x-line.end.x,line.start.y-line.end.y);
+	//this.angle += langle;
 }
 Gernade.prototype.update = function(){
 	this.age--;
@@ -303,7 +332,7 @@ Gernade.prototype.update = function(){
 					Math.sin( this.angle ) * 10, 
 					Math.cos( this.angle ) * 10 
 				);
-				game.health -= this.damage;
+				target.health -= this.damage;
 			}
 		}
 		game.removeObject(this);
@@ -435,8 +464,30 @@ var mod_rigidbody = {
 }
 
 var mod_camera = {
-	'update' : function(){
-		this.parent.camera.x = this.position.x - 160;
-		this.parent.camera.y = this.position.y - 120;
+	'init' : function(){
+		this.lock = false;
+		this.camera_target = new Point();
+		game.camera.x = this.position.x - 160;
+		game.camera.y = this.position.y - 120;
+	},
+	'update' : function(){		
+		this.camera_target.x = this.position.x - 160;
+		this.camera_target.y = this.position.y - 120;
+		if ( this.lock instanceof Array && this.lock.length >= 4 ){
+			this.camera_target.x = Math.max( Math.min(
+				this.camera_target.x, this.lock[1] - 320
+			), this.lock[3]);
+			
+			this.camera_target.y = Math.max( Math.min(
+				this.camera_target.y, this.lock[2] - 240
+			), this.lock[0])
+		}
+		var speed = 5 * game.delta;
+		var move_x = Math.min( Math.abs( this.camera_target.x - this.parent.camera.x ), speed );
+		var move_y = Math.min( Math.abs( this.camera_target.y - this.parent.camera.y ), speed );
+		
+		this.parent.camera.x += this.parent.camera.x < this.camera_target.x ? move_x : -move_x;
+		this.parent.camera.y += this.parent.camera.y < this.camera_target.y ? move_y : -move_y;
+		
 	}
 }

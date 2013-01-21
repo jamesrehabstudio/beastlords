@@ -38,15 +38,20 @@
 		dataManger.getLevel(function( res ){
 			window.game = new Game( document.getElementById( 'game' ) );
 			
-			window.game.renderCollisions = false;
+			//window.game.renderCollisions = false;
 			
 			for( var i = 0; i < res.data.objects.length; i++ ){
 				obj = res.data.objects[i];
 				if ( window[obj.type] instanceof Function ) {
-					temp = new window[obj.type]();
-					temp.position.x = res.data.objects[i].x;
-					temp.position.y = res.data.objects[i].y;
+					temp = new window[obj.type](
+						res.data.objects[i].x, 
+						res.data.objects[i].y
+					);
 					temp.sprite = sprites[ res.data.objects[i].sprite ];
+					try{
+						var prop = decodeURI(res.data.objects[i].properties);
+						temp.properties = JSON.parse(prop);
+					} catch(err){console.log("failed to load properties", err);}
 					window.game.addObject( temp );
 				}
 			}
@@ -61,7 +66,7 @@
 			}
 			
 			loop();
-		}, window, "map0001" );
+		}, window, "map0002" );
 	}
 	</script>
 </body>

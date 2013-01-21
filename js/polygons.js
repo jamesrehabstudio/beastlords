@@ -112,12 +112,27 @@ Line.prototype.length = function(){
 		Math.pow( Math.abs( this.start.y - this.end.y ), 2 )
 	);
 }
+Line.prototype.normal = function(g, camera){
+	return new Point( -(this.end.y-this.start.y), -(this.start.x-this.end.x));
+}
 
 Line.prototype.render = function(g, camera){
 	g.strokeStyle = "#FF0000";
 	g.beginPath();
 	g.moveTo( this.start.x - camera.x, this.start.y - camera.y );
 	g.lineTo( this.end.x - camera.x, this.end.y - camera.y );
+	g.closePath();
+	g.stroke();	
+	
+	g.strokeStyle = "#FF7700";
+	g.beginPath();
+	var avr = new Point(
+		.5 * (this.start.x + this.end.x), 
+		.5 * (this.start.y + this.end.y)
+	);
+	g.moveTo( avr.x - camera.x, avr.y -camera.y );
+	var n = this.normal().normalize(10);
+	g.lineTo( avr.x + n.x - camera.x, avr.y + n.y - camera.y );
 	g.closePath();
 	g.stroke();	
 }
@@ -178,6 +193,41 @@ Point.prototype.distance = function(d){
 	return Math.sqrt (
 		Math.pow( Math.abs( this.x - d.x ), 2 ) +
 		Math.pow( Math.abs( this.y - d.y ), 2 )
+	);
+}
+Point.prototype.length = function(){
+	return Math.sqrt(this.x * this.x + this.y * this.y);
+}
+Point.prototype.add = function(a){
+	return new Point(this.x + a.x, this.y + a.y);
+}
+Point.prototype.subtract = function(a){
+	return new Point(this.x - a.x, this.y - a.y);
+}
+Point.prototype.multiply = function(a){
+	var scale = this.scale( this.x * a.x + this.y * a.y );
+	return new Point(this.x * scale, a.y * scale);
+}
+Point.prototype.scale = function(scale){
+	return new Point(this.x * scale, this.y * scale);
+}
+Point.prototype.normalize = function(scale){
+	scale = scale || 1;
+	var norm = this.length();
+	if(norm != 0){
+		return new Point( scale * this.x / norm, scale * this.y / norm );
+	}
+	return new Point(1,0);
+}
+Point.prototype.dot = function(b){
+	//dot is the sum of each axis multiplied together.
+	return (this.x * b.x) + (this.y * b.y);
+}
+Point.fromAngle = function(a,scale){
+	scale = scale || 1;
+	return new Point(
+		Math.cos( a ) * scale,
+		Math.sin( a ) * scale
 	);
 }
 

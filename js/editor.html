@@ -16,7 +16,9 @@
 		#menu .input {
 			margin-bottom:10px;
 		}
-		
+		textarea {
+			width:100%;
+		}
 		#tile_select {
 			background:#FFF;
 			height:180px;
@@ -60,7 +62,22 @@
 			display:block;
 			width:100%;
 		}
-	
+		#status {
+			position:fixed;
+			bottom:0px;
+			left:0px;
+			background:#CCD;
+			height:20px;
+			width:100%;
+			z-index:10;
+		}
+		#status>div {
+			float:left;
+			padding:4px 5px;
+			margin:1px;
+			height:8px;
+			border:1px dotted #AAB;
+		}
 	</style>
 	<script src="polygons.js"></script>
 	<script src="data.js"></script>
@@ -97,10 +114,12 @@ save = function(){
 	var objects = "";
 	for( var i=0; i<world.objects.length;i++){
 		obj = world.objects[i];
+		var prop = encodeURI(obj.properties);
 		objects += '{"x":'+obj.position.x+',';
 		objects += '"y":'+obj.position.y+',';
 		objects += '"type":"'+obj.type+'",';
-		objects += '"sprite":"'+obj.sprite.name+'"},';
+		objects += '"sprite":"'+obj.sprite.name+'",';
+		objects += '"properties":"'+prop+'"},';
 	}
 	objects = objects.substr(0,objects.length-1);
 	
@@ -127,41 +146,73 @@ save = function(){
 
 window.onkeydown = function(e){
 	//console.log( e.keyCode );
-	if ( e.keyCode == 45 ) {
+	if ( e.keyCode == 45 || e.keyCode == 36 ) {
+		//Insert or Home
+		e.preventDefault();
+		var copy = e.keyCode == 36;
+		
 		if ( mode != MODE_LINES ) {
-			if ( selected_sprite != null ) {
+			if ( selected_sprite != null || copy ) {
 				temp = new GameObject();
 				temp.position.x = mouse_snap_x;
 				temp.position.y = mouse_snap_y;
 				temp.sprite = selected_sprite;
-				temp.type = ( mode == MODE_TILES ? "Tile" : ( mode == MODE_PROPS ? "Prop" : "GameObject" ) );
-				world.addObject( temp );
-				selected_thing = temp;
+				if ( copy ) {
+					if ( selected_thing != null ) {
+						temp.type = selected_thing.type;
+						temp.sprite = selected_thing.sprite;
+						temp.properties = selected_thing.properties;
+						world.addObject( temp );
+						selected_thing = temp;
+					}
+				} else {
+					temp.type = ( mode == MODE_TILES ? "Tile" : ( mode == MODE_PROPS ? "Prop" : "GameObject" ) );
+					world.addObject( temp );
+					selected_thing = temp;
+				}
 				render();
 			}
 		} else {
-			temp = new Line(
-				new Point(mouse_snap_x,mouse_snap_y),
-				new Point(mouse_snap_x,mouse_snap_y) );
-			selected_line = temp;
-			selected_line_side = 2;
-			world.collisions.push( temp );
+			if ( e.keyCode == 36 ) {
+				if ( selected_line instanceof Line ){
+					var temp = selected_line.start;
+					selected_line.start = selected_line.end;
+					selected_line.end = temp;
+					render();
+				}
+			} else {
+				temp = new Line(
+					new Point(mouse_snap_x,mouse_snap_y),
+					new Point(mouse_snap_x,mouse_snap_y) );
+				selected_line = temp;
+				selected_line_side = 2;
+				world.collisions.push( temp );
+				render();
+			}
 		}
 	} else if ( e.keyCode == 46 ) {
-		if ( selected_sprite != null ) {
+		//Delete
+		if ( mode != MODE_LINES ) {
 			if ( selected_thing ) {
 				world.objects.remove( world.objects.indexOf( selected_thing ) );
 				selected_thing = null;
 				render();
 			}
+		} else {
+			if ( selected_line instanceof Line ) {
+				world.collisions.remove( world.collisions.indexOf( selected_line ) );
+				selected_line = null;
+				render();
+			}
 		}
-	} else if ( e.keyCode == 17 ) {
+	} else if ( e.keyCode == 32 ) {
+		//ctrl
 		camera_drag = new Point( world.camera.x + abs_x, world.camera.y + abs_y );
 	}
 }
 window.onkeyup = window.onblur = function(e){
 	if( e instanceof KeyboardEvent ) {
-		if ( e.keyCode == 17 ) { camera_drag = false; }
+		if ( e.keyCode == 32 ) { camera_drag = false; }
 	} else {
 		camera_drag = false;
 	}
@@ -175,7 +226,7 @@ var mouse_snap_x, mouse_snap_y
 var selected_thing = null;
 var selected_sprite = null;
 var camera_drag = false;
-var type_field;
+var type_field, prop_field;
 var mode = 0;
 
 var MODE_TILES = 0;
@@ -188,6 +239,14 @@ var selected_line, selected_line_side;
 window.onload = function(){
 	canvas = document.getElementById( 'canvas' );
 	type_field = document.getElementById( 'thing_type' );
+	prop_field = document.getElementById( 'thing_props' );
+	prop_field.oninput = function(e){
+		if ( selected_thing ) {
+			selected_thing.properties = this.value;
+		}
+		console.log(selected_thing);
+	}
+	RT = "../";
 	
 	dataManager = new DataManager();
 	window.world = new Game( canvas );
@@ -228,6 +287,8 @@ window.onload = function(){
 		var snap = Math.max( document.getElementById( 'grid_snap' ).value, 1 );
 		mouse_snap_x = Math.floor( mouse_x / snap ) * snap;
 		mouse_snap_y = Math.floor( mouse_y / snap ) * snap;
+		
+		$('#cursor_pos').html(mouse_snap_x+'x : '+mouse_snap_y+'y');
 		
 		if ( window.drag && selected_thing ) {
 			selected_thing.position.x = Math.floor( (mouse_x - drag.x) / snap ) * snap;
@@ -282,7 +343,10 @@ window.onload = function(){
 			}
 		}
 		
-		if ( selected_thing ){ type_field.value = selected_thing.type; }
+		if ( selected_thing ){ 
+			type_field.value = selected_thing.type; 
+			prop_field.value = selected_thing.properties; 
+		}
 		
 		return false;
 	}
@@ -302,11 +366,13 @@ window.onload = function(){
 				window.world.camera.y = 120;
 				
 				for( var i = 0; i < res.data.objects.length; i++ ){
+					var prop = decodeURI(res.data.objects[i].properties);
 					temp = new GameObject();
 					temp.position.x = res.data.objects[i].x;
 					temp.position.y = res.data.objects[i].y;
 					temp.type = res.data.objects[i].type;
 					temp.sprite = sprites[ res.data.objects[i].sprite ];
+					temp.properties = prop;
 					window.world.addObject( temp );
 				}
 				
@@ -361,7 +427,7 @@ function matchMode( object ) {
 	<div id="menu">
 		<div class="input">
 			<label for="grid_snap">Grid Snap</label>
-			<input type="text" id="grid_snap" />
+			<input type="text" id="grid_snap" value="8" />
 		</div>
 		<div class="input">
 			<label for="toggle_mode">Mode</label>
@@ -381,6 +447,8 @@ function matchMode( object ) {
 			<h2>Selected</h2>
 			<label>Type</label>
 			<input type="button" id="thing_type" name="type" />
+			<label>Properties</label>
+			<textarea id="thing_props"></textarea>
 		</div>
 		<div class="area">
 			<h2>File</h2>
@@ -392,6 +460,9 @@ function matchMode( object ) {
 			<input type="submit" id="load_button" value="Load" />
 			<input type="submit" id="save_button" value="Save" />
 		</div>
+	</div>
+	<div id="status">
+		<div id="cursor_pos"></div>
 	</div>
 	<canvas id="canvas" width="1200" height="1200" style="background:#FED"></canvas>
 </body>
