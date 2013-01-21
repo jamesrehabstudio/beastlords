@@ -102,6 +102,8 @@ function load_sprites (){
 	sprites['woodpost2'] = new Sprite(RT+"img/tiles/woodpost2.png",{offset:new Point(3,15)});
 	sprites['woodpost3'] = new Sprite(RT+"img/tiles/woodpost3.png",{offset:new Point(3,15)});
 	
+	sprites['terrace_01'] = new Sprite(RT+"img/tiles/terrace_01.png",{offset:new Point(0,300)});
+	
 	
 	for( var i in sprites ) {
 		sprites[i].name = i;
