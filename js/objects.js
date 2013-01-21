@@ -236,6 +236,48 @@ ZombieSpawner.prototype.update = function(){
 	}
 }
 
+Swarmer.prototype = new GameObject();
+Swarmer.prototype.constructor = GameObject;
+function Swarmer(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 40;
+	this.height = 40;
+	this.interactive = true;
+	
+	this.sprite = sprites.bullman;
+	this.team = 2;
+	this.speed = 3;
+	this.turn_speed = 1 / 32;
+	this.angle = 0;
+	
+	this.addModule( mod_rigidbody );
+	this.mass = 0.125;
+	this.dir = new Point;
+}
+Swarmer.prototype.update = function(){
+	var player_vector = new Point(
+		_player.position.x - this.position.x,
+		_player.position.y - this.position.y
+	);
+	var player_angle = Math.atan2( player_vector.x, player_vector.y );
+		
+	this.angle = ( this.angle + ( this.angle - player_angle > 0 ? -this.turn_speed : this.turn_speed ) ) % (2*Math.PI);	
+	
+	this.force.x = Math.sin( this.angle ) * this.speed * game.delta;
+	this.force.y = Math.cos( this.angle ) * this.speed * game.delta;
+	
+	this.dir.x = Math.sin( this.angle ) * 10;
+	this.dir.y = Math.cos( this.angle ) * 10;
+}
+Swarmer.prototype.render = function(g,c){
+	g.fillStyle = "#0000FF";
+	g.fillRect(this.position.x-c.x,this.position.y-c.y, 4,4);
+	g.fillStyle = "#00CCFF";
+	g.fillRect(this.position.x + this.dir.x -c.x,this.position.y + this.dir.y -c.y, 4,4);
+}
+
 Bullet.prototype = new GameObject();
 Bullet.prototype.constructor = GameObject;
 function Bullet(x, y, angle, team, damage){
