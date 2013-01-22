@@ -214,6 +214,25 @@ Game.prototype.c_move = function( obj, x, y ) {
 	}
 }
 
+Game.prototype.trace = function( start, end, thickness ) {
+	var lines = [ new Line(start,end) ];
+	
+	if ( thickness ) {
+		var n = lines[0].normal().normalize(thickness);
+		lines.push( new Line(start.add(n), end.add(n)) );
+		var m = n.scale(-1);
+		lines.push( new Line(start.add(m), end.add(m)) );
+	}
+	
+	for( var i = 0; i < lines.length; i++ ){
+	for( var j = 0; j < game.collisions.length; j++ ){
+		if ( game.collisions[j].intersects( lines[i] ) ){
+			return false;
+		}
+	} }
+	return true;
+}
+
 /* GAME PRIMITIVES */
 
 function GameObject() {
@@ -241,7 +260,7 @@ GameObject.prototype.transpose = function(x, y) {
 }
 GameObject.prototype.hitbox = function() {
 	var half_width = Math.floor( this.width * 0.5 );
-	var half_height = Math.floor( this.width * 0.5 );
+	var half_height = Math.floor( this.height * 0.5 );
 	
 	this._hitbox = new Polygon();
 	this._hitbox.addPoint( new Point(this.position.x-half_width , this.position.y-half_height) );
@@ -306,6 +325,37 @@ SortTree.prototype.toArray = function(){
 		out = out.concat( this.higher.toArray() );
 	}
 	return out;
+}
+
+//Path builder
+function buildPaths(){
+	var nodes = new Array();
+	for(var i=0; i<game.objects.length;i++){
+		if ( game.objects[i] instanceof Node ){
+			nodes.push( game.objects[i] );
+		}
+	}
+	
+	for(var i=0; i<nodes.length;i++){
+	for(var j=0; j<nodes.length;j++){
+		if ( i != j && !nodes[i].properties.nopath) {
+			if ( game.trace( nodes[i].position, nodes[j].position, 10 ) ){
+				nodes[i].connections.push( nodes[j] );
+			}
+			/*
+			var line = new Line( nodes[i].position, nodes[j].position );
+			var line_of_sight = true;
+			for( var k = 0; k < game.collisions.length; k++ ){
+				if ( game.collisions[k].intersects( line ) ){
+					line_of_sight = false;
+					break;
+				}
+			}
+			if ( line_of_sight ) {
+				nodes[i].connections.push( nodes[j] );
+			}*/
+		}
+	} }
 }
 
 Array.prototype.remove = function(from, to) {

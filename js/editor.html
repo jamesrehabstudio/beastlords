@@ -146,6 +146,10 @@ save = function(){
 
 window.onkeydown = function(e){
 	//console.log( e.keyCode );
+	if ( _typing ){
+		return;
+	}
+	
 	if ( e.keyCode == 45 || e.keyCode == 36 ) {
 		//Insert or Home
 		e.preventDefault();
@@ -153,7 +157,7 @@ window.onkeydown = function(e){
 		
 		if ( mode != MODE_LINES ) {
 			if ( selected_sprite != null || copy ) {
-				temp = new GameObject();
+				temp = new EditObject();
 				temp.position.x = mouse_snap_x;
 				temp.position.y = mouse_snap_y;
 				temp.sprite = selected_sprite;
@@ -206,7 +210,7 @@ window.onkeydown = function(e){
 			}
 		}
 	} else if ( e.keyCode == 32 ) {
-		//ctrl
+		//Space
 		camera_drag = new Point( world.camera.x + abs_x, world.camera.y + abs_y );
 	}
 }
@@ -235,16 +239,22 @@ var MODE_OBJECTS = 2;
 var MODE_LINES = 3;
 
 var selected_line, selected_line_side;
+var _typing = false;
+var typelock =  function(){ _typing = true; }
+var typeunlock =  function(){ _typing = false; }
 
 window.onload = function(){
 	canvas = document.getElementById( 'canvas' );
 	type_field = document.getElementById( 'thing_type' );
 	prop_field = document.getElementById( 'thing_props' );
+	prop_field.onfocus = typelock;
+	prop_field.onblur = typeunlock;
+	
 	prop_field.oninput = function(e){
 		if ( selected_thing ) {
 			selected_thing.properties = this.value;
+			render();
 		}
-		console.log(selected_thing);
 	}
 	RT = "../";
 	
@@ -349,6 +359,7 @@ window.onload = function(){
 			prop_field.value = selected_thing.properties; 
 		}
 		
+		$('input, textarea').blur();
 		return false;
 	}
 	type_field.onclick = function(e){
@@ -368,7 +379,7 @@ window.onload = function(){
 				
 				for( var i = 0; i < res.data.objects.length; i++ ){
 					var prop = decodeURI(res.data.objects[i].properties);
-					temp = new GameObject();
+					temp = new EditObject();
 					temp.position.x = res.data.objects[i].x;
 					temp.position.y = res.data.objects[i].y;
 					temp.type = res.data.objects[i].type;
@@ -403,13 +414,45 @@ window.onload = function(){
 	};
 }
 
-GameObject.prototype.isOver = function( p ){ 
+
+EditObject.prototype = new GameObject();
+EditObject.prototype.constructor = GameObject;
+
+function EditObject(x, y){
+	this.constructor();
+}
+EditObject.prototype.isOver = function( p ){ 
 	var out = (
 	p.x > this.position.x - this.sprite.offset.x && 
 	p.y > this.position.y - this.sprite.offset.y &&
 	p.x < this.position.x + this.sprite.frame_width && 
 	p.y < this.position.y + this.sprite.frame_height );
 	return out;
+}
+EditObject.prototype.render = function(g,c){
+	if ( this.type == "Node" ){
+		var props = {};
+		try{ props = JSON.parse( this.properties ) } catch(e){};
+		g.strokeStyle = "#FF00FF";
+		var width = props.width || 32;
+		var height = props.height || 32;
+		g.strokeRect(
+			(this.position.x-(.5*width))-c.x,
+			(this.position.y-(.5*height))-c.y,
+			width, height
+		);
+		if ( selected_thing == this ) {
+			if ( props.lock instanceof Array && props.lock.length >= 4 ){
+				g.strokeStyle = "#FFDD00";
+				g.strokeRect(
+					props.lock[3]-c.x, props.lock[0]-c.y,
+					props.lock[1]-props.lock[3], props.lock[2]-props.lock[0]
+				);
+			}
+		}
+	} else {
+		GameObject.prototype.render.apply(this,[g,c]);
+	}
 }
 
 function matchMode( object ) {

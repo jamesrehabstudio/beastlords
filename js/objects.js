@@ -14,23 +14,41 @@ Hud.prototype.render = function(g, camera){
 	sprites.health_bar.render(g, new Point(0,224), 0, health );
 }
 
-CameraLock.prototype = new GameObject();
-CameraLock.prototype.constructor = GameObject;
+Node.prototype = new GameObject();
+Node.prototype.constructor = GameObject;
 
-function CameraLock(x, y){
+function Node(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = this.height = 32;
 	
-	this.interactive = true;
+	this.connections = new Array();
 }
-CameraLock.prototype.update = function(){
-	if ( window._player.intersects(this) ){
+Node.prototype.update = function(){
+	if ( this.properties.lock != undefined && window._player.intersects(this) ){
 		window._player.lock = this.properties.lock;
-	}	
+	}
+	this.width = this.properties.width || this.width;
+	this.height = this.properties.height || this.height;
 }
-CameraLock.prototype.render = function(){}
+Node.prototype.render = function(g,c){
+	g.strokeStyle = "#FF00FF";
+	g.strokeRect(
+		(this.position.x-(this.width*.5))-c.x,
+		(this.position.y-(this.height*.5))-c.y,
+		this.width,this.height
+	);
+	for ( var i = 0; i < this.connections.length; i++ ){
+		var node = this.connections[i];
+		g.strokeStyle = "#88FF00";
+		g.beginPath();
+		g.moveTo( this.position.x - c.x, this.position.y - c.y );
+		g.lineTo( node.position.x - c.x, node.position.y - c.y );
+		g.closePath();
+		g.stroke();	
+	}
+}
 
 
 Player.prototype = new GameObject();
@@ -237,6 +255,9 @@ Swarmer.prototype.update = function(){
 	this.dir.x = Math.sin( this.angle ) * 10;
 	this.dir.y = Math.cos( this.angle ) * 10;
 }
+Swarmer.oncollide = function(){
+	this._cooldown = Math.max( this._cooldown, 20 );
+}
 Swarmer.prototype.render = function(g,c){
 	g.fillStyle = "#0000FF";
 	g.fillRect(this.position.x-c.x,this.position.y-c.y, 4,4);
@@ -299,7 +320,7 @@ Chipper.prototype.update = function(){
 }
 Chipper.prototype.render = function(g,c){
 	g.fillStyle = "#0000FF";
-	g.fillRect(this.position.x-c.x+4,this.position.y-c.y+4, 8,8);
+	g.fillRect(this.position.x-c.x-4,this.position.y-c.y-4, 8,8);
 	g.fillStyle = "#00CCFF";
 	g.fillRect(this.position.x + this.dir.x -c.x,this.position.y + this.dir.y -c.y, 4,4);
 }
@@ -534,7 +555,7 @@ var weapons = {
 		var delta = 0.5;
 		var pellets = 8;
 		for ( var i = 0; i < pellets; i++ ){
-			var spread = (delta*.75) - ( Math.random() * delta );
+			var spread = (delta*.5) - ( Math.random() * delta );
 			var bullet = new Bullet( 
 				this.position.x,
 				this.position.y,
