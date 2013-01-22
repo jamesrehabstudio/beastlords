@@ -45,7 +45,7 @@ function Player(x, y){
 	window._player = this;
 	game.addObject( new Hud() );
 	
-	this.weapon = 1;
+	this.weapon = weapons.pistol;
 	this.health = 100;
 	this.sprite = sprites.player;
 	this._ani = 0;
@@ -55,65 +55,18 @@ function Player(x, y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
 }
-Player.prototype.fire = function(weapon){
-	weapon = weapon || this.weapon;
-	if ( weapon == 1 && input.state('click') == 1) {
-		//Pistols
-		this.parent.addObject( new Bullet( 
-			this.position.x,
-			this.position.y,
-			this.angle-Math.PI,
-			this.team
-		) );
-	} else if ( weapon == 2 && this._weapontimeout < 1) {
-		//Shot gun
-		var delta = 0.5;
-		var pellets = 5;
-		for ( var i = 0; i < pellets; i++ ){
-			var spread = (delta*.5) - ( Math.random() * delta );
-			this.parent.addObject( new Bullet( 
-				this.position.x,
-				this.position.y,
-				(this.angle+spread)-Math.PI,
-				this.team
-			) );
-		}
-		this._weapontimeout = 30;
-	} else if ( weapon == 3 && this._weapontimeout < 1) {
-		//Rifle
-		var bullet = new Bullet( 
-			this.position.x,
-			this.position.y,
-			this.angle-Math.PI,
-			this.team
-		);
-		bullet.damage = 100;
-		this.parent.addObject( bullet );
-		this._weapontimeout = 40;
-	} else if ( weapon == 4 && this._weapontimeout < 1) {
-		//Rifle
-		var gernade = new Gernade( 
-			this.position.x,
-			this.position.y,
-			this.angle-Math.PI,
-			this.team
-		);
-		this.parent.addObject( gernade );
-		this._weapontimeout = 40;
-	}
-	
-}
+
 Player.prototype.update = function(){
 	var speed = 3.5;
 	
 	this.force.x = 0;
 	this.force.y = 0;
 	
-	if ( input.state('key1') == 1 ) { this.weapon = 0; }
-	if ( input.state('key2') == 1 ) { this.weapon = 1; }
-	if ( input.state('key3') == 1 ) { this.weapon = 2; }
-	if ( input.state('key4') == 1 ) { this.weapon = 3; }
-	if ( input.state('key5') == 1 ) { this.weapon = 4; }
+	if ( input.state('key1') == 1 ) { this.weapon = weapons.knife; }
+	if ( input.state('key2') == 1 ) { this.weapon = weapons.pistol; }
+	if ( input.state('key3') == 1 ) { this.weapon = weapons.shotgun; }
+	if ( input.state('key4') == 1 ) { this.weapon = weapons.rifle; }
+	if ( input.state('key5') == 1 ) { this.weapon = weapons.gernade; }
 	
 	if ( input.state('up') > 0 ) { this.force.y -= speed; }
 	if ( input.state('down') > 0 ) { this.force.y += speed; }
@@ -123,11 +76,13 @@ Player.prototype.update = function(){
 	var mouse_x = input.mouseCenter.x + ( game.camera.x - this.position.x );
 	var mouse_y = input.mouseCenter.y + ( game.camera.y - this.position.y );
 	
-	this.angle = ( Math.atan2( mouse_x, mouse_y ) ) + Math.PI;
-	this.frame_row = Math.floor( ( (2*Math.PI) - ( this.angle + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
+	this.angle = Math.atan2( mouse_x, mouse_y );
+	//this.frame_row = 8 - (Math.floor( ( (2*Math.PI) - ( this.angle + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) ));
+	this.frame_row = ( 4 + Math.round( ( -this.angle + Math.PI ) * ( 8 / (2 * Math.PI) ) ) ) % 8;
+	$('#clearer').html(this.frame_row);
 	
-	this._weapontimeout--;
-	if ( input.state('click') > 0 ) this.fire();
+	this._cooldown -= game.delta;
+	if ( input.state('click') > 0 ) this.weapon.apply(this);
 	
 	var angle = Math.atan2( this.force.x, this.force.y );
 	if ( this.force.x != 0 || this.force.y != 0 ) {
@@ -152,15 +107,13 @@ function Zombie(x, y){
 	this.width = 30;
 	this.height = 30;
 	this.speed = 1.5;
-	this.interactive = true;
 	
 	this.sprite = sprites.bullman;
 	this._ani = 0;
-	this.health = 100;
-	this.team = 2;
 	
 	this.attack_charge = 0;
 	this.addModule( mod_rigidbody );
+	this.addModule( mod_killable );
 	this.mass = 0.5;
 }
 Zombie.prototype.update = function() {
@@ -197,9 +150,6 @@ Zombie.prototype.update = function() {
 		this.frame = Math.floor( this._ani * 0.2 ) % 4;
 		//this.frame_row = Math.floor( ( (2*Math.PI) - ( angle_to_player + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
 		//this.frame_row %= 8;
-	
-	} else { 
-		game.removeObject( this );
 	}
 }
 
@@ -211,12 +161,11 @@ function ZombieSpawner(x, y){
 	this.position.y = y;
 	this.width = 40;
 	this.height = 40;
-	this.interactive = true;
 	
 	this.sprite = sprites.spawner;
+	this.addModule( mod_killable );
 	this.health = 300;
 	this.time = 0;
-	this.team = 2;
 }
 ZombieSpawner.prototype.update = function(){
 	if ( this.health > 0 ) {
@@ -242,17 +191,20 @@ function Swarmer(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 40;
-	this.height = 40;
-	this.interactive = true;
+	this.width = 16;
+	this.height = 16;
 	
 	this.sprite = sprites.bullman;
 	this.team = 2;
-	this.speed = 3;
-	this.turn_speed = 1 / 32;
+	this.speed = 8;
+	this.turn_speed = 1 / 12;
 	this.angle = 0;
 	
+	this._cooldown = 0;
+	
 	this.addModule( mod_rigidbody );
+	this.addModule( mod_killable );
+	this.health = 10;
 	this.mass = 0.125;
 	this.dir = new Point;
 }
@@ -262,11 +214,25 @@ Swarmer.prototype.update = function(){
 		_player.position.y - this.position.y
 	);
 	var player_angle = Math.atan2( player_vector.x, player_vector.y );
-		
-	this.angle = ( this.angle + ( this.angle - player_angle > 0 ? -this.turn_speed : this.turn_speed ) ) % (2*Math.PI);	
+	var speed = this.speed;
 	
-	this.force.x = Math.sin( this.angle ) * this.speed * game.delta;
-	this.force.y = Math.cos( this.angle ) * this.speed * game.delta;
+	if ( this._cooldown < 0 ) {
+		//Attack mode
+		if( this.intersects(_player) ){
+			var knock = Point.fromAngle(this.angle);
+			_player.momentum.x += knock.x;
+			_player.momentum.y += knock  .y;
+			_player.health -= 5;
+			this._cooldown = 80;
+		}
+		this.angle += Math.angleTurnDirection(this.angle, player_angle) * this.turn_speed * game.delta;	
+	} else {
+		speed *= 0.25;
+		this._cooldown -= game.delta;
+	}
+	
+	this.force.x = Math.sin( this.angle ) * speed * game.delta;
+	this.force.y = Math.cos( this.angle ) * speed * game.delta;
 	
 	this.dir.x = Math.sin( this.angle ) * 10;
 	this.dir.y = Math.cos( this.angle ) * 10;
@@ -274,6 +240,66 @@ Swarmer.prototype.update = function(){
 Swarmer.prototype.render = function(g,c){
 	g.fillStyle = "#0000FF";
 	g.fillRect(this.position.x-c.x,this.position.y-c.y, 4,4);
+	g.fillStyle = "#00CCFF";
+	g.fillRect(this.position.x + this.dir.x -c.x,this.position.y + this.dir.y -c.y, 4,4);
+}
+
+Chipper.prototype = new GameObject();
+Chipper.prototype.constructor = GameObject;
+function Chipper(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 20;
+	this.height = 20;
+	
+	this.sprite = sprites.bullman;
+	this.speed = 2;
+	this.angle = 0;
+	
+	this._cooldown = Math.random() * 200 ;
+	this._ai_walkway = 0;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_killable );
+	this.health = 50;
+	this.mass = 0.25;
+	this.dir = new Point;
+}
+Chipper.prototype.update = function(){
+	var player_vector = new Point(
+		_player.position.x - this.position.x,
+		_player.position.y - this.position.y
+	);
+	this.angle = Math.atan2( player_vector.x, player_vector.y );
+	var speed = this.speed;
+	if ( player_vector.length() < 50 ){
+		this._ai_walkway = 80;
+	}
+	
+	if ( this._cooldown < 10 ) {
+		//Attack mode
+		if( this._cooldown < 0  ){
+			weapons.pistol.apply(this);
+			this._cooldown = 125;
+		}
+		speed = 0;
+	} else if ( this._ai_walkway > 0 ) {
+		speed = -speed;
+	}
+	this._ai_walkway -= game.delta;
+	this._cooldown -= game.delta;
+	
+	
+	this.force.x = Math.sin( this.angle ) * speed * game.delta;
+	this.force.y = Math.cos( this.angle ) * speed * game.delta;
+	
+	this.dir.x = Math.sin( this.angle ) * 10;
+	this.dir.y = Math.cos( this.angle ) * 10;
+}
+Chipper.prototype.render = function(g,c){
+	g.fillStyle = "#0000FF";
+	g.fillRect(this.position.x-c.x+4,this.position.y-c.y+4, 8,8);
 	g.fillStyle = "#00CCFF";
 	g.fillRect(this.position.x + this.dir.x -c.x,this.position.y + this.dir.y -c.y, 4,4);
 }
@@ -488,12 +514,72 @@ Tree.prototype.render = function( g, camera ){
 	}
 }
 
+/* Weapons */
+
+var weapons = {
+	pistol : function(){
+		//Pistols
+		if ( input.state('click') > 1 ) return;
+		this.parent.addObject( new Bullet( 
+			this.position.x,
+			this.position.y,
+			this.angle,
+			this.team
+		) );
+	},
+	shotgun : function(){
+		//Shot gun
+		if ( this._cooldown > 0 ) return;
+		
+		var delta = 0.5;
+		var pellets = 8;
+		for ( var i = 0; i < pellets; i++ ){
+			var spread = (delta*.75) - ( Math.random() * delta );
+			var bullet = new Bullet( 
+				this.position.x,
+				this.position.y,
+				(this.angle+spread),
+				this.team
+			);
+			bullet.damage = 5;
+			this.parent.addObject( bullet );
+		}
+		this._cooldown = 15;
+	},
+	rifle : function(){
+		//Rifle
+		if ( this._cooldown > 0 ) return;
+		var bullet = new Bullet( 
+			this.position.x,
+			this.position.y,
+			this.angle,
+			this.team
+		);
+		bullet.damage = 100;
+		this.parent.addObject( bullet );
+		this._cooldown = 35;
+	},
+	gernade : function() {
+		//gernade
+		if ( this._cooldown > 0) return;
+		var gernade = new Gernade( 
+			this.position.x,
+			this.position.y,
+			this.angle,
+			this.team
+		);
+		this.parent.addObject( gernade );
+		this._cooldown = 40;
+	}
+};
+
 /* Modules */
 var mod_rigidbody = {
 	'init' : function(){
 		this.mass = 0.125;
 		this.momentum = new Point();
 		this.force = new Point();
+		this.interactive = true;
 	},
 	'update' : function(){
 		this.momentum.x *= (1-(this.mass * game.delta ) );
@@ -502,6 +588,19 @@ var mod_rigidbody = {
 			(this.force.x + this.momentum.x) * game.delta,
 			(this.force.y + this.momentum.y) * game.delta
 		);
+	}
+}
+
+var mod_killable = {
+	'init' : function(){
+		this.health = 100;
+		this.team = 2;
+		this.shootable = true;
+	},
+	'update' : function(){
+		if ( this.health <= 0 ){ 
+			game.removeObject( this );
+		}
 	}
 }
 

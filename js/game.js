@@ -95,7 +95,8 @@ window.__time = 0;
 Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
-	this.delta = Math.min( (newTime - this.time) / 30, 2);
+	this.delta = Math.min( (newTime - this.time) / 30, 1);
+	//this.delta = 1.1;
 	this.time = newTime;
 	
 	this.renderTree = new SortTree();
@@ -312,3 +313,13 @@ Array.prototype.remove = function(from, to) {
   this.length = from < 0 ? this.length + from : from;
   return this.push.apply(this, rest);
 };
+Math.angleTurnDirection = function(_a,_b){
+	_a = _a % (2*Math.PI);
+	_b = _b % (2*Math.PI);
+	
+	var a = (_a - _b);
+	var b = ((_a-(2*Math.PI))-_b);
+	var test = Math.abs(b) < Math.abs(a) ? b: a;
+	return test > 0 ? -1 : 1;
+	
+}
