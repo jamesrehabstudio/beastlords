@@ -18,6 +18,7 @@
 		}
 		textarea {
 			width:100%;
+			margin-bottom:5px;
 		}
 		#tile_select {
 			background:#FFF;
@@ -58,7 +59,7 @@
 			position:absolute;
 			top:-10px;
 		}
-		#thing_type {
+		#thing_type, #test_paths {
 			display:block;
 			width:100%;
 		}
@@ -85,21 +86,21 @@
 	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 	<script>
 window.onresize = function() {
-	if ( world != undefined ) {
-		world.g.canvas.width  = window.innerWidth;
-		world.g.canvas.height = window.innerHeight;
+	if ( game != undefined ) {
+		game.g.canvas.width  = window.innerWidth;
+		game.g.canvas.height = window.innerHeight;
 		render();
 	}
 }
 	
 render = function() {
-	world.update();
+	game.update();
 	
 	if ( selected_thing ) {
-		world.g.setStrokeColor( "#FF0000" );
-		world.g.strokeRect( 
-			( selected_thing.position.x - selected_thing.sprite.offset.x ) - ( world.camera.x ),
-			( selected_thing.position.y - selected_thing.sprite.offset.y ) - ( world.camera.y ),
+		game.g.setStrokeColor( "#FF0000" );
+		game.g.strokeRect( 
+			( selected_thing.position.x - selected_thing.sprite.offset.x ) - ( game.camera.x ),
+			( selected_thing.position.y - selected_thing.sprite.offset.y ) - ( game.camera.y ),
 			selected_thing.sprite.frame_width,
 			selected_thing.sprite.frame_height
 		);
@@ -112,8 +113,8 @@ save = function(){
 	document.getElementById('save_button').value = "Saving";
 
 	var objects = "";
-	for( var i=0; i<world.objects.length;i++){
-		obj = world.objects[i];
+	for( var i=0; i<game.objects.length;i++){
+		obj = game.objects[i];
 		var prop = encodeURI(obj.properties);
 		objects += '{"x":'+obj.position.x+',';
 		objects += '"y":'+obj.position.y+',';
@@ -124,8 +125,8 @@ save = function(){
 	objects = objects.substr(0,objects.length-1);
 	
 	var lines = "";
-	for( var i=0; i<world.collisions.length;i++){
-		line = world.collisions[i];
+	for( var i=0; i<game.collisions.length;i++){
+		line = game.collisions[i];
 		lines += '{"start_x":'+line.start.x+',';
 		lines += '"start_y":'+line.start.y+',';
 		lines += '"end_x":'+line.end.x+',';
@@ -166,12 +167,12 @@ window.onkeydown = function(e){
 						temp.type = selected_thing.type;
 						temp.sprite = selected_thing.sprite;
 						temp.properties = selected_thing.properties;
-						world.addObject( temp );
+						game.addObject( temp );
 						selected_thing = temp;
 					}
 				} else {
 					temp.type = ( mode == MODE_TILES ? "Tile" : ( mode == MODE_PROPS ? "Prop" : "GameObject" ) );
-					world.addObject( temp );
+					game.addObject( temp );
 					selected_thing = temp;
 				}
 				render();
@@ -190,7 +191,7 @@ window.onkeydown = function(e){
 					new Point(mouse_snap_x,mouse_snap_y) );
 				selected_line = temp;
 				selected_line_side = 2;
-				world.collisions.push( temp );
+				game.collisions.push( temp );
 				render();
 			}
 		}
@@ -198,20 +199,20 @@ window.onkeydown = function(e){
 		//Delete
 		if ( mode != MODE_LINES ) {
 			if ( selected_thing ) {
-				world.objects.remove( world.objects.indexOf( selected_thing ) );
+				game.objects.remove( game.objects.indexOf( selected_thing ) );
 				selected_thing = null;
 				render();
 			}
 		} else {
 			if ( selected_line instanceof Line ) {
-				world.collisions.remove( world.collisions.indexOf( selected_line ) );
+				game.collisions.remove( game.collisions.indexOf( selected_line ) );
 				selected_line = null;
 				render();
 			}
 		}
 	} else if ( e.keyCode == 32 ) {
 		//Space
-		camera_drag = new Point( world.camera.x + abs_x, world.camera.y + abs_y );
+		camera_drag = new Point( game.camera.x + abs_x, game.camera.y + abs_y );
 	}
 }
 window.onkeyup = window.onblur = function(e){
@@ -223,14 +224,14 @@ window.onkeyup = window.onblur = function(e){
 }
 
 var canvas, g;
-var world;
+var game;
 var abs_x, abs_y;
 var mouse_x, mouse_y;
 var mouse_snap_x, mouse_snap_y
 var selected_thing = null;
 var selected_sprite = null;
 var camera_drag = false;
-var type_field, prop_field;
+var type_field, prop_field, test_paths;
 var mode = 0;
 
 var MODE_TILES = 0;
@@ -247,6 +248,7 @@ window.onload = function(){
 	canvas = document.getElementById( 'canvas' );
 	type_field = document.getElementById( 'thing_type' );
 	prop_field = document.getElementById( 'thing_props' );
+	test_paths = document.getElementById( 'test_paths' );
 	prop_field.onfocus = typelock;
 	prop_field.onblur = typeunlock;
 	
@@ -256,13 +258,18 @@ window.onload = function(){
 			render();
 		}
 	}
+	test_paths.onclick = function(e){
+		e.preventDefault();
+		buildPaths();
+		render();
+	}
 	RT = "../";
 	
 	RT = "../";
 	dataManager = new DataManager();
-	window.world = new Game( canvas );
-	window.world.camera.x = 160;
-	window.world.camera.y = 120;
+	window.game = new Game( canvas );
+	window.game.camera.x = 160;
+	window.game.camera.y = 120;
 	load_sprites();
 	
 	//add sprites to sprite_select
@@ -285,12 +292,12 @@ window.onload = function(){
 	canvas.onmousemove = function(e){
 		abs_x = e.pageX;
 		abs_y = e.pageY;
-		mouse_x = abs_x + world.camera.x;
-		mouse_y = abs_y + world.camera.y;
+		mouse_x = abs_x + game.camera.x;
+		mouse_y = abs_y + game.camera.y;
 		
 		if ( camera_drag instanceof Point ) {
-			world.camera.x = camera_drag.x - abs_x;
-			world.camera.y = camera_drag.y - abs_y;
+			game.camera.x = camera_drag.x - abs_x;
+			game.camera.y = camera_drag.y - abs_y;
 			render();
 			return false;
 		}
@@ -323,8 +330,8 @@ window.onload = function(){
 		if( mode != MODE_LINES ){
 			//Find clicked on Tile
 			largest_zIndex = -Math.pow( 10, 10 );
-			for( var i=0; i < world.objects.length; i++ ) {
-				var object =  world.objects[i];
+			for( var i=0; i < game.objects.length; i++ ) {
+				var object =  game.objects[i];
 				if ( matchMode( object ) ) {
 					//The object is a prop (if prop mode) a tile (if Tile mode), etc.
 					var zIndex = object.zIndex || object.position.y;
@@ -341,8 +348,8 @@ window.onload = function(){
 			}
 		} else {			
 			//Find line end clicked on
-			for( var i = 0; i < world.collisions.length; i++ ) {
-				var line = world.collisions[i];
+			for( var i = 0; i < game.collisions.length; i++ ) {
+				var line = game.collisions[i];
 				if ( line.start.distance( mouse ) < 10 ) {
 					selected_line = line;
 					selected_line_side = 1;
@@ -373,9 +380,9 @@ window.onload = function(){
 		var map = prompt("Enter map name");
 		if ( map ) {
 			dataManager.getLevel( function( res ) {
-				window.world = new Game( canvas );
-				window.world.camera.x = 160;
-				window.world.camera.y = 120;
+				window.game = new Game( canvas );
+				window.game.camera.x = 160;
+				window.game.camera.y = 120;
 				
 				for( var i = 0; i < res.data.objects.length; i++ ){
 					var prop = decodeURI(res.data.objects[i].properties);
@@ -385,7 +392,7 @@ window.onload = function(){
 					temp.type = res.data.objects[i].type;
 					temp.sprite = sprites[ res.data.objects[i].sprite ];
 					temp.properties = prop;
-					window.world.addObject( temp );
+					window.game.addObject( temp );
 				}
 				
 				for( var i = 0; i < res.data.collisions.length; i++ ){
@@ -394,7 +401,7 @@ window.onload = function(){
 						new Point( line.start_x, line.start_y ),
 						new Point( line.end_x, line.end_y )
 					);
-					window.world.collisions.push( temp );
+					window.game.collisions.push( temp );
 				}
 				
 				document.getElementById('map_name').value = res.data.name;
@@ -433,6 +440,7 @@ EditObject.prototype.render = function(g,c){
 	if ( this.type == "Node" ){
 		var props = {};
 		try{ props = JSON.parse( this.properties ) } catch(e){};
+		g.beginPath();
 		g.strokeStyle = "#FF00FF";
 		var width = props.width || 32;
 		var height = props.height || 32;
@@ -441,6 +449,16 @@ EditObject.prototype.render = function(g,c){
 			(this.position.y-(.5*height))-c.y,
 			width, height
 		);
+		if ( props.lock instanceof Array ){
+			g.arc(
+				this.position.x-c.x,
+				this.position.y-c.y,
+				Math.min(width,height)*.5,
+				0, Math.PI*2,true
+			);
+			g.stroke();  
+			g.closePath();
+		}
 		if ( selected_thing == this ) {
 			if ( props.lock instanceof Array && props.lock.length >= 4 ){
 				g.strokeStyle = "#FFDD00";
@@ -452,6 +470,17 @@ EditObject.prototype.render = function(g,c){
 		}
 	} else {
 		GameObject.prototype.render.apply(this,[g,c]);
+	}
+	
+	if( this.connections instanceof Array ){
+		g.strokeStyle = "#FFDD00";
+		for(var i=0;i<this.connections.length;i++){
+			g.beginPath();
+			g.moveTo(this.position.x-c.x,this.position.y-c.y);
+			g.lineTo(this.connections[i].position.x-c.x,this.connections[i].position.y-c.y);
+			g.stroke();
+			g.closePath();
+		}
 	}
 }
 
@@ -493,6 +522,7 @@ function matchMode( object ) {
 			<input type="button" id="thing_type" name="type" />
 			<label>Properties</label>
 			<textarea id="thing_props"></textarea>
+			<input type="button" id="test_paths" name="type" value="Test Paths" />
 		</div>
 		<div class="area">
 			<h2>File</h2>

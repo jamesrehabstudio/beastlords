@@ -107,10 +107,7 @@ function Line ( p, q ) {
 }
 
 Line.prototype.length = function(){
-	return Math.sqrt( 
-		Math.pow( Math.abs( this.start.x - this.end.x ), 2 ) +
-		Math.pow( Math.abs( this.start.y - this.end.y ), 2 )
-	);
+	return this.start.distance(this.end);
 }
 Line.prototype.normal = function(g, camera){
 	return new Point( -(this.end.y-this.start.y), -(this.start.x-this.end.x));
@@ -189,11 +186,8 @@ function Point(x,y) {
 	this.x = x || 0;
 	this.y = y || 0;
 }
-Point.prototype.distance = function(d){
-	return Math.sqrt (
-		Math.pow( Math.abs( this.x - d.x ), 2 ) +
-		Math.pow( Math.abs( this.y - d.y ), 2 )
-	);
+Point.prototype.distance = function(b){
+	return this.subtract(b).length();
 }
 Point.prototype.length = function(){
 	return Math.sqrt(this.x * this.x + this.y * this.y);

@@ -49,6 +49,27 @@ Node.prototype.render = function(g,c){
 		g.stroke();	
 	}
 }
+Node.prototype.linkTo = function(target,path){
+	path = path || {'length':0,'chain':[]};
+	if( path.chain.length > 8 ) return false;
+	for(var i=0; i<path.chain.length;i++){
+		if( path.chain[i] == this ) return false;
+	}
+	path.chain.push(this);
+	if ( game.trace(this.position,target) ) return path;
+	this.connections.sort(function(a,b){
+		return a.position.distance(target) < b.position.distance(target) ? 1 : -1;
+	});
+	for(var i=0; i<this.connections.length;i++){
+		temp = this.connections[i].linkTo(target,path);
+		if( temp ){
+			return path;
+			path.chain.push( temp );
+		}
+	}
+	path.chain.pop();
+	return false;
+}
 
 
 Player.prototype = new GameObject();
@@ -72,6 +93,7 @@ function Player(x, y){
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
+	this.addModule( mod_tracker );
 }
 
 Player.prototype.update = function(){
@@ -113,6 +135,27 @@ Player.prototype.update = function(){
 	if ( this.health < 1 ) {
 		game.removeObject( this );
 	}
+}
+Player.prototype.render = function(g,c){
+	if( this._nodechain.chain instanceof Array && this._nodechain.chain.length > 1 ){
+		for( var i=1;i<this._nodechain.chain.length;i++){
+			game.g.beginPath();
+			game.g.strokeStyle = "#000000";
+			game.g.lineWidth = 3;
+			game.g.moveTo(
+				this._nodechain.chain[i-1].position.x-game.camera.x,
+				this._nodechain.chain[i-1].position.y-game.camera.y
+			);
+			game.g.lineTo(
+				this._nodechain.chain[i].position.x-game.camera.x,
+				this._nodechain.chain[i].position.y-game.camera.y
+			);
+			game.g.stroke();
+			game.g.closePath();
+			game.g.lineWidth = 1;
+		}
+	}
+	GameObject.prototype.render.apply(this,[g,c]);
 }
 
 Zombie.prototype = new GameObject();
@@ -609,6 +652,25 @@ var mod_rigidbody = {
 			(this.force.x + this.momentum.x) * game.delta,
 			(this.force.y + this.momentum.y) * game.delta
 		);
+	}
+}
+
+var mod_tracker = {
+	'init' : function(){
+		this.goal = new Point();
+		this._nodechain = false;
+	},
+	'update':function(){
+		//this._buildnodechain(game.objects[2].position);
+		var node = this._nearestnode();
+		if ( node ){
+			game._pathfinder.postMessage({'object':{
+				'id':this.id,
+				'x':this.position.x,
+				'y':this.position.y,
+				'node':game.nodes.indexOf(node)
+			} });
+		}
 	}
 }
 

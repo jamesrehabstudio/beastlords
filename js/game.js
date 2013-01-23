@@ -66,6 +66,7 @@ function Game( elm ) {
 	this.objects = new Array();
 	this.camera = new Point();
 	this.collisions = new Array();
+	this.sprites = {};
 	
 	//Per frame datastructures
 	this.renderTree;
@@ -76,11 +77,19 @@ function Game( elm ) {
 	this.element = elm;
 	this.g = elm.getContext('2d');
 	
-	this.sprites = {};
+	this._id_index = 0;
 	this._objectsDeleteList = new Array();
+	
+	//Pathfinding Thread and objects
+	this.nodes = new Array();
+	this._pathfinder = new Worker('js/pathfinder.js');
+	this._pathfinder.parent = this;
+	this._pathfinder.onmessage = function(e){this.parent.path_update(e.data);};
 }
 
 Game.prototype.addObject = function( obj ) {
+	this._id_index++;
+	obj.id = this._id_index;
 	obj.assignParent( this );
 	this.objects.push ( obj );
 }
@@ -99,6 +108,7 @@ Game.prototype.update = function( ) {
 	//this.delta = 1.1;
 	this.time = newTime;
 	
+	//this._pathfinder.postMessage(this.objects);
 	this.renderTree = new SortTree();
 	var temp_interactive = new Array(); //rebuild Interactive Objects
 	
@@ -233,9 +243,73 @@ Game.prototype.trace = function( start, end, thickness ) {
 	return true;
 }
 
+/* PATH FINDING FUNCTIONS */
+
+//Path builder
+Game.prototype.buildPaths = function(){
+	this.nodes = new Array();
+	var nodes_struct = new Array();
+	for(var i=0; i<game.objects.length;i++){
+		if ( game.objects[i] instanceof Node || game.objects[i].type == "Node" ){
+			this.nodes.push( game.objects[i] );
+			nodes_struct.push( { 
+				x : game.objects[i].position.x,
+				y : game.objects[i].position.y,
+				connections : []
+			} );
+		}
+	}
+	
+	for(var i=0; i<this.nodes.length;i++){
+		this.nodes[i].connections = [];
+	for(var j=0; j<this.nodes.length;j++){
+		if ( i != j && !this.nodes[i].properties.nopath) {
+			if ( game.trace( this.nodes[i].position, this.nodes[j].position, 10 ) ){
+				this.nodes[i].connections.push( this.nodes[j] );
+				nodes_struct[i].connections.push(j);
+			}
+		}
+	} }
+	
+	game._pathfinder.postMessage({'structure':nodes_struct});
+}
+
+Game.prototype.nearestnode = function(target){
+			//Get nearest node
+			if ( target instanceof GameObject ) {
+				target = target.position;
+			}
+			
+			var nearest_node = false;
+			var nearest_distance = Number.MAX_VALUE;
+			for(var i=0;i<game.nodes.length;i++){
+				if(game.nodes[i] instanceof Node){
+					if( game.trace(game.nodes[i].position,this.position) ){
+						var dis = game.nodes[i].position.distance(this.position);
+						if( dis < nearest_distance ){ 
+							nearest_distance = dis;
+							nearest_node = game.nodes[i];
+						}
+					}
+				}
+			}
+			
+			return nearest_node;
+			
+		}
+
+Game.prototype.path_update = function(e){
+	//console.log(e);
+	if ( e.object instanceof Object ){
+		_player.position.x = e.object.x;
+		_player.position.y = e.object.y;
+	}
+}
+
 /* GAME PRIMITIVES */
 
 function GameObject() {
+	this.id = -1;
 	this.position = new Point();
 	this.angle = 0; //Angle the sprite is facing (if any)
 	this.sprite;
@@ -325,37 +399,6 @@ SortTree.prototype.toArray = function(){
 		out = out.concat( this.higher.toArray() );
 	}
 	return out;
-}
-
-//Path builder
-function buildPaths(){
-	var nodes = new Array();
-	for(var i=0; i<game.objects.length;i++){
-		if ( game.objects[i] instanceof Node ){
-			nodes.push( game.objects[i] );
-		}
-	}
-	
-	for(var i=0; i<nodes.length;i++){
-	for(var j=0; j<nodes.length;j++){
-		if ( i != j && !nodes[i].properties.nopath) {
-			if ( game.trace( nodes[i].position, nodes[j].position, 10 ) ){
-				nodes[i].connections.push( nodes[j] );
-			}
-			/*
-			var line = new Line( nodes[i].position, nodes[j].position );
-			var line_of_sight = true;
-			for( var k = 0; k < game.collisions.length; k++ ){
-				if ( game.collisions[k].intersects( line ) ){
-					line_of_sight = false;
-					break;
-				}
-			}
-			if ( line_of_sight ) {
-				nodes[i].connections.push( nodes[j] );
-			}*/
-		}
-	} }
 }
 
 Array.prototype.remove = function(from, to) {
