@@ -24,6 +24,8 @@ function Node(x, y){
 	this.width = this.height = 32;
 	
 	this.connections = new Array();
+	this.node_library = {};
+	this.lookingfor = [];
 }
 Node.prototype.update = function(){
 	if ( this.properties.lock != undefined && window._player.intersects(this) ){
@@ -31,6 +33,18 @@ Node.prototype.update = function(){
 	}
 	this.width = this.properties.width || this.width;
 	this.height = this.properties.height || this.height;
+	
+	if ( this.lookingfor.length > 0 ){
+		var target = this.lookingfor.peek();
+		for(var i=0; i<this.connections.length;i++){
+			var connection = this.connections[i].linkTo( target );
+			if ( connection instanceof Node ) {
+				this.node_library[ target.id ] = this.connections[i];
+				break;
+			}
+		}
+		
+	}
 }
 Node.prototype.render = function(g,c){
 	g.strokeStyle = "#FF00FF";
@@ -49,6 +63,7 @@ Node.prototype.render = function(g,c){
 		g.stroke();	
 	}
 }
+/*
 Node.prototype.linkTo = function(target,path){
 	path = path || {'length':0,'chain':[]};
 	if( path.chain.length > 8 ) return false;
@@ -69,6 +84,17 @@ Node.prototype.linkTo = function(target,path){
 	}
 	path.chain.pop();
 	return false;
+}*/
+Node.prototype.linkTo = function(target_node){
+	if ( this == target_node ) {
+		return this;
+	}
+	if ( this.node_library[target_node.id] instanceof Node ){
+		return this.node_library[target_node.id];
+	}
+	if ( this.lookingfor.indexOf( target_node ) < 0 ){
+		this.lookingfor.push( target_node );
+	}
 }
 
 
@@ -137,23 +163,21 @@ Player.prototype.update = function(){
 	}
 }
 Player.prototype.render = function(g,c){
-	if( this._nodechain.chain instanceof Array && this._nodechain.chain.length > 1 ){
-		for( var i=1;i<this._nodechain.chain.length;i++){
-			game.g.beginPath();
-			game.g.strokeStyle = "#000000";
-			game.g.lineWidth = 3;
-			game.g.moveTo(
-				this._nodechain.chain[i-1].position.x-game.camera.x,
-				this._nodechain.chain[i-1].position.y-game.camera.y
-			);
-			game.g.lineTo(
-				this._nodechain.chain[i].position.x-game.camera.x,
-				this._nodechain.chain[i].position.y-game.camera.y
-			);
-			game.g.stroke();
-			game.g.closePath();
-			game.g.lineWidth = 1;
-		}
+	if( this.goal instanceof Point ){
+		game.g.beginPath();
+		game.g.strokeStyle = "#000000";
+		game.g.lineWidth = 3;
+		game.g.moveTo(
+			this.position.x-c.x,
+			this.position.y-c.y
+		);
+		game.g.lineTo(
+			this.goal.x-c.x,
+			this.goal.y-c.y
+		);
+		game.g.stroke();
+		game.g.closePath();
+		game.g.lineWidth = 1;
 	}
 	GameObject.prototype.render.apply(this,[g,c]);
 }
@@ -662,14 +686,11 @@ var mod_tracker = {
 	},
 	'update':function(){
 		//this._buildnodechain(game.objects[2].position);
-		var node = this._nearestnode();
-		if ( node ){
-			game._pathfinder.postMessage({'object':{
-				'id':this.id,
-				'x':this.position.x,
-				'y':this.position.y,
-				'node':game.nodes.indexOf(node)
-			} });
+		var my_node = game.nearestnode(this);
+		var target_node = game.nearestnode( game.objects[2] );
+		if( my_node instanceof Node && target_node instanceof Node ) {
+			var next_node = my_node.linkTo( target_node );
+			if ( next_node instanceof Node ) this.goal = next_node.position;
 		}
 	}
 }

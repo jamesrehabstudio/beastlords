@@ -66,6 +66,7 @@ function Game( elm ) {
 	this.objects = new Array();
 	this.camera = new Point();
 	this.collisions = new Array();
+	this.nodes = new Array(); //For path finding
 	this.sprites = {};
 	
 	//Per frame datastructures
@@ -79,12 +80,6 @@ function Game( elm ) {
 	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
-	
-	//Pathfinding Thread and objects
-	this.nodes = new Array();
-	this._pathfinder = new Worker('js/pathfinder.js');
-	this._pathfinder.parent = this;
-	this._pathfinder.onmessage = function(e){this.parent.path_update(e.data);};
 }
 
 Game.prototype.addObject = function( obj ) {
@@ -248,15 +243,9 @@ Game.prototype.trace = function( start, end, thickness ) {
 //Path builder
 Game.prototype.buildPaths = function(){
 	this.nodes = new Array();
-	var nodes_struct = new Array();
 	for(var i=0; i<game.objects.length;i++){
 		if ( game.objects[i] instanceof Node || game.objects[i].type == "Node" ){
 			this.nodes.push( game.objects[i] );
-			nodes_struct.push( { 
-				x : game.objects[i].position.x,
-				y : game.objects[i].position.y,
-				connections : []
-			} );
 		}
 	}
 	
@@ -266,12 +255,9 @@ Game.prototype.buildPaths = function(){
 		if ( i != j && !this.nodes[i].properties.nopath) {
 			if ( game.trace( this.nodes[i].position, this.nodes[j].position, 10 ) ){
 				this.nodes[i].connections.push( this.nodes[j] );
-				nodes_struct[i].connections.push(j);
 			}
 		}
 	} }
-	
-	game._pathfinder.postMessage({'structure':nodes_struct});
 }
 
 Game.prototype.nearestnode = function(target){
@@ -284,8 +270,8 @@ Game.prototype.nearestnode = function(target){
 			var nearest_distance = Number.MAX_VALUE;
 			for(var i=0;i<game.nodes.length;i++){
 				if(game.nodes[i] instanceof Node){
-					if( game.trace(game.nodes[i].position,this.position) ){
-						var dis = game.nodes[i].position.distance(this.position);
+					if( game.trace(game.nodes[i].position,target) ){
+						var dis = game.nodes[i].position.distance(target);
 						if( dis < nearest_distance ){ 
 							nearest_distance = dis;
 							nearest_node = game.nodes[i];
@@ -405,6 +391,10 @@ Array.prototype.remove = function(from, to) {
   var rest = this.slice((to || from) + 1 || this.length);
   this.length = from < 0 ? this.length + from : from;
   return this.push.apply(this, rest);
+};
+Array.prototype.peek = function() {
+  if ( this.length > 0 ) return this[ this.length - 1 ];
+  return undefined;
 };
 Math.angleTurnDirection = function(_a,_b){
 	_a = _a % (2*Math.PI);
