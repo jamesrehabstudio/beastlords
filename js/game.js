@@ -6,7 +6,7 @@ function loop() {
 	if ( requestAnimationFrame instanceof Function ) {
 		requestAnimationFrame( loop )
 	} else {
-		setTimeout( loop, 100 );
+		setTimeout( loop, 1000 );
 	}
 }
 
@@ -260,7 +260,7 @@ Game.prototype.buildPaths = function(){
 	} }
 }
 
-Game.prototype.nearestnode = function(target){
+Game.prototype.nearestnode = function(target,thickness){
 			//Get nearest node
 			if ( target instanceof GameObject ) {
 				target = target.position;
@@ -270,7 +270,7 @@ Game.prototype.nearestnode = function(target){
 			var nearest_distance = Number.MAX_VALUE;
 			for(var i=0;i<game.nodes.length;i++){
 				if(game.nodes[i] instanceof Node){
-					if( game.trace(game.nodes[i].position,target) ){
+					if( game.trace(game.nodes[i].position,target,thickness) ){
 						var dis = game.nodes[i].position.distance(target);
 						if( dis < nearest_distance ){ 
 							nearest_distance = dis;

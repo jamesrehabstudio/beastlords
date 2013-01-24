@@ -26,6 +26,7 @@ function Node(x, y){
 	this.connections = new Array();
 	this.node_library = {};
 	this.lookingfor = [];
+	this.lookingcaller = [];
 }
 Node.prototype.update = function(){
 	if ( this.properties.lock != undefined && window._player.intersects(this) ){
@@ -34,13 +35,21 @@ Node.prototype.update = function(){
 	this.width = this.properties.width || this.width;
 	this.height = this.properties.height || this.height;
 	
+	this.fake = [];
 	if ( this.lookingfor.length > 0 ){
-		var target = this.lookingfor.peek();
+		var target = this.lookingfor[0];;
+		var caller = this.lookingcaller[0];;
+		
 		for(var i=0; i<this.connections.length;i++){
-			var connection = this.connections[i].linkTo( target );
-			if ( connection instanceof Node ) {
-				this.node_library[ target.id ] = this.connections[i];
-				break;
+			if( this.connections[i] != caller ) {
+				var connection = this.connections[i].linkTo( target, this );
+				if ( connection instanceof Node ) {
+					this.fake.push(connection);
+					this.node_library[ target.id ] = this.connections[i];
+					this.lookingfor.remove(0);;
+					this.lookingcaller.remove(0);;
+					break;
+				}
 			}
 		}
 		
@@ -59,6 +68,17 @@ Node.prototype.render = function(g,c){
 		g.beginPath();
 		g.moveTo( this.position.x - c.x, this.position.y - c.y );
 		g.lineTo( node.position.x - c.x, node.position.y - c.y );
+		g.closePath();
+		g.stroke();	
+	}
+	for ( var i = 0; i < this.fake.length; i++ ){
+		var node = this.fake[i];
+		g.strokeStyle = "#333366";
+		g.lineWidth = "3";
+		g.beginPath();
+		g.moveTo( this.position.x - c.x, this.position.y - c.y );
+		g.lineTo( node.position.x - c.x, node.position.y - c.y );
+		g.lineWidth = "1";
 		g.closePath();
 		g.stroke();	
 	}
@@ -85,7 +105,9 @@ Node.prototype.linkTo = function(target,path){
 	path.chain.pop();
 	return false;
 }*/
-Node.prototype.linkTo = function(target_node){
+Node.prototype.linkTo = function(target_node,caller){
+	caller = caller || false;
+	
 	if ( this == target_node ) {
 		return this;
 	}
@@ -94,6 +116,7 @@ Node.prototype.linkTo = function(target_node){
 	}
 	if ( this.lookingfor.indexOf( target_node ) < 0 ){
 		this.lookingfor.push( target_node );
+		this.lookingcaller.push( caller );
 	}
 }
 
@@ -167,14 +190,16 @@ Player.prototype.render = function(g,c){
 		game.g.beginPath();
 		game.g.strokeStyle = "#000000";
 		game.g.lineWidth = 3;
-		game.g.moveTo(
-			this.position.x-c.x,
-			this.position.y-c.y
-		);
-		game.g.lineTo(
-			this.goal.x-c.x,
-			this.goal.y-c.y
-		);
+		game.g.moveTo(this.position.x-c.x,this.position.y-c.y);
+		if( this.my_node instanceof Node ){
+			game.g.lineTo(this.my_node.position.x-c.x,this.my_node.position.y-c.y);
+			game.g.stroke();
+			game.g.closePath();
+			game.g.beginPath();
+		}
+		game.g.strokeStyle = "#AA0000";
+		game.g.moveTo(this.position.x-c.x,this.position.y-c.y);
+		game.g.lineTo(this.goal.x-c.x,this.goal.y-c.y);
 		game.g.stroke();
 		game.g.closePath();
 		game.g.lineWidth = 1;
@@ -189,8 +214,8 @@ function Zombie(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 30;
-	this.height = 30;
+	this.width = 15;
+	this.height = 15;
 	this.speed = 1.5;
 	
 	this.sprite = sprites.bullman;
@@ -199,12 +224,15 @@ function Zombie(x, y){
 	this.attack_charge = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_killable );
+	this.addModule( mod_tracker );
 	this.mass = 0.5;
 }
 Zombie.prototype.update = function() {
+	if( !this.goal ) return;
+	
 	var angle_to_player = Math.atan2(
-		this.position.x - _player.position.x,
-		this.position.y - _player.position.y
+		this.position.x - this.goal.x,
+		this.position.y - this.goal.y
 	);
 	if ( this.health > 0 ) {
 		if ( this.position.distance( _player.position ) < 24 ) {
@@ -338,8 +366,8 @@ function Chipper(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 20;
-	this.height = 20;
+	this.width = 10;
+	this.height = 10;
 	
 	this.sprite = sprites.bullman;
 	this.speed = 2;
@@ -350,19 +378,21 @@ function Chipper(x, y){
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_killable );
+	this.addModule( mod_tracker );
 	this.health = 50;
 	this.mass = 0.25;
 	this.dir = new Point;
 }
 Chipper.prototype.update = function(){
+	if ( !(this.goal instanceof Point ) ) return;
 	var player_vector = new Point(
-		_player.position.x - this.position.x,
-		_player.position.y - this.position.y
+		this.goal.x - this.position.x,
+		this.goal.y - this.position.y
 	);
 	this.angle = Math.atan2( player_vector.x, player_vector.y );
 	var speed = this.speed;
 	if ( player_vector.length() < 50 ){
-		this._ai_walkway = 80;
+		//this._ai_walkway = 80;
 	}
 	
 	if ( this._cooldown < 10 ) {
@@ -682,15 +712,32 @@ var mod_rigidbody = {
 var mod_tracker = {
 	'init' : function(){
 		this.goal = new Point();
-		this._nodechain = false;
+		this.my_node = false;
+		this.target = _player;
 	},
 	'update':function(){
-		//this._buildnodechain(game.objects[2].position);
-		var my_node = game.nearestnode(this);
-		var target_node = game.nearestnode( game.objects[2] );
-		if( my_node instanceof Node && target_node instanceof Node ) {
-			var next_node = my_node.linkTo( target_node );
-			if ( next_node instanceof Node ) this.goal = next_node.position;
+		if( !(this.target instanceof GameObject) ) return;
+		
+		var width = Math.max(this.width, this.height);
+		
+		if ( game.trace(this.position, this.target.position) ){
+			this.goal = this.target.position;
+		} else {
+			//No line of sight, get a path.
+			this.goal = false;
+			this.my_node = game.nearestnode(this,width);
+			var target_node = game.nearestnode( this.target);
+			if( this.my_node instanceof Node && target_node instanceof Node ) {
+				var next_node = this.my_node.linkTo( target_node );
+				if ( next_node instanceof Node ) {
+					
+					if ( game.trace(this.position, next_node.position, width) ){
+						this.goal = next_node.position;
+					} else {
+						this.goal = this.my_node.position;
+					}
+				}
+			}
 		}
 	}
 }
@@ -734,5 +781,7 @@ var mod_camera = {
 		this.parent.camera.x += this.parent.camera.x < this.camera_target.x ? move_x : -move_x;
 		this.parent.camera.y += this.parent.camera.y < this.camera_target.y ? move_y : -move_y;
 		
+		game.camera.x = this.position.x - 480;
+		game.camera.y = this.position.y - 360;
 	}
 }

@@ -66,8 +66,17 @@
 				window.game.collisions.push( temp );
 			}
 			
+			game.buildPaths();
 			loop();
 		}, window, "map0002" );
+	}
+	
+	function kill(){
+		for( var i = 0; i< game.objects.length;i++ ){
+			if ( game.objects[i].team == 2){
+				game.removeObject(game.objects[i]);
+			}
+		}
 	}
 	</script>
 </body>
