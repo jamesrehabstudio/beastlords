@@ -146,9 +146,7 @@ function Player(x, y){
 
 Player.prototype.update = function(){
 	var speed = 3.5;
-	
-	this.force.x = 0;
-	this.force.y = 0;
+	var force = new Point();
 	
 	if ( input.state('key1') == 1 ) { this.weapon = weapons.knife; }
 	if ( input.state('key2') == 1 ) { this.weapon = weapons.pistol; }
@@ -156,10 +154,10 @@ Player.prototype.update = function(){
 	if ( input.state('key4') == 1 ) { this.weapon = weapons.rifle; }
 	if ( input.state('key5') == 1 ) { this.weapon = weapons.gernade; }
 	
-	if ( input.state('up') > 0 ) { this.force.y -= speed; }
-	if ( input.state('down') > 0 ) { this.force.y += speed; }
-	if ( input.state('left') > 0 ) { this.force.x -= speed; }
-	if ( input.state('right') > 0 ) { this.force.x += speed; }
+	if ( input.state('up') > 0 ) { force.y -= speed; }
+	if ( input.state('down') > 0 ) { force.y += speed; }
+	if ( input.state('left') > 0 ) { force.x -= speed; }
+	if ( input.state('right') > 0 ) { force.x += speed; }
 	
 	var mouse_x = input.mouseCenter.x + ( game.camera.x - this.position.x );
 	var mouse_y = input.mouseCenter.y + ( game.camera.y - this.position.y );
@@ -172,13 +170,15 @@ Player.prototype.update = function(){
 	this._cooldown -= game.delta;
 	if ( input.state('click') > 0 ) this.weapon.apply(this);
 	
-	var angle = Math.atan2( this.force.x, this.force.y );
-	if ( this.force.x != 0 || this.force.y != 0 ) {
+	var angle = Math.atan2( force.x, force.y );
+	if ( force.x != 0 || force.y != 0 ) {
 		this._ani = ( this._ani + (0.3 * game.delta) ) % 3;
 		this.frame = Math.floor( this._ani );
 	} else {
 		this.frame = 0;
 	}
+	
+	this.applyForce( force );
 	
 	if ( this.health < 1 ) {
 		game.removeObject( this );
@@ -250,13 +250,13 @@ Zombie.prototype.update = function() {
 				game.addObject( bullet );
 				this.attack_charge = 20;
 			}
-			this.force.x = 0;
-			this.force.y = 0;
 		} else {
 			this.attack_charge = Math.max(5,this.attack_charge);
 			
-			this.force.x = -Math.sin( angle_to_player ) * this.speed;
-			this.force.y = -Math.cos( angle_to_player ) * this.speed;
+			this.applyForce(
+				-Math.sin( angle_to_player ) * this.speed,
+				-Math.cos( angle_to_player ) * this.speed
+			);
 		}
 		
 		this._ani += 1 * game.delta;
@@ -318,7 +318,7 @@ function Swarmer(x, y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_killable );
 	this.health = 10;
-	this.mass = 0.125;
+	this.mass = 0.0625;
 	this.dir = new Point;
 }
 Swarmer.prototype.update = function(){
@@ -333,8 +333,7 @@ Swarmer.prototype.update = function(){
 		//Attack mode
 		if( this.intersects(_player) ){
 			var knock = Point.fromAngle(this.angle);
-			_player.momentum.x += knock.x;
-			_player.momentum.y += knock  .y;
+			_player.applyForce( knock );
 			_player.health -= 5;
 			this._cooldown = 80;
 		}
@@ -344,8 +343,10 @@ Swarmer.prototype.update = function(){
 		this._cooldown -= game.delta;
 	}
 	
-	this.force.x = Math.sin( this.angle ) * speed * game.delta;
-	this.force.y = Math.cos( this.angle ) * speed * game.delta;
+	this.applyForce(
+		Math.sin( this.angle ) * speed * game.delta,
+		Math.cos( this.angle ) * speed * game.delta
+	);
 	
 	this.dir.x = Math.sin( this.angle ) * 10;
 	this.dir.y = Math.cos( this.angle ) * 10;
@@ -380,7 +381,7 @@ function Chipper(x, y){
 	this.addModule( mod_killable );
 	this.addModule( mod_tracker );
 	this.health = 50;
-	this.mass = 0.25;
+	this.mass = 0.125;
 	this.dir = new Point;
 }
 Chipper.prototype.update = function(){
@@ -409,8 +410,10 @@ Chipper.prototype.update = function(){
 	this._cooldown -= game.delta;
 	
 	
-	this.force.x = Math.sin( this.angle ) * speed * game.delta;
-	this.force.y = Math.cos( this.angle ) * speed * game.delta;
+	this.applyForce(
+		Math.sin( this.angle ) * speed * game.delta,
+		Math.cos( this.angle ) * speed * game.delta
+	);
 	
 	this.dir.x = Math.sin( this.angle ) * 10;
 	this.dir.y = Math.cos( this.angle ) * 10;
@@ -453,9 +456,11 @@ Bullet.prototype.update = function(){
 		for( var i = 0; i < overlap.length; i++ ){
 			if ( overlap[i].team != undefined && overlap[i].team > 0 && overlap[i].team != this.team ) {
 				overlap[i].health -= this.damage;
-				if ( overlap[i].momentum instanceof Point ) {
-					overlap[i].momentum.x += Math.sin( this.angle ) * this.damage * 0.25;
-					overlap[i].momentum.y += Math.cos( this.angle ) * this.damage * 0.25;
+				if ( overlap[i].applyForce instanceof Function ) {
+					overlap[i].applyForce( 
+						Math.sin( this.angle ) * this.damage * 0.25,
+						Math.cos( this.angle ) * this.damage * 0.25
+					);
 				}
 				game.removeObject( this );
 				break;
@@ -699,34 +704,42 @@ var weapons = {
 /* Modules */
 var mod_rigidbody = {
 	'init' : function(){
-		this.mass = 0.125;
-		this.momentum = new Point();
-		this.force = new Point();
 		this.interactive = true;
-		this.applyMomentum = function(delta,y,mass){
+		
+		this.mass = 0.125;
+		this.inertia = new Point();
+		this.forces = new Array();
+		this.applyForce = function(delta,y,absolute){
 			if ( delta instanceof Point ){
-				mass = y;
+				absolute = y || false;
 			} else {
 				delta = new Point(delta,y);
+				absolute = absolute || false;
 			}
-			delta.normalize(1/this.mass);/*
-			var a = delta.length();
-			var b = this.momentum.length();
-			var longest = Math.max(a,b);
-			var out = this.momentum.add(delta);
-			//if( out.length() > longest ) {
-				out.normalize(1);
-			//}*/
-			this.momentum = delta;
+			this.forces.push( [delta,absolute] );
 		}
 	},
 	'update' : function(){
-		this.momentum.x *= (1-(this.mass * game.delta ) );
-		this.momentum.y *= (1-(this.mass * game.delta ) );
-		game.c_move( this,
-			(this.force.x + this.momentum.x) * game.delta,
-			(this.force.y + this.momentum.y) * game.delta
+		var mu = .3 - (.1*this.mass);
+		var force = new Point(
+			this.inertia.x - (this.inertia.x * mu * game.delta ),
+			this.inertia.y - (this.inertia.y * mu * game.delta )
 		);
+		for( var i=0;i<this.forces.length;i++){
+			var temp = this.forces[i][0];
+			var abs = this.forces[i][1];
+			if( temp.x != 0 || temp.y != 0 ){
+				temp = temp;
+			}				
+			if( abs && 0) {
+				force = force.add( temp );
+			} else {
+				force = force.add( new Point( temp.x * mu, temp.y * mu ) );
+			}
+		}
+		this.forces = new Array();
+		game.c_move( this, force.x * game.delta, force.y * game.delta );
+		this.inertia = force;
 	}
 }
 
@@ -746,7 +759,7 @@ var mod_tracker = {
 			this.my_node = false;
 		} else {
 			//No line of sight, get a path.
-			if( this.position.distance(this.goal) < 10 ) {
+			if( this.position.distance(this.goal) < 20 ) {
 				this.goal = false;
 				this.my_node = false;
 			}

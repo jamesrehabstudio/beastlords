@@ -200,45 +200,50 @@ Game.prototype.c_move = function( obj, x, y ) {
 	//Attempt to move a game object without hitting a colliding line
 	var lines = new Array();
 	var max_collides = 1;//Prevent slide if any more lines are touched
-	obj.transpose( x, y );
+	var transpose = new Point(x,y);
 	
-	for ( var i = 0; i < this.objects.length; i++ ){
-		if ( obj != this.objects[i] && this.objects[i].interactive ){
-			if ( this.objects[i].intersects(obj) ){
-				this.objects[i].applyMomentum( new Point(x,y) );
-				obj.transpose( -x, -y );
+	for ( var i = 0; i < this.interactive.length; i++ ){
+		collider = this.interactive[i];
+		if ( obj != collider && obj.mass && collider.applyForce instanceof Function ){
+			if ( collider.intersects(obj) ){
+				collider.applyForce( new Point(x*obj.mass,y*obj.mass) );
+				transpose = new Point();
 			}
 		}
 	}
 	
-	var collisions = this.lines.get( new Line( 
-		new Point(obj.position.x-20,obj.position.y-20),
-		new Point(obj.position.x+20,obj.position.y+20) 
-	) );
-	
-	for ( var i = 0; i < collisions.length; i++ ){
-		if ( obj.intersects( collisions[i] ) ){
-			lines.push( collisions[i] );
-			if ( lines.length > max_collides ) break;
+	if ( transpose.length() > 0 ) {
+		var collisions = this.lines.get( new Line( 
+			new Point(obj.position.x-20,obj.position.y-20),
+			new Point(obj.position.x+20,obj.position.y+20) 
+		) );
+		
+		for ( var i = 0; i < collisions.length; i++ ){
+			if ( obj.intersects( collisions[i] ) ){
+				lines.push( collisions[i] );
+				if ( lines.length > max_collides ) break;
+			}
+		}
+		
+		if( lines.length > 0 ) {
+			transpose = new Point();
+			if ( lines.length <= max_collides ) {
+				var line = lines[0];
+				
+				var v = new Point(x,y).normalize();
+				var n = line.normal().normalize();
+				
+				transpose = new Point( 
+					(v.x + n.x) * 0.8,
+					(v.y + n.y) * 0.8
+				);
+			}
+			obj.oncollide(lines);
 		}
 	}
 	
-	if( lines.length > 0 ) {
-		obj.transpose( -x, -y );
-		if ( lines.length <= max_collides ) {
-			var line = lines[0];
-			
-			var v = new Point(x,y).normalize();
-			var n = line.normal().normalize();
-			
-			obj.transpose( 
-				(v.x + n.x) * 0.8,
-				(v.y + n.y) * 0.8
-			);
-			//obj.transpose( collide.normal() );
-		}
-		obj.oncollide(lines);
-	}
+	obj.transpose( transpose );
+	return transpose
 }
 
 Game.prototype.trace = function( start, end, thickness ) {
@@ -345,7 +350,7 @@ function GameObject() {
 }
 GameObject.prototype.transpose = function(x, y) {
 	if ( x instanceof Point ){
-		this.position.add(x);
+		this.position = this.position.add(x);
 	} else {
 		this.position.x += x;
 		this.position.y += y;
