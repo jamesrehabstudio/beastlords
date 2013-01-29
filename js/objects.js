@@ -141,6 +141,8 @@ function Player(x, y){
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
+	
+	this.mass = .5;
 	//this.addModule( mod_tracker );
 }
 
@@ -458,8 +460,8 @@ Bullet.prototype.update = function(){
 				overlap[i].health -= this.damage;
 				if ( overlap[i].applyForce instanceof Function ) {
 					overlap[i].applyForce( 
-						Math.sin( this.angle ) * this.damage * 0.25,
-						Math.cos( this.angle ) * this.damage * 0.25
+						Math.sin( this.angle ) * this.damage * 0.5,
+						Math.cos( this.angle ) * this.damage * 0.5
 					);
 				}
 				game.removeObject( this );
