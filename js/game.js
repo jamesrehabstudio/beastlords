@@ -200,19 +200,20 @@ Game.prototype.c_move = function( obj, x, y ) {
 	//Attempt to move a game object without hitting a colliding line
 	var lines = new Array();
 	var max_collides = 1;//Prevent slide if any more lines are touched
-	var transpose = new Point(x,y);
+	obj.transpose(x,y);
 	
 	for ( var i = 0; i < this.interactive.length; i++ ){
 		collider = this.interactive[i];
 		if ( obj != collider && obj.mass && collider.applyForce instanceof Function ){
 			if ( collider.intersects(obj) ){
 				collider.applyForce( new Point(x*obj.mass,y*obj.mass) );
-				transpose = new Point();
+				lines.push( collider );
+				obj.transpose(-x,-y);
 			}
 		}
 	}
 	
-	if ( transpose.length() > 0 ) {
+	if ( lines.length <= 0 ) {
 		var collisions = this.lines.get( new Line( 
 			new Point(obj.position.x-20,obj.position.y-20),
 			new Point(obj.position.x+20,obj.position.y+20) 
@@ -226,24 +227,26 @@ Game.prototype.c_move = function( obj, x, y ) {
 		}
 		
 		if( lines.length > 0 ) {
-			transpose = new Point();
+			obj.transpose(-x,-y);
 			if ( lines.length <= max_collides ) {
 				var line = lines[0];
 				
 				var v = new Point(x,y).normalize();
 				var n = line.normal().normalize();
 				
-				transpose = new Point( 
+				obj.transpose( 
 					(v.x + n.x) * 0.8,
 					(v.y + n.y) * 0.8
 				);
 			}
-			obj.oncollide(lines);
 		}
 	}
 	
-	obj.transpose( transpose );
-	return transpose
+	//obj.transpose( transpose );
+	if ( lines.length > 0 ) {
+		obj.oncollide(lines);
+	}
+	return false;
 }
 
 Game.prototype.trace = function( start, end, thickness ) {
