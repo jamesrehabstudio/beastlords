@@ -41,7 +41,7 @@ Node.prototype.update = function(){
 		var caller = this.lookingcaller[0];;
 		
 		for(var i=0; i<this.connections.length;i++){
-			if( this.connections[i] != caller ) {
+			if( this.connections[i] != caller || 1 ) {
 				var connection = this.connections[i].linkTo( target, this );
 				if ( connection instanceof Node ) {
 					this.fake.push(connection);
@@ -128,7 +128,6 @@ function Player(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.interactive = true;
 	
 	window._player = this;
 	game.addObject( new Hud() );
@@ -142,7 +141,7 @@ function Player(x, y){
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
-	this.addModule( mod_tracker );
+	//this.addModule( mod_tracker );
 }
 
 Player.prototype.update = function(){
@@ -186,24 +185,25 @@ Player.prototype.update = function(){
 	}
 }
 Player.prototype.render = function(g,c){
-	if( this.goal instanceof Point ){
-		game.g.beginPath();
+	game.g.lineWidth = 3;
+		
+	if( this.my_node instanceof Node ){
 		game.g.strokeStyle = "#000000";
-		game.g.lineWidth = 3;
+		game.g.beginPath();
 		game.g.moveTo(this.position.x-c.x,this.position.y-c.y);
-		if( this.my_node instanceof Node ){
-			game.g.lineTo(this.my_node.position.x-c.x,this.my_node.position.y-c.y);
-			game.g.stroke();
-			game.g.closePath();
-			game.g.beginPath();
-		}
+		game.g.lineTo(this.my_node.position.x-c.x,this.my_node.position.y-c.y);
+		game.g.stroke();
+		game.g.closePath();
+		game.g.beginPath();
+	}
+	if( this.goal instanceof Point ){
 		game.g.strokeStyle = "#AA0000";
 		game.g.moveTo(this.position.x-c.x,this.position.y-c.y);
 		game.g.lineTo(this.goal.x-c.x,this.goal.y-c.y);
 		game.g.stroke();
 		game.g.closePath();
-		game.g.lineWidth = 1;
 	}
+	game.g.lineWidth = 1;
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
@@ -304,8 +304,8 @@ function Swarmer(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 16;
+	this.width = 8;
+	this.height = 8;
 	
 	this.sprite = sprites.bullman;
 	this.team = 2;
@@ -487,14 +487,19 @@ function Gernade(x, y, angle, team){
 	this.age = 50;
 	this.team = team || 1;
 }
-Gernade.prototype.oncollide = function(line){
-	var n = line.normal();
-	var v = Point.fromAngle(this.angle);
-	var u = n.scale( v.dot(n) );
-	var w = v.subtract(u);
-	
-	var a = w.subtract(u);
-	this.angle = Math.atan2(a.x,a.y);
+Gernade.prototype.oncollide = function(lines){
+	if ( lines.length > 1 ){
+		this.angle += Math.PI;
+	} else {
+		var line = lines[0];
+		var n = line.normal();
+		var v = Point.fromAngle(this.angle);
+		var u = n.scale( v.dot(n) );
+		var w = v.subtract(u);
+		
+		var a = w.subtract(u);
+		this.angle = Math.atan2(a.x,a.y);
+	}
 	console.log( this.angle );
 	
 	//var langle = Math.atan2(line.start.x-line.end.x,line.start.y-line.end.y);
@@ -698,6 +703,22 @@ var mod_rigidbody = {
 		this.momentum = new Point();
 		this.force = new Point();
 		this.interactive = true;
+		this.applyMomentum = function(delta,y,mass){
+			if ( delta instanceof Point ){
+				mass = y;
+			} else {
+				delta = new Point(delta,y);
+			}
+			delta.normalize(1/this.mass);/*
+			var a = delta.length();
+			var b = this.momentum.length();
+			var longest = Math.max(a,b);
+			var out = this.momentum.add(delta);
+			//if( out.length() > longest ) {
+				out.normalize(1);
+			//}*/
+			this.momentum = delta;
+		}
 	},
 	'update' : function(){
 		this.momentum.x *= (1-(this.mass * game.delta ) );
@@ -720,12 +741,18 @@ var mod_tracker = {
 		
 		var width = Math.max(this.width, this.height);
 		
-		if ( game.trace(this.position, this.target.position) ){
+		if ( game.trace(this.position, this.target.position,width) ){
 			this.goal = this.target.position;
+			this.my_node = false;
 		} else {
 			//No line of sight, get a path.
-			this.goal = false;
-			this.my_node = game.nearestnode(this,width);
+			if( this.position.distance(this.goal) < 10 ) {
+				this.goal = false;
+				this.my_node = false;
+			}
+			if ( !this.my_node ) {
+				this.my_node = game.nearestnode(this,width); 
+			}
 			var target_node = game.nearestnode( this.target);
 			if( this.my_node instanceof Node && target_node instanceof Node ) {
 				var next_node = this.my_node.linkTo( target_node );
