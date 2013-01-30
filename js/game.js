@@ -1,3 +1,9 @@
+//Game engine for 2D HTML5 games.
+
+// Dependacies: 
+// Polygon, Line, Point
+// Input
+
 var game, data, input;
 
 function loop() {
@@ -66,12 +72,13 @@ function Game( elm ) {
 	this.objects = new Array();
 	this.camera = new Point();
 	this.collisions = new Array();
-	this.nodes = new Array(); //For path finding
+	this.bounds = new Line(new Point(-800,140),new Point(1900,1700));
+	this.nodes = new BSPTree( this.bounds, 4);
 	this.sprites = {};
 	
 	//Per frame datastructures
 	this.renderTree;
-	this.interactive = new Array();
+	this.interactive = new BSPTree(this.bounds, 4);
 	this.time = new Date();
 	this.delta = 1;
 	this.delta_tot = 0;
@@ -112,8 +119,11 @@ Game.prototype.update = function( ) {
 	this.time = newTime;
 	
 	//this._pathfinder.postMessage(this.objects);
-	this.renderTree = new SortTree();
-	var temp_interactive = new Array(); //rebuild Interactive Objects
+	//this.renderTree = new SortTree();
+	//rebuild Interactive Objects
+	this.renderTree = new BSPTree(this.bounds, 4);
+	var temp_interactive = new BSPTree(this.bounds, 4);
+
 	
 	for ( var i in this.objects ) {
 		if ( this.objects[i] instanceof GameObject ) {
@@ -137,7 +147,8 @@ Game.prototype.update = function( ) {
 			}
 			
 			if ( obj.visible ) {
-				this.renderTree.push( obj, obj.zIndex || obj.position.y );
+				//this.renderTree.push( obj, obj.zIndex || obj.position.y );
+				this.renderTree.push( obj );
 			}
 			if ( obj.interactive ) {
 				temp_interactive.push ( obj );
@@ -161,9 +172,23 @@ Game.prototype.update = function( ) {
 }
 
 Game.prototype.render = function( ) {
-	var renderList = this.renderTree.toArray();
+	var margin = 0;
+	var screen = new Point( 160, 120 );
+	var view = new Line(
+		new Point( this.camera.x - (screen.x + margin), this.camera.y - (screen.y + margin) ),
+		new Point( this.camera.x + (screen.x + margin), this.camera.y + (screen.y + margin) )
+	);
+	var renderList = this.renderTree.get( view );
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
+	
+	game.g.strokeRect(
+		view.start.x - this.camera.x + screen.x, 
+		view.start.y - this.camera.y + screen.y, 
+		view.end.x-view.start.x, 
+		view.end.y-view.start.y
+	);
+	
 	
 	for ( var i in renderList ) {
 		if ( renderList[i] instanceof GameObject ) {
@@ -184,8 +209,10 @@ Game.prototype.overlap = function( obj ) {
 	//Returns a list of objects the provided object is currently on top of
 	var out = new Array();
 	
-	for ( var i = 0; i < this.interactive.length; i++ ) {
-		var temp = this.interactive[i];
+	var interactive = this.interactive.get(obj.position);
+	
+	for ( var i = 0; i < interactive.length; i++ ) {
+		var temp = interactive[i];
 		if ( obj != temp ) {
 			if ( obj.intersects( temp ) ){
 				out.push( temp );
@@ -202,8 +229,10 @@ Game.prototype.c_move = function( obj, x, y ) {
 	var max_collides = 1;//Prevent slide if any more lines are touched
 	obj.transpose(x,y);
 	
-	for ( var i = 0; i < this.interactive.length; i++ ){
-		collider = this.interactive[i];
+	var interactive = this.interactive.get(obj.position);	
+	
+	for ( var i = 0; i < interactive.length; i++ ){
+		collider = interactive[i];
 		if ( obj != collider && obj.mass && collider.applyForce instanceof Function ){
 			if ( collider.intersects(obj) ){
 				collider.applyForce( new Point(x*obj.mass,y*obj.mass) );
@@ -274,8 +303,7 @@ Game.prototype.trace = function( start, end, thickness ) {
 
 //Path builder
 Game.prototype.buildCollisions = function(){
-	this.lines = new BSPTree(new Line(new Point(-800,140),new Point(1900,1700)));
-	this.lines.split(4);
+	this.lines = new BSPTree(this.bounds, 4);
 	
 	for(var i=0; i<game.collisions.length;i++){
 		this.lines.push(this.collisions[i]);
@@ -283,46 +311,31 @@ Game.prototype.buildCollisions = function(){
 }
 
 Game.prototype.buildPaths = function(){
-	this.nodes = new Array();
+	var temp_nodes = new Array();
 	for(var i=0; i<game.objects.length;i++){
 		if ( game.objects[i] instanceof Node || game.objects[i].type == "Node" ){
 			this.nodes.push( game.objects[i] );
+			temp_nodes.push( game.objects[i] );
 		}
 	}
 	
-	for(var i=0; i<this.nodes.length;i++){
-		this.nodes[i].connections = [];
-	for(var j=0; j<this.nodes.length;j++){
-		if ( i != j && !this.nodes[i].properties.nopath) {
-			if ( game.trace( this.nodes[i].position, this.nodes[j].position, 15 ) ){
-				this.nodes[i].connections.push( this.nodes[j] );
+	for(var i=0; i<temp_nodes.length;i++){
+		temp_nodes[i].connections = [];
+	for(var j=0; j<temp_nodes.length;j++){
+		if ( i != j && !temp_nodes[i].properties.nopath) {
+			if ( game.trace( temp_nodes[i].position, temp_nodes[j].position, 15 ) ){
+				temp_nodes[i].connections.push( temp_nodes[j] );
 			}
 		}
 	} }
 }
 
 Game.prototype.nearestnode = function(target,thickness){
-	//Get nearest node
-	if ( target instanceof GameObject ) {
-		target = target.position;
-	}
-	
-	var nearest_node = false;
-	var nearest_distance = Number.MAX_VALUE;
-	for(var i=0;i<game.nodes.length;i++){
-		if(game.nodes[i] instanceof Node){
-			if( game.trace(game.nodes[i].position,target,thickness) ){
-				var dis = game.nodes[i].position.distance(target);
-				if( dis < nearest_distance ){ 
-					nearest_distance = dis;
-					nearest_node = game.nodes[i];
-				}
-			}
-		}
-	}
-	
-	return nearest_node;
-	
+	var out = this.nodes.nearest(target.position,function(node, position){
+		var out = game.trace( node.position, position, thickness );
+		return out;
+	});
+	return out;	
 }
 
 Game.prototype.path_update = function(e){
@@ -439,12 +452,14 @@ SortTree.prototype.toArray = function(){
 	return out;
 }
 
-function BSPTree(bounds) {
+function BSPTree(bounds, levels) {
 	//For sorting objects
 	this.bounds = bounds;
 	this.values = new Array();
 	this.lower = null;
 	this.higher = null;
+	
+	if ( levels ) this.split(levels);
 }
 BSPTree.prototype.split = function(levels){
 	if( levels % 2 == 0 ) {
@@ -485,8 +500,11 @@ BSPTree.prototype.split = function(levels){
 }
 BSPTree.prototype.push = function(value){
 	if( this.lower instanceof BSPTree && this.higher instanceof BSPTree ){
-		var _lower = value.overlaps(this.lower.bounds);
-		var _higher = value.overlaps(this.higher.bounds);
+		var position = value;	
+		if ( position instanceof GameObject ) position = position.position;
+		
+		var _lower = this.lower.bounds.overlaps(position);
+		var _higher = this.higher.bounds.overlaps(position);
 		if( _lower && _higher ) {
 			this.values.push( value );
 		} else if ( _lower ) {
@@ -500,15 +518,65 @@ BSPTree.prototype.push = function(value){
 }
 BSPTree.prototype.get = function(value){
 	var output = this.values;
-	if( value.overlaps( this.bounds ) ){
-		if( this.lower instanceof BSPTree && value.overlaps(this.lower.bounds) ){
+	if( this.bounds.overlaps( value ) ){
+		if( this.lower instanceof BSPTree && this.lower.bounds.overlaps(value) ){
 			output = output.concat(this.lower.get(value));
 		}
-		if( this.higher instanceof BSPTree && value.overlaps(this.higher.bounds) ){
+		if( this.higher instanceof BSPTree && this.higher.bounds.overlaps(value) ){
 			output = output.concat(this.higher.get(value));
 		}
 	}
 	return output;
+}
+BSPTree.prototype.nearest = function(position, conditions){
+	conditions = conditions || function(){ return true; };
+	
+	out = false;
+	temp = new Array();
+	temp.concat( this.values );
+	
+	var _higher = false;
+	var _lower = false;
+	
+	if ( this.higher instanceof BSPTree ) _higher = this.higher.bounds.overlaps(position);
+	if ( this.lower instanceof BSPTree ) _lower = this.lower.bounds.overlaps(position);
+	
+	//Check results in closest partition
+	if ( _higher ) {
+		var t = this.higher.nearest(position,conditions);
+		if ( t ) temp.concat( t );
+	} 
+	if ( _lower ) {
+		var t = this.lower.nearest(position,conditions);
+		if ( t ) temp.concat( t );	
+	}
+	
+	//Check if their any valid items in this partition
+	for( var i = 0; i<this.values.length;i++) {
+		if( conditions( this.values[i], position ) ) temp.push( this.values[i] );
+	}
+	
+	//If all else failed, check off-partition
+	if( temp.length < 0 ) {
+		if ( !_higher ) {
+			var t = this.higher.nearest(position,conditions);
+			if ( t ) temp.push( t );
+		} else if ( !_lower ) {
+			var t = this.lower.nearest(position,conditions);
+			if ( t ) temp.push( t );
+		}		
+	}
+	
+	//Establish closest item and return it.
+	var nearest_distance = Number.MAX_VALUE;
+	for( var i = 0; i < temp.length; i++ ) {
+		var temp_distance = position.distance(temp[i].position || temp[i]);
+		if( temp_distance < nearest_distance ) { 
+			nearest_distance = temp_distance;
+			out = temp[i];
+		}
+	}
+	return out;
 }
 
 Array.prototype.remove = function(from, to) {

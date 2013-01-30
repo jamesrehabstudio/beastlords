@@ -182,24 +182,35 @@ Line.prototype.intersects = function( l ){
 	return false;
 }
 Line.prototype.overlaps = function( l ){
-	
-	var x1 = Math.min( this.start.x, this.end.x ); 	
-	var x2 = Math.min( l.start.x, l.end.x );
-	var y1 = Math.min( this.start.y, this.end.y );	
-	var y2 = Math.min( l.start.y, l.end.y);
-	var w1 = Math.abs( this.start.x - this.end.x );
-	var w2 = Math.abs( l.start.x - l.end.x );
-	var h1 = Math.abs( this.start.y - this.end.y );
-	var h2 = Math.abs( l.start.y - l.end.y );
-	if(x2<x1 || y1<y2){  
-		t1 = x1; x1 = x2; x2 = t1;  
-		t2 = y1; y1 = y2; y2 = t2;  
-		t3 = w1; w1 = w2; w2 = t3;  
-		t4 = h1; h1 = h2; h2 = t4;  
+	if ( l instanceof Point ){
+		var x1 = Math.min( this.start.x, this.end.x ); 	
+		var y1 = Math.min( this.start.y, this.end.y );
+		var x2 = Math.max( this.start.x, this.end.x );
+		var y2 = Math.max( this.start.y, this.end.y );
+		var out = 
+			l.x > x1 && l.x < x2 &&
+			l.y > y1 && l.y < y2;
+		return out;	
+	} else {
+		var x1 = Math.min( this.start.x, this.end.x ); 	
+		var x2 = Math.min( l.start.x, l.end.x );
+		var y1 = Math.min( this.start.y, this.end.y );	
+		var y2 = Math.min( l.start.y, l.end.y);
+		var w1 = Math.abs( this.start.x - this.end.x );
+		var w2 = Math.abs( l.start.x - l.end.x );
+		var h1 = Math.abs( this.start.y - this.end.y );
+		var h2 = Math.abs( l.start.y - l.end.y );
+		if(x2<x1 || y1<y2){  
+			t1 = x1; x1 = x2; x2 = t1;  
+			t2 = y1; y1 = y2; y2 = t2;  
+			t3 = w1; w1 = w2; w2 = t3;  
+			t4 = h1; h1 = h2; h2 = t4;  
+		}
+		if( y2 + h2 < y1 || y1 + h1 < y2 ||  x2 + w2 < x1 || x1 + w1 < x2 )
+			return false;  
+		return true;  
 	}
-	if( y2 + h2 < y1 || y1 + h1 < y2 ||  x2 + w2 < x1 || x1 + w1 < x2 )
-		return false;  
-	return true;  
+	return false;
 }
 
 function Point(x,y) {
