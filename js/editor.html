@@ -105,7 +105,28 @@ render = function() {
 			selected_thing.sprite.frame_height
 		);
 	}
+	
+	guide.render(game.g, game.camera);
 		
+}
+
+Game.prototype.render = function( ) {
+	var camera_center = new Point( this.camera.x, this.camera.y );
+	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
+	
+	for ( var i = 0; i < this.objects.length; i++ ) {
+		if ( this.objects[i] instanceof GameObject ) {
+			var obj = this.objects[i];
+			obj.render( this.g, camera_center );
+		}	
+	}
+	
+	//Debug, show collisions
+	if ( this.renderCollisions ) {
+		for ( var i = 0; i < this.collisions.length; i++ ){
+			this.collisions[i].render( this.g, camera_center );
+		}
+	}
 }
 
 save = function(){
@@ -231,7 +252,7 @@ var mouse_snap_x, mouse_snap_y
 var selected_thing = null;
 var selected_sprite = null;
 var camera_drag = false;
-var type_field, prop_field, test_paths;
+var type_field, prop_field, test_paths, set_guide_button;
 var mode = 0;
 
 var MODE_TILES = 0;
@@ -244,14 +265,19 @@ var _typing = false;
 var typelock =  function(){ _typing = true; }
 var typeunlock =  function(){ _typing = false; }
 
+var guide = false; 
+var setGuide = false;
+
 window.onload = function(){
 	canvas = document.getElementById( 'canvas' );
 	type_field = document.getElementById( 'thing_type' );
 	prop_field = document.getElementById( 'thing_props' );
 	test_paths = document.getElementById( 'test_paths' );
+	set_guide_button = document.getElementById( 'set_guide' );
+	
+	set_guide_button.onclick = function(){ window.setGuide = true; return false; };
 	prop_field.onfocus = typelock;
 	prop_field.onblur = typeunlock;
-	
 	prop_field.oninput = function(e){
 		if ( selected_thing ) {
 			selected_thing.properties = this.value;
@@ -271,6 +297,19 @@ window.onload = function(){
 	window.game.camera.x = 160;
 	window.game.camera.y = 120;
 	load_sprites();
+	
+	guide = new GameObject(Number.MIN_VALUE, Number.MIN_VALUE);
+	guide.width = 320;
+	guide.height = 240;
+	guide.render = function(g,c){
+		g.strokeStyle = "#00AA00";
+		g.strokeRect(
+			this.position.x - this.width * .5 - c.x,
+			this.position.y - this.height * .5 - c.y,
+			this.width,
+			this.height		
+		);
+	}
 	
 	//add sprites to sprite_select
 	sprite_select = document.getElementById( 'tile_select' );
@@ -308,16 +347,27 @@ window.onload = function(){
 		
 		$('#cursor_pos').html(mouse_snap_x+'x : '+mouse_snap_y+'y');
 		
-		if ( window.drag && selected_thing ) {
-			selected_thing.position.x = Math.floor( (mouse_x - drag.x) / snap ) * snap;
-			selected_thing.position.y = Math.floor( (mouse_y - drag.y) / snap ) * snap;
+		if ( window.setGuide ) {
+			guide.position = new Point( mouse_snap_x, mouse_snap_y );
+			$('#guide_pos').html( "["+
+				(guide.position.y - guide.height*.5)+","+
+				(guide.position.x + guide.width*.5)+","+
+				(guide.position.y + guide.height*.5)+","+
+				(guide.position.x - guide.width*.5)+"]"
+			);
 			render();
-		}
-		if ( window.selected_line && window.selected_line_side ) {
-			var _side = window.selected_line_side == 1 ? 'start' : 'end';
-			selected_line[_side].x = mouse_snap_x;
-			selected_line[_side].y = mouse_snap_y;
-			render();
+		} else { 		
+			if ( window.drag && selected_thing ) {
+				selected_thing.position.x = Math.floor( (mouse_x - drag.x) / snap ) * snap;
+				selected_thing.position.y = Math.floor( (mouse_y - drag.y) / snap ) * snap;
+				render();
+			}
+			if ( window.selected_line && window.selected_line_side ) {
+				var _side = window.selected_line_side == 1 ? 'start' : 'end';
+				selected_line[_side].x = mouse_snap_x;
+				selected_line[_side].y = mouse_snap_y;
+				render();
+			}
 		}
 	}
 	canvas.onmouseup = canvas.onblur = function(e){
@@ -326,6 +376,7 @@ window.onload = function(){
 	};
 	canvas.onmousedown = function(e){
 		mouse = new Point( mouse_x, mouse_y );
+		window.setGuide = false;
 		
 		if( mode != MODE_LINES ){
 			//Find clicked on Tile
@@ -506,6 +557,11 @@ function matchMode( object ) {
 			<label for="toggle_mode">Mode</label>
 			<input type="button" id="toggle_mode" value="Tile Mode" />
 		</div>
+		<div class="input">
+			<label for="toggle_mode">Set Guide</label>
+			<input type="button" id="set_guide" value="Set Guide" />
+		</div>
+
 		
 		<div class="input">
 			<label>Tile Select</label>
@@ -537,6 +593,7 @@ function matchMode( object ) {
 	</div>
 	<div id="status">
 		<div id="cursor_pos"></div>
+		<div id="guide_pos"></div>
 	</div>
 	<canvas id="canvas" width="1200" height="1200" style="background:#FED"></canvas>
 </body>

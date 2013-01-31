@@ -223,7 +223,9 @@ function Zombie(x, y){
 	this.sprite = sprites.bullman;
 	this._ani = 0;
 	
-	this.attack_charge = 0;
+	this.behave_attack_cooldown = 0;
+	this.behave_reverse = 0;
+	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_killable );
 	this.addModule( mod_tracker );
@@ -239,8 +241,8 @@ Zombie.prototype.update = function() {
 	if ( this.health > 0 ) {
 		if ( this.position.distance( _player.position ) < 24 ) {
 			//Warming a melee attack
-			this.attack_charge -= game.delta;
-			if ( this.attack_charge <= 0 ) {
+			this.behave_attack_cooldown -= game.delta;
+			if ( this.behave_attack_cooldown <= 0 ) {
 				bullet = new Bullet( 
 					this.position.x, 
 					this.position.y,
@@ -250,21 +252,30 @@ Zombie.prototype.update = function() {
 				bullet.age = 5;
 				bullet.damage = 10;
 				game.addObject( bullet );
-				this.attack_charge = 20;
+				this.behave_attack_cooldown = 20;
 			}
 		} else {
-			this.attack_charge = Math.max(5,this.attack_charge);
+			this.behave_attack_cooldown = Math.max(5,this.behave_attack_cooldown);
 			
+			var direction = this.behave_reverse > 0 ? -1 : 1;
 			this.applyForce(
-				-Math.sin( angle_to_player ) * this.speed,
-				-Math.cos( angle_to_player ) * this.speed
+				-Math.sin( angle_to_player ) * this.speed * direction,
+				-Math.cos( angle_to_player ) * this.speed * direction
 			);
+			this.behave_reverse -= game.delta;
 		}
 		
 		this._ani += 1 * game.delta;
 		this.frame = Math.floor( this._ani * 0.2 ) % 4;
 		//this.frame_row = Math.floor( ( (2*Math.PI) - ( angle_to_player + (0.875*Math.PI) ) % (2*Math.PI) ) / (0.25*Math.PI) );
 		//this.frame_row %= 8;
+	}
+}
+Zombie.prototype.oncollide = function(cols) {
+	for(var i=0;i<cols.length;i++){
+		if ( cols[i] instanceof GameObject ) {
+			this.behave_reverse = 30;
+		}
 	}
 }
 

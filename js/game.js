@@ -174,17 +174,20 @@ Game.prototype.update = function( ) {
 Game.prototype.render = function( ) {
 	var margin = 0;
 	var screen = new Point( 160, 120 );
+	var screen = new Point( 960, 720 );
 	var view = new Line(
 		new Point( this.camera.x - (screen.x + margin), this.camera.y - (screen.y + margin) ),
 		new Point( this.camera.x + (screen.x + margin), this.camera.y + (screen.y + margin) )
 	);
+	var view = new Line(new Point(Number.MIN_VALUE,Number.MIN_VALUE), new Point(Number.MAX_VALUE,Number.MAX_VALUE));
+	
 	var renderList = this.renderTree.get( view );
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
 	
 	game.g.strokeRect(
-		view.start.x - this.camera.x + screen.x, 
-		view.start.y - this.camera.y + screen.y, 
+		view.start.x - this.camera.x, 
+		view.start.y - this.camera.y, 
 		view.end.x-view.start.x, 
 		view.end.y-view.start.y
 	);
@@ -235,7 +238,8 @@ Game.prototype.c_move = function( obj, x, y ) {
 		collider = interactive[i];
 		if ( obj != collider && obj.mass && collider.applyForce instanceof Function ){
 			if ( collider.intersects(obj) ){
-				collider.applyForce( new Point(x*obj.mass,y*obj.mass) );
+				var direction = collider.position.subtract( obj.position );
+				collider.applyForce( new Point((direction.x+x)*obj.mass,(direction.y+y)*obj.mass) );
 				lines.push( collider );
 				obj.transpose(-x,-y);
 			}
@@ -372,6 +376,18 @@ GameObject.prototype.transpose = function(x, y) {
 		this.position.y += y;
 	}
 }
+GameObject.prototype.bounds = function() {
+	return new Line(
+		new Point( 
+			this.position.x - this.width * .5,
+			this.position.y - this.height * .5
+		),
+		new Point( 
+			this.position.x + this.width * .5,
+			this.position.y + this.height * .5
+		)
+	);
+}
 GameObject.prototype.hitbox = function() {
 	var half_width = Math.floor( this.width * 0.5 );
 	var half_height = Math.floor( this.height * 0.5 );
@@ -501,7 +517,7 @@ BSPTree.prototype.split = function(levels){
 BSPTree.prototype.push = function(value){
 	if( this.lower instanceof BSPTree && this.higher instanceof BSPTree ){
 		var position = value;	
-		if ( position instanceof GameObject ) position = position.position;
+		if ( position instanceof GameObject ) position = position.bounds();
 		
 		var _lower = this.lower.bounds.overlaps(position);
 		var _higher = this.higher.bounds.overlaps(position);
