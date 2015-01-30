@@ -109,7 +109,7 @@ function Line ( p, q ) {
 Line.prototype.length = function(){
 	return this.start.distance(this.end);
 }
-Line.prototype.normal = function(g, camera){
+Line.prototype.normal = function(){
 	return new Point( -(this.end.y-this.start.y), -(this.start.x-this.end.x));
 }
 
@@ -118,8 +118,8 @@ Line.prototype.render = function(g, camera){
 	g.beginPath();
 	g.moveTo( this.start.x - camera.x, this.start.y - camera.y );
 	g.lineTo( this.end.x - camera.x, this.end.y - camera.y );
-	g.closePath();
 	g.stroke();	
+	g.closePath();
 	
 	g.strokeStyle = "#FF7700";
 	g.beginPath();

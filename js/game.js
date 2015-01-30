@@ -102,7 +102,7 @@ function Game( elm ) {
 }
 
 Game.prototype.avr = function( obj ) {
-	return 30 / (this.delta_tot / this.delta_avr);
+	return 1 / ((this.delta_tot / this.delta_avr) / 1000.0);
 }
 
 Game.prototype.addObject = function( obj ) {
@@ -123,7 +123,7 @@ Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
 	this.delta = Math.min(newTime - this.time, 30) / 30.0;
-	this.delta_tot += this.delta;
+	this.delta_tot += newTime - this.time;
 	this.delta_avr ++;
 	this.delta *= this.deltaScale;
 	this.time = newTime;
@@ -193,15 +193,19 @@ Game.prototype.render = function( ) {
 	
 	var renderList = this.renderTree.get( view );
 	var camera_center = new Point( this.camera.x, this.camera.y );
-	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
 	
+	this.g.beginPath();
+	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
+	this.g.closePath();
+	
+	/*
 	game.g.strokeRect(
 		view.start.x - this.camera.x, 
 		view.start.y - this.camera.y, 
 		view.end.x-view.start.x, 
 		view.end.y-view.start.y
 	);
-	
+	*/
 	
 	for ( var i in renderList ) {
 		if ( renderList[i] instanceof GameObject ) {
@@ -241,31 +245,32 @@ Game.prototype.i_move = function(obj,x, y ){
 		new Point(obj.position.x + x + 20,obj.position.y + y + 20) 
 	) );
 	
+	var hitbox = obj.hitbox();
+	this.unstick(obj, hitbox, collisions);
+	
 	for(var o=0; o < this.objects.length; o++ ){
 		if( this.objects[o] != obj ) {
 			if( obj.intersects( this.objects[o] ) ){
 				obj.trigger("collideObject", this.objects[o]);
 			}
-			//var box = this.objects[o].hitbox();
-			//collisions = collisions.concat(box._lines);
 		}
 	}
 		
 	
 	var interations = Math.ceil( Point.magnitude(x,y) );
 	var interation_size = 1.0 / interations;
-	var hitbox;
 	
 	for( var j = 0; j < interations; j++ ) {
 		//Move X
 		if( x != 0 ) {
 			obj.transpose(x * interation_size ,0);
-			hitbox = obj.hitbox();
+			hitbox.transpose(x * interation_size, 0);
 			
 			for( var i = 0; i < collisions.length; i++ ) {
 				var c = collisions[i];
 				if ( c.polyInstersects(hitbox) ){
 					obj.transpose(-x * interation_size, 0);
+					hitbox.transpose(-x * interation_size, 0);
 					obj.trigger("collideHorizontal", x);
 					x = 0;
 				}
@@ -275,12 +280,13 @@ Game.prototype.i_move = function(obj,x, y ){
 		//Move Y
 		if( y != 0 ) {
 			obj.transpose(0, y * interation_size);
-			hitbox = obj.hitbox();
+			hitbox.transpose(0, y * interation_size);
 			
 			for( var i = 0; i < collisions.length; i++ ) {
 				var c = collisions[i];
 				if ( c.polyInstersects(hitbox) ){
 					obj.transpose(0, -y * interation_size);
+					hitbox.transpose(0, -y * interation_size);
 					obj.trigger("collideVertical", y);
 					y = 0;
 				}
@@ -289,6 +295,17 @@ Game.prototype.i_move = function(obj,x, y ){
 	}
 }
 
+Game.prototype.unstick = function( obj, hitbox, collisions ) {
+	
+	for( var i = 0; i < collisions.length; i++ ) {
+		var c = collisions[i];
+		if ( c.polyInstersects(hitbox) ){
+			var normal = c.normal().normalize();
+			obj.transpose(normal);
+			hitbox.transpose(normal.x, normal.y);
+		}
+	}
+}
 Game.prototype.c_move = function( obj, x, y ) {
 	//Attempt to move a game object without hitting a colliding line
 	var lines = new Array();
@@ -541,7 +558,7 @@ GameObject.prototype.intersects = function(a) {
 }
 GameObject.prototype.oncollide = function() {}
 GameObject.prototype.update = function(){ }
-GameObject.prototype.render = function( g, camera ){ 
+GameObject.prototype.render = function( g, camera ){
 	if ( this.sprite instanceof Sprite ) {
 		this.sprite.render( g, 
 			new Point(this.position.x - camera.x, this.position.y - camera.y), 

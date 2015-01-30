@@ -60,6 +60,7 @@ var sprites = {}
 function load_sprites (){
 	//sprites['player'] = new Sprite(RT+"img/dude.png", {offset:new Point(12, 20),width:24,height:32});
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(12, 16),width:24,height:32});
+	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(14, 16),width:32,height:32});/*
 	sprites['tree_trunk_ash'] = new Sprite(RT+"img/tree_trunk_ash.png", {offset:new Point(14, 145)});
 	sprites['tree_brush_ash'] = new Sprite(RT+"img/tree_brush_ash.png", {offset:new Point(26, 16)});
 	sprites['health_bar'] = new Sprite(RT+"img/health_bar.png",{offset:new Point(),width:88,height:16});
@@ -107,7 +108,7 @@ function load_sprites (){
 	
 	sprites['terrace_01'] = new Sprite(RT+"img/tiles/terrace_01.png",{offset:new Point(0,300)});
 	sprites['hotspot'] = new Sprite(RT+"img/tiles/manholecover.png",{offset:new Point(16,16)});
-	
+	*/
 	for( var i in sprites ) {
 		sprites[i].name = i;
 	}
