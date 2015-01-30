@@ -148,6 +148,7 @@ function Knight(x,y){
 	this.height = 32;
 	this.sprite = sprites.player;
 	this.speed = 0.2;
+	this.active = false;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -162,9 +163,13 @@ function Knight(x,y){
 Knight.prototype.update = function(){
 	if ( this.hurt <= 0 ) {
 		var dir = this.position.subtract( _player.position );
-		var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 28 ? 1.0 : -1.0);
-		this.force.x += direction * game.delta * this.speed;
-		this.flip = dir.x > 0;
+		this.active = this.active || Math.abs( dir.x ) < 120;
+		
+		if( this.active ) {
+			var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 28 ? 1.0 : -1.0);
+			this.force.x += direction * game.delta * this.speed;
+			this.flip = dir.x > 0;
+		}
 	}
 	
 	if ( this.hurt > 0 ) {
