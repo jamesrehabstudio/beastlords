@@ -42,13 +42,20 @@ Sprite.prototype.imageLoaded = function() {
 		this.frame_height = this.img.height;
 	}
 }
-Sprite.prototype.render = function( g, pos, frame, row ) {
+Sprite.prototype.render = function( g, pos, frame, row, flip ) {
 	frame = frame || 0;
 	row = row || 0;
 	
-	var x_off = frame * this.frame_width;
-	var y_off = row * this.frame_height;
-
+	var x_off = ~~frame * this.frame_width;
+	var y_off = ~~row * this.frame_height;
+	
+		
+	g.beginPath();
+	if( flip ) {
+		g.save();
+		g.scale(-1,1);
+		pos.x = g.canvas.width + (g.canvas.width * -1) - pos.x;
+	}
 	g.drawImage( 
 		this.img, 
 		x_off, y_off, 
@@ -56,10 +63,12 @@ Sprite.prototype.render = function( g, pos, frame, row ) {
 		this.frame_height,
 		~~( pos.x - this.offset.x ),
 		~~( pos.y - this.offset.y ),
-		this.frame_width,
+		+this.frame_width,
 		this.frame_height
 		
 	);
+	g.restore();
+	g.closePath();
 }
 
 /* MAIN GAME OBJECT */
@@ -81,6 +90,7 @@ function Game( elm ) {
 	this.interactive = new BSPTree(this.bounds, 4);
 	this.time = new Date();
 	this.delta = 1;
+	this.deltaScale = 1.0;
 	this.delta_tot = 0;
 	this.delta_avr = 0;
 	
@@ -112,10 +122,10 @@ window.__time = 0;
 Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
-	this.delta = Math.min( (newTime - this.time) / 30, 1);
+	this.delta = Math.min(newTime - this.time, 30) / 30.0;
 	this.delta_tot += this.delta;
 	this.delta_avr ++;
-	//this.delta = 1.1;
+	this.delta *= this.deltaScale;
 	this.time = newTime;
 	
 	//this._pathfinder.postMessage(this.objects);
@@ -225,6 +235,59 @@ Game.prototype.overlap = function( obj ) {
 	
 	return out;
 }
+Game.prototype.i_move = function(obj,x, y ){
+	var collisions = this.lines.get( new Line( 
+		new Point(obj.position.x - x - 20,obj.position.y - y - 20),
+		new Point(obj.position.x + x + 20,obj.position.y + y + 20) 
+	) );
+	
+	for(var o=0; o < this.objects.length; o++ ){
+		if( this.objects[o] != obj ) {
+			if( obj.intersects( this.objects[o] ) ){
+				obj.trigger("collideObject", this.objects[o]);
+			}
+			//var box = this.objects[o].hitbox();
+			//collisions = collisions.concat(box._lines);
+		}
+	}
+		
+	
+	var interations = Math.ceil( Point.magnitude(x,y) );
+	var interation_size = 1.0 / interations;
+	var hitbox;
+	
+	for( var j = 0; j < interations; j++ ) {
+		//Move X
+		if( x != 0 ) {
+			obj.transpose(x * interation_size ,0);
+			hitbox = obj.hitbox();
+			
+			for( var i = 0; i < collisions.length; i++ ) {
+				var c = collisions[i];
+				if ( c.polyInstersects(hitbox) ){
+					obj.transpose(-x * interation_size, 0);
+					obj.trigger("collideHorizontal", x);
+					x = 0;
+				}
+			}
+		}
+		
+		//Move Y
+		if( y != 0 ) {
+			obj.transpose(0, y * interation_size);
+			hitbox = obj.hitbox();
+			
+			for( var i = 0; i < collisions.length; i++ ) {
+				var c = collisions[i];
+				if ( c.polyInstersects(hitbox) ){
+					obj.transpose(0, -y * interation_size);
+					obj.trigger("collideVertical", y);
+					y = 0;
+				}
+			}
+		}
+	}
+}
 
 Game.prototype.c_move = function( obj, x, y ) {
 	//Attempt to move a game object without hitting a colliding line
@@ -303,6 +366,43 @@ Game.prototype.trace = function( start, end, thickness ) {
 	return true;
 }
 
+Game.prototype.raytrace = function(l, end){
+	var line;
+	if( l instanceof Line ) {
+		line = l;
+	} else if ( l instanceof Point ){
+		line = new Line(l, end);
+	}
+	var out = [];
+	for(var i=0; i < this.objects.length; i++ ){
+		if( this.objects[i].intersects(line) ) {
+			out.push( this.objects[i] );
+		}
+	}
+	return out;
+}
+
+Game.prototype.overlaps = function(l, end){
+	var line;
+	if( l instanceof Line ) {
+		line = l;
+	} else if ( l instanceof Point ){
+		line = new Line(l, end);
+	}
+	var out = [];
+	for(var i=0; i < this.objects.length; i++ ){
+		var a = this.objects[i];
+		var you = new Line( 
+			new Point( a.position.x - (a.width*.5), a.position.y - (a.height*.5) ),
+			new Point( a.position.x + (a.width*.5), a.position.y + (a.height*.5) )
+		);
+		if( line.overlaps(you) ) {
+			out.push( a );
+		}
+	}
+	return out;
+}
+
 /* PATH FINDING FUNCTIONS */
 
 //Path builder
@@ -361,12 +461,28 @@ function GameObject() {
 	this.height = 8;
 	this.frame = 0;
 	this.frame_row = 0;
+	this.flip = false;
 	this.zIndex = null;
 	this.interactive = false;
 	this.properties = false;
+	this.events = {};
 	
 	this.visible = true;
 	this.modules = new Array();
+}
+GameObject.prototype.on = function(name, func) {
+	if( !(name in this.events) ) 
+		this.events[name] = [];
+	this.events[name].push(func);
+}
+GameObject.prototype.trigger = function(name) {
+	if( name in this.events) {
+		var args = Array.prototype.slice.call(arguments);
+		args.shift();
+		for( var i=0; i < this.events[name].length; i++ ){
+			this.events[name][i].apply(this,args)
+		}
+	}
 }
 GameObject.prototype.transpose = function(x, y) {
 	if ( x instanceof Point ){
@@ -429,7 +545,7 @@ GameObject.prototype.render = function( g, camera ){
 	if ( this.sprite instanceof Sprite ) {
 		this.sprite.render( g, 
 			new Point(this.position.x - camera.x, this.position.y - camera.y), 
-			this.frame, this.frame_row
+			this.frame, this.frame_row, this.flip
 		);
 	}
 }

@@ -121,7 +121,7 @@ Node.prototype.linkTo = function(target_node,caller){
 }
 
 
-Player.prototype = new GameObject();
+Player.prototype = new GameObject.prototype;
 Player.prototype.constructor = GameObject;
 
 function Player(x, y){
@@ -181,6 +181,8 @@ Player.prototype.update = function(){
 	}
 	
 	this.applyForce( force );
+	
+	this.applyForce( new Point(0,0.5) );
 	
 	if ( this.health < 1 ) {
 		game.removeObject( this );

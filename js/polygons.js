@@ -213,6 +213,15 @@ Line.prototype.overlaps = function( l ){
 	return false;
 }
 
+Line.prototype.polyInstersects = function( pl ){
+	for( var i=0; i < pl._lines.length; i++ ){
+		if( this.intersects( pl._lines[i] ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
 function Point(x,y) {
 	this.x = x || 0;
 	this.y = y || 0;
@@ -243,6 +252,12 @@ Point.prototype.normalize = function(scale){
 		return new Point( scale * this.x / norm, scale * this.y / norm );
 	}
 	return new Point(1,0);
+}
+Point.prototype.magnitude = function(){
+	return Math.sqrt( Math.pow( this.x, 2 ) + Math.pow(this.y, 2 ) );
+}
+Point.magnitude = function(x,y){
+	return Math.sqrt( Math.pow( x, 2 ) + Math.pow(y, 2 ) );
 }
 Point.prototype.dot = function(b){
 	//dot is the sum of each axis multiplied together.

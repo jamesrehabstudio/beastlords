@@ -4,12 +4,13 @@ h1, h2, h3, h4 { font-size:14px; font-weight:normal; }
 
 #game { 
 
-	width:960px;
-	height:720px;
+	width:512px;
+	height:480px;
 
 	background:#EEE;
 	position:relative;
 	overflow:hidden;
+	image-rendering: pixelated; /* future */
 	image-rendering: -webkit-optimize-contrast; /* webkit */
 	image-rendering: -moz-crisp-edges /* Firefox */
 }

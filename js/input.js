@@ -1,5 +1,5 @@
 function Input() {
-	this.CHROME_MAP = { "-1":'click', 65:'left', 68:'right', 83:'down', 87:'up', 32:'jump', 67:'crouch',16:'look',49:'key1',50:'key2',51:'key3',52:'key4',53:'key5' }
+	this.CHROME_MAP = { "-1":'click', 74:"fire", 75:"jump", 65:'left', 68:'right', 83:'down', 87:'up', 32:'space', 67:'crouch',16:'look',49:'key1',50:'key2',51:'key3',52:'key4',53:'key5' }
 
 	this.states;
 	this.mouseCenter;

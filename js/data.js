@@ -6,7 +6,8 @@ var RT = "";
 
 DataManager.prototype.getLevel = function( callback, context, name ) {
 	$.ajax({
-		url: RT+"save.php",
+		//url: RT+"save.php",
+		url: "/maps/map0004.map",
 		type : "GET",
 		data : { name : name },
 		contentType : "JSON",
@@ -57,7 +58,8 @@ function delete_me_create_map () {
 var sprites = {}
 
 function load_sprites (){
-	sprites['player'] = new Sprite(RT+"img/dude.png", {offset:new Point(12, 28),width:24,height:32});
+	//sprites['player'] = new Sprite(RT+"img/dude.png", {offset:new Point(12, 20),width:24,height:32});
+	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(12, 16),width:24,height:32});
 	sprites['tree_trunk_ash'] = new Sprite(RT+"img/tree_trunk_ash.png", {offset:new Point(14, 145)});
 	sprites['tree_brush_ash'] = new Sprite(RT+"img/tree_brush_ash.png", {offset:new Point(26, 16)});
 	sprites['health_bar'] = new Sprite(RT+"img/health_bar.png",{offset:new Point(),width:88,height:16});
