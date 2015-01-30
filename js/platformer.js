@@ -22,6 +22,13 @@ function Player(x, y){
 		"stun" : 0.0
 	}
 	
+	this.attack_time = 8.5;
+	this.attack_withdraw = 5.0;
+	
+	this.on("death", function(){
+		game.objects.remove( game.objects.indexOf(this) );
+	});
+	
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
@@ -60,7 +67,7 @@ Player.prototype.update = function(){
 		game.removeObject( this );
 	}
 	
-	if ( this.states.attack > 2.5 ){
+	if ( this.states.attack > this.attack_withdraw ){
 		var offset = new Point(this.flip ? -12 : 12, this.states.duck ? 8 : -8 );
 		var range = this.flip ? -8 : 8;
 		var hits = game.overlaps( 
@@ -82,14 +89,14 @@ Player.prototype.update = function(){
 	} else if( this.states.duck ) {
 		this.frame = 0;
 		this.frame_row = 1;
-		if( this.states.attack > 0 ) this.frame = (this.states.attack > 2.5 ? 1 : 2);
+		if( this.states.attack > 0 ) this.frame = (this.states.attack > this.attack_withdraw ? 1 : 2);
 	} else {
 		this.frame_row = 0;
 		if( Math.abs( this.force.x ) > 0.1 ) {
 			this.frame = (this.frame + game.delta * 0.1 * Math.abs( this.force.x )) % 3;
 		}
 		if( this.states.attack > 0 ) {
-			this.frame = (this.states.attack > 2.5 ? 0 : 1);
+			this.frame = (this.states.attack > this.attack_withdraw ? 0 : 1);
 			this.frame_row = 2;
 		}
 	}
@@ -112,7 +119,7 @@ Player.prototype.duck = function(){
 }
 Player.prototype.attack = function(){
 	if( this.states.attack <= 0 ) {
-		this.states.attack = 5.0;
+		this.states.attack = this.attack_time;
 		if( this.grounded ) {
 			this.force.x = 0;
 		}
@@ -123,7 +130,7 @@ Player.prototype.setFlip = function(x){
 }
 
 Player.prototype.render = function(g,c){
-	if( this.states.attack > 2.5 ){
+	if( this.states.attack > this.attack_withdraw ){
 		//Draw sword
 		this.sprite.render(
 			g,
@@ -133,6 +140,17 @@ Player.prototype.render = function(g,c){
 			this.flip
 		);
 	}
+	
+	g.beginPath();
+	g.fillStyle = "#FFF";
+	g.fillRect(7,7,(100/4)+2,10);
+	g.fillStyle = "#000";
+	g.fillRect(8,8,100/4,8);
+	g.closePath();
+	g.fillStyle = "#F00";
+	g.fillRect(8,8,this.life/4,8);
+	g.closePath();
+	
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
@@ -157,7 +175,7 @@ function Knight(x,y){
 	this.inviciple_tile = this.hurt_time;
 	
 	this.on("collideObject", function(obj){
-		obj.trigger("hurt", this );
+		obj.trigger("hurt", this, 5 );
 	});
 }
 Knight.prototype.update = function(){
@@ -267,12 +285,14 @@ var mod_combat = {
 		this.hurt = 0;
 		this.hurt_time = 10.0;
 		
-		this.on("hurt", function(obj){
+		this.on("hurt", function(obj, damage){
 			if( this.invincible <= 0 ) {
+				if( damage != undefined ) this.life -= damage;
 				var dir = this.position.subtract( obj.position ).normalize();
 				this.force.x += dir.x * 3;
 				this.invincible = this.invincible_time;
 				this.hurt = this.hurt_time;
+				if( this.life <= 0 ) this.trigger("death");
 			}
 		});
 	},

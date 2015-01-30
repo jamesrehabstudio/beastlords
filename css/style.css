@@ -2,12 +2,22 @@
 body { font-family:arial; font-size:14px; }
 h1, h2, h3, h4 { font-size:14px; font-weight:normal; }
 
+h2{
+	font-weight:bold;
+	margin:15px 0 10px;
+}
+
+div.wrap {
+	width:512px;
+	margin:0 auto;
+}
+
 #game { 
 
 	width:512px;
 	height:480px;
 
-	background:#EEE;
+	background:#503000;
 	position:relative;
 	overflow:hidden;
 	image-rendering: pixelated; /* future */
