@@ -101,9 +101,14 @@ Polygon.prototype.pointInside = function( p ){
 	return ( count % 2 == 1 );
 }
 		
-function Line ( p, q ) {
-	this.start = p;
-	this.end = q;
+function Line ( p, q, r, s ) {
+	if( p instanceof Point ) {
+		this.start = p;
+		this.end = q;
+	} else {
+		this.start = new Point(p,q);
+		this.end = new Point(r,s);
+	}
 }
 
 Line.prototype.length = function(){

@@ -31,7 +31,7 @@
 	
 	<script>
 	window.onload = function() {
-		window.dataManger = new DataManager();
+		window.dataManager = new DataManager();
 		window.input = new Input();
 		
 		window.requestAnimationFrame = 
@@ -44,43 +44,16 @@
 		
 		load_sprites();
 		
-		dataManger.getLevel(function( res ){
-			res = res.replace(/\\/g,"");
-			res = JSON.parse(res);
-			
-			window.game = new Game( document.getElementById( 'game' ) );
-			
-			//window.game.renderCollisions = false;
-			
-			for( var i = 0; i < res.data.objects.length; i++ ){
-				obj = res.data.objects[i];
-				if ( window[obj.type] instanceof Function ) {
-					temp = new window[obj.type](
-						res.data.objects[i].x, 
-						res.data.objects[i].y
-					);
-					temp.sprite = sprites[ res.data.objects[i].sprite ];
-					try{
-						var prop = decodeURI(res.data.objects[i].properties);
-						temp.properties = JSON.parse(prop);
-					} catch(err){console.log("failed to load properties", err);}
-					window.game.addObject( temp );
-				}
-			}
-			
-			for( var i = 0; i < res.data.collisions.length; i++ ){
-				var line = res.data.collisions[i];
-				temp = new Line( 
-					new Point( line.start_x, line.start_y ),
-					new Point( line.end_x, line.end_y )
-				);
-				window.game.collisions.push( temp );
-			}
-			
-			game.buildCollisions();
-			game.buildPaths();
-			loop();
-		}, window, "map0004" );
+		//res = res.replace(/\\/g,"");
+		//res = JSON.parse(res);
+		
+		window.game = new Game( document.getElementById( 'game' ) );
+		
+		dataManager.randomLevel(game);
+		
+		game.buildCollisions();
+		game.buildPaths();
+		loop();
 	}
 	
 	function kill(){

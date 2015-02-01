@@ -6,13 +6,13 @@ function Player(x, y){
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 32;
+	this.width = 14;
+	this.height = 30;
+	this.damage = 5;
 	
 	window._player = this;
 	this.sprite = sprites.player;
 	this._ani = 0;
-	this.team = 1;
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
@@ -29,6 +29,8 @@ function Player(x, y){
 		game.objects.remove( game.objects.indexOf(this) );
 	});
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
 		var dir = this.position.subtract(pos);
 		if( (this.states.duck && dir.y < 0) || (!this.states.duck && dir.y > 0) ){
 			//blocked
@@ -44,6 +46,7 @@ function Player(x, y){
 	this.addModule( mod_camera );
 	this.addModule( mod_combat );
 	
+	this.team = 1;
 	this.mass = .5;
 	//this.addModule( mod_tracker );
 }
@@ -71,7 +74,7 @@ Player.prototype.update = function(){
 	
 	this.friction = this.grounded ? 0.2 : 0.05;
 	this.inertia = this.grounded ? 0.9 : 0.2;
-	this.height = this.states.duck ? 24 : 32;
+	this.height = this.states.duck ? 24 : 30;
 	
 	if ( this.life < 1 ) {
 		game.removeObject( this );
@@ -86,7 +89,7 @@ Player.prototype.update = function(){
 		);
 		for( var i=0; i < hits.length; i++ ) {
 			if( hits[i] != this && hits[i].life != null ) {
-				hits[i].trigger("struck", this, new Point( this.position.x + offset.x, this.position.y + offset.y ), 1);
+				hits[i].trigger("struck", this, new Point( this.position.x + offset.x, this.position.y + offset.y ), this.damage);
 			}
 		}
 	}
@@ -191,13 +194,17 @@ function Knight(x,y){
 	this.attack_warm = 30.0;
 	this.attack_time = 3.0;
 	
+	this.life = 40;
 	this.mass = 1.5;
 	this.inviciple_tile = this.hurt_time;
 	
 	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
 		obj.trigger("hurt", this, 5 );
 	});
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
 		var dir = this.position.subtract(pos);
 		if( (this.states.block_down && dir.y < 0) || (!this.states.block_down && dir.y > 0) ){
 			//blocked
@@ -223,7 +230,7 @@ Knight.prototype.update = function(){
 		this.active = this.active || Math.abs( dir.x ) < 120;
 		
 		if( this.active ) {
-			var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 28 ? 1.0 : -1.0);
+			var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
 			this.force.x += direction * game.delta * this.speed;
 			this.flip = dir.x > 0;
 			this.states.cooldown -= game.delta;
@@ -267,16 +274,6 @@ Knight.prototype.update = function(){
 		}
 	}
 	
-}
-Knight.prototype.onHit = function(obj,position,damage){
-	var pos = this.position.subtract( position );
-	if( pos.y > 0 ) {
-		//Block top
-		obj.force.x += pos.normalize().x * -2;
-	} else {
-		//Hit bottom
-		this.trigger("hurt",obj);
-	}
 }
 
 
@@ -323,26 +320,12 @@ var mod_camera = {
 		game.camera.y = this.position.y - 120;
 	},
 	'update' : function(){		
-		this.camera_target.x = this.position.x - 160;
-		this.camera_target.y = this.position.y - 120;
-		if ( this.lock instanceof Array && this.lock.length >= 4 ){
-			this.camera_target.x = Math.max( Math.min(
-				this.camera_target.x, this.lock[1] - 320
-			), this.lock[3]);
-			
-			this.camera_target.y = Math.max( Math.min(
-				this.camera_target.y, this.lock[2] - 240
-			), this.lock[0])
-		}
-		var speed = 5 * game.delta;
-		var move_x = Math.min( Math.abs( this.camera_target.x - this.parent.camera.x ), speed );
-		var move_y = Math.min( Math.abs( this.camera_target.y - this.parent.camera.y ), speed );
-		
-		this.parent.camera.x += this.parent.camera.x < this.camera_target.x ? move_x : -move_x;
-		this.parent.camera.y += this.parent.camera.y < this.camera_target.y ? move_y : -move_y;
-		
 		game.camera.x = this.position.x - (256 / 2);
 		game.camera.y = this.position.y - (240 / 2);
+		if( this.lock instanceof Line ) {
+			game.camera.x = Math.min( Math.max( game.camera.x, this.lock.start.x ), this.lock.end.x );
+			game.camera.y = Math.min( Math.max( game.camera.y, this.lock.start.y ), this.lock.end.y );
+		}
 	}
 }
 
@@ -352,6 +335,7 @@ var mod_combat = {
 		this.life = 100;
 		this.invincible = 0;
 		this.invincible_time = 20.0;
+		this.team = 0;
 		this.hurt = 0;
 		this.hurt_time = 10.0;
 		

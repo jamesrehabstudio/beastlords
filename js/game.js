@@ -424,6 +424,20 @@ Game.prototype.overlaps = function(l, end){
 
 //Path builder
 Game.prototype.buildCollisions = function(){
+	var new_bounds = new Line(0,0,0,0);
+	for(var i=0; i<game.collisions.length;i++){
+		var line = game.collisions[i];
+		if( line.start.x < new_bounds.start.x ) new_bounds.start.x = line.start.x;
+		if( line.start.x > new_bounds.end.x ) new_bounds.end.x = line.start.x;
+		if( line.start.y < new_bounds.start.y ) new_bounds.start.y = line.start.y;
+		if( line.start.y > new_bounds.end.y ) new_bounds.end.y = line.start.y;
+		if( line.end.x < new_bounds.start.x ) new_bounds.start.x = end.start.x;
+		if( line.end.x > new_bounds.end.x ) new_bounds.end.x = line.end.x;
+		if( line.end.y < new_bounds.start.y ) new_bounds.start.y = line.end.y;
+		if( line.end.y > new_bounds.end.y ) new_bounds.end.y = line.end.y;
+	}
+	
+	this.bounds = new_bounds;
 	this.lines = new BSPTree(this.bounds, 4);
 	
 	for(var i=0; i<game.collisions.length;i++){
