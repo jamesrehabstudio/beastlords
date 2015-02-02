@@ -94,6 +94,10 @@ function Game( elm ) {
 	this.delta_tot = 0;
 	this.delta_avr = 0;
 	
+	this.pause = false;
+	this.slowdown = 1.0;
+	this.slowdown_time = 0.0;
+	
 	this.element = elm;
 	this.g = elm.getContext('2d');
 	
@@ -119,14 +123,28 @@ Game.prototype.removeObject = function( obj ) {
 
 window.__time = 0;
 
+Game.prototype.slow = function(s,d) {
+	if( d > this.slowdown_time ) {
+		this.slowdown_time = d;
+		this.slowdown = s;
+	}	
+}
+
 Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
 	this.delta = Math.min(newTime - this.time, 30) / 30.0;
 	this.delta_tot += newTime - this.time;
 	this.delta_avr ++;
-	this.delta *= this.deltaScale;
 	this.time = newTime;
+	
+	//Handle slowdown
+	if( this.pause ) {
+		this.delta = 0;
+	} else {
+		this.slowdown_time -= this.delta;
+		this.delta *= (this.slowdown_time > 0 ? this.slowdown : 1.0 );
+	}
 	
 	//this._pathfinder.postMessage(this.objects);
 	//this.renderTree = new SortTree();

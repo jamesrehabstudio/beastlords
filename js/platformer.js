@@ -30,7 +30,9 @@ function Player(x, y){
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
+		if( this.inviciple > 0 ) return;
 		
+		//game.slow(0,1.0);
 		var dir = this.position.subtract(pos);
 		if( (this.states.duck && dir.y < 0) || (!this.states.duck && dir.y > 0) ){
 			//blocked
@@ -196,7 +198,7 @@ function Knight(x,y){
 	
 	this.life = 40;
 	this.mass = 1.5;
-	this.inviciple_tile = this.hurt_time;
+	this.inviciple_time = this.hurt_time;
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -204,7 +206,9 @@ function Knight(x,y){
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
+		if( this.inviciple > 0 ) return;
 		
+		//game.slow(0,1.0);
 		var dir = this.position.subtract(pos);
 		if( (this.states.block_down && dir.y < 0) || (!this.states.block_down && dir.y > 0) ){
 			//blocked
