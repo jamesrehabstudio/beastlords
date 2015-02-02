@@ -2,10 +2,11 @@ function DataManager() {
 	//Main pipeline for level assests
 	this.rooms = [
 		{"rarity":0,"width":512,"objects":[],"lines":[[128,32,320,32],[64,208,0,208],[64,192,64,208],[96,176,96,192],[96,192,64,192],[464,176,96,176],[512,208,480,208],[480,192,464,192],[464,192,464,176],[480,208,480,192],[128,-16,128,32],[320,32,320,128],[320,128,432,128],[432,128,432,32],[432,32,512,32]]},
-		{"rarity":1.0,"width":256,"objects":[[128,192,"Skeleton"]],"lines":[[0,32,256,32],[256,208,0,208]]},
+		{"rarity":0,"width":256,"objects":[],"lines":[[16,32,240,32],[0,160,16,160],[16,160,16,32],[256,208,0,208],[0,0,0,160],[240,160,256,160],[256,160,256,0],[240,32,240,160]]},
+		{"rarity":1.0,"width":256,"objects":[],"lines":[[0,32,256,32],[256,208,0,208]]},
 		{"rarity":0.8,"width":256,"objects":[[128,192,"Knight"]],"lines":[[0,32,256,32],[256,208,0,208]]},
 		{"rarity":0.5,"width":256,"objects":[],"lines":[[0,32,256,32],[64,208,0,208],[172,208,128,208],[256,208,236,208]]},
-		{"rarity":0.5,"width":512,"objects":[],"lines":[[0,32,512,32],[512,208,0,208],[32,144,32,160],[48,144,32,144],[48,128,48,144],[32,160,480,160],[480,160,480,144],[480,144,464,144],[464,144,464,128],[464,128,48,128]]},
+		{"rarity":0.5,"width":512,"objects":[[64,104,"Skeleton"]],"lines":[[0,32,512,32],[512,208,0,208],[32,144,32,160],[48,144,32,144],[48,128,48,144],[32,160,480,160],[480,160,480,144],[480,144,464,144],[464,144,464,128],[464,128,48,128]]},
 		{"rarity":0.3,"width":256,"objects":[],"lines":[[16,32,256,32],[64,208,0,208],[64,192,64,208],[48,192,64,192],[48,176,48,192],[64,128,64,176],[0,160,32,160],[32,144,16,144],[32,160,32,144],[64,176,48,176],[144,128,64,128],[0,32,0,160],[16,144,16,32],[144,160,144,128],[176,160,144,160],[176,192,176,160],[208,192,176,192],[256,208,208,208],[208,208,208,192]]},
 		{"rarity":0.3,"width":512,"objects":[],"lines":[[16,32,496,32],[512,208,0,208],[464,160,512,160],[320,144,320,160],[320,160,384,160],[384,160,384,144],[384,144,320,144],[464,144,464,160],[496,144,464,144],[496,32,496,144],[512,160,512,0],[16,144,16,32],[144,160,256,160],[256,160,256,144],[256,144,144,144],[144,144,144,160],[0,160,64,160],[64,160,64,144],[64,144,16,144],[0,0,0,160]]}
 	];
@@ -32,7 +33,7 @@ DataManager.prototype.randomLevel = function(g){
 		var room;
 		
 		if( i == 0 ) room = this.rooms[0];
-		else if( i >= size-1 ) room = this.rooms[2];
+		else if( i >= size-1 ) room = this.rooms[1];
 		else room = this.rooms[ this.randomRoom() ];
 		
 		this.addRandomRoom(g,room,cursor);
@@ -42,7 +43,7 @@ DataManager.prototype.randomLevel = function(g){
 	g.collisions.push( new Line(0,240,0,0) );
 	g.collisions.push( new Line(cursor,0,cursor,240) );
 	g.addObject( new Player( 32, 120 ) );
-	_player.lock = _player.lock = new Line(0,0,cursor,0);
+	_player.lock = _player.lock = new Line(0,0,cursor,240);
 }
 
 DataManager.prototype.addRandomRoom = function(g,room,cursor){
@@ -115,7 +116,8 @@ var sprites = {}
 function load_sprites (){
 	//sprites['player'] = new Sprite(RT+"img/dude.png", {offset:new Point(12, 20),width:24,height:32});
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(12, 16),width:24,height:32});
-	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(14, 16),width:32,height:32});/*
+	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(14, 16),width:32,height:32});
+	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(14, 16),width:32,height:32});/*
 	sprites['tree_trunk_ash'] = new Sprite(RT+"img/tree_trunk_ash.png", {offset:new Point(14, 145)});
 	sprites['tree_brush_ash'] = new Sprite(RT+"img/tree_brush_ash.png", {offset:new Point(26, 16)});
 	sprites['health_bar'] = new Sprite(RT+"img/health_bar.png",{offset:new Point(),width:88,height:16});

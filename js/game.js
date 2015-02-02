@@ -133,7 +133,7 @@ Game.prototype.slow = function(s,d) {
 Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
-	this.delta = Math.min(newTime - this.time, 30) / 30.0;
+	this.delta = Math.min(newTime - this.time, 30.0) / 30.0;
 	this.delta_tot += newTime - this.time;
 	this.delta_avr ++;
 	this.time = newTime;
@@ -156,30 +156,35 @@ Game.prototype.update = function( ) {
 	for ( var i in this.objects ) {
 		if ( this.objects[i] instanceof GameObject ) {
 			var obj = this.objects[i];
-			var mods = obj.modules;
-			//Update Functions
-			if ( mods.length > 0 ) {
-				for ( var i = 0; i < mods.length; i++ ) {
-					if ( mods[i].beforeupdate instanceof Function ) {
-						mods[i].beforeupdate.apply(obj);
+			if( obj.awake ) {
+				var mods = obj.modules;
+				//Set any frame specific values
+				obj.delta = this.delta * obj.deltaScale;
+				
+				//Update Functions
+				if ( mods.length > 0 ) {
+					for ( var i = 0; i < mods.length; i++ ) {
+						if ( mods[i].beforeupdate instanceof Function ) {
+							mods[i].beforeupdate.apply(obj);
+						}
 					}
-				}
-				obj.update();
-				for ( var i = 0; i < mods.length; i++ ) {
-					if ( mods[i].update instanceof Function ) {
-						mods[i].update.apply(obj);
+					obj.update();
+					for ( var i = 0; i < mods.length; i++ ) {
+						if ( mods[i].update instanceof Function ) {
+							mods[i].update.apply(obj);
+						}
 					}
+				} else {
+					obj.update();
 				}
-			} else {
-				obj.update();
-			}
-			
-			if ( obj.visible ) {
-				//this.renderTree.push( obj, obj.zIndex || obj.position.y );
-				this.renderTree.push( obj );
-			}
-			if ( obj.interactive ) {
-				temp_interactive.push ( obj );
+				
+				if ( obj.visible ) {
+					//this.renderTree.push( obj, obj.zIndex || obj.position.y );
+					this.renderTree.push( obj );
+				}
+				if ( obj.interactive ) {
+					temp_interactive.push ( obj );
+				}
 			}
 		}		
 	}
@@ -258,18 +263,21 @@ Game.prototype.overlap = function( obj ) {
 	return out;
 }
 Game.prototype.i_move = function(obj,x, y ){
-	var collisions = this.lines.get( new Line( 
+	var area = new Line( 
 		new Point(obj.position.x - x - 20,obj.position.y - y - 20),
 		new Point(obj.position.x + x + 20,obj.position.y + y + 20) 
-	) );
+	);
+	
+	var collisions = this.lines.get( area );
+	var objs = this.interactive.get( area );
 	
 	var hitbox = obj.hitbox();
 	this.unstick(obj, hitbox, collisions);
 	
-	for(var o=0; o < this.objects.length; o++ ){
-		if( this.objects[o] != obj ) {
-			if( obj.intersects( this.objects[o] ) ){
-				obj.trigger("collideObject", this.objects[o]);
+	for(var o=0; o < objs.length; o++ ){
+		if( objs[o] != obj ) {
+			if( obj.intersects( objs[o] ) ){
+				obj.trigger("collideObject", objs[o]);
 			}
 		}
 	}
@@ -504,7 +512,6 @@ Game.prototype.path_update = function(e){
 function GameObject() {
 	this.id = -1;
 	this.position = new Point();
-	this.angle = 0; //Angle the sprite is facing (if any)
 	this.sprite;
 	this.width = 8;
 	this.height = 8;
@@ -512,9 +519,12 @@ function GameObject() {
 	this.frame_row = 0;
 	this.flip = false;
 	this.zIndex = null;
-	this.interactive = false;
+	this.awake = true;
+	this.interactive = true;
 	this.properties = false;
 	this.events = {};
+	this.delta = 0;
+	this.deltaScale = 1.0;
 	
 	this.visible = true;
 	this.modules = new Array();

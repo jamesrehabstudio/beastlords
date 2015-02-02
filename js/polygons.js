@@ -117,6 +117,12 @@ Line.prototype.length = function(){
 Line.prototype.normal = function(){
 	return new Point( -(this.end.y-this.start.y), -(this.start.x-this.end.x));
 }
+Line.prototype.center = function(){
+	return new Point(
+		.5 * (this.start.x + this.end.x), 
+		.5 * (this.start.y + this.end.y)
+	);
+}
 
 Line.prototype.render = function(g, camera){
 	g.strokeStyle = "#FF0000";
@@ -128,15 +134,20 @@ Line.prototype.render = function(g, camera){
 	
 	g.strokeStyle = "#FF7700";
 	g.beginPath();
-	var avr = new Point(
-		.5 * (this.start.x + this.end.x), 
-		.5 * (this.start.y + this.end.y)
-	);
+	var avr = this.center();
 	g.moveTo( avr.x - camera.x, avr.y -camera.y );
 	var n = this.normal().normalize(10);
 	g.lineTo( avr.x + n.x - camera.x, avr.y + n.y - camera.y );
 	g.closePath();
 	g.stroke();	
+}
+
+Line.prototype.renderRect = function(g, camera){
+	g.strokeStyle = "#FF0000";
+	g.beginPath();
+	g.rect( Math.min(this.start.x, this.end.x) - camera.x, Math.min(this.start.y, this.end.y) - camera.y, Math.abs(this.end.x - this.start.x), Math.abs(this.end.y - this.start.y) );
+	g.stroke();	
+	g.closePath();
 }
 
 Line.prototype.getIntersectionPoint = function( l ){
