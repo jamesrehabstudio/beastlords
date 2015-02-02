@@ -61,7 +61,7 @@ Player.prototype.update = function(){
 		if ( input.state('jump') == 1 && this.grounded ) { this.force.y -= 8; this.grounded = false; this.jump_boost = true; this.stand(); }
 		if ( input.state('fire') == 1 ) { this.attack(); }
 		
-		if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
+		if ( input.state('down') > 0 ) { this.duck(); } else { this.stand(); }
 		if ( input.state('up') == 1 ) { this.stand(); }
 	}
 	
@@ -127,7 +127,7 @@ Player.prototype.duck = function(){
 	if( !this.states.duck ) {
 		this.position.y += 4;
 		this.states.duck = true;
-		this.force.x = 0;
+		if( this.grounded )	this.force.x = 0;
 	}
 }
 Player.prototype.attack = function(){
@@ -253,6 +253,113 @@ Knight.prototype.update = function(){
 		for( var i=0; i < hits.length; i++ ) {
 			if( hits[i] != this && hits[i].life != null ) {
 				hits[i].trigger("struck", this, new Point( this.position.x + offset.x, this.position.y + offset.y ), 15);
+			}
+		}
+	}
+	
+	/* counters */
+	this.states.attack -= game.delta;
+	
+	/* Animation */
+	if ( this.hurt > 0 ) {
+		this.frame = (this.frame + 1) % 2;
+		this.frame_row = 3;
+	} else { 
+		if( this.states.attack > 0 ) {
+			this.frame = (this.states.block_down ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
+			this.frame_row = (this.states.attack_down ? 2 : 1);
+		} else {
+			this.frame = (this.states.block_down ? 1 : 0);
+			this.frame_row = 0;
+		}
+	}
+	
+}
+
+Skeleton.prototype = new GameObject();
+Skeleton.prototype.constructor = GameObject;
+function Skeleton(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 32;
+	this.sprite = sprites.knight;
+	this.speed = .3;
+	this.active = false;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.states = {
+		"attack" : 0,
+		"cooldown" : 1.0,
+		"block_down" : false,
+		"attack_down" : false
+	}
+	
+	this.attack_warm = 30.0;
+	this.attack_time = 3.0;
+	
+	this.life = 40;
+	this.mass = 1.5;
+	this.inviciple_tile = this.hurt_time;
+	
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		obj.trigger("hurt", this, 5 );
+	});
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
+		var dir = this.position.subtract(pos);
+		if( (this.states.block_down && dir.y < 0) || (!this.states.block_down && dir.y > 0) ){
+			//blocked
+			obj.force.x += dir.x > 0 ? -1 : 1;
+			this.force.x += dir.x < 0 ? 0 : 0;
+		} else {
+			this.trigger("hurt",obj,damage);
+		}
+	});
+	this.on("hurt", function(){
+		this.states.attack = -1.0;
+		this.states.cooldown = 40.0;
+		//this.states.block_down = Math.random() > 0.5;
+	});
+	this.on("death", function(){
+		game.objects.remove( game.objects.indexOf(this) );
+	});
+}
+Skeleton.prototype.update = function(){	
+	this.sprite = sprites.knight;
+	if ( this.hurt <= 0 ) {
+		var dir = this.position.subtract( _player.position );
+		this.active = this.active || Math.abs( dir.x ) < 120;
+		
+		if( this.active ) {
+			var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
+			this.force.x += direction * game.delta * this.speed;
+			this.flip = dir.x > 0;
+			this.states.cooldown -= game.delta;
+		}
+	}
+	if( this.states.cooldown < 0 ){
+		this.states.attack_down = Math.random() > 0.5;
+		//this.states.block_down = Math.random() > 0.5;
+		this.states.attack = this.attack_warm;
+		this.states.cooldown = 70.0;
+	}
+	
+	if ( this.states.attack > 0 && this.states.attack < this.attack_time ){
+		var offset = new Point(this.flip ? -12 : 12, this.states.attack_down ? 8 : -8 );
+		var range = this.flip ? -8 : 8;
+		var hits = game.overlaps( 
+			new Point( this.position.x + offset.x, this.position.y + offset.y ),
+			new Point( this.position.x + offset.x + range, this.position.y + offset.y + 4 )
+		);
+		for( var i=0; i < hits.length; i++ ) {
+			if( hits[i] != this && hits[i].life != null ) {
+				hits[i].trigger("struck", this, new Point( this.position.x + offset.x, this.position.y + offset.y ), 25);
 			}
 		}
 	}
