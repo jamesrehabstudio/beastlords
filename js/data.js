@@ -3,7 +3,7 @@ function DataManager() {
 	this.rooms = [
 /* intro */		{"rarity":0,"width":2,"objects":[],"lines":[[128,32,320,32],[64,208,0,208],[64,192,64,208],[96,176,96,192],[96,192,64,192],[464,176,96,176],[512,208,480,208],[480,192,464,192],[464,192,464,176],[480,208,480,192],[128,-16,128,32],[320,32,320,128],[320,128,432,128],[432,128,432,32],[432,32,512,32]]},
 /* end */		{"rarity":0,"width":1,"objects":[],"lines":[[16,32,240,32],[0,160,16,160],[16,160,16,32],[256,208,0,208],[0,0,0,160],[240,160,256,160],[256,160,256,0],[240,32,240,160]]},
-/* boss */		{"rarity":0,"width":1,"objects":[],"lines":[[16,32,240,32],[0,160,16,160],[16,160,16,32],[256,208,0,208],[0,0,0,160],[240,160,256,160],[256,160,256,0],[240,32,240,160]]},
+/* boss */		{"rarity":0,"width":1,"objects":[[128,160,"Boss"]],"lines":[[16,32,240,32],[0,160,16,160],[16,160,16,32],[256,208,0,208],[0,0,0,160],[240,160,256,160],[256,160,256,0],[240,32,240,160]]},
 /* ITM W */		{"rarity":0,"width":1,"objects":[[136,144,"Item"]],"lines":[[240,208,176,208],[0,80,240,80],[176,208,176,192],[176,192,144,192],[96,192,96,208],[96,208,0,208],[144,192,144,160],[144,160,128,160],[128,160,128,192],[128,192,96,192],[240,80,240,208]]},
 /* ITM E */		{"rarity":0,"width":1,"objects":[[136,144,"Item"]],"lines":[[256,208,176,208],[16,80,256,80],[176,208,176,192],[176,192,144,192],[96,192,96,208],[96,208,16,208],[144,192,144,160],[144,160,128,160],[128,160,128,192],[128,192,96,192],[16,208,16,80]]},
 /* DOOR */		{"rarity":0,"width":1,"objects":[[128,176,"Door"]],"lines":[[256,80,256,32],[0,32,0,80],[80,144,176,144],[256,208,0,208],[0,80,80,80],[80,80,80,144],[176,144,176,80],[176,80,256,80]]},
@@ -36,7 +36,7 @@ function DataManager() {
 			if(level==0) return [[1,direction,0]]; 
 			if(level==1) return [[2,direction,0]]; 
 			if(Math.random()>.5) return [[5,direction,-1,{"door":this.key_counter}], [this.randomRoom(), direction, 0]];
-			if(Math.random()>.8 && level > 2) return [["j",direction,-1],["j",direction,1],[this.randomRoom(), direction, 0]]; 
+			if(Math.random()>.7) return [["j",direction,-1],["j",direction,1],[this.randomRoom(), direction, 0]]; 
 			return [[this.randomRoom(), direction, 0]]; 
 		},
 		"item" : function(level,direction,options){
@@ -71,10 +71,19 @@ DataManager.prototype.randomLevel = function(g){
 		
 		success = this.addRoom(options,15,1, new Point(2,0));
 		
+		var branch_count = 0;
 		for(var i in this.branch_matrix ){
+			branch_count++;
 			if( !this.addBranch(this.branch_matrix[i].options, 8, this.branch_matrix[i].junctions) ) {
 				console.error("Failed to create branch, map may not be completable.")
 				success = false;
+			} 
+		}
+		
+		if( success ) {
+			//Create some extra branches for fun
+			for(var i=0; i<3-branch_count; i++ ){
+				this.addBranch({"rules":this.rules.item,"item":"life"}, 8, this.getJunctions())
 			}
 		}
 	}
@@ -115,14 +124,20 @@ DataManager.prototype.randomLevel = function(g){
 DataManager.prototype.createRoom = function(g,room,cursor,id){
 	for(var j=0; j < room.objects.length; j++){
 		var obj = room.objects[j];
-		var new_obj = new window[obj[2]](cursor.x + obj[0], cursor.y + obj[1]);
+		var objectName = obj[2];
 		
+		if( id in this.properties_matrix ){
+			var props = this.properties_matrix[id];
+			if(objectName == "Boss") objectName = "Marquis";
+		}
+		
+		var new_obj = new window[objectName](cursor.x + obj[0], cursor.y + obj[1]);
 		g.addObject( new_obj );
 		
 		if( id in this.properties_matrix ){
 			var props = this.properties_matrix[id];
-			if(obj[2] == "Item") new_obj.name = "item" in props ? props["item"] : new_obj.name;
-			if(obj[2] == "Door") new_obj.name = "key_" + ("door" in props ? props["door"] : new_obj.name);
+			if(objectName == "Item") new_obj.name = "item" in props ? props["item"] : new_obj.name;
+			if(objectName == "Door") new_obj.name = "key_" + ("door" in props ? props["door"] : new_obj.name);
 		}
 	}
 	
@@ -150,13 +165,13 @@ DataManager.prototype.getJunctionRoomIndex = function(tags){
 	}
 	return out[0];
 }
-DataManager.prototype.addBranch = function(properties, level, options){
+DataManager.prototype.addBranch = function(options, level, junctions){
 	var compass = ["n","e","s","w"];
 	
-	options.sort(function(){ return Math.random()-.5; });
+	junctions.sort(function(){ return Math.random()-.5; });
 	
-	for( var i=0; i < options.length; i++ ) {
-		var _i = options[i];
+	for( var i=0; i < junctions.length; i++ ) {
+		var _i = junctions[i];
 		var tags = this.junctions_matrix[_i];
 		pos = new Point( ~~_i.match(/(-?\d+)/g)[0], ~~_i.match(/(-?\d+)/g)[1] );
 		
@@ -169,22 +184,22 @@ DataManager.prototype.addBranch = function(properties, level, options){
 			if( tags.indexOf( d ) < 0 ) {
 				//This direction is free.
 				if( d == "n" ) {
-					if( this.addRoom(properties, level, 0, new Point(pos.x, pos.y+1), new Point(0,-1)) ){
+					if( this.addRoom(options, level, 0, new Point(pos.x, pos.y+1), new Point(0,-1)) ){
 						tags.push(d);
 						return true;
 					}
 				} else if ( d = "e" ) {
-					if( this.addRoom(properties, level, 1, new Point(pos.x+1, pos.y)) ){
+					if( this.addRoom(options, level, 1, new Point(pos.x+1, pos.y)) ){
 						tags.push(d);
 						return true;
 					}
 				} else if ( d = "s" ) {
-					if( this.addRoom(properties, level, 0, new Point(pos.x, pos.y-1), new Point(0,1)) ){
+					if( this.addRoom(options, level, 0, new Point(pos.x, pos.y-1), new Point(0,1)) ){
 						tags.push(d);
 						return true;
 					}
 				} else if ( d = "w" ) {
-					if( this.addRoom(properties, level, -1, new Point(pos.x-1, pos.y)) ){
+					if( this.addRoom(options, level, -1, new Point(pos.x-1, pos.y)) ){
 						tags.push(d);
 						return true;
 					}
@@ -194,7 +209,6 @@ DataManager.prototype.addBranch = function(properties, level, options){
 	}
 	return false;
 }
-
 DataManager.prototype.addRoom = function(options, level, direction, cursor, connector){
 		
 	//List of rooms to try
@@ -335,6 +349,14 @@ DataManager.prototype.createBranchNotice = function(id,ops){
 	this.branch_matrix[id] = out;
 	return junctions_exist;
 }
+DataManager.prototype.getJunctions = function(){
+	var out = [];
+	for( var i in this.junctions_matrix )out.push(i);
+	return out;
+}
+DataManager.prototype.junctionCount = function(){
+	return this.getJunctions().length;
+}
 
 var sprites = {}
 var RT = "/";
@@ -345,6 +367,7 @@ function load_sprites (){
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(12, 16),width:24,height:32});
 	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(14, 16),width:32,height:32});
 	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(14, 16),width:32,height:32});
+	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:64,height:64});
 	
 	for( var i in sprites ) {
 		sprites[i].name = i;

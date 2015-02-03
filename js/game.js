@@ -156,6 +156,7 @@ Game.prototype.update = function( ) {
 	for ( var i in this.objects ) {
 		if ( this.objects[i] instanceof GameObject ) {
 			var obj = this.objects[i];
+			obj.idle();
 			if( obj.awake ) {
 				var mods = obj.modules;
 				//Set any frame specific values
@@ -605,6 +606,16 @@ GameObject.prototype.intersects = function(a) {
 	}
 }
 GameObject.prototype.update = function(){ }
+GameObject.prototype.idle = function(){
+	var current = this.awake;
+	var _cam = this.position.subtract(game.camera);
+	var margin = 64;
+	this.awake = (_cam.x > -margin && _cam.y > -margin && _cam.x < game.element.width + margin && _cam.y < game.element.height + margin); 
+	
+	if( current != this.awake ){
+		this.trigger( (this.awake ? "wakeup" : "sleep") );
+	}
+}
 GameObject.prototype.render = function( g, camera ){
 	if ( this.sprite instanceof Sprite ) {
 		this.sprite.render( g, 

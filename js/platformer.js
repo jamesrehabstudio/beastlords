@@ -37,8 +37,9 @@ function Player(x, y){
 		var dir = this.position.subtract(pos);
 		if( this.states.guard && ((this.states.duck && dir.y < 0) || (!this.states.duck && dir.y > 0)) ){
 			//blocked
+			var kb = damage / 15.0;
 			obj.force.x += dir.x > 0 ? -3 : 3;
-			this.force.x += dir.x < 0 ? -1 : 1;
+			this.force.x += dir.x < 0 ? -kb : kb;
 		} else {
 			this.trigger("hurt",obj,damage);
 		}
@@ -296,7 +297,8 @@ function Skeleton(x,y){
 		"attack" : 0,
 		"cooldown" : 100.0,
 		"block_down" : false,
-		"attack_down" : false
+		"attack_down" : false,
+		"prep_jump" : false
 	}
 	
 	this.attack_warm = 30.0;
@@ -310,6 +312,9 @@ function Skeleton(x,y){
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		obj.trigger("hurt", this, 5 );
+	});
+	this.on("collideHorizontal", function(x){
+		this.states.prep_jump = true;
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
@@ -344,12 +349,17 @@ Skeleton.prototype.update = function(){
 				this.force.x += direction * this.delta * this.speed;
 				this.flip = dir.x > 0;
 				this.states.cooldown -= this.delta;
+				
+				if( this.states.prep_jump && this.grounded ) {
+					this.force.y = -8.0;
+					this.states.prep_jump = false;
+				}
 			} else {
 				this.force.x = 0;
 			}
 		}
 	
-		if( this.states.cooldown < 0 ){
+		if( this.states.cooldown < 0 && Math.abs(dir.x) < 64 ){
 			this.states.attack = this.attack_warm;
 			this.states.cooldown = 50.0;
 		}
@@ -382,7 +392,117 @@ Skeleton.prototype.update = function(){
 			}
 		}
 	}
+}
+
+Marquis.prototype = new GameObject();
+Marquis.prototype.constructor = GameObject;
+function Marquis(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 64;
+	this.sprite = sprites.megaknight;
+	this.speed = .1;
+	this.active = false;
 	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.states = {
+		"attack" : 0,
+		"cooldown" : 100.0,
+		"attack_type" : 0,
+		"walk_back" : false
+	}
+	
+	this.attack_times = {
+		"warm" : 60.0,
+		"swing" : 50.0,
+		"damage" : 45.0,
+		"rest" : 40
+	};
+	
+	this.life = 80;
+	this.mass = 2.0;
+	this.damage = 25;
+	this.inviciple_tile = this.hurt_time;
+	
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		obj.trigger("hurt", this, 5 );
+	});
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
+		var dir = this.position.subtract(pos);
+		if( dir.y < 22.0 ){
+			//blocked
+			obj.force.x += dir.x > 0 ? -3 : 3;
+		} else {
+			this.trigger("hurt",obj,damage);
+		}
+	});
+	this.on("hurt", function(){
+		this.states.attack = -1.0;
+		this.states.cooldown = 10.0;
+	});
+	this.on("death", function(){
+		game.objects.remove( game.objects.indexOf(this) );
+	});
+}
+Marquis.prototype.update = function(){	
+	this.sprite = sprites.megaknight;
+	if ( this.hurt <= 0 ) {
+		var dir = this.position.subtract( _player.position );
+		this.active = this.active || Math.abs( dir.x ) < 120;
+		
+		if( this.active ) {
+			if( this.states.attack <= 0 ) {
+				var direction = (dir.x > 0 ? -1.0 : 1.0) * (this.states.walk_back ? -1.0 : 1.0);
+				this.force.x += direction * this.delta * this.speed;
+				this.flip = dir.x > 0;
+				this.states.cooldown -= this.delta;
+				
+				if( Math.abs( dir.x ) < 32 ) this.states.walk_back = true;
+				if( Math.abs( dir.x ) > 96 ) this.states.walk_back = false;
+				if( this.states.cooldown < 50 ) this.states.walk_back = false;
+				
+			} else {
+				this.force.x = 0;
+			}
+		}
+	
+		if( this.states.cooldown < 0 && Math.abs(dir.x) < 64 ){
+			this.states.attack = this.attack_times.warm;
+			this.states.cooldown = this.attack_times.warm * 2;
+		}
+		
+		if ( this.states.attack > this.attack_times.rest && this.states.attack < this.attack_times.damage ){
+			this.strike(new Line(
+				new Point( 0, 0 ),
+				new Point( 32, 32 )
+			) );
+		}
+	}
+	/* counters */
+	this.states.attack -= this.delta;
+	
+	/* Animation */
+	if ( this.hurt > 0 ) {
+		this.frame = (this.frame + 1) % 2;
+		this.frame_row = 2;
+	} else { 
+		if( this.states.attack > 0 ) {
+			this.frame = this.states.attack < this.attack_times.damage ? 2 : (this.states.attack < this.attack_times.swing ? 1 : 0);
+			this.frame_row = 1
+		} else {
+			this.frame_row = 0;
+			if( Math.abs( this.force.x ) > 0.1 ) {
+				this.frame = ( this.frame + this.delta * Math.abs( this.force.x ) * 0.1 ) % 3;
+			}
+		}
+	}
 }
 
 Lift.prototype = new GameObject();
@@ -419,6 +539,7 @@ function Lift(x,y){
 	this.gravity = 0.0;
 }
 
+Lift.prototype.idle = function(){}
 Lift.prototype.update = function(){
 	//slow down lift
 	this.force.y *= 0.9;
@@ -477,15 +598,27 @@ function Item(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ){
-			if( obj.items.indexOf( this ) < 0 ) {
-				obj.items.push( this );
+			if( this.name == "life" ) {
+				obj.life = 100;
 				this.destroy();
+			} else {
+				//collectable
+				if( obj.items.indexOf( this ) < 0 ) {
+					obj.items.push( this );
+					this.destroy();
+				}
 			}
 		}
 	});
 }
 Item.prototype.update = function(){
-	this.frame = this.name.match(/\d+/) - 0;
+	if( this.name == "life" ) {
+		this.frame = 0;
+		this.frame_row = 1;
+	} else {
+		this.frame = this.name.match(/\d+/) - 0;
+		this.frame_row = 0;
+	}
 }
 
 Door.prototype = new GameObject();
