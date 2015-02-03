@@ -147,9 +147,9 @@ Game.prototype.update = function( ) {
 	}
 	
 	//this._pathfinder.postMessage(this.objects);
-	//this.renderTree = new SortTree();
+	this.renderTree = [];
 	//rebuild Interactive Objects
-	this.renderTree = new BSPTree(this.bounds, 4);
+	//this.renderTree = new BSPTree(this.bounds, 4);
 	var temp_interactive = new BSPTree(this.bounds, 4);
 
 	
@@ -179,7 +179,6 @@ Game.prototype.update = function( ) {
 				}
 				
 				if ( obj.visible ) {
-					//this.renderTree.push( obj, obj.zIndex || obj.position.y );
 					this.renderTree.push( obj );
 				}
 				if ( obj.interactive ) {
@@ -214,7 +213,7 @@ Game.prototype.render = function( ) {
 	);
 	var view = new Line(new Point(Number.MIN_VALUE,Number.MIN_VALUE), new Point(Number.MAX_VALUE,Number.MAX_VALUE));
 	
-	var renderList = this.renderTree.get( view );
+	var renderList = this.renderTree;
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	
 	this.g.beginPath();
@@ -278,6 +277,7 @@ Game.prototype.i_move = function(obj,x, y ){
 		if( objs[o] != obj ) {
 			if( obj.intersects( objs[o] ) ){
 				obj.trigger("collideObject", objs[o]);
+				objs[o].trigger("collideObject", obj);
 			}
 		}
 	}
@@ -457,7 +457,7 @@ Game.prototype.buildCollisions = function(){
 		if( line.start.x > new_bounds.end.x ) new_bounds.end.x = line.start.x;
 		if( line.start.y < new_bounds.start.y ) new_bounds.start.y = line.start.y;
 		if( line.start.y > new_bounds.end.y ) new_bounds.end.y = line.start.y;
-		if( line.end.x < new_bounds.start.x ) new_bounds.start.x = end.start.x;
+		if( line.end.x < new_bounds.start.x ) new_bounds.start.x = line.end.x;
 		if( line.end.x > new_bounds.end.x ) new_bounds.end.x = line.end.x;
 		if( line.end.y < new_bounds.start.y ) new_bounds.start.y = line.end.y;
 		if( line.end.y > new_bounds.end.y ) new_bounds.end.y = line.end.y;
@@ -543,6 +543,9 @@ GameObject.prototype.trigger = function(name) {
 		}
 	}
 }
+GameObject.prototype.clearEvents = function(name){
+	this.events[name] = [];
+}
 GameObject.prototype.transpose = function(x, y) {
 	if ( x instanceof Point ){
 		this.position = this.position.add(x);
@@ -575,6 +578,9 @@ GameObject.prototype.hitbox = function() {
 	
 	return this._hitbox;
 }
+GameObject.prototype.hasModule = function(x){
+	return this.modules.indexOf(x) >= 0;
+}
 GameObject.prototype.addModule = function(x){
 	if ( x.init instanceof Function ){
 		x.init.apply(this);
@@ -598,7 +604,6 @@ GameObject.prototype.intersects = function(a) {
 		return this.hitbox().intersects(a);
 	}
 }
-GameObject.prototype.oncollide = function() {}
 GameObject.prototype.update = function(){ }
 GameObject.prototype.render = function( g, camera ){
 	if ( this.sprite instanceof Sprite ) {
@@ -610,6 +615,10 @@ GameObject.prototype.render = function( g, camera ){
 }
 GameObject.prototype.assignParent = function ( parent ) {
 	this.parent = parent;
+}
+GameObject.prototype.destroy = function() {
+	var index = game.objects.indexOf(this);
+	if( index >= 0 ) game.objects.remove( game.objects.indexOf(this) );
 }
 
 function SortTree() {

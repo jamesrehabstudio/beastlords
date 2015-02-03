@@ -111,6 +111,8 @@ function Line ( p, q, r, s ) {
 	}
 }
 
+Line.renderNoramsl = false;
+
 Line.prototype.length = function(){
 	return this.start.distance(this.end);
 }
@@ -132,14 +134,16 @@ Line.prototype.render = function(g, camera){
 	g.stroke();	
 	g.closePath();
 	
-	g.strokeStyle = "#FF7700";
-	g.beginPath();
-	var avr = this.center();
-	g.moveTo( avr.x - camera.x, avr.y -camera.y );
-	var n = this.normal().normalize(10);
-	g.lineTo( avr.x + n.x - camera.x, avr.y + n.y - camera.y );
-	g.closePath();
-	g.stroke();	
+	if( Line.renderNormals ) {
+		g.strokeStyle = "#FF7700";
+		g.beginPath();
+		var avr = this.center();
+		g.moveTo( avr.x - camera.x, avr.y -camera.y );
+		var n = this.normal().normalize(10);
+		g.lineTo( avr.x + n.x - camera.x, avr.y + n.y - camera.y );
+		g.closePath();
+		g.stroke();	
+	}
 }
 
 Line.prototype.renderRect = function(g, camera){

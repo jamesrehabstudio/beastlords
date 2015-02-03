@@ -9,10 +9,10 @@ function Player(x, y){
 	this.width = 14;
 	this.height = 30;
 	this.damage = 5;
+	this.items = [];
 	
 	window._player = this;
 	this.sprite = sprites.player;
-	this._ani = 0;
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
@@ -27,7 +27,7 @@ function Player(x, y){
 	this.attack_withdraw = 5.0;
 	
 	this.on("death", function(){
-		game.objects.remove( game.objects.indexOf(this) );
+		this.destroy();
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
@@ -50,7 +50,7 @@ function Player(x, y){
 	this.addModule( mod_combat );
 	
 	this.team = 1;
-	this.mass = .5;
+	this.mass = 1;
 	//this.addModule( mod_tracker );
 }
 
@@ -140,6 +140,8 @@ Player.prototype.setFlip = function(x){
 }
 
 Player.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this,[g,c]);
+	
 	if( this.states.attack > this.attack_withdraw ){
 		//Draw sword
 		this.sprite.render(
@@ -151,19 +153,23 @@ Player.prototype.render = function(g,c){
 		);
 	}
 	
+	/* Render HP */
 	g.beginPath();
 	g.fillStyle = "#FFF";
 	g.fillRect(7,7,(100/4)+2,10);
 	g.fillStyle = "#000";
 	g.fillRect(8,8,100/4,8);
 	g.closePath();
+	g.beginPath();
 	g.fillStyle = "#F00";
 	g.fillRect(8,8,this.life/4,8);
 	g.closePath();
 	
-	if( this.ttest instanceof Line) this.ttest.renderRect( g, c );
+	for(var i=0; i < this.items.length; i++) {
+		this.items[i].sprite.render(g, new Point(48+i*16, 12), this.items[i].frame, this.items[i].frame_row, false );
+	}
 	
-	GameObject.prototype.render.apply(this,[g,c]);
+	//if( this.ttest instanceof Line) this.ttest.renderRect( g, c );
 }
 
 
@@ -222,7 +228,7 @@ function Knight(x,y){
 		this.states.guard = ~~(1 + Math.random() * 2);
 	});
 	this.on("death", function(){
-		game.objects.remove( game.objects.indexOf(this) );
+		this.destroy();
 	});
 }
 Knight.prototype.update = function(){	
@@ -379,6 +385,139 @@ Skeleton.prototype.update = function(){
 	
 }
 
+Lift.prototype = new GameObject();
+Lift.prototype.constructor = GameObject;
+function Lift(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 28;
+	this.height = 32;
+	
+	this.speed = 3.0;
+	this.start_x = x;
+	
+	this.addModule( mod_rigidbody );
+	this.clearEvents("collideObject");
+	
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player ) {
+			if( input.state("up") > 0 ) 
+				this.force.y = -this.speed;
+			if( input.state("down") > 0 )
+				this.force.y = this.speed;
+				
+			obj.position.y = this.position.y;
+			obj.trigger( "collideVertical", 1);
+			this.position.x = this.start_x;
+		} else if ( obj instanceof Lift && this.awake ) {
+			obj.awake = false;
+		}
+	});
+	
+	this.mass = 0;
+	this.gravity = 0.0;
+}
+
+Lift.prototype.update = function(){
+	//slow down lift
+	this.force.y *= 0.9;
+	
+	var dir = this.position.subtract( _player.position );
+	var goto_y = 192 + (Math.floor( _player.position.y / 240 ) * 240);
+	//Move to find player
+	if( Math.abs( dir.x ) > 64 ){
+		if( Math.abs( this.position.y - goto_y ) > 16 ) {
+			if( this.position.y > goto_y ) 
+				this.force.y = -this.speed;
+			else 
+				this.force.y = this.speed;
+		}
+	}
+}
+Lift.prototype.render = function(g,c){
+	g.fillStyle = "#FA0";
+	//g.beginPath();
+	g.fillRect(
+		this.position.x - (this.width * .5 + c.x),
+		this.position.y - (this.height * .5 + c.y),
+		this.width, this.height
+	);
+	//g.closePath();
+	
+}
+
+DeathTrigger.prototype = new GameObject();
+DeathTrigger.prototype.constructor = GameObject;
+function DeathTrigger(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 256;
+	this.height = 16;
+	
+	this.on("collideObject", function(obj){
+		if( obj.hasModule(mod_combat) ) {
+			obj.invincible = -999;
+			obj.trigger("hurt", this, 9999 );
+		}
+	});
+}
+
+Item.prototype = new GameObject();
+Item.prototype.constructor = GameObject;
+function Item(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.name = "";
+	this.sprite = sprites.items;
+	
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player ){
+			if( obj.items.indexOf( this ) < 0 ) {
+				obj.items.push( this );
+				this.destroy();
+			}
+		}
+	});
+}
+Item.prototype.update = function(){
+	this.frame = this.name.match(/\d+/) - 0;
+}
+
+Door.prototype = new GameObject();
+Door.prototype.constructor = GameObject;
+function Door(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.name = "";
+	this.sprite = sprites.doors;
+	
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player ){
+			var dir = this.position.subtract(obj.position);
+			for( var i=0; i < obj.items.length; i++ ) {
+				if( this.name == obj.items[i].name ) {
+					this.destroy();
+					return;
+				}
+			}
+			obj.position.x = this.position.x + (dir.x < 0 ? 32 : -32);
+		}
+	});
+}
+Door.prototype.update = function(){
+	var r = this.name.match(/\d+/) - 0;
+	this.frame = r % 8;
+	this.frame_row = Math.floor( r / 8 );
+}
+
 
 /* Modules */
 var mod_rigidbody = {
@@ -399,14 +538,20 @@ var mod_rigidbody = {
 			if( dir > 0 ) this.grounded = true;
 		});
 		this.on("collideObject", function(obj){
-			var dir = this.position.subtract( obj.position ).normalize();
-			var mass = 1.0 - Math.max(this.mass - obj.mass, 0)
-			this.force.y += dir.y * this.friction * mass;
-			this.force.x += dir.x * this.friction * mass;
+			if( obj.hasModule(mod_rigidbody) ) {
+				var dir = this.position.subtract( obj.position ).normalize();
+				var mass = 1.0 - Math.max(this.mass - obj.mass, 0)
+				this.force.y += dir.y * this.friction * mass;
+				this.force.x += dir.x * this.friction * mass;
+			}
 		});
 	},
 	'update' : function(){
 		this.force.y += this.gravity * this.delta;
+		//Max speed 
+		this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
+		this.force.y = Math.max( Math.min ( this.force.y, 50), -50 );		
+		
 		this.grounded = false;
 		game.i_move( this, this.force.x * this.delta, this.force.y * this.delta );
 		
@@ -425,7 +570,7 @@ var mod_camera = {
 	'update' : function(){		
 		var screen = new Point(256,240);
 		game.camera.x = this.position.x - (256 / 2);
-		game.camera.y = this.position.y - (240 / 2);
+		game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		if( this.lock instanceof Line ) {
 			game.camera.x = Math.min( Math.max( game.camera.x, this.lock.start.x ), this.lock.end.x - screen.x );
 			game.camera.y = Math.min( Math.max( game.camera.y, this.lock.start.y ), this.lock.end.y - screen.y );
