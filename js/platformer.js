@@ -1,6 +1,25 @@
+Debuger.prototype = new GameObject();
+Debuger.prototype.constructor = GameObject;
+function Debuger(x, y){	
+	this.sprite = sprites.player;
+	this.width = 14;
+	this.height = 30;
+	this.speed = 10;
+	
+	window._player = this;
+	this.addModule( mod_camera );
+	
+	game.element.width = game.element.height = 1024;
+}
+Debuger.prototype.update = function(){
+	if ( input.state('left') > 0 ) {  this.position.x -= this.speed * this.delta }
+	if ( input.state('right') > 0 ) {  this.position.x += this.speed * this.delta }
+	if ( input.state('up') > 0 ) {  this.position.y -= this.speed * this.delta }
+	if ( input.state('down') > 0 ) {  this.position.y += this.speed * this.delta }
+}
+
 Player.prototype = new GameObject();
 Player.prototype.constructor = GameObject;
-
 function Player(x, y){	
 	this.constructor();
 	
@@ -8,7 +27,6 @@ function Player(x, y){
 	this.position.y = y;
 	this.width = 14;
 	this.height = 30;
-	this.damage = 5;
 	this.items = [];
 	
 	window._player = this;
@@ -50,6 +68,7 @@ function Player(x, y){
 	this.addModule( mod_camera );
 	this.addModule( mod_combat );
 	
+	this.damage = 5;
 	this.team = 1;
 	this.mass = 1;
 	//this.addModule( mod_tracker );
@@ -197,8 +216,9 @@ function Knight(x,y){
 		"guard" : 2 //0 none, 1 bottom, 2 top
 	}
 	
-	this.attack_warm = 30.0;
-	this.attack_time = 3.0;
+	this.attack_warm = 40.0;
+	this.attack_time = 23.0;
+	this.attack_rest = 20.0;
 	
 	this.life = 40;
 	this.damage = 15;
@@ -215,10 +235,11 @@ function Knight(x,y){
 		
 		//game.slow(0,1.0);
 		var dir = this.position.subtract(pos);
+		var dir2 = this.position.subtract(obj.position);
 		if( (this.states.guard == 1 && dir.y < 0) || (this.states.guard == 2 && dir.y > 0) ){
 			//blocked
-			obj.force.x += dir.x > 0 ? -3 : 3;
-			this.force.x += dir.x < 0 ? -1 : 1;
+			obj.force.x += dir2.x > 0 ? -3 : 3;
+			this.force.x += dir2.x < 0 ? -1 : 1;
 		} else {
 			this.trigger("hurt",obj,damage);
 		}
@@ -226,7 +247,7 @@ function Knight(x,y){
 	this.on("hurt", function(){
 		this.states.attack = -1.0;
 		this.states.cooldown = 40.0;
-		this.states.guard = ~~(1 + Math.random() * 2);
+		this.states.guard = Math.random() > 0.5 ? 1 : 2;
 	});
 	this.on("death", function(){
 		this.destroy();
@@ -238,44 +259,73 @@ Knight.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		this.active = this.active || Math.abs( dir.x ) < 120;
 		
-		if( this.active ) {
+		if( this.active && this.states.attack <= 0 ) {
 			var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
 			this.force.x += direction * this.delta * this.speed;
 			this.flip = dir.x > 0;
 			this.states.cooldown -= this.delta;
 		}
-	}
-	if( this.states.cooldown < 0 ){
-		this.states.attack_down = Math.random() > 0.5;
-		this.states.guard = ~~(1 + Math.random() * 2);
-		this.states.attack = this.attack_warm;
-		this.states.cooldown = 70.0;
-	}
 	
-	if ( this.states.attack > 0 && this.states.attack < this.attack_time ){
-		this.strike(new Line(
-			new Point( 12, (this.states.attack_down ? 4 : -4) ),
-			new Point( 20, (this.states.attack_down ? 4 : -4)-4 )
-		) );
+		if( this.states.cooldown < 0 ){
+			this.states.attack_down = Math.random() > 0.5;
+			this.states.guard = 0;
+			this.states.attack = this.attack_warm;
+			this.states.cooldown = 70.0;
+		}
+		
+		if( this.states.guard == 0 && this.states.attack <= 0 ){
+			this.states.guard = Math.random() > 0.5 ? 1 : 2;
+		}
+		
+		if ( this.states.attack > 0 && this.states.attack < this.attack_time && this.states.attack > this.attack_rest ){
+			this.strike(new Line(
+				new Point( 12, (this.states.attack_down ? 8 : -8) ),
+				new Point( 24, (this.states.attack_down ? 8 : -8)+4 )
+			) );
+		}
 	}
-	
 	/* counters */
 	this.states.attack -= this.delta;
 	
 	/* Animation */
 	if ( this.hurt > 0 ) {
 		this.frame = (this.frame + 1) % 2;
-		this.frame_row = 3;
+		this.frame_row = 2;
 	} else { 
 		if( this.states.attack > 0 ) {
-			this.frame = (this.states.guard == 1 ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
-			this.frame_row = (this.states.attack_down ? 2 : 1);
+			this.frame = (this.states.attack_down == 1 ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
+			this.frame_row = 1;
 		} else {
-			this.frame = (this.states.guard == 1 ? 1 : 0);
+			if( Math.abs( this.force.x ) > 0.1 ) {
+				this.frame = Math.min( (this.frame + this.delta * 0.1) % 4, 1 );
+			} else {
+				this.frame = 0;
+			}
 			this.frame_row = 0;
 		}
 	}
-	
+}
+Knight.prototype.render = function(g,c){
+	//Shield
+	if( this.states.guard > 0 ) {
+		this.sprite.render( g, 
+			new Point(this.position.x - c.x, this.position.y - c.y), 
+			(this.states.guard > 1 ? 2 : 3 ), 2, this.flip
+		);
+	}
+	//Body
+	this.sprite.render( g, 
+		new Point(this.position.x - c.x, this.position.y - c.y), 
+		this.frame, this.frame_row, this.flip
+	);
+	//Sword
+	var _x = 0
+	if( this.states.attack > 0 )
+		_x = (this.states.attack > this.attack_time ? 0 : (this.flip ? -32 : 32 ));
+	this.sprite.render( g, 
+		new Point(_x + this.position.x - c.x, this.position.y - c.y), 
+		this.frame, this.frame_row+3, this.flip
+	);
 }
 
 Skeleton.prototype = new GameObject();
@@ -304,7 +354,7 @@ function Skeleton(x,y){
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
-	this.life = 40;
+	this.life = 20;
 	this.mass = 0.8;
 	this.damage = 15;
 	this.inviciple_tile = this.hurt_time;
@@ -505,17 +555,54 @@ Marquis.prototype.update = function(){
 	}
 }
 
+Amon.prototype = new GameObject();
+Amon.prototype.constructor = GameObject;
+function Amon(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	
+	this.speed = 3.0;
+	this.sprite = sprites.amon;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		obj.trigger("hurt", this, this.damage );
+	});
+	this.on("collideHorizontal", function(dir){
+		this.force.x *= -1;
+	});
+	this.on("collideVertical", function(dir){
+		this.force.y *= -1;
+	});
+	
+	this.collisionReduction = 1.0;
+	this.friction = 0.0;
+	this.force.x = this.force.y = this.speed;
+	this.mass = 0;
+	this.gravity = 0.0;
+}
+Amon.prototype.update = function(){
+	this.frame = (this.frame + this.delta * 0.2) % 2;
+	this.flip = this.force.x < 0;
+}
+
 Lift.prototype = new GameObject();
 Lift.prototype.constructor = GameObject;
 function Lift(x,y){
 	this.constructor();
-	this.position.x = x;
+	this.start_x = x + 8;
+	this.position.x = this.start_x;
 	this.position.y = y;
 	this.width = 28;
 	this.height = 32;
 	
 	this.speed = 3.0;
-	this.start_x = x;
 	
 	this.addModule( mod_rigidbody );
 	this.clearEvents("collideObject");
@@ -651,6 +738,58 @@ Door.prototype.update = function(){
 	this.frame_row = Math.floor( r / 8 );
 }
 
+CollapseTile.prototype = new GameObject();
+CollapseTile.prototype.constructor = GameObject;
+function CollapseTile(x,y){
+	this.constructor();
+	this.position.x = x-8;
+	this.position.y = y-8;
+	this.sprite = game.tileSprite;
+	this.origin = new Point(0.0, 1);
+	this.width = this.height = 16;
+	this.frame = 6;
+	this.frame_row = 11;
+	
+	this.center = new Point(this.position.x, this.position.y);
+	this.lineTop = new Line(this.position.x+16,this.position.y,this.position.x,this.position.y);
+	
+	this.timer = 20
+	this.active = false;
+	console.log("Tile");
+	this.on("collideObject",function(obj){
+		if( obj instanceof Player ){
+			this.active = true;
+		}
+	});
+	this.on("wakeup",function(){
+		this.visible = true; 
+		this.active = false;
+		game.addCollision(this.lineTop);
+		this.timer = 20;
+	});
+}
+CollapseTile.prototype.update = function(){
+	if( this.active ) {
+		//wobble
+		this.position.x = this.center.x + ( -1 + Math.random() * 2 );
+		this.position.y = this.center.y + ( -1 + Math.random() * 2 );
+		this.timer -= this.delta;
+		
+		if(this.timer < 0) this.hide();
+	}
+}
+CollapseTile.prototype.hide = function(){
+	this.active = false;
+	this.visible = false;
+	this.position.x = this.center.x;
+	this.position.y = this.center.y;
+	game.removeCollision(this.lineTop);
+}
+CollapseTile.prototype.destroy = function(){
+	game.removeCollision(this.lineTop);
+	GameObject.prototype.destroy.apply(this);
+}
+
 
 /* Modules */
 var mod_rigidbody = {
@@ -662,12 +801,13 @@ var mod_rigidbody = {
 		this.gravity = 1.0;
 		this.grounded = false;
 		this.friction = 0.1;
+		this.collisionReduction = 0.0;
 		
 		this.on("collideHorizontal", function(dir){
-			this.force.x = 0;
+			this.force.x *= this.collisionReduction;
 		});
 		this.on("collideVertical", function(dir){
-			this.force.y = 0;
+			this.force.y *= this.collisionReduction;
 			if( dir > 0 ) this.grounded = true;
 		});
 		this.on("collideObject", function(obj){

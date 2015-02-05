@@ -31,6 +31,7 @@ function Sprite(url, options) {
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
+	this.width = -1;
 	
 	this.name = "";
 }
@@ -41,13 +42,18 @@ Sprite.prototype.imageLoaded = function() {
 	if ( this.frame_height < 1 ) {
 		this.frame_height = this.img.height;
 	}
+	this.width = Math.ceil( this.img.width / this.frame_width );
 }
 Sprite.prototype.render = function( g, pos, frame, row, flip ) {
-	frame = frame || 0;
-	row = row || 0;
-	
-	var x_off = ~~frame * this.frame_width;
-	var y_off = ~~row * this.frame_height;
+	if(frame == undefined ){
+		x_off = y_off = 0;
+	} else if ( row == undefined ) {
+		x_off = (frame % this.width) * this.frame_width;
+		y_off = Math.floor(frame / this.width) * this.frame_width;
+	} else {
+		x_off = ~~frame * this.frame_width;
+		y_off = ~~row * this.frame_height;
+	}
 	
 		
 	g.beginPath();
@@ -61,8 +67,8 @@ Sprite.prototype.render = function( g, pos, frame, row, flip ) {
 		x_off, y_off, 
 		this.frame_width, 
 		this.frame_height,
-		~~( pos.x - this.offset.x ),
-		~~( pos.y - this.offset.y ),
+		Math.floor( pos.x - this.offset.x ),
+		Math.floor( pos.y - this.offset.y ),
 		+this.frame_width,
 		this.frame_height
 		
@@ -84,6 +90,10 @@ function Game( elm ) {
 	this.bounds = new Line(new Point(-800,140),new Point(1900,1700));
 	this.nodes = new BSPTree( this.bounds, 4);
 	this.sprites = {};
+	
+	this.tileDimension = null;
+	this.tiles = null;
+	this.tileSprite = sprites.tiles1;
 	
 	//Per frame datastructures
 	this.renderTree;
@@ -133,9 +143,13 @@ Game.prototype.slow = function(s,d) {
 Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
-	this.delta = Math.min(newTime - this.time, 30.0) / 30.0;
+	this.delta = Math.min(newTime - this.time, 100.0) / 30.0;
+	
+	//FPS counter
+	if(this.delta_tot > 5000) this.delta_avr = this.delta_tot = 0;
 	this.delta_tot += newTime - this.time;
 	this.delta_avr ++;
+	
 	this.time = newTime;
 	
 	//Handle slowdown
@@ -218,17 +232,30 @@ Game.prototype.render = function( ) {
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	
 	this.g.beginPath();
-	this.g.clearRect(0,0,this.element.clientWidth, this.element.clientHeight );
+	this.g.clearRect(0,0,this.element.width, this.element.height );
 	this.g.closePath();
 	
-	/*
-	game.g.strokeRect(
-		view.start.x - this.camera.x, 
-		view.start.y - this.camera.y, 
-		view.end.x-view.start.x, 
-		view.end.y-view.start.y
-	);
-	*/
+	//Render tiles
+	if( this.tiles != null ){
+		var ts = 16;
+		for(var x=0; x <= (1+game.element.width)/ts; x++)
+		for(var y=0; y <= (1+game.element.height)/ts; y++)
+		for(var l=0; l < this.tiles.length; l++) {
+			var _x = x + Math.floor(this.camera.x / ts) + this.tileDimension.start.x;
+			var tile_index = Math.floor(
+				_x + (y + Math.trunc(this.camera.y / ts) + this.tileDimension.start.y) * this.tileDimension.width()
+			);
+			
+			var tile_render_index = this.tiles[l][tile_index] - 1;
+			if( tile_render_index >= 0 ) {
+				var offset = new Point( 
+					(x*ts)-(this.camera.x%ts)+(this.camera.x < 0 ? -1*ts : 0), 
+					(y*ts)-(this.camera.y%ts)
+				);
+				this.tileSprite.render(this.g,offset,tile_render_index);
+			}
+		}
+	}
 	
 	for ( var i in renderList ) {
 		if ( renderList[i] instanceof GameObject ) {
@@ -238,7 +265,7 @@ Game.prototype.render = function( ) {
 	}
 	
 	//Debug, show collisions
-	if ( this.renderCollisions ) {
+	if ( window.debug ) {
 		for ( var i = 0; i < this.collisions.length; i++ ){
 			this.collisions[i].render( this.g, camera_center );
 		}
@@ -449,7 +476,21 @@ Game.prototype.overlaps = function(l, end){
 
 /* PATH FINDING FUNCTIONS */
 
-//Path builder
+Game.prototype.addCollision = function(l){
+	if( this.lines instanceof BSPTree )
+		this.lines.push(l);
+	if( this.collisions.indexOf(l) < 0 ) 
+		this.collisions.push(l);
+}
+
+Game.prototype.removeCollision = function(l){
+	if( this.lines instanceof BSPTree )
+		this.lines.remove(l);
+	var index = this.collisions.indexOf(l);
+	if( index >= 0 ) 
+		this.collisions.remove(index);
+}
+
 Game.prototype.buildCollisions = function(){
 	var new_bounds = new Line(0,0,0,0);
 	for(var i=0; i<game.collisions.length;i++){
@@ -513,6 +554,7 @@ Game.prototype.path_update = function(e){
 function GameObject() {
 	this.id = -1;
 	this.position = new Point();
+	this.origin = new Point(0.5, 0.5);
 	this.sprite;
 	this.width = 8;
 	this.height = 8;
@@ -556,26 +598,33 @@ GameObject.prototype.transpose = function(x, y) {
 	}
 }
 GameObject.prototype.bounds = function() {
+	var left_width = Math.floor( this.width * this.origin.x );
+	var right_width = Math.floor( this.width * (1.0-this.origin.x) );
+	var top_height = Math.floor( this.height * this.origin.y );
+	var bot_height = Math.floor( this.height * (1.0-this.origin.y) );
+	
 	return new Line(
 		new Point( 
-			this.position.x - this.width * .5,
-			this.position.y - this.height * .5
+			this.position.x - left_width,
+			this.position.y - top_height
 		),
 		new Point( 
-			this.position.x + this.width * .5,
-			this.position.y + this.height * .5
+			this.position.x + right_width,
+			this.position.y + bot_height
 		)
 	);
 }
 GameObject.prototype.hitbox = function() {
-	var half_width = Math.floor( this.width * 0.5 );
-	var half_height = Math.floor( this.height * 0.5 );
+	var left_width = Math.floor( this.width * this.origin.x );
+	var right_width = Math.floor( this.width * (1.0-this.origin.x) );
+	var top_height = Math.floor( this.height * this.origin.y );
+	var bot_height = Math.floor( this.height * (1.0-this.origin.y) );
 	
 	this._hitbox = new Polygon();
-	this._hitbox.addPoint( new Point(this.position.x-half_width , this.position.y-half_height) );
-	this._hitbox.addPoint( new Point(this.position.x+half_width , this.position.y-half_height) );
-	this._hitbox.addPoint( new Point(this.position.x+half_width , this.position.y+half_height) );
-	this._hitbox.addPoint( new Point(this.position.x-half_width , this.position.y+half_height) );
+	this._hitbox.addPoint( new Point(this.position.x-left_width , this.position.y-top_height) );
+	this._hitbox.addPoint( new Point(this.position.x+right_width , this.position.y-top_height) );
+	this._hitbox.addPoint( new Point(this.position.x+right_width , this.position.y+bot_height) );
+	this._hitbox.addPoint( new Point(this.position.x-left_width , this.position.y+bot_height) );
 	
 	return this._hitbox;
 }
@@ -592,14 +641,10 @@ GameObject.prototype.intersects = function(a) {
 	if (a instanceof Line ) {
 		return this.hitbox().intersects(a);
 	} else if ( a instanceof GameObject ) {
-		var me = new Line( 
-			new Point( this.position.x - (this.width*.5), this.position.y - (this.height*.5) ),
-			new Point( this.position.x + (this.width*.5), this.position.y + (this.height*.5) )
-		);
-		var you = new Line( 
-			new Point( a.position.x - (a.width*.5), a.position.y - (a.height*.5) ),
-			new Point( a.position.x + (a.width*.5), a.position.y + (a.height*.5) )
-		);
+		
+		var me = this.bounds();
+		var you = a.bounds();
+		
 		return me.overlaps(you);
 	} else if ( a instanceof Polygon ){
 		return this.hitbox().intersects(a);
@@ -739,6 +784,17 @@ BSPTree.prototype.get = function(value){
 	}
 	return output;
 }
+BSPTree.prototype.remove = function(value){
+	var index = this.values.indexOf(value);
+	if( index >= 0 ) {
+		this.values.remove(index);
+		return value;
+	} else { 
+		if( this.lower instanceof BSPTree ) if( this.lower.remove(value) ) return value;
+		if( this.higher instanceof BSPTree ) if( this.higher.remove(value) ) return value;
+	}
+	return null;
+}
 BSPTree.prototype.nearest = function(position, conditions){
 	conditions = conditions || function(){ return true; };
 	
@@ -808,4 +864,7 @@ Math.angleTurnDirection = function(_a,_b){
 	var test = Math.abs(b) < Math.abs(a) ? b: a;
 	return test > 0 ? -1 : 1;
 	
+}
+Math.trunc = function(x){
+	return x < 0 ? Math.ceil(x) : Math.floor(x);
 }

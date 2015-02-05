@@ -134,7 +134,7 @@ Line.prototype.render = function(g, camera){
 	g.stroke();	
 	g.closePath();
 	
-	if( Line.renderNormals ) {
+	if( Line.renderNormals || 1 ) {
 		g.strokeStyle = "#FF7700";
 		g.beginPath();
 		var avr = this.center();
@@ -241,6 +241,9 @@ Line.prototype.polyInstersects = function( pl ){
 	}
 	return false;
 }
+Line.prototype.width = function(){ return Math.abs( this.start.x - this.end.x); }
+Line.prototype.height = function(){ return Math.abs( this.start.y - this.end.y); }
+Line.prototype.area = function(){ return this.width() * this.height(); }
 
 function Point(x,y) {
 	this.x = x || 0;
