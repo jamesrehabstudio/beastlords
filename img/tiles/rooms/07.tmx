@@ -54,6 +54,6 @@
   </object>
  </objectgroup>
  <objectgroup name="objects" width="16" height="15">
-  <object name="Knight" gid="17" x="128" y="192"/>
+  <object name="Miniboss" gid="17" x="128" y="192"/>
  </objectgroup>
 </map>
