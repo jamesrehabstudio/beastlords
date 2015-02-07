@@ -30,7 +30,7 @@
 	</div>
 	
 	
-	<audio autoplay>
+	<audio>
 		<source src="http://vignette1.wikia.nocookie.net/zelda/images/7/7a/Palace_%28The_Adventure_of_Link%29.ogg/revision/latest?cb=20091025041918" type="audio/ogg">
 		Your browser does not support the audio element.
 	</audio>
@@ -57,6 +57,7 @@
 		window.game = new Game( document.getElementById( 'game' ) );
 		
 		dataManager.randomLevel(game);
+		game.addObject( new PauseMenu() );
 		
 		game.buildCollisions();
 		game.buildPaths();

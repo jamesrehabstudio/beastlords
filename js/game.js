@@ -238,6 +238,10 @@ Game.prototype.render = function( ) {
 	//Render tiles
 	if( this.tiles != null ){
 		var ts = 16;
+		var camera_offset = new Point(
+			(this.camera.x < 0 ? (this.camera.x%1 == 0 ? 0 : (this.camera.x%ts)+ts) : (this.camera.x%ts) ),
+			(this.camera.y%ts)
+		);
 		for(var x=0; x <= (1+game.element.width)/ts; x++)
 		for(var y=0; y <= (1+game.element.height)/ts; y++)
 		for(var l=0; l < this.tiles.length; l++) {
@@ -249,8 +253,8 @@ Game.prototype.render = function( ) {
 			var tile_render_index = this.tiles[l][tile_index] - 1;
 			if( tile_render_index >= 0 ) {
 				var offset = new Point( 
-					(x*ts)-(this.camera.x%ts)+(this.camera.x < 0 ? -1*ts : 0), 
-					(y*ts)-(this.camera.y%ts)
+					(x*ts)-camera_offset.x,
+					(y*ts)-camera_offset.y
 				);
 				this.tileSprite.render(this.g,offset,tile_render_index);
 			}
@@ -271,7 +275,7 @@ Game.prototype.render = function( ) {
 		}
 	}
 }
-
+//debug = 1;
 Game.prototype.overlap = function( obj ) {
 	//Returns a list of objects the provided object is currently on top of
 	var out = new Array();
@@ -290,9 +294,10 @@ Game.prototype.overlap = function( obj ) {
 	return out;
 }
 Game.prototype.i_move = function(obj,x, y ){
+	var bounds = obj.bounds();
 	var area = new Line( 
-		new Point(obj.position.x - x - 20,obj.position.y - y - 20),
-		new Point(obj.position.x + x + 20,obj.position.y + y + 20) 
+		new Point(bounds.start.x - x - obj.width, bounds.start.y - y - obj.height),
+		new Point(bounds.end.x + x + obj.width, bounds.end.y + y + obj.height) 
 	);
 	
 	var collisions = this.lines.get( area );
@@ -662,6 +667,17 @@ GameObject.prototype.idle = function(){
 	}
 }
 GameObject.prototype.render = function( g, camera ){
+	if( window.debug ) {
+		var bounds = this.bounds();
+		g.fillStyle = "#A00";
+		g.fillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
+		
+		if( this.ttest instanceof Line ){
+			g.fillStyle = "#AF0";
+			g.fillRect(this.ttest.start.x - camera.x, this.ttest.start.y - camera.y, this.ttest.width(), this.ttest.height() );
+		}
+	}
+	
 	if ( this.sprite instanceof Sprite ) {
 		this.sprite.render( g, 
 			new Point(this.position.x - camera.x, this.position.y - camera.y), 

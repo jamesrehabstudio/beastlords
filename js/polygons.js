@@ -126,6 +126,20 @@ Line.prototype.center = function(){
 	);
 }
 
+Line.prototype.correct = function(){
+	//changes the end and start around so the start is always in the top left corner
+	if( this.start.x > this.end.x ){
+		var x = this.start.x;
+		this.start.x = this.end.x;
+		this.end.x = x;
+	}
+	if( this.start.y > this.end.y ){
+		var y = this.start.y;
+		this.start.y = this.end.y;
+		this.end.y = y;
+	}
+}
+
 Line.prototype.render = function(g, camera){
 	g.strokeStyle = "#FF0000";
 	g.beginPath();
