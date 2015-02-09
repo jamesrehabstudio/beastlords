@@ -20,13 +20,15 @@
 		<canvas id="game" width="512" height="480"></canvas>
 		<div id="clearer"></div>
 		<h2 id = "how">How to play</h2>
-		<p>Reach the right wall.</p>
+		<p>Destroy this temple's Caput Anguli.</p>
 		
 		<h2>Controls</h2>
 		<p>Move: WADS</p>
 		<p>Attack: J</p>
 		<p>Jump: K</p>
 		<p>Restart: f5</p>
+		<p>Start: Enter</p>
+		<p>Select (Navigate menu): Shift</p>
 	</div>	
 	
 	<script>
@@ -49,10 +51,10 @@
 		
 		window.game = new Game( document.getElementById( 'game' ) );
 		
-		dataManager.randomLevel(game);
+		dataManager.randomLevel(game,0);
 		
 		game.buildCollisions();
-		game.buildPaths();
+		//game.buildPaths();
 		loop();
 	}
 	

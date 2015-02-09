@@ -24,7 +24,7 @@ function AudioPlayer(list){
 	this.list = list;
 	
 	this.sfxVolume = 1.0;
-	this.musVolume = 0.5;
+	this.musVolume = 0.2;
 	
 	var self = this;
 	for(var l in this.list){
@@ -65,9 +65,9 @@ AudioPlayer.prototype.play = function(l){
 				this.list[l]["source"].loop = true;
 				this.list[l]["source"].loopStart = this.list[l]["loop"];
 				this.list[l]["source"].loopEnd = b.length / b.sampleRate;
-				
-				volume.gain.value = this.musVolume;
 			}
+			
+			if( "music" in this.list[l]) volume.gain.value = this.musVolume;
 			
 			volume.connect(this.a.destination);
 			this.list[l]["source"].start();
@@ -86,6 +86,13 @@ AudioPlayer.prototype.playLock = function(l,t){
 	}
 	this.list[l]["lock_until"] = new Date().getTime() + t * 1000;
 	this.play(l);
+}
+AudioPlayer.prototype.stop = function(l){
+	if(l in this.list ){
+		if( "source" in this.list[l] ) {
+			this.list[l]["source"].stop();
+		}
+	}
 }
 
 
@@ -161,18 +168,19 @@ function Game( elm ) {
 	this.camera = new Point();
 	this.collisions = new Array();
 	this.bounds = new Line(new Point(-800,140),new Point(1900,1700));
-	this.nodes = new BSPTree( this.bounds, 4);
+	//this.nodes = new BSPTree( this.bounds, 4);
 	this.sprites = {};
 	
 	this.tileDimension = null;
 	this.tiles = null;
-	this.tileSprite = sprites.tiles1;
+	this.tileSprite = sprites.tiles2;
 	
 	//Per frame datastructures
 	this.renderTree;
 	this.interactive = new BSPTree(this.bounds, 4);
 	this.time = new Date();
 	this.delta = 1;
+	this.deltaUnscaled = 1;
 	this.deltaScale = 1.0;
 	this.delta_tot = 0;
 	this.delta_avr = 0;
@@ -212,6 +220,13 @@ Game.prototype.getObject = function( type ) {
 		this.objects[i];
 	}
 }
+Game.prototype.clearAll = function(){
+	this.objects = [];
+	this.collisions = [];
+	this.bounds = new Line(0,0,0,0);
+	this.tileDimension = null;
+	this.tiles = null;
+}
 
 
 window.__time = 0;
@@ -227,7 +242,7 @@ Game.prototype.update = function( ) {
 	//Update logic
 	var newTime = new Date();
 	this.delta = Math.min(newTime - this.time, 100.0) / 30.0;
-	
+	this.deltaUnscaled = this.delta;
 	//FPS counter
 	if(this.delta_tot > 5000) this.delta_avr = this.delta_tot = 0;
 	this.delta_tot += newTime - this.time;
@@ -600,7 +615,7 @@ Game.prototype.buildCollisions = function(){
 		this.lines.push(this.collisions[i]);
 	}
 }
-
+/*
 Game.prototype.buildPaths = function(){
 	var temp_nodes = new Array();
 	for(var i=0; i<game.objects.length;i++){
@@ -636,6 +651,7 @@ Game.prototype.path_update = function(e){
 		_player.position.y = e.object.y;
 	}
 }
+*/
 
 /* GAME PRIMITIVES */
 
