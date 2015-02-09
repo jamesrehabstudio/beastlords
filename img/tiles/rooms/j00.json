@@ -93,6 +93,7 @@
          "opacity":1,
          "properties":
             {
+             "map_tile":"5",
              "type":"[\"n\",\"e\"]"
             },
          "type":"objectgroup",

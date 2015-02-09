@@ -153,6 +153,7 @@
          "opacity":1,
          "properties":
             {
+             "map_tile":"3",
              "type":"[\"s\",\"e\",\"w\"]"
             },
          "type":"objectgroup",

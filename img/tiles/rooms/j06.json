@@ -115,6 +115,7 @@
          "opacity":1,
          "properties":
             {
+             "map_tile":"10",
              "type":"[\"n\",\"s\",\"e\"]"
             },
          "type":"objectgroup",

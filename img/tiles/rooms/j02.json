@@ -93,6 +93,7 @@
          "opacity":1,
          "properties":
             {
+             "map_tile":"6",
              "type":"[\"s\",\"w\"]"
             },
          "type":"objectgroup",

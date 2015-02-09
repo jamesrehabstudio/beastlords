@@ -141,25 +141,41 @@ Line.prototype.correct = function(){
 }
 
 Line.prototype.render = function(g, camera){
+	var s = this.start.subtract(camera).scale(pixel_scale);
+	var e = this.end.subtract(camera).scale(pixel_scale);
 	g.strokeStyle = "#FF0000";
 	g.beginPath();
-	g.moveTo( this.start.x - camera.x, this.start.y - camera.y );
-	g.lineTo( this.end.x - camera.x, this.end.y - camera.y );
+	g.moveTo( s.x, s.y );
+	g.lineTo( e.x, e.y );
 	g.stroke();	
 	g.closePath();
 	
 	if( Line.renderNormals || 1 ) {
 		g.strokeStyle = "#FF7700";
 		g.beginPath();
-		var avr = this.center();
-		g.moveTo( avr.x - camera.x, avr.y -camera.y );
-		var n = this.normal().normalize(10);
-		g.lineTo( avr.x + n.x - camera.x, avr.y + n.y - camera.y );
+		var avr = this.center().subtract(camera).scale(pixel_scale);
+		g.moveTo(avr.x, avr.y);
+		var n = avr.add( this.normal().normalize(10) );
+		g.lineTo( n.x, n.y );
 		g.closePath();
 		g.stroke();	
 	}
 }
 
+Line.prototype.scale = function(s,y){
+	if( s instanceof Point ){
+		y = s.y;
+		s = s.x;
+	}
+	if( typeof y == "number" ) {
+		return new Line( 
+			this.start.x * s, this.start.y * y,
+			this.end.x * s, this.end.y * y
+		);
+	} else {
+		return new Line( this.start.scale(s), this.end.scale(s) );
+	}
+}
 Line.prototype.renderRect = function(g, camera){
 	g.strokeStyle = "#FF0000";
 	g.beginPath();

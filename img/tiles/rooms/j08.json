@@ -157,6 +157,7 @@
          "opacity":1,
          "properties":
             {
+             "map_tile":"9",
              "type":"[\"n\",\"s\",\"e\",\"w\"]"
             },
          "type":"objectgroup",

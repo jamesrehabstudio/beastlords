@@ -13,10 +13,6 @@ div.wrap {
 }
 
 #game { 
-
-	width:512px;
-	height:480px;
-
 	background:#503000;
 	position:relative;
 	overflow:hidden;

@@ -16,8 +16,8 @@
 <body>
 	
 	<div class="wrap">
-		<canvas id="game" width="256" height="240"></canvas>
-		<!--<canvas id="game" width="2048" height="1920"></canvas>-->
+		<!--<canvas id="game" width="256" height="240"></canvas>-->
+		<canvas id="game" width="512" height="480"></canvas>
 		<div id="clearer"></div>
 		<h2 id = "how">How to play</h2>
 		<p>Reach the right wall.</p>
@@ -27,14 +27,7 @@
 		<p>Attack: J</p>
 		<p>Jump: K</p>
 		<p>Restart: f5</p>
-	</div>
-	
-	
-	<audio>
-		<source src="http://vignette1.wikia.nocookie.net/zelda/images/7/7a/Palace_%28The_Adventure_of_Link%29.ogg/revision/latest?cb=20091025041918" type="audio/ogg">
-		Your browser does not support the audio element.
-	</audio>
-	
+	</div>	
 	
 	<script>
 	window.onload = function() {
@@ -57,7 +50,6 @@
 		window.game = new Game( document.getElementById( 'game' ) );
 		
 		dataManager.randomLevel(game);
-		game.addObject( new PauseMenu() );
 		
 		game.buildCollisions();
 		game.buildPaths();

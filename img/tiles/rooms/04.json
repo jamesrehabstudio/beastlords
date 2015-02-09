@@ -121,11 +121,12 @@
          "opacity":1,
          "properties":
             {
+             "map_tile":"12",
              "rarity":"0",
              "tags":"[\"item_e\"]"
             },
          "type":"objectgroup",
-         "visible":false,
+         "visible":true,
          "width":16,
          "x":0,
          "y":0

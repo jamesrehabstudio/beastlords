@@ -5,6 +5,7 @@
 // Input
 
 var game, data, input;
+var pixel_scale = 2.0;
 
 function loop() {
 	game.update();
@@ -15,6 +16,78 @@ function loop() {
 		setTimeout( loop, 1000 );
 	}
 }
+
+/* Audio player */
+function AudioPlayer(list){
+	window.AudioContext = window.AudioContext || window.webkitAudioContext;
+	this.a = new AudioContext();
+	this.list = list;
+	
+	this.sfxVolume = 1.0;
+	this.musVolume = 0.5;
+	
+	var self = this;
+	for(var l in this.list){
+		var request = new XMLHttpRequest();
+		request.open("GET", this.list[l].url, true);
+		request.responseType = "arraybuffer";
+		request.uniqueid = l;
+		request.onload = function(){ 
+			var key = event.target.uniqueid;
+			self.a.decodeAudioData(event.target.response, function(b){ 
+				self.loaded(b,key); 
+			}
+		); }
+		request.send();
+	}
+}
+AudioPlayer.prototype.loaded = function(b,l){	
+	if( l in this.list ) {
+		this.list[l]["buffer"] = b;
+		
+		if( "playOnLoad" in this.list[l] ){
+			this.play(l);
+		}
+	}
+}
+AudioPlayer.prototype.play = function(l){
+	if(l in this.list ){
+		if( "buffer" in this.list[l] ) {
+			var volume = this.a.createGain();
+			var b = this.list[l]["buffer"];
+			this.list[l]["source"] = this.a.createBufferSource();
+			this.list[l]["source"].buffer = b;
+			this.list[l]["source"].connect(volume);
+			
+			volume.gain.value = this.sfxVolume;
+			
+			if( "loop" in this.list[l] ) {
+				this.list[l]["source"].loop = true;
+				this.list[l]["source"].loopStart = this.list[l]["loop"];
+				this.list[l]["source"].loopEnd = b.length / b.sampleRate;
+				
+				volume.gain.value = this.musVolume;
+			}
+			
+			volume.connect(this.a.destination);
+			this.list[l]["source"].start();
+		} else {
+			this.list[l]["playOnLoad"] = true;
+		}
+	} else {
+		console.error("Trying to play a sound that does not exist");
+	}
+}
+AudioPlayer.prototype.playLock = function(l,t){
+	if( "lock_until" in this.list[l] ) {
+		if( new Date().getTime() < this.list[l].lock_until ) {
+			return;
+		}
+	}
+	this.list[l]["lock_until"] = new Date().getTime() + t * 1000;
+	this.play(l);
+}
+
 
 /* Object for wrapping sprites */
 
@@ -67,10 +140,10 @@ Sprite.prototype.render = function( g, pos, frame, row, flip ) {
 		x_off, y_off, 
 		this.frame_width, 
 		this.frame_height,
-		Math.floor( pos.x - this.offset.x ),
-		Math.floor( pos.y - this.offset.y ),
-		+this.frame_width,
-		this.frame_height
+		Math.floor( pixel_scale * ( pos.x - this.offset.x )),
+		Math.floor( pixel_scale * ( pos.y - this.offset.y )),
+		pixel_scale * this.frame_width,
+		pixel_scale * this.frame_height
 		
 	);
 	g.restore();
@@ -110,6 +183,9 @@ function Game( elm ) {
 	
 	this.element = elm;
 	this.g = elm.getContext('2d');
+	this.g.imageSmoothingEnabled = false
+	this.width = Math.floor( this.element.width / pixel_scale );
+	this.height = Math.floor( this.element.height / pixel_scale );
 	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
@@ -128,6 +204,13 @@ Game.prototype.addObject = function( obj ) {
 
 Game.prototype.removeObject = function( obj ) {
 	this._objectsDeleteList.push(obj)
+}
+Game.prototype.getObject = function( type ) {
+	if( type instanceof Function ){
+		for(var i=0; i < this.objects.length; i++ ) if( this.objects[i] instanceof type ) return this.objects[i];
+	} else {
+		this.objects[i];
+	}
 }
 
 
@@ -242,8 +325,8 @@ Game.prototype.render = function( ) {
 			(this.camera.x < 0 ? (this.camera.x%1 == 0 ? 0 : (this.camera.x%ts)+ts) : (this.camera.x%ts) ),
 			(this.camera.y%ts)
 		);
-		for(var x=0; x <= (1+game.element.width)/ts; x++)
-		for(var y=0; y <= (1+game.element.height)/ts; y++)
+		for(var x=0; x <= (1+this.width)/ts; x++)
+		for(var y=0; y <= (1+this.height)/ts; y++)
 		for(var l=0; l < this.tiles.length; l++) {
 			var _x = x + Math.floor(this.camera.x / ts) + this.tileDimension.start.x;
 			var tile_index = Math.floor(
@@ -670,11 +753,11 @@ GameObject.prototype.render = function( g, camera ){
 	if( window.debug ) {
 		var bounds = this.bounds();
 		g.fillStyle = "#A00";
-		g.fillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
+		g.scaleFillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
 		
 		if( this.ttest instanceof Line ){
 			g.fillStyle = "#AF0";
-			g.fillRect(this.ttest.start.x - camera.x, this.ttest.start.y - camera.y, this.ttest.width(), this.ttest.height() );
+			g.scaleFillRect(this.ttest.start.x - camera.x, this.ttest.start.y - camera.y, this.ttest.width(), this.ttest.height() );
 		}
 	}
 	
@@ -883,4 +966,11 @@ Math.angleTurnDirection = function(_a,_b){
 }
 Math.trunc = function(x){
 	return x < 0 ? Math.ceil(x) : Math.floor(x);
+}
+CanvasRenderingContext2D.prototype.scaleFillRect = function(x,y,w,h){
+	this.fillRect(x*pixel_scale,y*pixel_scale,w*pixel_scale,h*pixel_scale);
+}
+HTMLAudioElement.prototype.playF = function(){
+	this.currentTime = 0;
+	this.play();
 }

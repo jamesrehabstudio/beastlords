@@ -43,6 +43,7 @@
  </layer>
  <objectgroup name="lines" width="16" height="15">
   <properties>
+   <property name="map_tile" value="6"/>
    <property name="type" value="[&quot;s&quot;,&quot;w&quot;]"/>
   </properties>
   <object x="0" y="32">
