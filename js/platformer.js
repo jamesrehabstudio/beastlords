@@ -1004,27 +1004,23 @@ function Lift(x,y){
 	this.position.y = y;
 	this.width = 28;
 	this.height = 32;
-	
 	this.speed = 3.0;
+	
+	this.onboard = false;
 	
 	this.addModule( mod_rigidbody );
 	this.clearEvents("collideObject");
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
-			if( input.state("up") > 0 ) {
-				this.force.y = -this.speed;
-				audio.playLock("lift",0.2);
-			} else if( input.state("down") > 0 ) {
-				this.force.y = this.speed;
-				audio.playLock("lift",0.2);
-			}
-				
+			this.onboard = true;
 			obj.position.y = this.position.y;
 			obj.trigger( "collideVertical", 1);
 			this.position.x = this.start_x;
 		} else if ( obj instanceof Lift && this.awake ) {
 			obj.awake = false;
+			obj.visible = false;
+			obj.interactive = false;
 		}
 	});
 	
@@ -1039,8 +1035,15 @@ Lift.prototype.update = function(){
 	
 	var dir = this.position.subtract( _player.position );
 	var goto_y = 192 + (Math.floor( _player.position.y / 240 ) * 240);
-	//Move to find player
-	if( Math.abs( dir.x ) > 64 ){
+	if( this.onboard ) {
+		if( input.state("up") > 0 ) {
+			this.force.y = -this.speed;
+			audio.playLock("lift",0.2);
+		} else if( input.state("down") > 0 ) {
+			this.force.y = this.speed;
+			audio.playLock("lift",0.2);
+		}
+	} else {
 		if( Math.abs( this.position.y - goto_y ) > 16 ) {
 			if( this.position.y > goto_y ) 
 				this.force.y = -this.speed;
@@ -1048,6 +1051,8 @@ Lift.prototype.update = function(){
 				this.force.y = this.speed;
 		}
 	}
+	
+	this.onboard = false;
 }
 Lift.prototype.render = function(g,c){
 	g.fillStyle = "#FA0";
@@ -1250,7 +1255,7 @@ function CollapseTile(x,y){
 	this.active = false;
 	
 	this.on("collideObject",function(obj){
-		if( !this.active && obj instanceof Player ){
+		if( this.visible && !this.active && obj instanceof Player ){
 			this.active = true;
 			audio.playLock("cracking",0.3);
 		}

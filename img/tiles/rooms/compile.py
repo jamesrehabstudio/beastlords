@@ -28,7 +28,7 @@ def compile(data):
 		elif layer["name"] == "objects":
 			out["objects"] = []
 			for object in layer["objects"]:
-				out["objects"].append( [ int(object["x"])+8, int(object["y"])-8, str(object["name"]) ] )
+				out["objects"].append( [ int(object["x"])+8, int(object["y"])-8, str(object["name"]), object["properties"] ] )
 		elif layer["name"] == "back":
 			out["back"] = layer["data"]
 		elif layer["name"] == "front":

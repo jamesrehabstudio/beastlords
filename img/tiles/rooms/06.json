@@ -84,7 +84,21 @@
         {
          "height":15,
          "name":"objects",
-         "objects":[],
+         "objects":[
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"Skeleton",
+                 "properties":
+                    {
+                     "rarity":"0.2"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":128,
+                 "y":192
+                }],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,

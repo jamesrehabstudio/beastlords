@@ -18,17 +18,37 @@
 	<div class="wrap">
 		<!--<canvas id="game" width="256" height="240"></canvas>-->
 		<canvas id="game" width="512" height="480"></canvas>
-		<div id="clearer"></div>
-		<h2 id = "how">How to play</h2>
-		<p>Destroy this temple's Caput Anguli.</p>
 		
-		<h2>Controls</h2>
-		<p>Move: WADS</p>
-		<p>Attack: J</p>
-		<p>Jump: K</p>
-		<p>Restart: f5</p>
-		<p>Start: Enter</p>
-		<p>Select (Navigate menu): Shift</p>
+		<div>
+			<div class="field volume">
+				<label>Sound effects volume</label>
+				<select name="sfxvolume">
+					<option value=0.0>Off</option>
+					<option value=0.3>Low</option>
+					<option value=0.8 selected>High</option>
+				</select>
+			</div>
+			<div class="field volume">
+				<label>Music volume</label>
+				<select name="musvolume">
+					<option value=0.0>Off</option>
+					<option value=0.3 selected>Low</option>
+					<option value=0.8>High</option>
+				</select>
+			</div>
+			<div class="field volume">
+				<label>Reset</label>
+				<button name="reset">Reset</button>
+			</div>
+		</div>
+		
+		<h2 id = "how">How to play</h2>
+		
+		<div>
+			<img src="/img/controls.png" alt="controls" />
+		</div>
+		
+		<p>Destroy this temple's Caput Anguli.</p>
 	</div>	
 	
 	<script>
@@ -36,34 +56,23 @@
 		window.dataManager = new DataManager();
 		window.input = new Input();
 		
-		window.requestAnimationFrame = 
-			window.requestAnimationFrame       || 
-			window.webkitRequestAnimationFrame || 
-			window.mozRequestAnimationFrame    || 
-			window.oRequestAnimationFrame      || 
-			window.msRequestAnimationFrame     || 
-			null;
-		
-		load_sprites();
-		
-		//res = res.replace(/\\/g,"");
-		//res = JSON.parse(res);
-		
 		window.game = new Game( document.getElementById( 'game' ) );
-		
 		dataManager.randomLevel(game,0);
 		
-		game.buildCollisions();
 		//game.buildPaths();
 		loop();
-	}
-	
-	function kill(){
-		for( var i = 0; i< game.objects.length;i++ ){
-			if ( game.objects[i].team == 2){
-				game.removeObject(game.objects[i]);
-			}
-		}
+		
+		$("select[name=sfxvolume]").on("change",function(e){
+			audio.sfxVolume.gain.value = this.value - 0;
+		});
+		$("select[name=musvolume]").on("change",function(e){
+			audio.musVolume.gain.value = this.value - 0;
+		});
+		$("button[name=reset]").on("click",function(e){
+			window._player = undefined;
+			audio.stop("music");
+			dataManager.randomLevel(game,0);
+		});
 	}
 	</script>
 </body>

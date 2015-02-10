@@ -664,6 +664,21 @@
                  "width":0,
                  "x":592,
                  "y":160
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"Skeleton",
+                 "properties":
+                    {
+                     "max_temple":"1",
+                     "rarity":"0.6"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":384,
+                 "y":112
                 }],
          "opacity":1,
          "type":"objectgroup",

@@ -60,5 +60,10 @@
  </objectgroup>
  <objectgroup name="objects" width="16" height="15">
   <object name="DeathTrigger" gid="17" x="128" y="256"/>
+  <object name="Amon" gid="232" x="112" y="208">
+   <properties>
+    <property name="min_temple" value="2"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

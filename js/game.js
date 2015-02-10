@@ -23,8 +23,11 @@ function AudioPlayer(list){
 	this.a = new AudioContext();
 	this.list = list;
 	
-	this.sfxVolume = 0.8;
-	this.musVolume = 0.0;
+	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
+	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.3;
+	
+	this.sfxVolume.connect(this.a.destination);
+	this.musVolume.connect(this.a.destination);
 	
 	var self = this;
 	for(var l in this.list){
@@ -57,9 +60,6 @@ AudioPlayer.prototype.play = function(l){
 			var b = this.list[l]["buffer"];
 			this.list[l]["source"] = this.a.createBufferSource();
 			this.list[l]["source"].buffer = b;
-			this.list[l]["source"].connect(volume);
-			
-			volume.gain.value = this.sfxVolume;
 			
 			if( "loop" in this.list[l] ) {
 				this.list[l]["source"].loop = true;
@@ -67,9 +67,12 @@ AudioPlayer.prototype.play = function(l){
 				this.list[l]["source"].loopEnd = b.length / b.sampleRate;
 			}
 			
-			if( "music" in this.list[l]) volume.gain.value = this.musVolume;
+			if( "music" in this.list[l]) {
+				this.list[l]["source"].connect(this.musVolume);
+			} else {
+				this.list[l]["source"].connect(this.sfxVolume);
+			}
 			
-			volume.connect(this.a.destination);
 			this.list[l]["source"].start();
 		} else {
 			this.list[l]["playOnLoad"] = true;
@@ -160,6 +163,15 @@ Sprite.prototype.render = function( g, pos, frame, row, flip ) {
 /* MAIN GAME OBJECT */
 
 function Game( elm ) {
+	//establish global animation request
+	window.requestAnimationFrame = 
+		window.requestAnimationFrame       || 
+		window.webkitRequestAnimationFrame || 
+		window.mozRequestAnimationFrame    || 
+		window.oRequestAnimationFrame      || 
+		window.msRequestAnimationFrame     || 
+		null;
+	
 	//this.queues = new QueueManager();
 	//Options
 	this.renderCollisions = true;
@@ -290,13 +302,13 @@ Game.prototype.update = function( ) {
 				} else {
 					obj.update();
 				}
-				
-				if ( obj.visible ) {
-					this.renderTree.push( obj );
-				}
-				if ( obj.interactive ) {
-					temp_interactive.push ( obj );
-				}
+			}
+			
+			if ( obj.visible ) {
+				this.renderTree.push( obj );
+			}
+			if ( obj.interactive ) {
+				temp_interactive.push ( obj );
 			}
 		}		
 	}
@@ -337,7 +349,7 @@ Game.prototype.render = function( ) {
 	if( this.tiles != null ){
 		var ts = 16;
 		var camera_offset = new Point(
-			(this.camera.x < 0 ? (this.camera.x%1 == 0 ? 0 : (this.camera.x%ts)+ts) : (this.camera.x%ts) ),
+			(this.camera.x < 0 ? (ts+((this.camera.x%ts==0?-16:0)+this.camera.x%ts)) : (this.camera.x%ts) ),
 			(this.camera.y%ts)
 		);
 		for(var x=0; x <= (1+this.width)/ts; x++)
@@ -760,8 +772,14 @@ GameObject.prototype.update = function(){ }
 GameObject.prototype.idle = function(){
 	var current = this.awake;
 	var _cam = this.position.subtract(game.camera);
-	var margin = 64;
-	this.awake = (_cam.x > -margin && _cam.y > -margin && _cam.x < game.element.width + margin && _cam.y < game.element.height + margin); 
+	var margin = 32;
+	var screen = new Point( game.width*.5, game.height*.5);
+	this.awake = (
+		_cam.x > -margin && 
+		_cam.y > -margin && 
+		_cam.x-game.width < margin &&
+		_cam.y-game.height < margin
+	); 
 	
 	if( current != this.awake ){
 		this.trigger( (this.awake ? "wakeup" : "sleep") );

@@ -52,5 +52,11 @@
    <polyline points="0,0 256,0"/>
   </object>
  </objectgroup>
- <objectgroup name="objects" width="16" height="15"/>
+ <objectgroup name="objects" width="16" height="15">
+  <object name="Skeleton" gid="232" x="128" y="192">
+   <properties>
+    <property name="rarity" value="0.2"/>
+   </properties>
+  </object>
+ </objectgroup>
 </map>

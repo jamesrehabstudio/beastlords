@@ -12,6 +12,12 @@ div.wrap {
 	margin:0 auto;
 }
 
+.field label {
+	display:inline-block;
+	width : 256px;
+	margin:10px 0;
+}
+
 #game { 
 	background:#503000;
 	position:relative;
@@ -19,9 +25,4 @@ div.wrap {
 	image-rendering: pixelated; /* future */
 	image-rendering: -webkit-optimize-contrast; /* webkit */
 	image-rendering: -moz-crisp-edges /* Firefox */
-}
-
-#game * {
-	position:absolute;
-	
 }

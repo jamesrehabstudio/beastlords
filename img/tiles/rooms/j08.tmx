@@ -38,10 +38,10 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 33,36,53,54,40,0,0,0,0,0,0,33,51,52,38,40,
-113,82,100,67,134,51,52,0,0,53,54,133,66,100,101,104
+113,82,100,67,134,39,40,0,0,33,34,133,66,100,101,104
 </data>
  </layer>
- <objectgroup name="lines" width="16" height="15">
+ <objectgroup name="lines" width="16" height="15" visible="0">
   <properties>
    <property name="map_tile" value="9"/>
    <property name="type" value="[&quot;n&quot;,&quot;s&quot;,&quot;e&quot;,&quot;w&quot;]"/>
