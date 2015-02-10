@@ -23,8 +23,8 @@ function AudioPlayer(list){
 	this.a = new AudioContext();
 	this.list = list;
 	
-	this.sfxVolume = 1.0;
-	this.musVolume = 0.2;
+	this.sfxVolume = 0.8;
+	this.musVolume = 0.0;
 	
 	var self = this;
 	for(var l in this.list){
@@ -347,14 +347,16 @@ Game.prototype.render = function( ) {
 			var tile_index = Math.floor(
 				_x + (y + Math.trunc(this.camera.y / ts) + this.tileDimension.start.y) * this.tileDimension.width()
 			);
-			
-			var tile_render_index = this.tiles[l][tile_index] - 1;
-			if( tile_render_index >= 0 ) {
-				var offset = new Point( 
-					(x*ts)-camera_offset.x,
-					(y*ts)-camera_offset.y
-				);
-				this.tileSprite.render(this.g,offset,tile_render_index);
+			if( _x >= this.tileDimension.start.x*2 && _x+(this.width/ts)*2 < this.tileDimension.end.x ){
+				
+				var tile_render_index = this.tiles[l][tile_index] - 1;
+				if( tile_render_index >= 0 ) {
+					var offset = new Point( 
+						(x*ts)-camera_offset.x,
+						(y*ts)-camera_offset.y
+					);
+					this.tileSprite.render(this.g,offset,tile_render_index);
+				}
 			}
 		}
 	}

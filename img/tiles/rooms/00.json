@@ -125,6 +125,7 @@
          "opacity":1,
          "properties":
             {
+             "map_tile":"15",
              "rarity":"0",
              "tags":"[\"entry\"]"
             },

@@ -9,7 +9,7 @@ function Debuger(x, y){
 	window._player = this;
 	this.addModule( mod_camera );
 	
-	game.element.width = game.element.height = 1024;
+	window.pixel_scale = 0.25;
 }
 Debuger.prototype.update = function(){
 	if ( input.state('left') > 0 ) {  this.position.x -= this.speed * this.delta }
@@ -419,7 +419,7 @@ function Knight(x,y){
 	});
 	this.on("hurt", function(){
 		this.states.attack = -1.0;
-		this.states.cooldown = Math.random() > 0.6 ? 10 : 40;
+		this.states.cooldown = Math.random() > 0.6 ? 0 : 30;
 		this.states.guard = Math.random() > 0.5 ? 1 : 2;
 		audio.play("hurt");
 	});
@@ -455,8 +455,8 @@ Knight.prototype.update = function(){
 		
 		if ( this.states.attack > 0 && this.states.attack < this.attack_time && this.states.attack > this.attack_rest ){
 			this.strike(new Line(
-				new Point( 12, (this.states.attack_down ? 8 : -8) ),
-				new Point( 24, (this.states.attack_down ? 8 : -8)+4 )
+				new Point( 15, (this.states.attack_down ? 8 : -8) ),
+				new Point( 27, (this.states.attack_down ? 8 : -8)+4 )
 			) );
 		}
 	}
@@ -473,7 +473,7 @@ Knight.prototype.update = function(){
 			this.frame_row = 1;
 		} else {
 			if( Math.abs( this.force.x ) > 0.1 ) {
-				this.frame = Math.min( (this.frame + this.delta * 0.1) % 4, 1 );
+				this.frame = Math.max( (this.frame + this.delta * Math.abs(this.force.x) * 0.2) % 4, 1 );
 			} else {
 				this.frame = 0;
 			}
@@ -490,10 +490,8 @@ Knight.prototype.render = function(g,c){
 		);
 	}
 	//Body
-	this.sprite.render( g, 
-		new Point(this.position.x - c.x, this.position.y - c.y), 
-		this.frame, this.frame_row, this.flip
-	);
+	GameObject.prototype.render.apply(this, [g,c]);
+	
 	//Sword
 	var _x = 0
 	if( this.states.attack > 0 )
@@ -869,7 +867,8 @@ function Oriax(x,y){
 		"cooldown" : 50,
 		"attack" : 0,
 		"thrown" : false,
-		"backup" : false
+		"backup" : false,
+		"attack_lower" : false
 	};
 	this.attack = {
 		"warm" : 45,
@@ -890,12 +889,18 @@ Oriax.prototype.update = function(){
 		if( this.states.cooldown < 0 ){
 			this.states.attack = this.attack.warm;
 			this.states.cooldown = 60;
+			this.states.attack_lower = Math.random() > 0.5;
 		}
 		
 		if( this.states.attack > 0 ){
 			if( this.states.attack < this.attack.release && !this.states.thrown ){
 				this.states.thrown = true;
-				var missle = new SnakeBullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
+				var missle;
+				if( this.states.attack_lower ) {
+					missle = new SnakeBullet(this.position.x, this.position.y+8, (this.flip?-1:1), true );
+				} else {
+					missle = new SnakeBullet(this.position.x, this.position.y-8, (this.flip?-1:1), false );
+				}
 				game.addObject( missle ); 
 			}
 		} else {
@@ -908,14 +913,16 @@ Oriax.prototype.update = function(){
 	
 	/* Animate */
 	if( this.stun > 0 ) {
-		this.frame = (this.frame + 1) % 2;
+		this.frame = (this.frame + 0.5) % 2;
 		this.frame_row = 2;
 	} else {
 		if( this.states.attack > 0 ) {
 			this.frame = this.states.attack > this.attack.release ? 0 : 1;
+			this.frame += this.states.attack_lower ? 2 : 0;
 			this.frame_row = 1;
 		} else {
-			this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3 ) % 2
+			this.frame = Math.max(this.frame + this.delta * Math.abs(this.force.x) * 0.3, 1 ) % 4;
+			if( Math.abs( this.force.x ) < 0.1 ) this.frame = 0;
 			this.frame_row = 0;
 		}
 	}
@@ -923,7 +930,7 @@ Oriax.prototype.update = function(){
 
 SnakeBullet.prototype = new GameObject();
 SnakeBullet.prototype.constructor = GameObject;
-function SnakeBullet(x,y,d){
+function SnakeBullet(x,y,d,keepAlive){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -945,7 +952,7 @@ function SnakeBullet(x,y,d){
 		if( this.team != obj.team ) {
 			obj.trigger("struck", this, this.position, this.collideDamage );
 			this.trigger("death");
-		} else if( this.states.landed ){
+		} else if( this.states.landed && obj instanceof Oriax ){
 			this.trigger("death");
 		}
 	});
@@ -966,18 +973,25 @@ function SnakeBullet(x,y,d){
 	this.gravity = 0.1;
 	
 	this.states = {
-		"landed" : false
+		"landed" : false,
+		"life" : 200
 	}
 }
 SnakeBullet.prototype.update = function(){
 	this.frame = Math.max( (this.frame + this.delta * 0.2) % 4, 2);
-	this.frame_row = 0;
+	this.frame_row = 2;
 	this.friction = this.grounded ? 0.2 : 0.05;
 	
-	if( this.stun < 0 && this.states.landed) {
+	this.states.life -= this.delta;
+	
+	if( this.stun < 0 && this.states.landed && this.states.dieOnTouch ) {
 		this.gravity = 1.0;
 		var direction = (this.flip ? -1 : 1);
 		this.force.x += this.speed * this.delta * direction;
+	}
+	
+	if( this.states.life < 0 ){
+		this.trigger("death");
 	}
 }
 
@@ -1086,8 +1100,10 @@ function Item(x,y,name){
 		if( obj instanceof Player ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { obj.heal = 100; }
+			if( this.name == "life_up" ) { obj.lifeMax += 25; obj.heal = Number.MAX_VALUE; }
 			if( this.name == "life_small" ) { obj.heal = 10; }
 			if( this.name == "money_small" ) { obj.addXP(10); audio.play("pickup1"); }
+			if( this.name == "money_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			if( this.name == "short_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
 			if( this.name == "long_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
 			if( this.name == "spear") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
@@ -1103,6 +1119,7 @@ Item.prototype.setName = function(n){
 	this.name = n;
 	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
 	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
+	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
 	if(n == "short_sword") { this.frame = 0; this.frame_row = 2; return; }
 	if(n == "long_sword") { this.frame = 1; this.frame_row = 2; return; }
 	if(n == "spear") { this.frame = 2; this.frame_row = 2; return; }
@@ -1112,7 +1129,8 @@ Item.prototype.setName = function(n){
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	if(n == "mana_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "money_small") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "money_small") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "money_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	
 }
 Item.drop = function(obj){
