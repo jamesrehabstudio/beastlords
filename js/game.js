@@ -24,7 +24,7 @@ function AudioPlayer(list){
 	this.list = list;
 	
 	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
-	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.3;
+	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.0;
 	
 	this.sfxVolume.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
@@ -319,11 +319,13 @@ Game.prototype.update = function( ) {
 
 	//Cleanup
 	this.interactive = temp_interactive;
+	/*
 	for( var i = 0; i < this._objectsDeleteList.length; i++) {
 		var index = this.objects.indexOf( this._objectsDeleteList[i] );
 		this.objects.remove( index );
 	}
 	this._objectsDeleteList = new Array();
+	*/
 	
 	this.render();
 }
@@ -413,16 +415,20 @@ Game.prototype.i_move = function(obj,x, y ){
 	);
 	
 	var collisions = this.lines.get( area );
-	var objs = this.interactive.get( area );
 	
 	var hitbox = obj.hitbox();
 	this.unstick(obj, hitbox, collisions);
 	
-	for(var o=0; o < objs.length; o++ ){
-		if( objs[o] != obj ) {
-			if( obj.intersects( objs[o] ) ){
-				obj.trigger("collideObject", objs[o]);
-				objs[o].trigger("collideObject", obj);
+	if( obj.interactive ) {
+		//Collide with other objects
+		var objs = this.interactive.get( area );
+		
+		for(var o=0; o < objs.length; o++ ){
+			if( objs[o] != obj ) {
+				if( obj.intersects( objs[o] ) ){
+					obj.trigger("collideObject", objs[o]);
+					objs[o].trigger("collideObject", obj);
+				}
 			}
 		}
 	}
@@ -629,6 +635,7 @@ Game.prototype.buildCollisions = function(){
 		this.lines.push(this.collisions[i]);
 	}
 }
+Game.DELTASECOND = 33.33333333;
 /*
 Game.prototype.buildPaths = function(){
 	var temp_nodes = new Array();

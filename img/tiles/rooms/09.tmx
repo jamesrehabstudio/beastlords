@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" width="32" height="15" tilewidth="16" tileheight="16">
  <tileset firstgid="1" name="tiles1" tilewidth="16" tileheight="16">
-  <image source="../tiles1.gif" trans="ff00ff" width="256" height="256"/>
+  <image source="../tiles0.gif" trans="ff00ff" width="256" height="256"/>
  </tileset>
  <layer name="back" width="32" height="15">
   <data encoding="csv">
@@ -57,5 +57,20 @@
  </objectgroup>
  <objectgroup name="objects" width="32" height="15">
   <object name="Skeleton" gid="17" x="48" y="112"/>
+  <object name="MinorMonster" gid="17" x="224" y="192">
+   <properties>
+    <property name="rarity" value=".9"/>
+   </properties>
+  </object>
+  <object name="MinorMonster" gid="17" x="256" y="192">
+   <properties>
+    <property name="rarity" value=".6"/>
+   </properties>
+  </object>
+  <object name="MinorMonster" gid="17" x="288" y="192">
+   <properties>
+    <property name="rarity" value=".4"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

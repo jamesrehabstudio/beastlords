@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" width="32" height="15" tilewidth="16" tileheight="16">
  <tileset firstgid="1" name="tiles1" tilewidth="16" tileheight="16">
-  <image source="../tiles1.gif" trans="ff00ff" width="256" height="256"/>
+  <image source="../tiles0.gif" trans="ff00ff" width="256" height="256"/>
  </tileset>
- <layer name="back" width="32" height="15">
+ <layer name="back" width="32" height="15" visible="0">
   <data encoding="csv">
 129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130,
 145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,145,146,
@@ -41,7 +41,7 @@
 113,98,99,100,101,102,103,114,81,82,83,84,119,87,88,100,101,67,68,114,69,70,117,118,85,86,99,65,66,102,103,104
 </data>
  </layer>
- <objectgroup name="lines" width="32" height="15">
+ <objectgroup name="lines" width="32" height="15" visible="0">
   <properties>
    <property name="rarity" value=".3"/>
   </properties>
@@ -65,7 +65,7 @@
   <object name="Amon" gid="232" x="128" y="96"/>
   <object name="Amon" gid="232" x="256" y="96"/>
   <object name="Amon" gid="232" x="384" y="96"/>
-  <object name="Skeleton" gid="232" x="240" y="192">
+  <object name="MajorMonster" gid="232" x="240" y="192">
    <properties>
     <property name="min_temple" value="1"/>
     <property name="rarity" value="0.5"/>

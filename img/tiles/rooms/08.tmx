@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" width="16" height="15" tilewidth="16" tileheight="16">
  <tileset firstgid="1" name="tiles1" tilewidth="16" tileheight="16">
-  <image source="../tiles1.gif" trans="ff00ff" width="256" height="256"/>
+  <image source="../tiles0.gif" trans="ff00ff" width="256" height="256"/>
  </tileset>
  <layer name="back" width="16" height="15">
   <data encoding="csv">
@@ -60,9 +60,10 @@
  </objectgroup>
  <objectgroup name="objects" width="16" height="15">
   <object name="DeathTrigger" gid="17" x="128" y="256"/>
-  <object name="Amon" gid="232" x="112" y="208">
+  <object name="Chaz" gid="232" x="112" y="208">
    <properties>
     <property name="min_temple" value="2"/>
+    <property name="rarity" value=".6"/>
    </properties>
   </object>
  </objectgroup>

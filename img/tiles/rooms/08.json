@@ -162,10 +162,11 @@
                 {
                  "gid":232,
                  "height":0,
-                 "name":"Amon",
+                 "name":"Chaz",
                  "properties":
                     {
-                     "min_temple":"2"
+                     "min_temple":"2",
+                     "rarity":".6"
                     },
                  "type":"",
                  "visible":true,
