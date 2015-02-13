@@ -384,8 +384,9 @@ Game.prototype.render = function( ) {
 	
 	//Debug, show collisions
 	if ( window.debug ) {
-		for ( var i = 0; i < this.collisions.length; i++ ){
-			this.collisions[i].render( this.g, camera_center );
+		var lines = this.lines.get(new Line(this.camera.x-32,this.camera.y-32,this.camera.x+game.width+32,this.camera.y+game.height+32));
+		for ( var i = 0; i < lines.length; i++ ){
+			lines[i].render( this.g, camera_center );
 		}
 	}
 }
@@ -935,7 +936,7 @@ BSPTree.prototype.remove = function(value){
 		if( this.lower instanceof BSPTree ) if( this.lower.remove(value) ) return value;
 		if( this.higher instanceof BSPTree ) if( this.higher.remove(value) ) return value;
 	}
-	return null;
+	return false;
 }
 BSPTree.prototype.nearest = function(position, conditions){
 	conditions = conditions || function(){ return true; };

@@ -79,7 +79,7 @@ function DataManager() {
 	
 	load_sprites();
 	this.currentTemple = 0;
-	window.seed = new Seed( 0.6258406243287027 );
+	window.seed = new Seed( "James" );
 }
 
 DataManager.prototype.randomLevel = function(g, temple){

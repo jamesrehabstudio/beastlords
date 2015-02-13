@@ -1634,6 +1634,7 @@ function CollapseTile(x,y){
 	this.width = this.height = 16;
 	this.frame = 6;
 	this.frame_row = 11;
+	this.visible = false;
 	
 	this.center = new Point(this.position.x, this.position.y);
 	this.lineTop = new Line(this.position.x+16,this.position.y,this.position.x,this.position.y);
@@ -1648,10 +1649,12 @@ function CollapseTile(x,y){
 		}
 	});
 	this.on("wakeup",function(){
-		this.visible = true; 
-		this.active = false;
-		game.addCollision(this.lineTop);
-		this.timer = 20;
+		if( !this.visible ) {
+			this.visible = true; 
+			this.active = false;
+			game.addCollision(this.lineTop);
+			this.timer = 20;
+		}
 	});
 }
 CollapseTile.prototype.update = function(){
