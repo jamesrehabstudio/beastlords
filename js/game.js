@@ -24,7 +24,7 @@ function AudioPlayer(list){
 	this.list = list;
 	
 	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
-	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.0;
+	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.3;
 	
 	this.sfxVolume.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
