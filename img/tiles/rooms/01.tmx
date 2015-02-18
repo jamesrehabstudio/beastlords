@@ -25,7 +25,7 @@
 129,130,129,130,129,130,129,130,129,130,129,130,129,130,129,130
 </data>
  </layer>
- <layer name="front" width="16" height="15" visible="0">
+ <layer name="front" width="16" height="15">
   <data encoding="csv">
 97,99,67,68,87,88,115,116,85,86,119,115,116,81,82,120,
 184,17,18,19,20,21,22,20,21,19,20,21,22,23,24,184,
@@ -44,7 +44,7 @@
 98,99,67,68,87,88,115,116,85,86,119,115,116,81,82,119
 </data>
  </layer>
- <objectgroup name="lines" width="16" height="15" visible="0">
+ <objectgroup name="lines" width="16" height="15">
   <properties>
    <property name="rarity" value="0"/>
    <property name="tags" value="[&quot;exit&quot;]"/>

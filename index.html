@@ -69,8 +69,7 @@
 			audio.musVolume.gain.value = this.value - 0;
 		});
 		$("button[name=reset]").on("click",function(e){
-			window._player = undefined;
-			audio.stop("music");
+			dataManager.reset();
 			dataManager.randomLevel(game,0);
 		});
 	}

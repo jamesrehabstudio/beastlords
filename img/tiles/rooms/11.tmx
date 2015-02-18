@@ -52,5 +52,17 @@
    <polyline points="0,0 0,128 80,128 80,112 64,112 64,0 512,0"/>
   </object>
  </objectgroup>
- <objectgroup name="objects" width="32" height="15"/>
+ <objectgroup name="objects" width="32" height="15">
+  <object name="Dropper" gid="0" x="96" y="48">
+   <properties>
+    <property name="min_temple" value="2"/>
+    <property name="rarity" value="0.8"/>
+   </properties>
+  </object>
+  <object name="MajorMonster" gid="232" x="208" y="112">
+   <properties>
+    <property name="rarity" value="0.6"/>
+   </properties>
+  </object>
+ </objectgroup>
 </map>

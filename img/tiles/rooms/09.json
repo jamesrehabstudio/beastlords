@@ -148,6 +148,64 @@
                  "width":0,
                  "x":48,
                  "y":112
+                }, 
+                {
+                 "gid":17,
+                 "height":0,
+                 "name":"MinorMonster",
+                 "properties":
+                    {
+                     "min_temple":"2",
+                     "rarity":".9"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":224,
+                 "y":192
+                }, 
+                {
+                 "gid":17,
+                 "height":0,
+                 "name":"MinorMonster",
+                 "properties":
+                    {
+                     "rarity":".6"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":256,
+                 "y":192
+                }, 
+                {
+                 "gid":17,
+                 "height":0,
+                 "name":"MinorMonster",
+                 "properties":
+                    {
+                     "min_temple":"3",
+                     "rarity":".4"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":288,
+                 "y":192
+                }, 
+                {
+                 "gid":17,
+                 "height":0,
+                 "name":"Tresure",
+                 "properties":
+                    {
+                     "rarity":"0.7"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":256,
+                 "y":128
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -165,7 +223,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "image":"..\/tiles1.gif",
+         "image":"..\/tiles0.gif",
          "imageheight":256,
          "imagewidth":256,
          "margin":0,

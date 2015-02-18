@@ -152,7 +152,36 @@
         {
          "height":15,
          "name":"objects",
-         "objects":[],
+         "objects":[
+                {
+                 "gid":0,
+                 "height":0,
+                 "name":"Dropper",
+                 "properties":
+                    {
+                     "min_temple":"2",
+                     "rarity":"0.8"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":96,
+                 "y":48
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"MajorMonster",
+                 "properties":
+                    {
+                     "rarity":"0.6"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":208,
+                 "y":112
+                }],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -169,7 +198,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "image":"..\/tiles1.gif",
+         "image":"..\/tiles0.gif",
          "imageheight":256,
          "imagewidth":256,
          "margin":0,

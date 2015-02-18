@@ -125,7 +125,20 @@ Line.prototype.center = function(){
 		.5 * (this.start.y + this.end.y)
 	);
 }
+Line.prototype.top = function(){ return Math.min( this.start.y, this.end.y ); }
+Line.prototype.left = function(){ return Math.min( this.start.x, this.end.x ); }
+Line.prototype.bottom = function(){ return Math.max( this.start.y, this.end.y ); }
+Line.prototype.right = function(){ return Math.max( this.start.x, this.end.x ); }
 
+Line.prototype.transpose = function(pos,y){
+	if(!(pos instanceof Point)) pos = new Point(pos,y);
+	return new Line( this.start.add(pos), this.end.add(pos) );
+}
+Line.prototype.flip = function(){
+	var x = this.start;
+	this.start = this.end;
+	this.end = x;
+}
 Line.prototype.correct = function(){
 	//changes the end and start around so the start is always in the top left corner
 	if( this.start.x > this.end.x ){

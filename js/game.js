@@ -24,7 +24,7 @@ function AudioPlayer(list){
 	this.list = list;
 	
 	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
-	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.3;
+	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.0;
 	
 	this.sfxVolume.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
@@ -126,8 +126,26 @@ Sprite.prototype.imageLoaded = function() {
 		this.frame_height = this.img.height;
 	}
 	this.width = Math.ceil( this.img.width / this.frame_width );
+	
+	//Create inverted version
+	var canvas = document.createElement("canvas");
+	var c = canvas.getContext('2d');
+	c.width = this.img.width;
+	c.height = this.img.height;
+	c.drawImage(this.img,0,0);
+	var a = c.getImageData(0,0,c.width,c.height);
+	for(var i=0; i < a.data.length; i+=4) {
+		if( a.data[i+3] > 100 ) {
+			a.data[i+0] = Math.floor(255-a.data[i+0]*0.5);
+			a.data[i+1] = 255-a.data[i+1];
+			a.data[i+2] = 255-a.data[i+2];
+		}
+	}
+	c.putImageData(a,0,0);
+	this.invert = new Image();
+	this.invert.src = canvas.toDataURL();
 }
-Sprite.prototype.render = function( g, pos, frame, row, flip ) {
+Sprite.prototype.render = function( g, pos, frame, row, flip, invert ) {
 	if(frame == undefined ){
 		x_off = y_off = 0;
 	} else if ( row == undefined ) {
@@ -138,7 +156,8 @@ Sprite.prototype.render = function( g, pos, frame, row, flip ) {
 		y_off = ~~row * this.frame_height;
 	}
 	
-		
+	invert = invert != undefined ? invert : false;
+	
 	g.beginPath();
 	if( flip ) {
 		g.save();
@@ -146,7 +165,7 @@ Sprite.prototype.render = function( g, pos, frame, row, flip ) {
 		pos.x = g.canvas.width + (g.canvas.width * -1) - pos.x;
 	}
 	g.drawImage( 
-		this.img, 
+		(invert ? this.invert : this.img), 
 		x_off, y_off, 
 		this.frame_width, 
 		this.frame_height,
@@ -340,7 +359,7 @@ Game.prototype.render = function( ) {
 	);
 	var view = new Line(new Point(Number.MIN_VALUE,Number.MIN_VALUE), new Point(Number.MAX_VALUE,Number.MAX_VALUE));
 	
-	var renderList = this.renderTree;
+	var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex } );
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	
 	this.g.beginPath();
@@ -694,6 +713,7 @@ function GameObject() {
 	this.events = {};
 	this.delta = 0;
 	this.deltaScale = 1.0;
+	this.invert = false;
 	
 	this.visible = true;
 	this.modules = new Array();
@@ -780,13 +800,14 @@ GameObject.prototype.update = function(){ }
 GameObject.prototype.idle = function(){
 	var current = this.awake;
 	var _cam = this.position.subtract(game.camera);
-	var margin = 32;
+	var margin_x = 64;
+	var margin_y = 32;
 	var screen = new Point( game.width*.5, game.height*.5);
 	this.awake = (
-		_cam.x > -margin && 
-		_cam.y > -margin && 
-		_cam.x-game.width < margin &&
-		_cam.y-game.height < margin
+		_cam.x > -margin_x && 
+		_cam.y > -margin_y && 
+		_cam.x-game.width < margin_x &&
+		_cam.y-game.height < margin_y
 	); 
 	
 	if( current != this.awake ){
@@ -808,7 +829,7 @@ GameObject.prototype.render = function( g, camera ){
 	if ( this.sprite instanceof Sprite ) {
 		this.sprite.render( g, 
 			new Point(this.position.x - camera.x, this.position.y - camera.y), 
-			this.frame, this.frame_row, this.flip
+			this.frame, this.frame_row, this.flip, this.invert
 		);
 	}
 }

@@ -59,6 +59,7 @@
   <object name="Skeleton" gid="17" x="48" y="112"/>
   <object name="MinorMonster" gid="17" x="224" y="192">
    <properties>
+    <property name="min_temple" value="2"/>
     <property name="rarity" value=".9"/>
    </properties>
   </object>
@@ -69,7 +70,13 @@
   </object>
   <object name="MinorMonster" gid="17" x="288" y="192">
    <properties>
+    <property name="min_temple" value="3"/>
     <property name="rarity" value=".4"/>
+   </properties>
+  </object>
+  <object name="Tresure" gid="17" x="256" y="128">
+   <properties>
+    <property name="rarity" value="0.7"/>
    </properties>
   </object>
  </objectgroup>
