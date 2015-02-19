@@ -97,6 +97,12 @@ AudioPlayer.prototype.stop = function(l){
 		}
 	}
 }
+AudioPlayer.prototype.isLoaded = function(l){
+	if( l in this.list ) {
+		return "buffer" in this.list[l];
+	}
+	return false;
+}
 
 
 /* Object for wrapping sprites */
@@ -111,6 +117,7 @@ function Sprite(url, options) {
 	this.img.sprite = this;
 	this.img.onload = function(){ this.sprite.imageLoaded(); }
 	this.offset = offset;
+	this.loaded = false;
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
@@ -119,6 +126,7 @@ function Sprite(url, options) {
 	this.name = "";
 }
 Sprite.prototype.imageLoaded = function() {
+	this.loaded = true;
 	if ( this.frame_width < 1 ) {
 		this.frame_width = this.img.width;
 	}
@@ -150,7 +158,7 @@ Sprite.prototype.render = function( g, pos, frame, row, flip, invert ) {
 		x_off = y_off = 0;
 	} else if ( row == undefined ) {
 		x_off = (frame % this.width) * this.frame_width;
-		y_off = Math.floor(frame / this.width) * this.frame_width;
+		y_off = Math.floor(frame / this.width) * this.frame_height;
 	} else {
 		x_off = ~~frame * this.frame_width;
 		y_off = ~~row * this.frame_height;
@@ -228,6 +236,10 @@ function Game( elm ) {
 	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
+	
+	if( window.game_start instanceof Function ) {
+		window.game_start( this );
+	}
 }
 
 Game.prototype.avr = function( obj ) {
@@ -247,9 +259,14 @@ Game.prototype.removeObject = function( obj ) {
 Game.prototype.getObject = function( type ) {
 	if( type instanceof Function ){
 		for(var i=0; i < this.objects.length; i++ ) if( this.objects[i] instanceof type ) return this.objects[i];
-	} else {
-		this.objects[i];
 	}
+}
+Game.prototype.getObjects = function( type ) {
+	var out = new Array();
+	if( type instanceof Function ){
+		for(var i=0; i < this.objects.length; i++ ) if( this.objects[i] instanceof type ) out.push( this.objects[i] );
+	}
+	return out;
 }
 Game.prototype.clearAll = function(){
 	this.objects = [];
@@ -1031,6 +1048,9 @@ Math.angleTurnDirection = function(_a,_b){
 }
 Math.trunc = function(x){
 	return x < 0 ? Math.ceil(x) : Math.floor(x);
+}
+Math.lerp = function(x,y,delta){
+	return x + (y-x) * delta;
 }
 CanvasRenderingContext2D.prototype.scaleFillRect = function(x,y,w,h){
 	this.fillRect(x*pixel_scale,y*pixel_scale,w*pixel_scale,h*pixel_scale);

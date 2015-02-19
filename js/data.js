@@ -145,7 +145,7 @@ DataManager.prototype.randomLevel = function(g, temple){
 			//Add branches for items
 			var current_brances = this.branch_counter;
 			for(var i=0; i < Math.max(temple.tresures[1]-current_brances,temple.tresures[0]); i++ ){
-				var tresure = this.randomTresure();
+				var tresure = this.randomTresure(seed.random());
 				if( this.addBranch({"rules":this.rules.item,"item":tresure.name,"door":tresure.doors,"size":tresure.pathSize,"optional":true}, tresure.pathSize, Object.keys(this.junctions_matrix)) ) {
 					//Remove item from treasures
 					tresure.remaining--;
@@ -302,24 +302,24 @@ DataManager.prototype.createRoom = function(g,room,cursor,id){
 			g.addObject( _shop );
 		} else {
 			if( addObject ){
+				var props = (id in this.properties_matrix ? this.properties_matrix[id] : {});
 				var new_obj;
 				if(objectName == "Tresure") {
-					new_obj = new Item(cursor.x + obj[0], cursor.y + obj[1], this.randomTresure().name);
+					new_obj = new Item(cursor.x + obj[0], cursor.y + obj[1]);
 				} else { 
-					new_obj = new window[objectName](cursor.x + obj[0], cursor.y + obj[1]);
+					try { 
+						new_obj = new window[objectName](cursor.x + obj[0], cursor.y + obj[1]); 
+					} catch (err) { console.error( "Could not create object: " + objectName ); }
 				}
 				g.addObject( new_obj );
+				
+				if(new_obj instanceof Item) { if("item" in props) { new_obj.setName(props["item"]) } else { new_obj.setName(this.randomTresure(seed.random()).name); } }
+				if(new_obj instanceof Door && "door" in props) new_obj.name = "key_" + props["door"];
 			}
-		}
-		
-		
-		if( id in this.properties_matrix ){
-			var props = this.properties_matrix[id];
-			if(objectName == "Item" || objectName == "Tresure" ) if("item" in props) new_obj.setName(props["item"]);
-			if(objectName == "Door") new_obj.name = "key_" + ("door" in props ? props["door"] : new_obj.name);
 		}
 	}
 	
+	//Add collisions
 	for(var j=0; j < room.lines.length; j++){
 		var line = room.lines[j];
 		temp = new Line( 
@@ -654,10 +654,10 @@ DataManager.prototype.roomsFromTags = function(tags,options){
 	}
 	return out;
 }
-DataManager.prototype.randomTresure = function(){
+DataManager.prototype.randomTresure = function(roll){
 	var total = 0.0;
 	for(var i=0; i<this.tresures.length; i++) if(this.tresures[i].remaining > 0) total += this.tresures[i].rarity;
-	var roll = seed.random() * total;
+	roll *= total;
 	for(var i=0; i<this.tresures.length; i++) if(this.tresures[i].remaining > 0) {
 		if( roll < this.tresures[i].rarity ) return this.tresures[i];
 		roll -= this.tresures[i].rarity;
@@ -693,6 +693,7 @@ var RT = "/";
 function load_sprites (){
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['pig'] = new Sprite(RT+"img/pig.gif", {offset:new Point(0, 0),width:32,height:40});
+	sprites['title'] = new Sprite(RT+"img/title.gif", {offset:new Point(0, 0),width:256,height:240});
 	
 	sprites['items'] = new Sprite(RT+"img/items.gif", {offset:new Point(8, 8),width:16,height:16});
 	sprites['shops'] = new Sprite(RT+"img/shops.gif", {offset:new Point(80, 104),width:160,height:128});
@@ -730,8 +731,10 @@ function load_sprites (){
 }
 
 window.audio = new AudioPlayer({
+	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
 	"music" : {"url":RT+"sounds/temple1.ogg","music":true,"loop":24.0},
 	"fanfair" : {"url":RT+"sounds/fanfair.ogg","music":true},
+	
 	"block" : {"url":RT+"sounds/block.wav"},
 	"burst1" : {"url":RT+"sounds/burst1.wav"},
 	"clang" : {"url":RT+"sounds/clang.wav"},
@@ -758,7 +761,7 @@ window.audio = new AudioPlayer({
 	"playerhurt" : {"url":RT+"sounds/playerhurt.wav"},
 	"spell" : {"url":RT+"sounds/spell.wav"},
 	"swing" : {"url":RT+"sounds/swing.wav"},
-	"unpause" : {"url":RT+"sounds/unpause.wav"}
+	"unpause" : {"url":RT+"sounds/unpause.wav"},
 });
 
 function cut(x,y){
