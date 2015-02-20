@@ -28,7 +28,8 @@ function Player(x, y){
 		"guard" : true,
 		"attack" : 0.0,
 		"stun" : 0.0,
-		"start_attack" : false
+		"start_attack" : false,
+		"death_clock" : Game.DELTASECOND
 	};
 	
 	this.attackProperites = {
@@ -46,8 +47,8 @@ function Player(x, y){
 	}
 	
 	this.on("death", function(){
-		game.slow(0,20.0);
-		this.destroy();
+		game.slow(0,Game.DELTASECOND);
+		audio.stop("music");
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -195,62 +196,62 @@ Player.prototype.update = function(){
 	} else {
 		if( this.life < this.lifeMax * .2 && this.delta > 0 ) audio.playLock("danger",1.00);
 	}
-	
-	if( this.life > 0 && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
-		if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
-		if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
-		if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
-		if ( input.state('fire') == 1 ) { this.attack(); }
-		if ( input.state('select') == 1 ) { this.castSpell(this.selectedSpell); }
-		
-		if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
-		if ( input.state('up') == 1 ) { this.stand(); }
-	}
-	
-	//Apply jump boost
-	if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
-		var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-		this.force.y -= this.gravity * boost * this.delta; 
-	} else {
-		this.jump_boost = false;
-	}
-	
-	this.friction = this.grounded ? 0.2 : 0.05;
-	this.inertia = this.grounded ? 0.9 : 0.2;
-	this.height = this.states.duck ? 24 : 30;
-	this.states.guard = this.states.attack <= 0;
-	
-	if ( this.life < 1 ) {
-		game.removeObject( this );
-	}
-	
-	if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
-		//Play sound effect for attack
-		if( !this.states.startSwing ) {
-			audio.play("swing");
-			if( this.spellsCounters.magic_sword > 0 ){
-				var offset_y = this.states.duck ? 4 : -4;
-				var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
-				bullet.team = this.team;
-				bullet.speed = this.speed * 2;
-				bullet.frame = 1;
-				bullet.collisionDamage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
-				game.addObject(bullet);
-			}
+	if ( this.life > 0 ) {
+		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
+			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
+			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
+			if ( input.state('fire') == 1 ) { this.attack(); }
+			if ( input.state('select') == 1 ) { this.castSpell(this.selectedSpell); }
+			
+			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
+			if ( input.state('up') == 1 ) { this.stand(); }
 		}
-		this.states.startSwing = true;
 		
-		//Create box to detect enemies
-		this.strike(new Line(
-			new Point( 12, (this.states.duck ? 4 : -4) ),
-			new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
-		) );
+		//Apply jump boost
+		if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
+			var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+			this.force.y -= this.gravity * boost * this.delta; 
+		} else {
+			this.jump_boost = false;
+		}
+		
+		this.friction = this.grounded ? 0.2 : 0.05;
+		this.inertia = this.grounded ? 0.9 : 0.2;
+		this.height = this.states.duck ? 24 : 30;
+		this.states.guard = this.states.attack <= 0;
+		
+		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
+			//Play sound effect for attack
+			if( !this.states.startSwing ) {
+				audio.play("swing");
+				if( this.spellsCounters.magic_sword > 0 ){
+					var offset_y = this.states.duck ? 4 : -4;
+					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
+					bullet.team = this.team;
+					bullet.speed = this.speed * 2;
+					bullet.frame = 1;
+					bullet.collisionDamage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
+					game.addObject(bullet);
+				}
+			}
+			this.states.startSwing = true;
+			
+			//Create box to detect enemies
+			this.strike(new Line(
+				new Point( 12, (this.states.duck ? 4 : -4) ),
+				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
+			) );
+		} else {
+			this.states.startSwing = false;
+		}
 	} else {
-		this.states.startSwing = false;
+		//Player is dead, start his death clock
+		this.states.death_clock -= game.deltaUnscaled;
 	}
 	
 	//Animation
-	if ( this.stun > 0 ) {
+	if ( this.stun > 0 || this.life < 0 ) {
 		this.stand();
 		this.frame = 4;
 		this.frame_row = 0;
@@ -282,6 +283,13 @@ Player.prototype.update = function(){
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
+	
+	if( this.states.death_clock <= 0 ) {
+		//Go to game over screen
+		game.getObject(PauseMenu).open = true;
+		audio.play("playerdeath");
+		this.destroy();
+	}
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){
@@ -292,7 +300,7 @@ Player.prototype.stand = function(){
 }
 Player.prototype.duck = function(){
 	if( !this.states.duck ) {
-		this.position.y += 4;
+		this.position.y += 3.9999999;
 		this.states.duck = true;
 		if( this.grounded )	this.force.x = 0;
 	}

@@ -37,7 +37,7 @@ TitleMenu.prototype.update = function(){
 			}
 		}
 		
-		if( this.progress > 40 ) this.progress = 9.0;
+		if( this.progress > 48 ) this.progress = 9.0;
 		
 	}
 }
@@ -67,8 +67,8 @@ TitleMenu.prototype.render = function(g,c){
 			textArea(g,"Press start",84,184);
 		}
 		
-		if( this.progress >= 16 ) {
-			var y_pos = Math.lerp(240,0, Math.min( (this.progress-16)/8, 1) );
+		if( this.progress >= 24 ) {
+			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
 			boxArea(g,0,y_pos,256,240);
 			textArea(g,this.message,16,y_pos+16,240);
 		}

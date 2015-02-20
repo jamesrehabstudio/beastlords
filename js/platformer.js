@@ -395,7 +395,7 @@ function DeathTrigger(x,y){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 256;
-	this.height = 16;
+	this.height = 18;
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
@@ -1783,13 +1783,13 @@ PauseMenu.prototype.update = function(){
 	if( this.open ) {
 		game.pause = true;
 		
-		//Navigate pages
-		if( input.state("select") == 1 ) {
-			this.page = ( this.page + 1 ) % 4;
-			audio.play("cursor");
-		}
-		
-		if( this.page == 0 ) {
+		if( _player.life <= 0 ) {
+			//Player is dead, just wait for the start button to be pressed
+			if( input.state("pause") == 1 ) { 
+				dataManager.reset();
+				dataManager.randomLevel(game,0);
+			}
+		} else if( this.page == 0 ) {
 			//Equipment page
 			if( input.state("left") == 1 ) { this.cursor--; audio.play("cursor"); }
 			if( input.state("right") == 1 ) { this.cursor++; audio.play("cursor"); }
@@ -1843,13 +1843,22 @@ PauseMenu.prototype.update = function(){
 			}
 		}
 		
-		if( input.state("pause") == 1 ) {
-			this.open = false;
-			game.pause = false;
-			audio.play("unpause");
+		if( _player.life > 0) {
+			//Close pause menu
+			if( input.state("pause") == 1 ) {
+				this.open = false;
+				game.pause = false;
+				audio.play("unpause");
+			}
+			
+			//Navigate pages
+			if( input.state("select") == 1 ) {
+				this.page = ( this.page + 1 ) % 4;
+				audio.play("cursor");
+			}
 		}
 	} else {
-		if( input.state("pause") == 1 && _player instanceof Player ) {
+		if( input.state("pause") == 1 && _player instanceof Player && _player.life > 0 ) {
 			this.open = true;
 			_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
@@ -1907,8 +1916,12 @@ PauseMenu.prototype.render = function(g,c){
 	this.cursor += 0.15 * this.delta;
 	*/
 	
-	if( this.open ) {
-		if( this.page == 0 ) {
+	if( this.open && _player instanceof Player ) {
+		if( _player.life <= 0 ) {
+			sprites.title.render(g,new Point(), 3);
+			boxArea(g,68,168,120,40);
+			textArea(g,"Press start",84,184);
+		} else if( this.page == 0 ) {
 			//Equipment
 			
 			boxArea(g,68,8,120,224);
@@ -2068,7 +2081,7 @@ TitleMenu.prototype.update = function(){
 			}
 		}
 		
-		if( this.progress > 40 ) this.progress = 9.0;
+		if( this.progress > 48 ) this.progress = 9.0;
 		
 	}
 }
@@ -2098,8 +2111,8 @@ TitleMenu.prototype.render = function(g,c){
 			textArea(g,"Press start",84,184);
 		}
 		
-		if( this.progress >= 16 ) {
-			var y_pos = Math.lerp(240,0, Math.min( (this.progress-16)/8, 1) );
+		if( this.progress >= 24 ) {
+			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
 			boxArea(g,0,y_pos,256,240);
 			textArea(g,this.message,16,y_pos+16,240);
 		}
@@ -2156,8 +2169,11 @@ var mod_rigidbody = {
 		if(Math.abs( this.force.x ) < 0.01 ) this.force.x = 0;
 		if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
 		
+		//Add just enough force to lock them to the ground
+		if(this.grounded ) this.force.y += 0.1;
+		
 		this.grounded = false;
-		game.i_move( this, this.force.x * this.delta, this.force.y * this.delta );
+		game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
 		
 		var friction_x = 1.0 - this.friction * this.delta;
 		this.force.x *= friction_x;
@@ -2215,6 +2231,7 @@ var mod_combat = {
 		this.team = 0;
 		this.stun = 0;
 		this.stun_time = 10.0;
+		this._hurt_strobe = 0;
 			
 		this.strike = function(l,trigger){
 			trigger = trigger == undefined ? "struck" : trigger;
@@ -2255,8 +2272,12 @@ var mod_combat = {
 		}
 	},
 	"update" : function(){
-		if( this.invincible > 0 ) this.invert = !this.invert;
-		else this.invert = false;
+		if( this.invincible > 0 ) {
+			this._hurt_strobe = (this._hurt_strobe + game.deltaUnscaled * 0.5 ) % 2;
+			this.filter = this._hurt_strobe < 1 ? "hurt" : false;
+		} else {
+			this.filter = false;
+		}
 		
 		this.invincible -= this.delta;
 		this.stun -= this.delta;
@@ -2269,21 +2290,32 @@ var mod_boss = {
 		var x = this.position.x;
 		var y = this.position.y;
 		
-		var corner = new Point(256*Math.floor(x/256),240*Math.floor(y/240));
-		this.borders = [
-			new Line(corner.x,corner.y,corner.x+256,corner.y),
-			new Line(corner.x+256,corner.y,corner.x+256,corner.y+240),
-			new Line(corner.x+256,corner.y+240,corner.x,corner.y+240),
-			new Line(corner.x,corner.y+240,corner.x,corner.y)
+		var corner = new Point(256*Math.floor(x/256), 240*Math.floor(y/240));
+		this.boss_lock = new Line(
+			corner.x,
+			corner.y,
+			256 + corner.x,
+			240 + corner.y
+		);
+		this.boss_doors = [
+			new Point(corner.x+8,corner.y+168),
+			new Point(corner.x+8,corner.y+184),
+			new Point(corner.x+8,corner.y+200),
+			
+			new Point(corner.x+248,corner.y+168),
+			new Point(corner.x+248,corner.y+184),
+			new Point(corner.x+248,corner.y+200)
 		];
 		
 		this.on("activate", function() {
-			for(var i=0; i < this.borders.length; i++ ) game.addCollision( this.borders[i] );
-			_player.lock_overwrite = new Line(this.borders[0].start,this.borders[1].end);
+			for(var i=0; i < this.boss_doors.length; i++ ) 
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, window.BLANK_TILE);
+			_player.lock_overwrite = this.boss_lock;
 			this.interactive = true;
 		});
 		this.on("death", function() {
-			for(var i=0; i < this.borders.length; i++ ) game.removeCollision( this.borders[i] );
+			for(var i=0; i < this.boss_doors.length; i++ )
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, 0);
 			_player.lock_overwrite = false;
 		});
 	},
@@ -2331,7 +2363,8 @@ function Player(x, y){
 		"guard" : true,
 		"attack" : 0.0,
 		"stun" : 0.0,
-		"start_attack" : false
+		"start_attack" : false,
+		"death_clock" : Game.DELTASECOND
 	};
 	
 	this.attackProperites = {
@@ -2349,8 +2382,8 @@ function Player(x, y){
 	}
 	
 	this.on("death", function(){
-		game.slow(0,20.0);
-		this.destroy();
+		game.slow(0,Game.DELTASECOND);
+		audio.stop("music");
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -2498,62 +2531,62 @@ Player.prototype.update = function(){
 	} else {
 		if( this.life < this.lifeMax * .2 && this.delta > 0 ) audio.playLock("danger",1.00);
 	}
-	
-	if( this.life > 0 && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
-		if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
-		if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
-		if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
-		if ( input.state('fire') == 1 ) { this.attack(); }
-		if ( input.state('select') == 1 ) { this.castSpell(this.selectedSpell); }
-		
-		if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
-		if ( input.state('up') == 1 ) { this.stand(); }
-	}
-	
-	//Apply jump boost
-	if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
-		var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-		this.force.y -= this.gravity * boost * this.delta; 
-	} else {
-		this.jump_boost = false;
-	}
-	
-	this.friction = this.grounded ? 0.2 : 0.05;
-	this.inertia = this.grounded ? 0.9 : 0.2;
-	this.height = this.states.duck ? 24 : 30;
-	this.states.guard = this.states.attack <= 0;
-	
-	if ( this.life < 1 ) {
-		game.removeObject( this );
-	}
-	
-	if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
-		//Play sound effect for attack
-		if( !this.states.startSwing ) {
-			audio.play("swing");
-			if( this.spellsCounters.magic_sword > 0 ){
-				var offset_y = this.states.duck ? 4 : -4;
-				var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
-				bullet.team = this.team;
-				bullet.speed = this.speed * 2;
-				bullet.frame = 1;
-				bullet.collisionDamage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
-				game.addObject(bullet);
-			}
+	if ( this.life > 0 ) {
+		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
+			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
+			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
+			if ( input.state('fire') == 1 ) { this.attack(); }
+			if ( input.state('select') == 1 ) { this.castSpell(this.selectedSpell); }
+			
+			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
+			if ( input.state('up') == 1 ) { this.stand(); }
 		}
-		this.states.startSwing = true;
 		
-		//Create box to detect enemies
-		this.strike(new Line(
-			new Point( 12, (this.states.duck ? 4 : -4) ),
-			new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
-		) );
+		//Apply jump boost
+		if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
+			var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+			this.force.y -= this.gravity * boost * this.delta; 
+		} else {
+			this.jump_boost = false;
+		}
+		
+		this.friction = this.grounded ? 0.2 : 0.05;
+		this.inertia = this.grounded ? 0.9 : 0.2;
+		this.height = this.states.duck ? 24 : 30;
+		this.states.guard = this.states.attack <= 0;
+		
+		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
+			//Play sound effect for attack
+			if( !this.states.startSwing ) {
+				audio.play("swing");
+				if( this.spellsCounters.magic_sword > 0 ){
+					var offset_y = this.states.duck ? 4 : -4;
+					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
+					bullet.team = this.team;
+					bullet.speed = this.speed * 2;
+					bullet.frame = 1;
+					bullet.collisionDamage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
+					game.addObject(bullet);
+				}
+			}
+			this.states.startSwing = true;
+			
+			//Create box to detect enemies
+			this.strike(new Line(
+				new Point( 12, (this.states.duck ? 4 : -4) ),
+				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
+			) );
+		} else {
+			this.states.startSwing = false;
+		}
 	} else {
-		this.states.startSwing = false;
+		//Player is dead, start his death clock
+		this.states.death_clock -= game.deltaUnscaled;
 	}
 	
 	//Animation
-	if ( this.stun > 0 ) {
+	if ( this.stun > 0 || this.life < 0 ) {
 		this.stand();
 		this.frame = 4;
 		this.frame_row = 0;
@@ -2585,6 +2618,13 @@ Player.prototype.update = function(){
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
+	
+	if( this.states.death_clock <= 0 ) {
+		//Go to game over screen
+		game.getObject(PauseMenu).open = true;
+		audio.play("playerdeath");
+		this.destroy();
+	}
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){
@@ -2595,7 +2635,7 @@ Player.prototype.stand = function(){
 }
 Player.prototype.duck = function(){
 	if( !this.states.duck ) {
-		this.position.y += 4;
+		this.position.y += 3.9999999;
 		this.states.duck = true;
 		if( this.grounded )	this.force.x = 0;
 	}
@@ -3063,6 +3103,8 @@ function game_start(g){
 
  /* platformer/tiles.js*/ 
 
+window.BLANK_TILE = 166;
+
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
 function CollapseTile(x,y){
@@ -3077,7 +3119,6 @@ function CollapseTile(x,y){
 	this.visible = false;
 	
 	this.center = new Point(this.position.x, this.position.y);
-	this.lineTop = new Line(this.position.x+16,this.position.y,this.position.x,this.position.y);
 	
 	this.timer = 20
 	this.active = false;
@@ -3092,7 +3133,7 @@ function CollapseTile(x,y){
 		if( !this.visible ) {
 			this.visible = true; 
 			this.active = false;
-			game.addCollision(this.lineTop);
+			game.setTile(this.position.x, this.position.y, 1, window.BLANK_TILE);
 			this.timer = 20;
 		}
 	});
@@ -3112,9 +3153,32 @@ CollapseTile.prototype.hide = function(){
 	this.visible = false;
 	this.position.x = this.center.x;
 	this.position.y = this.center.y;
-	game.removeCollision(this.lineTop);
+	game.setTile(this.position.x, this.position.y, 1, 0);
 }
 CollapseTile.prototype.destroy = function(){
-	game.removeCollision(this.lineTop);
+	game.setTile(this.position.x, this.position.y, 1, 0);
 	GameObject.prototype.destroy.apply(this);
+}
+
+BreakableTile.prototype = new GameObject();
+BreakableTile.prototype.constructor = GameObject;
+function BreakableTile(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.life = 1;
+	
+	this.on("struck", function(obj,pos,damage){
+		if( obj instanceof Player){
+			//break tile
+			if( game.getTile(this.position.x, this.position.y ) != 0 ) {
+				audio.play("crash");
+				game.setTile(this.position.x, this.position.y, 1, 0 );
+			}
+			this.destroy();
+		}
+	});
 }

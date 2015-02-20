@@ -24,7 +24,7 @@ function AudioPlayer(list){
 	this.list = list;
 	
 	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
-	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.3;
+	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.0;
 	
 	this.sfxVolume.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
@@ -118,6 +118,8 @@ function Sprite(url, options) {
 	this.img.onload = function(){ this.sprite.imageLoaded(); }
 	this.offset = offset;
 	this.loaded = false;
+	this.filters = options["filters"] || {};
+	this.altimg = {};
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
@@ -136,24 +138,29 @@ Sprite.prototype.imageLoaded = function() {
 	this.width = Math.ceil( this.img.width / this.frame_width );
 	
 	//Create inverted version
-	var canvas = document.createElement("canvas");
-	var c = canvas.getContext('2d');
-	c.width = this.img.width;
-	c.height = this.img.height;
-	c.drawImage(this.img,0,0);
-	var a = c.getImageData(0,0,c.width,c.height);
-	for(var i=0; i < a.data.length; i+=4) {
-		if( a.data[i+3] > 100 ) {
-			a.data[i+0] = Math.floor(255-a.data[i+0]*0.5);
-			a.data[i+1] = 255-a.data[i+1];
-			a.data[i+2] = 255-a.data[i+2];
+	for( var f in this.filters ) {
+		var canvas = document.createElement("canvas");
+		var c = canvas.getContext('2d');
+		c.width = this.img.width;
+		c.height = this.img.height;
+		c.drawImage(this.img,0,0);
+		var a = c.getImageData(0,0,c.width,c.height);
+		for(var i=0; i < a.data.length; i+=4) {
+			this.filters[f](a.data,i);
+			/*
+			if( a.data[i+3] > 100 ) {
+				a.data[i+0] = Math.floor(255-a.data[i+0]*0.5);
+				a.data[i+1] = 255-a.data[i+1];
+				a.data[i+2] = 255-a.data[i+2];
+			}
+			*/
 		}
+		c.putImageData(a,0,0);
+		this.altimg[f] = new Image();
+		this.altimg[f].src = canvas.toDataURL();
 	}
-	c.putImageData(a,0,0);
-	this.invert = new Image();
-	this.invert.src = canvas.toDataURL();
 }
-Sprite.prototype.render = function( g, pos, frame, row, flip, invert ) {
+Sprite.prototype.render = function( g, pos, frame, row, flip, filter ) {
 	if(frame == undefined ){
 		x_off = y_off = 0;
 	} else if ( row == undefined ) {
@@ -164,7 +171,7 @@ Sprite.prototype.render = function( g, pos, frame, row, flip, invert ) {
 		y_off = ~~row * this.frame_height;
 	}
 	
-	invert = invert != undefined ? invert : false;
+	var img = filter in this.altimg ? this.altimg[filter] : this.img;
 	
 	g.beginPath();
 	if( flip ) {
@@ -173,7 +180,7 @@ Sprite.prototype.render = function( g, pos, frame, row, flip, invert ) {
 		pos.x = g.canvas.width + (g.canvas.width * -1) - pos.x;
 	}
 	g.drawImage( 
-		(invert ? this.invert : this.img), 
+		img, 
 		x_off, y_off, 
 		this.frame_width, 
 		this.frame_height,
@@ -242,6 +249,12 @@ function Game( elm ) {
 	}
 }
 
+Game.prototype.zoom = function( x ) {
+	window.pixel_scale = x;
+	this.element.width = 256 * x;
+	this.element.height = 240 * x;
+	this.g.imageSmoothingEnabled = false;
+}
 Game.prototype.avr = function( obj ) {
 	return 1 / ((this.delta_tot / this.delta_avr) / 1000.0);
 }
@@ -393,11 +406,11 @@ Game.prototype.render = function( ) {
 		for(var x=0; x <= (1+this.width)/ts; x++)
 		for(var y=0; y <= (1+this.height)/ts; y++)
 		for(var l=0; l < this.tiles.length; l++) {
-			var _x = x + Math.floor(this.camera.x / ts) + this.tileDimension.start.x;
+			var _x = x + Math.floor(this.camera.x / ts) - this.tileDimension.start.x;
 			var tile_index = Math.floor(
-				_x + (y + Math.trunc(this.camera.y / ts) + this.tileDimension.start.y) * this.tileDimension.width()
+				_x + (y + Math.trunc(this.camera.y / ts) - this.tileDimension.start.y) * this.tileDimension.width()
 			);
-			if( _x >= this.tileDimension.start.x*2 && _x+(this.width/ts)*2 < this.tileDimension.end.x ){
+			if(_x >= 0 && _x < this.tileDimension.width() ){
 				
 				var tile_render_index = this.tiles[l][tile_index] - 1;
 				if( tile_render_index >= 0 ) {
@@ -520,6 +533,108 @@ Game.prototype.unstick = function( obj, hitbox, collisions ) {
 		}
 	}
 }
+Game.prototype.t_move = function(obj, x, y) {
+	
+	var bounds = {
+		"right" : function(){ 
+			for(var y=hitbox.top(); y <= hitbox.bottom(); y+=16 )
+				if( game.getTile( new Point(hitbox.right(), y) ) != 0 ) return true;
+			if( game.getTile( new Point(hitbox.right(), hitbox.bottom())) != 0 ) return true;
+			return false;
+		},
+		"left" : function(){ 
+			for(var y=hitbox.top(); y <= hitbox.bottom(); y+=16 )
+				if( game.getTile( new Point(hitbox.left(), y) ) != 0 ) return true;
+			if( game.getTile( new Point(hitbox.left(), hitbox.bottom())) != 0 ) return true;
+			return false;
+		},
+		"top" : function(){ 
+			for(var x=hitbox.left(); x <= hitbox.right(); x+=16 )
+				if( game.getTile( new Point(x, hitbox.top()) ) != 0 ) return true;
+			if( game.getTile( new Point(hitbox.right(), hitbox.top())) != 0 ) return true;
+			return false;
+		},
+		"bottom" : function(){ 
+			for(var x=hitbox.left(); x <= hitbox.right(); x+=16 )
+				if( game.getTile( new Point(x,hitbox.bottom()) ) != 0 ) return true;
+			if( game.getTile( new Point(hitbox.right(), hitbox.bottom())) != 0 ) return true;
+			return false;
+		}
+	};
+	
+	
+	//Unstick
+	var hitbox = obj.bounds();
+	var area = new Line( 
+		new Point(hitbox.start.x - x - obj.width, hitbox.start.y - y - obj.height),
+		new Point(hitbox.end.x + x + obj.width, hitbox.end.y + y + obj.height) 
+	);
+	
+	if( obj.interactive ) {
+		//Collide with other objects
+		var objs = this.interactive.get( area );
+		
+		for(var o=0; o < objs.length; o++ ){
+			if( objs[o] != obj ) {
+				if( obj.intersects( objs[o] ) ){
+					obj.trigger("collideObject", objs[o]);
+					objs[o].trigger("collideObject", obj);
+				}
+			}
+		}
+	}
+	
+	var interations = Math.ceil( Point.magnitude(x,y) );
+	var interation_size = 1.0 / interations;
+	
+	for(var i=0; i < interations; i++ ){
+		
+		if( y != 0 || 1 ) {
+			//Y collide
+			obj.transpose(0, y * interation_size);
+			var hitbox = obj.bounds();
+			
+			for(var b in bounds ) {
+				if( bounds[b]() ){
+					obj.transpose(0, -y * interation_size);
+					obj.trigger("collideVertical", y);
+					y = 0;
+					break;
+				}
+			}
+		}
+
+		//X collide
+		
+		
+		if( x != 0 || 1 ){
+			obj.transpose(x * interation_size, 0);
+			var hitbox = obj.bounds();
+			for(var b in bounds ) {
+				if( bounds[b]() ){
+					obj.transpose(-x * interation_size, 0);
+					obj.trigger("collideHorizontal", x);
+					x = 0;
+					break;
+				}
+			}
+		}
+	}
+	
+	//Unstick
+	var hitbox = obj.bounds();
+	
+	for(var b in bounds ) {
+		if( bounds[b]() ){
+			switch(b){
+				case "bottom" : obj.transpose(new Point(0,-1)); break;
+				case "right" : obj.transpose(new Point(-1,0)); break;
+				case "left" : obj.transpose(new Point(1,0)); break;
+				case "top" : obj.transpose(new Point(0,1)); break;
+			}
+		}
+	}
+}
 Game.prototype.c_move = function( obj, x, y ) {
 	//Attempt to move a game object without hitting a colliding line
 	var lines = new Array();
@@ -574,6 +689,31 @@ Game.prototype.c_move = function( obj, x, y ) {
 		obj.oncollide(lines);
 	}
 	return false;
+}
+
+Game.prototype.getTile = function( x,y,layer ) {
+	if( x instanceof Point ) { layer=y; y=x.y; x=x.x; }
+	var ts = 16;
+	layer = layer || 1;
+	x = Math.floor(x/ts);
+	y = Math.floor(y/ts);
+	var index = (
+		(x-this.tileDimension.start.x) +
+		Math.floor( (y-this.tileDimension.start.y)*this.tileDimension.width())
+	);
+	return this.tiles[layer][index] || 0;
+}
+Game.prototype.setTile = function( x,y,layer,t ) {
+	if( x instanceof Point ) { layer=y; y=x.y; x=x.x; }
+	var ts = 16;
+	layer = layer || 1;
+	x = Math.floor(x/ts);
+	y = Math.floor(y/ts);
+	var index = (
+		(x-this.tileDimension.start.x) +
+		Math.floor( (y-this.tileDimension.start.y)*this.tileDimension.width())
+	);
+	return this.tiles[layer][index] = t;
 }
 
 Game.prototype.trace = function( start, end, thickness ) {
@@ -730,7 +870,7 @@ function GameObject() {
 	this.events = {};
 	this.delta = 0;
 	this.deltaScale = 1.0;
-	this.invert = false;
+	this.filter = false;
 	
 	this.visible = true;
 	this.modules = new Array();
@@ -846,7 +986,7 @@ GameObject.prototype.render = function( g, camera ){
 	if ( this.sprite instanceof Sprite ) {
 		this.sprite.render( g, 
 			new Point(this.position.x - camera.x, this.position.y - camera.y), 
-			this.frame, this.frame_row, this.flip, this.invert
+			this.frame, this.frame_row, this.flip, this.filter
 		);
 	}
 }

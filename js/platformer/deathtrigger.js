@@ -5,7 +5,7 @@ function DeathTrigger(x,y){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 256;
-	this.height = 16;
+	this.height = 18;
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {

@@ -38,8 +38,11 @@ var mod_rigidbody = {
 		if(Math.abs( this.force.x ) < 0.01 ) this.force.x = 0;
 		if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
 		
+		//Add just enough force to lock them to the ground
+		if(this.grounded ) this.force.y += 0.1;
+		
 		this.grounded = false;
-		game.i_move( this, this.force.x * this.delta, this.force.y * this.delta );
+		game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
 		
 		var friction_x = 1.0 - this.friction * this.delta;
 		this.force.x *= friction_x;
@@ -97,6 +100,7 @@ var mod_combat = {
 		this.team = 0;
 		this.stun = 0;
 		this.stun_time = 10.0;
+		this._hurt_strobe = 0;
 			
 		this.strike = function(l,trigger){
 			trigger = trigger == undefined ? "struck" : trigger;
@@ -137,8 +141,12 @@ var mod_combat = {
 		}
 	},
 	"update" : function(){
-		if( this.invincible > 0 ) this.invert = !this.invert;
-		else this.invert = false;
+		if( this.invincible > 0 ) {
+			this._hurt_strobe = (this._hurt_strobe + game.deltaUnscaled * 0.5 ) % 2;
+			this.filter = this._hurt_strobe < 1 ? "hurt" : false;
+		} else {
+			this.filter = false;
+		}
 		
 		this.invincible -= this.delta;
 		this.stun -= this.delta;
@@ -151,21 +159,32 @@ var mod_boss = {
 		var x = this.position.x;
 		var y = this.position.y;
 		
-		var corner = new Point(256*Math.floor(x/256),240*Math.floor(y/240));
-		this.borders = [
-			new Line(corner.x,corner.y,corner.x+256,corner.y),
-			new Line(corner.x+256,corner.y,corner.x+256,corner.y+240),
-			new Line(corner.x+256,corner.y+240,corner.x,corner.y+240),
-			new Line(corner.x,corner.y+240,corner.x,corner.y)
+		var corner = new Point(256*Math.floor(x/256), 240*Math.floor(y/240));
+		this.boss_lock = new Line(
+			corner.x,
+			corner.y,
+			256 + corner.x,
+			240 + corner.y
+		);
+		this.boss_doors = [
+			new Point(corner.x+8,corner.y+168),
+			new Point(corner.x+8,corner.y+184),
+			new Point(corner.x+8,corner.y+200),
+			
+			new Point(corner.x+248,corner.y+168),
+			new Point(corner.x+248,corner.y+184),
+			new Point(corner.x+248,corner.y+200)
 		];
 		
 		this.on("activate", function() {
-			for(var i=0; i < this.borders.length; i++ ) game.addCollision( this.borders[i] );
-			_player.lock_overwrite = new Line(this.borders[0].start,this.borders[1].end);
+			for(var i=0; i < this.boss_doors.length; i++ ) 
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, window.BLANK_TILE);
+			_player.lock_overwrite = this.boss_lock;
 			this.interactive = true;
 		});
 		this.on("death", function() {
-			for(var i=0; i < this.borders.length; i++ ) game.removeCollision( this.borders[i] );
+			for(var i=0; i < this.boss_doors.length; i++ )
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, 0);
 			_player.lock_overwrite = false;
 		});
 	},

@@ -1,3 +1,5 @@
+window.BLANK_TILE = 166;
+
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
 function CollapseTile(x,y){
@@ -12,7 +14,6 @@ function CollapseTile(x,y){
 	this.visible = false;
 	
 	this.center = new Point(this.position.x, this.position.y);
-	this.lineTop = new Line(this.position.x+16,this.position.y,this.position.x,this.position.y);
 	
 	this.timer = 20
 	this.active = false;
@@ -27,7 +28,7 @@ function CollapseTile(x,y){
 		if( !this.visible ) {
 			this.visible = true; 
 			this.active = false;
-			game.addCollision(this.lineTop);
+			game.setTile(this.position.x, this.position.y, 1, window.BLANK_TILE);
 			this.timer = 20;
 		}
 	});
@@ -47,9 +48,32 @@ CollapseTile.prototype.hide = function(){
 	this.visible = false;
 	this.position.x = this.center.x;
 	this.position.y = this.center.y;
-	game.removeCollision(this.lineTop);
+	game.setTile(this.position.x, this.position.y, 1, 0);
 }
 CollapseTile.prototype.destroy = function(){
-	game.removeCollision(this.lineTop);
+	game.setTile(this.position.x, this.position.y, 1, 0);
 	GameObject.prototype.destroy.apply(this);
+}
+
+BreakableTile.prototype = new GameObject();
+BreakableTile.prototype.constructor = GameObject;
+function BreakableTile(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.life = 1;
+	
+	this.on("struck", function(obj,pos,damage){
+		if( obj instanceof Player){
+			//break tile
+			if( game.getTile(this.position.x, this.position.y ) != 0 ) {
+				audio.play("crash");
+				game.setTile(this.position.x, this.position.y, 1, 0 );
+			}
+			this.destroy();
+		}
+	});
 }

@@ -36,10 +36,6 @@
 					<option value=0.8>High</option>
 				</select>
 			</div>
-			<div class="field volume">
-				<label>Reset</label>
-				<button name="reset">Reset</button>
-			</div>
 		</div>
 		
 		<h2 id = "how">How to play</h2>
@@ -66,10 +62,6 @@
 		});
 		$("select[name=musvolume]").on("change",function(e){
 			audio.musVolume.gain.value = this.value - 0;
-		});
-		$("button[name=reset]").on("click",function(e){
-			dataManager.reset();
-			dataManager.randomLevel(game,0);
 		});
 	}
 	</script>

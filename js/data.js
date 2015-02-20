@@ -90,7 +90,8 @@ function DataManager() {
 	this.reset();
 }
 
-DataManager.prototype.reset = function(g, temple){
+DataManager.prototype.reset = function(){
+	if( game instanceof Game ) game.pause = false;
 	window._player = undefined;
 	window._shop = undefined;
 	audio.stop("music");
@@ -164,7 +165,7 @@ DataManager.prototype.randomLevel = function(g, temple){
 	var height = 240;
 	
 	//Establish the level size and build tile matrix
-	g.tileDimension = new Line(0,0,0,0);
+	g.tileDimension = new Line(9999,9999,-9999,-9999);
 	for(var i in this.room_matrix){
 		pos = new Point(
 			~~i.match(/(-?\d+)/g)[0],
@@ -234,7 +235,7 @@ DataManager.prototype.randomLevel = function(g, temple){
 			~~i.match(/(-?\d+)/g)[0],
 			~~i.match(/(-?\d+)/g)[1]
 		);
-		cut( 256*(this.secret_matrix[i] > 0 ? pos.x-1 : pos.x), 240*pos.y);
+		this.cut( 256*(this.secret_matrix[i] > 0 ? pos.x-1 : pos.x), 240*pos.y);
 	}
 	
 	//_player.lock = _player.lock = new Line(0,0,cursor,240);
@@ -257,8 +258,8 @@ DataManager.prototype.createRoom = function(g,room,cursor,id){
 				var x = Math.floor( i % ( 16 * room.width ) );
 				var y = Math.floor( i / ( 16 * room.width ) );
 				var offset = Math.floor( 
-					Math.floor( (x+g.tileDimension.start.x) + Math.floor( cursor.x / ts ) ) + 
-					Math.floor( ((y+g.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * g.tileDimension.width() )
+					Math.floor( (x-g.tileDimension.start.x) + Math.floor( cursor.x / ts ) ) + 
+					Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * g.tileDimension.width() )
 				);
 				g.tiles[j][offset] = room[layers[j]][i];
 			}
@@ -668,6 +669,19 @@ DataManager.prototype.randomTresure = function(roll){
 DataManager.prototype.junctionCount = function(){
 	return Object.keys(this.junctions_matrix).length;
 }
+DataManager.prototype.cut = function(x,y){
+	var l = new Line(
+		(Math.floor(x/256)*256)+144,
+		(Math.floor(y/240)*240)+64,
+		(Math.floor(x/256)*256)+368,
+		(Math.floor(y/240)*240)+184
+	);
+	
+	for(var x=l.start.x; x < l.end.x; x += 16)
+	for(var y=l.start.y; y < l.end.y; y += 16) {
+		game.addObject( new BreakableTile(x + 8, y + 8) );
+	}
+}
 
 function Seed(s){
 	this.seed = "" + s;
@@ -690,6 +704,21 @@ Seed.prototype.randomBool = function(odds){
 var sprites = {};
 var audio = {};
 var RT = "/";
+
+img_filters = {
+	"invert" : function(d,i){ 
+		if( d[i+3] > 100 ) {
+			d[i+0] = 255-d[i+0];
+			d[i+1] = 255-d[i+1];
+			d[i+2] = 255-d[i+2];
+		}
+	},
+	"hurt" : function(d,i){
+		d[i+1] = Math.floor(d[i+1]*0.3);
+		d[i+2] = 0;
+	}
+}
+
 function load_sprites (){
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['pig'] = new Sprite(RT+"img/pig.gif", {offset:new Point(0, 0),width:32,height:40});
@@ -707,17 +736,17 @@ function load_sprites (){
 	sprites['sword3'] = new Sprite(RT+"img/sword3.gif", {offset:new Point(26, 32),width:80,height:48});
 	
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(24, 48),width:48,height:64});
-	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48});
-	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32});
-	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24});
-	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32});
-	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32});
-	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32});
-	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(14, 16),width:32,height:32});
-	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(8, 8),width:16,height:16});
-	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48});
-	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64});
-	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:80,height:64});
+	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":img_filters});
+	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32,"filters":img_filters});
+	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24,"filters":img_filters});
+	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32,"filters":img_filters});
+	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":img_filters});
+	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32,"filters":img_filters});
+	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(14, 16),width:32,height:32,"filters":img_filters});
+	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(8, 8),width:16,height:16,"filters":img_filters});
+	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48,"filters":img_filters});
+	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64,"filters":img_filters});
+	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:80,height:64,"filters":img_filters});
 	
 	sprites['prisoner'] = new Sprite(RT+"img/prisoner.gif", {offset:new Point(16, 24),width:32,height:48});
 	
@@ -759,58 +788,8 @@ window.audio = new AudioPlayer({
 	"pause" : {"url":RT+"sounds/pause.wav"},
 	"pickup1" : {"url":RT+"sounds/pickup1.wav"},
 	"playerhurt" : {"url":RT+"sounds/playerhurt.wav"},
+	"playerdeath" : {"url":RT+"sounds/playerdeath.wav"},
 	"spell" : {"url":RT+"sounds/spell.wav"},
 	"swing" : {"url":RT+"sounds/swing.wav"},
 	"unpause" : {"url":RT+"sounds/unpause.wav"},
 });
-
-function cut(x,y){
-	var l = new Line(
-		(Math.floor(x/256)*256)+144,
-		(Math.floor(y/240)*240)+64,
-		(Math.floor(x/256)*256)+368,
-		(Math.floor(y/240)*240)+176
-	);
-	var ls = game.lines.get(l);
-	
-	var add_top = false;
-	var add_bot = false;
-	var top = new Line(Number.MAX_VALUE,l.top(),-Number.MAX_VALUE,l.top());
-	var bot = new Line(l.center().x,l.bottom(),l.center().x,l.bottom());
-	
-	for(var i=0; i < ls.length; i++){
-		var _l = ls[i];
-		if( l.overlaps(_l) ) {
-			game.removeCollision(_l);
-			
-			//Line overflows outside of cut area
-			if( _l.top() < l.top() ){
-				var new_line = new Line(_l.start.x, _l.top(), _l.start.x, l.top());
-				if( new_line.normal().dot( _l.normal() ) < 0.8 ) new_line.flip();
-				game.addCollision(new_line);
-				
-				top.start.x = Math.min(top.start.x,_l.start.x);
-				top.end.x = Math.max(top.end.x,_l.start.x);
-				add_top = true;
-			}
-			if( _l.bottom() > l.bottom() ){
-				var new_line = new Line(_l.start.x, _l.bottom(), _l.start.x, l.bottom());
-				if( new_line.normal().dot( _l.normal() ) < 0.8 ) new_line.flip();
-				game.addCollision(new_line);
-				
-				bot.start.x = Math.max(bot.start.x,_l.start.x);
-				bot.end.x = Math.min(bot.end.x,_l.start.x);
-				add_bot = true;
-			}
-			if( _l.right() > l.right() ){
-				game.addCollision(new Line(_l.right(), _l.start.y, l.right(), _l.start.y) );
-			}
-			if( _l.left() < l.left() ){
-				game.addCollision(new Line(_l.left(), _l.start.y, l.left(), _l.start.y) );
-			}
-		}
-	}
-	if( add_top ) game.addCollision(top);
-	if( add_bot ) game.addCollision(bot);
-	//game.addCollision(l);
-}

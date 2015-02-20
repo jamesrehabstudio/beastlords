@@ -21,13 +21,13 @@ PauseMenu.prototype.update = function(){
 	if( this.open ) {
 		game.pause = true;
 		
-		//Navigate pages
-		if( input.state("select") == 1 ) {
-			this.page = ( this.page + 1 ) % 4;
-			audio.play("cursor");
-		}
-		
-		if( this.page == 0 ) {
+		if( _player.life <= 0 ) {
+			//Player is dead, just wait for the start button to be pressed
+			if( input.state("pause") == 1 ) { 
+				dataManager.reset();
+				dataManager.randomLevel(game,0);
+			}
+		} else if( this.page == 0 ) {
 			//Equipment page
 			if( input.state("left") == 1 ) { this.cursor--; audio.play("cursor"); }
 			if( input.state("right") == 1 ) { this.cursor++; audio.play("cursor"); }
@@ -81,13 +81,22 @@ PauseMenu.prototype.update = function(){
 			}
 		}
 		
-		if( input.state("pause") == 1 ) {
-			this.open = false;
-			game.pause = false;
-			audio.play("unpause");
+		if( _player.life > 0) {
+			//Close pause menu
+			if( input.state("pause") == 1 ) {
+				this.open = false;
+				game.pause = false;
+				audio.play("unpause");
+			}
+			
+			//Navigate pages
+			if( input.state("select") == 1 ) {
+				this.page = ( this.page + 1 ) % 4;
+				audio.play("cursor");
+			}
 		}
 	} else {
-		if( input.state("pause") == 1 && _player instanceof Player ) {
+		if( input.state("pause") == 1 && _player instanceof Player && _player.life > 0 ) {
 			this.open = true;
 			_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
@@ -145,8 +154,12 @@ PauseMenu.prototype.render = function(g,c){
 	this.cursor += 0.15 * this.delta;
 	*/
 	
-	if( this.open ) {
-		if( this.page == 0 ) {
+	if( this.open && _player instanceof Player ) {
+		if( _player.life <= 0 ) {
+			sprites.title.render(g,new Point(), 3);
+			boxArea(g,68,168,120,40);
+			textArea(g,"Press start",84,184);
+		} else if( this.page == 0 ) {
 			//Equipment
 			
 			boxArea(g,68,8,120,224);
