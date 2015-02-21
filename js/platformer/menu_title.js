@@ -28,7 +28,7 @@ TitleMenu.prototype.update = function(){
 		this.progress += this.delta / Game.DELTASECOND;
 		
 		if( input.state("pause") == 1 ) {
-			if( this.progress < 9.0 || this.progress > 16.0 ) {
+			if( this.progress < 9.0 || this.progress > 24.0 ) {
 				this.progress = 9.0;
 			} else {
 				//Start game
@@ -62,7 +62,7 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),1);
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
-		if( this.progress >= 9.0 ){
+		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			boxArea(g,68,168,120,40);
 			textArea(g,"Press start",84,184);
 		}

@@ -19,8 +19,8 @@ function Item(x,y,name){
 			if( this.name == "life" ) { obj.heal = 100; }
 			if( this.name == "life_up" ) { obj.lifeMax += 25; obj.heal = Number.MAX_VALUE; }
 			if( this.name == "life_small" ) { obj.heal = 10; }
-			if( this.name == "money_small" ) { obj.addXP(10); audio.play("pickup1"); }
-			if( this.name == "money_big" ) { obj.addXP(50); audio.play("pickup1"); }
+			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }
+			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			if( this.name == "short_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
 			if( this.name == "long_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
 			if( this.name == "spear") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
@@ -51,8 +51,8 @@ Item.prototype.setName = function(n){
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	if(n == "mana_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "money_small") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "money_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "xp_small") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	
 	if(n == "coin_1") { this.frame = 7; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_2") { this.frame = 10; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
@@ -60,7 +60,7 @@ Item.prototype.setName = function(n){
 	
 }
 Item.drop = function(obj,money){
-	var drops = ["life_small", "money_small"];
+	var drops = ["life_small", "xp_small"];
 	drops.sort(function(a,b){ return Math.random() - 0.5; } );
 	if(Math.random() > 0.84 && money == undefined){
 		game.addObject( new Item( obj.position.x, obj.position.y, drops[0] ) );

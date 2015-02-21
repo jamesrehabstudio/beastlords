@@ -38,17 +38,18 @@ function Bear(x,y){
 		if( this.team == obj.team ) return;
 		if( this.inviciple > 0 ) return;
 		
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
+		this.hurt(obj,damage);
+	});
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		if( this.inviciple > 0 ) return;
 		
-		if( (this.states.guard == 1 && dir.y < 0) || (this.states.guard == 2 && dir.y > 0) ){
-			//blocked
-			obj.force.x += (dir2.x > 0 ? -3 : 3) * this.delta;
-			this.force.x += (dir2.x < 0 ? -1 : 1) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
+		var dir = this.position.subtract(obj.position);
+	
+		//blocked
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
 	});
 	this.on("hurt", function(){
 		this.states.attack = -1.0;
@@ -96,6 +97,11 @@ Bear.prototype.update = function(){
 	}
 	/* counters */
 	this.states.attack -= this.delta;
+	
+	/* guard */
+	this.guard.active = this.states.guard != 0;
+	this.guard.x = 8;
+	this.guard.y = this.states.guard == 1 ? 5 : -6;
 	
 	/* Animation */
 	if ( this.stun > 0 ) {

@@ -53,10 +53,24 @@ function Player(x, y){
 	this.on("land", function(){
 		audio.play("land");
 	});
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		if( this.inviciple > 0 ) return;
+		
+		//blocked
+		var dir = this.position.subtract(obj.position);
+		var kb = damage / 15.0;
+		
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
+		audio.playLock("block",0.1);
+	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		if( this.inviciple > 0 ) return;
 		
+		this.hurt(obj,damage);
+		/*
 		var dir = this.position.subtract(pos);
 		var dir2 = this.position.subtract(obj.position);
 		var facing = true;
@@ -73,6 +87,7 @@ function Player(x, y){
 		} else {
 			this.hurt(obj,damage);
 		}
+		*/
 	});
 	this.on("hurt", function(obj, damage){
 		this.states.attack = 0;
@@ -250,6 +265,10 @@ Player.prototype.update = function(){
 		this.states.death_clock -= game.deltaUnscaled;
 	}
 	
+	//Shield
+	this.guard.active = this.states.guard;
+	this.guard.y = this.states.duck ? this.shieldProperties.duck : this.shieldProperties.stand;
+	
 	//Animation
 	if ( this.stun > 0 || this.life < 0 ) {
 		this.stand();
@@ -354,20 +373,23 @@ Player.prototype.equip = function(sword, shield){
 		//Shields
 		if( shield != null ) {
 			if( shield.name == "small_shield" ){
-				this.shieldProperties.duck = 8.0;
-				this.shieldProperties.stand = -8.0;
+				this.shieldProperties.duck = 6.0;
+				this.shieldProperties.stand = -5.0;
 				this.shieldProperties.frame_row = 3;
+				this.guard.h = 16;
 			} else if ( shield.name == "tower_shield" ){
 				this.attackProperites.warm += 15.0;
 				this.attackProperites.strike +=  12.0;
 				this.attackProperites.rest +=  12.0;
-				this.shieldProperties.duck = Number.MAX_VALUE;
-				this.shieldProperties.stand = -Number.MAX_VALUE;
+				this.shieldProperties.duck = -5.0;
+				this.shieldProperties.stand = -5.0;
+				this.guard.h = 32;
 				this.shieldProperties.frame_row = 4;
 			} else {
 				this.shieldProperties.duck = -Number.MAX_VALUE;
-				this.shieldProperties.stand = Number.MAX_VALUE;
+				this.shieldProperties.stand = -Number.MAX_VALUE;
 				this.shieldProperties.frame_row = 5;
+				this.guard.h = 16;
 			}
 		} else {
 			this.shieldProperties.duck = -Number.MAX_VALUE;

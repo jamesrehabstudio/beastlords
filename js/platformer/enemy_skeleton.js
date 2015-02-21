@@ -21,6 +21,8 @@ function Skeleton(x,y){
 		"prep_jump" : false
 	}
 	
+	this.guard.active = true;
+	
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
@@ -37,20 +39,18 @@ function Skeleton(x,y){
 	this.on("collideHorizontal", function(x){
 		this.states.prep_jump = true;
 	});
-	this.on("struck", function(obj,pos,damage){
+	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
-		
-		if( (this.states.block_down && dir.y < 0) || (!this.states.block_down && dir.y > 0) ){
-			//blocked
-			obj.force.x += (dir2.x > 0 ? -3 : 3) * this.delta;
-			this.force.x += (dir2.x < 0 ? -1 : 1) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
+		var dir = this.position.subtract(obj.position);
+		//blocked
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
+	});
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;

@@ -4,8 +4,8 @@ function Bullet(x,y,d){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 12;
-	this.height = 12;
+	this.width = 10;
+	this.height = 10;
 	this.blockable = true;
 	
 	this.speed = 6.0;
@@ -15,11 +15,16 @@ function Bullet(x,y,d){
 	this.force.x = d * this.speed;
 	
 	this.on("collideObject", function(obj){
-		if( this.team != obj.team && obj.hurt instanceof Function ) {
-			if( this.blockable ) {
-				obj.trigger("struck", this, this.position, this.collideDamage );
-			} else {
+		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
+			if( !this.blockable ) {
 				obj.hurt( this, this.collideDamage );
+			} else {
+				if( "_shield" in obj && game.overlaps(this.bounds()).indexOf(obj._shield) > -1 ){
+					obj.trigger("block",this,this.position,this.collideDamage);
+				} else {
+					obj.hurt( this, this.collideDamage );
+				}
+				
 			}
 			this.trigger("death");
 		} 
@@ -27,7 +32,7 @@ function Bullet(x,y,d){
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
-	this.on("death", function(obj,pos,damage){ this.destroy();});
+	this.on("death", function(){ this.destroy();});
 	
 	this.team = 0;
 	this.collideDamage = 8;

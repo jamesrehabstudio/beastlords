@@ -263,6 +263,7 @@ Game.prototype.addObject = function( obj ) {
 	this._id_index++;
 	obj.id = this._id_index;
 	obj.assignParent( this );
+	obj.trigger("added");
 	this.objects.push ( obj );
 }
 
@@ -619,6 +620,8 @@ Game.prototype.t_move = function(obj, x, y) {
 				}
 			}
 		}
+		
+		obj.trigger("move", x, y );
 	}
 	
 	//Unstick
@@ -763,11 +766,7 @@ Game.prototype.overlaps = function(l, end){
 	var out = [];
 	for(var i=0; i < this.objects.length; i++ ){
 		var a = this.objects[i];
-		var you = new Line( 
-			new Point( a.position.x - (a.width*.5), a.position.y - (a.height*.5) ),
-			new Point( a.position.x + (a.width*.5), a.position.y + (a.height*.5) )
-		);
-		if( line.overlaps(you) ) {
+		if( line.overlaps(a.bounds()) ) {
 			out.push( a );
 		}
 	}

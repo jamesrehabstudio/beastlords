@@ -101,6 +101,23 @@ var mod_combat = {
 		this.stun = 0;
 		this.stun_time = 10.0;
 		this._hurt_strobe = 0;
+		
+		var self = this;
+		this.guard = {
+			"x" : 4,
+			"y" : -5,
+			"h" : 16,
+			"w" : 16,
+			"active" : false
+		};
+		this._shield = new GameObject();
+		this._shield.life = 1;
+		
+		this.on("added",function(){ game.addObject(this._shield); });
+		this._shield.on("struck",function(obj,position,damage){
+			if( obj != self ) 
+				self.trigger("block",obj,position,damage);
+		});
 			
 		this.strike = function(l,trigger){
 			trigger = trigger == undefined ? "struck" : trigger;
@@ -116,8 +133,12 @@ var mod_combat = {
 			var hits = game.overlaps(offset);
 			for( var i=0; i < hits.length; i++ ) {
 				if( hits[i].interactive && hits[i] != this && hits[i].life != null ) {
-					if( trigger == "hurt" ) {
+					this.trigger("struckTarget", this, offset.center(), this.damage);
+					
+					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
 						hits[i].hurt(this, this.damage);
+					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
+						//
 					} else {
 						hits[i].trigger(trigger, this, offset.center(), this.damage);
 					}
@@ -139,6 +160,10 @@ var mod_combat = {
 				if( this.life <= 0 ) this.trigger("death");
 			}
 		}
+		
+		this.on("death", function(){
+			this._shield.destroy();
+		});
 	},
 	"update" : function(){
 		if( this.invincible > 0 ) {
@@ -146,6 +171,18 @@ var mod_combat = {
 			this.filter = this._hurt_strobe < 1 ? "hurt" : false;
 		} else {
 			this.filter = false;
+		}
+		
+		this._shield.interactive = this.guard.active;
+		this._shield.team = this.team;
+		if( this.guard.active ) {
+			this._shield.position.x = this.position.x+(this.flip?-1:1)*this.guard.x;
+			this._shield.position.y = this.position.y+this.guard.y;
+			this._shield.width = this.guard.w;
+			this._shield.height = this.guard.h;
+		} else {
+			this._shield.position.x = -Number.MAX_VALUE;
+			this._shield.position.y = -Number.MAX_VALUE;
 		}
 		
 		this.invincible -= this.delta;

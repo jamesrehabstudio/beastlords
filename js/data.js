@@ -47,7 +47,7 @@ function DataManager() {
 	
 	this.tresures = [
 		{"name":"life","rarity":0.5,"pathSize":1,"doors":0.0,"pergame":9999,"price":20},
-		{"name":"money_big","rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
+		{"name":"xp_big","rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
 		{"name":"long_sword","rarity":0.3,"pathSize":3,"doors":0.0,"pergame":1,"price":30},
 		{"name":"spear","rarity":0.2,"pathSize":3,"doors":0.5,"pergame":1,"price":30},
 		{"name":"tower_shield","rarity":0.05,"pathSize":4,"doors":0.5,"pergame":1,"price":50},
@@ -237,6 +237,9 @@ DataManager.prototype.randomLevel = function(g, temple){
 		);
 		this.cut( 256*(this.secret_matrix[i] > 0 ? pos.x-1 : pos.x), 240*pos.y);
 	}
+	//Add wall meat
+	
+	for(var i=0; i< 5; i++) this.wallmeat();
 	
 	//_player.lock = _player.lock = new Line(0,0,cursor,240);
 	//_player.lock = _player.lock = new Line(0,0,Number.MAX_VALUE,-240);
@@ -447,7 +450,7 @@ DataManager.prototype.addSecret = function(options){
 	var banlist = [0,1,2];
 	
 	for(var i=0; i < locations.length; i++){
-		if( banlist.indexOf( this.room_matrix[ locations[i] ] ) ){
+		if( banlist.indexOf( this.room_matrix[ locations[i] ] ) < 0 ){
 			directions.sort(function(){ return seed.random() - 0.5; });
 			
 			for(var j=0; j<directions.length; j++){
@@ -681,6 +684,36 @@ DataManager.prototype.cut = function(x,y){
 	for(var y=l.start.y; y < l.end.y; y += 16) {
 		game.addObject( new BreakableTile(x + 8, y + 8) );
 	}
+}
+DataManager.prototype.wallmeat = function(x,y){
+	var rooms = Object.keys( this.room_matrix ).sort(function(){ return seed.random() - 0.5; });
+	for(var i=0; i < rooms.length; i++ ) {
+		p = new Point(
+			256 * ~~rooms[i].match(/(-?\d+)/g)[0],
+			240 * ~~rooms[i].match(/(-?\d+)/g)[1]
+		);
+		var tile = new Array();
+		for(var y=144; y < 240; y+=16) for(var x=0; x < 256; x+=16) {
+			if( game.getTile(p.x+x,p.y+y) != 0 && ( game.getTile(p.x+x+16,p.y+y) == 0 || game.getTile(p.x+x-16,p.y+y) == 0) ){
+				tile.push( new Point(p.x+x+8,p.y+y+8) );
+			}
+		}
+		
+		tile = tile.sort(function(){ return seed.random() - 0.5; });
+		if( tile.length > 0 ) {
+			var breakable = new BreakableTile( tile[0].x,  tile[0].y );
+			var item_name = "life_small";
+			if( seed.randomBool(0.05) ){
+				var tresure = this.randomTresure( seed.random() )
+				item_name = tresure.name;
+				tresure.remaining--;
+			}
+			breakable.item = new Item( tile[0].x,  tile[0].y, item_name);
+			game.addObject( breakable );
+			return true;
+		}
+	}
+	return false;
 }
 
 function Seed(s){

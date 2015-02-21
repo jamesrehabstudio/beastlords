@@ -289,8 +289,8 @@ function Bullet(x,y,d){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 12;
-	this.height = 12;
+	this.width = 10;
+	this.height = 10;
 	this.blockable = true;
 	
 	this.speed = 6.0;
@@ -300,11 +300,16 @@ function Bullet(x,y,d){
 	this.force.x = d * this.speed;
 	
 	this.on("collideObject", function(obj){
-		if( this.team != obj.team && obj.hurt instanceof Function ) {
-			if( this.blockable ) {
-				obj.trigger("struck", this, this.position, this.collideDamage );
-			} else {
+		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
+			if( !this.blockable ) {
 				obj.hurt( this, this.collideDamage );
+			} else {
+				if( "_shield" in obj && game.overlaps(this.bounds()).indexOf(obj._shield) > -1 ){
+					obj.trigger("block",this,this.position,this.collideDamage);
+				} else {
+					obj.hurt( this, this.collideDamage );
+				}
+				
 			}
 			this.trigger("death");
 		} 
@@ -312,7 +317,7 @@ function Bullet(x,y,d){
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
-	this.on("death", function(obj,pos,damage){ this.destroy();});
+	this.on("death", function(){ this.destroy();});
 	
 	this.team = 0;
 	this.collideDamage = 8;
@@ -347,13 +352,12 @@ function CornerStone(x,y){
 		}
 	});
 	
-	var lines = [
-		new Line(this.position.x-32, this.position.y-48, this.position.x-32, this.position.y+48),
-		new Line(this.position.x-32, this.position.y+48, this.position.x+32, this.position.y+48),
-		new Line(this.position.x+32, this.position.y+48, this.position.x+32, this.position.y-48),
-		new Line(this.position.x+32, this.position.y-48, this.position.x-32, this.position.y-48)
-	];
-	for(var i=0; i < lines.length; i++) game.addCollision(lines[i]);
+	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
+		game.setTile(
+		-32 + x + _x,
+		-32 + y +_y,
+		1,window.BLANK_TILE);
+	}
 	
 	this.addModule(mod_combat);
 }
@@ -489,6 +493,7 @@ function Amon(x,y){
 		audio.play("hurt");
 	});
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
 		this.hurt( obj, damage );
 	});
 	this.on("collideObject", function(obj){
@@ -788,17 +793,18 @@ function Bear(x,y){
 		if( this.team == obj.team ) return;
 		if( this.inviciple > 0 ) return;
 		
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
+		this.hurt(obj,damage);
+	});
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		if( this.inviciple > 0 ) return;
 		
-		if( (this.states.guard == 1 && dir.y < 0) || (this.states.guard == 2 && dir.y > 0) ){
-			//blocked
-			obj.force.x += (dir2.x > 0 ? -3 : 3) * this.delta;
-			this.force.x += (dir2.x < 0 ? -1 : 1) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
+		var dir = this.position.subtract(obj.position);
+	
+		//blocked
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
 	});
 	this.on("hurt", function(){
 		this.states.attack = -1.0;
@@ -846,6 +852,11 @@ Bear.prototype.update = function(){
 	}
 	/* counters */
 	this.states.attack -= this.delta;
+	
+	/* guard */
+	this.guard.active = this.states.guard != 0;
+	this.guard.x = 8;
+	this.guard.y = this.states.guard == 1 ? 5 : -6;
 	
 	/* Animation */
 	if ( this.stun > 0 ) {
@@ -905,6 +916,7 @@ function Chaz(x,y){
 	this.addModule( mod_combat );
 	
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
 		this.hurt( obj, this.damage );
 	});
 	this.on("hurt", function(obj,damage){
@@ -1011,6 +1023,7 @@ function Derring(x,y){
 		audio.play("hurt");
 	});
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
 		this.hurt( obj, damage );
 	});
 	this.on("collideObject", function(obj){
@@ -1141,21 +1154,18 @@ function Knight(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
+		var dir = this.position.subtract(obj.position);
+		//blocked
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
+	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
-		
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
-		
-		if( (this.states.guard == 1 && dir.y < 0) || (this.states.guard == 2 && dir.y > 0) ){
-			//blocked
-			obj.force.x += (dir2.x > 0 ? -1 : 1) * this.delta;
-			//this.force.x += (dir2.x < 0 ? -1 : 1) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
+		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
@@ -1216,6 +1226,11 @@ Knight.prototype.update = function(){
 			) );
 		}
 	}
+	/* guard */
+	this.guard.active = this.states.guard > 0;
+	this.guard.y = this.states.guard == 1 ? 6 : -5;
+	this.guard.x = 12;
+	
 	/* counters */
 	this.states.attack -= this.delta;
 	this.states.guardUpdate -= this.delta;
@@ -1263,6 +1278,7 @@ function Oriax(x,y){
 	this.addModule( mod_combat );
 	
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
 		this.hurt( obj, damage );
 	});
 	this.on("hurt", function(obj,damage){
@@ -1426,6 +1442,8 @@ function Skeleton(x,y){
 		"prep_jump" : false
 	}
 	
+	this.guard.active = true;
+	
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
@@ -1442,20 +1460,18 @@ function Skeleton(x,y){
 	this.on("collideHorizontal", function(x){
 		this.states.prep_jump = true;
 	});
-	this.on("struck", function(obj,pos,damage){
+	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
-		
-		if( (this.states.block_down && dir.y < 0) || (!this.states.block_down && dir.y > 0) ){
-			//blocked
-			obj.force.x += (dir2.x > 0 ? -3 : 3) * this.delta;
-			this.force.x += (dir2.x < 0 ? -1 : 1) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
+		var dir = this.position.subtract(obj.position);
+		//blocked
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
+	});
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
@@ -1535,8 +1551,8 @@ function SnakeBullet(x,y,d){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
-	this.height = 16;
-	this.origin.y = 0.8;
+	this.height = 12;
+	this.origin.y = 0.7;
 	
 	this.speed = 0.2;
 	this.sprite = sprites.oriax;
@@ -1549,10 +1565,7 @@ function SnakeBullet(x,y,d){
 		audio.play("hurt");
 	});
 	this.on("collideObject", function(obj){
-		if( this.team != obj.team ) {
-			obj.trigger("struck", this, this.position, this.collideDamage );
-			this.trigger("death");
-		} else if( this.states.landed && obj instanceof Oriax ){
+		if( this.states.landed && obj instanceof Oriax ){
 			this.trigger("death");
 		}
 	});
@@ -1561,6 +1574,10 @@ function SnakeBullet(x,y,d){
 			this.states.landed = true;
 			this.flip = !this.flip;
 		}
+	});
+	this.on("struckTarget",function(obj){
+		if( this.team == obj.team ) return;
+		this.trigger("death");
 	});
 	this.on("death", function(obj,pos,damage){
 		this.destroy();
@@ -1590,6 +1607,8 @@ SnakeBullet.prototype.update = function(){
 		this.force.x += this.speed * this.delta * direction;
 	}
 	
+	this.strike( new Line(-8,-4,8,4) );
+	
 	if( this.states.life < 0 ){
 		this.trigger("death");
 	}
@@ -1618,8 +1637,8 @@ function Item(x,y,name){
 			if( this.name == "life" ) { obj.heal = 100; }
 			if( this.name == "life_up" ) { obj.lifeMax += 25; obj.heal = Number.MAX_VALUE; }
 			if( this.name == "life_small" ) { obj.heal = 10; }
-			if( this.name == "money_small" ) { obj.addXP(10); audio.play("pickup1"); }
-			if( this.name == "money_big" ) { obj.addXP(50); audio.play("pickup1"); }
+			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }
+			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			if( this.name == "short_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
 			if( this.name == "long_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
 			if( this.name == "spear") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
@@ -1650,8 +1669,8 @@ Item.prototype.setName = function(n){
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	if(n == "mana_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "money_small") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "money_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "xp_small") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	
 	if(n == "coin_1") { this.frame = 7; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_2") { this.frame = 10; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
@@ -1659,7 +1678,7 @@ Item.prototype.setName = function(n){
 	
 }
 Item.drop = function(obj,money){
-	var drops = ["life_small", "money_small"];
+	var drops = ["life_small", "xp_small"];
 	drops.sort(function(a,b){ return Math.random() - 0.5; } );
 	if(Math.random() > 0.84 && money == undefined){
 		game.addObject( new Item( obj.position.x, obj.position.y, drops[0] ) );
@@ -2072,7 +2091,7 @@ TitleMenu.prototype.update = function(){
 		this.progress += this.delta / Game.DELTASECOND;
 		
 		if( input.state("pause") == 1 ) {
-			if( this.progress < 9.0 || this.progress > 16.0 ) {
+			if( this.progress < 9.0 || this.progress > 24.0 ) {
 				this.progress = 9.0;
 			} else {
 				//Start game
@@ -2106,7 +2125,7 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),1);
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
-		if( this.progress >= 9.0 ){
+		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			boxArea(g,68,168,120,40);
 			textArea(g,"Press start",84,184);
 		}
@@ -2232,6 +2251,23 @@ var mod_combat = {
 		this.stun = 0;
 		this.stun_time = 10.0;
 		this._hurt_strobe = 0;
+		
+		var self = this;
+		this.guard = {
+			"x" : 4,
+			"y" : -5,
+			"h" : 16,
+			"w" : 16,
+			"active" : false
+		};
+		this._shield = new GameObject();
+		this._shield.life = 1;
+		
+		this.on("added",function(){ game.addObject(this._shield); });
+		this._shield.on("struck",function(obj,position,damage){
+			if( obj != self ) 
+				self.trigger("block",obj,position,damage);
+		});
 			
 		this.strike = function(l,trigger){
 			trigger = trigger == undefined ? "struck" : trigger;
@@ -2247,8 +2283,12 @@ var mod_combat = {
 			var hits = game.overlaps(offset);
 			for( var i=0; i < hits.length; i++ ) {
 				if( hits[i].interactive && hits[i] != this && hits[i].life != null ) {
-					if( trigger == "hurt" ) {
+					this.trigger("struckTarget", this, offset.center(), this.damage);
+					
+					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
 						hits[i].hurt(this, this.damage);
+					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
+						//
 					} else {
 						hits[i].trigger(trigger, this, offset.center(), this.damage);
 					}
@@ -2270,6 +2310,10 @@ var mod_combat = {
 				if( this.life <= 0 ) this.trigger("death");
 			}
 		}
+		
+		this.on("death", function(){
+			this._shield.destroy();
+		});
 	},
 	"update" : function(){
 		if( this.invincible > 0 ) {
@@ -2277,6 +2321,18 @@ var mod_combat = {
 			this.filter = this._hurt_strobe < 1 ? "hurt" : false;
 		} else {
 			this.filter = false;
+		}
+		
+		this._shield.interactive = this.guard.active;
+		this._shield.team = this.team;
+		if( this.guard.active ) {
+			this._shield.position.x = this.position.x+(this.flip?-1:1)*this.guard.x;
+			this._shield.position.y = this.position.y+this.guard.y;
+			this._shield.width = this.guard.w;
+			this._shield.height = this.guard.h;
+		} else {
+			this._shield.position.x = -Number.MAX_VALUE;
+			this._shield.position.y = -Number.MAX_VALUE;
 		}
 		
 		this.invincible -= this.delta;
@@ -2388,10 +2444,24 @@ function Player(x, y){
 	this.on("land", function(){
 		audio.play("land");
 	});
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		if( this.inviciple > 0 ) return;
+		
+		//blocked
+		var dir = this.position.subtract(obj.position);
+		var kb = damage / 15.0;
+		
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
+		audio.playLock("block",0.1);
+	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		if( this.inviciple > 0 ) return;
 		
+		this.hurt(obj,damage);
+		/*
 		var dir = this.position.subtract(pos);
 		var dir2 = this.position.subtract(obj.position);
 		var facing = true;
@@ -2408,6 +2478,7 @@ function Player(x, y){
 		} else {
 			this.hurt(obj,damage);
 		}
+		*/
 	});
 	this.on("hurt", function(obj, damage){
 		this.states.attack = 0;
@@ -2585,6 +2656,10 @@ Player.prototype.update = function(){
 		this.states.death_clock -= game.deltaUnscaled;
 	}
 	
+	//Shield
+	this.guard.active = this.states.guard;
+	this.guard.y = this.states.duck ? this.shieldProperties.duck : this.shieldProperties.stand;
+	
 	//Animation
 	if ( this.stun > 0 || this.life < 0 ) {
 		this.stand();
@@ -2689,20 +2764,23 @@ Player.prototype.equip = function(sword, shield){
 		//Shields
 		if( shield != null ) {
 			if( shield.name == "small_shield" ){
-				this.shieldProperties.duck = 8.0;
-				this.shieldProperties.stand = -8.0;
+				this.shieldProperties.duck = 6.0;
+				this.shieldProperties.stand = -5.0;
 				this.shieldProperties.frame_row = 3;
+				this.guard.h = 16;
 			} else if ( shield.name == "tower_shield" ){
 				this.attackProperites.warm += 15.0;
 				this.attackProperites.strike +=  12.0;
 				this.attackProperites.rest +=  12.0;
-				this.shieldProperties.duck = Number.MAX_VALUE;
-				this.shieldProperties.stand = -Number.MAX_VALUE;
+				this.shieldProperties.duck = -5.0;
+				this.shieldProperties.stand = -5.0;
+				this.guard.h = 32;
 				this.shieldProperties.frame_row = 4;
 			} else {
 				this.shieldProperties.duck = -Number.MAX_VALUE;
-				this.shieldProperties.stand = Number.MAX_VALUE;
+				this.shieldProperties.stand = -Number.MAX_VALUE;
 				this.shieldProperties.frame_row = 5;
+				this.guard.h = 16;
 			}
 		} else {
 			this.shieldProperties.duck = -Number.MAX_VALUE;
@@ -3170,6 +3248,7 @@ function BreakableTile(x, y){
 	this.width = 16;
 	this.height = 16;
 	this.life = 1;
+	this.item = false;
 	
 	this.on("struck", function(obj,pos,damage){
 		if( obj instanceof Player){
@@ -3177,6 +3256,11 @@ function BreakableTile(x, y){
 			if( game.getTile(this.position.x, this.position.y ) != 0 ) {
 				audio.play("crash");
 				game.setTile(this.position.x, this.position.y, 1, 0 );
+				if( this.item instanceof Item){
+					this.item.position.x = this.position.x;
+					this.item.position.y = this.position.y;
+					game.addObject( this.item );
+				}
 			}
 			this.destroy();
 		}

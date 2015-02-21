@@ -65,6 +65,7 @@ function BreakableTile(x, y){
 	this.width = 16;
 	this.height = 16;
 	this.life = 1;
+	this.item = false;
 	
 	this.on("struck", function(obj,pos,damage){
 		if( obj instanceof Player){
@@ -72,6 +73,11 @@ function BreakableTile(x, y){
 			if( game.getTile(this.position.x, this.position.y ) != 0 ) {
 				audio.play("crash");
 				game.setTile(this.position.x, this.position.y, 1, 0 );
+				if( this.item instanceof Item){
+					this.item.position.x = this.position.x;
+					this.item.position.y = this.position.y;
+					game.addObject( this.item );
+				}
 			}
 			this.destroy();
 		}

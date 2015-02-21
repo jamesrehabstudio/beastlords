@@ -5,8 +5,8 @@ function SnakeBullet(x,y,d){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
-	this.height = 16;
-	this.origin.y = 0.8;
+	this.height = 12;
+	this.origin.y = 0.7;
 	
 	this.speed = 0.2;
 	this.sprite = sprites.oriax;
@@ -19,10 +19,7 @@ function SnakeBullet(x,y,d){
 		audio.play("hurt");
 	});
 	this.on("collideObject", function(obj){
-		if( this.team != obj.team ) {
-			obj.trigger("struck", this, this.position, this.collideDamage );
-			this.trigger("death");
-		} else if( this.states.landed && obj instanceof Oriax ){
+		if( this.states.landed && obj instanceof Oriax ){
 			this.trigger("death");
 		}
 	});
@@ -31,6 +28,10 @@ function SnakeBullet(x,y,d){
 			this.states.landed = true;
 			this.flip = !this.flip;
 		}
+	});
+	this.on("struckTarget",function(obj){
+		if( this.team == obj.team ) return;
+		this.trigger("death");
 	});
 	this.on("death", function(obj,pos,damage){
 		this.destroy();
@@ -59,6 +60,8 @@ SnakeBullet.prototype.update = function(){
 		var direction = (this.flip ? -1 : 1);
 		this.force.x += this.speed * this.delta * direction;
 	}
+	
+	this.strike( new Line(-8,-4,8,4) );
 	
 	if( this.states.life < 0 ){
 		this.trigger("death");

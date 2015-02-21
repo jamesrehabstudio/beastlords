@@ -62,21 +62,18 @@ function Knight(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
+		var dir = this.position.subtract(obj.position);
+		//blocked
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
+	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
-		
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
-		
-		if( (this.states.guard == 1 && dir.y < 0) || (this.states.guard == 2 && dir.y > 0) ){
-			//blocked
-			obj.force.x += (dir2.x > 0 ? -1 : 1) * this.delta;
-			//this.force.x += (dir2.x < 0 ? -1 : 1) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
+		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
@@ -137,6 +134,11 @@ Knight.prototype.update = function(){
 			) );
 		}
 	}
+	/* guard */
+	this.guard.active = this.states.guard > 0;
+	this.guard.y = this.states.guard == 1 ? 6 : -5;
+	this.guard.x = 12;
+	
 	/* counters */
 	this.states.attack -= this.delta;
 	this.states.guardUpdate -= this.delta;

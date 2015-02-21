@@ -14,6 +14,7 @@ function Oriax(x,y){
 	this.addModule( mod_combat );
 	
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
 		this.hurt( obj, damage );
 	});
 	this.on("hurt", function(obj,damage){

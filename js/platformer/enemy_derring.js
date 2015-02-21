@@ -17,6 +17,7 @@ function Derring(x,y){
 		audio.play("hurt");
 	});
 	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
 		this.hurt( obj, damage );
 	});
 	this.on("collideObject", function(obj){

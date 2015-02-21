@@ -21,13 +21,12 @@ function CornerStone(x,y){
 		}
 	});
 	
-	var lines = [
-		new Line(this.position.x-32, this.position.y-48, this.position.x-32, this.position.y+48),
-		new Line(this.position.x-32, this.position.y+48, this.position.x+32, this.position.y+48),
-		new Line(this.position.x+32, this.position.y+48, this.position.x+32, this.position.y-48),
-		new Line(this.position.x+32, this.position.y-48, this.position.x-32, this.position.y-48)
-	];
-	for(var i=0; i < lines.length; i++) game.addCollision(lines[i]);
+	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
+		game.setTile(
+		-32 + x + _x,
+		-32 + y +_y,
+		1,window.BLANK_TILE);
+	}
 	
 	this.addModule(mod_combat);
 }
