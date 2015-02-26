@@ -112,7 +112,7 @@ Shop.prototype.render = function(g,c){
 				this.soldout = false;
 				var p = this.items[i].position.subtract(c);
 				if( i == this.cursor ) boxArea(g, p.x-16,p.y-16,32,32);
-				textArea(g, ""+this.prices[i], p.x-8, p.y+12);
+				textArea(g, "$"+this.prices[i], p.x-8, p.y+12);
 			}
 		}
 		

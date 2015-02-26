@@ -9,6 +9,7 @@ var mod_rigidbody = {
 		this.friction = 0.1;
 		this.bounce = 0.0;
 		this.collisionReduction = 0.0;
+		this.pushable = true;
 		
 		this.on("collideHorizontal", function(dir){
 			this.force.x *= this.collisionReduction;
@@ -21,7 +22,7 @@ var mod_rigidbody = {
 			this.force.y *= -this.bounce;
 		});
 		this.on("collideObject", function(obj){
-			if( obj.hasModule(mod_rigidbody) ) {
+			if( obj.hasModule(mod_rigidbody) && this.pushable ) {
 				var dir = this.position.subtract( obj.position ).normalize();
 				var mass = Math.max( 1.0 - Math.max(this.mass - obj.mass, 0), 0);
 				this.force.y += dir.y * this.friction * mass;

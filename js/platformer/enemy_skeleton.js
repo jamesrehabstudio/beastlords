@@ -23,6 +23,11 @@ function Skeleton(x,y){
 	
 	this.guard.active = true;
 	
+	this.attacktimes = {
+		"warm" : 30.0,
+		"release" : 14.0,
+		"rest" : 10.0
+	};
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
@@ -87,14 +92,14 @@ Skeleton.prototype.update = function(){
 		}
 	
 		if( this.states.cooldown < 0 && Math.abs(dir.x) < 64 ){
-			this.states.attack = this.attack_warm;
+			this.states.attack = this.attacktimes.warm;
 			this.states.cooldown = Game.DELTASECOND;
 		}
 		
-		if ( this.states.attack > 0 && this.states.attack < this.attack_time ){
+		if ( this.states.attack > this.attacktimes.rest && this.states.attack <= this.attacktimes.release ){
 			this.strike(new Line(
 				new Point( 12, -6 ),
-				new Point( 20, -10 )
+				new Point( 24, -10 )
 			) );
 		}
 	}
@@ -107,7 +112,9 @@ Skeleton.prototype.update = function(){
 		this.frame_row = 2;
 	} else { 
 		if( this.states.attack > 0 ) {
-			this.frame = this.states.attack < this.attack_time ? 2 : (this.states.attack < this.attack_time*1.5 ? 1 : 0);
+			this.frame = 0;
+			if( this.states.attack <= this.attacktimes.release ) this.frame = 1;
+			if( this.states.attack <= this.attacktimes.rest ) this.frame = 2;
 			this.frame_row = 1
 		} else if( !this.grounded ) {
 			this.frame = 3;
@@ -115,8 +122,12 @@ Skeleton.prototype.update = function(){
 		} else {
 			this.frame_row = 0;
 			if( Math.abs( this.force.x ) > 0.1 ) {
-				this.frame = Math.max( (this.frame + this.delta * Math.abs( this.force.x ) * 0.1 ) % 4, 1 );
+				this.frame = (this.frame + this.delta * Math.abs( this.force.x ) * 0.1 ) % 4;
 			}
 		}
 	}
+}
+Skeleton.prototype.render = function(g,c){
+	this.sprite.render(g,this.position.subtract(c),4,0,this.flip);
+	GameObject.prototype.render.apply(this,[g,c]);
 }

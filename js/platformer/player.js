@@ -94,6 +94,12 @@ function Player(x, y){
 		game.slow(0,5.0);
 		audio.play("playerhurt");
 	})
+	this.on("added", function(){
+		for(var i in this.spellsCounters ){
+			this.spellsCounters[i] = 0;
+		}
+		audio.play("music");
+	})
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
@@ -105,6 +111,7 @@ function Player(x, y){
 	this.manaMax = 100;
 	this.money = 0;
 	this.heal = 100;
+	this.healMana = 0;
 	this.damage = 5;
 	this.team = 1;
 	this.mass = 1;
@@ -199,6 +206,11 @@ function Player(x, y){
 Player.prototype.update = function(){
 	var speed = 1.25;
 	
+	if( this.manaHeal > 0 ){
+		this.mana = Math.min(this.mana += 2, this.manaMax);
+		this.manaHeal-= 2;
+		if( this.mana >= this.manaMax ) this.manaHeal = 0;
+	}
 	if( this.heal > 0 ){
 		audio.play("heal");
 		this.life += 2;
@@ -488,7 +500,7 @@ Player.prototype.render = function(g,c){
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*25 ),2);
 	g.closePath();
 	
-	textArea(g,this.money+"g",8, 33 );
+	textArea(g,"$"+this.money,8, 33 );
 	
 	if( this.stat_points > 0 )
 		textArea(g,"Press Start",8, 45 );

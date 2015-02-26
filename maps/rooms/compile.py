@@ -2,18 +2,19 @@ import json
 import os
 import re
 
-def compile(data):
+def compile(data, width=16):
 	out = {}
-	out["width"] = int(data["width"]) / 16
+	out["width"] = int(data["width"]) / width
 	for layer in data["layers"]:
 		if layer["name"] == "lines":
-			for property in layer["properties"]:
-				if property == "rarity":
-					out[str(property)] = float(layer["properties"][property])
-				elif property == "tags" or property == "type":
-					out[str(property)] = json.loads(layer["properties"][property])
-				else:
-					out[str(property)] = str(layer["properties"][property])
+			if "properties" in layer :
+				for property in layer["properties"]:
+					if property == "rarity":
+						out[str(property)] = float(layer["properties"][property])
+					elif property == "tags" or property == "type":
+						out[str(property)] = json.loads(layer["properties"][property])
+					else:
+						out[str(property)] = str(layer["properties"][property])
 			out["lines"] = []
 			for object in layer["objects"]:
 				x = int( object["x"] )
@@ -26,6 +27,14 @@ def compile(data):
 						y + object["polyline"][i+1]["y"] 
 					] )
 		elif layer["name"] == "objects":
+			if "properties" in layer :
+				for property in layer["properties"]:
+					if property == "rarity":
+						out[str(property)] = float(layer["properties"][property])
+					elif property == "tags" or property == "type":
+						out[str(property)] = json.loads(layer["properties"][property])
+					else:
+						out[str(property)] = str(layer["properties"][property])
 			out["objects"] = []
 			for object in layer["objects"]:
 				out["objects"].append( [ int(object["x"])+8, int(object["y"])-8, str(object["name"]), object["properties"] ] )
@@ -38,17 +47,20 @@ def compile(data):
 	
 def main():
 	rooms = []
-	junctions = []	
+	junctions = []
+	towns = []
 	
 	for file in os.listdir(os.getcwd()):
 		if re.match(".*\.json", file):
 			try:
-				if file[0] == "j":
+				if file[0:4] == "town":
+					towns.append( compile( json.loads( open(file,"r").read() ), 8 ) )
+				elif file[0] == "j":
 					junctions.append( compile( json.loads( open(file,"r").read() ) ) )
 				else:
 					rooms.append( compile( json.loads( open(file,"r").read() ) ) )
-			except Exception:
-				print "Error reading: " + file
+			except Exception, err:
+				print "Error reading: " + file + " " + str(err)
 	
 	#Write out regular rooms
 	write = "\tthis.rooms = [\n"
@@ -63,6 +75,15 @@ def main():
 	write += "\n\n\tthis.junctions = [\n"
 	i = 0
 	for room in junctions:
+		if i > 0 : write += ",\n"
+		write += "\t\t" + json.dumps(room)
+		i += 1
+	write += "\n\t];"
+	
+	#Write out junctions
+	write += "\n\n\tthis.town = [\n"
+	i = 0
+	for room in towns:
 		if i > 0 : write += ",\n"
 		write += "\t\t" + json.dumps(room)
 		i += 1

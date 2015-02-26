@@ -1,6 +1,6 @@
 Prisoner.prototype = new GameObject();
 Prisoner.prototype.constructor = GameObject;
-function Prisoner(x,y){
+function Prisoner(x,y,n,options){
 	this.constructor();
 	this.sprite = sprites.prisoner;
 	this.position.x = x;
@@ -34,6 +34,7 @@ function Prisoner(x,y){
 	this.addModule(mod_rigidbody);
 	this.friction = 0.9;
 	this.mass = 0;
+	this.pushable = false;
 }
 Prisoner.prototype.update = function(){
 	this.flip = this.position.x - _player.position.x > 0;

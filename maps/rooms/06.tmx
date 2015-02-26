@@ -44,7 +44,7 @@
  <objectgroup name="lines" width="16" height="15">
   <properties>
    <property name="max_temple" value="1"/>
-   <property name="rarity" value="1.0"/>
+   <property name="rarity" value="0.7"/>
   </properties>
   <object x="256" y="208">
    <polyline points="0,0 -256,0"/>
@@ -57,6 +57,21 @@
   <object name="MajorMonster" gid="232" x="128" y="192">
    <properties>
     <property name="rarity" value="0.2"/>
+   </properties>
+  </object>
+  <object name="Batty" gid="232" x="48" y="48">
+   <properties>
+    <property name="rarity" value="0.5"/>
+   </properties>
+  </object>
+  <object name="Batty" gid="232" x="208" y="48">
+   <properties>
+    <property name="rarity" value="0.5"/>
+   </properties>
+  </object>
+  <object name="Batty" gid="232" x="128" y="48">
+   <properties>
+    <property name="rarity" value="0.25"/>
    </properties>
   </object>
  </objectgroup>

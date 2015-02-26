@@ -54,8 +54,8 @@ function Marquis(x,y){
 		}
 	});
 	this.on("hurt", function(){
-		this.states.attack = -1.0;
-		this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
+		//this.states.attack = -1.0;
+		//this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
 		audio.play("hurt");
 	});
 	this.on("death", function(){

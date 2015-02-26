@@ -153,6 +153,13 @@ PauseMenu.prototype.render = function(g,c){
 	sprites.pig.render(g,new Point(128,128), 0, row );
 	this.cursor += 0.15 * this.delta;
 	*/
+	/* mini map */
+	
+	if( _player instanceof Player ) {
+		g.fillStyle = "#000";
+		g.scaleFillRect(216,8,32,24);
+		this.renderMap(g,new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)), new Point(232,24), new Line(-16,-16,16,8));
+	}
 	
 	if( this.open && _player instanceof Player ) {
 		if( _player.life <= 0 ) {
@@ -195,45 +202,9 @@ PauseMenu.prototype.render = function(g,c){
 		} else if ( this.page == 1 ) {
 			//Map
 			boxArea(g,16,8,224,224);
-			
 			textArea(g,"Map",118,20);
+			this.renderMap(g,this.mapCursor,new Point(32,24), new Line(0,0,24*8,24*8) );
 			
-			var size = new Point(8,8);
-			var offset = new Point(32,24);
-			for(var i=0; i < this.map.length; i++ ){
-				if( this.map[i] > 0 && this.map_reveal[i] > 0 )  {
-					var tile = new Point(
-						this.mapDimension.start.x + (i%this.mapDimension.width() ),
-						this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
-					);
-					var pos = new Point( 
-						(this.mapDimension.start.x*8) + (this.mapCursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
-						(this.mapDimension.start.y*8) + (this.mapCursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
-					);
-					if( pos.x >= 0 && pos.x < 24*8 && pos.y >= 0 && pos.y < 24*8 ) {
-						sprites.map.render(g,pos.add(offset),this.map[i]-1,(this.map_reveal[i]>=2?0:1));
-						
-						if( this.map_reveal[i] >= 2 ) {
-							var doors = game.getObjects(Door);
-							for(var j=0; j < doors.length; j++ ){
-								if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
-									var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
-									sprites.map.render(g,pos.add(offset),door_id,2);
-								}
-							}
-						}
-					}
-				}
-			}
-			//Draw player
-			var pos = new Point(
-				1+this.mapCursor.x*8 + Math.floor(_player.position.x/256)*8, 
-				2+(this.mapCursor.y*8) + Math.floor(_player.position.y/240)*8
-			);
-			if( pos.x >= 0 && pos.x < 24*8 && pos.y >= 0 && pos.y < 24*8 ) {
-				g.fillStyle = "#F00";
-				g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
-			}
 		} else if ( this.page == 2 ) {
 			//Stats page
 			boxArea(g,68,8,120,224);
@@ -275,5 +246,44 @@ PauseMenu.prototype.render = function(g,c){
 				spell_i++;
 			}
 		}
+	}
+}
+
+PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
+	var size = new Point(8,8);
+	//var offset = new Point(32,24);
+	for(var i=0; i < this.map.length; i++ ){
+		if( this.map[i] > 0 && this.map_reveal[i] > 0 )  {
+			var tile = new Point(
+				this.mapDimension.start.x + (i%this.mapDimension.width() ),
+				this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
+			);
+			var pos = new Point( 
+				(this.mapDimension.start.x*8) + (cursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
+				(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
+			);
+			if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+				sprites.map.render(g,pos.add(offset),this.map[i]-1,(this.map_reveal[i]>=2?0:1));
+				
+				if( this.map_reveal[i] >= 2 ) {
+					var doors = game.getObjects(Door);
+					for(var j=0; j < doors.length; j++ ){
+						if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
+							var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
+							sprites.map.render(g,pos.add(offset),door_id,2);
+						}
+					}
+				}
+			}
+		}
+	}
+	//Draw player
+	var pos = new Point(
+		1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
+		2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
+	);
+	if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+		g.fillStyle = "#F00";
+		g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
 	}
 }

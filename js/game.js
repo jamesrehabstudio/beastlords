@@ -433,7 +433,7 @@ Game.prototype.render = function( ) {
 	}
 	
 	//Debug, show collisions
-	if ( window.debug ) {
+	if ( window.debug && this.lines instanceof BSPTree ) {
 		var lines = this.lines.get(new Line(this.camera.x-32,this.camera.y-32,this.camera.x+game.width+32,this.camera.y+game.height+32));
 		for ( var i = 0; i < lines.length; i++ ){
 			lines[i].render( this.g, camera_center );
@@ -791,7 +791,12 @@ Game.prototype.removeCollision = function(l){
 }
 
 Game.prototype.buildCollisions = function(){
-	var new_bounds = new Line(0,0,0,0);
+	var new_bounds = new Line(
+		game.tileDimension.start.x*16,
+		game.tileDimension.start.y*16,
+		game.tileDimension.end.x*16,
+		game.tileDimension.end.y*16
+	);
 	for(var i=0; i<game.collisions.length;i++){
 		var line = game.collisions[i];
 		if( line.start.x < new_bounds.start.x ) new_bounds.start.x = line.start.x;

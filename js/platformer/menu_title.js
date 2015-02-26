@@ -78,7 +78,7 @@ TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(){
 	this.start = true;
-	dataManager.reset();
-	dataManager.randomLevel(window.game,0);
+	game.clearAll();
+	game.addObject(new WorldMap(0,0));
 	audio.stop("music_intro");
 }
