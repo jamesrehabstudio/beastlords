@@ -29,7 +29,7 @@ function WorldMap(x, y){
 	];
 	
 	this.temples = [];
-	for(var i=0; i<9; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":this.seed+i });
+	for(var i=0; i<9; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":i+this.seed });
 	this.temples[0].position.x = 54*16; this.temples[0].position.y = 16*16;
 	this.temples[1].position.x = 5*16; this.temples[1].position.y = 5*16;
 	this.temples[2].position.x = 49*16; this.temples[2].position.y = 39*16;
@@ -56,6 +56,32 @@ function WorldMap(x, y){
 		audio.stop("music");
 		this.active = true;
 		game.addObject( this );
+		
+		/* Save instance of current temple */
+		if( dataManager.currentTemple >= 0 && dataManager.currentTemple < this.temples.length ) {
+			var instance = {
+				"keys" : _player.keys,
+				"items" : game.getObjects(Item),
+				"map" : game.getObject(PauseMenu).map_reveal,
+				"shop" : game.getObject(Shop)
+			};
+			this.temples[dataManager.currentTemple].instance = instance;
+		}
+	});
+	
+	this.on("reset", function(){
+		game.clearAll();
+		this.seed = this.seed = "" + Math.random();
+		for(var i=0; i < this.temples.length; i++ ) {
+			this.temples[i].complete = false;
+			this.temples[i].seed = i+this.seed;
+			delete this.temples[i].instance;
+		}
+		this.player = new Point(16*37,16*6);
+		this.player_goto = new Point(16*37,16*6);
+		dataManager.reset();
+		
+		this.trigger("activate");
 	});
 }
 
@@ -77,8 +103,8 @@ WorldMap.prototype.update = function(){
 		}
 	}
 	
-	this.player_goto.x = Math.floor(this.player_goto.x);
-	this.player_goto.y = Math.floor(this.player_goto.y);
+	this.player_goto.x = Math.floor(this.player_goto.x/16)*16;
+	this.player_goto.y = Math.floor(this.player_goto.y/16)*16;
 	
 	/* Move to the goto location */
 	if( Math.abs( this.player.x - this.player_goto.x ) <= (this.delta*this.speed) )
@@ -97,7 +123,7 @@ WorldMap.prototype.update = function(){
 			this.active = false;
 			this.player.y += 16;
 			this.player_goto.y = this.player.y;
-			dataManager.randomLevel(game, i);
+			dataManager.randomLevel(game, i, this.temples[i].seed);
 		}
 	}
 	
@@ -121,7 +147,7 @@ WorldMap.prototype.update = function(){
 	this.camera.y = Math.min( this.camera.y, this.height * 16 - 240 );
 }
 WorldMap.prototype.passable = function(x,y){
-	var block_list = [0,64,65,66,67,68,69,87,88,103,104];
+	var block_list = [0,37,38,39,40,64,65,66,67,68,69,87,88,103,104];
 	var index = Math.floor(x/16) + Math.floor((y/16)*this.width);
 	var t = this.tiles[0][index]-1;
 	var r = this.tiles[1][index];

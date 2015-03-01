@@ -10,6 +10,8 @@ function Shop(x,y){
 	this.zIndex = -1;
 	this.life = 1;
 	
+	this.anim_character = 0;
+	
 	window._shop = this;
 	
 	this.items = [];
@@ -24,9 +26,8 @@ function Shop(x,y){
 		}
 	});
 	this.message = [
-		//                       ||                        ||                        ||
-		"What are you looking \nfor? Whatever it is, we \nno doubt sell it!",
-		"I sold my entire stock. \nNice doing business with \nyou."
+		"What are you looking for? Whatever it is, we no doubt sell it!",
+		"I sold my entire stock. Nice doing business with you."
 	];
 	this.open = 0;
 	this.cursor = 0;	
@@ -60,6 +61,9 @@ Shop.prototype.update = function(g,c){
 		}
 	}
 	if( this.open > 0 ) this.open = 2 //This is to prevent same frame button purchases
+	
+	/* animation */
+	this.anim_character = (this.anim_character + this.delta * 0.2 ) % 3;
 }
 Shop.prototype.purchase = function(){
 	if( this.items[ this.cursor ] instanceof Item ){
@@ -103,7 +107,7 @@ Shop.prototype.restock = function(data){
 }
 Shop.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
-	sprites.characters.render(g,this.position.subtract(c),0,0,false);
+	sprites.characters.render(g,this.position.subtract(c),this.anim_character,0,false);
 	
 	if( this.open == 2 ){		
 		this.soldout = true;
@@ -112,15 +116,15 @@ Shop.prototype.render = function(g,c){
 				this.soldout = false;
 				var p = this.items[i].position.subtract(c);
 				if( i == this.cursor ) boxArea(g, p.x-16,p.y-16,32,32);
-				textArea(g, "$"+this.prices[i], p.x-8, p.y+12);
+				textArea(g, "$"+this.prices[i], p.x-16, p.y+12);
 			}
 		}
 		
 		boxArea(g,16,16,224,64);
 		if( this.soldout ) {
-			textArea(g,this.message[1],32,32);
+			textArea(g,this.message[1],32,32,192);
 		} else {
-			textArea(g,this.message[0],32,32);
+			textArea(g,this.message[0],32,32,192);
 		}
 	}
 }

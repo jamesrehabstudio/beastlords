@@ -55,15 +55,8 @@ CornerStone.prototype.update = function(){
 		}
 		
 		if( this.progress > 233.333 ) {
-			//Load new level
-			dataManager.randomLevel( game, dataManager.currentTemple + 1 );
-			//_player.life = 1;
 			game.pause = false;
-			//_player.heal = Number.MAX_VALUE;
-			//_player.mana = _player.manaMax;
 			_player.addXP(40);
-			_player.keys = [];
-			
 			window._world.trigger("activate");
 		}
 		

@@ -6,6 +6,7 @@ var mod_rigidbody = {
 		this.force = new Point();
 		this.gravity = 1.0;
 		this.grounded = false;
+		this._groundedTimer = 0;
 		this.friction = 0.1;
 		this.bounce = 0.0;
 		this.collisionReduction = 0.0;
@@ -17,6 +18,7 @@ var mod_rigidbody = {
 		this.on("collideVertical", function(dir){
 			if( dir > 0 ) {
 				this.grounded = true;
+				this._groundedTimer = 2;
 				if( this.force.y > 5.0 ) this.trigger("land");
 			}
 			this.force.y *= -this.bounce;
@@ -42,7 +44,9 @@ var mod_rigidbody = {
 		//Add just enough force to lock them to the ground
 		if(this.grounded ) this.force.y += 0.1;
 		
-		this.grounded = false;
+		//The timer prevents landing errors
+		this._groundedTimer -= this.grounded ? 1 : 10;
+		this.grounded = this._groundedTimer > 0;
 		game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
 		
 		var friction_x = 1.0 - this.friction * this.delta;

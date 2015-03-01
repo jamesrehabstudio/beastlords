@@ -39,7 +39,12 @@ function Skeleton(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+		if( obj.hurt instanceof Function ){
+			if( !this.grounded && this.position.y < obj.position.y ) 
+				obj.hurt( this, this.damage );
+			else 
+				obj.hurt( this, this.collideDamage );
+		}
 	});
 	this.on("collideHorizontal", function(x){
 		this.states.prep_jump = true;
@@ -83,7 +88,7 @@ Skeleton.prototype.update = function(){
 				this.states.cooldown -= this.delta;
 				
 				if( this.states.prep_jump && this.grounded ) {
-					this.force.y = -8.0;
+					this.force.y = -10.0;
 					this.states.prep_jump = false;
 				}
 			} else {

@@ -24,7 +24,7 @@ function AudioPlayer(list){
 	this.list = list;
 	
 	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
-	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.3;
+	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.0;
 	
 	this.sfxVolume.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
@@ -260,11 +260,13 @@ Game.prototype.avr = function( obj ) {
 }
 
 Game.prototype.addObject = function( obj ) {
-	this._id_index++;
-	obj.id = this._id_index;
-	obj.assignParent( this );
-	obj.trigger("added");
-	this.objects.push ( obj );
+	if( obj instanceof GameObject ) {
+		this._id_index++;
+		obj.id = this._id_index;
+		obj.assignParent( this );
+		obj.trigger("added");
+		this.objects.push ( obj );
+	}
 }
 
 Game.prototype.removeObject = function( obj ) {

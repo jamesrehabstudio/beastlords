@@ -98,7 +98,12 @@ function Player(x, y){
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
 		}
-		audio.play("music");
+		
+		if( dataManager.temple_instance ) {
+			this.keys = dataManager.temple_instance.keys;
+		} else {
+			this.keys = new Array();
+		}
 	})
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
@@ -359,25 +364,13 @@ Player.prototype.castSpell = function(name){
 }
 Player.prototype.equip = function(sword, shield){
 	try {
-		if( sword.name == "short_sword" ){
-			this.attackProperites.warm =  8.5;
-			this.attackProperites.strike =  8.5;
-			this.attackProperites.rest =  5.0;
-			this.attackProperites.range =  12.0;
-			this.attackProperites.sprite = sprites.sword1;
-		} else if ( sword.name == "long_sword" ){
-			this.attackProperites.warm = 15.5;
-			this.attackProperites.strike =  10.5;
-			this.attackProperites.rest =  7.0;
-			this.attackProperites.range =  18.0;
-			this.attackProperites.sprite = sprites.sword2;
-		} else if ( sword.name == "spear" ){
-			this.attackProperites.warm =  18.5;
-			this.attackProperites.strike =  13.5;
-			this.attackProperites.rest =  8.0;
-			this.attackProperites.range =  27.0;
-			this.attackProperites.sprite = sprites.sword3;
-			shield = null;
+		if( sword.isWeapon && "stats" in sword ){
+			this.attackProperites.warm =  sword.stats.warm;
+			this.attackProperites.strike = sword.stats.strike;
+			this.attackProperites.rest = sword.stats.rest;
+			this.attackProperites.range = sword.stats.range;
+			this.attackProperites.sprite = sword.stats.sprite;
+			if( sword.twoHanded ) shield = null;
 		} else {
 			throw "No valid weapon";
 		}
@@ -411,9 +404,27 @@ Player.prototype.equip = function(sword, shield){
 		this.equip_sword = sword;
 		this.equip_shield = shield;
 		
-		/* Modify using stats */
-		var tech = this.stats.technique - 1;
+		//Calculate damage and defence
+		var att_bonus = 0;
+		var def_bonus = 0;
+		var tec_bonus = 0;
+		if( this.equip_sword instanceof Item ){
+			att_bonus += (this.equip_sword.bonus_att || 0);
+			def_bonus += (this.equip_sword.bonus_def || 0);
+			tec_bonus += (this.equip_sword.bonus_tec || 0);
+		}
+		if( this.equip_shield instanceof Item ){
+			att_bonus += (this.equip_shield.bonus_att || 0);
+			def_bonus += (this.equip_shield.bonus_def || 0);
+			tec_bonus += (this.equip_shield.bonus_tec || 0);
+		}
 		
+		var att = Math.max( Math.min( att_bonus + this.stats.attack - 1, 19), 0 );
+		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
+		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
+		
+		this.damage = 5 + att * 2;
+		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
 		this.attackProperites.rest = Math.max( this.attackProperites.rest - tech*0.8, 0);
 		this.attackProperites.strike = Math.max( this.attackProperites.strike - tech*0.8, 3.5);
 		this.attackProperites.warm = Math.max( this.attackProperites.warm - tech*1.0, this.attackProperites.strike);		
@@ -435,9 +446,6 @@ Player.prototype.levelUp = function(index){
 		}
 	}
 	
-	this.damage = 3 + this.stats.attack * 2;
-	var def = this.stats.defence - 1;
-	this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
 	this.equip( this.equip_sword, this.equip_shield );
 }
 Player.prototype.addXP = function(value){
@@ -506,7 +514,7 @@ Player.prototype.render = function(g,c){
 		textArea(g,"Press Start",8, 45 );
 	
 	for(var i=0; i < this.keys.length; i++) {
-		this.keys[i].sprite.render(g, new Point(48+i*16, 12), this.keys[i].frame, this.keys[i].frame_row, false );
+		this.keys[i].sprite.render(g, new Point(223+i*4, 40), this.keys[i].frame, this.keys[i].frame_row, false );
 	}
 	
 	//if( this.ttest instanceof Line) this.ttest.renderRect( g, c );

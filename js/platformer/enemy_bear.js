@@ -101,7 +101,7 @@ Bear.prototype.update = function(){
 	/* guard */
 	this.guard.active = this.states.guard != 0;
 	this.guard.x = 8;
-	this.guard.y = this.states.guard == 1 ? 5 : -6;
+	this.guard.y = this.states.guard == 1 ? 6 : -5;
 	
 	/* Animation */
 	if ( this.stun > 0 ) {

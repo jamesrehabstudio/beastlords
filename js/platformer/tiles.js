@@ -25,12 +25,12 @@ function CollapseTile(x,y){
 		}
 	});
 	this.on("wakeup",function(){
-		if( !this.visible ) {
-			this.visible = true; 
-			this.active = false;
-			game.setTile(this.position.x, this.position.y, 1, window.BLANK_TILE);
-			this.timer = 20;
-		}
+		this.visible = true; 
+		this.active = false;
+		this.position.x = this.center.x;
+		this.position.y = this.center.y;
+		game.setTile(this.position.x, this.position.y, 1, window.BLANK_TILE);
+		this.timer = 20;
 	});
 }
 CollapseTile.prototype.update = function(){

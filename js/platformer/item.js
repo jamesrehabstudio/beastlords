@@ -19,7 +19,7 @@ function Item(x,y,name){
 			if( this.name == "life" ) { obj.heal = 100; }
 			if( this.name == "life_up" ) { obj.lifeMax += 25; obj.heal = Number.MAX_VALUE; }
 			if( this.name == "life_small" ) { obj.heal = 10; }
-			if( this.name == "mana_small" ) { obj.manaHeal = 10; }
+			if( this.name == "mana_small" ) { obj.manaHeal = 35; }
 			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			if( this.name == "short_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
@@ -40,12 +40,41 @@ function Item(x,y,name){
 }
 Item.prototype.setName = function(n){
 	this.name = n;
+	//Equipment
+	if(n == "short_sword") { 
+		this.frame = 0; this.frame_row = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.bonus_att=0; 
+		this.stats = {"warm":8.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
+		return; 
+	}
+	if(n == "long_sword") { 
+		this.frame = 1; this.frame_row = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.bonus_att=2; 
+		this.stats = {"warm":15.0, "strike":10,"rest":7.0,"range":18, "sprite":sprites.sword2 };
+		return; 
+	}
+	if(n == "broad_sword") { 
+		this.frame = 3; this.frame_row = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.bonus_att=3; 
+		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword2 };
+		return; 
+	}
+	if(n == "spear") { 
+		this.frame = 2; this.frame_row = 2; 
+		this.isWeapon = true; this.twoHanded = true;
+		this.bonus_att=4; 
+		this.stats = {"warm":18.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
+		return; 
+	}
+	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
+	if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
+	
 	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
 	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
 	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
-	if(n == "short_sword") { this.frame = 0; this.frame_row = 2; return; }
-	if(n == "long_sword") { this.frame = 1; this.frame_row = 2; return; }
-	if(n == "spear") { this.frame = 2; this.frame_row = 2; return; }
 	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
 	if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
 	if(n == "map") { this.frame = 3; this.frame_row = 1; return }
@@ -70,10 +99,10 @@ Item.drop = function(obj,money){
 		while(money > 0){
 			var coin;
 			var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
-			if(money > 10){
+			if(money > 40){
 				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_3" );
 				money -= 10;
-			} else if( money > 5 ) {
+			} else if( money > 10 ) {
 				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_2" );
 				money -= 5;
 			} else {

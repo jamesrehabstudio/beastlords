@@ -24,15 +24,13 @@ PauseMenu.prototype.update = function(){
 		if( _player.life <= 0 ) {
 			//Player is dead, just wait for the start button to be pressed
 			if( input.state("pause") == 1 ) { 
-				dataManager.reset();
-				dataManager.randomLevel(game,0);
+				_world.trigger("reset");
+				return;
 			}
 		} else if( this.page == 0 ) {
 			//Equipment page
-			if( input.state("left") == 1 ) { this.cursor--; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { this.cursor++; audio.play("cursor"); }
-			if( input.state("up") == 1 ) { this.cursor-=4; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.cursor+=4; audio.play("cursor"); }
+			if( input.state("up") == 1 ) { this.cursor-=1; audio.play("cursor"); }
+			if( input.state("down") == 1 ) { this.cursor+=1; audio.play("cursor"); }
 			
 			this.cursor = Math.max( Math.min( this.cursor, _player.equipment.length -1 ), 0 );
 			
@@ -172,33 +170,24 @@ PauseMenu.prototype.render = function(g,c){
 			boxArea(g,68,8,120,224);
 			textArea(g,"Equipment",94,20);
 			
-			//Draw cursor
-			g.fillStyle = "#FFF";
-			g.scaleFillRect(
-				84+(this.cursor % 4) * 24, 
-				(64 + Math.floor(this.cursor / 4) * 24),
-				24, 32 
-			);
-			g.fillStyle = "#000";
-			g.scaleFillRect(
-				86+(this.cursor % 4) * 24, 
-				(66 + Math.floor(this.cursor / 4) * 24),
-				20, 28 
-			);
-			
-			if( _player.equip_sword instanceof Item )
-				_player.equip_sword.render(g, new Point(-108,-40));
-			if( _player.equip_shield instanceof Item )
-				_player.equip_shield.render(g, new Point(-148,-40));
-				
 			for(var i=0; i < _player.equipment.length; i++ ) {
+				var _y = 40 + i * 24;
 				_player.equipment[i].position.x = 0;
 				_player.equipment[i].position.y = 0;
-				_player.equipment[i].render( g, new Point(
-					-(96 + (i % 4) * 24),
-					(-80 + Math.floor(i / 4) * -24)
-				));
+				_player.equipment[i].render( g, new Point(-96, -_y));
+				
+				if( "bonus_att" in _player.equipment[i] ) textArea(g,"\v"+_player.equipment[i].bonus_att,112,_y-4);
+				if( "bonus_def" in _player.equipment[i] ) textArea(g,"\b"+_player.equipment[i].bonus_def,144,_y-4);
+				
+				if( _player.equip_sword == _player.equipment[i] || _player.equip_shield == _player.equipment[i] ) {
+					g.fillStyle = "#007800";
+					g.scaleFillRect(88,_y,8,8);
+					textArea(g,"E",88, _y );
+				}
 			}
+			//Draw cursor
+			textArea(g,"@",80, 36 + this.cursor * 24 );
+			
 		} else if ( this.page == 1 ) {
 			//Map
 			boxArea(g,16,8,224,224);
@@ -231,8 +220,8 @@ PauseMenu.prototype.render = function(g,c){
 			}
 		} else if ( this.page == 3 ) {
 			//Spells
-			boxArea(g,68,8,120,224);
-			textArea(g,"Spells",112,20);
+			boxArea(g,52,8,152,224);
+			textArea(g,"Spells",104,20);
 			
 			var spell_i = 0;
 			for(spell in _player.spellsUnlocked) {

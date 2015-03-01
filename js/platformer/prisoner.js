@@ -16,8 +16,8 @@ function Prisoner(x,y,n,options){
 	
 	this.progress = 0.0;
 	
-	this.message_help = "Help, I'm trapped in here!\nI can teach you something \nif you free me.";
-	this.message_thanks = "Thank you for your help,\nbrave traveller. Now \nreceive your reward.";
+	this.message_help = "Help, I'm trapped in here! I can teach you something if you free me.";
+	this.message_thanks = "Thank you for your help, brave traveller. Now receive your reward.";
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.phase == 0){
@@ -93,9 +93,11 @@ Prisoner.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	
 	if( this.phase == 1 ){
-		textArea(g, this.message_thanks, 32,32);
+		boxArea(g,16,16,224,64);
+		textArea(g, this.message_thanks, 32,32,192);
 	}
 	if( this.alert == 1 && this.phase == 0 ){
-		textArea(g, this.message_help, 32,32);
+		boxArea(g,16,16,224,64);
+		textArea(g, this.message_help, 32,32,192);
 	}
 }
