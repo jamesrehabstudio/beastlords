@@ -34,7 +34,8 @@ function Healer(x,y,n,options){
 	});
 	this.message = [	
 		"Let me bless you, weary traveller, so I may restore your spirit.",
-		"I can ease your pain. It'll cost you $"+this.price+". Interested?"
+		"I can ease your pain. It'll cost you $%PRICE%. Interested?",
+		"I can improve that weapon of yours for $%PRICE%. Interested?"
 	];
 	this.addModule(mod_rigidbody);
 	this.friction = 0.9;
@@ -44,6 +45,10 @@ function Healer(x,y,n,options){
 Healer.prototype.update = function(g,c){
 	var dir = this.position.subtract(_player.position);
 	this.flip = dir.x > 0;
+	
+	if( this.type == 2 && "level" in _player.equip_sword)
+		this.price = Math.floor( 50 * Math.pow(_player.equip_sword.level, 1.5) );
+	
 	
 	if( this.phase == 2 ) {
 		if( this.price > 0 ) {
@@ -58,6 +63,11 @@ Healer.prototype.update = function(g,c){
 						audio.play("item1");
 					} else if ( this.type == 1 ){
 						if( this.cursor == 0 ) _player.heal = Number.MAX_VALUE;
+					} else if ( this.type == 2 ){
+						_player.equip_sword.bonus_att++;
+						_player.equip_sword.level++;
+						_player.levelUp(-1);
+						audio.play("item1");
 					}
 					_player.money -= this.price;
 					this.phase = 0;
@@ -72,7 +82,7 @@ Healer.prototype.update = function(g,c){
 				game.pause = false;
 			}
 		}
-		if( input.state("jump") == 1 ){
+		if( input.state("jump") == 1 || input.state("pause") == 1 ){
 			this.phase = 0;
 			game.pause = false;
 		}
@@ -85,7 +95,7 @@ Healer.prototype.render = function(g,c){
 	
 	if( this.phase > 0 ) {
 		boxArea(g,16,48,224,64);
-		textArea(g,this.message[this.type],32,64,192,64);
+		textArea(g,this.message[this.type].replace("%PRICE%",this.price),32,64,192,64);
 		
 		if( this.price > 0 ) {
 			boxArea(g,16,120,64,56);

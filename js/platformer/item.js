@@ -44,28 +44,28 @@ Item.prototype.setName = function(n){
 	if(n == "short_sword") { 
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.bonus_att=0; 
+		this.level=4; this.bonus_att=0;
 		this.stats = {"warm":8.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
 		return; 
 	}
 	if(n == "long_sword") { 
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.bonus_att=2; 
+		this.level=1; this.bonus_att=2; 
 		this.stats = {"warm":15.0, "strike":10,"rest":7.0,"range":18, "sprite":sprites.sword2 };
 		return; 
 	}
 	if(n == "broad_sword") { 
 		this.frame = 3; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.bonus_att=3; 
+		this.level=1; this.bonus_att=3; 
 		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword2 };
 		return; 
 	}
 	if(n == "spear") { 
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = true;
-		this.bonus_att=4; 
+		this.level=1; this.bonus_att=4; 
 		this.stats = {"warm":18.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
 		return; 
 	}

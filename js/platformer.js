@@ -1491,6 +1491,122 @@ Knight.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this, [g,c]);
 }
 
+ /* platformer/enemy_malphas.js*/ 
+
+Malphas.prototype = new GameObject();
+Malphas.prototype.constructor = GameObject;
+function Malphas(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 32;
+	this.sprite = sprites.malphas;
+	this.speed = 0.3;
+	this.start_x = x;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.life = 80;
+	
+	this.states = {
+		"active" : false,
+		"direction" : -1,
+		"combo_timer" : Game.DELTASECOND * 2,
+		"cooldown" : 0,
+		"combo" : 0,
+		"attack" : 0
+	}
+	this.attack_time = Game.DELTASECOND * 0.6;
+	
+	this.damage = 25;
+	this.collideDamage = 10;
+	this.mass = 1.0;
+	this.inviciple_time = this.stun_time;
+	
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		if( obj.hurt instanceof Function ) obj.hurt( this, this.damage );
+	});
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		this.hurt(obj,damage);
+	});
+	this.on("hurt", function(){
+		audio.play("hurt");
+		this.states.cooldown = 0;
+		this.states.active = true
+	});
+	this.on("death", function(obj){
+		Item.drop(this,30);
+		_player.addXP(40);
+		audio.play("kill");
+		this.destroy();
+	});
+}
+Malphas.prototype.update = function(){	
+	var dir = this.position.subtract(_player.position);
+	
+	if( Math.abs( dir.x ) < 64 ) this.states.active = true;
+	
+	if( this.stun <= 0 && this.states.active ) {
+		if( this.states.combo > 0 ) {
+			//Attack
+			this.states.attack -= this.delta;
+			this.states.combo -= this.delta;
+			if( this.states.attack <= 0 ) {
+				this.states.attack_low = Math.random() < 0.75 ? !this.states.attack_low : this.states.attack_low;
+				this.states.attack = this.attack_time;
+			}
+			if( this.states.combo <= 0 ) {
+				//End combo
+				this.states.cooldown = Game.DELTASECOND * 2;
+				this.states.combo_timer = Game.DELTASECOND * 4;
+				this.states.attack_low = false;
+			}
+			this.force.x += (dir.x > 0 ? -1 : 1) * this.delta * this.speed * 0.3;
+		} else if ( this.states.cooldown > 0 ) {
+			//Do nothing, recover
+			this.states.cooldown -= this.delta;
+		} else { 
+			//Move
+			if( (this.position.x - this.start_x) < -48 ) this.states.direction = 1;
+			if( (this.position.x - this.start_x) > 48 ) this.states.direction = -1;
+			
+			this.force.x += this.states.direction * this.delta * this.speed;
+			this.states.combo_timer -= this.delta;
+			
+			if( this.states.combo_timer <= 0 && Math.abs(dir.x) < 48 ) {
+				this.states.combo = this.attack_time * (4 + Math.floor(Math.random()*4));
+			}
+			this.strike( new Line(0,-12,32,-8) );
+		}
+		this.flip = dir.x > 0;
+		
+		if( this.states.attack > this.attack_time * 0.333 && this.states.attack < this.attack_time * 0.6666 ) {
+			this.strike( new Line(
+				0, this.states.attack_low ? 8 : -12,
+				32, this.states.attack_low ? 12 : -8
+			) );
+		}
+	}
+	
+	if(!this.states.active || this.states.cooldown > 0) {
+		this.frame = 0;
+		this.frame_row = 0;
+	} else {
+		if( this.states.combo > 0 ) {
+			this.frame_row = this.states.attack_low ? 3 : 2;
+			this.frame = 2 - Math.min( Math.floor( 3 * (this.states.attack / this.attack_time) ), 2 );
+		} else {
+			this.frame_row = 1;
+			this.frame = (this.frame+(this.delta*0.2*Math.abs(this.force.x))) % 3;
+		}
+	}
+	
+}
+
  /* platformer/enemy_malsum.js*/ 
 
 Malsum.prototype = new GameObject();
@@ -2064,7 +2180,8 @@ function Healer(x,y,n,options){
 	});
 	this.message = [	
 		"Let me bless you, weary traveller, so I may restore your spirit.",
-		"I can ease your pain. It'll cost you $"+this.price+". Interested?"
+		"I can ease your pain. It'll cost you $%PRICE%. Interested?",
+		"I can improve that weapon of yours for $%PRICE%. Interested?"
 	];
 	this.addModule(mod_rigidbody);
 	this.friction = 0.9;
@@ -2074,6 +2191,10 @@ function Healer(x,y,n,options){
 Healer.prototype.update = function(g,c){
 	var dir = this.position.subtract(_player.position);
 	this.flip = dir.x > 0;
+	
+	if( this.type == 2 && "level" in _player.equip_sword)
+		this.price = Math.floor( 50 * Math.pow(_player.equip_sword.level, 1.5) );
+	
 	
 	if( this.phase == 2 ) {
 		if( this.price > 0 ) {
@@ -2088,6 +2209,11 @@ Healer.prototype.update = function(g,c){
 						audio.play("item1");
 					} else if ( this.type == 1 ){
 						if( this.cursor == 0 ) _player.heal = Number.MAX_VALUE;
+					} else if ( this.type == 2 ){
+						_player.equip_sword.bonus_att++;
+						_player.equip_sword.level++;
+						_player.levelUp(-1);
+						audio.play("item1");
 					}
 					_player.money -= this.price;
 					this.phase = 0;
@@ -2102,7 +2228,7 @@ Healer.prototype.update = function(g,c){
 				game.pause = false;
 			}
 		}
-		if( input.state("jump") == 1 ){
+		if( input.state("jump") == 1 || input.state("pause") == 1 ){
 			this.phase = 0;
 			game.pause = false;
 		}
@@ -2115,7 +2241,7 @@ Healer.prototype.render = function(g,c){
 	
 	if( this.phase > 0 ) {
 		boxArea(g,16,48,224,64);
-		textArea(g,this.message[this.type],32,64,192,64);
+		textArea(g,this.message[this.type].replace("%PRICE%",this.price),32,64,192,64);
 		
 		if( this.price > 0 ) {
 			boxArea(g,16,120,64,56);
@@ -2175,28 +2301,28 @@ Item.prototype.setName = function(n){
 	if(n == "short_sword") { 
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.bonus_att=0; 
+		this.level=4; this.bonus_att=0;
 		this.stats = {"warm":8.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
 		return; 
 	}
 	if(n == "long_sword") { 
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.bonus_att=2; 
+		this.level=1; this.bonus_att=2; 
 		this.stats = {"warm":15.0, "strike":10,"rest":7.0,"range":18, "sprite":sprites.sword2 };
 		return; 
 	}
 	if(n == "broad_sword") { 
 		this.frame = 3; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.bonus_att=3; 
+		this.level=1; this.bonus_att=3; 
 		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword2 };
 		return; 
 	}
 	if(n == "spear") { 
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = true;
-		this.bonus_att=4; 
+		this.level=1; this.bonus_att=4; 
 		this.stats = {"warm":18.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
 		return; 
 	}

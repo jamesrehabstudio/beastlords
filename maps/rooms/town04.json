@@ -25,7 +25,22 @@
         {
          "height":15,
          "name":"objects",
-         "objects":[],
+         "objects":[
+                {
+                 "gid":115,
+                 "height":0,
+                 "name":"Healer",
+                 "properties":
+                    {
+                     "price":"50",
+                     "type":"2"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":48,
+                 "y":192
+                }],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
