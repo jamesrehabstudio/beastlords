@@ -39,6 +39,7 @@ function Oriax(x,y){
 	this.collideDamage = 5;
 	this.mass = 1.0;
 	this.stun_time = 0;
+	this.death_time = Game.DELTASECOND * 1;
 	
 	this.states = {
 		"cooldown" : 50,
@@ -54,7 +55,7 @@ function Oriax(x,y){
 }
 Oriax.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
-	if( this.stun < 0 ) {
+	if( this.stun < 0 && this.life > 0 ) {
 		if( this.states.attack < 0 ){
 			var direction = (this.flip ? -1 : 1) * (this.states.backup ? -1 : 1);
 			this.force.x += this.speed * this.delta * direction;

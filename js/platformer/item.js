@@ -17,7 +17,7 @@ function Item(x,y,name){
 		if( obj instanceof Player ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { obj.heal = 100; }
-			if( this.name == "life_up" ) { obj.lifeMax += 25; obj.heal = Number.MAX_VALUE; }
+			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal = Number.MAX_VALUE; }
 			if( this.name == "life_small" ) { obj.heal = 10; }
 			if( this.name == "mana_small" ) { obj.manaHeal = 35; }
 			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }

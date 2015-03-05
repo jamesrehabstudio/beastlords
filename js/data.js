@@ -58,14 +58,14 @@ function DataManager() {
 	
 	this.temples = [
 		{"tiles":"tiles1","size":10,"maxkeys":1,"tresures":[1,2],"boss":["Chort"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty"]},
-		{"tiles":"tiles2","size":12,"maxkeys":1,"tresures":[1,3],"boss":["Chort","Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":14,"maxkeys":2,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":16,"maxkeys":2,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles2","size":12,"maxkeys":1,"tresures":[1,3],"boss":["Chort","Minotaur"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":14,"maxkeys":2,"tresures":[2,4],"boss":["Minotaur"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":16,"maxkeys":2,"tresures":[2,4],"boss":["Minotaur","Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
 		{"tiles":"tiles3","size":18,"maxkeys":3,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":20,"maxkeys":4,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":22,"maxkeys":5,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":22,"maxkeys":6,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]}
+		{"tiles":"tiles3","size":20,"maxkeys":4,"tresures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":22,"maxkeys":5,"tresures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":22,"maxkeys":6,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]}
 	];
 	
 	this.tresures = [
@@ -196,11 +196,6 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 		this.branch_matrix = {};
 		this.secret_matrix = {};
 		
-		//this.room_matrix["-2_0"] = 0;
-		//this.room_matrix["-1_0"] = -1;
-		//this.room_matrix["0_0"] = 3;
-		//this.room_matrix["1_0"] = 16;
-		
 		var options = {
 			"rules":(this.currentTemple == 8 ? this.rules.final : this.rules.main),
 			"size":temple.size
@@ -320,9 +315,9 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 		);
 		this.cut( 256*(this.secret_matrix[i] > 0 ? pos.x-1 : pos.x), 240*pos.y);
 	}
-	//Add wall meat
 	
-	for(var i=0; i< 5; i++) this.wallmeat();
+	//Add wall meat
+	 this.wallmeat();
 	
 	if( this.temple_instance ) {
 		pm.map_reveal = this.temple_instance.map;
@@ -808,35 +803,35 @@ DataManager.prototype.cut = function(x,y){
 		game.addObject( new BreakableTile(x + 8, y + 8) );
 	}
 }
-DataManager.prototype.wallmeat = function(x,y){
+DataManager.prototype.wallmeat = function(){
 	var rooms = Object.keys( this.room_matrix ).sort(function(){ return seed.random() - 0.5; });
-	for(var i=0; i < rooms.length; i++ ) {
-		p = new Point(
-			256 * ~~rooms[i].match(/(-?\d+)/g)[0],
-			240 * ~~rooms[i].match(/(-?\d+)/g)[1]
-		);
-		var tile = new Array();
-		for(var y=144; y < 240; y+=16) for(var x=0; x < 256; x+=16) {
-			if( game.getTile(p.x+x,p.y+y) != 0 && ( game.getTile(p.x+x+16,p.y+y) == 0 || game.getTile(p.x+x-16,p.y+y) == 0) ){
-				tile.push( new Point(p.x+x+8,p.y+y+8) );
+	for(var i in this.room_matrix ) {
+		if( seed.randomBool(0.1) ) {
+			p = new Point(
+				256 * ~~i.match(/(-?\d+)/g)[0],
+				240 * ~~i.match(/(-?\d+)/g)[1]
+			);
+			var tiles = new Array();
+			for(var y=144; y < 240; y+=16) for(var x=0; x < 256; x+=16) {
+				if( game.getTile(p.x+x,p.y+y) != 0 && ( game.getTile(p.x+x+16,p.y+y) == 0 || game.getTile(p.x+x-16,p.y+y) == 0) ){
+					tiles.push( new Point(p.x+x+8,p.y+y+8) );
+				}
 			}
-		}
-		
-		tile = tile.sort(function(){ return seed.random() - 0.5; });
-		if( tile.length > 0 ) {
-			var breakable = new BreakableTile( tile[0].x,  tile[0].y );
-			var item_name = "life_small";
-			if( seed.randomBool(0.05) ){
-				var tresure = this.randomTresure( seed.random() )
-				item_name = tresure.name;
-				tresure.remaining--;
+			
+			if( tiles.length > 0 ) {
+				var tile = tiles[ Math.floor( tiles.length * seed.random() ) ];
+				var breakable = new BreakableTile( tile.x,  tile.y );
+				var item_name = "life_small";
+				if( seed.randomBool(0.05) ){
+					var tresure = this.randomTresure( seed.random() )
+					item_name = tresure.name;
+					tresure.remaining--;
+				}
+				breakable.item = new Item( tile.x,  tile.y, item_name);
+				game.addObject( breakable );
 			}
-			breakable.item = new Item( tile[0].x,  tile[0].y, item_name);
-			game.addObject( breakable );
-			return true;
 		}
 	}
-	return false;
 }
 
 function Seed(s){
@@ -892,21 +887,25 @@ function load_sprites (){
 	sprites['sword2'] = new Sprite(RT+"img/sword2.gif", {offset:new Point(10, 32),width:64,height:48});
 	sprites['sword3'] = new Sprite(RT+"img/sword3.gif", {offset:new Point(26, 32),width:80,height:48});
 	
-	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(24, 48),width:48,height:64});
-	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":person_filters});
-	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32,"filters":person_filters});
-	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24,"filters":person_filters});
-	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32,"filters":person_filters});
-	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64,"filters":person_filters});
-	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":person_filters});
-	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32,"filters":person_filters});
-	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32,"filters":person_filters});
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(8, 8),width:16,height:16,"filters":person_filters});
 	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48,"filters":person_filters});
+	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24,"filters":person_filters});
+	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32,"filters":person_filters});
+	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(24, 48),width:48,height:64});
+	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32,"filters":person_filters});
+	sprites['chazbike'] = new Sprite(RT+"img/chazbike.gif", {offset:new Point(24, 32),width:48,height:48,"filters":person_filters});
+	sprites['deckard'] = new Sprite(RT+"img/deckard.gif", {offset:new Point(24, 30),width:64,height:48,"filters":person_filters});
+	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64,"filters":person_filters});
+	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32,"filters":person_filters});
+	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":person_filters});
+	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32,"filters":person_filters});
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48,"filters":person_filters});
+	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":person_filters});
 	
 	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64,"filters":person_filters});
 	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:80,height:64,"filters":person_filters});
+	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80,"filters":person_filters});
+	sprites['garmr'] = new Sprite(RT+"img/garmr.gif", {offset:new Point(40, 24),width:80,height:64,"filters":person_filters});
 	
 	sprites['prisoner'] = new Sprite(RT+"img/prisoner.gif", {offset:new Point(16, 24),width:32,height:48});
 	
@@ -923,7 +922,8 @@ function load_sprites (){
 
 window.audio = new AudioPlayer({
 	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
-	"music" : {"url":RT+"sounds/temple1.ogg","music":true,"loop":24.0},
+	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":24.0},
+	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},
 	"fanfair" : {"url":RT+"sounds/fanfair.ogg","music":true},
 	
 	"block" : {"url":RT+"sounds/block.wav"},
@@ -936,6 +936,7 @@ window.audio = new AudioPlayer({
 	"danger" : {"url":RT+"sounds/danger.wav"},
 	"equip" : {"url":RT+"sounds/equip.wav"},
 	"explode1" : {"url":RT+"sounds/explode1.wav"},
+	"explode2" : {"url":RT+"sounds/explode2.wav"},
 	"heal" : {"url":RT+"sounds/heal.wav"},
 	"hurt" : {"url":RT+"sounds/hurt.wav"},
 	"item1" : {"url":RT+"sounds/item1.wav"},

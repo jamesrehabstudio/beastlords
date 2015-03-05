@@ -35,7 +35,7 @@ function WorldMap(x, y){
 	this.temples[2].position.x = 49*16; this.temples[2].position.y = 39*16;
 	this.temples[3].position.x = 10*16; this.temples[3].position.y = 45*16;
 	this.temples[4].position.x = 33*16; this.temples[4].position.y = 74*16;
-	this.temples[5].position.x = 61*16; this.temples[5].position.y = 57*16;
+	this.temples[5].position.x = 61*16; this.temples[5].position.y = 57*16; this.temples[5].complete = true;
 	this.temples[6].position.x = 56*16; this.temples[6].position.y = 83*16;
 	this.temples[7].position.x = 8*16; this.temples[7].position.y = 107*16;
 	this.temples[8].position.x = 24*16; this.temples[8].position.y = 8*16;
@@ -53,7 +53,7 @@ function WorldMap(x, y){
 	this.animation = 0;
 	
 	this.on("activate", function(){
-		audio.stop("music");
+		audio.playAs("music_world", "music");
 		this.active = true;
 		game.addObject( this );
 		
@@ -124,6 +124,7 @@ WorldMap.prototype.update = function(){
 			this.player.y += 16;
 			this.player_goto.y = this.player.y;
 			dataManager.randomLevel(game, i, this.temples[i].seed);
+			audio.playAs("music_temple1", "music");
 		}
 	}
 	

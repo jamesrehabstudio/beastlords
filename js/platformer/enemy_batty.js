@@ -13,7 +13,7 @@ function Batty(x,y){
 	this.addModule( mod_combat );
 	
 	this.states = {
-		"cooldown" : Game.DELTASECOND * 2,
+		"cooldown" : Game.DELTASECOND * 1,
 		"lockon": false,
 		"attack" : 0,
 		"direction" : 0
@@ -25,10 +25,17 @@ function Batty(x,y){
 	this.collideDamage = 10;
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
+	this.fuse = true;
 	
 	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) {
+		if( this.fuse && obj instanceof Batty ) {
+			//Fuse with other batty
+			this.destroy();
+			obj.destroy();
+			this.fuse = obj.fuse = false;
+			game.addObject(new Deckard( this.position.x, this.position.y ));
+		}
+		if( this.team != obj.team && obj.hurt instanceof Function ) {
 			obj.hurt( this, this.collideDamage );
 			this.states.attack = 0;
 		}
@@ -53,7 +60,7 @@ function Batty(x,y){
 	this.on("wakeup", function(){
 		this.visible = true;
 		this.interactive = true;
-		this.states.cooldown = Game.DELTASECOND * 2;
+		this.states.cooldown = Game.DELTASECOND * 1;
 		this.states.jumps = 0;
 		this.life = this.lifeMax;
 		this.gravity = -0.6;
@@ -70,26 +77,38 @@ Batty.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		
 		if( this.states.cooldown <= 0 ) {
-			
-			if( this.states.lockon ) {
-				this.gravity = 0;
-				this.force.y = 0;
-				this.force.x += this.speed * this.delta * this.states.direction;
-				this.flip = this.force.x < 0; 
-			} else {
-				this.gravity = 0.6;
-				if( dir.y + 16.0 > 0 ) {
-					this.states.lockon = true;
-					this.states.direction = dir.x > 0 ? -1 : 1;
-				}
+			var batty = null;
+			if( this.fuse ){
+				var batties = game.getObjects(Batty);
+				for(var i=0; i < batties.length; i++ ) if( batties[i] != this && batties[i].awake ) 
+					batty = batties[i];
 			}
 			
-			if( this.states.attack <= 0 ){
-				this.gravity = -0.6;
-				this.states.cooldown = Game.DELTASECOND * 3;
-				this.states.lockon = false;
+			if( batty != null ){
+				var batty_dir = this.position.subtract(batty.position);
+				this.gravity = batty_dir.y > 0 ? -0.5 : 0.5;
+				this.force.x += this.speed * this.delta * (batty_dir.x > 0 ? -1 : 1);
 			} else {
-				this.states.attack -= this.delta
+				if( this.states.lockon ) {
+					this.gravity = 0;
+					this.force.y = 0;
+					this.force.x += this.speed * this.delta * this.states.direction;
+					this.flip = this.force.x < 0; 
+				} else {
+					this.gravity = 0.6;
+					if( dir.y + 16.0 > 0 ) {
+						this.states.lockon = true;
+						this.states.direction = dir.x > 0 ? -1 : 1;
+					}
+				}
+				
+				if( this.states.attack <= 0 ){
+					this.gravity = -0.6;
+					this.states.cooldown = Game.DELTASECOND * 2;
+					this.states.lockon = false;
+				} else {
+					this.states.attack -= this.delta
+				}
 			}
 		} else {
 			this.states.cooldown -= this.delta;

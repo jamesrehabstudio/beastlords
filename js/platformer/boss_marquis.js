@@ -34,6 +34,7 @@ function Marquis(x,y){
 	this.damage = 25;
 	this.collideDamage = 10;
 	this.inviciple_tile = this.stun_time;
+	this.death_time = Game.DELTASECOND * 3;
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -62,15 +63,13 @@ function Marquis(x,y){
 		_player.addXP(40);
 		audio.play("kill");
 		
-		Item.drop(this,9);
-		Item.drop(this,9);
-		Item.drop(this,9);
+		Item.drop(this,30);
 		this.destroy();
 	});
 }
 Marquis.prototype.update = function(){	
 	this.sprite = sprites.megaknight;
-	if ( this.stun <= 0 ) {
+	if ( this.stun <= 0  && this.life > 0) {
 		var dir = this.position.subtract( _player.position );
 				
 		if( this.active ) {

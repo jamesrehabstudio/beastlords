@@ -25,8 +25,9 @@ function Knight(x,y){
 	}
 	
 	this.attack_warm = 24.0;
-	this.attack_time = 10.0;
+	this.attack_time = 10.5;
 	this.attack_rest = 7.0;
+	this.thrust_power = 6;
 	
 	this.life = 45;
 	this.damage = 20;
@@ -34,6 +35,7 @@ function Knight(x,y){
 	this.mass = 3.0;
 	this.friction = 0.4;
 	this.inviciple_time = this.stun_time;
+	this.death_time = Game.DELTASECOND * 1;
 	
 	this.level = 1 + Math.floor( Math.random() + dataManager.currentTemple / 3 );
 	this.fr_offset = 0;
@@ -45,18 +47,22 @@ function Knight(x,y){
 		this.fr_offset = 3;
 		this.cooldown_time = Game.DELTASECOND * 1.4;
 		this.attack_warm = 22.0;
-		this.attack_time = 6.0;
+		this.attack_time = 6.5;
 		this.attack_rest = 3.0;
 		this.speed = 0.42;
+		this.thrust_power = 8;
+		this.death_time = Game.DELTASECOND * 2;
 	} else if ( this.level >= 3 ) {
 		this.life = 160;
 		this.damage = 50;
 		this.fr_offset = 6;
 		this.cooldown_time = Game.DELTASECOND * 1.2;
 		this.attack_warm = 20.0;
-		this.attack_time = 6.0;
+		this.attack_time = 6.5;
 		this.attack_rest = 3.0;
 		this.speed = 0.45;
+		this.thrust_power = 10;
+		this.death_time = Game.DELTASECOND * 3;
 	}
 	
 	this.on("collideObject", function(obj){
@@ -94,7 +100,7 @@ function Knight(x,y){
 }
 Knight.prototype.update = function(){	
 	//this.sprite = sprites.knight;
-	if ( this.stun <= 0 ) {
+	if ( this.stun <= 0 && this.life > 0 ) {
 		var dir = this.position.subtract( _player.position );
 		this.active = this.active || Math.abs( dir.x ) < 120;
 		
@@ -133,8 +139,14 @@ Knight.prototype.update = function(){
 			this.states.guard = _player.states.duck ? 1 : 2;
 			this.states.guardUpdate = Game.DELTASECOND * 0.3;
 		}
-		
+		if( this.states.attack <= 0 ) this.states.attack_counter = 0;
+			
 		if ( this.states.attack <= this.attack_time && this.states.attack > this.attack_rest ){
+			if( this.states.attack_counter == 0 ){
+				audio.play("swing");
+				this.states.attack_counter = 1;
+				this.force.x += (dir.x > 0 ? -1 : 1) * this.thrust_power;
+			}
 			this.strike(new Line(
 				new Point( 10, (this.states.attack_down ? 8 : -8) ),
 				new Point( 29, (this.states.attack_down ? 8 : -8)+4 )
@@ -152,7 +164,8 @@ Knight.prototype.update = function(){
 	
 	/* Animation */
 	if( this.states.attack > 0 ) {
-		this.frame = (this.states.attack > this.attack_time ? 0 : 1);
+		this.frame = 0;
+		if ( this.states.attack <= this.attack_time && this.states.attack > this.attack_rest ) this.frame = 1;
 		this.frame_row = this.fr_offset + (this.states.attack_down == 1 ? 2 : 1);
 	} else {
 		if( Math.abs( this.force.x ) > 0.1 ) {

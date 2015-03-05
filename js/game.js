@@ -22,6 +22,7 @@ function AudioPlayer(list){
 	window.AudioContext = window.AudioContext || window.webkitAudioContext;
 	this.a = new AudioContext();
 	this.list = list;
+	this.alias = {};
 	
 	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
 	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.0;
@@ -81,6 +82,12 @@ AudioPlayer.prototype.play = function(l){
 		console.error("Trying to play a sound that does not exist");
 	}
 }
+AudioPlayer.prototype.playAs = function(l,n){
+	if( n in this.alias ) 
+		this.stop(this.alias[n]);
+	this.alias[n] = l;
+	this.play(l);
+}
 AudioPlayer.prototype.playLock = function(l,t){
 	if( "lock_until" in this.list[l] ) {
 		if( new Date().getTime() < this.list[l].lock_until ) {
@@ -96,6 +103,10 @@ AudioPlayer.prototype.stop = function(l){
 			this.list[l]["source"].stop();
 		}
 	}
+}
+AudioPlayer.prototype.stopAs = function(n){
+	if( n in this.alias ) 
+		this.stop(this.alias[n]);
 }
 AudioPlayer.prototype.isLoaded = function(l){
 	if( l in this.list ) {

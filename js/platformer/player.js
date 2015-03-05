@@ -46,9 +46,14 @@ function Player(x, y){
 		"frame_row" : 3
 	}
 	
-	this.on("death", function(){
-		game.slow(0,Game.DELTASECOND);
-		audio.stop("music");
+	this.on("pre_death", function(){
+		game.slow(0,this.death_time);
+		audio.stopAs("music");
+	});
+	this.on("death", function(){		
+		game.getObject(PauseMenu).open = true;
+		audio.play("playerdeath");
+		this.destroy();
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -120,6 +125,7 @@ function Player(x, y){
 	this.damage = 5;
 	this.team = 1;
 	this.mass = 1;
+	this.death_time = Game.DELTASECOND * 2;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -277,9 +283,6 @@ Player.prototype.update = function(){
 		} else {
 			this.states.startSwing = false;
 		}
-	} else {
-		//Player is dead, start his death clock
-		this.states.death_clock -= game.deltaUnscaled;
 	}
 	
 	//Shield
@@ -318,13 +321,6 @@ Player.prototype.update = function(){
 	this.states.attack -= this.delta;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
-	}
-	
-	if( this.states.death_clock <= 0 ) {
-		//Go to game over screen
-		game.getObject(PauseMenu).open = true;
-		audio.play("playerdeath");
-		this.destroy();
 	}
 }
 Player.prototype.idle = function(){}

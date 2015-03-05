@@ -13,6 +13,8 @@ function CornerStone(x,y,parm,options){
 	this.gate_number = this.gate ? options.gate-0 : dataManager.currentTemple;
 	this.broken = false;
 	
+	this.play_fanfair = false;
+	
 	if( this.gate_number in _world.temples ){
 		this.broken = _world.temples[this.gate_number].complete
 	}
@@ -26,7 +28,7 @@ function CornerStone(x,y,parm,options){
 	this.on("struck",function(obj,pos,damage){
 		if( !this.gate && !this.active && obj instanceof Player ) {
 			_world.temples[this.gate_number].complete = true;
-			audio.stop("music");
+			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
 		}
@@ -49,7 +51,10 @@ CornerStone.prototype.update = function(){
 		this.frame = 1;
 		
 		if( this.progress > 33.333 ) {
-			audio.playLock("fanfair",10.0);
+			if( !this.play_fanfair ){
+				this.play_fanfair = true;
+				audio.playAs("fanfair","music");
+			}
 			audio.playLock("explode1",10.0);
 			this.frame = 2;
 		}

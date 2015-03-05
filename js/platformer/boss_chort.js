@@ -17,6 +17,7 @@ function Chort(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.death_time = Game.DELTASECOND * 3;
 	this.life = 80;
 	this.mass = 6.0;
 	
@@ -59,12 +60,8 @@ function Chort(x,y){
 	});
 	this.on("death", function(){
 		_player.addXP(35);
-		//for(var i=0; i < this.borders.length; i++ ) game.removeCollision( this.borders[i] );
-		//_player.lock = false;
-		//game.objects.remove( game.objects.indexOf(this) );
-		Item.drop(this,9);
-		Item.drop(this,9);
-		Item.drop(this,9);
+		
+		Item.drop(this,24);
 		audio.play("kill");
 		this.destroy();
 	});
@@ -72,7 +69,7 @@ function Chort(x,y){
 Chort.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
 	
-	if( this.states.recover <= 0 && this.active ) {
+	if( this.life > 0 && this.states.recover <= 0 && this.active ) {
 		if ( this.states.cooldown <= 0 ){
 			//In air attack
 			this.friction = 0.04;
