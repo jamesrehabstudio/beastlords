@@ -2092,9 +2092,9 @@ function Igbo(x,y){
 		"backup" : 1
 	}
 	
-	this.attack_warm = Game.DELTASECOND * 2.0;
-	this.attack_time = Game.DELTASECOND * 0.5;
-	this.attack_rest = Game.DELTASECOND * 0.4;
+	this.attack_warm = Game.DELTASECOND * 2.5;
+	this.attack_time = Game.DELTASECOND * 1.5;
+	this.attack_rest = Game.DELTASECOND * 1.4;
 	
 	this.life = 120;
 	this.damage = 20;
@@ -2296,8 +2296,6 @@ function Knight(x,y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
-		//this.states.attack = -1.0;
-		this.states.cooldown -= 20;
 		audio.play("hurt");
 		if( Math.random() > 0.2 ) {
 			this.states.guardUpdate = Game.DELTASECOND * 2.0;
@@ -2445,7 +2443,7 @@ function Malphas(x,y){
 	});
 	this.on("hurt", function(){
 		audio.play("hurt");
-		this.states.cooldown = 0;
+		this.states.cooldown -= 10;
 		this.states.active = true
 	});
 	this.on("death", function(obj){

@@ -58,14 +58,14 @@ function DataManager() {
 	
 	this.temples = [
 		{"tiles":"tiles1","size":10,"maxkeys":1,"tresures":[1,2],"boss":["Chort"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty"]},
-		{"tiles":"tiles2","size":12,"maxkeys":1,"tresures":[1,3],"boss":["Chort","Minotaur"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":14,"maxkeys":2,"tresures":[2,4],"boss":["Minotaur"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":16,"maxkeys":2,"tresures":[2,4],"boss":["Minotaur","Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":18,"maxkeys":3,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":20,"maxkeys":4,"tresures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":22,"maxkeys":5,"tresures":[2,4],"boss":["Garmr","Ammit"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":22,"maxkeys":6,"tresures":[2,4],"boss":["Ammit","Zoder"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]}
+		{"tiles":"tiles2","size":12,"maxkeys":1,"tresures":[1,3],"boss":["Chort","Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":14,"maxkeys":2,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles4","size":16,"maxkeys":2,"tresures":[2,4],"boss":["Minotaur","Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles5","size":18,"maxkeys":3,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles2","size":20,"maxkeys":4,"tresures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles2","size":22,"maxkeys":5,"tresures":[2,4],"boss":["Garmr","Ammit"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles2","size":22,"maxkeys":6,"tresures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles2","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]}
 	];
 	
 	this.tresures = [
@@ -914,6 +914,8 @@ function load_sprites (){
 	sprites['tiles1'] = new Sprite(RT+"img/tiles/tiles1.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles2'] = new Sprite(RT+"img/tiles/tiles2.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles3'] = new Sprite(RT+"img/tiles/tiles3.gif", {offset:new Point(0, 0),width:16,height:16});
+	sprites['tiles4'] = new Sprite(RT+"img/tiles/tiles4.gif", {offset:new Point(0, 0),width:16,height:16});
+	sprites['tiles5'] = new Sprite(RT+"img/tiles/tiles5.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['town'] = new Sprite(RT+"img/tiles/town.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['world'] = new Sprite(RT+"img/tiles/world.gif", {offset:new Point(0, 0),width:16,height:16});
 	

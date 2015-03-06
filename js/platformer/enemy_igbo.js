@@ -21,9 +21,9 @@ function Igbo(x,y){
 		"backup" : 1
 	}
 	
-	this.attack_warm = Game.DELTASECOND * 2.0;
-	this.attack_time = Game.DELTASECOND * 0.5;
-	this.attack_rest = Game.DELTASECOND * 0.4;
+	this.attack_warm = Game.DELTASECOND * 2.5;
+	this.attack_time = Game.DELTASECOND * 1.5;
+	this.attack_rest = Game.DELTASECOND * 1.4;
 	
 	this.life = 120;
 	this.damage = 20;

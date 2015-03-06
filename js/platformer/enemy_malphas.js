@@ -40,7 +40,7 @@ function Malphas(x,y){
 	});
 	this.on("hurt", function(){
 		audio.play("hurt");
-		this.states.cooldown = 0;
+		this.states.cooldown -= 10;
 		this.states.active = true
 	});
 	this.on("death", function(obj){

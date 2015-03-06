@@ -83,8 +83,6 @@ function Knight(x,y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
-		//this.states.attack = -1.0;
-		this.states.cooldown -= 20;
 		audio.play("hurt");
 		if( Math.random() > 0.2 ) {
 			this.states.guardUpdate = Game.DELTASECOND * 2.0;
