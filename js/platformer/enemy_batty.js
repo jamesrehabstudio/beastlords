@@ -25,7 +25,7 @@ function Batty(x,y){
 	this.collideDamage = 10;
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
-	this.fuse = true;
+	this.fuse = dataManager.currentTemple > 4;
 	
 	this.on("collideObject", function(obj){
 		if( this.fuse && obj instanceof Batty ) {

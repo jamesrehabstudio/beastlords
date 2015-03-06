@@ -1,5 +1,137 @@
 
 
+ /* platformer/boss_ammit.js*/ 
+
+Ammit.prototype = new GameObject();
+Ammit.prototype.constructor = GameObject;
+function Ammit(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 20;
+	this.height = 64;
+	this.sprite = sprites.ammit;
+	this.speed = 0.075;
+	
+	this.start_x = x;
+	this.active = false;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	this.addModule( mod_boss );
+	
+	this.states = {
+		"drink" : 0,
+		"attack" : 0,
+		"cooldown" : Game.DELTASECOND * 2,
+		"direction" : 1,
+		"spit" : false
+	};
+	this.attacks = {
+		"warm" : Game.DELTASECOND * 0.5,
+		"release" : Game.DELTASECOND * 0.33,
+		"drink_time" : Game.DELTASECOND * 4,
+		"spit_time" : Game.DELTASECOND * 1
+	}
+	
+	this.life = 150;
+	this.mass = 5.0;
+	this.damage = 25;
+	this.collideDamage = 25;
+	this.stun_time = 0;
+	this.death_time = Game.DELTASECOND * 3;
+	
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		this.hurt(obj,damage);
+	});
+	this.on("hurt", function(){
+		this.states.dizzy -= Game.DELTASECOND * 0.5;
+		audio.play("hurt");
+	});
+	this.on("collideHorizontal", function(){
+		if( this.states.cooldown <= 0 ) 
+			this.states.drink = this.attacks.drink_time;
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		if( obj.hurt instanceof Function ) 
+			obj.hurt( this, this.collideDamage );
+	});
+	this.on("death", function(){
+		_player.addXP(60);
+		audio.play("kill");
+		
+		Item.drop(this,35);
+		this.destroy();
+	});
+}
+Ammit.prototype.update = function(){	
+	if ( this.active && this.stun <= 0  && this.life > 0) {
+		var dir = this.position.subtract( _player.position );
+		
+		if( this.states.drink > 0 ) {
+			this.states.drink -= this.delta;
+			this.states.cooldown = Game.DELTASECOND * 8;
+			this.states.attack = 0;
+			if( this.states.drink <= this.attacks.spit_time && !this.states.spit ) {
+				//Fire balls!
+				this.states.spit = true;
+				for(var i=4; i<9; i++ ){
+					var fire = new Fire(this.position.x, this.position.y);
+					fire.force.x = (this.flip ? -1 : 1) * (i*2.5);
+					fire.force.y = -9;
+					fire.deltaScale = 0.3;
+					fire.life *= fire.deltaScale;
+					game.addObject(fire);
+				}
+			}
+		} else {
+			this.states.spit = false;
+			if( this.states.attack > 0 ) {
+				//Swing and attack
+				this.states.attack -= this.delta;
+				this.states.cooldown -= this.delta * 0.5;
+			} else if( this.states.cooldown <= 0 ) {
+				//Back into a corner for drinking
+				var direction = dir.x > 0 ? 1 : -1;
+				this.flip = dir.x > 0;
+				this.force.x += direction * this.speed;
+			} else {
+				//Attack the player
+				if( Math.abs( dir.x ) < 40 ) {
+					this.states.attack = this.attacks.warm;
+				} else { 
+					if( this.position.x - this.start_x < -56 ) this.states.direction = 1.0;
+					if( this.position.x - this.start_x > 56 ) this.states.direction = -1.0;
+					this.flip = dir.x > 0;
+					
+					this.force.x += this.states.direction * this.speed;
+					this.states.cooldown -= this.delta;
+				}
+			}
+		}
+		
+		if( this.states.attack > 0 && this.states.attack <= this.attacks.release ){
+			this.strike( new Line(0,10,32,-8) );
+		}
+	}
+	
+	/* Animation */
+	if( this.states.drink > 0 ) {
+		var range = this.attacks.drink_time - this.attacks.spit_time;
+		var pos = (this.states.drink - this.attacks.spit_time) / range;
+		this.frame = Math.min( Math.floor((1-pos)*4), 3); 
+		this.frame_row = 2;
+	} else if( this.states.attack > 0 ) {
+		this.frame = this.states.attack <= this.attacks.release ? 1 : 0;
+		this.frame_row = 1;
+	} else {
+		this.frame = (this.frame + (this.delta * 0.3 * Math.abs(this.force.x))) % 3;
+		this.frame_row = 0;
+	}
+}
+
  /* platformer/boss_chort.js*/ 
 
 Chort.prototype = new GameObject();
@@ -185,7 +317,7 @@ function Garmr(x,y){
 	this.mass = 5.0;
 	this.damage = 25;
 	this.collideDamage = 25;
-	this.inviciple_tile = this.stun_time;
+	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
 	this.on("struck", function(obj,pos,damage){
@@ -529,6 +661,166 @@ Minotaur.prototype.update = function(){
 	
 }
 
+ /* platformer/boss_zoder.js*/ 
+
+Zoder.prototype = new GameObject();
+Zoder.prototype.constructor = GameObject;
+function Zoder(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 64;
+	this.sprite = sprites.zoder;
+	this.speed = 0.4;
+	this.active = false;
+	this.start_x = x;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	this.addModule( mod_boss );
+	
+	this.states = {
+		"attack" : 0,
+		"cooldown" : 100.0,
+		"combo_cooldown" : 0.0,
+		"attack_down" : false,
+		"guard" : 2, //0 none, 1 bottom, 2 top
+		"guardUpdate" : 0.0,
+		"backup" : 0
+	}
+	
+	this.attack_warm = 24.0;
+	this.attack_time = 10.5;
+	this.attack_rest = 7.0;
+	this.thrust_power = 6;
+	
+	this.life = 145;
+	this.damage = 50;
+	this.collideDamage = 20;
+	this.mass = 5.0;
+	this.friction = 0.4;
+	this.death_time = Game.DELTASECOND * 3;
+	this.stun_time = 0;
+	
+	this.cooldown_time = Game.DELTASECOND * 1.6;
+	
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+	});
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
+		var dir = this.position.subtract(obj.position);
+		//blocked
+		obj.force.x += (dir.x > 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
+	});
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		this.hurt(obj,damage);
+	});
+	this.on("hurt", function(){
+		audio.play("hurt");
+		if( Math.random() > 0.2 ) {
+			this.states.guardUpdate = Game.DELTASECOND * 2.0;
+			this.states.guard = _player.states.duck ? 1 : 2;
+		}
+	});
+	this.on("death", function(){
+		Item.drop(this,40);
+		_player.addXP(50);
+		audio.play("kill");
+		this.destroy();
+	});
+}
+Zoder.prototype.update = function(){
+	if ( this.stun <= 0 && this.life > 0 ) {
+		var dir = this.position.subtract( _player.position );
+		
+		if( this.active /*&& this.states.attack <= 0*/ ) {
+			var direction = 1;
+			if( Math.abs(_player.position.x - this.start_x ) < 128 ){
+				//Player in the attack area, advance at player
+				direction = dir.x > 0 ? -1.0 : 1.0;
+				direction *= (Math.abs(dir.x) > 48 ? 1.0 : -1.0);
+			} else {
+				direction = this.position.x - this.start_x > 0 ? -1.0 : 1.0;
+			}
+			
+			this.force.x += direction * this.delta * this.speed;
+			this.flip = dir.x > 0;
+			this.states.cooldown -= this.delta;
+		}
+	
+		if( this.states.cooldown < 0 && Math.abs(dir.x) < 64 ){
+			if( Math.random() > 0.6 ) {
+				//Pick a random area to attack
+				this.states.attack_down = Math.random() > 0.5;
+			} else {
+				//Aim for the player's weak side
+				this.states.attack_down = !_player.states.duck;
+			}
+			
+			this.states.attack = this.attack_warm;
+			this.states.cooldown = this.cooldown_time;
+		}
+		
+		if( this.states.guardUpdate < 0 && this.states.attack < 0 ){
+			this.states.guard = _player.states.duck ? 1 : 2;
+			this.states.guardUpdate = Game.DELTASECOND * 0.3;
+		}
+		if( this.states.attack <= 0 ) this.states.attack_counter = 0;
+			
+		if ( this.states.attack <= this.attack_time && this.states.attack > this.attack_rest ){
+			if( this.states.attack_counter == 0 ){
+				audio.play("swing");
+				this.states.attack_counter = 1;
+				this.force.x += (dir.x > 0 ? -1 : 1) * this.thrust_power;
+			}
+			this.strike(new Line(
+				new Point( 0, (this.states.attack_down ? 24 : 4) ),
+				new Point( 48, (this.states.attack_down ? 24 : 4)+4 )
+			) );
+		}
+	}
+	/* guard */
+	this.guard.active = this.states.guard > 0;
+	this.guard.y = this.states.guard == 1 ? 16 : 0;
+	this.guard.x = 24;
+	this.guard.h = 24;
+	
+	/* counters */
+	this.states.attack -= this.delta;
+	this.states.guardUpdate -= this.delta;
+	
+	/* Animation */
+	if( this.states.attack > 0 ) {
+		this.frame = 0;
+		if ( this.states.attack <= this.attack_time && this.states.attack > this.attack_rest ) this.frame = 1;
+		this.frame_row = this.states.attack_down == 1 ? 3 : 2;
+	} else {
+		if( Math.abs( this.force.x ) > 0.1 && false) {
+			this.frame = Math.max( (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 3, 0 );
+		} else {
+			this.frame = 0;
+		}
+		this.frame_row = 0;
+	}
+}
+Zoder.prototype.render = function(g,c){
+	//Shield
+	if( this.states.guard > 0 ) {
+		this.sprite.render( g, 
+			this.position.subtract(c), 
+			2, (this.states.guard > 1 ? 3 : 2 ), this.flip
+		);
+	}
+	//Body
+	GameObject.prototype.render.apply(this, [g,c]);
+}
+
  /* platformer/bullet.js*/ 
 
 Bullet.prototype = new GameObject();
@@ -573,6 +865,46 @@ function Bullet(x,y,d){
 	this.gravity = 0.0;
 	this.friction = 0.0;
 	this.flip = d < 0;
+}
+
+Fire.prototype = new GameObject();
+Fire.prototype.constructor = GameObject;
+function Fire(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 10;
+	this.height = 10;
+	this.team = 0;
+	this.damage = 10;
+	this.pushable = false;
+	
+	this.addModule( mod_rigidbody );
+	
+	this.sprite = sprites.bullets;
+	this.frame = 0;
+	this.frame_row = 3;
+	this.life = Game.DELTASECOND * 8;
+	
+	this.on("struck", function(obj, pos, damage){
+		if( damage > 0 ) this.life = 0;
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		this.life = 0;
+		if( obj.hurt instanceof Function ) 
+			obj.hurt( this, this.damage );
+	});
+	this.on("death", function(){
+		this.destroy();
+	});
+}
+Fire.prototype.update = function(){
+	this.frame = (this.frame + (this.delta * 0.3)) % 2;
+	this.life -= this.delta;
+	if( this.life <= 0 ){
+		this.trigger("death");
+	}
 }
 
  /* platformer/cornerstone.js*/ 
@@ -756,6 +1088,31 @@ EffectExplosion.prototype.update = function(){
 	if(this.frame >= 3) this.destroy();
 }
 
+EffectSmoke.prototype = new GameObject();
+EffectSmoke.prototype.constructor = GameObject;
+function EffectSmoke(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.zIndex = 2;
+	this.sprite = sprites.bullets;
+	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
+	this.speed = 1 + Math.random()*0.3;
+}
+
+EffectSmoke.prototype.update = function(){
+	this.frame = 0;
+	this.frame_row = 2;
+	this.time -= game.deltaUnscaled;
+	
+	this.position.y -= game.deltaUnscaled * this.speed;
+	
+	if(this.time <=0 ) this.destroy();
+}
+
  /* platformer/enemy_amon.js*/ 
 
 Amon.prototype = new GameObject();
@@ -858,7 +1215,7 @@ function Batty(x,y){
 	this.collideDamage = 10;
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
-	this.fuse = true;
+	this.fuse = dataManager.currentTemple > 4;
 	
 	this.on("collideObject", function(obj){
 		if( this.fuse && obj instanceof Batty ) {
@@ -1890,8 +2247,8 @@ function Knight(x,y){
 	this.collideDamage = 10;
 	this.mass = 3.0;
 	this.friction = 0.4;
-	this.inviciple_time = this.stun_time;
 	this.death_time = Game.DELTASECOND * 1;
+	this.stun_time = 0;
 	
 	this.level = 1 + Math.floor( Math.random() + dataManager.currentTemple / 3 );
 	this.fr_offset = 0;
@@ -4121,7 +4478,7 @@ Player.prototype.render = function(g,c){
 	g.closePath();
 	g.beginPath();
 	g.fillStyle = "#F00";
-	g.scaleFillRect(8,8,this.life/4,8);
+	g.scaleFillRect(8,8,Math.max(this.life/4,0),8);
 	g.closePath();
 	
 	/* Render Mana */

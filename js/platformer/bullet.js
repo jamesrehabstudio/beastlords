@@ -41,3 +41,43 @@ function Bullet(x,y,d){
 	this.friction = 0.0;
 	this.flip = d < 0;
 }
+
+Fire.prototype = new GameObject();
+Fire.prototype.constructor = GameObject;
+function Fire(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 10;
+	this.height = 10;
+	this.team = 0;
+	this.damage = 10;
+	this.pushable = false;
+	
+	this.addModule( mod_rigidbody );
+	
+	this.sprite = sprites.bullets;
+	this.frame = 0;
+	this.frame_row = 3;
+	this.life = Game.DELTASECOND * 8;
+	
+	this.on("struck", function(obj, pos, damage){
+		if( damage > 0 ) this.life = 0;
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		this.life = 0;
+		if( obj.hurt instanceof Function ) 
+			obj.hurt( this, this.damage );
+	});
+	this.on("death", function(){
+		this.destroy();
+	});
+}
+Fire.prototype.update = function(){
+	this.frame = (this.frame + (this.delta * 0.3)) % 2;
+	this.life -= this.delta;
+	if( this.life <= 0 ){
+		this.trigger("death");
+	}
+}

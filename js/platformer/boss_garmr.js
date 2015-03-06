@@ -31,7 +31,7 @@ function Garmr(x,y){
 	this.mass = 5.0;
 	this.damage = 25;
 	this.collideDamage = 25;
-	this.inviciple_tile = this.stun_time;
+	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
 	this.on("struck", function(obj,pos,damage){

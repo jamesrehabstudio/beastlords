@@ -63,9 +63,9 @@ function DataManager() {
 		{"tiles":"tiles3","size":16,"maxkeys":2,"tresures":[2,4],"boss":["Minotaur","Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
 		{"tiles":"tiles3","size":18,"maxkeys":3,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"]},
 		{"tiles":"tiles3","size":20,"maxkeys":4,"tresures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":22,"maxkeys":5,"tresures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":22,"maxkeys":6,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
-		{"tiles":"tiles3","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Marquis"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]}
+		{"tiles":"tiles3","size":22,"maxkeys":5,"tresures":[2,4],"boss":["Garmr","Ammit"],"miniboss":["Knight","Malphas"],"majormonster":["Bear","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":22,"maxkeys":6,"tresures":[2,4],"boss":["Ammit","Zoder"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]},
+		{"tiles":"tiles3","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]}
 	];
 	
 	this.tresures = [
@@ -902,10 +902,12 @@ function load_sprites (){
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48,"filters":person_filters});
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":person_filters});
 	
-	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64,"filters":person_filters});
+	sprites['ammit'] = new Sprite(RT+"img/ammit.gif", {offset:new Point(32, 32),width:64,height:64,"filters":person_filters});
+	sprites['garmr'] = new Sprite(RT+"img/garmr.gif", {offset:new Point(40, 24),width:80,height:64,"filters":person_filters});
 	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:80,height:64,"filters":person_filters});
 	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80,"filters":person_filters});
-	sprites['garmr'] = new Sprite(RT+"img/garmr.gif", {offset:new Point(40, 24),width:80,height:64,"filters":person_filters});
+	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64,"filters":person_filters});
+	sprites['zoder'] = new Sprite(RT+"img/zoder.gif", {offset:new Point(32, 32),width:80,height:64,"filters":person_filters});
 	
 	sprites['prisoner'] = new Sprite(RT+"img/prisoner.gif", {offset:new Point(16, 24),width:32,height:48});
 	

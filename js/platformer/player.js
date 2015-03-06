@@ -477,7 +477,7 @@ Player.prototype.render = function(g,c){
 	g.closePath();
 	g.beginPath();
 	g.fillStyle = "#F00";
-	g.scaleFillRect(8,8,this.life/4,8);
+	g.scaleFillRect(8,8,Math.max(this.life/4,0),8);
 	g.closePath();
 	
 	/* Render Mana */
