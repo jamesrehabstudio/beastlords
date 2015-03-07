@@ -15,11 +15,14 @@ function PauseMenu(){
 	this.map_reveal = new Array();
 	this.mapDimension = null;
 	
+	this.message_text = false;
+	this.message_time = 0;
 }
 PauseMenu.prototype.idle = function(){}
 PauseMenu.prototype.update = function(){
 	if( this.open ) {
 		game.pause = true;
+		this.message_time = 0;
 		
 		if( _player.life <= 0 ) {
 			//Player is dead, just wait for the start button to be pressed
@@ -136,6 +139,12 @@ PauseMenu.prototype.update = function(){
 		lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
 		_player.lock = lock;
 	}
+	
+	this.message_time -= game.deltaUnscaled;
+}
+PauseMenu.prototype.message = function(m){
+	this.message_text = m;
+	this.message_time = Game.DELTASECOND*2;
 }
 PauseMenu.prototype.revealMap = function(){
 	for(var i=0; i < this.map.length; i++ ) {
@@ -157,6 +166,11 @@ PauseMenu.prototype.render = function(g,c){
 		g.fillStyle = "#000";
 		g.scaleFillRect(216,8,32,24);
 		this.renderMap(g,new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)), new Point(232,24), new Line(-16,-16,16,8));
+	}
+	
+	if( this.message_time > 0 ) {
+		boxArea(g,16,16,224,64);
+		textArea(g,this.message_text,32,32,192);
 	}
 	
 	if( this.open && _player instanceof Player ) {

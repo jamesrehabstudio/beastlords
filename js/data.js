@@ -90,7 +90,7 @@ function DataManager() {
 		{"name":"haft","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"name":"zacchaeus_stick","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"name":"fangs","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
-		{"name":"passion_fruit","rarity":0.1,"pathSize":4,"doors":0.2,"pergame":9999,"price":70},
+		{"name":"passion_fruit","rarity":0.1,"pathSize":4,"doors":0.2,"pergame":9999,"price":100},
 		{"name":"shield_metal","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70}
 	];
 	
@@ -943,6 +943,7 @@ function load_sprites (){
 window.audio = new AudioPlayer({
 	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
 	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":24.0},
+	"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
 	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},
 	"fanfair" : {"url":RT+"sounds/fanfair.ogg","music":true},
 	

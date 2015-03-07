@@ -24,5 +24,6 @@ div.wrap {
 	overflow:hidden;
 	image-rendering: pixelated; /* future */
 	image-rendering: -webkit-optimize-contrast; /* webkit */
-	image-rendering: -moz-crisp-edges /* Firefox */
+	image-rendering: -moz-crisp-edges; /* Firefox */
+	cursor:pointer;
 }

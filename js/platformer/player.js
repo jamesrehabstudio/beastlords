@@ -432,8 +432,8 @@ Player.prototype.levelUp = function(index){
 	this.equip( this.equip_sword, this.equip_shield );
 }
 Player.prototype.addXP = function(value){
-	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 100 );
-	this.prevLevel = Math.floor( Math.pow( this.level-1,1.8 ) * 100 );
+	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 50 );
+	this.prevLevel = Math.floor( Math.pow( this.level-1,1.8 ) * 50 );
 	this.experience += value;
 	
 	if( this.experience >= this.nextLevel ) {

@@ -44,7 +44,7 @@ function Item(x,y,name){
 			if( this.name == "seed_cryptid") { /*cold effect*/ audio.play("levelup"); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
 			
-			if( this.name == "pedila") { obj.on("added",function(){this.spellsCounters.feather_foot=Number.MAX_VALUE}); audio.play("levelup"); }
+			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Number.MAX_VALUE; obj.on("added",function(){this.spellsCounters.feather_foot=Number.MAX_VALUE}); audio.play("levelup"); }
 			if( this.name == "whetstone") { obj.equip_sword.bonus_att++; obj.equip_sword.level++; audio.play("levelup"); }
 			if( this.name == "haft") { obj.equip_sword.bonus_def = obj.equip_sword.bonus_def+1 || 1; obj.equip_sword.level++; audio.play("levelup"); }
 			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; audio.play("levelup"); }
@@ -52,6 +52,10 @@ function Item(x,y,name){
 			if( this.name == "passion_fruit") { obj.manaHeal = obj.heal = Number.MAX_VALUE; audio.play("levelup"); }
 			if( this.name == "shield_metal") { if( obj.equip_shield == null ) return; obj.equip_shield.bonus_def = obj.equip_shield.bonus_def + 1 || 1; audio.play("levelup"); }
 			
+			var pm = game.getObject(PauseMenu);
+			if( pm != null && this.message != undefined ) {
+				pm.message( this.message );
+			}
 			this.interactive = false;
 			this.destroy();
 		}
@@ -107,19 +111,19 @@ Item.prototype.setName = function(n){
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	
-	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4;}
-	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; }
-	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; }
-	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; }
-	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; }
+	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nDamage up.";}
+	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}
+	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; this.message = "Malphas Seed\nTechnique up.";}
+	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; this.message = "Yeti Seed\nCold Strike.";}
+	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; this.message = "Guard Seed\nIncreased invincibility.";}
 	
-	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; }
-	if( this.name == "whetstone") { this.frame = 1; this.frame_row = 5; }
-	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; }
-	if( this.name == "zacchaeus_stick") { this.frame = 3; this.frame_row = 5; }
-	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; }
-	if( this.name == "passion_fruit") { this.frame = 5; this.frame_row = 5; }
-	if( this.name == "shield_metal") { this.frame = 6; this.frame_row = 5; }
+	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; this.message = "Pedila\nFantastically light shoes.";}
+	if( this.name == "whetstone") { this.frame = 1; this.frame_row = 5; this.message = "Whetstone\nCurrent weapon improved.";}
+	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; this.message = "Haft\nCurrent weapon defence up.";}
+	if( this.name == "zacchaeus_stick") { this.frame = 3; this.frame_row = 5; this.message = "Zacchaeus'\nMore money.";}
+	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; this.message = "Fangs\nLife steal.";}
+	if( this.name == "passion_fruit") { this.frame = 5; this.frame_row = 5; this.message = "Passion Fruit\nFull restoration.";}
+	if( this.name == "shield_metal") { this.frame = 6; this.frame_row = 5; this.message = "Shield Metal\nCurrent shield improved.";}
 	
 }
 Item.prototype.update = function(){

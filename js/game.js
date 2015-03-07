@@ -25,7 +25,7 @@ function AudioPlayer(list){
 	this.alias = {};
 	
 	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 0.8;
-	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.0;
+	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.3;
 	
 	this.sfxVolume.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
@@ -36,7 +36,8 @@ function AudioPlayer(list){
 		request.open("GET", this.list[l].url, true);
 		request.responseType = "arraybuffer";
 		request.uniqueid = l;
-		request.onload = function(){ 
+		request.onload = function(e){ 
+			var event = window.event || e;
 			var key = event.target.uniqueid;
 			self.a.decodeAudioData(event.target.response, function(b){ 
 				self.loaded(b,key); 
@@ -190,17 +191,19 @@ Sprite.prototype.render = function( g, pos, frame, row, flip, filter ) {
 		g.scale(-1,1);
 		pos.x = g.canvas.width + (g.canvas.width * -1) - pos.x;
 	}
-	g.drawImage( 
-		img, 
-		x_off, y_off, 
-		this.frame_width, 
-		this.frame_height,
-		Math.floor( pixel_scale * ( pos.x - this.offset.x )),
-		Math.floor( pixel_scale * ( pos.y - this.offset.y )),
-		pixel_scale * this.frame_width,
-		pixel_scale * this.frame_height
-		
-	);
+	try{
+		g.drawImage( 
+			img, 
+			x_off, y_off, 
+			this.frame_width, 
+			this.frame_height,
+			Math.floor( pixel_scale * ( pos.x - this.offset.x )),
+			Math.floor( pixel_scale * ( pos.y - this.offset.y )),
+			pixel_scale * this.frame_width,
+			pixel_scale * this.frame_height
+			
+		);
+	} catch (err) {}
 	g.restore();
 	g.closePath();
 }
@@ -248,9 +251,19 @@ function Game( elm ) {
 	
 	this.element = elm;
 	this.g = elm.getContext('2d');
-	this.g.imageSmoothingEnabled = false
+	this.g.mozImageSmoothingEnabled = false;
+	this.g.imageSmoothingEnabled = false;
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
+	
+	this.element.onclick = function(){
+		var fullscreen = 
+			Element.prototype.requestFullscreen || 
+			Element.prototype.msRequestFullscreen || 
+			Element.prototype.mozRequestFullScreen ||
+			Element.prototype.webkitRequestFullscreen;
+		fullscreen.apply(this);
+	}
 	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
@@ -332,6 +345,18 @@ Game.prototype.update = function( ) {
 		this.slowdown_time -= this.delta;
 		this.delta *= (this.slowdown_time > 0 ? this.slowdown : 1.0 );
 	}
+	
+	if( 
+		(document.webkitIsFullScreen != undefined && document.webkitIsFullScreen) ||
+		(document.mozIsFullScreen != undefined && document.mozIsFullScreen) ||
+		(document.msIsFullScreen != undefined && document.msIsFullScreen) ||
+		(document.isFullScreen != undefined && document.isFullScreen) 
+	) {
+		this.zoom( Math.floor(screen.height / 256) );
+	} else {
+		this.zoom(2);
+	}
+		
 	
 	//this._pathfinder.postMessage(this.objects);
 	this.renderTree = [];

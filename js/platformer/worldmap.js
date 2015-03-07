@@ -52,6 +52,8 @@ function WorldMap(x, y){
 	
 	this.animation = 0;
 	
+	
+	audio.playAs("music_world", "music");
 	this.on("activate", function(){
 		audio.playAs("music_world", "music");
 		this.active = true;
@@ -135,6 +137,7 @@ WorldMap.prototype.update = function(){
 			this.player.y += 16;
 			this.player_goto.y = this.player.y;
 			dataManager.randomTown(game, this.towns[i].size);
+			audio.playAs("music_town", "music");
 		}
 	}
 	
