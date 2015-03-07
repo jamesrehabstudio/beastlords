@@ -3175,6 +3175,10 @@ function Item(x,y,name){
 	this.name = "";
 	this.sprite = sprites.items;
 	
+	this.frames = false;
+	this.animation_frame = Math.random() * 3;
+	this.animation_speed = 0.25;
+	
 	if( name != undefined ) {
 		this.setName( name );
 	}
@@ -3183,7 +3187,7 @@ function Item(x,y,name){
 		if( obj instanceof Player ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { obj.heal = 100; }
-			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal = Number.MAX_VALUE; }
+			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
 			if( this.name == "life_small" ) { obj.heal = 10; }
 			if( this.name == "mana_small" ) { obj.manaHeal = 35; }
 			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }
@@ -3198,6 +3202,21 @@ function Item(x,y,name){
 			if( this.name == "coin_1") { obj.money+=1; audio.play("coin"); }
 			if( this.name == "coin_2") { obj.money+=5; audio.play("coin"); }
 			if( this.name == "coin_3") { obj.money+=10; audio.play("coin"); }
+			
+			//Enchanted items
+			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
+			if( this.name == "seed_bear") { obj.stats.defence+=1; audio.play("levelup"); }
+			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
+			if( this.name == "seed_cryptid") { /*cold effect*/ audio.play("levelup"); }
+			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
+			
+			if( this.name == "pedila") { obj.on("added",function(){this.spellsCounters.feather_foot=Number.MAX_VALUE}); audio.play("levelup"); }
+			if( this.name == "whetstone") { obj.equip_sword.bonus_att++; obj.equip_sword.level++; audio.play("levelup"); }
+			if( this.name == "haft") { obj.equip_sword.bonus_def = obj.equip_sword.bonus_def+1 || 1; obj.equip_sword.level++; audio.play("levelup"); }
+			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; audio.play("levelup"); }
+			if( this.name == "fangs") { obj.life_steal += 0.2; audio.play("levelup"); }
+			if( this.name == "passion_fruit") { obj.manaHeal = obj.heal = Number.MAX_VALUE; audio.play("levelup"); }
+			if( this.name == "shield_metal") { if( obj.equip_shield == null ) return; obj.equip_shield.bonus_def = obj.equip_shield.bonus_def + 1 || 1; audio.play("levelup"); }
 			
 			this.interactive = false;
 			this.destroy();
@@ -3250,10 +3269,32 @@ Item.prototype.setName = function(n){
 	if(n == "xp_small") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	
-	if(n == "coin_1") { this.frame = 7; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
-	if(n == "coin_2") { this.frame = 10; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
-	if(n == "coin_3") { this.frame = 13; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
+	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
+	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
+	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	
+	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4;}
+	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; }
+	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; }
+	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; }
+	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; }
+	
+	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; }
+	if( this.name == "whetstone") { this.frame = 1; this.frame_row = 5; }
+	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; }
+	if( this.name == "zacchaeus_stick") { this.frame = 3; this.frame_row = 5; }
+	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; }
+	if( this.name == "passion_fruit") { this.frame = 5; this.frame_row = 5; }
+	if( this.name == "shield_metal") { this.frame = 6; this.frame_row = 5; }
+	
+}
+Item.prototype.update = function(){
+	if( this.frames.length > 0 ) {
+		this.animation_frame = (this.animation_frame + this.delta * this.animation_speed) % this.frames.length;
+		this.frame = this.frames[ Math.floor( this.animation_frame ) ];
+		this.flip = this.frame < 0;
+		this.frame = Math.abs(this.frame);
+	}
 }
 Item.drop = function(obj,money){
 	var drops = ["life_small", "xp_small"];
@@ -3261,7 +3302,9 @@ Item.drop = function(obj,money){
 	if(Math.random() > 0.84 && money == undefined){
 		game.addObject( new Item( obj.position.x, obj.position.y, drops[0] ) );
 	} else {
+		var bonus = _player.money_bonus || 1.0;
 		money = money == undefined ? (1+Math.random()*3) : money;
+		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;
 			var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
@@ -3857,6 +3900,7 @@ var mod_combat = {
 		this.strike = function(l,trigger){
 			trigger = trigger == undefined ? "struck" : trigger;
 			
+			var out = new Array();
 			var offset = new Line( 
 				this.position.add( new Point( l.start.x * (this.flip ? -1.0 : 1.0), l.start.y) ),
 				this.position.add( new Point( l.end.x * (this.flip ? -1.0 : 1.0), l.end.y) )
@@ -3872,13 +3916,17 @@ var mod_combat = {
 					
 					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
 						hits[i].hurt(this, this.damage);
+						out.push(hits[i]);
 					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
 						//
 					} else {
 						hits[i].trigger(trigger, this, offset.center(), this.damage);
+						out.push(hits[i]);
 					}
 				}
 			}
+			
+			return out;
 		}
 		
 		this.hurt = function(obj, damage){
@@ -3904,6 +3952,7 @@ var mod_combat = {
 						this.trigger("death");
 					}
 				}
+				obj.trigger("hurt_other",this,damage);
 			}
 		}
 		
@@ -4074,30 +4123,15 @@ function Player(x, y){
 		if( this.inviciple > 0 ) return;
 		
 		this.hurt(obj,damage);
-		/*
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
-		var facing = true;
-		
-		if( this.states.guard && facing && (
-			(this.states.duck && dir.y < this.shieldProperties.duck) || 
-			(!this.states.duck && dir.y > this.shieldProperties.stand)
-		)){
-			//blocked
-			var kb = damage / 15.0;
-			obj.force.x += (dir2.x > 0 ? -3 : 3) * this.delta;
-			this.force.x += (dir2.x < 0 ? -kb : kb) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
-		*/
 	});
 	this.on("hurt", function(obj, damage){
 		this.states.attack = 0;
 		game.slow(0,5.0);
 		audio.play("playerhurt");
 	})
+	this.on("hurt_other", function(obj, damage){
+		this.life = Math.min( this.life + Math.round(damage * this.life_steal), this.lifeMax );
+	});
 	this.on("added", function(){
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
@@ -4209,6 +4243,8 @@ function Player(x, y){
 		"feather_foot" : 0,
 		"thorns" : 0
 	};
+	this.money_bonus = 1.0;
+	this.life_steal = 0.0;
 	
 	this.addXP(0);
 }

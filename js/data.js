@@ -68,6 +68,8 @@ function DataManager() {
 		{"tiles":"tiles2","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas"],"majormonster":["Igbo","Skeleton","ChazBike"],"minormonster":["Beaker","Batty","Amon"]}
 	];
 	
+	/* Set data */
+	
 	this.tresures = [
 		{"name":"life","rarity":0.5,"pathSize":1,"doors":0.0,"pergame":9999,"price":35},
 		{"name":"mana_small","rarity":0.3,"pathSize":1,"doors":0.0,"pergame":9999,"price":80},
@@ -75,7 +77,21 @@ function DataManager() {
 		{"name":"long_sword","rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
 		{"name":"spear","rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
 		{"name":"tower_shield","rarity":0.05,"pathSize":4,"doors":0.5,"pergame":10,"price":50},
-		{"name":"life_up","rarity":0.01,"pathSize":4,"doors":0.5,"pergame":9999,"price":500}
+		{"name":"life_up","rarity":0.01,"pathSize":4,"doors":0.5,"pergame":9999,"price":500},
+		
+		{"name":"seed_oriax","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"seed_bear","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"seed_malphas","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"seed_cryptid","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"seed_knight","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		
+		{"name":"pedila","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"whetstone","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"haft","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"zacchaeus_stick","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"fangs","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"name":"passion_fruit","rarity":0.1,"pathSize":4,"doors":0.2,"pergame":9999,"price":70},
+		{"name":"shield_metal","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70}
 	];
 	
 	this.rules = {

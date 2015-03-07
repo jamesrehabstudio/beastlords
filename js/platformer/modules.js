@@ -130,6 +130,7 @@ var mod_combat = {
 		this.strike = function(l,trigger){
 			trigger = trigger == undefined ? "struck" : trigger;
 			
+			var out = new Array();
 			var offset = new Line( 
 				this.position.add( new Point( l.start.x * (this.flip ? -1.0 : 1.0), l.start.y) ),
 				this.position.add( new Point( l.end.x * (this.flip ? -1.0 : 1.0), l.end.y) )
@@ -145,13 +146,17 @@ var mod_combat = {
 					
 					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
 						hits[i].hurt(this, this.damage);
+						out.push(hits[i]);
 					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
 						//
 					} else {
 						hits[i].trigger(trigger, this, offset.center(), this.damage);
+						out.push(hits[i]);
 					}
 				}
 			}
+			
+			return out;
 		}
 		
 		this.hurt = function(obj, damage){
@@ -177,6 +182,7 @@ var mod_combat = {
 						this.trigger("death");
 					}
 				}
+				obj.trigger("hurt_other",this,damage);
 			}
 		}
 		

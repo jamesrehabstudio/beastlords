@@ -75,30 +75,15 @@ function Player(x, y){
 		if( this.inviciple > 0 ) return;
 		
 		this.hurt(obj,damage);
-		/*
-		var dir = this.position.subtract(pos);
-		var dir2 = this.position.subtract(obj.position);
-		var facing = true;
-		
-		if( this.states.guard && facing && (
-			(this.states.duck && dir.y < this.shieldProperties.duck) || 
-			(!this.states.duck && dir.y > this.shieldProperties.stand)
-		)){
-			//blocked
-			var kb = damage / 15.0;
-			obj.force.x += (dir2.x > 0 ? -3 : 3) * this.delta;
-			this.force.x += (dir2.x < 0 ? -kb : kb) * this.delta;
-			audio.playLock("block",0.1);
-		} else {
-			this.hurt(obj,damage);
-		}
-		*/
 	});
 	this.on("hurt", function(obj, damage){
 		this.states.attack = 0;
 		game.slow(0,5.0);
 		audio.play("playerhurt");
 	})
+	this.on("hurt_other", function(obj, damage){
+		this.life = Math.min( this.life + Math.round(damage * this.life_steal), this.lifeMax );
+	});
 	this.on("added", function(){
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
@@ -210,6 +195,8 @@ function Player(x, y){
 		"feather_foot" : 0,
 		"thorns" : 0
 	};
+	this.money_bonus = 1.0;
+	this.life_steal = 0.0;
 	
 	this.addXP(0);
 }
