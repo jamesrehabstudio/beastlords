@@ -29,8 +29,7 @@ function SnakeBullet(x,y,d){
 			this.flip = !this.flip;
 		}
 	});
-	this.on("struckTarget",function(obj){
-		if( this.team == obj.team ) return;
+	this.on("hurt_other",function(obj, damage){
 		this.trigger("death");
 	});
 	this.on("death", function(obj,pos,damage){

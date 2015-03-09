@@ -16,7 +16,7 @@ function Knight(x,y){
 	
 	this.states = {
 		"attack" : 0,
-		"cooldown" : 100.0,
+		"cooldown" : Game.DELTASECOND * 3.0,
 		"combo_cooldown" : 0.0,
 		"attack_down" : false,
 		"guard" : 2, //0 none, 1 bottom, 2 top
@@ -36,33 +36,39 @@ function Knight(x,y){
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
 	this.stun_time = 0;
+	this.xp_award = 18;
+	this.money_award = 8;
 	
 	this.level = 1 + Math.floor( Math.random() + dataManager.currentTemple / 3 );
 	this.fr_offset = 0;
-	this.cooldown_time = Game.DELTASECOND * 1.6;
+	this.cooldown_time = Game.DELTASECOND * 2.4;
 	
 	if( this.level == 2 ){
 		this.life = 90;
 		this.damage = 30;
 		this.fr_offset = 3;
-		this.cooldown_time = Game.DELTASECOND * 1.4;
+		this.cooldown_time = Game.DELTASECOND * 2.0;
 		this.attack_warm = 22.0;
 		this.attack_time = 6.5;
 		this.attack_rest = 3.0;
 		this.speed = 0.42;
 		this.thrust_power = 8;
 		this.death_time = Game.DELTASECOND * 2;
+		this.xp_award = 39;
+		this.money_award = 12;
 	} else if ( this.level >= 3 ) {
 		this.life = 160;
 		this.damage = 50;
 		this.fr_offset = 6;
-		this.cooldown_time = Game.DELTASECOND * 1.2;
+		this.cooldown_time = Game.DELTASECOND * 1.8;
 		this.attack_warm = 20.0;
 		this.attack_time = 6.5;
 		this.attack_rest = 3.0;
 		this.speed = 0.45;
 		this.thrust_power = 10;
 		this.death_time = Game.DELTASECOND * 3;
+		this.xp_award = 57;
+		this.money_award = 24;
 	}
 	
 	this.on("collideObject", function(obj){
@@ -90,8 +96,8 @@ function Knight(x,y){
 		}
 	});
 	this.on("death", function(){
-		Item.drop(this,8);
-		_player.addXP(18);
+		Item.drop(this,this.money_award);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});

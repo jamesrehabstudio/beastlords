@@ -71,6 +71,7 @@ function Fire(x,y){
 			obj.hurt( this, this.damage );
 	});
 	this.on("death", function(){
+		game.addObject(new EffectSmoke(this.position.x, this.position.y));
 		this.destroy();
 	});
 }

@@ -22,7 +22,7 @@ function Item(x,y,name){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { obj.heal = 100; }
 			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
-			if( this.name == "life_small" ) { obj.heal = 10; }
+			if( this.name == "life_small" ) { obj.heal = 20; }
 			if( this.name == "mana_small" ) { obj.manaHeal = 35; }
 			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
@@ -135,13 +135,11 @@ Item.prototype.update = function(){
 	}
 }
 Item.drop = function(obj,money){
-	var drops = ["life_small", "xp_small"];
-	drops.sort(function(a,b){ return Math.random() - 0.5; } );
-	if(Math.random() > 0.84 && money == undefined){
-		game.addObject( new Item( obj.position.x, obj.position.y, drops[0] ) );
+	if(Math.random() > (_player.life / _player.lifeMax) && money == undefined){
+		game.addObject( new Item( obj.position.x, obj.position.y, "life_small" ) );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
-		money = money == undefined ? (1+Math.random()*3) : money;
+		money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;

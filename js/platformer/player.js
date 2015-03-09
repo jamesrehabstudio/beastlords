@@ -111,6 +111,7 @@ function Player(x, y){
 	this.team = 1;
 	this.mass = 1;
 	this.death_time = Game.DELTASECOND * 2;
+	this.invincible_time = 20;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -439,6 +440,7 @@ Player.prototype.addXP = function(value){
 	if( this.experience >= this.nextLevel ) {
 		this.stat_points++;
 		this.level++;
+		this.life = this.lifeMax;
 		audio.play("levelup2");
 		
 		//Call again, just in case the player got more than one level

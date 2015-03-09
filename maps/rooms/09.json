@@ -123,6 +123,8 @@
          "opacity":1,
          "properties":
             {
+             "max_temple":"3",
+             "min_temple":"1",
              "rarity":".5"
             },
          "type":"objectgroup",
@@ -223,7 +225,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "image":"..\/tiles0.gif",
+         "image":"..\/..\/img\/tiles\/tiles0.gif",
          "imageheight":256,
          "imagewidth":256,
          "margin":0,

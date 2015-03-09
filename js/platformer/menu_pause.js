@@ -48,10 +48,12 @@ PauseMenu.prototype.update = function(){
 			}
 		} else if( this.page == 1 ) {
 			//Map page
-			if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
-			if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
+			if( input.state("fire") ) {
+				if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
+				if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
+				if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
+			}
 
 		} else if( this.page == 2 ){
 			//attributes page
@@ -91,9 +93,9 @@ PauseMenu.prototype.update = function(){
 			}
 			
 			//Navigate pages
-			if( input.state("select") == 1 ) {
-				this.page = ( this.page + 1 ) % 4;
-				audio.play("cursor");
+			if( this.page != 1 || input.state("fire") <= 0 ) {
+				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % 4; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? 3 : this.page-1); audio.play("cursor"); }
 			}
 		}
 	} else {

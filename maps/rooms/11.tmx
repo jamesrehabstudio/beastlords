@@ -43,6 +43,7 @@
  </layer>
  <objectgroup name="lines" width="32" height="15" visible="0">
   <properties>
+   <property name="max_temple" value="4"/>
    <property name="rarity" value=".3"/>
   </properties>
   <object x="512" y="208">
@@ -53,15 +54,25 @@
   </object>
  </objectgroup>
  <objectgroup name="objects" width="32" height="15">
-  <object name="Dropper" gid="0" x="96" y="48">
+  <object name="Dropper" x="96" y="48">
    <properties>
     <property name="min_temple" value="2"/>
     <property name="rarity" value="0.8"/>
    </properties>
   </object>
-  <object name="MajorMonster" gid="232" x="208" y="112">
+  <object name="Beaker" gid="232" x="304" y="144">
    <properties>
     <property name="rarity" value="0.6"/>
+   </properties>
+  </object>
+  <object name="Beaker" gid="232" x="368" y="176">
+   <properties>
+    <property name="rarity" value="0.6"/>
+   </properties>
+  </object>
+  <object name="Beaker" gid="232" x="240" y="112">
+   <properties>
+    <property name="rarity" value="0.3"/>
    </properties>
   </object>
  </objectgroup>

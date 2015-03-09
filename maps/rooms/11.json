@@ -141,6 +141,7 @@
          "opacity":1,
          "properties":
             {
+             "max_temple":"4",
              "rarity":".3"
             },
          "type":"objectgroup",
@@ -154,7 +155,6 @@
          "name":"objects",
          "objects":[
                 {
-                 "gid":0,
                  "height":0,
                  "name":"Dropper",
                  "properties":
@@ -171,7 +171,7 @@
                 {
                  "gid":232,
                  "height":0,
-                 "name":"MajorMonster",
+                 "name":"Beaker",
                  "properties":
                     {
                      "rarity":"0.6"
@@ -179,7 +179,35 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":208,
+                 "x":304,
+                 "y":144
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"Beaker",
+                 "properties":
+                    {
+                     "rarity":"0.6"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":368,
+                 "y":176
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"Beaker",
+                 "properties":
+                    {
+                     "rarity":"0.3"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":240,
                  "y":112
                 }],
          "opacity":1,
@@ -198,7 +226,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "image":"..\/tiles0.gif",
+         "image":"..\/..\/img\/tiles\/tiles0.gif",
          "imageheight":256,
          "imagewidth":256,
          "margin":0,

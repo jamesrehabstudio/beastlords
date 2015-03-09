@@ -142,7 +142,7 @@ var mod_combat = {
 			var hits = game.overlaps(offset);
 			for( var i=0; i < hits.length; i++ ) {
 				if( hits[i].interactive && hits[i] != this && hits[i].life != null ) {
-					this.trigger("struckTarget", this, offset.center(), this.damage);
+					this.trigger("struckTarget", hits[i], offset.center(), this.damage);
 					
 					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
 						hits[i].hurt(this, this.damage);

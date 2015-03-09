@@ -25,7 +25,7 @@ function Batty(x,y){
 	this.collideDamage = 10;
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
-	this.fuse = dataManager.currentTemple > 4;
+	this.fuse = dataManager.currentTemple >= 4;
 	
 	this.on("collideObject", function(obj){
 		if( this.fuse && obj instanceof Batty ) {
@@ -61,7 +61,8 @@ function Batty(x,y){
 		this.visible = true;
 		this.interactive = true;
 		this.states.cooldown = Game.DELTASECOND * 1;
-		this.states.jumps = 0;
+		this.states.lockon = false;
+		this.states.attack = 0;
 		this.life = this.lifeMax;
 		this.gravity = -0.6;
 	});

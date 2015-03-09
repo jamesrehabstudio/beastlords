@@ -44,7 +44,7 @@
  <objectgroup name="objects" width="8" height="15">
   <object name="Healer" gid="115" x="48" y="192">
    <properties>
-    <property name="price" value="50"/>
+    <property name="price" value="15"/>
     <property name="type" value="1"/>
    </properties>
   </object>

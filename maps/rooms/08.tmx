@@ -43,6 +43,7 @@
  </layer>
  <objectgroup name="lines" width="16" height="15">
   <properties>
+   <property name="min_temple" value="1"/>
    <property name="rarity" value=".5"/>
   </properties>
   <object x="0" y="32">

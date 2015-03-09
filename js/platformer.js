@@ -896,6 +896,7 @@ function Fire(x,y){
 			obj.hurt( this, this.damage );
 	});
 	this.on("death", function(){
+		game.addObject(new EffectSmoke(this.position.x, this.position.y));
 		this.destroy();
 	});
 }
@@ -1215,7 +1216,7 @@ function Batty(x,y){
 	this.collideDamage = 10;
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
-	this.fuse = dataManager.currentTemple > 4;
+	this.fuse = dataManager.currentTemple >= 4;
 	
 	this.on("collideObject", function(obj){
 		if( this.fuse && obj instanceof Batty ) {
@@ -1251,7 +1252,8 @@ function Batty(x,y){
 		this.visible = true;
 		this.interactive = true;
 		this.states.cooldown = Game.DELTASECOND * 1;
-		this.states.jumps = 0;
+		this.states.lockon = false;
+		this.states.attack = 0;
 		this.life = this.lifeMax;
 		this.gravity = -0.6;
 	});
@@ -2229,7 +2231,7 @@ function Knight(x,y){
 	
 	this.states = {
 		"attack" : 0,
-		"cooldown" : 100.0,
+		"cooldown" : Game.DELTASECOND * 3.0,
 		"combo_cooldown" : 0.0,
 		"attack_down" : false,
 		"guard" : 2, //0 none, 1 bottom, 2 top
@@ -2249,33 +2251,39 @@ function Knight(x,y){
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
 	this.stun_time = 0;
+	this.xp_award = 18;
+	this.money_award = 8;
 	
 	this.level = 1 + Math.floor( Math.random() + dataManager.currentTemple / 3 );
 	this.fr_offset = 0;
-	this.cooldown_time = Game.DELTASECOND * 1.6;
+	this.cooldown_time = Game.DELTASECOND * 2.4;
 	
 	if( this.level == 2 ){
 		this.life = 90;
 		this.damage = 30;
 		this.fr_offset = 3;
-		this.cooldown_time = Game.DELTASECOND * 1.4;
+		this.cooldown_time = Game.DELTASECOND * 2.0;
 		this.attack_warm = 22.0;
 		this.attack_time = 6.5;
 		this.attack_rest = 3.0;
 		this.speed = 0.42;
 		this.thrust_power = 8;
 		this.death_time = Game.DELTASECOND * 2;
+		this.xp_award = 39;
+		this.money_award = 12;
 	} else if ( this.level >= 3 ) {
 		this.life = 160;
 		this.damage = 50;
 		this.fr_offset = 6;
-		this.cooldown_time = Game.DELTASECOND * 1.2;
+		this.cooldown_time = Game.DELTASECOND * 1.8;
 		this.attack_warm = 20.0;
 		this.attack_time = 6.5;
 		this.attack_rest = 3.0;
 		this.speed = 0.45;
 		this.thrust_power = 10;
 		this.death_time = Game.DELTASECOND * 3;
+		this.xp_award = 57;
+		this.money_award = 24;
 	}
 	
 	this.on("collideObject", function(obj){
@@ -2303,8 +2311,8 @@ function Knight(x,y){
 		}
 	});
 	this.on("death", function(){
-		Item.drop(this,8);
-		_player.addXP(18);
+		Item.drop(this,this.money_award);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
@@ -2906,8 +2914,7 @@ function SnakeBullet(x,y,d){
 			this.flip = !this.flip;
 		}
 	});
-	this.on("struckTarget",function(obj){
-		if( this.team == obj.team ) return;
+	this.on("hurt_other",function(obj, damage){
 		this.trigger("death");
 	});
 	this.on("death", function(obj,pos,damage){
@@ -2943,6 +2950,78 @@ SnakeBullet.prototype.update = function(){
 	if( this.states.life < 0 ){
 		this.trigger("death");
 	}
+}
+
+ /* platformer/enemy_svarog.js*/ 
+
+Svarog.prototype = new GameObject();
+Svarog.prototype.constructor = GameObject;
+function Svarog(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 40;
+	
+	this.speed = 2.5;
+	this.sprite = sprites.svarog;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.on("hurt", function(obj,damage){
+		audio.play("hurt");
+	});
+	this.on("struck", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		this.hurt( obj, damage );
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
+			obj.hurt( this, this.damage );
+			this.force.x *= -1;
+		}
+	});
+	this.on("death", function(obj,pos,damage){
+		Item.drop(this);
+		_player.addXP(3);
+		audio.play("kill");
+		this.destroy();
+	});
+	this.on("wakeup", function(){
+		var dir = this.position.subtract(_player.position);
+		this.force.x = dir.x > 0 ? -this.speed : this.speed; 
+	});
+	
+	this.life = 5;
+	this.collisionReduction = -1.0;
+	this.friction = 0.0;
+	this.stun_time = 30.0;
+	this.invincible_time = 30.0;
+	
+	this.states = {
+		"cooldown" : 0
+	};
+	
+	this.mass = 1.0;
+	this.gravity = 0.0;
+}
+Svarog.prototype.update = function(){
+	this.frame = (this.frame + this.delta * 0.2) % 3;
+	this.frame_row = 0;
+	this.flip = this.force.x < 0;
+	
+	var dir = this.position.subtract(_player.position);
+	this.force.y += ( dir.y > -56 ? -.1 : .1 );
+	
+	if( this.states.cooldown <= 0 ) {
+		this.states.cooldown = Game.DELTASECOND * 1.0;
+		var fire = new Fire(this.position.x, this.position.y);
+		fire.team = this.team;
+		game.addObject(fire);
+	}
+	this.states.cooldown -= this.delta;
 }
 
  /* platformer/enemy_yakseyo.js*/ 
@@ -3188,7 +3267,7 @@ function Item(x,y,name){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { obj.heal = 100; }
 			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
-			if( this.name == "life_small" ) { obj.heal = 10; }
+			if( this.name == "life_small" ) { obj.heal = 20; }
 			if( this.name == "mana_small" ) { obj.manaHeal = 35; }
 			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
@@ -3301,13 +3380,11 @@ Item.prototype.update = function(){
 	}
 }
 Item.drop = function(obj,money){
-	var drops = ["life_small", "xp_small"];
-	drops.sort(function(a,b){ return Math.random() - 0.5; } );
-	if(Math.random() > 0.84 && money == undefined){
-		game.addObject( new Item( obj.position.x, obj.position.y, drops[0] ) );
+	if(Math.random() > (_player.life / _player.lifeMax) && money == undefined){
+		game.addObject( new Item( obj.position.x, obj.position.y, "life_small" ) );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
-		money = money == undefined ? (1+Math.random()*3) : money;
+		money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;
@@ -3454,10 +3531,12 @@ PauseMenu.prototype.update = function(){
 			}
 		} else if( this.page == 1 ) {
 			//Map page
-			if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
-			if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
+			if( input.state("fire") ) {
+				if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
+				if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
+				if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
+			}
 
 		} else if( this.page == 2 ){
 			//attributes page
@@ -3497,9 +3576,9 @@ PauseMenu.prototype.update = function(){
 			}
 			
 			//Navigate pages
-			if( input.state("select") == 1 ) {
-				this.page = ( this.page + 1 ) % 4;
-				audio.play("cursor");
+			if( this.page != 1 || input.state("fire") <= 0 ) {
+				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % 4; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? 3 : this.page-1); audio.play("cursor"); }
 			}
 		}
 	} else {
@@ -3930,7 +4009,7 @@ var mod_combat = {
 			var hits = game.overlaps(offset);
 			for( var i=0; i < hits.length; i++ ) {
 				if( hits[i].interactive && hits[i] != this && hits[i].life != null ) {
-					this.trigger("struckTarget", this, offset.center(), this.damage);
+					this.trigger("struckTarget", hits[i], offset.center(), this.damage);
 					
 					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
 						hits[i].hurt(this, this.damage);
@@ -4177,6 +4256,7 @@ function Player(x, y){
 	this.team = 1;
 	this.mass = 1;
 	this.death_time = Game.DELTASECOND * 2;
+	this.invincible_time = 20;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -4505,6 +4585,7 @@ Player.prototype.addXP = function(value){
 	if( this.experience >= this.nextLevel ) {
 		this.stat_points++;
 		this.level++;
+		this.life = this.lifeMax;
 		audio.play("levelup2");
 		
 		//Call again, just in case the player got more than one level
