@@ -27,7 +27,7 @@ function Garmr(x,y){
 		"cooldown" : 0
 	}
 	
-	this.life = 1;
+	this.life = dataManager.life(0);
 	this.mass = 5.0;
 	this.damage = 25;
 	this.collideDamage = 25;

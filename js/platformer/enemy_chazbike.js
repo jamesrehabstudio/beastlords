@@ -8,7 +8,7 @@ function ChazBike(x,y){
 	this.height = 32;
 	this.start_x = x;
 	
-	this.speed = 0.2;
+	this.speed = 0.15;
 	this.sprite = sprites.chazbike;
 	
 	this.addModule( mod_rigidbody );
@@ -41,10 +41,10 @@ function ChazBike(x,y){
 		this.destroy();
 	});
 	
-	this.life = 50;
-	this.collideDamage = 20;
+	this.life = dataManager.life(8);
+	this.collideDamage = dataManager.damage(3);
 	this.mass = 5.3;
-	this.friction = 0.02;
+	this.friction = 0.01;
 	this.death_time = Game.DELTASECOND * 2;
 	this.pushable = false;
 	this.stun_time = 0;

@@ -37,8 +37,9 @@ function SnakeBullet(x,y,d){
 	});
 	this.flip = d < 0;
 	this.force.x = d * 8;
-	this.life = 3;
-	this.collideDamage = 5;
+	this.life = dataManager.life(0);
+	this.collideDamage = dataManager.damage(1);
+	this.damage = dataManager.damage(2);
 	this.mass = 0.0;
 	this.gravity = 0.1;
 	

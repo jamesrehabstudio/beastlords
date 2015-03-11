@@ -9,17 +9,19 @@ function Malsum(x,y){
 	this.sprite = sprites.bear;
 	this.speed = 0.3;
 	
+	this.start_x = x;
+	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.life = 80;
+	this.life = dataManager.life(4);
 	
 	this.states = {
 		"direction" : -1,
 	}
 	
-	this.damage = 10;
-	this.collideDamage = 40;
+	this.damage = dataManager.damage(1);
+	this.collideDamage = dataManager.damage(3);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	
@@ -45,8 +47,8 @@ Malsum.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
 	
 	if( this.stun <= 0 ) {
-		if( dir.x < -48 ) this.states.direction = 1;
-		if( dir.x < 48 ) this.states.direction = -1;
+		if( this.position.x - this.start_x < -48 ) this.states.direction = 1;
+		if( this.position.x - this.start_x > 48 ) this.states.direction = -1;
 		
 		this.force.x += this.states.direction * this.delta * this.speed;
 	}

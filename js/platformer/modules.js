@@ -27,8 +27,8 @@ var mod_rigidbody = {
 			if( obj.hasModule(mod_rigidbody) && this.pushable ) {
 				var dir = this.position.subtract( obj.position ).normalize();
 				var mass = Math.max( 1.0 - Math.max(this.mass - obj.mass, 0), 0);
-				this.force.y += dir.y * this.friction * mass;
-				this.force.x += dir.x * this.friction * mass;
+				this.force.y += dir.y * this.friction * mass * this.delta;
+				this.force.x += dir.x * this.friction * mass * this.delta;
 			}
 		});
 	},
@@ -110,6 +110,31 @@ var mod_combat = {
 		this._death_clock = Number.MAX_VALUE;
 		this._death_explosion_clock = Number.MAX_VALUE;
 		
+		this.attackEffects = {
+			"slow" : [0,10],
+			"poison" : [0,10],
+			"cursed" : [0,15],
+			"weaken" : [0,30],
+			"bleeding" : [0,30],
+			"rage" : [0,30]
+		};
+		this.statusEffects = {
+			"slow" : 0,
+			"poison" : 0,
+			"cursed" : 0,
+			"weaken" : 0,
+			"bleeding" : 0,
+			"rage" : 0
+		};
+		this.statusEffectsTimers = {
+			"slow" : 0,
+			"poison" : 0,
+			"cursed" : 0,
+			"weaken" : 0,
+			"bleeding" : 0,
+			"rage" : 0
+		};
+		
 		var self = this;
 		this.guard = {
 			"x" : 4,
@@ -121,7 +146,10 @@ var mod_combat = {
 		this._shield = new GameObject();
 		this._shield.life = 1;
 		
-		this.on("added",function(){ game.addObject(this._shield); });
+		this.on("added",function(){ 
+			for(var i in this.statusEffectsTimers )this.statusEffectsTimers[i] = -1;
+			game.addObject(this._shield); 
+		});
 		this._shield.on("struck",function(obj,position,damage){
 			if( obj != self ) 
 				self.trigger("block",obj,position,damage);
@@ -158,8 +186,40 @@ var mod_combat = {
 			
 			return out;
 		}
-		
+		this.isDead = function(){
+			if( this.life <= 0 ){
+				//Remove effects
+				for(var i in this.statusEffects ){
+					this.statusEffects[i] = -1;
+					this.statusEffectsTimers[i] = -1;
+				}
+				//Trigger death
+				if( this.death_time > 0 ) {
+					this.trigger("pre_death");
+					this._death_clock = this.death_time;
+					this._death_explosion_clock = this.death_time;
+					this.interactive = false;
+				} else {
+					game.addObject(new EffectExplosion(this.position.x,this.position.y));
+					this.trigger("death");
+				}
+			}
+		}
 		this.hurt = function(obj, damage){
+			if( this.statusEffects.bleeding > 0 ) damage *= 2;
+			if( this.statusEffects.rage > 0 ) damage = Math.floor( damage * 1.5 );
+			if( "statusEffects" in obj && this.statusEffects.weaken > 0 ) damage = Math.ceil(damage/2);
+			if( "statusEffects" in obj && this.statusEffects.rage > 0 ) damage = Math.floor(damage*1.5);
+			
+			//Add effects to attack
+			if( "attackEffects" in obj ){
+				for( var i in obj.attackEffects ) {
+					if( Math.random() < obj.attackEffects[i][0] )
+						this.statusEffects[i] = Math.max( Game.DELTASECOND * obj.attackEffects[i][1], this.statusEffects[i] );
+						this.statusEffectsTimers[i] = this.statusEffects[i]
+				}
+			}
+			
 			if( this.invincible <= 0 ) {
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
@@ -170,18 +230,7 @@ var mod_combat = {
 				this.invincible = this.invincible_time;
 				this.stun = this.stun_time;
 				this.trigger("hurt",obj,damage);
-				if( this.life <= 0 ){
-					//Trigger death
-					if( this.death_time > 0 ) {
-						this.trigger("pre_death");
-						this._death_clock = this.death_time;
-						this._death_explosion_clock = this.death_time;
-						this.interactive = false;
-					} else {
-						game.addObject(new EffectExplosion(this.position.x,this.position.y));
-						this.trigger("death");
-					}
-				}
+				this.isDead();
 				obj.trigger("hurt_other",this,damage);
 			}
 		}
@@ -198,6 +247,23 @@ var mod_combat = {
 			this.filter = false;
 		}
 		
+		this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
+		
+		//Status Effects timers
+		var j=0;
+		for(var i in this.statusEffects ){
+			if( this.statusEffects[i] > 0 ){
+				this.statusEffects[i] -= this.deltaUnscaled;
+				if( this.statusEffectsTimers[i] > this.statusEffects[i] || this.statusEffectsTimers[i] <= 0 ){
+					this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
+					if( i == "poison" ) { this.life -= 1; this.isDead(); }
+					var effect = new EffectStatus(this.position.x+(Math.random()-.5)*this.width, this.position.y+(Math.random()-.5)*this.height);
+					effect.frame = j;
+					game.addObject(effect);
+				}
+			}
+			j++;
+		}
 		
 		if( this.life <= 0 ) this._death_clock -= game.deltaUnscaled;
 		if( this._death_clock <= 0 ) this.trigger("death");
@@ -241,13 +307,13 @@ var mod_boss = {
 			240 + corner.y
 		);
 		this.boss_doors = [
-			new Point(corner.x+8,corner.y+168),
-			new Point(corner.x+8,corner.y+184),
-			new Point(corner.x+8,corner.y+200),
+			new Point(corner.x-8,corner.y+168),
+			new Point(corner.x-8,corner.y+184),
+			new Point(corner.x-8,corner.y+200),
 			
-			new Point(corner.x+248,corner.y+168),
-			new Point(corner.x+248,corner.y+184),
-			new Point(corner.x+248,corner.y+200)
+			new Point(corner.x+256,corner.y+168),
+			new Point(corner.x+256,corner.y+184),
+			new Point(corner.x+256,corner.y+200)
 		];
 		
 		this.on("activate", function() {
@@ -270,6 +336,34 @@ var mod_boss = {
 				this.active = true;
 				this.trigger("activate");
 			}
+		}
+	}
+}
+
+var mod_talk = {
+	"init" : function(){
+		this.open = 0;
+		this.canOpen = true;
+		this._talk_is_over = 0;
+		
+		this.on("collideObject", function(obj){
+			if( obj instanceof Player ){
+				this._talk_is_over = 2;
+			}
+		});
+	},
+	"update" : function(){
+		if( this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
+			this.open = 1;
+			this.trigger("open");
+		}
+		this._talk_is_over--;
+	},
+	"render" : function(g,c){
+		if( this.canOpen && this._talk_is_over > 0 && this.open < 1){
+			var pos = _player.position.subtract(c);
+			pos.y -= 24;
+			sprites.text.render(g,pos,4,6);
 		}
 	}
 }

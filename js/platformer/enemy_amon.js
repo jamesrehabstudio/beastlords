@@ -42,7 +42,7 @@ function Amon(x,y){
 		this.destroy();
 	});
 	
-	this.life = 15;
+	this.life = dataManager.life(3);
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;
 	this.friction = 0.0;
@@ -51,6 +51,7 @@ function Amon(x,y){
 	this.force.x = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.force.y = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.backupForce = new Point(this.force.x, this.force.y);
+	this.damage = dataManager.damage(2);
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;

@@ -29,9 +29,9 @@ function Knight(x,y){
 	this.attack_rest = 7.0;
 	this.thrust_power = 6;
 	
-	this.life = 45;
-	this.damage = 20;
-	this.collideDamage = 10;
+	this.life = dataManager.life(7);
+	this.damage = dataManager.damage(3);
+	this.collideDamage = dataManager.damage(1);
 	this.mass = 3.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
@@ -39,13 +39,13 @@ function Knight(x,y){
 	this.xp_award = 18;
 	this.money_award = 8;
 	
-	this.level = 1 + Math.floor( Math.random() + dataManager.currentTemple / 3 );
+	this.level = 0.5 + Math.floor( Math.random() + dataManager.currentTemple / 3 );
 	this.fr_offset = 0;
 	this.cooldown_time = Game.DELTASECOND * 2.4;
 	
 	if( this.level == 2 ){
-		this.life = 90;
-		this.damage = 30;
+		this.life = dataManager.life(8);
+		this.damage = dataManager.damage(4);
 		this.fr_offset = 3;
 		this.cooldown_time = Game.DELTASECOND * 2.0;
 		this.attack_warm = 22.0;
@@ -57,8 +57,8 @@ function Knight(x,y){
 		this.xp_award = 39;
 		this.money_award = 12;
 	} else if ( this.level >= 3 ) {
-		this.life = 160;
-		this.damage = 50;
+		this.life = dataManager.life(10);
+		this.damage = dataManager.damage(5);
 		this.fr_offset = 6;
 		this.cooldown_time = Game.DELTASECOND * 1.8;
 		this.attack_warm = 20.0;

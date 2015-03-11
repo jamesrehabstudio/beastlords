@@ -35,8 +35,8 @@ function Oriax(x,y){
 		this.destroy();
 	});
 	
-	this.life = 40;
-	this.collideDamage = 5;
+	this.life =  dataManager.life(8);
+	this.collideDamage = dataManager.damage(1);
 	this.mass = 1.0;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 1;

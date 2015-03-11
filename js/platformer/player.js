@@ -102,8 +102,8 @@ function Player(x, y){
 	
 	this.life = 0;
 	this.lifeMax = 100;
-	this.mana = 100;
-	this.manaMax = 100;
+	this.mana = 3;
+	this.manaMax = 3;
 	this.money = 0;
 	this.heal = 100;
 	this.healMana = 0;
@@ -141,8 +141,8 @@ function Player(x, y){
 	this.selectedSpell = "";
 	this.spells = {
 		"bolt" : function(){ 
-			if( this.mana > 15 ){
-				this.mana -= 15;
+			if( this.mana >= 1 ){
+				this.mana -= 1;
 				var bullet = new Bullet(this.position.x, this.position.y, this.flip ? -1 : 1);
 				bullet.team = this.team;
 				bullet.collisionDamage = this.damage * 3;
@@ -150,40 +150,40 @@ function Player(x, y){
 			}
 		},
 		"magic_sword" : function(){
-			if( this.mana > 25 ){
-				this.mana -= 25;
+			if( this.mana >= 1 ){
+				this.mana -= 1;
 				this.spellsCounters.magic_sword = Game.DELTASECOND * 30; 
 				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
 			}
 		},
 		"magic_armour" : function(){
-			if( this.mana > 25 ){
-				this.mana -= 25;
+			if( this.mana >= 1 ){
+				this.mana -= 1;
 				this.spellsCounters.magic_armour = Game.DELTASECOND * 30; 
 				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
 			}
 		},
 		"feather_foot" : function(){
-			if( this.mana > 25 ){
-				this.mana -= 25;
+			if( this.mana >= 1 ){
+				this.mana -= 1;
 				this.spellsCounters.feather_foot = Game.DELTASECOND * 30; 
 				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
 			}
 		},
 		"thorns" : function(){
-			if( this.mana > 25 ){
-				this.mana -= 25;
+			if( this.mana > 1 ){
+				this.mana -= 1;
 				this.spellsCounters.thorns = Game.DELTASECOND * 30; 
 				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
 			}
 		},
 		"heal" : function(){
-			if( this.mana > 25 ){
-				this.mana -= 25;
+			if( this.mana >= 1 ){
+				this.mana -= 1;
 				this.heal += 33;
 				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
@@ -407,11 +407,11 @@ Player.prototype.equip = function(sword, shield){
 		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
 		
-		this.damage = 5 + att * 2;
+		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
-		this.attackProperites.rest = Math.max( this.attackProperites.rest - tech*0.8, 0);
-		this.attackProperites.strike = Math.max( this.attackProperites.strike - tech*0.8, 3.5);
-		this.attackProperites.warm = Math.max( this.attackProperites.warm - tech*1.0, this.attackProperites.strike);		
+		this.attackProperites.rest = Math.max( this.attackProperites.rest - tech*1.6, 0);
+		this.attackProperites.strike = Math.max( this.attackProperites.strike - tech*1.6, 3.5);
+		this.attackProperites.warm = Math.max( this.attackProperites.warm - tech*2.0, this.attackProperites.strike);		
 		
 	} catch(e) {
 		this.equip( this.equip_sword, this.equip_shield );
@@ -472,13 +472,13 @@ Player.prototype.render = function(g,c){
 	/* Render Mana */
 	g.beginPath();
 	g.fillStyle = "#FFF";
-	g.scaleFillRect(7,19,(this.manaMax/4)+2,4);
+	g.scaleFillRect(7,19,25+2,4);
 	g.fillStyle = "#000";
-	g.scaleFillRect(8,20,this.manaMax/4,2);
+	g.scaleFillRect(8,20,25,2);
 	g.closePath();
 	g.beginPath();
 	g.fillStyle = "#3CBCFC";
-	g.scaleFillRect(8,20,this.mana/4,2);
+	g.scaleFillRect(8,20,Math.floor(25*(this.mana/this.manaMax)),2);
 	g.closePath();
 	
 	/* Render XP */

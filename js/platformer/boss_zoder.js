@@ -30,7 +30,7 @@ function Zoder(x,y){
 	this.attack_rest = 7.0;
 	this.thrust_power = 6;
 	
-	this.life = 145;
+	this.life = dataManager.life(16);
 	this.damage = 50;
 	this.collideDamage = 20;
 	this.mass = 5.0;

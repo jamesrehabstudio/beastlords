@@ -22,11 +22,11 @@ function Bear(x,y){
 	
 	this.attack_warm = 40.0;
 	this.attack_time = 23.0;
-	this.attack_rest = 20.0;
+	this.attack_rest = 0.0;
 	
-	this.life = 40;
-	this.damage = 15;
-	this.collideDamage = 10;
+	this.life = dataManager.life(6);
+	this.damage = dataManager.damage(3);
+	this.collideDamage = dataManager.damage(1);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	

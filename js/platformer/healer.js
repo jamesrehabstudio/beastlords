@@ -13,8 +13,6 @@ function Healer(x,y,n,options){
 	this.frame = 0;
 	this.frame_row = 1;
 	
-	this.phase = 0
-	
 	this.type = 0;
 	this.price = 0;
 	this.cursor = 0;
@@ -23,14 +21,10 @@ function Healer(x,y,n,options){
 	if("price" in options ) this.price = options.price-0;
 	if("type" in options ) this.type = options.type-0;
 	
-	this.on("struck",function(obj){
-		if( this.phase==0 && obj instanceof Player ){
-			game.pause = true;
-			obj.states.attack = 0;
-			this.cursor = 0;
-			this.phase = 1;
-			audio.playLock("pause",0.3);
-		}
+	this.on("open",function(obj){
+		game.pause = true;
+		this.cursor = 0;
+		audio.playLock("pause",0.3);
 	});
 	this.message = [	
 		"Let me bless you, weary traveller, so I may restore your spirit.",
@@ -38,6 +32,7 @@ function Healer(x,y,n,options){
 		"I can improve that weapon of yours for $%PRICE%. Interested?"
 	];
 	this.addModule(mod_rigidbody);
+	this.addModule(mod_talk);
 	this.friction = 0.9;
 	this.mass = 0;
 	this.pushable = false;
@@ -50,7 +45,7 @@ Healer.prototype.update = function(g,c){
 		this.price = Math.floor( 50 * Math.pow(_player.equip_sword.level, 1.5) );
 	
 	
-	if( this.phase == 2 ) {
+	if( this.open > 0 ) {
 		if( this.price > 0 ) {
 			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
@@ -66,11 +61,12 @@ Healer.prototype.update = function(g,c){
 					} else if ( this.type == 2 ){
 						_player.equip_sword.bonus_att++;
 						_player.equip_sword.level++;
+						_player.equip_sword.filter = "gold";
 						_player.levelUp(-1);
 						audio.play("item1");
 					}
 					_player.money -= this.price;
-					this.phase = 0;
+					this.open = 0;
 					game.pause = false;
 				} else {
 					//Cannot afford it
@@ -78,22 +74,21 @@ Healer.prototype.update = function(g,c){
 				}
 			} else {
 				//Player selected no
-				this.phase = 0;
+				this.open = 0;
 				game.pause = false;
 			}
 		}
 		if( input.state("jump") == 1 || input.state("pause") == 1 ){
-			this.phase = 0;
+			this.open = 0;
 			game.pause = false;
 		}
 	}
-	if( this.phase > 0 ) this.phase = 2 //This is to prevent same frame button press
-	this.frame = this.phase > 0 ? 1 : 0;
+	this.frame = this.open > 0 ? 1 : 0;
 }
 Healer.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	
-	if( this.phase > 0 ) {
+	if( this.open > 0 ) {
 		boxArea(g,16,48,224,64);
 		textArea(g,this.message[this.type].replace("%PRICE%",this.price),32,64,192,64);
 		

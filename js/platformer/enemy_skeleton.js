@@ -31,10 +31,10 @@ function Skeleton(x,y){
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
-	this.life = 20;
+	this.life = dataManager.life(5);
 	this.mass = 0.8;
-	this.damage = 15;
-	this.collideDamage = 8;
+	this.damage = dataManager.damage(3);
+	this.collideDamage = dataManager.damage(1);
 	this.stun_time = 0;
 	
 	this.on("collideObject", function(obj){
@@ -76,7 +76,7 @@ function Skeleton(x,y){
 }
 Skeleton.prototype.update = function(){	
 	this.sprite = sprites.skele;
-	if ( this.stun <= 0 ) {
+	if ( this.stun <= 0 && this.life > 0 ) {
 		var dir = this.position.subtract( _player.position );
 		this.active = this.active || Math.abs( dir.x ) < 120;
 		

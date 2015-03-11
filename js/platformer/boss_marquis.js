@@ -29,7 +29,7 @@ function Marquis(x,y){
 		"rest" : 40
 	};
 		
-	this.life = 80;
+	this.life = dataManager.life(16);
 	this.mass = 4.0;
 	this.damage = 25;
 	this.collideDamage = 10;

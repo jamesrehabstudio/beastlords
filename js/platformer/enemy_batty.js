@@ -19,10 +19,10 @@ function Batty(x,y){
 		"direction" : 0
 	}
 	
-	this.life = 5;
-	this.lifeMax = 5;
+	this.life = dataManager.life(0);
+	this.lifeMax = dataManager.life(0);
 	this.mass = 0.8;
-	this.collideDamage = 10;
+	this.collideDamage = dataManager.damage(2);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
 	this.fuse = dataManager.currentTemple >= 4;

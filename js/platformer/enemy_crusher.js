@@ -20,8 +20,8 @@ function Crusher(x,y){
 		"active" : true
 	}
 	
-	this.damage = 40;
-	this.collideDamage = 10;
+	this.damage = dataManager.damage(5);
+	this.collideDamage = dataManager.damage(1);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	

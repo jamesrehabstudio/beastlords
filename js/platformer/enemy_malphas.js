@@ -13,7 +13,7 @@ function Malphas(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.life = 80;
+	this.life = dataManager.life(6);
 	
 	this.states = {
 		"active" : false,
@@ -25,8 +25,8 @@ function Malphas(x,y){
 	}
 	this.attack_time = Game.DELTASECOND * 0.6;
 	
-	this.damage = 25;
-	this.collideDamage = 10;
+	this.damage = dataManager.damage(4);
+	this.collideDamage = dataManager.damage(1);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	

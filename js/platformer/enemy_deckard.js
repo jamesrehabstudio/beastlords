@@ -24,10 +24,11 @@ function Deckard(x,y){
 	this.attack_time = Game.DELTASECOND * 0.6;
 	this.jump_start_y = 0;
 	
-	this.life = 60;
-	this.lifeMax = 60;
+	this.life = dataManager.life(6);
+	this.lifeMax = dataManager.life(6);
 	this.mass = 4;
-	this.collideDamage = 10;
+	this.damage = dataManager.damage(3);
+	this.collideDamage = dataManager.damage(1);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 2;
 	

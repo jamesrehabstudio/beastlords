@@ -10,15 +10,17 @@ function Chort(x,y){
 	this.speed = .1;
 	this.active = false;
 	this.start_x = x;
-	this.collideDamage = 5;
-	this.damage = 10;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
 	this.death_time = Game.DELTASECOND * 3;
-	this.life = 80;
+	this.life = dataManager.life(18);
+	this.collideDamage = 5;
+	this.damage = dataManager.damage(4);
+	this.landDamage = dataManager.damage(6);
+	
 	this.mass = 6.0;
 	
 	this.states = {
@@ -49,7 +51,11 @@ function Chort(x,y){
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+		if( obj.hurt instanceof Function )
+			if( this.force.y > 5 ) 
+				obj.hurt( this, this.landDamage );
+			else
+				obj.hurt( this, this.collideDamage );
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
@@ -99,8 +105,8 @@ Chort.prototype.update = function(){
 				this.flip = dir.x > 0;
 				this.states.cooldown -= this.delta;
 				if( this.states.cooldown <= 0 ) {
-					this.gravity = -0.3;
-					this.force.y = -2;
+					this.gravity = 0.2;
+					this.force.y = -12;
 					this.states.jump_phase = 1;
 				}
 			} else {
@@ -115,7 +121,7 @@ Chort.prototype.update = function(){
 		this.collideDamage = 5;
 		this.states.jump_phase = 0;
 		this.gravity = 1.0;
-		this.states.cooldown = Game.DELTASECOND * 4;
+		this.states.cooldown = Game.DELTASECOND * 3;
 		this.states.recover -= this.delta;
 	}
 	

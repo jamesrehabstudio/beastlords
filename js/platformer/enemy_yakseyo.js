@@ -12,16 +12,15 @@ function Yakseyo(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.life = 80;
-	
 	this.states = {
 		"phase" : 0,
 		"attack" : -1,
 		"cooldown" : 0
 	}
 	
-	this.damage = 40;
-	this.collideDamage = 10;
+	this.life = dataManager.life(10);
+	this.damage = dataManager.damage(4);
+	this.collideDamage = dataManager.damage(1);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	

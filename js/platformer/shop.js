@@ -12,30 +12,26 @@ function Shop(x,y){
 	
 	this.anim_character = 0;
 	
+	this.addModule(mod_talk);
 	window._shop = this;
 	
 	this.items = [];
 	this.prices = [];
 	
-	this.on("struck",function(obj){
-		if( this.open==0 && obj instanceof Player ){
-			game.pause = true;
-			obj.states.attack = 0;
-			this.open = 1;
-			audio.playLock("pause",0.3);
-		}
+	this.on("open",function(obj){
+		game.pause = true;
+		audio.playLock("pause",0.3);
 	});
 	this.message = [
-		"What are you looking for? Whatever it is, we no doubt sell it!",
+		"This is all we got. Don't like go some place else!",
 		"I sold my entire stock. Nice doing business with you."
 	];
-	this.open = 0;
 	this.cursor = 0;	
 	
 	this.restock(window.dataManager);
 }
 Shop.prototype.update = function(g,c){
-	if( this.open == 2 ) {
+	if( this.open > 0 ) {
 		if( input.state("jump") == 1 || input.state("pause") == 1 ){
 			audio.playLock("unpause",0.3);
 			this.open = 0;
@@ -60,7 +56,6 @@ Shop.prototype.update = function(g,c){
 			this.purchase();
 		}
 	}
-	if( this.open > 0 ) this.open = 2 //This is to prevent same frame button purchases
 	
 	/* animation */
 	this.anim_character = (this.anim_character + this.delta * 0.2 ) % 3;
@@ -92,7 +87,7 @@ Shop.prototype.restock = function(data){
 	this.prices = new Array(3);
 	
 	for(var i=0; i < this.items.length; i++) {
-		var tresure = data.randomTresure(Math.random());
+		var tresure = data.randomTresure(Math.random(),["shop"]);
 		tresure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
@@ -109,7 +104,7 @@ Shop.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	sprites.characters.render(g,this.position.subtract(c),this.anim_character,0,false);
 	
-	if( this.open == 2 ){		
+	if( this.open > 0 ){		
 		this.soldout = true;
 		for(var i=0; i < this.items.length; i++ ){
 			if( this.items[i] instanceof Item ) {

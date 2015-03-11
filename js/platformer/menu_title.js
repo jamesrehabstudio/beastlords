@@ -5,12 +5,14 @@ function TitleMenu(){
 	this.sprite = sprites.title;
 	this.zIndex = 999;
 	this.visible = true;
+	this.start_options = false;
 	this.start = false;
 	
 	this.title_position = -960;
 	this.castle_position = 240;
 	
 	this.progress = 0;
+	this.cursor = 0;
 	
 	this.stars = {
 		"pos" : new Point(),
@@ -19,21 +21,33 @@ function TitleMenu(){
 	};
 	
 	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
+	this.options = [
+		"Death is not the end. If you die you return the enterence of the area.",
+		"You only have one chance. Death will will send you to the beginning of your quest."
+	];
 }
 
 TitleMenu.prototype.update = function(){
 	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
 		if( this.progress == 0 ) audio.play("music_intro");
 		
-		this.progress += this.delta / Game.DELTASECOND;
+		if( this.start_options ) {
+			this.progress = 10.0;
+			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
+			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		} else {
+			this.progress += this.delta / Game.DELTASECOND;
+		}
 		
 		if( input.state("pause") == 1 ) {
 			if( this.progress < 9.0 || this.progress > 24.0 ) {
 				this.progress = 9.0;
-			} else {
+			} else if( this.start_options ) {
 				//Start game
 				audio.play("pause");
 				this.startGame();
+			} else {
+				this.start_options = true;
 			}
 		}
 		
@@ -63,8 +77,17 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
-			boxArea(g,68,168,120,40);
-			textArea(g,"Press start",84,184);
+			if( this.start_options ) {
+				boxArea(g,32,32,192,88);
+				textArea(g,this.options[this.cursor],48,48,160);
+				boxArea(g,68,146,120,56);
+				textArea(g,"Easy",92,162);
+				textArea(g,"Hard core",92,178);
+				sprites.text.render(g, new Point(80,162+(16*this.cursor)),15,5);
+			} else { 
+				boxArea(g,68,168,120,40);
+				textArea(g,"Press start",84,184);
+			}
 		}
 		
 		if( this.progress >= 24 ) {
@@ -78,7 +101,11 @@ TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(){
 	this.start = true;
+	
+	var world = new WorldMap(0,0);
+	world.mode = this.cursor > 0 ? 1 : 0;
+	
 	game.clearAll();
-	game.addObject(new WorldMap(0,0));
+	game.addObject(world);
 	audio.stop("music_intro");
 }

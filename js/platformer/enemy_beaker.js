@@ -18,10 +18,10 @@ function Beaker(x,y){
 		"jumps" : 0
 	}
 	
-	this.life = 15;
-	this.lifeMax = 15;
+	this.life = dataManager.life(3);
+	this.lifeMax = dataManager.life(3);
 	this.mass = 0.8;
-	this.collideDamage = 8;
+	this.collideDamage = dataManager.damage(2);
 	this.inviciple_tile = this.stun_time;
 	
 	this.on("collideObject", function(obj){

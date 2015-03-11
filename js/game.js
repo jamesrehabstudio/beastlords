@@ -373,6 +373,7 @@ Game.prototype.update = function( ) {
 				var mods = obj.modules;
 				//Set any frame specific values
 				obj.delta = this.delta * obj.deltaScale;
+				obj.deltaUnscaled = this.delta;
 				
 				//Update Functions
 				if ( mods.length > 0 ) {
@@ -467,6 +468,10 @@ Game.prototype.render = function( ) {
 		if ( renderList[i] instanceof GameObject ) {
 			var obj = renderList[i];
 			obj.render( this.g, camera_center );
+			
+			for(var i=0; i < obj.modules.length; i++){
+				if( "render" in obj.modules[i] ) obj.modules[i].render.apply(obj,[this.g, camera_center]);
+			}
 		}		
 	}
 	
@@ -855,6 +860,8 @@ Game.prototype.buildCollisions = function(){
 	}
 }
 Game.DELTASECOND = 33.33333333;
+Game.DELTADAY = 2880000.0;
+Game.DELTAYEAR = 1036800000.0;
 /*
 Game.prototype.buildPaths = function(){
 	var temp_nodes = new Array();
@@ -911,6 +918,7 @@ function GameObject() {
 	this.properties = false;
 	this.events = {};
 	this.delta = 0;
+	this.deltaUnscaled = 0;
 	this.deltaScale = 1.0;
 	this.filter = false;
 	
@@ -977,6 +985,7 @@ GameObject.prototype.hasModule = function(x){
 	return this.modules.indexOf(x) >= 0;
 }
 GameObject.prototype.addModule = function(x){
+	if( this.hasModule(x) ) return;
 	if ( x.init instanceof Function ){
 		x.init.apply(this);
 	}
@@ -1218,6 +1227,13 @@ Array.prototype.peek = function() {
   if ( this.length > 0 ) return this[ this.length - 1 ];
   return undefined;
 };
+Array.prototype.intersection = function(a){
+	var out = new Array();
+	for(var i=0; i < a.length; i++)
+		if(this.indexOf(a[i]) >= 0) 
+			out.push(a[i]);
+	return out;
+}
 Math.angleTurnDirection = function(_a,_b){
 	_a = _a % (2*Math.PI);
 	_b = _b % (2*Math.PI);

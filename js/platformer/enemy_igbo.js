@@ -25,9 +25,9 @@ function Igbo(x,y){
 	this.attack_time = Game.DELTASECOND * 1.5;
 	this.attack_rest = Game.DELTASECOND * 1.4;
 	
-	this.life = 120;
-	this.damage = 20;
-	this.collideDamage = 10;
+	this.life = dataManager.life(8);
+	this.damage = dataManager.damage(4);
+	this.collideDamage = dataManager.damage(2);
 	this.mass = 3.0;
 	this.friction = 0.3;
 	this.inviciple_time = this.stun_time;

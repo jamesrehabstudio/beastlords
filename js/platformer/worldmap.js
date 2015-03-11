@@ -13,6 +13,7 @@ function WorldMap(x, y){
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
 	this.active = true;
+	this.mode = 0;
 	
 	window._world = this;
 	this.sprite = sprites.world;
@@ -65,25 +66,43 @@ function WorldMap(x, y){
 				"keys" : _player.keys,
 				"items" : game.getObjects(Item),
 				"map" : game.getObject(PauseMenu).map_reveal,
-				"shop" : game.getObject(Shop)
+				"shop" : game.getObject(Shop),
+				"alter" : game.getObject(Alter)
 			};
 			this.temples[dataManager.currentTemple].instance = instance;
 		}
 	});
 	
 	this.on("reset", function(){
-		game.clearAll();
-		this.seed = this.seed = "" + Math.random();
-		for(var i=0; i < this.temples.length; i++ ) {
-			this.temples[i].complete = false;
-			this.temples[i].seed = i+this.seed;
-			delete this.temples[i].instance;
+		if( this.mode == 0 ) {
+			var keys = _player.keys;
+			_player.life = _player.lifeMax;
+			_player.mana = _player.manaMax;
+			_player.position.x = 128;
+			_player.position.y = 200;
+			_player._death_clock = Number.MAX_VALUE;
+			_player.interactive = true;
+			game.addObject(_player);
+			_player.keys = keys;
+			audio.playAs(audio.alias["music"],"music");
+			try{ 
+				game.pause = false;
+				game.getObject(PauseMenu).open = false; 
+			} catch(err){}
+		} else {
+			game.clearAll();
+			this.seed = this.seed = "" + Math.random();
+			for(var i=0; i < this.temples.length; i++ ) {
+				this.temples[i].complete = false;
+				this.temples[i].seed = i+this.seed;
+				delete this.temples[i].instance;
+			}
+			this.player = new Point(16*37,16*6);
+			this.player_goto = new Point(16*37,16*6);
+			dataManager.reset();
+			
+			this.trigger("activate");
 		}
-		this.player = new Point(16*37,16*6);
-		this.player_goto = new Point(16*37,16*6);
-		dataManager.reset();
-		
-		this.trigger("activate");
 	});
 }
 
@@ -193,9 +212,9 @@ WorldMap.prototype.renderTown = function(g,c,town){
 	if( town.size == 1 ) {
 		this.sprite.render(g, new Point(c.x,c.y), 3, 7 );
 	} else {
-		for(var x=start; x < half; x++)for(var y=start; y < half; y++){
-			fr = y == start ? 8 : ( y == half-1 ? 10 : 9 );
-			f = x == start ? 3 : ( x == half-1 ? 5 : 4 );
+		for(var x=start; x <= half; x++)for(var y=start; y <= half; y++){
+			fr = y == start ? 8 : ( y == half ? 10 : 9 );
+			f = x == start ? 3 : ( x == half ? 5 : 4 );
 			this.sprite.render(g, new Point(x*16+c.x, y*16+c.y), f, fr );
 		}
 	}

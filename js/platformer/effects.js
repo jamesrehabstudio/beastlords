@@ -34,6 +34,7 @@ function EffectSmoke(x, y){
 	this.sprite = sprites.bullets;
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
+	this.interactive = false;
 }
 
 EffectSmoke.prototype.update = function(){
@@ -43,5 +44,43 @@ EffectSmoke.prototype.update = function(){
 	
 	this.position.y -= game.deltaUnscaled * this.speed;
 	
+	if(this.time <=0 ) this.destroy();
+}
+
+EffectStatus.prototype = new GameObject();
+EffectStatus.prototype.constructor = GameObject;
+function EffectStatus(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.zIndex = 2;
+	this.sprite = sprites.bullets;
+	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
+	this.interactive = false;
+	this.frame_row = 4;
+}
+
+EffectStatus.prototype.update = function(){
+	if( this.frame == 0 ) {
+		this.position.y -= game.deltaUnscaled * 0.5;
+	} else if ( this.frame == 1 ){ 
+		this.position.y -= game.deltaUnscaled * 0.7;
+		this.position.x += Math.sin(this.time*0.3);
+	} else if ( this.frame == 2 ){ 
+		this.position.y += 4 * (Math.random() - .5);
+		this.position.x += 4 * (Math.random() - .5);
+	} else if ( this.frame == 3 ){ 
+		this.position.y += 0.2;
+	} else if ( this.frame == 4 ){ 
+		this.position.y += 0.5;
+	} else {
+		this.position.y -= 0.5;
+		this.position.x += 4 * (Math.random() - .5);
+	}
+	
+	this.time -= game.deltaUnscaled;
 	if(this.time <=0 ) this.destroy();
 }

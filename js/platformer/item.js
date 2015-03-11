@@ -4,7 +4,7 @@ function Item(x,y,name){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
+	this.width = 17;
 	this.height = 16;
 	this.name = "";
 	this.sprite = sprites.items;
@@ -24,7 +24,7 @@ function Item(x,y,name){
 			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
 			if( this.name == "life_small" ) { obj.heal = 20; }
 			if( this.name == "mana_small" ) { obj.manaHeal = 35; }
-			if( this.name == "xp_small" ) { obj.addXP(10); audio.play("pickup1"); }
+			if( this.name == "money_bag" ) { obj.money += Math.floor(30*(1+dataManager.currentTemple*0.33)); audio.play("pickup1"); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			if( this.name == "short_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
 			if( this.name == "long_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
@@ -41,21 +41,29 @@ function Item(x,y,name){
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
 			if( this.name == "seed_bear") { obj.stats.defence+=1; audio.play("levelup"); }
 			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
-			if( this.name == "seed_cryptid") { /*cold effect*/ audio.play("levelup"); }
+			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; audio.play("levelup"); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
+			if( this.name == "seed_minotaur") { obj.statusEffectsTimers.rage=obj.statusEffects.rage=Game.DELTAYEAR; obj.on("added",function(){obj.statusEffects.rage=Game.DELTAYEAR;}); audio.play("levelup"); }
+			if( this.name == "seed_plaguerat") { obj.attackEffects.poison[0] += 1.0; obj.life_steal = Math.min(obj.life_steal+0.2,0.4); obj.statusEffectsTimers.poison=obj.statusEffects.poison=Game.DELTAYEAR; obj.on("added",function(){obj.statusEffects.poison=Game.DELTAYEAR;}); audio.play("levelup"); }
 			
-			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Number.MAX_VALUE; obj.on("added",function(){this.spellsCounters.feather_foot=Number.MAX_VALUE}); audio.play("levelup"); }
+			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.feather_foot=Game.DELTAYEAR}); audio.play("levelup"); }
 			if( this.name == "whetstone") { obj.equip_sword.bonus_att++; obj.equip_sword.level++; audio.play("levelup"); }
 			if( this.name == "haft") { obj.equip_sword.bonus_def = obj.equip_sword.bonus_def+1 || 1; obj.equip_sword.level++; audio.play("levelup"); }
 			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; audio.play("levelup"); }
-			if( this.name == "fangs") { obj.life_steal += 0.2; audio.play("levelup"); }
-			if( this.name == "passion_fruit") { obj.manaHeal = obj.heal = Number.MAX_VALUE; audio.play("levelup"); }
+			if( this.name == "fangs") { obj.life_steal = Math.min(obj.life_steal+0.2,0.4); audio.play("levelup"); }
+			if( this.name == "passion_fruit") { obj.manaHeal = obj.heal = Game.DELTAYEAR; audio.play("levelup"); }
 			if( this.name == "shield_metal") { if( obj.equip_shield == null ) return; obj.equip_shield.bonus_def = obj.equip_shield.bonus_def + 1 || 1; audio.play("levelup"); }
+			if( this.name == "magic_gem"){ obj.spellsCounters.magic_sword=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.magic_sword=Game.DELTAYEAR}); audio.play("levelup"); }
+			if( this.name == "snake_head") { obj.attackEffects.poison[0] += .2; audio.play("levelup"); }
+			if( this.name == "broken_banana") { obj.attackEffects.weaken[0] += .2; audio.play("levelup"); }
+			if( this.name == "blood_letter") { obj.attackEffects.bleeding[0] += .2; audio.play("levelup"); }
+			if( this.name == "red_cape") { obj.attackEffects.rage[0] += .2; audio.play("levelup"); }
 			
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
 				pm.message( this.message );
 			}
+			this.name = "";
 			this.interactive = false;
 			this.destroy();
 		}
@@ -68,7 +76,7 @@ Item.prototype.setName = function(n){
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=4; this.bonus_att=0;
-		this.stats = {"warm":8.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
+		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
 		return; 
 	}
 	if(n == "long_sword") { 
@@ -104,7 +112,7 @@ Item.prototype.setName = function(n){
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	if(n == "mana_small") { this.frame = 4; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "xp_small") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "money_bag") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
 	
 	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
@@ -116,6 +124,8 @@ Item.prototype.setName = function(n){
 	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; this.message = "Malphas Seed\nTechnique up.";}
 	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; this.message = "Yeti Seed\nCold Strike.";}
 	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; this.message = "Guard Seed\nIncreased invincibility.";}
+	if( this.name == "seed_minotaur") { this.frame = 5; this.frame_row = 4; this.message = "Minotaur Seed\nYou're enraged.";}
+	if( this.name == "seed_plaguerat") { this.frame = 6; this.frame_row = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
 	
 	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; this.message = "Pedila\nFantastically light shoes.";}
 	if( this.name == "whetstone") { this.frame = 1; this.frame_row = 5; this.message = "Whetstone\nCurrent weapon improved.";}
@@ -124,6 +134,11 @@ Item.prototype.setName = function(n){
 	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; this.message = "Fangs\nLife steal.";}
 	if( this.name == "passion_fruit") { this.frame = 5; this.frame_row = 5; this.message = "Passion Fruit\nFull restoration.";}
 	if( this.name == "shield_metal") { this.frame = 6; this.frame_row = 5; this.message = "Shield Metal\nCurrent shield improved.";}
+	if( this.name == "magic_gem") { this.frame = 7; this.frame_row = 5; this.message = "Magic Gem\nEnchanted attack.";}
+	if( this.name == "snake_head") { this.frame = 8; this.frame_row = 5; this.message = "Snake Head\nAdds poison chance to attack.";}
+	if( this.name == "broken_banana") { this.frame = 9; this.frame_row = 5; this.message = "Broken Banana\nWeakens enemies.";}
+	if( this.name == "blood_letter") { this.frame = 10; this.frame_row = 5; this.message = "Blood letter\nAdds bleed chance to attack.";}
+	if( this.name == "red_cape") { this.frame = 11; this.frame_row = 5; this.message = "Red cape\nAdds rage chance to attack.";}
 	
 }
 Item.prototype.update = function(){

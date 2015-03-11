@@ -38,11 +38,13 @@ function Svarog(x,y){
 		this.force.x = dir.x > 0 ? -this.speed : this.speed; 
 	});
 	
-	this.life = 5;
+	this.life = dataManager.life(1);
 	this.collisionReduction = -1.0;
 	this.friction = 0.0;
 	this.stun_time = 30.0;
 	this.invincible_time = 30.0;
+	this.collideDamage = dataManager.damage(1);
+	this.damage = dataManager.damage(2);
 	
 	this.states = {
 		"cooldown" : 0
@@ -63,6 +65,7 @@ Svarog.prototype.update = function(){
 		this.states.cooldown = Game.DELTASECOND * 1.0;
 		var fire = new Fire(this.position.x, this.position.y);
 		fire.team = this.team;
+		fire.damage = this.damage;
 		game.addObject(fire);
 	}
 	this.states.cooldown -= this.delta;

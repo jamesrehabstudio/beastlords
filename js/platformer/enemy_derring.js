@@ -34,7 +34,7 @@ function Derring(x,y){
 		this.destroy();
 	});
 	
-	this.life = 5;
+	this.life = dataManager.life(0);
 	this.collisionReduction = -1.0;
 	this.friction = 0.0;
 	this.stun_time = 30.0;

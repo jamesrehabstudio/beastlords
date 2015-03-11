@@ -16,7 +16,7 @@ function Chaz(x,y){
 	
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		this.hurt( obj, this.damage );
+		this.hurt( obj, damage );
 	});
 	this.on("hurt", function(obj,damage){
 		this.states.attack = 0;
@@ -33,8 +33,9 @@ function Chaz(x,y){
 		this.destroy();
 	});
 	
-	this.life = 45;
-	this.collideDamage = 5;
+	this.life = dataManager.life(7);
+	this.collideDamage = dataManager.damage(1);
+	this.damage = dataManager.damage(3);
 	this.mass = 1.3;
 	
 	this.states = {
@@ -75,6 +76,7 @@ Chaz.prototype.update = function(){
 				} else {
 					missle = new Bullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
 				}
+				missle.damage = this.damage;
 				game.addObject( missle ); 
 			}
 		} else {

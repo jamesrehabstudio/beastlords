@@ -7,6 +7,7 @@ function Shooter(x,y){
 	this.width = 16;
 	this.height = 16;
 	this.collideDamage = 0;
+	this.damage = dataManager.damage(2);
 	this.team = 0;
 	this.visible = false;
 	
@@ -18,7 +19,7 @@ function Shooter(x,y){
 	this.direction = 0;
 	
 	this.sprite = game.tileSprite;
-	this.cooldown = 50;
+	this.cooldown = 30;
 }
 Shooter.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
@@ -26,14 +27,14 @@ Shooter.prototype.update = function(){
 		if( this.direction == 0 ) this.direction = dir.x < 0 ? -1 : 1;
 		
 		if( this.cooldown < 0 ) {
-			this.cooldown = Game.DELTASECOND * 0.75;
+			this.cooldown = Game.DELTASECOND * 0.6;
 			var y = this.bullet_y_pos[ Math.floor( Math.random() * this.bullet_y_pos.length) ];
 			var bullet = new Bullet(
 				_player.position.x + (128*this.direction), 
 				this.position.y + y, 
 				-this.direction
 			);
-			bullet.collideDamage = 8;
+			bullet.collideDamage = this.damage;
 			//bullet.speed = 0.8;
 			game.addObject( bullet );
 		}

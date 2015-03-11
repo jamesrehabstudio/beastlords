@@ -29,6 +29,7 @@ function textArea(g,s,x,y,w,h){
 				cursor = i -last_space;
 			}
 			cursor++;
+			if( s[i] == "\n" ) cursor = 0;
 		}
 	}
 	
