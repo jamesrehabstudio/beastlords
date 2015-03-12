@@ -81,6 +81,9 @@ PauseMenu.prototype.update = function(){
 					_player.selectedSpell = unlocked[pos];
 					audio.play("cursor"); 
 				}
+				if( input.state("fire") == 1 ) { 
+					_player.castSpell(_player.selectedSpell);
+				}
 			}
 		}
 		
@@ -242,12 +245,16 @@ PauseMenu.prototype.render = function(g,c){
 			var spell_i = 0;
 			for(spell in _player.spellsUnlocked) {
 				var y = spell_i * 16;
-				textArea(g,_player.spellsUnlocked[spell] ,88,36+y);
-				
-				if(_player.selectedSpell == spell ) {
-					g.fillStyle = "#FFF";
-					g.scaleFillRect(80, 38 + y, 4, 4 );
+				textArea(g,_player.spellsUnlocked[spell] ,72,36+y);
+				if(_player.selectedSpell == spell ) textArea(g,"@",62,36+y);
+				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
+					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / (Game.DELTASECOND * 30)), 8);
+					var y_offset = 8 - remaining;
+					g.fillStyle = "#3CBCFC";
+					g.scaleFillRect(184, 36+y+y_offset, 8, remaining );
+					sprites.text.render(g,new Point(184,36+y), 5, 6);
 				}
+				
 				spell_i++;
 			}
 		}

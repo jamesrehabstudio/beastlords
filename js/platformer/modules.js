@@ -155,8 +155,9 @@ var mod_combat = {
 				self.trigger("block",obj,position,damage);
 		});
 			
-		this.strike = function(l,trigger){
+		this.strike = function(l,trigger,damage){
 			trigger = trigger == undefined ? "struck" : trigger;
+			damage = damage || this.damage;
 			
 			var out = new Array();
 			var offset = new Line( 
@@ -170,15 +171,15 @@ var mod_combat = {
 			var hits = game.overlaps(offset);
 			for( var i=0; i < hits.length; i++ ) {
 				if( hits[i].interactive && hits[i] != this && hits[i].life != null ) {
-					this.trigger("struckTarget", hits[i], offset.center(), this.damage);
+					this.trigger("struckTarget", hits[i], offset.center(), damage);
 					
 					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
-						hits[i].hurt(this, this.damage);
+						hits[i].hurt(this, damage);
 						out.push(hits[i]);
 					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
 						//
 					} else {
-						hits[i].trigger(trigger, this, offset.center(), this.damage);
+						hits[i].trigger(trigger, this, offset.center(), damage);
 						out.push(hits[i]);
 					}
 				}
@@ -204,6 +205,12 @@ var mod_combat = {
 					this.trigger("death");
 				}
 			}
+		}
+		this.hasStatusEffect = function(){
+			for(var i in this.statusEffects)
+				if(this.statusEffects[i] > 0 )
+					return true;
+			return false;
 		}
 		this.hurt = function(obj, damage){
 			if( this.statusEffects.bleeding > 0 ) damage *= 2;
@@ -298,6 +305,7 @@ var mod_boss = {
 		this.active = false;
 		var x = this.position.x;
 		var y = this.position.y;
+		this.boss_starting_position = new Point(x,y);
 		
 		var corner = new Point(256*Math.floor(x/256), 240*Math.floor(y/240));
 		this.boss_lock = new Line(
@@ -316,6 +324,17 @@ var mod_boss = {
 			new Point(corner.x+256,corner.y+200)
 		];
 		
+		this.reset_boss = function(){
+			this.position.x = this.boss_starting_position.x;
+			this.position.y = this.boss_starting_position.y;
+			this.active = false;
+			for(var i=0; i < this.boss_doors.length; i++ )
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, 0);
+			_player.lock_overwrite = false;
+		}
+		this.on("player_death", function(){
+			this.reset_boss();
+		});
 		this.on("activate", function() {
 			for(var i=0; i < this.boss_doors.length; i++ ) 
 				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, window.BLANK_TILE);

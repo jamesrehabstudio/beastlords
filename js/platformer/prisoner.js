@@ -14,6 +14,13 @@ function Prisoner(x,y,n,options){
 	this.phase = 0;
 	this.alert = 0;
 	
+	try {
+		if( _world.temples[dataManager.currentTemple].instance ) {
+			var instance = _world.temples[dataManager.currentTemple].instance;
+			this.phase = instance.prisoner;
+		}
+	} catch (err) {}
+	
 	this.progress = 0.0;
 	
 	this.message_help = "Help, I'm trapped in here! I can teach you something if you free me.";
@@ -72,20 +79,29 @@ Prisoner.prototype.update = function(){
 }
 Prisoner.prototype.giveSpell = function(){
 	var spell_list = {
-		"bolt" : "Bolt",
-		"magic_sword" : "Magic Sword",
-		"magic_armour" : "Magic Armour",
-		"feather_foot" : "Feather Foot",
-		"thorns" : "Thorns",
-		"heal" : "Heal"
+		"magic_strength" : {"name":"Magic Strength","rarity":1.0},
+		"invincibility" : {"name":"Invincibility","rarity":0.5},
+		"flight" : {"name":"Flight","rarity":0.08},
+		"haste" : {"name":"Haste","rarity":0.7},
+		"magic_sword" : {"name":"Magic Sword","rarity":0.3},
+		"magic_armour" : {"name":"Magic Armour","rarity":0.8},
+		"feather_foot" : {"name":"Feather Foot","rarity":0.9},
+		"thorns" : {"name":"Thorns","rarity":0.7},
+		"recover" : {"name":"Recover","rarity":0.2},
+		"magic_song" : {"name":"Magic Song","rarity":0.05}
 	};
-	var names = Object.keys( spell_list );
-	names.sort(function(a,b){ return Math.random() -0.5; });
-	for(var i=0; i < names.length; i++ ) {
-		if( !( names[i] in _player.spellsUnlocked ) ){
-			_player.spellsUnlocked[ names[i] ] = spell_list[names[i]];
-			audio.play("item1");
-			break;
+	var total = 0;
+	for(var i in spell_list ) if( !( i in _player.spellsUnlocked ) ){ total += spell_list[i].rarity; }
+	var roll = Math.random() * total;
+	for(var i in spell_list ) {
+		if( !( i in _player.spellsUnlocked ) ){
+			if( roll <= spell_list[i].rarity ) {
+				_player.spellsUnlocked[i] = spell_list[i].name;
+				audio.play("item1");
+				return;
+			} else {
+				roll -= spell_list[i].rarity;
+			}
 		}
 	}
 }

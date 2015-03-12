@@ -50,7 +50,11 @@ function Player(x, y){
 		game.slow(0,this.death_time);
 		audio.stopAs("music");
 	});
-	this.on("death", function(){		
+	this.on("death", function(){
+		this.position.x = 128;
+		this.position.y = 200;
+		for(var i=0; i < game.objects.length; i++ )
+			game.objects[i].trigger("player_death");
 		game.getObject(PauseMenu).open = true;
 		audio.play("playerdeath");
 		this.destroy();
@@ -140,57 +144,83 @@ function Player(x, y){
 	this.spellsUnlocked = {};
 	this.selectedSpell = "";
 	this.spells = {
-		"bolt" : function(){ 
-			if( this.mana >= 1 ){
+		"magic_strength" : function(){ 
+			if( this.mana >= 1 && this.spellsCounters.magic_strength <= 0 ){
 				this.mana -= 1;
-				var bullet = new Bullet(this.position.x, this.position.y, this.flip ? -1 : 1);
-				bullet.team = this.team;
-				bullet.collisionDamage = this.damage * 3;
-				game.addObject(bullet);
-			}
+				this.spellsCounters.magic_strength = Game.DELTASECOND * 30; 
+				audio.play("spell");
+			} else audio.play("negative");
+		},
+		"invincibility" : function(){ 
+			if( this.mana >= 1 && this.invincible < this.invincible_time ){
+				this.mana -= 1;
+				this.invincible = Game.DELTASECOND * 20; 
+				audio.play("spell");
+			} else audio.play("negative");
+		},
+		"flight" : function(){ 
+			if( this.mana >= 1 && this.spellsCounters.flight <= 0 ){
+				this.mana -= 1;
+				this.spellsCounters.flight = Game.DELTAYEAR; 
+				audio.play("spell");
+			} else audio.play("negative");
+		},
+		"haste" : function(){ 
+			if( this.mana >= 1 && this.spellsCounters.haste <= 0 ){
+				this.mana -= 1;
+				this.spellsCounters.haste = Game.DELTASECOND * 30; 
+				audio.play("spell");
+			} else audio.play("negative");
 		},
 		"magic_sword" : function(){
-			if( this.mana >= 1 ){
+			if( this.mana >= 1 && this.spellsCounters.magic_sword <= 0 ){
 				this.mana -= 1;
 				this.spellsCounters.magic_sword = Game.DELTASECOND * 30; 
-				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
-			}
+			} else audio.play("negative");
 		},
 		"magic_armour" : function(){
-			if( this.mana >= 1 ){
+			if( this.mana >= 1 && this.spellsCounters.magic_armour <= 0 ){
 				this.mana -= 1;
 				this.spellsCounters.magic_armour = Game.DELTASECOND * 30; 
-				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
-			}
+			} else audio.play("negative");
 		},
 		"feather_foot" : function(){
-			if( this.mana >= 1 ){
+			if( this.mana >= 1 && this.spellsCounters.feather_foot <= 0){
 				this.mana -= 1;
-				this.spellsCounters.feather_foot = Game.DELTASECOND * 30; 
-				game.slow(0,Game.DELTASECOND*0.25);
+				this.spellsCounters.feather_foot = Game.DELTAYEAR; 
 				audio.play("spell");
-			}
+			} else audio.play("negative");
 		},
 		"thorns" : function(){
-			if( this.mana > 1 ){
+			if( this.mana > 1 && this.spellsCounters.thorns <= 0 ){
 				this.mana -= 1;
 				this.spellsCounters.thorns = Game.DELTASECOND * 30; 
-				game.slow(0,Game.DELTASECOND*0.25);
 				audio.play("spell");
-			}
+			} else audio.play("negative");
 		},
-		"heal" : function(){
-			if( this.mana >= 1 ){
+		"recover" : function(){
+			if( this.mana >= 1 && this.hasStatusEffect() ){
 				this.mana -= 1;
-				this.heal += 33;
-				game.slow(0,Game.DELTASECOND*0.25);
+				for( var i in this.statusEffects ) this.statusEffects[i]=-1;
 				audio.play("spell");
-			}
-		}
+			} else audio.play("negative");
+		},
+		"magic_song" : function(){
+			if( this.mana >= 2 ){
+				this.mana -= 2;
+				for(var i=0; i < game.objects.length; i++ ) 
+					if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) )
+						game.objects[i].statusEffectsTimers.slow = game.objects[i].statusEffects.slow = Game.DELTASECOND * 30;
+				audio.play("spell");
+			} else audio.play("negative");
+		},
 	};
 	this.spellsCounters = {
+		"magic_strength" : 0,
+		"flight" : 0,
+		"haste" : 0,
 		"magic_sword" : 0,
 		"magic_armour" : 0,
 		"feather_foot" : 0,
@@ -204,6 +234,7 @@ function Player(x, y){
 
 Player.prototype.update = function(){
 	var speed = 1.25;
+	if( this.spellsCounters.haste > 0 ) speed = 1.4;
 	
 	if( this.manaHeal > 0 ){
 		this.mana = Math.min(this.mana += 2, this.manaMax);
@@ -226,12 +257,19 @@ Player.prototype.update = function(){
 		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
 			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
-			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
 			if ( input.state('fire') == 1 ) { this.attack(); }
-			if ( input.state('select') == 1 ) { this.castSpell(this.selectedSpell); }
 			
 			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
 			if ( input.state('up') == 1 ) { this.stand(); }
+			
+			if( this.spellsCounters.flight > 0 ) {
+				this.gravity = 0.1;
+				if ( input.state('down') > 0 ) { this.force.y += speed * this.delta * 0.3 }
+				if ( input.state('up') > 0 || input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.3 }
+			} else { 
+				if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
+				this.gravity = 1.0; 
+			}
 		}
 		
 		//Apply jump boost
@@ -252,7 +290,7 @@ Player.prototype.update = function(){
 			if( !this.states.startSwing ) {
 				audio.play("swing");
 				if( this.spellsCounters.magic_sword > 0 ){
-					var offset_y = this.states.duck ? 4 : -4;
+					var offset_y = this.states.duck ? 6 : -4;
 					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
 					bullet.team = this.team;
 					bullet.speed = this.speed * 2;
@@ -264,10 +302,12 @@ Player.prototype.update = function(){
 			this.states.startSwing = true;
 			
 			//Create box to detect enemies
+			var temp_damage = this.damage;
+			if( this.spellsCounters.magic_strength > 0 ) temp_damage += 8;
 			this.strike(new Line(
 				new Point( 12, (this.states.duck ? 4 : -4) ),
 				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
-			) );
+			), "struck", temp_damage );
 		} else {
 			this.states.startSwing = false;
 		}
@@ -306,7 +346,8 @@ Player.prototype.update = function(){
 	}
 	
 	//Timers
-	this.states.attack -= this.delta;
+	var attack_decrement_modifier = this.spellsCounters.haste > 0 ? 1.3 : 1.0;
+	this.states.attack -= this.delta * attack_decrement_modifier;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
@@ -441,7 +482,7 @@ Player.prototype.addXP = function(value){
 		this.stat_points++;
 		this.level++;
 		this.life = this.lifeMax;
-		audio.play("levelup2");
+		audio.playLock("levelup2",0.1);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);

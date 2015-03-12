@@ -90,6 +90,8 @@ function DataManager() {
 		{"tags":["shop"],"name":"seed_knight","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
 		{"tags":["shop"],"name":"seed_minotaur","rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"tags":["shop"],"name":"seed_plaguerat","rarity":0.05,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["shop"],"name":"seed_marquis","rarity":0.06,"pathSize":3,"doors":0.1,"pergame":1,"price":90},
+		{"tags":["shop"],"name":"seed_batty","rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
 		
 		{"tags":["shop"],"name":"pedila","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"tags":["shop"],"name":"whetstone","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
@@ -882,7 +884,7 @@ DataManager.prototype.damage = function(level){
 		case 6: damage = 40; break;//6 strike from SUPER boss
 	}
 	
-	var multi = 1 + this.currentTemple * 0.29;
+	var multi = 1 + this.currentTemple * 0.27;
 	damage = Math.floor( damage * multi );
 	return damage;
 }
@@ -967,6 +969,7 @@ function load_sprites (){
 	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:80,height:64,"filters":person_filters});
 	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80,"filters":person_filters});
 	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64,"filters":person_filters});
+	sprites['poseidon'] = new Sprite(RT+"img/poseidon.gif", {offset:new Point(52, 48),width:112,height:96,"filters":person_filters});
 	sprites['zoder'] = new Sprite(RT+"img/zoder.gif", {offset:new Point(32, 32),width:80,height:64,"filters":person_filters});
 	
 	sprites['prisoner'] = new Sprite(RT+"img/prisoner.gif", {offset:new Point(16, 24),width:32,height:48});

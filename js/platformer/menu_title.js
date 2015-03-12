@@ -22,7 +22,7 @@ function TitleMenu(){
 	
 	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [
-		"Death is not the end. If you die you return the enterence of the area.",
+		"Death is not the end. If you die you will return to the entrance of the area.",
 		"You only have one chance. Death will will send you to the beginning of your quest."
 	];
 }
@@ -39,7 +39,7 @@ TitleMenu.prototype.update = function(){
 			this.progress += this.delta / Game.DELTASECOND;
 		}
 		
-		if( input.state("pause") == 1 ) {
+		if( input.state("pause") == 1 || input.state("fire") == 1 ) {
 			if( this.progress < 9.0 || this.progress > 24.0 ) {
 				this.progress = 9.0;
 			} else if( this.start_options ) {

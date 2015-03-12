@@ -13,10 +13,10 @@ function Alter(x,y){
 	
 	this.addModule(mod_talk);
 	
-	this.item = new Item( 
-		this.position.x, this.position.y-104,
-		dataManager.randomTresure(Math.random()).name 
-	);
+	var tresure = dataManager.randomTresure(Math.random()); 
+	tresure.remaining--;
+	
+	this.item = new Item(this.position.x, this.position.y-104, tresure.name);
 	this.item.addModule(mod_rigidbody);
 	this.item.gravity = 0;
 	this.item.interactive = false;

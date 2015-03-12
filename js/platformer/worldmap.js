@@ -67,7 +67,8 @@ function WorldMap(x, y){
 				"items" : game.getObjects(Item),
 				"map" : game.getObject(PauseMenu).map_reveal,
 				"shop" : game.getObject(Shop),
-				"alter" : game.getObject(Alter)
+				"alter" : game.getObject(Alter),
+				"prisoner" : game.getObject(Prisoner).phase
 			};
 			this.temples[dataManager.currentTemple].instance = instance;
 		}
@@ -82,6 +83,7 @@ function WorldMap(x, y){
 			_player.position.y = 200;
 			_player._death_clock = Number.MAX_VALUE;
 			_player.interactive = true;
+			_player.lock_overwrite = false;
 			game.addObject(_player);
 			_player.keys = keys;
 			audio.playAs(audio.alias["music"],"music");
