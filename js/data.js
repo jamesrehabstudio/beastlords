@@ -68,7 +68,7 @@ function DataManager() {
 		{"tiles":"tiles2","size":20,"maxkeys":4,"tresures":[2,4],"boss":["Ammit,Garmr"],"miniboss":["Knight","Oriax","ChazBike"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty"]},
 		{"tiles":"tiles2","size":22,"maxkeys":5,"tresures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Svarog"]},
 		{"tiles":"tiles2","size":22,"maxkeys":6,"tresures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Igbo","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Svarog"]},
-		{"tiles":"tiles2","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Igbo","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Svarog"]}
+		{"tiles":"tiles2","size":24,"maxkeys":7,"tresures":[2,4],"boss":["Poseidon"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Igbo","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Svarog"]}
 	];
 	
 	/* Set data */
@@ -990,7 +990,8 @@ function load_sprites (){
 window.audio = new AudioPlayer({
 	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
 	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":24.0},
-	"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
+	"music_town" : {"url":RT+"sounds/music_intro.ogg","music":true,"loop":0.0},
+	//"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
 	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},
 	"fanfair" : {"url":RT+"sounds/fanfair.ogg","music":true},
 	
