@@ -109,7 +109,7 @@ PauseMenu.prototype.update = function(){
 			this.mapCursor.x = 11 - Math.floor(_player.position.x / 256);
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
-			this.page = 0;
+			this.page = 1;
 			if( _player.stat_points > 0 ) this.page = 2;
 			if( input.state("select") == 1 ) this.page = 3;
 			audio.play("pause");
