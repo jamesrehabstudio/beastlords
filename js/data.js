@@ -884,7 +884,7 @@ DataManager.prototype.damage = function(level){
 		case 6: damage = 40; break;//6 strike from SUPER boss
 	}
 	
-	var multi = 1 + this.currentTemple * 0.27;
+	var multi = 1 + this.currentTemple * 0.25;
 	damage = Math.floor( damage * multi );
 	return damage;
 }

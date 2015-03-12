@@ -102,14 +102,16 @@ PauseMenu.prototype.update = function(){
 			}
 		}
 	} else {
-		if( input.state("pause") == 1 && _player instanceof Player && _player.life > 0 ) {
+		if( ( input.state("pause") == 1 || input.state("select") == 1 ) && _player instanceof Player && _player.life > 0 ) {
 			this.open = true;
 			_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
 			this.mapCursor.x = 11 - Math.floor(_player.position.x / 256);
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
+			this.page = 0;
 			if( _player.stat_points > 0 ) this.page = 2;
+			if( input.state("select") == 1 ) this.page = 3;
 			audio.play("pause");
 		}
 	}

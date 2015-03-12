@@ -39,16 +39,18 @@ function Beaker(x,y){
 		audio.play("hurt");
 	});
 	this.on("wakeup", function(){
-		this.visible = true;
-		this.interactive = true;
+		//this.visible = true;
+		//this.interactive = true;
 		this.states.cooldown = 50;
 		this.states.jumps = 0;
-		this.life = this.lifeMax;
+		//this.life = this.lifeMax;
 	});
 	this.on("death", function(){
-		this.visible = false;
-		this.interactive = false;
+		//this.visible = false;
+		//this.interactive = false;
 		audio.play("kill");
+		Item.drop(this);
+		this.destroy();
 	});
 }
 Beaker.prototype.update = function(){

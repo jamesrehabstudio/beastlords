@@ -1567,18 +1567,21 @@ function Batty(x,y){
 		audio.play("hurt");
 	});
 	this.on("wakeup", function(){
-		this.visible = true;
-		this.interactive = true;
+		//this.visible = true;
+		//this.interactive = true;
 		this.states.cooldown = Game.DELTASECOND * 1;
 		this.states.lockon = false;
 		this.states.attack = 0;
-		this.life = this.lifeMax;
+		//this.life = this.lifeMax;
 		this.gravity = -0.6;
+		
 	});
 	this.on("death", function(){
-		this.visible = false;
-		this.interactive = false;
+		//this.visible = false;
+		//this.interactive = false;
+		this.destroy();
 		_player.addXP(1);
+		Item.drop(this);
 		audio.play("kill");
 	});
 }
@@ -1682,16 +1685,18 @@ function Beaker(x,y){
 		audio.play("hurt");
 	});
 	this.on("wakeup", function(){
-		this.visible = true;
-		this.interactive = true;
+		//this.visible = true;
+		//this.interactive = true;
 		this.states.cooldown = 50;
 		this.states.jumps = 0;
-		this.life = this.lifeMax;
+		//this.life = this.lifeMax;
 	});
 	this.on("death", function(){
-		this.visible = false;
-		this.interactive = false;
+		//this.visible = false;
+		//this.interactive = false;
 		audio.play("kill");
+		Item.drop(this);
+		this.destroy();
 	});
 }
 Beaker.prototype.update = function(){
@@ -3925,14 +3930,16 @@ PauseMenu.prototype.update = function(){
 			}
 		}
 	} else {
-		if( input.state("pause") == 1 && _player instanceof Player && _player.life > 0 ) {
+		if( ( input.state("pause") == 1 || input.state("select") == 1 ) && _player instanceof Player && _player.life > 0 ) {
 			this.open = true;
 			_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
 			this.mapCursor.x = 11 - Math.floor(_player.position.x / 256);
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
+			this.page = 0;
 			if( _player.stat_points > 0 ) this.page = 2;
+			if( input.state("select") == 1 ) this.page = 3;
 			audio.play("pause");
 		}
 	}
@@ -4536,7 +4543,7 @@ var mod_combat = {
 			this._shield.position.y = -Number.MAX_VALUE;
 		}
 		
-		this.invincible -= this.delta;
+		this.invincible -= this.deltaUnscaled;
 		this.stun -= this.delta;
 	}
 }
@@ -4784,8 +4791,8 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 		"invincibility" : function(){ 
-			if( this.mana >= 1 && this.invincible < this.invincible_time ){
-				this.mana -= 1;
+			if( this.mana >= 2 && this.invincible < this.invincible_time ){
+				this.mana -= 2;
 				this.invincible = Game.DELTASECOND * 20; 
 				audio.play("spell");
 			} else audio.play("negative");

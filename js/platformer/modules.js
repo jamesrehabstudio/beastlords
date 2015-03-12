@@ -295,7 +295,7 @@ var mod_combat = {
 			this._shield.position.y = -Number.MAX_VALUE;
 		}
 		
-		this.invincible -= this.delta;
+		this.invincible -= this.deltaUnscaled;
 		this.stun -= this.delta;
 	}
 }

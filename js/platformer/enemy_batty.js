@@ -58,18 +58,21 @@ function Batty(x,y){
 		audio.play("hurt");
 	});
 	this.on("wakeup", function(){
-		this.visible = true;
-		this.interactive = true;
+		//this.visible = true;
+		//this.interactive = true;
 		this.states.cooldown = Game.DELTASECOND * 1;
 		this.states.lockon = false;
 		this.states.attack = 0;
-		this.life = this.lifeMax;
+		//this.life = this.lifeMax;
 		this.gravity = -0.6;
+		
 	});
 	this.on("death", function(){
-		this.visible = false;
-		this.interactive = false;
+		//this.visible = false;
+		//this.interactive = false;
+		this.destroy();
 		_player.addXP(1);
+		Item.drop(this);
 		audio.play("kill");
 	});
 }

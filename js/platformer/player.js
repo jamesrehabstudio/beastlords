@@ -152,8 +152,8 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 		"invincibility" : function(){ 
-			if( this.mana >= 1 && this.invincible < this.invincible_time ){
-				this.mana -= 1;
+			if( this.mana >= 2 && this.invincible < this.invincible_time ){
+				this.mana -= 2;
 				this.invincible = Game.DELTASECOND * 20; 
 				audio.play("spell");
 			} else audio.play("negative");
