@@ -332,6 +332,17 @@ var mod_boss = {
 				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, 0);
 			_player.lock_overwrite = false;
 		}
+		this._boss_is_active = function(){
+			if( !this.active ) {
+				this.interactive = false;
+				var dir = this.position.subtract( _player.position );
+				if( Math.abs( dir.x ) < 64 && Math.abs( dir.y ) < 64 ){
+					this.active = true;
+					this.trigger("activate");
+				}
+			}
+		}
+		
 		this.on("player_death", function(){
 			this.reset_boss();
 		});
@@ -348,14 +359,7 @@ var mod_boss = {
 		});
 	},
 	"update" : function(){
-		if( !this.active ) {
-			this.interactive = false;
-			var dir = this.position.subtract( _player.position );
-			if( Math.abs( dir.x ) < 64 && Math.abs( dir.y ) < 64 ){
-				this.active = true;
-				this.trigger("activate");
-			}
-		}
+		this._boss_is_active();
 	}
 }
 

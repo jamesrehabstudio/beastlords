@@ -264,40 +264,47 @@ PauseMenu.prototype.render = function(g,c){
 }
 
 PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
-	var size = new Point(8,8);
-	//var offset = new Point(32,24);
-	for(var i=0; i < this.map.length; i++ ){
-		if( this.map[i] > 0 && this.map_reveal[i] > 0 )  {
-			var tile = new Point(
-				this.mapDimension.start.x + (i%this.mapDimension.width() ),
-				this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
-			);
-			var pos = new Point( 
-				(this.mapDimension.start.x*8) + (cursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
-				(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
-			);
-			if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-				sprites.map.render(g,pos.add(offset),this.map[i]-1,(this.map_reveal[i]>=2?0:1));
-				
-				if( this.map_reveal[i] >= 2 ) {
-					var doors = game.getObjects(Door);
-					for(var j=0; j < doors.length; j++ ){
-						if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
-							var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
-							sprites.map.render(g,pos.add(offset),door_id,2);
+	try {
+		var size = new Point(8,8);
+		//var offset = new Point(32,24);
+		var doors = game.getObjects(Door);
+		var shop = game.getObject(Shop);
+		
+		for(var i=0; i < this.map.length; i++ ){
+			if( this.map[i] > 0 && this.map_reveal[i] > 0 )  {
+				var tile = new Point(
+					this.mapDimension.start.x + (i%this.mapDimension.width() ),
+					this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
+				);
+				var pos = new Point( 
+					(this.mapDimension.start.x*8) + (cursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
+					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
+				);
+				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+					sprites.map.render(g,pos.add(offset),this.map[i]-1,(this.map_reveal[i]>=2?0:1));
+					
+					if( this.map_reveal[i] >= 2 ) {					
+						for(var j=0; j < doors.length; j++ ){
+							if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
+								var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
+								sprites.map.render(g,pos.add(offset),door_id,2);
+							}
+						}
+						if( shop != null && tile.x == Math.floor(shop.position.x/256) && tile.y == Math.floor(shop.position.y/240) ){
+							sprites.text.render(g,pos.add(offset),4,0);
 						}
 					}
 				}
 			}
 		}
-	}
-	//Draw player
-	var pos = new Point(
-		1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
-		2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
-	);
-	if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-		g.fillStyle = "#F00";
-		g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
-	}
+		//Draw player
+		var pos = new Point(
+			1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
+			2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
+		);
+		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+			g.fillStyle = "#F00";
+			g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
+		}
+	} catch (err) {}
 }

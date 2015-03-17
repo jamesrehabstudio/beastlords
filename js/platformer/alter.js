@@ -45,6 +45,7 @@ Alter.prototype.update = function(g,c){
 				this.item.gravity = 1.0;
 				this.item.interactive = true;
 				this.item = false;
+				this.interactive = false;
 			}
 			this.open = 0;
 			game.pause = false;

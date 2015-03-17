@@ -109,6 +109,7 @@ function Player(x, y){
 	this.mana = 3;
 	this.manaMax = 3;
 	this.money = 0;
+	this.waystones = 0;
 	this.heal = 100;
 	this.healMana = 0;
 	this.damage = 5;
@@ -535,9 +536,10 @@ Player.prototype.render = function(g,c){
 	g.closePath();
 	
 	textArea(g,"$"+this.money,8, 33 );
+	textArea(g,"#"+this.waystones,8, 45 );
 	
 	if( this.stat_points > 0 )
-		textArea(g,"Press Start",8, 45 );
+		textArea(g,"Press Start",8, 57 );
 	
 	for(var i=0; i < this.keys.length; i++) {
 		this.keys[i].sprite.render(g, new Point(223+i*4, 40), this.keys[i].frame, this.keys[i].frame_row, false );

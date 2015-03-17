@@ -59,6 +59,7 @@ function WorldMap(x, y){
 		audio.playAs("music_world", "music");
 		this.active = true;
 		game.addObject( this );
+		game.pause = false;
 		
 		/* Save instance of current temple */
 		if( dataManager.currentTemple >= 0 && dataManager.currentTemple < this.temples.length ) {

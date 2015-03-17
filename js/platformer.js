@@ -49,6 +49,7 @@ Alter.prototype.update = function(g,c){
 				this.item.gravity = 1.0;
 				this.item.interactive = true;
 				this.item = false;
+				this.interactive = false;
 			}
 			this.open = 0;
 			game.pause = false;
@@ -76,6 +77,148 @@ Alter.prototype.render = function(g,c){
 		sprites.text.render(g, new Point(28,136+this.cursor*16), 95);
 	}
 }
+
+ /* platformer/arena.js*/ 
+
+Arena.prototype = new GameObject();
+Arena.prototype.constructor = GameObject;
+function Arena(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = sprites.arena;
+	this.width = 64;
+	this.height = 128;
+	this.zIndex = -1;
+	this.life = 1;
+	this.origin.y = 1.0;
+	this.wave_cooldown = Game.DELTASECOND;
+	this.enemies_ready = Game.DELTASECOND
+	
+	this.addModule(mod_boss);
+	this.addModule(mod_talk);
+	
+	this.items = new Array();
+	for(var i=0; i < 2; i++ ){
+		var tresure = dataManager.randomTresure(Math.random()); 
+		tresure.remaining--;
+		
+		item = new Item(this.position.x-26+(i*52), this.position.y-104, tresure.name);
+		item.addModule(mod_rigidbody);
+		item.gravity = 0;
+		item.interactive = false;
+		
+		this.items.push(item);
+		game.addObject(item);
+	}
+	
+	this.enemies = new Array();
+	this.waves = Math.floor(2 + Math.random()*3);
+	this._boss_is_active = function(){};
+	
+	this.on("open",function(obj){
+		game.pause = true;
+		audio.playLock("pause",0.3);
+		this.cursor = 0;	
+	});
+	this.message = [
+		"Choose one item to begin the arena."
+	];
+	this.cursor = 0;
+}
+Arena.prototype.update = function(g,c){
+	if( this.open > 0 && !this.active ) {
+		if( input.state("left") == 1 ) { this.cursor = 0; audio.play("cursor"); }
+		if( input.state("right") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		
+		if( input.state("fire") == 1 ){
+			for(var i=0; i < this.items.length; i++){
+				var item = this.items[ i ];
+				if(i == this.cursor){
+					item.interactive = true;
+					item.gravity = 1.0;
+				} else {
+					game.addObject(new EffectSmoke(item.position.x, item.position.y));
+					item.destroy();
+				}
+			}
+			this.active = true;
+			this.trigger("activate");
+			this.items = false;
+			this.canOpen = false;
+			this.open = 0;
+			game.pause = false;
+			
+		}
+		if( input.state("jump") == 1 || input.state("pause") == 1 ){
+			this.open = 0;
+			game.pause = false;
+		}
+	}
+	
+	if( this.active ) {
+		var total_life = 0;
+		this.enemies_ready -= this.delta;
+		for(var i=0; i < this.enemies.length; i++){
+			total_life += Math.max(this.enemies[i].life, 0);
+			this.enemies[i].interactive = this.enemies_ready <= 0;
+		}
+		
+		if( total_life <= 0 ) {
+			if( this.wave_cooldown <= 0 ) {
+				if( this.waves > 0 ) {
+					//spawn new wave
+					this.enemies_ready = Game.DELTASECOND;
+					var current_temple = dataManager.temples[dataManager.currentTemple];
+					var current_wave = Arena.Waves[ this.waves ];
+					this.enemies = new Array();
+					this.waves--;
+					for(var i=0; i < current_wave.count; i++){
+						var x_off = i*(240/current_wave.count)-120;
+						var enemy_list = current_temple[current_wave["type"]];
+						var enemy_name = enemy_list[Math.floor(Math.random()*enemy_list.length)];
+						var enemy = new window[enemy_name](this.position.x+x_off, this.position.y);
+						enemy.interactive = false;
+						this.enemies.push( enemy );
+						game.addObject( enemy );
+					}
+				} else {
+					//End
+					this.active = false;
+					this.trigger("death");
+				}
+			} else {
+				this.wave_cooldown -= this.delta;
+			}
+		} else {
+			this.wave_cooldown = Game.DELTASECOND;
+		}
+	}
+}
+Arena.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this,[g,c]);
+	
+	if( this.open > 0 ) {
+		boxArea(g,16,16,224,64);
+		textArea(g,this.message[0],32,64,192,64);
+		
+		for(var i=0; i < this.items.length; i++ ){
+			var item = this.items[i];
+			var position = item.position.subtract(c).add( new Point(-16,-16));
+			if(this.cursor == i){
+				boxArea(g,position.x,position.y,32,32);
+			}
+		}
+	}
+}
+Arena.Waves = [
+	{"type":"miniboss", "count":1},
+	{"type":"majormonster", "count":2},
+	{"type":"minormonster", "count":3},
+	{"type":"minormonster", "count":4},
+	{"type":"minormonster", "count":3},
+	{"type":"majormonster", "count":3}
+];
 
  /* platformer/boss_ammit.js*/ 
 
@@ -1646,7 +1789,7 @@ Batty.prototype.update = function(){
 
 Beaker.prototype = new GameObject();
 Beaker.prototype.constructor = GameObject;
-function Beaker(x,y){
+function Beaker(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3608,6 +3751,7 @@ function Item(x,y,name){
 			if( this.name == "coin_1") { obj.money+=1; audio.play("coin"); }
 			if( this.name == "coin_2") { obj.money+=5; audio.play("coin"); }
 			if( this.name == "coin_3") { obj.money+=10; audio.play("coin"); }
+			if( this.name == "waystone") { obj.waystones++; audio.play("coin"); }
 			
 			//Enchanted items
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
@@ -3615,7 +3759,7 @@ function Item(x,y,name){
 			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; audio.play("levelup"); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
-			if( this.name == "seed_minotaur") { obj.statusEffectsTimers.rage=obj.statusEffects.rage=Game.DELTAYEAR; obj.on("added",function(){obj.statusEffects.rage=Game.DELTAYEAR;}); audio.play("levelup"); }
+			if( this.name == "seed_minotaur") { obj.on("collideObject", function(obj){ if( this.team != obj.team && obj.hurt instanceof Function ) obj.hurt( this, Math.ceil(this.damage/5) ); }); }
 			if( this.name == "seed_plaguerat") { obj.attackEffects.poison[0] += 1.0; obj.life_steal = Math.min(obj.life_steal+0.2,0.4); obj.statusEffectsTimers.poison=obj.statusEffects.poison=Game.DELTAYEAR; obj.on("added",function(){obj.statusEffects.poison=Game.DELTAYEAR;}); audio.play("levelup"); }
 			if( this.name == "seed_marquis") { obj.stun_time = 0; audio.play("levelup"); }
 			if( this.name == "seed_batty") { obj.spellsCounters.flight=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.flight=Game.DELTAYEAR}); audio.play("levelup"); }
@@ -3691,13 +3835,14 @@ Item.prototype.setName = function(n){
 	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame_row = 0; this.addModule(mod_rigidbody); this.bounce = 0.0; return; }
 	
 	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nDamage up.";}
 	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}
 	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; this.message = "Malphas Seed\nTechnique up.";}
 	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; this.message = "Yeti Seed\nCold Strike.";}
 	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; this.message = "Guard Seed\nIncreased invincibility.";}
-	if( this.name == "seed_minotaur") { this.frame = 5; this.frame_row = 4; this.message = "Minotaur Seed\nYou're enraged.";}
+	if( this.name == "seed_minotaur") { this.frame = 5; this.frame_row = 4; this.message = "Minotaur Seed\nCrashing into enemies hurts them.";}
 	if( this.name == "seed_plaguerat") { this.frame = 6; this.frame_row = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
 	if( this.name == "seed_marquis") { this.frame = 7; this.frame_row = 4; this.message = "Marquis Seed\nPain no longer phases you.";}
 	if( this.name == "seed_batty") { this.frame = 8; this.frame_row = 4; this.message = "Batty Seed\nYou can fly.";}
@@ -3937,7 +4082,7 @@ PauseMenu.prototype.update = function(){
 			this.mapCursor.x = 11 - Math.floor(_player.position.x / 256);
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
-			this.page = 0;
+			this.page = 1;
 			if( _player.stat_points > 0 ) this.page = 2;
 			if( input.state("select") == 1 ) this.page = 3;
 			audio.play("pause");
@@ -4092,42 +4237,49 @@ PauseMenu.prototype.render = function(g,c){
 }
 
 PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
-	var size = new Point(8,8);
-	//var offset = new Point(32,24);
-	for(var i=0; i < this.map.length; i++ ){
-		if( this.map[i] > 0 && this.map_reveal[i] > 0 )  {
-			var tile = new Point(
-				this.mapDimension.start.x + (i%this.mapDimension.width() ),
-				this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
-			);
-			var pos = new Point( 
-				(this.mapDimension.start.x*8) + (cursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
-				(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
-			);
-			if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-				sprites.map.render(g,pos.add(offset),this.map[i]-1,(this.map_reveal[i]>=2?0:1));
-				
-				if( this.map_reveal[i] >= 2 ) {
-					var doors = game.getObjects(Door);
-					for(var j=0; j < doors.length; j++ ){
-						if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
-							var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
-							sprites.map.render(g,pos.add(offset),door_id,2);
+	try {
+		var size = new Point(8,8);
+		//var offset = new Point(32,24);
+		var doors = game.getObjects(Door);
+		var shop = game.getObject(Shop);
+		
+		for(var i=0; i < this.map.length; i++ ){
+			if( this.map[i] > 0 && this.map_reveal[i] > 0 )  {
+				var tile = new Point(
+					this.mapDimension.start.x + (i%this.mapDimension.width() ),
+					this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
+				);
+				var pos = new Point( 
+					(this.mapDimension.start.x*8) + (cursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
+					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
+				);
+				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+					sprites.map.render(g,pos.add(offset),this.map[i]-1,(this.map_reveal[i]>=2?0:1));
+					
+					if( this.map_reveal[i] >= 2 ) {					
+						for(var j=0; j < doors.length; j++ ){
+							if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
+								var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
+								sprites.map.render(g,pos.add(offset),door_id,2);
+							}
+						}
+						if( shop != null && tile.x == Math.floor(shop.position.x/256) && tile.y == Math.floor(shop.position.y/240) ){
+							sprites.text.render(g,pos.add(offset),4,0);
 						}
 					}
 				}
 			}
 		}
-	}
-	//Draw player
-	var pos = new Point(
-		1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
-		2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
-	);
-	if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-		g.fillStyle = "#F00";
-		g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
-	}
+		//Draw player
+		var pos = new Point(
+			1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
+			2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
+		);
+		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+			g.fillStyle = "#F00";
+			g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
+		}
+	} catch (err) {}
 }
 
  /* platformer/menu_title.js*/ 
@@ -4580,6 +4732,17 @@ var mod_boss = {
 				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, 0);
 			_player.lock_overwrite = false;
 		}
+		this._boss_is_active = function(){
+			if( !this.active ) {
+				this.interactive = false;
+				var dir = this.position.subtract( _player.position );
+				if( Math.abs( dir.x ) < 64 && Math.abs( dir.y ) < 64 ){
+					this.active = true;
+					this.trigger("activate");
+				}
+			}
+		}
+		
 		this.on("player_death", function(){
 			this.reset_boss();
 		});
@@ -4596,14 +4759,7 @@ var mod_boss = {
 		});
 	},
 	"update" : function(){
-		if( !this.active ) {
-			this.interactive = false;
-			var dir = this.position.subtract( _player.position );
-			if( Math.abs( dir.x ) < 64 && Math.abs( dir.y ) < 64 ){
-				this.active = true;
-				this.trigger("activate");
-			}
-		}
+		this._boss_is_active();
 	}
 }
 
@@ -4748,6 +4904,7 @@ function Player(x, y){
 	this.mana = 3;
 	this.manaMax = 3;
 	this.money = 0;
+	this.waystones = 0;
 	this.heal = 100;
 	this.healMana = 0;
 	this.damage = 5;
@@ -5174,9 +5331,10 @@ Player.prototype.render = function(g,c){
 	g.closePath();
 	
 	textArea(g,"$"+this.money,8, 33 );
+	textArea(g,"#"+this.waystones,8, 45 );
 	
 	if( this.stat_points > 0 )
-		textArea(g,"Press Start",8, 45 );
+		textArea(g,"Press Start",8, 57 );
 	
 	for(var i=0; i < this.keys.length; i++) {
 		this.keys[i].sprite.render(g, new Point(223+i*4, 40), this.keys[i].frame, this.keys[i].frame_row, false );
@@ -5643,6 +5801,7 @@ function WorldMap(x, y){
 		audio.playAs("music_world", "music");
 		this.active = true;
 		game.addObject( this );
+		game.pause = false;
 		
 		/* Save instance of current temple */
 		if( dataManager.currentTemple >= 0 && dataManager.currentTemple < this.temples.length ) {

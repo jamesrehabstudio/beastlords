@@ -1,6 +1,6 @@
 Beaker.prototype = new GameObject();
 Beaker.prototype.constructor = GameObject;
-function Beaker(x,y){
+function Beaker(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;

@@ -36,6 +36,7 @@ function Item(x,y,name){
 			if( this.name == "coin_1") { obj.money+=1; audio.play("coin"); }
 			if( this.name == "coin_2") { obj.money+=5; audio.play("coin"); }
 			if( this.name == "coin_3") { obj.money+=10; audio.play("coin"); }
+			if( this.name == "waystone") { obj.waystones++; audio.play("coin"); }
 			
 			//Enchanted items
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
@@ -43,7 +44,7 @@ function Item(x,y,name){
 			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; audio.play("levelup"); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
-			if( this.name == "seed_minotaur") { obj.statusEffectsTimers.rage=obj.statusEffects.rage=Game.DELTAYEAR; obj.on("added",function(){obj.statusEffects.rage=Game.DELTAYEAR;}); audio.play("levelup"); }
+			if( this.name == "seed_minotaur") { obj.on("collideObject", function(obj){ if( this.team != obj.team && obj.hurt instanceof Function ) obj.hurt( this, Math.ceil(this.damage/5) ); }); }
 			if( this.name == "seed_plaguerat") { obj.attackEffects.poison[0] += 1.0; obj.life_steal = Math.min(obj.life_steal+0.2,0.4); obj.statusEffectsTimers.poison=obj.statusEffects.poison=Game.DELTAYEAR; obj.on("added",function(){obj.statusEffects.poison=Game.DELTAYEAR;}); audio.play("levelup"); }
 			if( this.name == "seed_marquis") { obj.stun_time = 0; audio.play("levelup"); }
 			if( this.name == "seed_batty") { obj.spellsCounters.flight=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.flight=Game.DELTAYEAR}); audio.play("levelup"); }
@@ -119,13 +120,14 @@ Item.prototype.setName = function(n){
 	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame_row = 0; this.addModule(mod_rigidbody); this.bounce = 0.0; return; }
 	
 	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nDamage up.";}
 	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}
 	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; this.message = "Malphas Seed\nTechnique up.";}
 	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; this.message = "Yeti Seed\nCold Strike.";}
 	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; this.message = "Guard Seed\nIncreased invincibility.";}
-	if( this.name == "seed_minotaur") { this.frame = 5; this.frame_row = 4; this.message = "Minotaur Seed\nYou're enraged.";}
+	if( this.name == "seed_minotaur") { this.frame = 5; this.frame_row = 4; this.message = "Minotaur Seed\nCrashing into enemies hurts them.";}
 	if( this.name == "seed_plaguerat") { this.frame = 6; this.frame_row = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
 	if( this.name == "seed_marquis") { this.frame = 7; this.frame_row = 4; this.message = "Marquis Seed\nPain no longer phases you.";}
 	if( this.name == "seed_batty") { this.frame = 8; this.frame_row = 4; this.message = "Batty Seed\nYou can fly.";}
