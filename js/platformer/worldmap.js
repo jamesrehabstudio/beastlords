@@ -42,7 +42,7 @@ function WorldMap(x, y){
 	this.temples[8].position.x = 24*16; this.temples[8].position.y = 8*16;
 	
 	this.towns = [];
-	for(var i=0; i<7; i++) this.towns.push({ "name":i, "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3) });
+	for(var i=0; i<7; i++) this.towns.push({ "name":i, "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3), "seed":i+this.seed });
 	this.towns[0].position.x = 37*16; this.towns[0].position.y = 5*16;
 	this.towns[1].position.x = 38*16; this.towns[1].position.y = 27*16;
 	this.towns[2].position.x = 44*16; this.towns[2].position.y = 53*16;
@@ -158,7 +158,7 @@ WorldMap.prototype.update = function(){
 			this.active = false;
 			this.player.y += 16;
 			this.player_goto.y = this.player.y;
-			dataManager.randomTown(game, this.towns[i].size);
+			dataManager.randomTown(game, this.towns[i]);
 			audio.playAs("music_town", "music");
 		}
 	}

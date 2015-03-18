@@ -164,7 +164,8 @@ DataManager.prototype.reset = function(){
 	
 	for(var i=0; i < this.tresures.length; i++ ) this.tresures[i]["remaining"] = this.tresures[i].pergame;
 }
-DataManager.prototype.randomTown = function(g, size){
+DataManager.prototype.randomTown = function(g, town){
+	var s = new Seed(town.seed);
 	this.room_matrix = {};
 	this.junctions_matrix = {};
 	this.properties_matrix = {};
@@ -172,25 +173,33 @@ DataManager.prototype.randomTown = function(g, size){
 	this.secret_matrix = {};
 	this.currentTemple = -1;
 	
+	var specials = {
+		3: {"odds":0.3, count:0},
+		4: {"odds":0.3, count:0},
+		6: {"odds":0.3, count:0}
+	}
+	
 	g.clearAll();
-	g.tileSprite = sprites.town
+	g.tileSprite = sprites.town;
 	
 	var rooms = new Array();
-	var length = 4 + size * 2;
+	var length = 4 + town.size * 2;
 	for(var i=0; i < length; i++){
 		if( i == 0 ) { 
 			rooms[i] = 8;
 		} else if ( i == length-1) {
 			rooms[i] = 7;
 		} else {
-			if( i == 2 ) rooms[i] = 3;
-			else if( i == 3 ) rooms[i] = 4;
-			else if( i == 4 ) rooms[i] = 6;
-			else rooms[i] = size-1;
+			rooms[i] = town.size-1;
+			for(var j in specials){
+				if( s.randomBool(specials[j].odds) && specials[j].count <= 0) {
+					rooms[i] = j;
+					specials[j].count++;
+				}
+			}
 		}
 	}
-	g.bounds = 
-	g.tileDimension = new Line(0,0,rooms.length*8,15);
+	g.bounds = g.tileDimension = new Line(0,0,rooms.length*8,15);
 	g.tiles = [
 		new Array( ~~g.tileDimension.area() ),
 		new Array( ~~g.tileDimension.area() )

@@ -117,6 +117,7 @@ function Player(x, y){
 	this.mass = 1;
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = 20;
+	this.autoblock = false;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -236,6 +237,7 @@ function Player(x, y){
 Player.prototype.update = function(){
 	var speed = 1.25;
 	if( this.spellsCounters.haste > 0 ) speed = 1.4;
+	this.states.guard = false;
 	
 	if( this.manaHeal > 0 ){
 		this.mana = Math.min(this.mana += 2, this.manaMax);
@@ -256,6 +258,15 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+			if ( !this.autoblock ) {
+				if( input.state('block') > 0 ){
+					this.force.x = Math.min( Math.max( this.force.x, -2), 2);
+					this.states.guard = this.states.attack <= 0;
+				}
+			} else {
+				this.states.guard = this.states.attack <= 0;
+			}
+			
 			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
 			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
 			if ( input.state('fire') == 1 ) { this.attack(); }
@@ -284,7 +295,6 @@ Player.prototype.update = function(){
 		this.friction = this.grounded ? 0.2 : 0.05;
 		this.inertia = this.grounded ? 0.9 : 0.2;
 		this.height = this.states.duck ? 24 : 30;
-		this.states.guard = this.states.attack <= 0;
 		
 		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
 			//Play sound effect for attack

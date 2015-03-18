@@ -13,6 +13,10 @@ function DeathTrigger(x,y){
 			obj.position.x = obj.checkpoint.x;
 			obj.position.y = obj.checkpoint.y;
 			obj.hurt( this, Math.floor( obj.lifeMax * .2) );
+		} else if( obj instanceof Item ){
+			if( obj.name.match(/coin_\d+/) ) {
+				obj.trigger("collideObject", _player);
+			}
 		} else if( obj.hasModule(mod_combat) ) {
 			obj.invincible = -999;
 			obj.hurt( this, 9999 );
