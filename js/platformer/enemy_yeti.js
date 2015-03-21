@@ -8,6 +8,7 @@ function Yeti(x,y){
 	this.height = 40;
 	this.sprite = sprites.yeti;
 	this.speed = 0.1;
+	this.origin.y = 0.45;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

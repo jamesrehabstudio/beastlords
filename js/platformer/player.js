@@ -117,7 +117,7 @@ function Player(x, y){
 	this.mass = 1;
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = 20;
-	this.autoblock = false;
+	this.autoblock = true;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
