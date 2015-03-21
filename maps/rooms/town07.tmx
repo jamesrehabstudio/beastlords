@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="8" height="15" tilewidth="16" tileheight="16">
+ <tileset firstgid="1" name="town" tilewidth="16" tileheight="16">
+  <image source="../../img/tiles/town.gif" trans="ff00ff" width="256" height="240"/>
+ </tileset>
+ <layer name="back" width="8" height="15">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+40,43,153,0,153,0,153,0,
+56,59,151,137,138,139,140,0,
+72,75,151,152,153,154,155,0,
+88,91,167,168,169,170,171,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer name="front" width="8" height="15">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+183,184,185,186,187,188,189,190,
+199,200,201,202,203,204,205,206
+</data>
+ </layer>
+ <objectgroup name="objects" width="8" height="15">
+  <object name="Healer" gid="115" x="64" y="192">
+   <properties>
+    <property name="type" value="3"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

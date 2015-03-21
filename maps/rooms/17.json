@@ -791,6 +791,20 @@
                  "width":0,
                  "x":624,
                  "y":256
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"WaystoneChest",
+                 "properties":
+                    {
+                     "rarity":"0.7"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":144,
+                 "y":64
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -808,7 +822,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "image":"..\/tiles0.gif",
+         "image":"..\/..\/img\/tiles\/tiles0.gif",
          "imageheight":256,
          "imagewidth":256,
          "margin":0,

@@ -6,7 +6,7 @@
          "name":"back",
          "opacity":1,
          "type":"tilelayer",
-         "visible":true,
+         "visible":false,
          "width":32,
          "x":0,
          "y":0
@@ -218,7 +218,7 @@
              "rarity":".3"
             },
          "type":"objectgroup",
-         "visible":true,
+         "visible":false,
          "width":32,
          "x":0,
          "y":0
@@ -272,7 +272,7 @@
                 {
                  "gid":232,
                  "height":0,
-                 "name":"Skeleton",
+                 "name":"MajorMonster",
                  "properties":
                     {
                      "min_temple":"1",
@@ -282,6 +282,20 @@
                  "visible":true,
                  "width":0,
                  "x":240,
+                 "y":192
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"WaystoneChest",
+                 "properties":
+                    {
+                     "rarity":"0.1"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":368,
                  "y":192
                 }],
          "opacity":1,
@@ -300,7 +314,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "image":"..\/tiles1.gif",
+         "image":"..\/..\/img\/tiles\/tiles0.gif",
          "imageheight":256,
          "imagewidth":256,
          "margin":0,

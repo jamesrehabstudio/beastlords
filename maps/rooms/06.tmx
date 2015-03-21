@@ -66,5 +66,16 @@
     <property name="rarity" value="0.25"/>
    </properties>
   </object>
+  <object name="WaystoneChest" gid="135" x="176" y="192">
+   <properties>
+    <property name="min_temple" value="1"/>
+    <property name="rarity" value="0.2"/>
+   </properties>
+  </object>
+  <object name="WaystoneChest" gid="135" x="64" y="192">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

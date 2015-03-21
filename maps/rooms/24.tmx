@@ -38,7 +38,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 33,40,0,0,0,0,33,36,37,40,0,0,0,0,33,40,
-113,134,53,54,51,52,133,86,115,134,53,54,51,52,133,104
+113,134,53,54,51,52,133,102,115,134,53,54,51,52,133,104
 </data>
  </layer>
  <objectgroup name="objects" width="16" height="15">
@@ -48,5 +48,10 @@
   </properties>
   <object name="Crusher" gid="199" x="48" y="80"/>
   <object name="Crusher" gid="199" x="176" y="80"/>
+  <object name="WaystoneChest" gid="232" x="120" y="192">
+   <properties>
+    <property name="rarity" value="0.7"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

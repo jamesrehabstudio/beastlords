@@ -221,6 +221,34 @@
                  "width":0,
                  "x":672,
                  "y":128
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"WaystoneChest",
+                 "properties":
+                    {
+                     "rarity":"0.3"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":144,
+                 "y":192
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"WaystoneChest",
+                 "properties":
+                    {
+                     "rarity":"0.4"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":800,
+                 "y":192
                 }],
          "opacity":1,
          "properties":

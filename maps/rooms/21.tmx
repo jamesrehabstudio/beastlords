@@ -55,5 +55,10 @@
   <object name="Igbo" gid="136" x="120" y="128"/>
   <object name="Malsum" gid="136" x="120" y="192"/>
   <object name="DeathTrigger" gid="136" x="128" y="240"/>
+  <object name="WaystoneChest" gid="232" x="120" y="192">
+   <properties>
+    <property name="rarity" value="0.2"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

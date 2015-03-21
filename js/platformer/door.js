@@ -14,6 +14,7 @@ function Door(x,y){
 			var dir = this.position.subtract(obj.position);
 			for( var i=0; i < obj.keys.length; i++ ) {
 				if( this.name == obj.keys[i].name ) {
+					audio.play("open");
 					this.destroy();
 					return;
 				}

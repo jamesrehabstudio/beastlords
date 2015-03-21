@@ -66,20 +66,36 @@ function BreakableTile(x, y){
 	this.height = 16;
 	this.life = 1;
 	this.item = false;
+	this.death_time = Game.DELTASECOND * 0.15;
 	
 	this.on("struck", function(obj,pos,damage){
 		if( obj instanceof Player){
 			//break tile
-			if( game.getTile(this.position.x, this.position.y ) != 0 ) {
-				audio.play("crash");
-				game.setTile(this.position.x, this.position.y, 1, 0 );
-				if( this.item instanceof Item){
-					this.item.position.x = this.position.x;
-					this.item.position.y = this.position.y;
-					game.addObject( this.item );
-				}
-			}
-			this.destroy();
+			this.life = 0;
 		}
 	});
+}
+BreakableTile.prototype.update = function(){
+	if( this.life <= 0 ) this.death_time -= this.delta;
+	
+	if( this.death_time <= 0 ) {
+		if( game.getTile(this.position.x, this.position.y ) != 0 ) {
+			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
+			game.setTile(this.position.x, this.position.y, 1, 0 );
+			if( this.item instanceof Item){
+				this.item.position.x = this.position.x;
+				this.item.position.y = this.position.y;
+				game.addObject( this.item );
+			}
+			//Set off neighbours
+			var hits = game.overlaps(new Line(
+				this.position.x - 24, this.position.y - 24,
+				this.position.x + 24, this.position.y + 24
+			));
+			for(var i=0; i<hits.length; i++) if( hits[i] instanceof BreakableTile && hits[i].life > 0 ) {
+				hits[i].trigger("struck", _player, this.position, 1);
+			}
+		}
+		this.destroy();
+	}
 }

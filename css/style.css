@@ -19,7 +19,7 @@ div.wrap {
 }
 
 #game { 
-	background:#503000;
+	background:#3CBCFC;
 	position:relative;
 	overflow:hidden;
 	image-rendering: pixelated; /* future */

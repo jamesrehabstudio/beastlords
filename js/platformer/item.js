@@ -4,10 +4,11 @@ function Item(x,y,name){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 17;
+	this.width = 18;
 	this.height = 16;
 	this.name = "";
 	this.sprite = sprites.items;
+	this.sleep = null;
 	
 	this.frames = false;
 	this.animation_frame = Math.random() * 3;
@@ -20,17 +21,17 @@ function Item(x,y,name){
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
-			if( this.name == "life" ) { obj.heal = 100; }
+			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 100; }
 			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
-			if( this.name == "life_small" ) { obj.heal = 20; }
-			if( this.name == "mana_small" ) { obj.manaHeal = 35; }
+			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 20; }
+			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 3; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { obj.money += Math.floor(30*(1+dataManager.currentTemple*0.33)); audio.play("pickup1"); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
-			if( this.name == "short_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
-			if( this.name == "long_sword") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
-			if( this.name == "spear") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
-			if( this.name == "small_shield") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
-			if( this.name == "tower_shield") if( obj.equipment.indexOf( this ) < 0 ) { obj.equipment.push(this); audio.play("pickup1"); }
+			if( this.name == "short_sword") { if( !obj.hasEquipment("short_sword") ) { obj.equipment.push(this); audio.play("pickup1"); } else { obj.waystones+=3;  audio.play("coin"); } }
+			if( this.name == "long_sword") { if( !obj.hasEquipment("long_sword") ) { obj.equipment.push(this); audio.play("pickup1"); } else { obj.waystones+=3;  audio.play("coin"); } }
+			if( this.name == "spear") { if( !obj.hasEquipment("spear") ) { obj.equipment.push(this); audio.play("pickup1"); } else { obj.waystones+=3;  audio.play("coin"); } }
+			if( this.name == "small_shield") { if( !obj.hasEquipment("small_shield") ) { obj.equipment.push(this); audio.play("pickup1"); } else { obj.waystones+=3;  audio.play("coin"); } }
+			if( this.name == "tower_shield") { if( !obj.hasEquipment("tower_shield") ) { obj.equipment.push(this); audio.play("pickup1"); } else { obj.waystones+=3;  audio.play("coin"); } }
 			if( this.name == "map") { game.getObject(PauseMenu).revealMap(); audio.play("pickup1"); }
 			
 			if( this.name == "coin_1") { obj.money+=1; audio.play("coin"); }
@@ -45,12 +46,21 @@ function Item(x,y,name){
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; audio.play("levelup"); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
 			if( this.name == "seed_minotaur") { obj.on("collideObject", function(obj){ if( this.team != obj.team && obj.hurt instanceof Function ) obj.hurt( this, Math.ceil(this.damage/5) ); }); }
-			if( this.name == "seed_plaguerat") { obj.attackEffects.poison[0] += 1.0; obj.life_steal = Math.min(obj.life_steal+0.2,0.4); obj.statusEffectsTimers.poison=obj.statusEffects.poison=Game.DELTAYEAR; obj.on("added",function(){obj.statusEffects.poison=Game.DELTAYEAR;}); audio.play("levelup"); }
+			if( this.name == "seed_plaguerat") { 
+				obj.attackEffects.poison[0] += 1.0; 
+				obj.life_steal = Math.min(obj.life_steal+0.2,0.4); 
+				obj.statusEffectsTimers.poison = obj.statusEffects.poison = Game.DELTAYEAR;
+				obj.trigger("status_effect", "poison");
+				obj.on("added",function(){
+					this.statusEffects.poison=Game.DELTAYEAR; 
+					this.trigger("status_effect", "poison");
+				}); 
+				audio.play("levelup"); 
+			}
 			if( this.name == "seed_marquis") { obj.stun_time = 0; audio.play("levelup"); }
 			if( this.name == "seed_batty") { obj.spellsCounters.flight=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.flight=Game.DELTAYEAR}); audio.play("levelup"); }
 			
 			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.feather_foot=Game.DELTAYEAR}); audio.play("levelup"); }
-			if( this.name == "whetstone") { obj.equip_sword.bonus_att++; obj.equip_sword.level++; audio.play("levelup"); }
 			if( this.name == "haft") { obj.equip_sword.bonus_def = obj.equip_sword.bonus_def+1 || 1; obj.equip_sword.level++; audio.play("levelup"); }
 			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; audio.play("levelup"); }
 			if( this.name == "fangs") { obj.life_steal = Math.min(obj.life_steal+0.2,0.4); audio.play("levelup"); }
@@ -61,6 +71,9 @@ function Item(x,y,name){
 			if( this.name == "broken_banana") { obj.attackEffects.weaken[0] += .2; audio.play("levelup"); }
 			if( this.name == "blood_letter") { obj.attackEffects.bleeding[0] += .2; audio.play("levelup"); }
 			if( this.name == "red_cape") { obj.attackEffects.rage[0] += .2; audio.play("levelup"); }
+			if( this.name == "chort_nose") { obj.waystone_bonus += .08; audio.play("levelup"); }
+			if( this.name == "plague_mask") { obj.spellsCounters.poison=0; obj.on("status_effect",function(i){ this.spellsCounters.poison=0; }); audio.play("levelup"); }
+			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); audio.play("levelup"); }
 			
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
@@ -133,7 +146,6 @@ Item.prototype.setName = function(n){
 	if( this.name == "seed_batty") { this.frame = 8; this.frame_row = 4; this.message = "Batty Seed\nYou can fly.";}
 	
 	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; this.message = "Pedila\nFantastically light shoes.";}
-	if( this.name == "whetstone") { this.frame = 1; this.frame_row = 5; this.message = "Whetstone\nCurrent weapon improved.";}
 	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; this.message = "Haft\nCurrent weapon defence up.";}
 	if( this.name == "zacchaeus_stick") { this.frame = 3; this.frame_row = 5; this.message = "Zacchaeus'\nMore money.";}
 	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; this.message = "Fangs\nLife steal.";}
@@ -144,9 +156,16 @@ Item.prototype.setName = function(n){
 	if( this.name == "broken_banana") { this.frame = 9; this.frame_row = 5; this.message = "Broken Banana\nWeakens enemies.";}
 	if( this.name == "blood_letter") { this.frame = 10; this.frame_row = 5; this.message = "Blood letter\nAdds bleed chance to attack.";}
 	if( this.name == "red_cape") { this.frame = 11; this.frame_row = 5; this.message = "Red cape\nAdds rage chance to attack.";}
+	if( this.name == "chort_nose") { this.frame = 12; this.frame_row = 5; this.message = "Chort Nose\nSniffs out Waystones.";}
+	if( this.name == "plague_mask") { this.frame = 13; this.frame_row = 5; this.message = "Plague Mask\nImmune to poison.";}
+	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
 	
 }
 Item.prototype.update = function(){
+	if( this.sleep != null ){
+		this.sleep -= this.delta;
+		this.interactive = this.sleep <= 0;
+	}
 	if( this.frames.length > 0 ) {
 		this.animation_frame = (this.animation_frame + this.delta * this.animation_speed) % this.frames.length;
 		this.frame = this.frames[ Math.floor( this.animation_frame ) ];
@@ -157,6 +176,8 @@ Item.prototype.update = function(){
 Item.drop = function(obj,money){
 	if(Math.random() > (_player.life / _player.lifeMax) && money == undefined){
 		game.addObject( new Item( obj.position.x, obj.position.y, "life_small" ) );
+	} else if (Math.random() < _player.waystone_bonus) {
+		game.addObject( new Item( obj.position.x, obj.position.y, "waystone" ) );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;

@@ -360,6 +360,7 @@ Game.prototype.update = function( ) {
 	
 	//this._pathfinder.postMessage(this.objects);
 	this.renderTree = [];
+	this.prerenderTree = [];
 	//rebuild Interactive Objects
 	//this.renderTree = new BSPTree(this.bounds, 4);
 	var temp_interactive = new BSPTree(this.bounds, 4);
@@ -392,7 +393,9 @@ Game.prototype.update = function( ) {
 					obj.update();
 				}
 			}
-			
+			if ( obj.prerender instanceof Function ) {
+				this.prerenderTree.push( obj );
+			}
 			if ( obj.visible ) {
 				this.renderTree.push( obj );
 			}
@@ -435,6 +438,13 @@ Game.prototype.render = function( ) {
 	this.g.beginPath();
 	this.g.clearRect(0,0,this.element.width, this.element.height );
 	this.g.closePath();
+	
+	//Prerender
+	for ( var i in this.prerenderTree ) {
+		if ( this.prerenderTree[i] instanceof GameObject ) {
+			this.prerenderTree[i].prerender(this.g, camera_center);
+		}
+	}
 	
 	//Render tiles
 	if( this.tiles != null ){

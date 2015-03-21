@@ -100,5 +100,15 @@
   <object name="MinorFly" gid="232" x="272" y="128"/>
   <object name="MinorFly" gid="232" x="480" y="128"/>
   <object name="MinorFly" gid="232" x="672" y="128"/>
+  <object name="WaystoneChest" gid="232" x="144" y="192">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="WaystoneChest" gid="232" x="800" y="192">
+   <properties>
+    <property name="rarity" value="0.4"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

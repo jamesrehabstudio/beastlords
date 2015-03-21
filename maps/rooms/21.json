@@ -151,6 +151,20 @@
                  "width":0,
                  "x":128,
                  "y":240
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"WaystoneChest",
+                 "properties":
+                    {
+                     "rarity":"0.2"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":120,
+                 "y":192
                 }],
          "opacity":1,
          "properties":

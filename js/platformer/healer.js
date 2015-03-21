@@ -20,6 +20,7 @@ function Healer(x,y,n,options){
 	options = options || {};
 	if("price" in options ) this.price = options.price-0;
 	if("type" in options ) this.type = options.type-0;
+	this.currency = this.type == 2 ? "waystones" : "money";
 	
 	this.on("open",function(obj){
 		game.pause = true;
@@ -29,7 +30,7 @@ function Healer(x,y,n,options){
 	this.message = [	
 		"Let me bless you, weary traveller, so I may restore your spirit.",
 		"I can ease your pain. It'll cost you $%PRICE%. Interested?",
-		"I can improve that weapon of yours for $%PRICE%. Interested?"
+		"I can improve that weapon. Add +\v1 for #%PRICE%. Interested?"
 	];
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_talk);
@@ -42,7 +43,7 @@ Healer.prototype.update = function(g,c){
 	this.flip = dir.x > 0;
 	
 	if( this.type == 2 && "level" in _player.equip_sword)
-		this.price = Math.floor( 50 * Math.pow(_player.equip_sword.level, 1.5) );
+		this.price = Math.floor( 2 * Math.pow(_player.equip_sword.level, 1.5) );
 	
 	
 	if( this.open > 0 ) {
@@ -52,7 +53,7 @@ Healer.prototype.update = function(g,c){
 		}
 		if( input.state("fire") == 1 ){
 			if( this.cursor == 0 || this.price <= 0 ) {
-				if( this.price <= _player.money ) {
+				if( this.price <= _player[this.currency] ) {
 					if( this.type == 0 ){ 
 						_player.manaHeal = Number.MAX_VALUE;
 						audio.play("item1");
@@ -65,7 +66,7 @@ Healer.prototype.update = function(g,c){
 						_player.levelUp(-1);
 						audio.play("item1");
 					}
-					_player.money -= this.price;
+					_player[this.currency] -= this.price;
 					this.open = 0;
 					game.pause = false;
 				} else {

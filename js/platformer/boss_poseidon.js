@@ -121,6 +121,7 @@ Poseidon.prototype.update = function(){
 				this.states.attack_counter--;
 				var bullet = new Bullet(this.position.x, this.position.y + 32);
 				bullet.blockable = false;
+				bullet.effect = EffectExplosion;
 				bullet.team = this.team;
 				bullet.force = new Point((this.flip?-1:1)*7, 0);
 				game.addObject(bullet);

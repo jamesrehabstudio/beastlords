@@ -223,7 +223,8 @@ var mod_combat = {
 				for( var i in obj.attackEffects ) {
 					if( Math.random() < obj.attackEffects[i][0] )
 						this.statusEffects[i] = Math.max( Game.DELTASECOND * obj.attackEffects[i][1], this.statusEffects[i] );
-						this.statusEffectsTimers[i] = this.statusEffects[i]
+						this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
+						this.trigger("status_effect", i);
 				}
 			}
 			
@@ -261,7 +262,7 @@ var mod_combat = {
 		for(var i in this.statusEffects ){
 			if( this.statusEffects[i] > 0 ){
 				this.statusEffects[i] -= this.deltaUnscaled;
-				if( this.statusEffectsTimers[i] > this.statusEffects[i] || this.statusEffectsTimers[i] <= 0 ){
+				if( this.statusEffectsTimers[i] > this.statusEffects[i]/* || this.statusEffectsTimers[i] <= 0 */){
 					this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
 					if( i == "poison" ) { this.life -= 1; this.isDead(); }
 					var effect = new EffectStatus(this.position.x+(Math.random()-.5)*this.width, this.position.y+(Math.random()-.5)*this.height);

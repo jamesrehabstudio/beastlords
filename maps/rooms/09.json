@@ -83,6 +83,21 @@
                  "width":0,
                  "x":288,
                  "y":192
+                }, 
+                {
+                 "gid":232,
+                 "height":0,
+                 "name":"WaystoneChest",
+                 "properties":
+                    {
+                     "min_temple":"3",
+                     "rarity":"0.1"
+                    },
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":368,
+                 "y":112
                 }],
          "opacity":1,
          "properties":

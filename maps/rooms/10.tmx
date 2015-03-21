@@ -71,5 +71,10 @@
     <property name="rarity" value="0.5"/>
    </properties>
   </object>
+  <object name="WaystoneChest" gid="232" x="368" y="192">
+   <properties>
+    <property name="rarity" value="0.1"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

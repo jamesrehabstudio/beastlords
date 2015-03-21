@@ -25,6 +25,12 @@ function Igbo(x,y){
 	this.attack_time = Game.DELTASECOND * 1.5;
 	this.attack_rest = Game.DELTASECOND * 1.4;
 	
+	this.guard.active = true;
+	this.guard.x = 14;
+	this.guard.y = 0;
+	this.guard.w = 16;
+	this.guard.h = 46;	
+	
 	this.life = dataManager.life(8);
 	this.damage = dataManager.damage(4);
 	this.collideDamage = dataManager.damage(2);
@@ -39,7 +45,6 @@ function Igbo(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
-	/*
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		
@@ -49,7 +54,6 @@ function Igbo(x,y){
 		//this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
 	});
-	*/
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		this.hurt(obj,damage);
@@ -86,8 +90,8 @@ Igbo.prototype.update = function(){
 		}
 		
 		if( Math.abs( dir.x ) < 32 && this.states.attack <= 0 ) {
-			this.states.attack = this.attack_time;
-			this.states.attack_down = true;
+			//this.states.attack = this.attack_time;
+			//this.states.attack_down = true;
 		}
 		
 		if( this.states.cooldown < 0 && Math.abs(dir.x) < 48 ){
@@ -104,6 +108,8 @@ Igbo.prototype.update = function(){
 				this.states.attack_down ? "struck" : "hurt"
 			);
 		}
+		
+		this.guard.active = this.states.attack <= 0 || this.states.attack > this.attack_time;
 	}
 	
 	/* counters */
@@ -124,16 +130,19 @@ Igbo.prototype.update = function(){
 		this.frame_row = 0;
 	}
 }
-/*
+
 Igbo.prototype.render = function(g,c){
 	//Shield
-	if( this.states.guard > 0 ) {
-		this.sprite.render( g, 
-			new Point(this.position.x - c.x, this.position.y - c.y), 
-			(this.states.guard > 1 ? 3 : 4 ), this.fr_offset, this.flip
-		);
-	}
+	var _f = this.frame;
+	var _fr = this.frame_row;
+	
+	this.frame = 1;
+	this.frame_row = 3;
+	if( this.guard.active ) this.frame = 0;
+	GameObject.prototype.render.apply(this, [g,c]);
+	
 	//Body
+	this.frame = _f;
+	this.frame_row = _fr;
 	GameObject.prototype.render.apply(this, [g,c]);
 }
-*/

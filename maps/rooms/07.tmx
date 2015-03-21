@@ -52,6 +52,11 @@
   <object x="0" y="32">
    <polyline points="0,0 256,0"/>
   </object>
+  <object name="WaystoneChest" gid="232" x="160" y="192">
+   <properties>
+    <property name="rarity" value="0.5"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup name="objects" width="16" height="15">
   <object name="Miniboss" gid="17" x="128" y="192"/>

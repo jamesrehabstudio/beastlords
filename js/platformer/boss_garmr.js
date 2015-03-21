@@ -29,8 +29,8 @@ function Garmr(x,y){
 	
 	this.life = dataManager.life(0);
 	this.mass = 5.0;
-	this.damage = 25;
-	this.collideDamage = 25;
+	this.damage = dataManager.damage(4);
+	this.collideDamage = dataManager.damage(1);
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -66,6 +66,7 @@ Garmr.prototype.update = function(){
 				var bullet = new Bullet(this.position.x, this.position.y + offset);
 				bullet.blockable = true;
 				bullet.team = this.team;
+				bullet.damage = this.damage;
 				bullet.force = new Point((this.flip?-1:1)*3, 0);
 				game.addObject(bullet);
 			}
@@ -75,7 +76,7 @@ Garmr.prototype.update = function(){
 			//Troll player
 			if( Math.abs( dir.x ) < 240 ){
 				this.projection.x = this.position.x;
-				this.projection.y = this.position.y - 64;
+				this.projection.y = this.position.y + 80;
 				this.closeToBoss = true;
 			} else if( this.states.troll_timer > 0 ){
 				if( this.states.troll_timer < Game.DELTASECOND * 3 && !this.states.troll_release ){
@@ -83,7 +84,8 @@ Garmr.prototype.update = function(){
 					var bullet = new Bullet(this.projection.x, this.projection.y);
 					bullet.force = _player.position.subtract(this.projection).normalize(8);
 					bullet.blockable = false;
-					bullet.collideDamage = 30;
+					bullet.damage = this.damage;
+					bullet.effect = EffectSmoke;
 					bullet.team = this.team;
 					game.addObject(bullet);
 				}
@@ -94,7 +96,7 @@ Garmr.prototype.update = function(){
 					this.states.troll_release = false;
 					this.states.troll_timer = Game.DELTASECOND * 6;
 					this.projection.x = _player.position.x + (_player.flip ? -80 : 80);
-					this.projection.y = _player.position.y - 128;
+					this.projection.y = Math.floor(this.position.y/256)*256 + 80;
 				}
 				this.states.troll_cooldown -= this.delta;
 			}

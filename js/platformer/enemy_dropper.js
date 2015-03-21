@@ -21,7 +21,7 @@ Dropper.prototype.update = function(){
 	if( this.cooldown < 0 ) {
 		this.cooldown = Game.DELTASECOND;
 		var bullet = new Bullet(this.position.x + 8, this.position.y + 16, 0);
-		bullet.collideDamage = dataManager.damage(2);
+		bullet.damage = dataManager.damage(2);
 		bullet.blockable = false;
 		bullet.gravity = 1.0;
 		game.addObject( bullet );

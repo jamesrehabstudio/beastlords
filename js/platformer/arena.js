@@ -18,10 +18,10 @@ function Arena(x,y){
 	
 	this.items = new Array();
 	for(var i=0; i < 2; i++ ){
-		var tresure = dataManager.randomTresure(Math.random()); 
-		tresure.remaining--;
+		var treasure = dataManager.randomTreasure(Math.random()); 
+		treasure.remaining--;
 		
-		item = new Item(this.position.x-26+(i*52), this.position.y-104, tresure.name);
+		item = new Item(this.position.x-26+(i*52), this.position.y-104, treasure.name);
 		item.addModule(mod_rigidbody);
 		item.gravity = 0;
 		item.interactive = false;

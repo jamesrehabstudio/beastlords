@@ -87,12 +87,12 @@ Shop.prototype.restock = function(data){
 	this.prices = new Array(3);
 	
 	for(var i=0; i < this.items.length; i++) {
-		var tresure = data.randomTresure(Math.random(),["shop"]);
-		tresure.remaining--;
+		var treasure = data.randomTreasure(Math.random(),["shop"]);
+		treasure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
-		this.items[i] = new Item(x, this.position.y-80, tresure.name);
-		this.prices[i] = tresure.price;
+		this.items[i] = new Item(x, this.position.y-80, treasure.name);
+		this.prices[i] = treasure.price;
 	
 		if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
 		this.items[i].gravity = 0;

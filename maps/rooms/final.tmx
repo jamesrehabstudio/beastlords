@@ -49,7 +49,7 @@
   </properties>
  </objectgroup>
  <objectgroup name="objects" width="80" height="15">
-  <object name="Player" gid="136" x="272" y="192"/>
+  <object name="Player" gid="136" x="80" y="192"/>
   <object name="CornerStone" gid="232" x="432" y="128">
    <properties>
     <property name="gate" value="0"/>

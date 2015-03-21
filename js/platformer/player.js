@@ -229,6 +229,7 @@ function Player(x, y){
 		"thorns" : 0
 	};
 	this.money_bonus = 1.0;
+	this.waystone_bonus = 0.02;
 	this.life_steal = 0.0;
 	
 	this.addXP(0);
@@ -468,6 +469,12 @@ Player.prototype.equip = function(sword, shield){
 	} catch(e) {
 		this.equip( this.equip_sword, this.equip_shield );
 	}
+}
+Player.prototype.hasEquipment = function(name){
+	for(var i=0; i < this.equipment.length; i++ ){
+		if( this.equipment[i].name == name ) return true;
+	}
+	return false
 }
 Player.prototype.levelUp = function(index){
 	if( this.stat_points > 0 ) {
