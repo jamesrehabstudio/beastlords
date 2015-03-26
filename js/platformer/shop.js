@@ -62,12 +62,12 @@ Shop.prototype.update = function(g,c){
 }
 Shop.prototype.purchase = function(){
 	if( this.items[ this.cursor ] instanceof Item ){
-		if( _player.money >= this.prices[ this.cursor ] ) {
+		if( _player.money >= this.getPrice(this.cursor) ) {
 			var item = this.items[ this.cursor ];
 			item.gravity = 1.0;
 			item.interactive = true;
 			this.items[ this.cursor ] = null;
-			_player.money -= this.prices[ this.cursor ];
+			_player.money -= this.getPrice(this.cursor);
 			audio.play("equip");
 			
 			for(var i=0; i < this.items.length; i++ ){
@@ -86,8 +86,15 @@ Shop.prototype.restock = function(data){
 	this.items = new Array(3);
 	this.prices = new Array(3);
 	
+	var treasure = data.randomTreasure(Math.random(),["shop"]);
+	treasure.remaining--;
+	
 	for(var i=0; i < this.items.length; i++) {
-		var treasure = data.randomTreasure(Math.random(),["shop"]);
+		tags = ["shop"];
+		if(i==1) tags = ["goods"];
+		if(i==2) tags = ["stone"];
+		
+		var treasure = data.randomTreasure(Math.random(),tags);
 		treasure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
@@ -100,9 +107,15 @@ Shop.prototype.restock = function(data){
 		game.addObject(this.items[i]);
 	}
 }
+Shop.prototype.getPrice = function(i){
+	var price_adjust = 1.0;
+	if( _player.hasCharm("charm_barter") ) price_adjust *= 0.7;
+	return Math.max( Math.floor( this.prices[i] * price_adjust ), 1);
+}
+	
 Shop.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
-	sprites.characters.render(g,this.position.subtract(c),this.anim_character,0,false);
+	sprites.retailers.render(g,this.position.subtract(c),this.anim_character,0,false);
 	
 	if( this.open > 0 ){		
 		this.soldout = true;
@@ -111,7 +124,7 @@ Shop.prototype.render = function(g,c){
 				this.soldout = false;
 				var p = this.items[i].position.subtract(c);
 				if( i == this.cursor ) boxArea(g, p.x-16,p.y-16,32,32);
-				textArea(g, "$"+this.prices[i], p.x-16, p.y+12);
+				textArea(g, "$"+this.getPrice(i), p.x-16, p.y+12);
 			}
 		}
 		

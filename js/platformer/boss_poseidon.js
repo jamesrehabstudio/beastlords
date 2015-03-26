@@ -21,9 +21,11 @@ function Poseidon(x,y){
 	this.damage = dataManager.damage(4);
 	this.landDamage = dataManager.damage(6);
 	this.stun_time = 0;
+	this.interactive = false;
 	
 	this.mass = 6.0;
 	this.gravity = 0.4;
+	this.begin = Game.DELTASECOND * 6;
 	
 	this.states = {
 		"attack" : 0,
@@ -59,17 +61,19 @@ function Poseidon(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(50);
-		Item.drop(this,90);
-		
-		audio.play("kill");
-		this.destroy();
+		game.addObject(new SceneEnding());
 	});
 }
 Poseidon.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
 	
-	if( this.life > 0 && this.active ) {
+	if( this.active && this.begin > 0 ) {
+		this.begin -= this.delta;
+		this.interactive = false;
+	}
+	
+	if( this.life > 0 && this.active && this.begin <= 0 ) {
+		this.interactive = true;
 		if( this.states.attack_type == 1 ) {
 			//Ground pound
 			if( this.force.y < 0 ) {
@@ -189,5 +193,16 @@ Poseidon.prototype.update = function(){
 	} else {
 		this.frame_row = 0;
 		this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.1) % 3;
+	}
+}
+
+Poseidon.prototype.render = function(g,c){
+	if(!this.active || this.begin > 0 ) {
+		if(this.begin < Game.DELTASECOND * 2 ) {
+			this.sprite.render(g,this.position,2,1);
+		}
+		sprites.characters.render(g,this.position.add(new Point(0,32)),3,0);
+	} else {
+		GameObject.prototype.render.apply(this,[g,c]);
 	}
 }

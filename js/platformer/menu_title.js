@@ -29,7 +29,7 @@ function TitleMenu(){
 
 TitleMenu.prototype.update = function(){
 	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
-		if( this.progress == 0 ) audio.play("music_intro");
+		if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
 		if( this.start_options ) {
 			this.progress = 10.0;
@@ -101,6 +101,8 @@ TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(){
 	this.start = true;
+	
+	dataManager.reset();
 	
 	var world = new WorldMap(0,0);
 	world.mode = this.cursor > 0 ? 1 : 0;

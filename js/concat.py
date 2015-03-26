@@ -6,7 +6,8 @@ saveto = "platformer.js"
 previous = "prev"
 
 watching = [
-	"platformer/*.js"
+	"platformer/*.js",
+	"platformer/**/*.js"
 ]
 
 def concat():

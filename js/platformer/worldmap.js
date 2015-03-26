@@ -63,13 +63,13 @@ function WorldMap(x, y){
 		
 		/* Save instance of current temple */
 		if( dataManager.currentTemple >= 0 && dataManager.currentTemple < this.temples.length ) {
+			var shops = [];
+			for(var i=0; i < WorldMap.Shops.length; i++) shops = shops.concat( game.getObjects(window[WorldMap.Shops[i]]) );
 			var instance = {
 				"keys" : _player.keys,
 				"items" : game.getObjects(Item),
 				"map" : game.getObject(PauseMenu).map_reveal,
-				"shop" : game.getObject(Shop),
-				"alter" : game.getObject(Alter),
-				"prisoner" : game.getObject(Prisoner).phase
+				"shops" : shops
 			};
 			this.temples[dataManager.currentTemple].instance = instance;
 		}
@@ -222,3 +222,10 @@ WorldMap.prototype.renderTown = function(g,c,town){
 		}
 	}
 }
+WorldMap.Shops = [
+	"Alter",
+	"Arena",
+	"Prisoner",
+	"Shop",
+	"WaystoneChest"
+];

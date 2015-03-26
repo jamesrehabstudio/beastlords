@@ -109,6 +109,9 @@ var mod_combat = {
 		this._hurt_strobe = 0;
 		this._death_clock = Number.MAX_VALUE;
 		this._death_explosion_clock = Number.MAX_VALUE;
+		this.damage_buffer = 0;
+		this.buffer_damage = false;
+		this._damage_buffer_timer = 0;
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -215,8 +218,8 @@ var mod_combat = {
 		this.hurt = function(obj, damage){
 			if( this.statusEffects.bleeding > 0 ) damage *= 2;
 			if( this.statusEffects.rage > 0 ) damage = Math.floor( damage * 1.5 );
-			if( "statusEffects" in obj && this.statusEffects.weaken > 0 ) damage = Math.ceil(damage/2);
-			if( "statusEffects" in obj && this.statusEffects.rage > 0 ) damage = Math.floor(damage*1.5);
+			if( "statusEffects" in obj && obj.statusEffects.weaken > 0 ) damage = Math.ceil(damage/3);
+			if( "statusEffects" in obj && obj.statusEffects.rage > 0 ) damage = Math.floor(damage*1.5);
 			
 			//Add effects to attack
 			if( "attackEffects" in obj ){
@@ -232,7 +235,11 @@ var mod_combat = {
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
 				
-				this.life -= damage;
+				if( this.buffer_damage ) 
+					this.damage_buffer += damage;
+				else
+					this.life -= damage;
+				
 				var dir = this.position.subtract( obj.position ).normalize();
 				this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) );
 				this.invincible = this.invincible_time;
@@ -271,6 +278,14 @@ var mod_combat = {
 				}
 			}
 			j++;
+		}
+		
+		this._damage_buffer_timer -= this.deltaUnscaled;
+		if( this.damage_buffer > 0 && this._damage_buffer_timer <= 0 ){
+			this.life -= 1;
+			this.damage_buffer -= 1;
+			this._damage_buffer_timer = Game.DELTASECOND * 0.3;
+			this.isDead();
 		}
 		
 		if( this.life <= 0 ) this._death_clock -= game.deltaUnscaled;

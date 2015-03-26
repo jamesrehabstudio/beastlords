@@ -13,6 +13,7 @@ function Player(x, y){
 	this.keys = [];
 	this.equipment = [new Item(0,0,"short_sword"), new Item(0,0,"small_shield")];
 	this.spells = [];
+	this.charm = false;
 	
 	this.equip_sword = this.equipment[0];
 	this.equip_shield = this.equipment[1];
@@ -89,6 +90,8 @@ function Player(x, y){
 		this.life = Math.min( this.life + Math.round(damage * this.life_steal), this.lifeMax );
 	});
 	this.on("added", function(){
+		this.damage_buffer = 0;
+		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
 		}
@@ -240,7 +243,8 @@ Player.prototype.update = function(){
 	if( this.spellsCounters.haste > 0 ) speed = 1.4;
 	this.states.guard = false;
 	
-	if( this.manaHeal > 0 ){
+	this.buffer_damage = this.hasCharm("charm_elephant");
+	if( this.manaHeal > 0 || this.hasCharm("charm_mana") ){
 		this.mana = Math.min(this.mana += 2, this.manaMax);
 		this.manaHeal-= 2;
 		if( this.mana >= this.manaMax ) this.manaHeal = 0;
@@ -249,6 +253,7 @@ Player.prototype.update = function(){
 		audio.play("heal");
 		this.life += 2;
 		this.heal -= 2;
+		this.damage_buffer = 0;
 		game.slow(0.0,5.0);
 		if( this.life >= this.lifeMax ){
 			this.heal = 0;
@@ -301,13 +306,13 @@ Player.prototype.update = function(){
 			//Play sound effect for attack
 			if( !this.states.startSwing ) {
 				audio.play("swing");
-				if( this.spellsCounters.magic_sword > 0 ){
+				if( this.spellsCounters.magic_sword > 0 || this.hasCharm("charm_sword") ){
 					var offset_y = this.states.duck ? 6 : -4;
 					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
 					bullet.team = this.team;
 					bullet.speed = this.speed * 2;
 					bullet.frame = 1;
-					bullet.collisionDamage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
+					bullet.damage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
 					game.addObject(bullet);
 				}
 			}
@@ -315,7 +320,7 @@ Player.prototype.update = function(){
 			
 			//Create box to detect enemies
 			var temp_damage = this.damage;
-			if( this.spellsCounters.magic_strength > 0 ) temp_damage += 8;
+			if( this.spellsCounters.magic_strength > 0 ) temp_damage = Math.floor(temp_damage*1.25);
 			this.strike(new Line(
 				new Point( 12, (this.states.duck ? 4 : -4) ),
 				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
@@ -398,6 +403,16 @@ Player.prototype.castSpell = function(name){
 	if( name in this.spells && name in this.spellsUnlocked ) {
 		this.spells[name].apply(this);
 	}
+}
+Player.prototype.equipCharm = function(c){
+	if( this.charm instanceof Item ){
+		//Drop Item
+		this.charm.sleep = Game.DELTASECOND;
+		this.charm.position.x = this.position.x;
+		this.charm.position.y = this.position.y;
+		game.addObject(this.charm);
+	}
+	this.charm = c;
 }
 Player.prototype.equip = function(sword, shield){
 	try {
@@ -491,20 +506,42 @@ Player.prototype.levelUp = function(index){
 	
 	this.equip( this.equip_sword, this.equip_shield );
 }
+Player.prototype.addWaystone = function(value){
+	this.waystones += value;
+	if( this.hasCharm("charm_alchemist") ) {
+		this.waystones += value;
+	}
+}
+Player.prototype.addMoney = function(value){
+	this.money += value;
+	if( this.hasCharm("charm_musa") ) {
+		this.life = Math.min( this.life + value, this.lifeMax );
+	}
+}
 Player.prototype.addXP = function(value){
 	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 50 );
 	this.prevLevel = Math.floor( Math.pow( this.level-1,1.8 ) * 50 );
+	
+	if(this.hasCharm("charm_wise")) value += Math.floor(value*0.3);
+	
 	this.experience += value;
 	
 	if( this.experience >= this.nextLevel ) {
 		this.stat_points++;
 		this.level++;
 		this.life = this.lifeMax;
+		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
 	}
+}
+Player.prototype.hasCharm = function(value){
+	if( this.charm instanceof Item ) {
+		return this.charm.name == value;
+	}
+	return false;
 }
 Player.prototype.render = function(g,c){
 	var shield_frame = (this.states.duck ? 1:0) + (this.states.guard ? 0:2);
@@ -526,6 +563,18 @@ Player.prototype.render = function(g,c){
 	g.beginPath();
 	g.fillStyle = "#F00";
 	g.scaleFillRect(8,8,Math.max(this.life/4,0),8);
+	g.closePath();
+	
+	/* Render Buffered Damage */
+	g.beginPath();
+	g.fillStyle = "#A81000";
+	var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer) / 4, 8)
+	g.scaleFillRect(
+		Math.max(this.life/4,0)+8,
+		8,
+		-Math.min(this.damage_buffer,this.life)/4,
+		8
+	);
 	g.closePath();
 	
 	/* Render Mana */
@@ -558,9 +607,14 @@ Player.prototype.render = function(g,c){
 	if( this.stat_points > 0 )
 		textArea(g,"Press Start",8, 57 );
 	
+	//Keys
 	for(var i=0; i < this.keys.length; i++) {
 		this.keys[i].sprite.render(g, new Point(223+i*4, 40), this.keys[i].frame, this.keys[i].frame_row, false );
 	}
 	
-	//if( this.ttest instanceof Line) this.ttest.renderRect( g, c );
+	//Charm
+	if(this.charm instanceof Item ){
+		this.charm.position.x = this.charm.position.y = 0;
+		this.charm.render(g,new Point(-(this.lifeMax*0.25 + 20),-15));
+	}
 }

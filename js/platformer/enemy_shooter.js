@@ -76,7 +76,7 @@ Shooter.prototype.update = function(){
 			this.frame_row = shooter_direction;
 			var direction = this.flip ? 1 : -1;
 			var bullet = new Bullet(
-				_player.position.x + (128*direction), 
+				this.position.x,
 				this.position.y + y, 
 				-direction
 			);

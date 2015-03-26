@@ -4,7 +4,7 @@ function Healer(x,y,n,options){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.characters;
+	this.sprite = sprites.retailers;
 	this.width = 16;
 	this.height = 32;
 	this.zIndex = -1;

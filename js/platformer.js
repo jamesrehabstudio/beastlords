@@ -229,10 +229,14 @@ function Background(x,y){
 	
 	this.sprite = game.tileSprite;
 	this.backgrounds = [
-		{ "tags":[],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,41,42,9,9,9,9,9,9,9,9,9,9,9,9,9,57,58,9,9,9,9,9,9,9,9,9,9,9,9,9,57,58,9,9,9,9,9,9,9,9,9,9,9,9,9,57,58,9,9,27,27,27,27,9,9,9,9,9,9,9,73,74,9,25,0,0,0,0,26,9,43,44,9,9,9,89,90,9,25,0,0,0,0,26,9,59,60,9,9,9,9,9,9,25,0,0,0,0,26,9,75,76,9,9,9,9,91,92,25,0,0,0,0,26,91,92,9,9,9,9,9,107,108,25,0,0,0,0,26,107,108,9,9,9,9,9,9,9,25,0,0,0,0,26,9,9,9,9,9,9,9,9,9,25,0,0,0,0,26,9,9,9,9,9,9,9,9,9,9,28,28,28,28,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]},
-		{ "tags":[],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,77,78,9,9,9,9,9,27,27,9,9,27,27,9,9,27,27,9,9,9,9,25,0,0,26,25,0,0,26,25,0,0,26,9,9,9,25,0,0,26,25,0,0,26,25,0,0,26,91,92,9,25,0,0,26,25,0,0,26,25,0,0,26,107,108,9,25,0,0,26,25,0,0,26,25,0,0,26,9,9,9,9,28,28,9,9,28,28,9,9,28,28,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]},
-		{ "tags":[],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,29,9,9,29,9,9,29,9,9,29,9,9,29,9,9,45,91,92,45,91,92,45,91,92,45,91,92,45,9,9,45,107,108,45,107,108,45,107,108,45,107,108,45,9,9,45,27,27,45,27,27,45,27,27,45,27,27,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,28,28,45,28,28,45,28,28,45,28,28,45,9,9,45,9,9,45,9,9,45,9,9,45,9,9,45,9,9,61,9,9,61,9,9,61,9,9,61,9,9,61,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]}
+		{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,41,42,9,9,9,9,9,9,9,9,9,41,42,9,9,57,58,9,9,9,9,9,9,9,9,9,57,58,9,9,57,58,9,9,9,9,9,9,9,9,9,57,58,9,9,57,58,9,30,31,32,32,32,64,48,9,57,58,9,9,73,74,9,46,0,0,0,0,0,47,9,73,74,9,9,89,90,9,62,0,0,0,0,0,63,9,89,90,9,9,9,9,9,62,0,0,0,0,0,63,9,9,9,9,9,9,91,92,62,0,0,0,0,0,63,91,92,9,9,9,9,107,108,62,0,0,0,0,0,63,107,108,9,9,9,9,9,9,62,0,0,0,0,0,63,9,9,9,9,9,9,9,9,62,0,0,0,0,0,63,9,9,9,9,93,94,94,93,12,28,28,28,28,28,13,93,94,94,93,109,110,110,109,94,93,93,94,93,94,93,109,110,110,109]},
+		{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,77,78,9,9,9,9,9,27,27,9,9,27,27,9,9,27,27,9,9,9,9,25,0,0,26,25,0,0,26,25,0,0,26,9,9,9,25,0,0,26,25,0,0,26,25,0,0,26,91,92,9,25,0,0,26,25,0,0,26,25,0,0,26,107,108,9,25,0,0,26,25,0,0,26,25,0,0,26,9,9,9,9,28,28,9,9,28,28,9,9,28,28,9,9,9,9,93,94,9,93,94,9,94,94,93,9,94,94,93,94,94,109,110,93,109,110,93,110,110,109,93,110,110,109,110,110,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]},
+		{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,29,9,9,29,9,9,29,9,9,29,9,9,29,9,9,45,91,92,45,91,92,45,91,92,45,91,92,45,9,9,45,107,108,45,107,108,45,107,108,45,107,108,45,9,9,45,27,27,45,27,27,45,27,27,45,27,27,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,0,0,45,0,0,45,0,0,45,0,0,45,9,9,45,28,28,45,28,28,45,28,28,45,28,28,45,9,94,45,94,93,45,94,94,45,93,94,45,94,93,45,93,110,61,110,109,61,110,110,61,109,110,61,110,109,61,109,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]},
+		{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,30,31,32,64,48,9,9,9,9,9,9,9,91,92,9,46,0,0,0,47,9,91,92,9,9,9,9,107,108,9,62,0,0,0,63,9,107,108,9,9,9,9,9,9,9,62,0,0,0,63,9,9,9,9,9,9,9,30,31,32,79,0,0,0,80,32,64,48,9,9,9,9,46,0,0,0,0,0,0,0,0,0,47,9,9,9,9,62,0,0,0,0,0,0,0,0,0,63,9,9,9,9,62,0,0,0,0,0,0,0,0,0,63,9,9,93,94,12,28,28,28,28,28,28,28,28,28,13,9,9,109,109,94,94,94,93,94,94,94,94,94,93,94,93,94,109,109,110,110,110,109,110,110,110,110,110,109,110,109,110,109,109,110,110,110,109,110,110,110,110,110,109,110,109,110]}
 	];
+	
+	this.saved_rooms = {};
+	this.animation = 0;
 }
 Background.prototype.prerender = function(g,c){
 	var screen_width = 256;
@@ -248,10 +252,28 @@ Background.prototype.prerender = function(g,c){
 	];
 	
 	if( room_matrix_index.y > 0 ) {
+		//Background wall
 		for(x=0; x < 18; x++) for(y=0; y < 15; y++) {
 			var tile = 104 + (y%2==1?16:0) + (x%2==1?1:0);
 			var pos_x = x*16 - ((c_x/2) % 32);
 			this.sprite.render(g, new Point(pos_x, y*16), tile );
+		}
+	} else {
+		//Clouds
+		var sky_offset = this.animation / 20.0;
+		var sky_tile_offset = Math.floor(sky_offset/16);
+		for(l=0; l < 17; l++) for(x=0; x < 17; x++) for(y=0; y < 2; y++) {
+			var y_offset = Math.min( 4 * Math.abs( room_matrix_index.y ), 32);
+			var c_x_minus = c.x - game.bounds.start.x;
+			//layer 3
+			if(l==0) this.sprite.render(g, new Point(x*16-((c_x_minus*0.025)%16), 168+y*16), 202+(y*16) );
+			//layer 2
+			if(l==1) this.sprite.render(g, new Point(x*16-((c_x_minus*0.125)%16), (y_offset*0.5)+176+y*16), 201+(y*16) );
+			//layer 1
+			if(l==2) this.sprite.render(g, new Point(x*16-((c_x_minus*0.333)%16), (y_offset*2)+184+y*16), 200+(y*16) );
+			
+			var tile = 224 + 8+((x+sky_tile_offset)%8) + 16*y;
+			if(l==3) this.sprite.render(g, new Point(x*16-(sky_offset%16), 144+y*16), tile );
 		}
 	}
 	
@@ -268,13 +290,33 @@ Background.prototype.prerender = function(g,c){
 			}
 		}
 	}
-	
+	this.animation += this.delta;
 }
 Background.prototype.roomAtLocation = function(x,y){
 	if(y==0 && (x==0||x==1)) return -1;
-	if(x < 0 ) return 0
-	return x % 3;
+	
+	try {
+	var code = x+"_"+y;
+		if( code in this.saved_rooms ) {
+			return this.saved_rooms[code];
+		} else if( code in dataManager.room_matrix ) {
+			var tags = ["normal"];
+			var total = 0;
+			for(var i=0; i<this.backgrounds.length; i++) if(this.backgrounds[i].tags.intersection(tags).length>0) total += this.backgrounds[i].rarity;
+			var roll = Math.random() * total;
+			for(var i=0; i<this.backgrounds.length; i++) if(this.backgrounds[i].tags.intersection(tags).length>0) {
+				if( roll < this.backgrounds[i].rarity ) {
+					this.saved_rooms[code] = i;
+					return i;
+				}
+				roll -= this.backgrounds[i].rarity;
+			}
+		}
+	} catch (err) {
+		return -1;
+	}
 }
+Background.prototype.idle = function(){}
 
  /* platformer/boss_ammit.js*/ 
 
@@ -967,9 +1009,11 @@ function Poseidon(x,y){
 	this.damage = dataManager.damage(4);
 	this.landDamage = dataManager.damage(6);
 	this.stun_time = 0;
+	this.interactive = false;
 	
 	this.mass = 6.0;
 	this.gravity = 0.4;
+	this.begin = Game.DELTASECOND * 6;
 	
 	this.states = {
 		"attack" : 0,
@@ -1005,17 +1049,19 @@ function Poseidon(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(50);
-		Item.drop(this,90);
-		
-		audio.play("kill");
-		this.destroy();
+		game.addObject(new SceneEnding());
 	});
 }
 Poseidon.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
 	
-	if( this.life > 0 && this.active ) {
+	if( this.active && this.begin > 0 ) {
+		this.begin -= this.delta;
+		this.interactive = false;
+	}
+	
+	if( this.life > 0 && this.active && this.begin <= 0 ) {
+		this.interactive = true;
 		if( this.states.attack_type == 1 ) {
 			//Ground pound
 			if( this.force.y < 0 ) {
@@ -1135,6 +1181,17 @@ Poseidon.prototype.update = function(){
 	} else {
 		this.frame_row = 0;
 		this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.1) % 3;
+	}
+}
+
+Poseidon.prototype.render = function(g,c){
+	if(!this.active || this.begin > 0 ) {
+		if(this.begin < Game.DELTASECOND * 2 ) {
+			this.sprite.render(g,this.position,2,1);
+		}
+		sprites.characters.render(g,this.position.add(new Point(0,32)),3,0);
+	} else {
+		GameObject.prototype.render.apply(this,[g,c]);
 	}
 }
 
@@ -2651,6 +2708,81 @@ Dropper.prototype.update = function(){
 	this.cooldown -= this.delta;
 }
 
+ /* platformer/enemy_father.js*/ 
+
+Father.prototype = new GameObject();
+Father.prototype.constructor = GameObject;
+function Father(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 32;
+	this.sprite = sprites.characters;
+	this.speed = 0.05;
+	this.active = false;
+	
+	this.limit = 512;
+	this.start_x = x;
+	this.addModule( mod_rigidbody );
+	this.temple = dataManager.temples[Math.max(dataManager.currentTemple,0)];
+	
+	this.states = {
+		"cooldown" : Game.DELTASECOND,
+		"touch" : 0,
+		"direction" : 1
+	};
+	
+	this.pushable = false;
+	
+	this.on("collideObject", function(obj){
+		
+	});
+}
+Father.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.active ) {
+		this.force.x += this.delta * this.states.direction * this.speed;
+		
+		if( Math.abs( dir.x ) < 64 ){
+			var force_push = (64-Math.abs( dir.x ))/24;
+			_player.force.x += this.delta * force_push * this.states.direction * -1.0;
+			this.states.cooldown -= this.delta;
+		}
+		
+		if( this.states.direction > 0 ) {
+			if(this.position.x-this.start_x > this.limit) this.destroy();
+		} else {
+			if(this.position.x-this.start_x < -this.limit) this.destroy();
+		}
+		
+		if( this.states.cooldown <= 0 ) {
+			//Spawn Monster
+			this.states.cooldown = Game.DELTASECOND * 4;
+			var monster_list = dir.y > 32 ? this.temple.minorfly : this.temple.majormonster;
+			var name = monster_list[Math.floor(monster_list.length*Math.random())];
+			var enemy = new window[name]((this.position.x+_player.position.x)*0.5, (this.position.y+_player.position.y)*0.5);
+			enemy.on("sleep", function(){ this.destroy(); });
+			game.addObject(enemy);
+			game.addObject(new EffectSmoke(this.position.x,this.position.y));
+		}
+		this.states.cooldown -= this.delta;
+	} else {
+		if( Math.abs(dir.x) < 128 ) {
+			this.active = true;
+			this.states.direction = dir.x > 0 ? 1 : -1;
+			this.flip = this.states.direction < 0;
+		}
+		if(Math.abs(this.position.x-this.start_x) < this.limit - 32){
+			var _dir = dir.x > 0 ? -1 : 1;
+			this.force.x = this.delta * _dir;
+		}
+	}
+	
+	this.frame = (this.frame + this.delta * 0.2 * Math.abs(this.force.x)) % 3;
+	this.frame_row = 0;
+}
+
  /* platformer/enemy_ghoul.js*/ 
 
 Ghoul.prototype = new GameObject();
@@ -3562,7 +3694,7 @@ Shooter.prototype.update = function(){
 			this.frame_row = shooter_direction;
 			var direction = this.flip ? 1 : -1;
 			var bullet = new Bullet(
-				_player.position.x + (128*direction), 
+				this.position.x,
 				this.position.y + y, 
 				-direction
 			);
@@ -4087,7 +4219,7 @@ function Healer(x,y,n,options){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.characters;
+	this.sprite = sprites.retailers;
 	this.width = 16;
 	this.height = 32;
 	this.zIndex = -1;
@@ -4224,10 +4356,10 @@ function Item(x,y,name){
 			if( this.name == "tower_shield") { if( !obj.hasEquipment("tower_shield") ) { obj.equipment.push(this); audio.play("pickup1"); } else { obj.waystones+=3;  audio.play("coin"); } }
 			if( this.name == "map") { game.getObject(PauseMenu).revealMap(); audio.play("pickup1"); }
 			
-			if( this.name == "coin_1") { obj.money+=1; audio.play("coin"); }
-			if( this.name == "coin_2") { obj.money+=5; audio.play("coin"); }
-			if( this.name == "coin_3") { obj.money+=10; audio.play("coin"); }
-			if( this.name == "waystone") { obj.waystones++; audio.play("coin"); }
+			if( this.name == "coin_1") { obj.addMoney(1); audio.play("coin"); }
+			if( this.name == "coin_2") { obj.addMoney(5); audio.play("coin"); }
+			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
+			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			//Enchanted items
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
@@ -4265,6 +4397,14 @@ function Item(x,y,name){
 			if( this.name == "plague_mask") { obj.spellsCounters.poison=0; obj.on("status_effect",function(i){ this.spellsCounters.poison=0; }); audio.play("levelup"); }
 			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); audio.play("levelup"); }
 			
+			if( this.name == "charm_sword") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_mana") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_alchemist") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_musa") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_wise") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_methuselah") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
 				pm.message( this.message );
@@ -4350,11 +4490,25 @@ Item.prototype.setName = function(n){
 	if( this.name == "plague_mask") { this.frame = 13; this.frame_row = 5; this.message = "Plague Mask\nImmune to poison.";}
 	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
 	
+	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
+	if( this.name == "charm_mana") { this.frame = 1; this.frame_row = 8; this.message = "Mana Charm\nEndless supply of mana.";}
+	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
+	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
+	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
+	if( this.name == "charm_methuselah") { this.frame = 5; this.frame_row = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
+	if( this.name == "charm_barter") { this.frame = 6; this.frame_row = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
+	if( this.name == "charm_elephant") { this.frame = 7; this.frame_row = 8; this.message = "Elephant Charm\nWounds open slowly.";}
+	
 }
 Item.prototype.update = function(){
 	if( this.sleep != null ){
 		this.sleep -= this.delta;
-		this.interactive = this.sleep <= 0;
+		if(this.sleep > 0 ){
+			this.visible = !this.visible;
+		} else {
+			this.visible = true;
+			this.interactive = this.sleep <= 0;
+		}
 	}
 	if( this.frames.length > 0 ) {
 		this.animation_frame = (this.animation_frame + this.delta * this.animation_speed) % this.frames.length;
@@ -4811,7 +4965,7 @@ function TitleMenu(){
 
 TitleMenu.prototype.update = function(){
 	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
-		if( this.progress == 0 ) audio.play("music_intro");
+		if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
 		if( this.start_options ) {
 			this.progress = 10.0;
@@ -4883,6 +5037,8 @@ TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(){
 	this.start = true;
+	
+	dataManager.reset();
 	
 	var world = new WorldMap(0,0);
 	world.mode = this.cursor > 0 ? 1 : 0;
@@ -5005,6 +5161,9 @@ var mod_combat = {
 		this._hurt_strobe = 0;
 		this._death_clock = Number.MAX_VALUE;
 		this._death_explosion_clock = Number.MAX_VALUE;
+		this.damage_buffer = 0;
+		this.buffer_damage = false;
+		this._damage_buffer_timer = 0;
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -5111,8 +5270,8 @@ var mod_combat = {
 		this.hurt = function(obj, damage){
 			if( this.statusEffects.bleeding > 0 ) damage *= 2;
 			if( this.statusEffects.rage > 0 ) damage = Math.floor( damage * 1.5 );
-			if( "statusEffects" in obj && this.statusEffects.weaken > 0 ) damage = Math.ceil(damage/2);
-			if( "statusEffects" in obj && this.statusEffects.rage > 0 ) damage = Math.floor(damage*1.5);
+			if( "statusEffects" in obj && obj.statusEffects.weaken > 0 ) damage = Math.ceil(damage/3);
+			if( "statusEffects" in obj && obj.statusEffects.rage > 0 ) damage = Math.floor(damage*1.5);
 			
 			//Add effects to attack
 			if( "attackEffects" in obj ){
@@ -5128,7 +5287,11 @@ var mod_combat = {
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
 				
-				this.life -= damage;
+				if( this.buffer_damage ) 
+					this.damage_buffer += damage;
+				else
+					this.life -= damage;
+				
 				var dir = this.position.subtract( obj.position ).normalize();
 				this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) );
 				this.invincible = this.invincible_time;
@@ -5167,6 +5330,14 @@ var mod_combat = {
 				}
 			}
 			j++;
+		}
+		
+		this._damage_buffer_timer -= this.deltaUnscaled;
+		if( this.damage_buffer > 0 && this._damage_buffer_timer <= 0 ){
+			this.life -= 1;
+			this.damage_buffer -= 1;
+			this._damage_buffer_timer = Game.DELTASECOND * 0.3;
+			this.isDead();
 		}
 		
 		if( this.life <= 0 ) this._death_clock -= game.deltaUnscaled;
@@ -5305,6 +5476,7 @@ function Player(x, y){
 	this.keys = [];
 	this.equipment = [new Item(0,0,"short_sword"), new Item(0,0,"small_shield")];
 	this.spells = [];
+	this.charm = false;
 	
 	this.equip_sword = this.equipment[0];
 	this.equip_shield = this.equipment[1];
@@ -5381,6 +5553,8 @@ function Player(x, y){
 		this.life = Math.min( this.life + Math.round(damage * this.life_steal), this.lifeMax );
 	});
 	this.on("added", function(){
+		this.damage_buffer = 0;
+		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
 		}
@@ -5532,7 +5706,8 @@ Player.prototype.update = function(){
 	if( this.spellsCounters.haste > 0 ) speed = 1.4;
 	this.states.guard = false;
 	
-	if( this.manaHeal > 0 ){
+	this.buffer_damage = this.hasCharm("charm_elephant");
+	if( this.manaHeal > 0 || this.hasCharm("charm_mana") ){
 		this.mana = Math.min(this.mana += 2, this.manaMax);
 		this.manaHeal-= 2;
 		if( this.mana >= this.manaMax ) this.manaHeal = 0;
@@ -5541,6 +5716,7 @@ Player.prototype.update = function(){
 		audio.play("heal");
 		this.life += 2;
 		this.heal -= 2;
+		this.damage_buffer = 0;
 		game.slow(0.0,5.0);
 		if( this.life >= this.lifeMax ){
 			this.heal = 0;
@@ -5593,13 +5769,13 @@ Player.prototype.update = function(){
 			//Play sound effect for attack
 			if( !this.states.startSwing ) {
 				audio.play("swing");
-				if( this.spellsCounters.magic_sword > 0 ){
+				if( this.spellsCounters.magic_sword > 0 || this.hasCharm("charm_sword") ){
 					var offset_y = this.states.duck ? 6 : -4;
 					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
 					bullet.team = this.team;
 					bullet.speed = this.speed * 2;
 					bullet.frame = 1;
-					bullet.collisionDamage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
+					bullet.damage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
 					game.addObject(bullet);
 				}
 			}
@@ -5607,7 +5783,7 @@ Player.prototype.update = function(){
 			
 			//Create box to detect enemies
 			var temp_damage = this.damage;
-			if( this.spellsCounters.magic_strength > 0 ) temp_damage += 8;
+			if( this.spellsCounters.magic_strength > 0 ) temp_damage = Math.floor(temp_damage*1.25);
 			this.strike(new Line(
 				new Point( 12, (this.states.duck ? 4 : -4) ),
 				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
@@ -5690,6 +5866,16 @@ Player.prototype.castSpell = function(name){
 	if( name in this.spells && name in this.spellsUnlocked ) {
 		this.spells[name].apply(this);
 	}
+}
+Player.prototype.equipCharm = function(c){
+	if( this.charm instanceof Item ){
+		//Drop Item
+		this.charm.sleep = Game.DELTASECOND;
+		this.charm.position.x = this.position.x;
+		this.charm.position.y = this.position.y;
+		game.addObject(this.charm);
+	}
+	this.charm = c;
 }
 Player.prototype.equip = function(sword, shield){
 	try {
@@ -5783,20 +5969,42 @@ Player.prototype.levelUp = function(index){
 	
 	this.equip( this.equip_sword, this.equip_shield );
 }
+Player.prototype.addWaystone = function(value){
+	this.waystones += value;
+	if( this.hasCharm("charm_alchemist") ) {
+		this.waystones += value;
+	}
+}
+Player.prototype.addMoney = function(value){
+	this.money += value;
+	if( this.hasCharm("charm_musa") ) {
+		this.life = Math.min( this.life + value, this.lifeMax );
+	}
+}
 Player.prototype.addXP = function(value){
 	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 50 );
 	this.prevLevel = Math.floor( Math.pow( this.level-1,1.8 ) * 50 );
+	
+	if(this.hasCharm("charm_wise")) value += Math.floor(value*0.3);
+	
 	this.experience += value;
 	
 	if( this.experience >= this.nextLevel ) {
 		this.stat_points++;
 		this.level++;
 		this.life = this.lifeMax;
+		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
 	}
+}
+Player.prototype.hasCharm = function(value){
+	if( this.charm instanceof Item ) {
+		return this.charm.name == value;
+	}
+	return false;
 }
 Player.prototype.render = function(g,c){
 	var shield_frame = (this.states.duck ? 1:0) + (this.states.guard ? 0:2);
@@ -5818,6 +6026,18 @@ Player.prototype.render = function(g,c){
 	g.beginPath();
 	g.fillStyle = "#F00";
 	g.scaleFillRect(8,8,Math.max(this.life/4,0),8);
+	g.closePath();
+	
+	/* Render Buffered Damage */
+	g.beginPath();
+	g.fillStyle = "#A81000";
+	var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer) / 4, 8)
+	g.scaleFillRect(
+		Math.max(this.life/4,0)+8,
+		8,
+		-Math.min(this.damage_buffer,this.life)/4,
+		8
+	);
 	g.closePath();
 	
 	/* Render Mana */
@@ -5850,11 +6070,16 @@ Player.prototype.render = function(g,c){
 	if( this.stat_points > 0 )
 		textArea(g,"Press Start",8, 57 );
 	
+	//Keys
 	for(var i=0; i < this.keys.length; i++) {
 		this.keys[i].sprite.render(g, new Point(223+i*4, 40), this.keys[i].frame, this.keys[i].frame_row, false );
 	}
 	
-	//if( this.ttest instanceof Line) this.ttest.renderRect( g, c );
+	//Charm
+	if(this.charm instanceof Item ){
+		this.charm.position.x = this.charm.position.y = 0;
+		this.charm.render(g,new Point(-(this.lifeMax*0.25 + 20),-15));
+	}
 }
 
  /* platformer/prisoner.js*/ 
@@ -6095,12 +6320,12 @@ Shop.prototype.update = function(g,c){
 }
 Shop.prototype.purchase = function(){
 	if( this.items[ this.cursor ] instanceof Item ){
-		if( _player.money >= this.prices[ this.cursor ] ) {
+		if( _player.money >= this.getPrice(this.cursor) ) {
 			var item = this.items[ this.cursor ];
 			item.gravity = 1.0;
 			item.interactive = true;
 			this.items[ this.cursor ] = null;
-			_player.money -= this.prices[ this.cursor ];
+			_player.money -= this.getPrice(this.cursor);
 			audio.play("equip");
 			
 			for(var i=0; i < this.items.length; i++ ){
@@ -6119,8 +6344,15 @@ Shop.prototype.restock = function(data){
 	this.items = new Array(3);
 	this.prices = new Array(3);
 	
+	var treasure = data.randomTreasure(Math.random(),["shop"]);
+	treasure.remaining--;
+	
 	for(var i=0; i < this.items.length; i++) {
-		var treasure = data.randomTreasure(Math.random(),["shop"]);
+		tags = ["shop"];
+		if(i==1) tags = ["goods"];
+		if(i==2) tags = ["stone"];
+		
+		var treasure = data.randomTreasure(Math.random(),tags);
 		treasure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
@@ -6133,9 +6365,15 @@ Shop.prototype.restock = function(data){
 		game.addObject(this.items[i]);
 	}
 }
+Shop.prototype.getPrice = function(i){
+	var price_adjust = 1.0;
+	if( _player.hasCharm("charm_barter") ) price_adjust *= 0.7;
+	return Math.max( Math.floor( this.prices[i] * price_adjust ), 1);
+}
+	
 Shop.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
-	sprites.characters.render(g,this.position.subtract(c),this.anim_character,0,false);
+	sprites.retailers.render(g,this.position.subtract(c),this.anim_character,0,false);
 	
 	if( this.open > 0 ){		
 		this.soldout = true;
@@ -6144,7 +6382,7 @@ Shop.prototype.render = function(g,c){
 				this.soldout = false;
 				var p = this.items[i].position.subtract(c);
 				if( i == this.cursor ) boxArea(g, p.x-16,p.y-16,32,32);
-				textArea(g, "$"+this.prices[i], p.x-16, p.y+12);
+				textArea(g, "$"+this.getPrice(i), p.x-16, p.y+12);
 			}
 		}
 		
@@ -6393,13 +6631,13 @@ function WorldMap(x, y){
 		
 		/* Save instance of current temple */
 		if( dataManager.currentTemple >= 0 && dataManager.currentTemple < this.temples.length ) {
+			var shops = [];
+			for(var i=0; i < WorldMap.Shops.length; i++) shops = shops.concat( game.getObjects(window[WorldMap.Shops[i]]) );
 			var instance = {
 				"keys" : _player.keys,
 				"items" : game.getObjects(Item),
 				"map" : game.getObject(PauseMenu).map_reveal,
-				"shop" : game.getObject(Shop),
-				"alter" : game.getObject(Alter),
-				"prisoner" : game.getObject(Prisoner).phase
+				"shops" : shops
 			};
 			this.temples[dataManager.currentTemple].instance = instance;
 		}
@@ -6552,3 +6790,106 @@ WorldMap.prototype.renderTown = function(g,c,town){
 		}
 	}
 }
+WorldMap.Shops = [
+	"Alter",
+	"Arena",
+	"Prisoner",
+	"Shop",
+	"WaystoneChest"
+];
+
+ /* platformer/scenes/ending.js*/ 
+
+SceneEnding.prototype = new GameObject();
+SceneEnding.prototype.constructor = GameObject;
+function SceneEnding(x,y){
+	game.clearAll();
+	game.tileSprite = sprites.tiles3;
+	game.addObject(new Background());
+	
+	this.speed = 0;
+	this.phase = 0;
+	this.x_off = 0;
+	this.progress = 0;
+	
+	this.player_position = 0;
+	this.father_position = 0;
+	audio.stopAs("music");
+	/*
+	this.animation = {
+		0.0 : [{"id":0,"position":new Point(104,192),"render":function(g,p,c){}}]
+	};*/
+	
+	this.text_credits = "" +
+	"BEAST LORDS\n\n"+
+	"POGAMES.UK\n"+
+	"Staff\n\n"+
+	"ART\nBirdy\n\n"+
+	"PROGRAMMING\nBirdy\n\n"+
+	"SOUND\nBirdy\n\n"+
+	"MUSIC\nBirdy\n\n"+
+	"PLAY TESTING\n\n"+
+	"E.R\n"+
+	"W.B\n"+
+	"D.S\n\n"+
+	"Thanks for playing.";
+}
+SceneEnding.prototype.update = function(){
+	game.camera.x = this.x_off;
+	game.camera.y = 0;
+	
+	if( this.phase == 0 ) {
+		this.progress += this.delta * 0.01;
+		if( this.progress < 8 ) {
+			if( Math.floor(this.progress) > this.player_position ) this.player_position += this.delta * 0.02;
+			if( Math.floor(this.progress-0.1) > this.father_position ) this.father_position += this.delta * 0.02;
+		} 
+		if( this.progress > 9 ) {
+			this.phase = 1;
+			this.progress = 0;
+		}
+	} else if ( this.phase == 1 ) {
+		//Driving
+		this.speed = Math.min(this.speed + this.delta * 0.01, 7.0);
+		this.x_off += this.delta * this.speed;
+		this.progress += this.delta / Game.DELTASECOND;
+		if( this.progress > 60 ) {
+			audio.stopAs("music");
+			this.phase = 2;
+		}
+	} else if( this.phase == 2 ){
+		//Show Scores
+		if(input.state("pause") == 1) {
+			//Return to title screen
+			game.clearAll();
+			game.addObject(new TitleMenu());
+		}
+	}
+	
+	if(this.phase < 2 && input.state("pause") == 1 ) this.phase = 2;
+}
+SceneEnding.prototype.render = function(g,c){
+	for(var x=0; x<17; x++) for(var y=0; y<16; y++) {
+		var tile = y <= 0 ? 32 : 96;
+		var off = c.x % 16;
+		game.tileSprite.render(g,new Point(x*16-off,208+y*16),tile);
+	}
+	
+	if( this.phase == 0 ) {
+		
+		sprites.chazbike.render(g,new Point(104,192),0,2);
+		sprites.ending.render(g,new Point(this.father_position*20-64,176),0,0);		
+		sprites.player.render(g,new Point(this.player_position*20-20,192),1,2,true);
+		
+	} else if( this.phase == 1 ) {
+		var pos = 1 + Math.min(-this.x_off*0.01+Math.pow(this.x_off*0.005,2),0);
+		if(this.progress > 45) pos += Math.max(this.progress-45,0);
+		sprites.ending.render(g,new Point(88*pos,176),1,1);
+		
+		var credit_pos = Math.lerp(360,-320,Math.min(this.progress/40,1));
+		textArea(g,this.text_credits,128,credit_pos,120);
+	} else if( this.phase == 2 ) {
+		boxArea(g,0,0,256,240);
+	}
+}
+SceneEnding.prototype.idle = function(){}

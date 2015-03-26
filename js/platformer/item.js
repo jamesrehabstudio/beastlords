@@ -34,10 +34,10 @@ function Item(x,y,name){
 			if( this.name == "tower_shield") { if( !obj.hasEquipment("tower_shield") ) { obj.equipment.push(this); audio.play("pickup1"); } else { obj.waystones+=3;  audio.play("coin"); } }
 			if( this.name == "map") { game.getObject(PauseMenu).revealMap(); audio.play("pickup1"); }
 			
-			if( this.name == "coin_1") { obj.money+=1; audio.play("coin"); }
-			if( this.name == "coin_2") { obj.money+=5; audio.play("coin"); }
-			if( this.name == "coin_3") { obj.money+=10; audio.play("coin"); }
-			if( this.name == "waystone") { obj.waystones++; audio.play("coin"); }
+			if( this.name == "coin_1") { obj.addMoney(1); audio.play("coin"); }
+			if( this.name == "coin_2") { obj.addMoney(5); audio.play("coin"); }
+			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
+			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			//Enchanted items
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
@@ -75,6 +75,14 @@ function Item(x,y,name){
 			if( this.name == "plague_mask") { obj.spellsCounters.poison=0; obj.on("status_effect",function(i){ this.spellsCounters.poison=0; }); audio.play("levelup"); }
 			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); audio.play("levelup"); }
 			
+			if( this.name == "charm_sword") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_mana") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_alchemist") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_musa") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_wise") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_methuselah") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
 				pm.message( this.message );
@@ -160,11 +168,25 @@ Item.prototype.setName = function(n){
 	if( this.name == "plague_mask") { this.frame = 13; this.frame_row = 5; this.message = "Plague Mask\nImmune to poison.";}
 	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
 	
+	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
+	if( this.name == "charm_mana") { this.frame = 1; this.frame_row = 8; this.message = "Mana Charm\nEndless supply of mana.";}
+	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
+	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
+	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
+	if( this.name == "charm_methuselah") { this.frame = 5; this.frame_row = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
+	if( this.name == "charm_barter") { this.frame = 6; this.frame_row = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
+	if( this.name == "charm_elephant") { this.frame = 7; this.frame_row = 8; this.message = "Elephant Charm\nWounds open slowly.";}
+	
 }
 Item.prototype.update = function(){
 	if( this.sleep != null ){
 		this.sleep -= this.delta;
-		this.interactive = this.sleep <= 0;
+		if(this.sleep > 0 ){
+			this.visible = !this.visible;
+		} else {
+			this.visible = true;
+			this.interactive = this.sleep <= 0;
+		}
 	}
 	if( this.frames.length > 0 ) {
 		this.animation_frame = (this.animation_frame + this.delta * this.animation_speed) % this.frames.length;
