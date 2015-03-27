@@ -160,8 +160,10 @@ Arena.prototype.update = function(g,c){
 		var total_life = 0;
 		this.enemies_ready -= this.delta;
 		for(var i=0; i < this.enemies.length; i++){
-			total_life += Math.max(this.enemies[i].life, 0);
-			this.enemies[i].interactive = this.enemies_ready <= 0;
+			if(this.enemies[i].awake && game.objects.indexOf(_player) >= 0){
+				total_life += Math.max(this.enemies[i].life, 0);
+				this.enemies[i].interactive = this.enemies_ready <= 0;
+			}
 		}
 		
 		if( total_life <= 0 ) {
@@ -200,7 +202,7 @@ Arena.prototype.render = function(g,c){
 	
 	if( this.open > 0 ) {
 		boxArea(g,16,16,224,64);
-		textArea(g,this.message[0],32,64,192,64);
+		textArea(g,this.message[0],32,32,192,64);
 		
 		for(var i=0; i < this.items.length; i++ ){
 			var item = this.items[i];
@@ -237,11 +239,13 @@ function Background(x,y){
 	
 	this.saved_rooms = {};
 	this.animation = 0;
+	this.walls = true;
 }
 Background.prototype.prerender = function(g,c){
 	var screen_width = 256;
 	var screen_height = 240;
-	var c_x = c.x < 0 ? (screen_width+(c.x%screen_width)) : (c.x%screen_width);
+	var c_x = c.x%screen_width;
+	if(c.x < 0 && c_x != 0) c_x = screen_width+c_x;
 	var offset = 8 + c_x * 0.0625;
 	var room_off = c_x > 128 ? -2 : -1;
 	var room_matrix_index = new Point(Math.floor(c.x/screen_width), Math.floor(c.y/screen_height));
@@ -251,7 +255,7 @@ Background.prototype.prerender = function(g,c){
 		this.roomAtLocation(room_matrix_index.x - (room_off+2), room_matrix_index.y)
 	];
 	
-	if( room_matrix_index.y > 0 ) {
+	if( room_matrix_index.y > 0 && this.walls ) {
 		//Background wall
 		for(x=0; x < 18; x++) for(y=0; y < 15; y++) {
 			var tile = 104 + (y%2==1?16:0) + (x%2==1?1:0);
@@ -277,7 +281,7 @@ Background.prototype.prerender = function(g,c){
 		}
 	}
 	
-	for(var i=0; i < rooms.length; i++) {
+	if(this.walls ) for(var i=0; i < rooms.length; i++) {
 		if( rooms[i] >= 0 && rooms[i] < this.backgrounds.length ) {
 			for(x=0; x < 15; x++) for(y=0; y < 15; y++) {
 				var index = x + Math.floor(y*15);
@@ -377,12 +381,13 @@ function Ammit(x,y){
 			obj.hurt( this, this.collideDamage );
 	});
 	this.on("death", function(){
-		_player.addXP(60);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,35);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Ammit.prototype.update = function(){	
 	if ( this.active && this.stun <= 0  && this.life > 0) {
@@ -519,12 +524,13 @@ function Chort(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(35);
+		_player.addXP(this.xp_award);
 		
 		Item.drop(this,24);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Chort.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
@@ -652,13 +658,18 @@ function Garmr(x,y){
 		this.states.dizzy -= Game.DELTASECOND * 0.5;
 		audio.play("hurt");
 	});
+	this.on("activate", function() {
+		var dir = this.position.subtract( _player.position );
+		_player.force.x = (dir.x > 0 ? -1 : 1) * 4;
+	});
 	this.on("death", function(){
-		_player.addXP(65);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,40);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Garmr.prototype.update = function(){	
 	if ( this.stun <= 0  && this.life > 0) {
@@ -677,6 +688,7 @@ Garmr.prototype.update = function(){
 				bullet.blockable = true;
 				bullet.team = this.team;
 				bullet.damage = this.damage;
+				bullet.knockbackScale = 0.0;
 				bullet.force = new Point((this.flip?-1:1)*3, 0);
 				game.addObject(bullet);
 			}
@@ -684,9 +696,9 @@ Garmr.prototype.update = function(){
 			this.projection.y = this.position.y - 64;
 		} else {
 			//Troll player
-			if( Math.abs( dir.x ) < 240 ){
+			if( Math.abs( dir.x ) < 240 && Math.floor(_player.position.y/256) == Math.floor(this.position.y/256)){
 				this.projection.x = this.position.x;
-				this.projection.y = this.position.y + 80;
+				this.projection.y = this.position.y - 80;
 				this.closeToBoss = true;
 			} else if( this.states.troll_timer > 0 ){
 				if( this.states.troll_timer < Game.DELTASECOND * 3 && !this.states.troll_release ){
@@ -811,12 +823,13 @@ function Marquis(x,y){
 		audio.playLock("block",0.1);
 	});
 	this.on("death", function(){
-		_player.addXP(40);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,30);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Marquis.prototype.update = function(){	
 	this.sprite = sprites.megaknight;
@@ -925,12 +938,13 @@ function Minotaur(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(50);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,35);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Minotaur.prototype.update = function(){	
 	if ( this.stun <= 0  && this.life > 0) {
@@ -1187,9 +1201,9 @@ Poseidon.prototype.update = function(){
 Poseidon.prototype.render = function(g,c){
 	if(!this.active || this.begin > 0 ) {
 		if(this.begin < Game.DELTASECOND * 2 ) {
-			this.sprite.render(g,this.position,2,1);
+			this.sprite.render(g,this.position.subtract(c),2,1);
 		}
-		sprites.characters.render(g,this.position.add(new Point(0,32)),3,0);
+		sprites.characters.render(g,this.position.subtract(c).add(new Point(0,32)),3,0);
 	} else {
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
@@ -1404,6 +1418,7 @@ function Bullet(x,y,d){
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
+	this.on("struck", function(obj){ if(this.blockable && obj.team!=this.team) this.trigger("death");});
 	this.on("death", function(){ this.destroy();});
 	
 	this.team = 0;
@@ -1785,7 +1800,7 @@ function Amon(x,y){
 	*/
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		_player.addXP(10);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
@@ -1803,6 +1818,7 @@ function Amon(x,y){
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
+	this.calculateXP();
 }
 Amon.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.2) % 2;
@@ -1893,10 +1909,11 @@ function Batty(x,y){
 		//this.visible = false;
 		//this.interactive = false;
 		this.destroy();
-		_player.addXP(1);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 	});
+	this.calculateXP();
 }
 Batty.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -2007,10 +2024,12 @@ function Beaker(x, y){
 	this.on("death", function(){
 		//this.visible = false;
 		//this.interactive = false;
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		Item.drop(this);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Beaker.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -2112,10 +2131,11 @@ function Bear(x,y){
 	});
 	this.on("death", function(){
 		Item.drop(this);
-		_player.addXP(10);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Bear.prototype.update = function(){	
 	//this.sprite = sprites.knight;
@@ -2226,11 +2246,12 @@ function Chaz(x,y){
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(8);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 	
 	this.life = dataManager.life(7);
 	this.collideDamage = dataManager.damage(1);
@@ -2341,11 +2362,12 @@ function ChazBike(x,y){
 		game.addObject( rider );
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(16);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 	
 	this.life = dataManager.life(8);
 	this.collideDamage = dataManager.damage(3);
@@ -2523,7 +2545,7 @@ function Deckard(x,y){
 	});
 	this.on("death", function(){
 		this.destroy();
-		_player.addXP(30);
+		_player.addXP(this.xp_award);
 		Item.drop(this,20);
 		audio.play("kill");
 		
@@ -2536,6 +2558,7 @@ function Deckard(x,y){
 			game.addObject(batty);
 		}
 	});
+	this.calculateXP();
 }
 Deckard.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -2564,6 +2587,13 @@ Deckard.prototype.update = function(){
 			if( this.states.fly < this.states.attack_counter ) {
 				//Fire fireball
 				this.states.attack_counter = this.states.fly - Game.DELTASECOND * .5;
+				var bullet = new Bullet(this.position.x, this.position.y);
+				bullet.force = _player.position.subtract(this.position).normalize(6);
+				bullet.blockable = false;
+				bullet.damage = this.damage;
+				bullet.effect = EffectSmoke;
+				bullet.team = this.team;
+				game.addObject(bullet);
 			}
 			if( this.position.y - this.jump_start_y < -64 ) {
 				this.gravity = 0;
@@ -2575,7 +2605,7 @@ Deckard.prototype.update = function(){
 			this.states.cooldown -= this.delta;
 			this.states.attack = 0;
 			this.flip = dir.x > 0;
-			this.states.direction = dir.x < 0 ? 1 : -1;
+			this.states.direction = (dir.x < 0 ? 1 : -1) * (this.states.cooldown<Game.DELTASECOND?1:-1);
 			this.gravity = 1.0;
 			this.jump_start_y = this.position.y;
 			
@@ -2584,13 +2614,15 @@ Deckard.prototype.update = function(){
 			}
 			
 			if( this.states.cooldown <= 0 ) {
-				if( Math.abs(dir.x) > 64 ) {
+				if( Math.abs(dir.x) > 64 || Math.random() < 0.2 ) {
 					this.states.fly = Game.DELTASECOND * 5;
 					this.states.attack_counter = this.states.fly - Game.DELTASECOND;
+					this.states.direction = (dir.x < 0 ? 1 : -1);
 					this.gravity = 0.4;
 					this.force.y = -8;
 					this.force.x = this.states.direction * -8;
 				} else {
+					this.states.direction = (dir.x < 0 ? 1 : -1);
 					this.states.combo = this.attack_time * 5;
 					this.force.x = 0;
 					this.states.attack_counter = 0;
@@ -2655,7 +2687,7 @@ function Derring(x,y){
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		_player.addXP(3);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
@@ -2669,6 +2701,7 @@ function Derring(x,y){
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
+	this.calculateXP();
 }
 Derring.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.2) % 2;
@@ -2738,6 +2771,9 @@ function Father(x,y){
 	this.on("collideObject", function(obj){
 		
 	});
+	this.on("player_death", function(){
+		this.active = false;
+	});
 }
 Father.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
@@ -2768,20 +2804,19 @@ Father.prototype.update = function(){
 		}
 		this.states.cooldown -= this.delta;
 	} else {
-		if( Math.abs(dir.x) < 128 ) {
+		if( Math.abs(dir.x) < 128 && Math.abs(dir.y) < 64 ) {
 			this.active = true;
 			this.states.direction = dir.x > 0 ? 1 : -1;
 			this.flip = this.states.direction < 0;
 		}
-		if(Math.abs(this.position.x-this.start_x) < this.limit - 32){
-			var _dir = dir.x > 0 ? -1 : 1;
-			this.force.x = this.delta * _dir;
-		}
+		var _dir = _player.position.x > this.start_x ? 1 : -1;
+		this.position.x = this.start_x + (this.limit - 32)*_dir;
 	}
 	
 	this.frame = (this.frame + this.delta * 0.2 * Math.abs(this.force.x)) % 3;
 	this.frame_row = 0;
 }
+Father.prototype.idle = function(){}
 
  /* platformer/enemy_ghoul.js*/ 
 
@@ -2836,11 +2871,12 @@ function Ghoul(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(20);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Ghoul.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -2932,10 +2968,11 @@ function Igbo(x,y){
 	});
 	this.on("death", function(obj){
 		Item.drop(this,40);
-		_player.addXP(45);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Igbo.prototype.update = function(){	
 	//this.sprite = sprites.knight;
@@ -3120,6 +3157,7 @@ function Knight(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Knight.prototype.update = function(){	
 	//this.sprite = sprites.knight;
@@ -3260,10 +3298,11 @@ function Malphas(x,y){
 	});
 	this.on("death", function(obj){
 		Item.drop(this,30);
-		_player.addXP(40);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Malphas.prototype.update = function(){	
 	var dir = this.position.subtract(_player.position);
@@ -3369,10 +3408,11 @@ function Malsum(x,y){
 	});
 	this.on("death", function(obj){
 		Item.drop(this,30);
-		_player.addXP(35);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Malsum.prototype.update = function(){	
 	var dir = this.position.subtract(_player.position);
@@ -3421,7 +3461,7 @@ function Oriax(x,y){
 		this.states.backup = !this.states.backup;
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(5);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
@@ -3432,6 +3472,7 @@ function Oriax(x,y){
 	this.mass = 1.0;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 1;
+	this.calculateXP();
 	
 	this.states = {
 		"cooldown" : 50,
@@ -3550,11 +3591,12 @@ function Ratgut(x,y){
 		this.states.runaway = Game.DELTASECOND * 1.5;
 	});
 	this.on("death", function(){
-		_player.addXP(15);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Ratgut.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -3653,12 +3695,13 @@ function Shooter(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(20);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Shooter.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
@@ -3784,10 +3827,11 @@ function Skeleton(x,y){
 	});
 	this.on("death", function(){
 		Item.drop(this);
-		_player.addXP(4);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Skeleton.prototype.update = function(){	
 	this.sprite = sprites.skele;
@@ -3957,7 +4001,7 @@ function Svarog(x,y){
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		_player.addXP(3);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
@@ -3980,6 +4024,7 @@ function Svarog(x,y){
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
+	this.calculateXP();
 }
 Svarog.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.2) % 3;
@@ -4052,10 +4097,11 @@ function Yakseyo(x,y){
 	});
 	this.on("death", function(obj){
 		Item.drop(this,24);
-		_player.addXP(25);		
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Yakseyo.prototype.update = function(){	
 	var dir = this.position.subtract(_player.position);
@@ -4128,11 +4174,12 @@ function Yeti(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(25);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Yeti.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -4143,7 +4190,7 @@ Yeti.prototype.update = function(){
 				this.states.attack_release = true;
 				if( this.states.attack_type > 0 ) {
 					//missle
-					var y_offset = this.states.attack_type == 1 ? 4 : 18;
+					var y_offset = this.states.attack_type == 1 ? 4 : 17;
 					bullet = new Bullet(this.position.x, this.position.y+y_offset, (this.flip?-1:1));
 					bullet.blockable = true;
 					bullet.attackEffects.slow[0] = 1.0;
@@ -4244,7 +4291,7 @@ function Healer(x,y,n,options){
 	});
 	this.message = [	
 		"Let me bless you, weary traveller, so I may restore your spirit.",
-		"I can ease your pain. It'll cost you $%PRICE%. Interested?",
+		"You can stay here and rest.",
 		"I can improve that weapon. Add +\v1 for #%PRICE%. Interested?"
 	];
 	this.addModule(mod_rigidbody);
@@ -4374,7 +4421,7 @@ function Item(x,y,name){
 				obj.statusEffectsTimers.poison = obj.statusEffects.poison = Game.DELTAYEAR;
 				obj.trigger("status_effect", "poison");
 				obj.on("added",function(){
-					this.statusEffects.poison=Game.DELTAYEAR; 
+					obj.statusEffectsTimers.poison=this.statusEffects.poison=Game.DELTAYEAR; 
 					this.trigger("status_effect", "poison");
 				}); 
 				audio.play("levelup"); 
@@ -4518,13 +4565,15 @@ Item.prototype.update = function(){
 	}
 }
 Item.drop = function(obj,money){
-	if(Math.random() > (_player.life / _player.lifeMax) && money == undefined){
+	var money_only = obj.hasModule(mod_boss);
+	if(Math.random() > (_player.life / _player.lifeMax) && !money_only){
 		game.addObject( new Item( obj.position.x, obj.position.y, "life_small" ) );
-	} else if (Math.random() < _player.waystone_bonus) {
+	} else if (Math.random() < _player.waystone_bonus && !money_only) {
 		game.addObject( new Item( obj.position.x, obj.position.y, "waystone" ) );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
-		money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
+		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
+		money = money == undefined ? (3+Math.random()*5) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;
@@ -4873,7 +4922,7 @@ PauseMenu.prototype.render = function(g,c){
 				textArea(g,_player.spellsUnlocked[spell] ,72,36+y);
 				if(_player.selectedSpell == spell ) textArea(g,"@",62,36+y);
 				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
-					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / (Game.DELTASECOND * 30)), 8);
+					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / _player.spellEffectLength), 8);
 					var y_offset = 8 - remaining;
 					g.fillStyle = "#3CBCFC";
 					g.scaleFillRect(184, 36+y+y_offset, 8, remaining );
@@ -5164,6 +5213,7 @@ var mod_combat = {
 		this.damage_buffer = 0;
 		this.buffer_damage = false;
 		this._damage_buffer_timer = 0;
+		this.xp_award = 0;
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -5300,6 +5350,17 @@ var mod_combat = {
 				this.isDead();
 				obj.trigger("hurt_other",this,damage);
 			}
+		}
+		this.calculateXP = function(scale){
+			scale = scale == undefined ? 1 : scale;
+			this.xp_award = 0;
+			this.xp_award += this.life / 8;
+			this.xp_award += this.damage / 5;
+			if( this.speed != undefined )
+				this.xp_award += Math.max((this.speed-0.3)*3,0);
+			this.xp_award += this.bounds().area() / 400;
+			this.xp_award = Math.floor(this.xp_award * scale);
+			return this.xp_award;
 		}
 		
 		this.on("death", function(){
@@ -5534,6 +5595,8 @@ function Player(x, y){
 		var dir = this.position.subtract(obj.position);
 		var kb = damage / 15.0;
 		
+		if( "knockbackScale" in obj ) kb *= obj.knockbackScale;
+		
 		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
 		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
 		audio.playLock("block",0.1);
@@ -5554,6 +5617,7 @@ function Player(x, y){
 	});
 	this.on("added", function(){
 		this.damage_buffer = 0;
+		this.lock_overwrite = false;
 		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
@@ -5611,11 +5675,12 @@ function Player(x, y){
 	
 	this.spellsUnlocked = {};
 	this.selectedSpell = "";
+	this.spellEffectLength = Game.DELTASECOND * 60;
 	this.spells = {
 		"magic_strength" : function(){ 
 			if( this.mana >= 1 && this.spellsCounters.magic_strength <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.magic_strength = Game.DELTASECOND * 30; 
+				this.spellsCounters.magic_strength = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -5636,21 +5701,21 @@ function Player(x, y){
 		"haste" : function(){ 
 			if( this.mana >= 1 && this.spellsCounters.haste <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.haste = Game.DELTASECOND * 30; 
+				this.spellsCounters.haste = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
 		"magic_sword" : function(){
 			if( this.mana >= 1 && this.spellsCounters.magic_sword <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.magic_sword = Game.DELTASECOND * 30; 
+				this.spellsCounters.magic_sword = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
 		"magic_armour" : function(){
 			if( this.mana >= 1 && this.spellsCounters.magic_armour <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.magic_armour = Game.DELTASECOND * 30; 
+				this.spellsCounters.magic_armour = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -5664,7 +5729,7 @@ function Player(x, y){
 		"thorns" : function(){
 			if( this.mana > 1 && this.spellsCounters.thorns <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.thorns = Game.DELTASECOND * 30; 
+				this.spellsCounters.thorns = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -5676,11 +5741,29 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 		"magic_song" : function(){
-			if( this.mana >= 2 ){
-				this.mana -= 2;
-				for(var i=0; i < game.objects.length; i++ ) 
-					if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) )
-						game.objects[i].statusEffectsTimers.slow = game.objects[i].statusEffects.slow = Game.DELTASECOND * 30;
+			if( this.mana >= 3 && this.spellsCounters.magic_song <= 0 ){
+				this.mana -= 3;
+				var roll = Math.random();
+				if(roll < 0.04){
+					for(var i=0; i < game.objects.length; i++ ) 
+						if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) )
+							game.objects[i].statusEffectsTimers.slow = game.objects[i].statusEffects.slow = Game.DELTASECOND * 30;
+				} else if(roll < 0.1) {
+					for(var i=0; i < game.objects.length; i++ ) 
+						if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) && game.objects[i]._magic_drop == undefined){
+							game.objects[i].on("death",function(){ game.addObject(new Item(this.position.x, this.position.y, "waystone")); });
+							game.objects[i]._magic_drop = true;
+						}
+				} else if(roll < 0.2){
+					this.spellsCounters.magic_armour = Game.DELTAYEAR; 
+					this.spellsCounters.thorns = Game.DELTAYEAR;
+				} else if(roll < 0.5) {
+					this.heal = 999;
+				} else {
+					var map = game.getObject(PauseMenu);
+					if( map instanceof PauseMenu) map.revealMap();
+				}
+				this.spellsCounters.magic_armour = this.spellEffectLength * 2; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -5692,7 +5775,8 @@ function Player(x, y){
 		"magic_sword" : 0,
 		"magic_armour" : 0,
 		"feather_foot" : 0,
-		"thorns" : 0
+		"thorns" : 0,
+		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
 	this.waystone_bonus = 0.02;
@@ -5873,6 +5957,7 @@ Player.prototype.equipCharm = function(c){
 		this.charm.sleep = Game.DELTASECOND;
 		this.charm.position.x = this.position.x;
 		this.charm.position.y = this.position.y;
+		if(!this.charm.hasModule(mod_rigidbody)) this.charm.addModule(mod_rigidbody);
 		game.addObject(this.charm);
 	}
 	this.charm = c;
@@ -6010,10 +6095,24 @@ Player.prototype.render = function(g,c){
 	var shield_frame = (this.states.duck ? 1:0) + (this.states.guard ? 0:2);
 	this.sprite.render(g, this.position.subtract(c), shield_frame, this.shieldProperties.frame_row, this.flip);
 	
+	
+	if( this.spellsCounters.flight > 0 ){
+		var wings_offset = new Point((this.flip?8:-8),0);
+		sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),3-(this.spellsCounters.flight*0.2)%3, 0, this.flip);
+	}
+	
 	GameObject.prototype.render.apply(this,[g,c]);
 	
+	if( this.spellsCounters.magic_armour > 0 ){
+		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
+	}
+	if( this.spellsCounters.thorns > 0 ){
+		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
+	}
+	
 	//Render current sword
-	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip);
+	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : "default";
+	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip, weapon_filter);
 	
 	
 	/* Render HP */
@@ -6587,20 +6686,20 @@ function WorldMap(x, y){
 	this.sprite = sprites.world;
 	
 	this.camera = new Point();
-	this.player_goto = new Point(16*37,16*6);
-	this.player = new Point(16*37,16*6);
+	this.player_goto = new Point(16*37,16*7);
+	this.player = new Point(16*37,16*7);
 	
 	this.width = 64;
 	this.height = 128;
 	this.tiles = [
-		[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,20,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,20,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,33,20,20,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,33,20,20,20,20,41,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,34,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,22,21,1,1,1,1,1,1,1,22,20,34,25,25,25,25,4,25,25,25,25,25,25,65,25,17,1,1,1,1,1,1,182,181,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,33,20,20,21,1,22,20,34,33,20,20,20,20,20,20,20,34,25,25,25,49,25,25,25,25,25,25,25,88,66,105,25,33,20,180,180,180,180,181,183,184,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,19,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,25,25,36,178,178,178,178,178,184,1,182,181,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,19,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,88,66,66,66,66,105,25,25,36,24,1,1,1,1,1,1,1,183,184,1,1,1,1,1,22,34,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,19,25,4,25,25,25,25,25,25,25,25,25,4,25,25,49,25,25,65,25,25,25,25,25,25,25,17,1,1,1,1,1,182,181,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,23,35,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,65,25,25,25,25,25,25,25,17,1,1,1,1,1,183,184,1,1,1,1,1,1,1,1,19,25,25,25,25,72,57,25,25,25,25,25,25,25,25,25,36,18,18,24,1,1,1,23,18,18,35,25,25,25,25,25,25,25,25,25,25,72,57,25,65,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,25,25,49,25,71,66,66,66,89,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,23,18,18,35,25,4,25,25,25,25,25,25,49,25,65,25,25,25,65,88,66,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,22,21,1,1,1,19,25,25,25,25,25,25,88,66,87,66,105,25,25,25,65,65,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,23,24,1,1,1,19,25,25,25,88,66,66,105,25,49,25,25,25,25,25,104,105,36,24,1,1,1,1,1,182,180,181,1,1,1,1,1,1,1,1,19,25,25,56,50,50,73,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,35,25,25,65,25,56,50,50,73,25,25,25,25,25,25,36,24,1,1,1,1,1,1,179,25,177,1,1,1,1,1,1,1,1,19,25,25,49,25,25,25,25,25,36,18,18,18,24,1,1,1,1,1,1,1,1,1,1,1,1,182,181,1,1,19,25,25,65,25,49,25,25,25,25,25,36,18,18,18,24,1,1,1,1,1,1,1,179,49,177,1,1,1,1,1,1,1,1,19,25,25,49,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,184,1,1,23,35,25,65,25,49,25,25,25,4,25,17,1,1,1,1,1,1,1,1,1,182,180,194,49,177,1,1,1,1,1,1,1,1,19,25,25,72,57,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,65,25,72,57,25,25,25,25,17,1,1,1,1,1,1,1,1,1,179,25,25,49,177,1,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,65,25,25,49,25,25,25,36,24,1,1,1,1,1,1,1,1,182,194,25,56,73,177,1,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,65,25,25,49,25,25,25,17,1,1,1,1,1,1,1,1,1,179,25,56,73,25,177,1,1,1,1,1,1,1,1,19,25,25,25,72,57,25,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,38,66,105,25,25,72,57,25,25,33,21,1,1,1,1,1,1,1,182,194,25,49,25,196,184,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,33,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,34,25,25,25,25,25,49,25,25,25,193,180,180,180,180,180,180,180,194,25,56,73,25,177,1,1,1,1,1,1,1,1,1,19,25,25,25,25,72,57,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,72,57,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,177,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,177,1,1,1,1,1,1,1,1,1,23,35,25,25,25,25,49,25,25,25,25,56,73,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,22,34,25,25,25,25,25,4,25,25,49,25,25,25,25,56,50,50,50,50,50,50,50,73,25,196,184,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,55,50,50,50,50,73,25,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,55,50,50,50,50,73,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,196,178,178,178,178,178,178,178,184,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,25,25,25,25,25,33,20,20,21,1,1,1,1,1,1,1,1,22,34,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,18,35,25,25,72,57,25,25,25,25,25,25,25,25,25,25,33,20,20,21,1,1,1,1,1,19,25,25,25,25,25,56,50,50,50,50,73,25,25,4,25,88,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,18,35,25,72,57,25,25,25,25,25,25,25,25,25,25,25,25,33,41,20,20,20,41,34,25,25,25,56,50,73,25,25,25,25,25,25,25,88,66,105,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,195,25,72,50,50,50,57,25,25,25,25,25,25,25,25,25,65,25,25,25,65,56,50,50,50,73,25,25,25,25,25,25,25,25,88,105,25,25,25,25,33,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,72,50,50,50,50,50,50,50,50,50,86,50,50,50,86,54,25,25,25,25,25,25,25,88,66,66,66,66,105,25,25,25,25,25,25,25,25,25,33,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,195,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,65,49,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,25,25,25,25,25,25,25,71,66,66,66,68,87,66,66,66,66,66,66,66,105,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,25,25,25,25,88,105,25,25,25,25,49,25,25,25,25,25,25,25,25,25,4,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,33,21,1,1,1,1,1,1,1,1,1,22,20,20,20,20,20,21,1,1,1,1,1,183,178,178,195,25,25,25,25,65,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,22,34,25,25,25,25,25,33,20,21,1,1,1,1,1,1,183,178,195,25,25,65,25,25,25,25,25,49,25,25,25,4,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,33,21,1,1,1,1,1,1,1,38,66,66,105,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,33,21,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,22,34,25,25,25,25,25,25,4,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,33,21,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,17,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,193,181,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,17,1,1,1,1,22,34,25,25,25,25,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,33,20,20,20,41,34,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,34,25,25,25,49,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,25,25,25,25,72,57,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,104,66,66,89,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,4,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,25,25,25,25,25,55,57,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,22,21,1,1,1,25,25,25,25,25,49,72,50,50,57,25,25,25,25,25,25,88,66,105,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,56,50,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,23,24,1,1,1,25,25,25,25,25,49,25,25,25,72,50,50,57,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,55,50,50,50,50,50,53,50,73,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,49,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,49,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,25,25,49,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,182,180,181,1,25,25,25,25,25,49,25,25,25,25,25,25,72,50,50,57,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,4,25,25,49,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,179,25,177,1,25,25,25,25,25,49,25,25,25,25,25,25,25,88,66,87,105,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,56,73,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,23,18,184,1,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,56,50,50,50,73,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,4,49,25,25,25,25,4,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,72,50,50,57,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,36,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,72,57,25,25,25,88,66,69,105,25,25,25,25,72,57,25,25,25,25,25,25,25,56,50,73,25,25,25,25,25,25,25,25,25,25,25,25,88,66,87,66,66,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,65,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,66,66,105,25,72,50,57,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,65,25,65,25,25,25,25,25,25,72,50,57,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,88,105,25,65,25,25,25,25,25,25,25,25,72,50,50,50,57,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,65,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,55,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,49,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,65,25,25,104,66,66,89,25,4,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,88,87,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,66,66,66,66,66,66,87,66,66,105,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,88,105,49,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,66,66,66,105,25,49,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,72,50,57,25,4,25,25,25,25,104,66,89,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,33,21,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,17,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,17,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,4,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,55,50,50,50,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,72,57,25,25,25,25,25,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,104,66,89,25,25,56,50,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,104,66,66,87,66,89,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,49,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,56,73,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,182,180,181,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,56,50,73,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,33,20,20,20,20,20,34,25,177,1,1,1,1,1,1,25,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,36,178,178,178,178,178,178,178,178,184,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,56,73,25,25,25,25,104,89,25,25,25,25,25,25,25,25,25,178,178,178,195,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,177,1,1,1,183,178,195,25,25,25,36,18,18,18,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,56,73,25,25,4,25,25,25,104,89,25,25,25,25,25,25,36,184,1,1,1,1,1,183,195,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,104,89,25,25,25,25,36,24,1,1,1,1,1,1,1,183,195,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,56,50,73,25,25,25,25,25,25,25,25,25,65,25,25,25,36,24,1,1,1,1,1,1,1,1,1,179,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,104,66,66,66,40,1,1,1,1,1,1,1,1,1,1,179,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,56,50,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,179,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,17,1,1,1,1,1,1,1,1,1,1,1,179,25,193,181,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,55,50,50,50,50,50,50,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,182,194,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,182,194,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,179,25,25,25,25,193,181,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,179,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,18,24,1,1,1,1,1,1,1,1,1,1,1,183,195,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,195,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,18,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,195,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,25,25,25,25,25,25,196,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,178,178,178,178,178,178,178,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,146,146,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,82,82,82,82,82,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,98,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,98,98,98,98,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,114,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,99,0,97,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,98,99,0,97,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,98,114,115,0,97,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,97,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,99,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,98,98,98,98,98,114,115,0,81,82,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,98,98,98,98,99,0,0,0,97,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,0,81,82,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,98,98,98,99,0,81,82,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,99,0,113,114,114,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,98,98,114,115,0,97,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,99,0,0,0,0,97,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,99,0,0,0,97,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,131,0,0,0,0,0,0,0,0,0,0,0,25,97,98,82,83,0,0,97,98,114,98,98,99,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,99,0,81,82,98,98,98,98,98,98,98,98,98,0,0,0,0,0,0,0,0,0,147,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,83,0,97,99,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,113,114,98,98,98,99,0,97,98,98,98,98,98,98,98,98,114,115,0,0,0,0,0,0,0,0,0,146,130,131,0,0,0,0,0,0,0,0,0,0,113,98,98,98,99,0,97,99,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,98,99,0,97,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,146,146,147,0,0,0,0,0,0,0,0,0,0,0,97,98,98,115,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,115,0,97,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,146,146,146,131,0,0,0,0,0,0,0,0,0,81,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,0,0,0,0,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,0,0,0,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,81,82,83,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,163,0,0,0,0,0,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,163,0,0,0,0,0,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,98,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,146,146,146,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,0,0,0,129,146,146,146,146,146,146,146,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,99,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,99,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,115,0,0,0,161,146,146,146,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,162,146,146,146,146,146,146,146,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,146,146,146,146,146,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,146,146,146,146,146,146,146,146,146,146,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,146,146,146,146,146,146,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,146,146,146,146,146,146,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,0,0,81,82,82,82,83,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,81,82,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,97,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,161,162,146,146,146,146,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,162,163,0,0,81,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,161,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,162,163,0,0,0,0,97,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,162,163,0,0,0,0,0,0,97,98,98,98,98,98,98,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,82,83,0,97,98,98,98,98,98,114,115,0,81,82,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,99,0,97,98,98,98,98,99,0,0,0,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,99,0,113,114,114,114,114,115,0,81,82,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,99,0,0,0,0,0,0,0,0,97,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,99,0,81,82,82,82,82,82,82,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,99,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,99,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,99,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,82,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,114,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,99,25,97,98,98,98,98,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,98,98,98,98,98,99,0,97,98,114,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,114,114,114,115,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,20,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,20,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,33,20,20,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,33,20,20,20,20,41,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,34,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,22,21,1,1,1,1,1,1,1,22,20,34,25,25,25,25,4,25,25,25,25,25,25,65,25,17,1,1,1,1,1,1,182,181,1,1,1,1,1,1,1,19,25,25,25,133,25,25,25,25,25,25,25,25,25,25,25,33,20,20,21,1,22,20,34,33,20,20,20,20,20,20,20,34,25,25,25,133,25,25,25,25,25,25,25,88,66,105,25,33,20,180,180,180,180,181,183,184,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,19,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,25,25,36,178,178,178,178,178,184,1,182,181,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,19,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,88,66,66,66,66,105,25,25,36,24,1,1,1,1,1,1,1,183,184,1,1,1,1,1,22,34,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,19,25,4,25,25,25,25,25,25,25,25,25,4,25,25,49,25,25,65,25,25,25,25,25,25,25,17,1,1,1,1,1,182,181,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,23,35,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,65,25,25,25,25,25,25,25,17,1,1,1,1,1,183,184,1,1,1,1,1,1,1,1,19,25,25,25,25,72,57,25,25,25,25,25,25,25,25,25,36,18,18,24,1,1,1,23,18,18,35,25,25,25,25,25,25,25,25,25,25,72,57,25,65,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,25,25,49,25,71,66,66,66,89,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,23,18,18,35,25,4,25,25,25,25,25,25,49,25,65,25,25,25,65,88,66,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,22,21,1,1,1,19,25,25,25,25,25,25,88,66,87,66,105,25,25,25,65,65,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,23,24,1,1,1,19,25,25,25,88,66,66,105,25,49,25,25,25,25,25,104,105,36,24,1,1,1,1,1,182,180,181,1,1,1,1,1,1,1,1,19,25,25,56,50,50,73,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,35,25,25,65,25,56,50,50,73,25,25,25,25,25,25,36,24,1,1,1,1,1,1,179,133,177,1,1,1,1,1,1,1,1,19,25,25,49,25,25,25,25,25,36,18,18,18,24,1,1,1,1,1,1,1,1,1,1,1,1,182,181,1,1,19,25,25,65,25,49,25,25,25,25,25,36,18,18,18,24,1,1,1,1,1,1,1,179,49,177,1,1,1,1,1,1,1,1,19,25,25,49,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,184,1,1,23,35,25,65,25,49,25,25,25,4,25,17,1,1,1,1,1,1,1,1,1,182,180,194,49,177,1,1,1,1,1,1,1,1,19,25,25,72,57,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,65,25,72,57,25,25,25,25,17,1,1,1,1,1,1,1,1,1,179,25,25,49,177,1,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,65,25,25,49,25,25,25,36,24,1,1,1,1,1,1,1,1,182,194,25,56,73,177,1,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,65,25,25,49,25,25,25,17,1,1,1,1,1,1,1,1,1,179,25,56,73,25,177,1,1,1,1,1,1,1,1,19,25,25,25,72,57,25,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,38,66,105,25,25,72,57,25,25,33,21,1,1,1,1,1,1,1,182,194,25,49,25,196,184,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,33,20,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,22,20,34,25,25,25,25,25,49,25,25,25,193,180,180,180,180,180,180,180,194,25,56,73,25,177,1,1,1,1,1,1,1,1,1,19,25,25,25,25,72,57,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,72,57,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,177,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,49,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,177,1,1,1,1,1,1,1,1,1,23,35,25,25,25,25,49,25,25,25,25,56,73,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,22,34,25,25,25,25,25,4,25,25,49,25,25,25,25,56,50,50,50,50,50,50,50,73,25,196,184,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,55,50,50,50,50,73,25,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,148,51,50,50,50,50,73,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,196,178,178,178,178,178,178,178,184,1,1,1,1,1,1,1,1,1,1,1,19,25,25,25,25,49,25,25,25,25,25,25,25,25,33,20,20,21,1,1,1,1,1,1,1,1,22,34,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,18,35,25,25,72,57,25,25,25,25,25,25,25,25,25,25,33,20,20,21,1,1,1,1,1,19,25,25,25,25,25,56,50,50,50,50,73,25,25,4,25,88,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,18,35,25,72,57,25,25,25,25,25,25,25,25,25,25,25,25,33,41,20,20,20,41,34,25,25,25,56,50,73,25,25,25,25,25,25,25,88,66,105,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,23,195,25,72,50,50,50,57,25,25,25,25,25,25,25,25,25,65,25,25,25,65,56,50,50,50,73,25,25,25,25,25,25,25,25,88,105,25,25,25,25,33,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,72,50,50,50,50,50,50,50,50,50,86,50,50,50,86,54,25,25,25,25,25,25,25,88,66,66,66,66,105,25,25,25,25,25,25,25,25,25,33,20,20,20,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,195,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,65,49,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,25,25,25,25,25,25,25,71,66,66,66,68,87,66,66,66,66,66,66,66,105,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,25,25,25,25,88,105,25,25,25,25,49,25,25,25,25,25,25,25,25,25,4,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,33,21,1,1,1,1,1,1,1,1,1,22,20,20,20,20,20,21,1,1,1,1,1,183,178,178,195,25,25,25,25,65,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,22,34,25,25,25,25,25,33,20,21,1,1,1,1,1,1,183,178,195,25,25,65,25,25,25,25,25,49,25,25,25,4,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,33,21,1,1,1,1,1,1,1,38,66,66,105,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,33,21,1,1,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,22,34,25,25,25,25,25,25,4,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,19,25,25,25,133,25,25,25,25,25,33,21,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,17,1,1,1,1,1,19,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,193,181,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,17,1,1,1,1,22,34,25,25,25,25,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,19,25,25,25,49,25,25,25,25,25,25,33,20,20,20,41,34,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,34,25,25,25,49,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,25,25,25,25,72,57,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,104,66,66,89,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,4,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,25,25,25,25,25,55,57,25,25,25,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,22,21,1,1,1,25,25,25,25,25,49,72,50,50,57,25,25,25,25,25,25,88,66,105,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,56,50,150,25,25,25,25,25,25,25,25,25,177,1,1,1,1,23,24,1,1,1,25,25,25,25,25,49,25,25,25,72,50,50,57,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,55,50,50,50,50,50,53,50,73,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,49,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,49,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,25,25,49,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,182,180,181,1,25,25,25,25,25,49,25,25,25,25,25,25,72,50,50,57,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,4,25,25,49,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,179,25,177,1,25,25,25,25,25,49,25,25,25,25,25,25,25,88,66,87,105,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,56,73,25,25,25,25,25,72,50,57,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,23,18,184,1,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,56,50,50,50,73,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,4,49,25,25,25,25,4,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,49,25,25,25,25,25,25,25,65,25,72,50,50,57,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,25,25,25,36,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,72,57,25,25,25,88,66,69,105,25,25,25,25,72,57,25,25,25,25,25,25,25,56,50,73,25,25,25,25,25,25,25,25,25,25,25,25,88,66,87,66,66,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,65,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,66,66,105,25,72,50,57,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,65,25,65,25,25,25,25,25,25,72,50,57,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,88,105,25,65,25,25,25,25,25,25,25,25,72,50,50,50,57,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,65,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,55,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,49,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,65,25,25,104,66,66,89,25,4,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,88,87,66,40,1,1,1,1,1,1,1,1,1,1,1,1,1,66,66,66,66,66,66,87,66,66,105,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,88,105,49,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,66,66,66,105,25,49,25,33,21,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,72,50,57,25,4,25,25,25,25,104,66,89,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,72,50,57,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,33,21,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,49,25,17,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,72,150,17,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,4,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,65,25,25,25,25,25,25,55,50,50,150,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,72,57,25,25,25,25,25,25,25,65,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,104,66,89,25,25,56,50,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,104,66,66,87,66,89,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,49,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,25,56,73,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,49,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,182,180,181,1,1,1,1,1,1,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,56,50,73,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,33,20,20,20,20,20,34,25,177,1,1,1,1,1,1,25,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,36,178,178,178,178,178,178,178,178,184,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,65,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,56,73,25,25,25,25,104,89,25,25,25,25,25,25,25,25,25,178,178,178,195,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,65,25,25,25,25,25,25,25,25,177,1,1,1,183,178,195,25,25,25,36,18,18,18,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,56,73,25,25,4,25,25,25,104,89,25,25,25,25,25,25,36,184,1,1,1,1,1,183,195,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,56,73,25,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,104,89,25,25,25,25,36,24,1,1,1,1,1,1,1,183,195,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,56,50,73,25,25,25,25,25,25,25,25,25,65,25,25,25,36,24,1,1,1,1,1,1,1,1,1,179,33,21,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,104,66,66,66,40,1,1,1,1,1,1,1,1,1,1,179,25,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,56,50,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,179,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,17,1,1,1,1,1,1,1,1,1,1,1,179,25,193,181,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,55,50,50,50,50,50,50,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,182,194,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,4,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,182,194,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,133,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,179,25,25,25,25,193,181,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,49,25,25,49,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,17,1,1,1,1,1,1,1,1,1,1,1,179,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,72,50,50,73,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,18,24,1,1,1,1,1,1,1,1,1,1,1,183,195,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,195,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,18,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,36,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,24,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,177,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,196,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,195,25,25,25,25,25,25,25,25,25,25,25,25,25,196,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,195,25,25,25,25,25,25,25,25,25,196,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,183,178,178,178,178,178,178,178,178,178,184,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,132,166,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,82,82,82,82,82,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,98,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,98,98,98,98,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,114,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,99,0,97,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,98,99,0,97,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,98,98,98,98,98,98,114,115,0,97,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,97,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,98,98,99,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,98,98,98,98,98,114,115,0,81,82,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,98,98,98,98,99,0,0,0,97,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,0,81,82,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,98,98,98,99,0,81,82,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,99,0,113,114,114,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,98,98,114,115,0,97,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,99,0,0,0,0,97,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,98,99,0,0,0,97,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,131,0,0,0,0,0,0,0,0,0,0,0,25,97,98,82,83,0,0,97,98,114,98,98,99,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,99,0,81,82,98,98,98,98,98,98,98,98,98,0,0,0,0,0,0,0,0,0,147,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,83,0,97,99,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,113,114,98,98,98,99,0,97,98,98,98,98,98,98,98,98,114,115,0,0,0,0,0,0,0,0,0,134,130,131,0,0,0,0,0,0,0,0,0,0,113,98,98,98,99,0,97,99,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,98,99,0,97,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,146,146,147,0,0,0,0,0,0,0,0,0,0,0,97,98,98,115,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,115,0,97,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,146,146,134,131,0,0,0,0,0,0,0,0,0,81,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,0,0,0,0,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,0,0,0,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,81,82,83,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,166,163,0,0,0,0,0,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,166,163,0,0,0,0,0,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,98,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,132,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,132,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,130,132,146,146,146,146,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,166,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,0,0,0,129,132,146,146,146,146,146,146,146,146,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,99,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,99,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,115,0,0,0,161,164,146,146,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,162,164,146,146,146,146,146,146,146,146,146,146,146,146,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,161,162,164,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,166,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,132,146,146,146,146,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,130,132,146,146,146,146,146,146,146,146,166,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,132,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,134,131,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,132,146,146,146,146,146,146,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,166,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,132,146,146,146,146,146,146,146,146,146,146,166,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,166,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,0,0,81,82,82,82,83,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,146,146,146,147,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,81,82,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,145,146,146,146,146,146,146,146,166,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,146,146,147,0,0,0,97,98,98,98,98,98,98,83,0,0,0,0,0,0,0,0,0,0,161,162,164,146,146,166,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,146,146,166,162,163,0,0,81,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,161,162,162,163,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,146,166,162,163,0,0,0,0,97,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,162,163,0,0,0,0,0,0,97,98,98,98,98,98,98,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,82,83,0,97,98,98,98,98,98,114,115,0,81,82,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,99,0,97,98,98,98,98,99,0,0,0,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,98,99,0,113,114,114,114,114,115,0,81,82,98,98,98,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,99,0,0,0,0,0,0,0,0,97,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,114,98,99,0,81,82,82,82,82,82,82,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,99,0,97,99,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,99,0,113,115,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,99,0,0,0,0,97,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,82,82,82,82,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,98,114,98,98,98,98,98,98,98,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,98,98,98,98,98,98,99,0,97,98,98,98,98,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,98,98,98,98,98,99,0,97,98,114,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,114,114,114,115,0,113,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 	];
 	
 	this.temples = [];
 	for(var i=0; i<9; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":i+this.seed });
 	this.temples[0].position.x = 54*16; this.temples[0].position.y = 16*16;
-	this.temples[1].position.x = 5*16; this.temples[1].position.y = 5*16;
+	this.temples[1].position.x = 5*16; this.temples[1].position.y = 6*16;
 	this.temples[2].position.x = 49*16; this.temples[2].position.y = 39*16;
 	this.temples[3].position.x = 10*16; this.temples[3].position.y = 45*16;
 	this.temples[4].position.x = 33*16; this.temples[4].position.y = 74*16;
@@ -6610,14 +6709,14 @@ function WorldMap(x, y){
 	this.temples[8].position.x = 24*16; this.temples[8].position.y = 8*16;
 	
 	this.towns = [];
-	for(var i=0; i<7; i++) this.towns.push({ "name":i, "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3), "seed":i+this.seed });
-	this.towns[0].position.x = 37*16; this.towns[0].position.y = 5*16;
-	this.towns[1].position.x = 38*16; this.towns[1].position.y = 27*16;
+	for(var i=0; i<7; i++) this.towns.push({ "name":i, "nation":Math.floor(Math.random()*3), "faith":Math.floor(Math.random()*3), "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3), "seed":i+this.seed });
+	this.towns[0].position.x = 37*16; this.towns[0].position.y = 6*16;
+	this.towns[1].position.x = 37*16; this.towns[1].position.y = 27*16;
 	this.towns[2].position.x = 44*16; this.towns[2].position.y = 53*16;
-	this.towns[3].position.x = 50*16; this.towns[3].position.y = 74*16;
+	this.towns[3].position.x = 51*16; this.towns[3].position.y = 74*16;
 	this.towns[4].position.x = 27*16; this.towns[4].position.y = 76*16;
-	this.towns[5].position.x = 4*16; this.towns[5].position.y = 40*16;
-	this.towns[6].position.x = 6*16; this.towns[6].position.y = 98*16;
+	this.towns[5].position.x = 4*16; this.towns[5].position.y = 41*16;
+	this.towns[6].position.x = 3*16; this.towns[6].position.y = 96*16;
 	
 	this.animation = 0;
 	
@@ -6769,26 +6868,19 @@ WorldMap.prototype.render = function(g,c){
 		this.sprite.render(g, this.temples[i].position.subtract(this.camera), complete_frame, 5 );
 	}
 	
+	this.sprite.render(g, this.player.subtract(this.camera), 0, 13 );
+	
 	for(var i=0; i < this.towns.length; i++ ){
 		this.renderTown(g, this.towns[i].position.subtract(this.camera), this.towns[i] );
 	}
-	
-	this.sprite.render(g, this.player.subtract(this.camera), 0, 13 );
 }
 WorldMap.prototype.renderTown = function(g,c,town){
-	var _t = new Point(3,8);
-	var start = Math.floor(-town.size/2);
-	var half = Math.floor(town.size/2);
-	var fr, f;
-	if( town.size == 1 ) {
-		this.sprite.render(g, new Point(c.x,c.y), 3, 7 );
-	} else {
-		for(var x=start; x <= half; x++)for(var y=start; y <= half; y++){
-			fr = y == start ? 8 : ( y == half ? 10 : 9 );
-			f = x == start ? 3 : ( x == half ? 5 : 4 );
-			this.sprite.render(g, new Point(x*16+c.x, y*16+c.y), f, fr );
-		}
-	}
+	var size = Math.min(town.size-1,3);
+	this.sprite.render(g, new Point(c.x,c.y), 3+size, 7 );
+	
+	this.sprite.render(g, new Point(c.x,c.y-12), town.faith+6, 8 );
+	this.sprite.render(g, new Point(c.x,c.y-12), town.nation+6, 9 );
+	
 }
 WorldMap.Shops = [
 	"Alter",
@@ -6805,7 +6897,10 @@ SceneEnding.prototype.constructor = GameObject;
 function SceneEnding(x,y){
 	game.clearAll();
 	game.tileSprite = sprites.tiles3;
-	game.addObject(new Background());
+	
+	var bg = new Background();
+	bg.walls = false;
+	game.addObject(bg);
 	
 	this.speed = 0;
 	this.phase = 0;

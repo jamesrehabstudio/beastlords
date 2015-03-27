@@ -250,7 +250,7 @@ PauseMenu.prototype.render = function(g,c){
 				textArea(g,_player.spellsUnlocked[spell] ,72,36+y);
 				if(_player.selectedSpell == spell ) textArea(g,"@",62,36+y);
 				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
-					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / (Game.DELTASECOND * 30)), 8);
+					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / _player.spellEffectLength), 8);
 					var y_offset = 8 - remaining;
 					g.fillStyle = "#3CBCFC";
 					g.scaleFillRect(184, 36+y+y_offset, 8, remaining );

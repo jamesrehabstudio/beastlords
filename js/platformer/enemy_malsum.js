@@ -38,10 +38,11 @@ function Malsum(x,y){
 	});
 	this.on("death", function(obj){
 		Item.drop(this,30);
-		_player.addXP(35);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Malsum.prototype.update = function(){	
 	var dir = this.position.subtract(_player.position);

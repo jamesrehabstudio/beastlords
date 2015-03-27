@@ -42,13 +42,18 @@ function Garmr(x,y){
 		this.states.dizzy -= Game.DELTASECOND * 0.5;
 		audio.play("hurt");
 	});
+	this.on("activate", function() {
+		var dir = this.position.subtract( _player.position );
+		_player.force.x = (dir.x > 0 ? -1 : 1) * 4;
+	});
 	this.on("death", function(){
-		_player.addXP(65);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,40);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Garmr.prototype.update = function(){	
 	if ( this.stun <= 0  && this.life > 0) {
@@ -67,6 +72,7 @@ Garmr.prototype.update = function(){
 				bullet.blockable = true;
 				bullet.team = this.team;
 				bullet.damage = this.damage;
+				bullet.knockbackScale = 0.0;
 				bullet.force = new Point((this.flip?-1:1)*3, 0);
 				game.addObject(bullet);
 			}
@@ -74,9 +80,9 @@ Garmr.prototype.update = function(){
 			this.projection.y = this.position.y - 64;
 		} else {
 			//Troll player
-			if( Math.abs( dir.x ) < 240 ){
+			if( Math.abs( dir.x ) < 240 && Math.floor(_player.position.y/256) == Math.floor(this.position.y/256)){
 				this.projection.x = this.position.x;
-				this.projection.y = this.position.y + 80;
+				this.projection.y = this.position.y - 80;
 				this.closeToBoss = true;
 			} else if( this.states.troll_timer > 0 ){
 				if( this.states.troll_timer < Game.DELTASECOND * 3 && !this.states.troll_release ){

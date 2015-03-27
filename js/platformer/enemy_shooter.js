@@ -35,12 +35,13 @@ function Shooter(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(20);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Shooter.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);

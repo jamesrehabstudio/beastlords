@@ -158,7 +158,7 @@ Sprite.prototype.imageLoaded = function() {
 		c.drawImage(this.img,0,0);
 		var a = c.getImageData(0,0,c.width,c.height);
 		for(var i=0; i < a.data.length; i+=4) {
-			this.filters[f](a.data,i);
+			this.filters[f](a.data,i,c.width,c.height);
 			/*
 			if( a.data[i+3] > 100 ) {
 				a.data[i+0] = Math.floor(255-a.data[i+0]*0.5);

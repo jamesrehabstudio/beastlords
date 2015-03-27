@@ -13,11 +13,13 @@ function Background(x,y){
 	
 	this.saved_rooms = {};
 	this.animation = 0;
+	this.walls = true;
 }
 Background.prototype.prerender = function(g,c){
 	var screen_width = 256;
 	var screen_height = 240;
-	var c_x = c.x < 0 ? (screen_width+(c.x%screen_width)) : (c.x%screen_width);
+	var c_x = c.x%screen_width;
+	if(c.x < 0 && c_x != 0) c_x = screen_width+c_x;
 	var offset = 8 + c_x * 0.0625;
 	var room_off = c_x > 128 ? -2 : -1;
 	var room_matrix_index = new Point(Math.floor(c.x/screen_width), Math.floor(c.y/screen_height));
@@ -27,7 +29,7 @@ Background.prototype.prerender = function(g,c){
 		this.roomAtLocation(room_matrix_index.x - (room_off+2), room_matrix_index.y)
 	];
 	
-	if( room_matrix_index.y > 0 ) {
+	if( room_matrix_index.y > 0 && this.walls ) {
 		//Background wall
 		for(x=0; x < 18; x++) for(y=0; y < 15; y++) {
 			var tile = 104 + (y%2==1?16:0) + (x%2==1?1:0);
@@ -53,7 +55,7 @@ Background.prototype.prerender = function(g,c){
 		}
 	}
 	
-	for(var i=0; i < rooms.length; i++) {
+	if(this.walls ) for(var i=0; i < rooms.length; i++) {
 		if( rooms[i] >= 0 && rooms[i] < this.backgrounds.length ) {
 			for(x=0; x < 15; x++) for(y=0; y < 15; y++) {
 				var index = x + Math.floor(y*15);

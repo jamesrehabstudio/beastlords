@@ -65,12 +65,13 @@ function Chort(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(35);
+		_player.addXP(this.xp_award);
 		
 		Item.drop(this,24);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Chort.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);

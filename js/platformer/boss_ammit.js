@@ -55,12 +55,13 @@ function Ammit(x,y){
 			obj.hurt( this, this.collideDamage );
 	});
 	this.on("death", function(){
-		_player.addXP(60);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,35);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Ammit.prototype.update = function(){	
 	if ( this.active && this.stun <= 0  && this.life > 0) {

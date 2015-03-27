@@ -56,7 +56,7 @@ function Deckard(x,y){
 	});
 	this.on("death", function(){
 		this.destroy();
-		_player.addXP(30);
+		_player.addXP(this.xp_award);
 		Item.drop(this,20);
 		audio.play("kill");
 		
@@ -69,6 +69,7 @@ function Deckard(x,y){
 			game.addObject(batty);
 		}
 	});
+	this.calculateXP();
 }
 Deckard.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -97,6 +98,13 @@ Deckard.prototype.update = function(){
 			if( this.states.fly < this.states.attack_counter ) {
 				//Fire fireball
 				this.states.attack_counter = this.states.fly - Game.DELTASECOND * .5;
+				var bullet = new Bullet(this.position.x, this.position.y);
+				bullet.force = _player.position.subtract(this.position).normalize(6);
+				bullet.blockable = false;
+				bullet.damage = this.damage;
+				bullet.effect = EffectSmoke;
+				bullet.team = this.team;
+				game.addObject(bullet);
 			}
 			if( this.position.y - this.jump_start_y < -64 ) {
 				this.gravity = 0;
@@ -108,7 +116,7 @@ Deckard.prototype.update = function(){
 			this.states.cooldown -= this.delta;
 			this.states.attack = 0;
 			this.flip = dir.x > 0;
-			this.states.direction = dir.x < 0 ? 1 : -1;
+			this.states.direction = (dir.x < 0 ? 1 : -1) * (this.states.cooldown<Game.DELTASECOND?1:-1);
 			this.gravity = 1.0;
 			this.jump_start_y = this.position.y;
 			
@@ -117,13 +125,15 @@ Deckard.prototype.update = function(){
 			}
 			
 			if( this.states.cooldown <= 0 ) {
-				if( Math.abs(dir.x) > 64 ) {
+				if( Math.abs(dir.x) > 64 || Math.random() < 0.2 ) {
 					this.states.fly = Game.DELTASECOND * 5;
 					this.states.attack_counter = this.states.fly - Game.DELTASECOND;
+					this.states.direction = (dir.x < 0 ? 1 : -1);
 					this.gravity = 0.4;
 					this.force.y = -8;
 					this.force.x = this.states.direction * -8;
 				} else {
+					this.states.direction = (dir.x < 0 ? 1 : -1);
 					this.states.combo = this.attack_time * 5;
 					this.force.x = 0;
 					this.states.attack_counter = 0;

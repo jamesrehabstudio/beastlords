@@ -59,10 +59,11 @@ function Bear(x,y){
 	});
 	this.on("death", function(){
 		Item.drop(this);
-		_player.addXP(10);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Bear.prototype.update = function(){	
 	//this.sprite = sprites.knight;

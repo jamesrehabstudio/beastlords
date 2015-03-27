@@ -57,12 +57,13 @@ function Minotaur(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(50);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,35);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Minotaur.prototype.update = function(){	
 	if ( this.stun <= 0  && this.life > 0) {

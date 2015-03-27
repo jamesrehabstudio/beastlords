@@ -45,10 +45,11 @@ function Malphas(x,y){
 	});
 	this.on("death", function(obj){
 		Item.drop(this,30);
-		_player.addXP(40);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Malphas.prototype.update = function(){	
 	var dir = this.position.subtract(_player.position);

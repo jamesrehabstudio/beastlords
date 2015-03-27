@@ -112,6 +112,7 @@ var mod_combat = {
 		this.damage_buffer = 0;
 		this.buffer_damage = false;
 		this._damage_buffer_timer = 0;
+		this.xp_award = 0;
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -248,6 +249,17 @@ var mod_combat = {
 				this.isDead();
 				obj.trigger("hurt_other",this,damage);
 			}
+		}
+		this.calculateXP = function(scale){
+			scale = scale == undefined ? 1 : scale;
+			this.xp_award = 0;
+			this.xp_award += this.life / 8;
+			this.xp_award += this.damage / 5;
+			if( this.speed != undefined )
+				this.xp_award += Math.max((this.speed-0.3)*3,0);
+			this.xp_award += this.bounds().area() / 400;
+			this.xp_award = Math.floor(this.xp_award * scale);
+			return this.xp_award;
 		}
 		
 		this.on("death", function(){

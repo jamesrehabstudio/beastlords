@@ -37,7 +37,7 @@ function Amon(x,y){
 	*/
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		_player.addXP(10);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
@@ -55,6 +55,7 @@ function Amon(x,y){
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
+	this.calculateXP();
 }
 Amon.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.2) % 2;

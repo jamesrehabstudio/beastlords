@@ -71,6 +71,8 @@ function Player(x, y){
 		var dir = this.position.subtract(obj.position);
 		var kb = damage / 15.0;
 		
+		if( "knockbackScale" in obj ) kb *= obj.knockbackScale;
+		
 		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
 		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
 		audio.playLock("block",0.1);
@@ -91,6 +93,7 @@ function Player(x, y){
 	});
 	this.on("added", function(){
 		this.damage_buffer = 0;
+		this.lock_overwrite = false;
 		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
@@ -148,11 +151,12 @@ function Player(x, y){
 	
 	this.spellsUnlocked = {};
 	this.selectedSpell = "";
+	this.spellEffectLength = Game.DELTASECOND * 60;
 	this.spells = {
 		"magic_strength" : function(){ 
 			if( this.mana >= 1 && this.spellsCounters.magic_strength <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.magic_strength = Game.DELTASECOND * 30; 
+				this.spellsCounters.magic_strength = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -173,21 +177,21 @@ function Player(x, y){
 		"haste" : function(){ 
 			if( this.mana >= 1 && this.spellsCounters.haste <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.haste = Game.DELTASECOND * 30; 
+				this.spellsCounters.haste = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
 		"magic_sword" : function(){
 			if( this.mana >= 1 && this.spellsCounters.magic_sword <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.magic_sword = Game.DELTASECOND * 30; 
+				this.spellsCounters.magic_sword = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
 		"magic_armour" : function(){
 			if( this.mana >= 1 && this.spellsCounters.magic_armour <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.magic_armour = Game.DELTASECOND * 30; 
+				this.spellsCounters.magic_armour = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -201,7 +205,7 @@ function Player(x, y){
 		"thorns" : function(){
 			if( this.mana > 1 && this.spellsCounters.thorns <= 0 ){
 				this.mana -= 1;
-				this.spellsCounters.thorns = Game.DELTASECOND * 30; 
+				this.spellsCounters.thorns = this.spellEffectLength; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -213,11 +217,29 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 		"magic_song" : function(){
-			if( this.mana >= 2 ){
-				this.mana -= 2;
-				for(var i=0; i < game.objects.length; i++ ) 
-					if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) )
-						game.objects[i].statusEffectsTimers.slow = game.objects[i].statusEffects.slow = Game.DELTASECOND * 30;
+			if( this.mana >= 3 && this.spellsCounters.magic_song <= 0 ){
+				this.mana -= 3;
+				var roll = Math.random();
+				if(roll < 0.04){
+					for(var i=0; i < game.objects.length; i++ ) 
+						if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) )
+							game.objects[i].statusEffectsTimers.slow = game.objects[i].statusEffects.slow = Game.DELTASECOND * 30;
+				} else if(roll < 0.1) {
+					for(var i=0; i < game.objects.length; i++ ) 
+						if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) && game.objects[i]._magic_drop == undefined){
+							game.objects[i].on("death",function(){ game.addObject(new Item(this.position.x, this.position.y, "waystone")); });
+							game.objects[i]._magic_drop = true;
+						}
+				} else if(roll < 0.2){
+					this.spellsCounters.magic_armour = Game.DELTAYEAR; 
+					this.spellsCounters.thorns = Game.DELTAYEAR;
+				} else if(roll < 0.5) {
+					this.heal = 999;
+				} else {
+					var map = game.getObject(PauseMenu);
+					if( map instanceof PauseMenu) map.revealMap();
+				}
+				this.spellsCounters.magic_armour = this.spellEffectLength * 2; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -229,7 +251,8 @@ function Player(x, y){
 		"magic_sword" : 0,
 		"magic_armour" : 0,
 		"feather_foot" : 0,
-		"thorns" : 0
+		"thorns" : 0,
+		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
 	this.waystone_bonus = 0.02;
@@ -410,6 +433,7 @@ Player.prototype.equipCharm = function(c){
 		this.charm.sleep = Game.DELTASECOND;
 		this.charm.position.x = this.position.x;
 		this.charm.position.y = this.position.y;
+		if(!this.charm.hasModule(mod_rigidbody)) this.charm.addModule(mod_rigidbody);
 		game.addObject(this.charm);
 	}
 	this.charm = c;
@@ -547,10 +571,24 @@ Player.prototype.render = function(g,c){
 	var shield_frame = (this.states.duck ? 1:0) + (this.states.guard ? 0:2);
 	this.sprite.render(g, this.position.subtract(c), shield_frame, this.shieldProperties.frame_row, this.flip);
 	
+	
+	if( this.spellsCounters.flight > 0 ){
+		var wings_offset = new Point((this.flip?8:-8),0);
+		sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),3-(this.spellsCounters.flight*0.2)%3, 0, this.flip);
+	}
+	
 	GameObject.prototype.render.apply(this,[g,c]);
 	
+	if( this.spellsCounters.magic_armour > 0 ){
+		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
+	}
+	if( this.spellsCounters.thorns > 0 ){
+		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
+	}
+	
 	//Render current sword
-	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip);
+	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : "default";
+	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip, weapon_filter);
 	
 	
 	/* Render HP */

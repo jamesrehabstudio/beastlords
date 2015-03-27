@@ -48,10 +48,12 @@ function Beaker(x, y){
 	this.on("death", function(){
 		//this.visible = false;
 		//this.interactive = false;
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		Item.drop(this);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Beaker.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {

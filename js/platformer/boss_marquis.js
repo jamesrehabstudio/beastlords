@@ -67,12 +67,13 @@ function Marquis(x,y){
 		audio.playLock("block",0.1);
 	});
 	this.on("death", function(){
-		_player.addXP(40);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,30);
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Marquis.prototype.update = function(){	
 	this.sprite = sprites.megaknight;

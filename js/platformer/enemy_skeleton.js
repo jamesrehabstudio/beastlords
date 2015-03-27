@@ -69,10 +69,11 @@ function Skeleton(x,y){
 	});
 	this.on("death", function(){
 		Item.drop(this);
-		_player.addXP(4);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Skeleton.prototype.update = function(){	
 	this.sprite = sprites.skele;

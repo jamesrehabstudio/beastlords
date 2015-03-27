@@ -29,7 +29,7 @@ function Healer(x,y,n,options){
 	});
 	this.message = [	
 		"Let me bless you, weary traveller, so I may restore your spirit.",
-		"I can ease your pain. It'll cost you $%PRICE%. Interested?",
+		"You can stay here and rest.",
 		"I can improve that weapon. Add +\v1 for #%PRICE%. Interested?"
 	];
 	this.addModule(mod_rigidbody);

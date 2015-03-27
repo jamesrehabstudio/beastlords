@@ -3,7 +3,10 @@ SceneEnding.prototype.constructor = GameObject;
 function SceneEnding(x,y){
 	game.clearAll();
 	game.tileSprite = sprites.tiles3;
-	game.addObject(new Background());
+	
+	var bg = new Background();
+	bg.walls = false;
+	game.addObject(bg);
 	
 	this.speed = 0;
 	this.phase = 0;

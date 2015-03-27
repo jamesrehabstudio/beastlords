@@ -78,8 +78,10 @@ Arena.prototype.update = function(g,c){
 		var total_life = 0;
 		this.enemies_ready -= this.delta;
 		for(var i=0; i < this.enemies.length; i++){
-			total_life += Math.max(this.enemies[i].life, 0);
-			this.enemies[i].interactive = this.enemies_ready <= 0;
+			if(this.enemies[i].awake && game.objects.indexOf(_player) >= 0){
+				total_life += Math.max(this.enemies[i].life, 0);
+				this.enemies[i].interactive = this.enemies_ready <= 0;
+			}
 		}
 		
 		if( total_life <= 0 ) {
@@ -118,7 +120,7 @@ Arena.prototype.render = function(g,c){
 	
 	if( this.open > 0 ) {
 		boxArea(g,16,16,224,64);
-		textArea(g,this.message[0],32,64,192,64);
+		textArea(g,this.message[0],32,32,192,64);
 		
 		for(var i=0; i < this.items.length; i++ ){
 			var item = this.items[i];

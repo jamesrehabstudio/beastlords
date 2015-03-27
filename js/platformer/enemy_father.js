@@ -26,6 +26,9 @@ function Father(x,y){
 	this.on("collideObject", function(obj){
 		
 	});
+	this.on("player_death", function(){
+		this.active = false;
+	});
 }
 Father.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
@@ -56,17 +59,16 @@ Father.prototype.update = function(){
 		}
 		this.states.cooldown -= this.delta;
 	} else {
-		if( Math.abs(dir.x) < 128 ) {
+		if( Math.abs(dir.x) < 128 && Math.abs(dir.y) < 64 ) {
 			this.active = true;
 			this.states.direction = dir.x > 0 ? 1 : -1;
 			this.flip = this.states.direction < 0;
 		}
-		if(Math.abs(this.position.x-this.start_x) < this.limit - 32){
-			var _dir = dir.x > 0 ? -1 : 1;
-			this.force.x = this.delta * _dir;
-		}
+		var _dir = _player.position.x > this.start_x ? 1 : -1;
+		this.position.x = this.start_x + (this.limit - 32)*_dir;
 	}
 	
 	this.frame = (this.frame + this.delta * 0.2 * Math.abs(this.force.x)) % 3;
 	this.frame_row = 0;
 }
+Father.prototype.idle = function(){}

@@ -65,10 +65,11 @@ function Igbo(x,y){
 	});
 	this.on("death", function(obj){
 		Item.drop(this,40);
-		_player.addXP(45);
+		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Igbo.prototype.update = function(){	
 	//this.sprite = sprites.knight;

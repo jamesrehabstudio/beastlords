@@ -45,6 +45,7 @@ function Bullet(x,y,d){
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
+	this.on("struck", function(obj){ if(this.blockable && obj.team!=this.team) this.trigger("death");});
 	this.on("death", function(){ this.destroy();});
 	
 	this.team = 0;

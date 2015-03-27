@@ -29,7 +29,7 @@ function Oriax(x,y){
 		this.states.backup = !this.states.backup;
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(5);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
@@ -40,6 +40,7 @@ function Oriax(x,y){
 	this.mass = 1.0;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 1;
+	this.calculateXP();
 	
 	this.states = {
 		"cooldown" : 50,

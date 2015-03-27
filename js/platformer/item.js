@@ -52,7 +52,7 @@ function Item(x,y,name){
 				obj.statusEffectsTimers.poison = obj.statusEffects.poison = Game.DELTAYEAR;
 				obj.trigger("status_effect", "poison");
 				obj.on("added",function(){
-					this.statusEffects.poison=Game.DELTAYEAR; 
+					obj.statusEffectsTimers.poison=this.statusEffects.poison=Game.DELTAYEAR; 
 					this.trigger("status_effect", "poison");
 				}); 
 				audio.play("levelup"); 
@@ -196,13 +196,15 @@ Item.prototype.update = function(){
 	}
 }
 Item.drop = function(obj,money){
-	if(Math.random() > (_player.life / _player.lifeMax) && money == undefined){
+	var money_only = obj.hasModule(mod_boss);
+	if(Math.random() > (_player.life / _player.lifeMax) && !money_only){
 		game.addObject( new Item( obj.position.x, obj.position.y, "life_small" ) );
-	} else if (Math.random() < _player.waystone_bonus) {
+	} else if (Math.random() < _player.waystone_bonus && !money_only) {
 		game.addObject( new Item( obj.position.x, obj.position.y, "waystone" ) );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
-		money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
+		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
+		money = money == undefined ? (3+Math.random()*5) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;

@@ -49,11 +49,12 @@ function Ghoul(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(20);
+		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
 	});
+	this.calculateXP();
 }
 Ghoul.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
