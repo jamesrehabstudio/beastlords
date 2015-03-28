@@ -404,7 +404,7 @@ var mod_talk = {
 		});
 	},
 	"update" : function(){
-		if( this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
+		if( !game.pause && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
 			this.open = 1;
 			this.trigger("open");
 		}

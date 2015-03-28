@@ -42,14 +42,14 @@ function WorldMap(x, y){
 	this.temples[8].position.x = 24*16; this.temples[8].position.y = 8*16;
 	
 	this.towns = [];
-	for(var i=0; i<7; i++) this.towns.push({ "name":i, "nation":Math.floor(Math.random()*3), "faith":Math.floor(Math.random()*3), "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3), "seed":i+this.seed });
-	this.towns[0].position.x = 37*16; this.towns[0].position.y = 6*16;
-	this.towns[1].position.x = 37*16; this.towns[1].position.y = 27*16;
-	this.towns[2].position.x = 44*16; this.towns[2].position.y = 53*16;
-	this.towns[3].position.x = 51*16; this.towns[3].position.y = 74*16;
-	this.towns[4].position.x = 27*16; this.towns[4].position.y = 76*16;
-	this.towns[5].position.x = 4*16; this.towns[5].position.y = 41*16;
-	this.towns[6].position.x = 3*16; this.towns[6].position.y = 96*16;
+	for(var i=0; i<7; i++) this.towns.push({ "id":i, "nation":Math.floor(Math.random()*3), "faith":Math.floor(Math.random()*3), "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3), "seed":i+this.seed });
+	this.towns[0].position.x = 37*16; this.towns[0].position.y = 6*16; this.towns[0].name = "Aghalee"; size = 1
+	this.towns[1].position.x = 37*16; this.towns[1].position.y = 27*16; this.towns[1].name = "Bessbrook";
+	this.towns[2].position.x = 44*16; this.towns[2].position.y = 53*16; this.towns[2].name = "Creggan";
+	this.towns[3].position.x = 51*16; this.towns[3].position.y = 74*16; this.towns[3].name = "Drumhillock";
+	this.towns[4].position.x = 27*16; this.towns[4].position.y = 76*16; this.towns[4].name = "Eshbrack";
+	this.towns[5].position.x = 4*16; this.towns[5].position.y = 41*16; this.towns[5].name = "Fairhill";
+	this.towns[6].position.x = 3*16; this.towns[6].position.y = 96*16; this.towns[6].name = "Glenanne";
 	
 	this.animation = 0;
 	
