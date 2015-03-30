@@ -89,7 +89,7 @@ PauseMenu.prototype.update = function(){
 		
 		if( _player.life > 0) {
 			//Close pause menu
-			if( input.state("pause") == 1 ) {
+			if( input.state("pause") == 1 || input.state("select") == 1 ) {
 				this.open = false;
 				game.pause = false;
 				audio.play("unpause");

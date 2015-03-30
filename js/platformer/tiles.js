@@ -21,7 +21,7 @@ function CollapseTile(x,y){
 	this.on("collideObject",function(obj){
 		if( this.visible && !this.active && obj instanceof Player ){
 			this.active = true;
-			audio.playLock("cracking",0.3);
+			audio.playLock("cracking",0.4);
 		}
 	});
 	this.on("wakeup",function(){

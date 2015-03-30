@@ -639,8 +639,8 @@ Player.prototype.render = function(g,c){
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*25 ),2);
 	g.closePath();
 	
-	textArea(g,"$"+this.money,8, 33 );
-	textArea(g,"#"+this.waystones,8, 45 );
+	textArea(g,"$"+this.money,8, 216 );
+	textArea(g,"#"+this.waystones,8, 216+12 );
 	
 	if( this.stat_points > 0 )
 		textArea(g,"Press Start",8, 57 );

@@ -780,9 +780,9 @@ function Marquis(x,y){
 	}
 	
 	this.attack_times = {
-		"warm" : Game.DELTASECOND * 4,
-		"attack" : Game.DELTASECOND * 3,
-		"rest" : Game.DELTASECOND * 2.0
+		"warm" : Game.DELTASECOND * 3,
+		"attack" : Game.DELTASECOND * 2,
+		"rest" : Game.DELTASECOND * 1.0
 	};
 		
 	this.life = dataManager.life(16);
@@ -807,7 +807,7 @@ function Marquis(x,y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
-		//this.states.attack = -1.0;
+		this.states.attack = -1.0;
 		//this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
 		audio.play("hurt");
 	});
@@ -2347,6 +2347,7 @@ function ChazBike(x,y){
 	});
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
+		this.states.backwards = Game.DELTASECOND * 3;
 	});
 	this.on("collideObject", function(obj){
 		if( this.states.collideCooldown > 0 || this.team == obj.team ) return;
@@ -2369,7 +2370,7 @@ function ChazBike(x,y){
 	});
 	this.calculateXP();
 	
-	this.life = dataManager.life(8);
+	this.life = dataManager.life(6);
 	this.collideDamage = dataManager.damage(3);
 	this.mass = 5.3;
 	this.friction = 0.01;
@@ -2378,7 +2379,9 @@ function ChazBike(x,y){
 	this.stun_time = 0;
 	
 	this.states = {
-		"collideCooldown" : 0
+		"collideCooldown" : 0,
+		"backwards" : 0,
+		"direction" : 1
 	};
 	
 }
@@ -2387,8 +2390,10 @@ ChazBike.prototype.update = function(){
 	if( this.stun < 0 && this.life > 0 ) {
 		this.flip = this.force.x < 0;
 		var direction = dir.x < 0 ? 1 : -1;
-		this.force.x += this.speed * this.delta * direction;
+		this.force.x += this.speed * this.delta * direction * this.states.direction;
 		this.states.collideCooldown -= this.delta;
+		this.states.backwards -= this.delta;
+		this.states.direction = this.states.backwards <= 0 ? 1 : -1;
 	} else {
 		this.force.x = 0;
 	}
@@ -4052,9 +4057,9 @@ function Yakseyo(x,y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 32;
-	this.height = 32;
-	this.sprite = sprites.bear;
+	this.width = 16;
+	this.height = 14;
+	this.sprite = sprites.yakseyo;
 	this.speed = 0.3;
 	
 	this.addModule( mod_rigidbody );
@@ -4063,14 +4068,16 @@ function Yakseyo(x,y){
 	this.states = {
 		"phase" : 0,
 		"attack" : -1,
-		"cooldown" : 0
-	}
+		"cooldown" : 0,
+		"smoke_timer" : 0
+	};
 	
 	this.life = dataManager.life(10);
 	this.damage = dataManager.damage(4);
 	this.collideDamage = dataManager.damage(1);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
+	this.pushable = false;
 	
 	this.on("collideVertical", function(dir){
 		if( dir < 0 ) {
@@ -4081,8 +4088,13 @@ function Yakseyo(x,y){
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj instanceof Player ) {
-			if( this.states.attack > 0 ) obj.hurt( this, this.damage );
-			if( !this.states.phase == 0 ) {
+			if(this.states.phase == 2) {
+				if( this.states.attack > 0 ) 
+					obj.hurt( this, this.damage );
+				else
+					obj.hurt( this, this.collideDamage );
+			}
+			if( this.states.phase == 0 ) {
 				this.states.phase = 1;
 				this.states.cooldown = Game.DELTASECOND * .5;
 			}
@@ -4090,7 +4102,9 @@ function Yakseyo(x,y){
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
+		if(this.states.phase == 2){
+			this.hurt(obj,damage);
+		}
 	});
 	this.on("hurt", function(){
 		audio.play("hurt");
@@ -4109,23 +4123,33 @@ Yakseyo.prototype.update = function(){
 	if( this.states.phase == 0 ) {
 		//Find target
 		var direction = dir.x > 0 ? -1 : 1;
-		this.force.x = direction * this.speed * this.delta;
+		this.force.x += direction * this.speed * this.delta;
+		this.states.smoke_timer -= this.delta;
+		this.visible = false;
+		if(this.states.smoke_timer <= 0 ){
+			game.addObject(new EffectSmoke(this.position.x, this.position.y));
+			this.states.smoke_timer = Game.DELTASECOND * 0.25;
+		}
+		this.height = 14;
 	} else if ( this.states.phase == 1 ) {
 		//Wait for attack
 		if( this.states.cooldown <= 0 ) {
-			this.states.attack = 10;
+			this.states.attack = 4;
 			this.states.cooldown = Game.DELTASECOND * 2;
 			this.states.phase = 2;
 		}
-		this.states.cooldown -= this;
+		this.visible = false;
+		this.states.cooldown -= this.delta;
+		this.height = 14;
 	} else if ( this.states.phase == 2 ) {
 		//Attack and wait
 		if( this.states.cooldown <= 0 ) this.states.phase = 0;
-		this.states.attack -= this;
-		this.states.cooldown -= this;
+		this.states.attack -= this.delta;
+		this.states.cooldown -= this.delta;
+		this.frame = this.states.attack > 0 ? 0 : 1;
+		this.visible = true;
+		this.height = 32;
 	}
-	this.interactive = this.states.phase != 0;
-	this.visible = this.interactive;
 }
 
  /* platformer/enemy_yeti.js*/ 
@@ -4487,9 +4511,9 @@ Item.prototype.setName = function(n){
 	}
 	if(n == "spear") { 
 		this.frame = 2; this.frame_row = 2; 
-		this.isWeapon = true; this.twoHanded = true;
+		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":18.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
 		return; 
 	}
 	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
@@ -4761,7 +4785,7 @@ PauseMenu.prototype.update = function(){
 		
 		if( _player.life > 0) {
 			//Close pause menu
-			if( input.state("pause") == 1 ) {
+			if( input.state("pause") == 1 || input.state("select") == 1 ) {
 				this.open = false;
 				game.pause = false;
 				audio.play("unpause");
@@ -5125,7 +5149,7 @@ var mod_rigidbody = {
 			this.force.y *= -this.bounce;
 		});
 		this.on("collideObject", function(obj){
-			if( obj.hasModule(mod_rigidbody) && this.pushable ) {
+			if( obj.hasModule(mod_rigidbody) && this.pushable && obj.pushable ) {
 				var dir = this.position.subtract( obj.position ).normalize();
 				var mass = Math.max( 1.0 - Math.max(this.mass - obj.mass, 0), 0);
 				this.force.y += dir.y * this.friction * mass * this.delta;
@@ -6163,8 +6187,8 @@ Player.prototype.render = function(g,c){
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*25 ),2);
 	g.closePath();
 	
-	textArea(g,"$"+this.money,8, 33 );
-	textArea(g,"#"+this.waystones,8, 45 );
+	textArea(g,"$"+this.money,8, 216 );
+	textArea(g,"#"+this.waystones,8, 216+12 );
 	
 	if( this.stat_points > 0 )
 		textArea(g,"Press Start",8, 57 );
@@ -6208,7 +6232,7 @@ function Prisoner(x,y,n,options){
 	
 	this.progress = 0.0;
 	
-	this.message_help = "Help, I'm trapped in here! I can teach you something if you free me.";
+	this.message_help = "Help, I'm trapped in here!";
 	this.message_thanks = "Thank you for your help, brave traveller. Now receive your reward.";
 	
 	this.on("collideObject", function(obj){
@@ -6394,7 +6418,7 @@ function Shop(x,y){
 }
 Shop.prototype.update = function(g,c){
 	if( this.open > 0 ) {
-		if( input.state("jump") == 1 || input.state("pause") == 1 ){
+		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
 			audio.playLock("unpause",0.3);
 			this.open = 0;
 			game.pause = false;
@@ -6469,21 +6493,29 @@ Shop.prototype.restock = function(data){
 Shop.prototype.restockTown = function(data){
 	this.items = new Array(3);
 	this.prices = new Array(3);
+	var s = new Seed(_world.towns[dataManager.currentTown].seed);
 	
 	for(var i=0; i < this.items.length; i++) {
 		tags = ["weapon"];
 		
-		var treasure = data.randomTreasure(Math.random(),tags);
+		var treasure = data.randomTreasure(s.random(),tags);
 		var x = this.position.x + (i*32) + -40;
 		
 		for(var j=0; j<_player.equipment.length; j++){
 			if( _player.equipment[j].name == treasure.name ){
-				treasure = data.randomTreasure(Math.random(),["stone"]);
+				treasure = data.randomTreasure(0,["stone"]);
 				break;
+			} else {
+				for(var k=0; k<i; k++){
+					if(treasure.name == this.items[k].name){
+						treasure = data.randomTreasure(0,["stone"]);
+						break;
+					}
+				}
 			}
 		}
 		
-		treasure.remaining--;
+		//treasure.remaining--;
 		this.items[i] = new Item(x, this.position.y-80, treasure.name);
 		this.prices[i] = treasure.price;
 	
@@ -6555,7 +6587,7 @@ function CollapseTile(x,y){
 	this.on("collideObject",function(obj){
 		if( this.visible && !this.active && obj instanceof Player ){
 			this.active = true;
-			audio.playLock("cracking",0.3);
+			audio.playLock("cracking",0.4);
 		}
 	});
 	this.on("wakeup",function(){
@@ -6752,7 +6784,7 @@ Villager.TextOptions = [
 {"rarity":1.0,"frames":[[0,1],[0,2],[0,3]],"conditions":{"max_town":0},"message":["Good luck on your journey. Bring your father back safely."]},
 {"rarity":1.0,"frames":[[0,1],[0,2],[0,3]],"conditions":{"max_town":0},"message":["No matter how far you go, you'll always have a home here."]},
 {"rarity":1.0,"frames":[[0,1],[0,2],[0,3]],"conditions":{"max_town":0},"message":["When you return we'll have a celebration in your honour."]},
-{"rarity":1.0,"frames":[[0,1],[0,2],[0,3]],"conditions":{"min_town":0},"message":["All of %TOWNNAME% wishes you luck on your journey."]},
+{"rarity":1.0,"frames":[[0,1],[0,2],[0,3]],"conditions":{"max_town":0},"message":["All of %TOWNNAME% wishes you luck on your journey."]},
 {"rarity":1.0,"frames":[[0,1],[0,2],[0,3],[0,4],[0,5]],"conditions":{"min_town":1,"max_size":1},"message":["What are you?"]},
 {"rarity":1.0,"frames":[[0,1]],"conditions":{"min_town":1},"message":["You're a strange looking creature, aren't you?"]},
 {"rarity":1.0,"frames":[[0,1],[0,2],[0,3]],"conditions":{"min_town":1},"message":["Welcome to the %TOWNNAME%."]},
@@ -7103,34 +7135,41 @@ SceneEnding.prototype.update = function(){
 	game.camera.y = 0;
 	
 	if( this.phase == 0 ) {
+		this.progress += this.delta;
+		if(this.progress > Game.DELTASECOND * 3) {
+			audio.playAs("music_goodbye", "music");
+			this.progress = 0;
+			this.phase = 1;
+		}
+	} else if( this.phase == 1 ) {
 		this.progress += this.delta * 0.01;
 		if( this.progress < 8 ) {
 			if( Math.floor(this.progress) > this.player_position ) this.player_position += this.delta * 0.02;
 			if( Math.floor(this.progress-0.1) > this.father_position ) this.father_position += this.delta * 0.02;
 		} 
 		if( this.progress > 9 ) {
-			this.phase = 1;
+			this.phase = 2;
 			this.progress = 0;
 		}
-	} else if ( this.phase == 1 ) {
+	} else if ( this.phase == 2 ) {
 		//Driving
 		this.speed = Math.min(this.speed + this.delta * 0.01, 7.0);
 		this.x_off += this.delta * this.speed;
 		this.progress += this.delta / Game.DELTASECOND;
 		if( this.progress > 60 ) {
-			audio.stopAs("music");
-			this.phase = 2;
+			this.phase = 3;
 		}
-	} else if( this.phase == 2 ){
+	} else if( this.phase == 3 ){
 		//Show Scores
 		if(input.state("pause") == 1) {
 			//Return to title screen
 			game.clearAll();
 			game.addObject(new TitleMenu());
+			audio.stopAs("music");
 		}
 	}
 	
-	if(this.phase < 2 && input.state("pause") == 1 ) this.phase = 2;
+	if(this.phase < 3 && input.state("pause") == 1 ) this.phase = 3;
 }
 SceneEnding.prototype.render = function(g,c){
 	for(var x=0; x<17; x++) for(var y=0; y<16; y++) {
@@ -7140,19 +7179,21 @@ SceneEnding.prototype.render = function(g,c){
 	}
 	
 	if( this.phase == 0 ) {
-		
+		g.fillStyle = "#000";
+		g.scaleFillRect(0, 0, 256, 240 );
+	} else if( this.phase == 1 ) {
 		sprites.chazbike.render(g,new Point(104,192),0,2);
 		sprites.ending.render(g,new Point(this.father_position*20-64,176),0,0);		
 		sprites.player.render(g,new Point(this.player_position*20-20,192),1,2,true);
 		
-	} else if( this.phase == 1 ) {
+	} else if( this.phase == 2 ) {
 		var pos = 1 + Math.min(-this.x_off*0.01+Math.pow(this.x_off*0.005,2),0);
 		if(this.progress > 45) pos += Math.max(this.progress-45,0);
 		sprites.ending.render(g,new Point(88*pos,176),1,1);
 		
 		var credit_pos = Math.lerp(360,-320,Math.min(this.progress/40,1));
 		textArea(g,this.text_credits,128,credit_pos,120);
-	} else if( this.phase == 2 ) {
+	} else if( this.phase == 3 ) {
 		boxArea(g,0,0,256,240);
 	}
 }

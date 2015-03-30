@@ -20,6 +20,7 @@ function ChazBike(x,y){
 	});
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
+		this.states.backwards = Game.DELTASECOND * 3;
 	});
 	this.on("collideObject", function(obj){
 		if( this.states.collideCooldown > 0 || this.team == obj.team ) return;
@@ -42,7 +43,7 @@ function ChazBike(x,y){
 	});
 	this.calculateXP();
 	
-	this.life = dataManager.life(8);
+	this.life = dataManager.life(6);
 	this.collideDamage = dataManager.damage(3);
 	this.mass = 5.3;
 	this.friction = 0.01;
@@ -51,7 +52,9 @@ function ChazBike(x,y){
 	this.stun_time = 0;
 	
 	this.states = {
-		"collideCooldown" : 0
+		"collideCooldown" : 0,
+		"backwards" : 0,
+		"direction" : 1
 	};
 	
 }
@@ -60,8 +63,10 @@ ChazBike.prototype.update = function(){
 	if( this.stun < 0 && this.life > 0 ) {
 		this.flip = this.force.x < 0;
 		var direction = dir.x < 0 ? 1 : -1;
-		this.force.x += this.speed * this.delta * direction;
+		this.force.x += this.speed * this.delta * direction * this.states.direction;
 		this.states.collideCooldown -= this.delta;
+		this.states.backwards -= this.delta;
+		this.states.direction = this.states.backwards <= 0 ? 1 : -1;
 	} else {
 		this.force.x = 0;
 	}

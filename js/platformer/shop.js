@@ -37,7 +37,7 @@ function Shop(x,y){
 }
 Shop.prototype.update = function(g,c){
 	if( this.open > 0 ) {
-		if( input.state("jump") == 1 || input.state("pause") == 1 ){
+		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
 			audio.playLock("unpause",0.3);
 			this.open = 0;
 			game.pause = false;
@@ -112,21 +112,29 @@ Shop.prototype.restock = function(data){
 Shop.prototype.restockTown = function(data){
 	this.items = new Array(3);
 	this.prices = new Array(3);
+	var s = new Seed(_world.towns[dataManager.currentTown].seed);
 	
 	for(var i=0; i < this.items.length; i++) {
 		tags = ["weapon"];
 		
-		var treasure = data.randomTreasure(Math.random(),tags);
+		var treasure = data.randomTreasure(s.random(),tags);
 		var x = this.position.x + (i*32) + -40;
 		
 		for(var j=0; j<_player.equipment.length; j++){
 			if( _player.equipment[j].name == treasure.name ){
-				treasure = data.randomTreasure(Math.random(),["stone"]);
+				treasure = data.randomTreasure(0,["stone"]);
 				break;
+			} else {
+				for(var k=0; k<i; k++){
+					if(treasure.name == this.items[k].name){
+						treasure = data.randomTreasure(0,["stone"]);
+						break;
+					}
+				}
 			}
 		}
 		
-		treasure.remaining--;
+		//treasure.remaining--;
 		this.items[i] = new Item(x, this.position.y-80, treasure.name);
 		this.prices[i] = treasure.price;
 	

@@ -40,34 +40,41 @@ SceneEnding.prototype.update = function(){
 	game.camera.y = 0;
 	
 	if( this.phase == 0 ) {
+		this.progress += this.delta;
+		if(this.progress > Game.DELTASECOND * 3) {
+			audio.playAs("music_goodbye", "music");
+			this.progress = 0;
+			this.phase = 1;
+		}
+	} else if( this.phase == 1 ) {
 		this.progress += this.delta * 0.01;
 		if( this.progress < 8 ) {
 			if( Math.floor(this.progress) > this.player_position ) this.player_position += this.delta * 0.02;
 			if( Math.floor(this.progress-0.1) > this.father_position ) this.father_position += this.delta * 0.02;
 		} 
 		if( this.progress > 9 ) {
-			this.phase = 1;
+			this.phase = 2;
 			this.progress = 0;
 		}
-	} else if ( this.phase == 1 ) {
+	} else if ( this.phase == 2 ) {
 		//Driving
 		this.speed = Math.min(this.speed + this.delta * 0.01, 7.0);
 		this.x_off += this.delta * this.speed;
 		this.progress += this.delta / Game.DELTASECOND;
 		if( this.progress > 60 ) {
-			audio.stopAs("music");
-			this.phase = 2;
+			this.phase = 3;
 		}
-	} else if( this.phase == 2 ){
+	} else if( this.phase == 3 ){
 		//Show Scores
 		if(input.state("pause") == 1) {
 			//Return to title screen
 			game.clearAll();
 			game.addObject(new TitleMenu());
+			audio.stopAs("music");
 		}
 	}
 	
-	if(this.phase < 2 && input.state("pause") == 1 ) this.phase = 2;
+	if(this.phase < 3 && input.state("pause") == 1 ) this.phase = 3;
 }
 SceneEnding.prototype.render = function(g,c){
 	for(var x=0; x<17; x++) for(var y=0; y<16; y++) {
@@ -77,19 +84,21 @@ SceneEnding.prototype.render = function(g,c){
 	}
 	
 	if( this.phase == 0 ) {
-		
+		g.fillStyle = "#000";
+		g.scaleFillRect(0, 0, 256, 240 );
+	} else if( this.phase == 1 ) {
 		sprites.chazbike.render(g,new Point(104,192),0,2);
 		sprites.ending.render(g,new Point(this.father_position*20-64,176),0,0);		
 		sprites.player.render(g,new Point(this.player_position*20-20,192),1,2,true);
 		
-	} else if( this.phase == 1 ) {
+	} else if( this.phase == 2 ) {
 		var pos = 1 + Math.min(-this.x_off*0.01+Math.pow(this.x_off*0.005,2),0);
 		if(this.progress > 45) pos += Math.max(this.progress-45,0);
 		sprites.ending.render(g,new Point(88*pos,176),1,1);
 		
 		var credit_pos = Math.lerp(360,-320,Math.min(this.progress/40,1));
 		textArea(g,this.text_credits,128,credit_pos,120);
-	} else if( this.phase == 2 ) {
+	} else if( this.phase == 3 ) {
 		boxArea(g,0,0,256,240);
 	}
 }

@@ -118,9 +118,9 @@ Item.prototype.setName = function(n){
 	}
 	if(n == "spear") { 
 		this.frame = 2; this.frame_row = 2; 
-		this.isWeapon = true; this.twoHanded = true;
+		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":18.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
 		return; 
 	}
 	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }

@@ -9,14 +9,14 @@
 17,18,3,4,21,22,5,6,7,8,21,1,2,7,8,24,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
-0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
+0,0,0,0,0,216,0,216,216,0,216,0,0,0,0,0,
 33,40,0,0,0,0,0,0,0,0,0,0,0,0,33,40,
 97,120,0,0,0,0,0,0,0,0,0,0,0,0,97,120,
 97,134,51,52,38,39,51,52,38,39,51,52,38,39,133,120
@@ -37,32 +37,22 @@
   <object name="Yakseyo" gid="136" x="112" y="224"/>
   <object name="CollapseTile" gid="136" x="64" y="208"/>
   <object name="CollapseTile" gid="136" x="176" y="208"/>
-  <object name="BreakableTile" gid="136" x="96" y="192"/>
   <object name="BreakableTile" gid="136" x="112" y="192"/>
   <object name="BreakableTile" gid="136" x="112" y="176"/>
-  <object name="BreakableTile" gid="136" x="96" y="176"/>
   <object name="BreakableTile" gid="136" x="80" y="176"/>
   <object name="BreakableTile" gid="136" x="112" y="160"/>
-  <object name="BreakableTile" gid="136" x="96" y="160"/>
   <object name="BreakableTile" gid="136" x="80" y="160"/>
   <object name="BreakableTile" gid="136" x="112" y="144"/>
-  <object name="BreakableTile" gid="136" x="96" y="144"/>
   <object name="BreakableTile" gid="136" x="80" y="144"/>
   <object name="BreakableTile" gid="136" x="112" y="128"/>
-  <object name="BreakableTile" gid="136" x="96" y="128"/>
   <object name="BreakableTile" gid="136" x="80" y="128"/>
   <object name="BreakableTile" gid="136" x="112" y="112"/>
-  <object name="BreakableTile" gid="136" x="96" y="112"/>
   <object name="BreakableTile" gid="136" x="80" y="112"/>
   <object name="BreakableTile" gid="136" x="112" y="96"/>
-  <object name="BreakableTile" gid="136" x="96" y="96"/>
   <object name="BreakableTile" gid="136" x="80" y="96"/>
   <object name="BreakableTile" gid="136" x="112" y="80"/>
-  <object name="BreakableTile" gid="136" x="96" y="80"/>
   <object name="BreakableTile" gid="136" x="80" y="80"/>
-  <object name="BreakableTile" gid="136" x="144" y="96"/>
   <object name="BreakableTile" gid="136" x="160" y="144"/>
-  <object name="BreakableTile" gid="136" x="144" y="80"/>
   <object name="BreakableTile" gid="136" x="160" y="128"/>
   <object name="BreakableTile" gid="136" x="160" y="96"/>
   <object name="BreakableTile" gid="136" x="128" y="144"/>
@@ -71,18 +61,12 @@
   <object name="BreakableTile" gid="136" x="160" y="192"/>
   <object name="BreakableTile" gid="136" x="160" y="160"/>
   <object name="BreakableTile" gid="136" x="128" y="176"/>
-  <object name="BreakableTile" gid="136" x="144" y="128"/>
   <object name="BreakableTile" gid="136" x="128" y="128"/>
-  <object name="BreakableTile" gid="136" x="144" y="160"/>
   <object name="BreakableTile" gid="136" x="160" y="176"/>
   <object name="BreakableTile" gid="136" x="128" y="112"/>
-  <object name="BreakableTile" gid="136" x="144" y="176"/>
   <object name="BreakableTile" gid="136" x="160" y="112"/>
   <object name="BreakableTile" gid="136" x="128" y="80"/>
-  <object name="BreakableTile" gid="136" x="144" y="112"/>
   <object name="BreakableTile" gid="136" x="128" y="192"/>
-  <object name="BreakableTile" gid="136" x="144" y="144"/>
-  <object name="BreakableTile" gid="136" x="144" y="192"/>
   <object name="BreakableTile" gid="136" x="128" y="160"/>
  </objectgroup>
 </map>

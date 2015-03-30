@@ -24,9 +24,9 @@ function Marquis(x,y){
 	}
 	
 	this.attack_times = {
-		"warm" : Game.DELTASECOND * 4,
-		"attack" : Game.DELTASECOND * 3,
-		"rest" : Game.DELTASECOND * 2.0
+		"warm" : Game.DELTASECOND * 3,
+		"attack" : Game.DELTASECOND * 2,
+		"rest" : Game.DELTASECOND * 1.0
 	};
 		
 	this.life = dataManager.life(16);
@@ -51,7 +51,7 @@ function Marquis(x,y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
-		//this.states.attack = -1.0;
+		this.states.attack = -1.0;
 		//this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
 		audio.play("hurt");
 	});

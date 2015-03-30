@@ -23,7 +23,7 @@ function Prisoner(x,y,n,options){
 	
 	this.progress = 0.0;
 	
-	this.message_help = "Help, I'm trapped in here! I can teach you something if you free me.";
+	this.message_help = "Help, I'm trapped in here!";
 	this.message_thanks = "Thank you for your help, brave traveller. Now receive your reward.";
 	
 	this.on("collideObject", function(obj){
