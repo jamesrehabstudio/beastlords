@@ -13,7 +13,7 @@ function Alter(x,y){
 	
 	this.addModule(mod_talk);
 	
-	var tresure = dataManager.randomTreasure(Math.random()); 
+	var tresure = dataManager.randomTreasure(Math.random(),["shop","chest"]);
 	tresure.remaining--;
 	
 	this.item = new Item(this.position.x, this.position.y-104, tresure.name);

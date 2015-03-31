@@ -17,7 +17,7 @@ function Alter(x,y){
 	
 	this.addModule(mod_talk);
 	
-	var tresure = dataManager.randomTreasure(Math.random()); 
+	var tresure = dataManager.randomTreasure(Math.random(),["shop","chest"]);
 	tresure.remaining--;
 	
 	this.item = new Item(this.position.x, this.position.y-104, tresure.name);
@@ -100,7 +100,7 @@ function Arena(x,y){
 	
 	this.items = new Array();
 	for(var i=0; i < 2; i++ ){
-		var treasure = dataManager.randomTreasure(Math.random()); 
+		var treasure = dataManager.randomTreasure(Math.random(),["shop","chest"]); 
 		treasure.remaining--;
 		
 		item = new Item(this.position.x-26+(i*52), this.position.y-104, treasure.name);
@@ -6975,7 +6975,7 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
-	this.seed = "0.08346258359961212";
+	//this.seed = "0.08346258359961212";
 	this.active = true;
 	this.mode = 0;
 	

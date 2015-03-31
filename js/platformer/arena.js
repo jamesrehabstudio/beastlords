@@ -18,7 +18,7 @@ function Arena(x,y){
 	
 	this.items = new Array();
 	for(var i=0; i < 2; i++ ){
-		var treasure = dataManager.randomTreasure(Math.random()); 
+		var treasure = dataManager.randomTreasure(Math.random(),["shop","chest"]); 
 		treasure.remaining--;
 		
 		item = new Item(this.position.x-26+(i*52), this.position.y-104, treasure.name);
