@@ -1517,6 +1517,7 @@ function CornerStone(x,y,parm,options){
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
+			ga("send","game","cornerstone","level",dataManager.currentTemple);
 		}
 	});
 	
@@ -2343,11 +2344,11 @@ function ChazBike(x,y){
 	
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		this.hurt( obj, this.damage );
+		this.hurt( obj, damage );
 	});
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
-		this.states.backwards = Game.DELTASECOND * 3;
+		this.states.backwards = Game.DELTASECOND * 0.75;
 	});
 	this.on("collideObject", function(obj){
 		if( this.states.collideCooldown > 0 || this.team == obj.team ) return;
@@ -4293,7 +4294,7 @@ function Healer(x,y,n,options){
 	this.sprite = sprites.retailers;
 	this.width = 16;
 	this.height = 32;
-	this.zIndex = -1;
+	this.zIndex = 5;
 	this.life = 1;
 	
 	this.frame = 0;
@@ -4562,7 +4563,19 @@ Item.prototype.setName = function(n){
 	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
 	
 	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
-	if( this.name == "charm_mana") { this.frame = 1; this.frame_row = 8; this.message = "Mana Charm\nEndless supply of mana.";}
+	if( this.name == "charm_mana") { 
+		this.frame = 1; 
+		this.frame_row = 8;
+		this.message = "Mana Charm\nLarger supply of mana.";
+		this.on("equip",function(){ 
+			_player.manaMax += 3;
+			_player.mana += 3;
+		});
+		this.on("unequip",function(){
+			_player.manaMax -= 3;
+			_player.mana -= 3;
+		});
+	}
 	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
 	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
 	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
@@ -4597,7 +4610,7 @@ Item.drop = function(obj,money){
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
-		money = money == undefined ? (3+Math.random()*5) : money;
+		money = money == undefined ? (2+Math.random()*4) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;
@@ -4691,6 +4704,40 @@ Lift.prototype.render = function(g,c){
 	}
 	
 }
+
+ /* platformer/mapdebug.js*/ 
+
+MapDebug.prototype = new GameObject();
+MapDebug.prototype.constructor = GameObject;
+function MapDebug(x,y){
+	_rd
+	this.slice = 0;
+	this.offset = new Point(0,0);
+}
+MapDebug.prototype.update = function(){
+	if( input.state("up") == 1) this.offset.y -= 8;
+	if( input.state("down") == 1) this.offset.y += 8;
+	if( input.state("left") == 1) this.offset.x -= 8;
+	if( input.state("right") == 1) this.offset.x += 8;
+	
+	if( input.state("fire") == 1) this.slice--;
+	if( input.state("jump") == 1) this.slice++;
+}
+MapDebug.prototype.render = function(g,c){
+	try {
+		var size = new Point(8,8);
+		
+		for(var i in _rd[this.slice] ){
+			var tile = _rd[this.slice][i] == "j" ? 8 : 0;
+			var pos = new Point(
+				size.x * ~~i.match(/(-?\d+)/g)[0],
+				size.y * ~~i.match(/(-?\d+)/g)[1]
+			);
+			sprites.map.render(g,pos.subtract(this.offset),tile,0)
+		}
+	} catch (err) {}
+}
+MapDebug.prototype.idle = function(){}
 
  /* platformer/menu_pause.js*/ 
 
@@ -5022,12 +5069,27 @@ function TitleMenu(){
 	
 	this.progress = 0;
 	this.cursor = 0;
+	this.loading = true;
 	
-	this.stars = {
-		"pos" : new Point(),
-		"timer" : 0,
-		"reset" : 0.2
-	};
+	this.starPositions = [
+		new Point(84,64),
+		new Point(102,80),
+		new Point(99,93),
+		new Point(117,99),
+		new Point(117,111),
+		new Point(128,71),
+		new Point(191,41),
+		new Point(64,108 ),
+		new Point(158,65),
+		new Point(15,5),
+		new Point(229,69)
+	]
+	
+	this.stars = [
+		{ "pos" : new Point(), "timer" : 10 },
+		{ "pos" : new Point(), "timer" : 0 },
+		{ "pos" : new Point(), "timer" : 0 }
+	];
 	
 	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [
@@ -5038,6 +5100,7 @@ function TitleMenu(){
 
 TitleMenu.prototype.update = function(){
 	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
+		this.loading = false;
 		if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
 		if( this.start_options ) {
@@ -5066,7 +5129,11 @@ TitleMenu.prototype.update = function(){
 }
 
 TitleMenu.prototype.render = function(g,c){
-	if( this.start ) {
+	if( this.loading ){ 
+		g.font = (30*pixel_scale)+"px monospace";
+		g.fillStyle = "#FFF";
+		g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
+	} else if( this.start ) {
 		
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
@@ -5074,13 +5141,25 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(),2);
 		
 		//Random twinkling stars
+		for(var i=0; i<this.stars.length; i++) {
+			var frame = 2;
+			if( 
+				this.stars[i].timer > Game.DELTASECOND * 0.5 * 0.3 && 
+				this.stars[i].timer < Game.DELTASECOND * 0.5 * 0.67
+			) frame = 3;
+				
+			sprites.bullets.render(g,this.stars[i].pos,frame,2);
+			this.stars[i].timer -= this.delta;
+			if( this.stars[i].timer <= 0 ){
+				this.stars[i].timer = Game.DELTASECOND * 0.5;
+				this.stars[i].pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+			}			
+		}
 		this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
 		if( this.progress > this.stars.timer ) {
 			this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
 			this.stars.timer += this.stars.reset;
 		}
-		g.fillStyle = "#000";
-		g.scaleFillRect ( this.stars.pos.x, this.stars.pos.y, 16,16);
 		
 		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),1);
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
@@ -5115,6 +5194,8 @@ TitleMenu.prototype.startGame = function(){
 	
 	var world = new WorldMap(0,0);
 	world.mode = this.cursor > 0 ? 1 : 0;
+	
+	ga("send","game","gamestart","difficulty",world.mode);
 	
 	game.clearAll();
 	game.addObject(world);
@@ -5607,6 +5688,9 @@ function Player(x, y){
 		game.getObject(PauseMenu).open = true;
 		audio.play("playerdeath");
 		this.destroy();
+		
+		ga("send","game","death","temple",dataManager.currentTemple);
+		ga("send","game","death","level",this.level);
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -5642,6 +5726,8 @@ function Player(x, y){
 	this.on("added", function(){
 		this.damage_buffer = 0;
 		this.lock_overwrite = false;
+		this.checkpoint.x = this.position.x;
+		this.checkpoint.y = this.position.y;
 		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
@@ -5815,7 +5901,7 @@ Player.prototype.update = function(){
 	this.states.guard = false;
 	
 	this.buffer_damage = this.hasCharm("charm_elephant");
-	if( this.manaHeal > 0 || this.hasCharm("charm_mana") ){
+	if( this.manaHeal > 0 ){
 		this.mana = Math.min(this.mana += 2, this.manaMax);
 		this.manaHeal-= 2;
 		if( this.mana >= this.manaMax ) this.manaHeal = 0;
@@ -5983,8 +6069,10 @@ Player.prototype.equipCharm = function(c){
 		this.charm.position.y = this.position.y;
 		if(!this.charm.hasModule(mod_rigidbody)) this.charm.addModule(mod_rigidbody);
 		game.addObject(this.charm);
+		this.charm.trigger("unequip");
 	}
 	this.charm = c;
+	c.trigger("equip");
 }
 Player.prototype.equip = function(sword, shield){
 	try {
@@ -6104,6 +6192,7 @@ Player.prototype.addXP = function(value){
 		this.life = this.lifeMax;
 		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
+		ga("send","game","levelup","level",this.level);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
@@ -6191,7 +6280,7 @@ Player.prototype.render = function(g,c){
 	textArea(g,"#"+this.waystones,8, 216+12 );
 	
 	if( this.stat_points > 0 )
-		textArea(g,"Press Start",8, 57 );
+		textArea(g,"Press Start",8, 32 );
 	
 	//Keys
 	for(var i=0; i < this.keys.length; i++) {
@@ -6502,27 +6591,33 @@ Shop.prototype.restockTown = function(data){
 		var x = this.position.x + (i*32) + -40;
 		
 		for(var j=0; j<_player.equipment.length; j++){
-			if( _player.equipment[j].name == treasure.name ){
-				treasure = data.randomTreasure(0,["stone"]);
-				break;
-			} else {
-				for(var k=0; k<i; k++){
-					if(treasure.name == this.items[k].name){
-						treasure = data.randomTreasure(0,["stone"]);
-						break;
+			if( treasure != null ) {
+				if( _player.equipment[j].name == treasure.name ){
+					treasure = null;
+					break;
+				} else {
+					for(var k=0; k<i; k++){
+						if(this.items[k] != null && treasure.name == this.items[k].name){
+							treasure = null;
+							break;
+						}
 					}
 				}
 			}
 		}
 		
 		//treasure.remaining--;
-		this.items[i] = new Item(x, this.position.y-80, treasure.name);
-		this.prices[i] = treasure.price;
-	
-		if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
-		this.items[i].gravity = 0;
-		this.items[i].interactive = false;
-		game.addObject(this.items[i]);
+		if( treasure != null ) {
+			this.items[i] = new Item(x, this.position.y-80, treasure.name);
+			this.prices[i] = treasure.price;
+		
+			if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
+			this.items[i].gravity = 0;
+			this.items[i].interactive = false;
+			game.addObject(this.items[i]);
+		} else {
+			this.items[i] = null;
+		}
 	}
 }
 Shop.prototype.getPrice = function(i){
@@ -6880,6 +6975,7 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
+	this.seed = "0.08346258359961212";
 	this.active = true;
 	this.mode = 0;
 	

@@ -31,6 +31,7 @@ function CornerStone(x,y,parm,options){
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
+			ga("send","game","cornerstone","level",dataManager.currentTemple);
 		}
 	});
 	

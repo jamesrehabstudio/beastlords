@@ -27,3 +27,40 @@ div.wrap {
 	image-rendering: -moz-crisp-edges; /* Firefox */
 	cursor:pointer;
 }
+
+div.feedback {}
+div.feedback .error{
+	background:#FAA;
+	border:1px dotted #A00;
+	padding:5px 10px;
+	margin-bottom:10px;
+	font-weight: bold;
+	color: #600;
+	display:none;
+}
+
+div.feedback .thanks{
+	background:#AFA;
+	border:1px dotted #0A0;
+	padding:5px 10px;
+	margin-bottom:10px;
+	display:none;
+}
+
+div.feedback .field{
+	margin-bottom:10px;
+}
+div.feedback .field input{
+	width:calc(100% - 24px);
+	padding:5px 10px;
+}
+div.feedback .field textarea{
+	width:calc(100% - 24px);
+	height:100px;
+	padding:5px 10px;
+}
+div.feedback .field input[type=submit]{
+	width:90px;
+	display:block;
+	margin:0 auto;
+}

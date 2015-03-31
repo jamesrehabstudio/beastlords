@@ -565,7 +565,7 @@ DataManager.prototype.getJunctionRoomIndex = function(tags){
 	}
 	return out[0];
 }
-DataManager.prototype.addBranch = function(options, level, junctions){
+DataManager.prototype.addBranch = function(options, level, junctions, current_branch){
 	var compass = ["n","e","s","w"];
 	
 	junctions.sort(function(){ return seed.random()-.5; });
@@ -574,11 +574,15 @@ DataManager.prototype.addBranch = function(options, level, junctions){
 	
 	options["branch_id"] = this.branch_counter;
 	
+	if( current_branch ) {
+		this.branch_matrix[current_branch][0].children.push( options["branch_id"] );
+	}
+	
 	for( var i=0; i < junctions.length; i++ ) {
 		var _i = junctions[i];
 		var tags = this.junctions_matrix[_i];
 		pos = new Point( ~~_i.match(/(-?\d+)/g)[0], ~~_i.match(/(-?\d+)/g)[1] );
-		this.branch_matrix[ options.branch_id ] = [{"id":_i,"d":"x"}];
+		this.branch_matrix[ options.branch_id ] = [{"id":_i,"d":"x","children":[]}];
 		
 		for(var j=0; j < compass.length; j++ ){
 			//Check the four cardinal directions to see if one is free
@@ -616,8 +620,14 @@ DataManager.prototype.addBranch = function(options, level, junctions){
 }
 DataManager.prototype.killBranch = function(bid){
 	if( bid in this.branch_matrix ) {
+		
+		for( i=0; i < this.branch_matrix[bid][0].children.length; i++){
+			this.killBranch(this.branch_matrix[bid][0].children[i]);
+		}
+		
 		var orig = this.branch_matrix[bid][0];
 		this.junctions_matrix[ orig.id ].remove( this.junctions_matrix[ orig.id ].indexOf( orig.d ) );
+		
 		
 		for( i=1; i < this.branch_matrix[bid].length; i++){
 			var id = this.branch_matrix[bid][i];
@@ -662,9 +672,23 @@ DataManager.prototype.addSecret = function(options){
 	}
 	return false;
 }
+
 DataManager.prototype.addRoom = function(options, level, direction, cursor, connector){
 	//List of rooms to try
 	var r = [];
+	
+	//Clone room matrix for debugging
+	if( window.debug ) {
+		if( window._rd == undefined ) {			
+			window._rd = {};
+			window._rdl = 0;
+		}
+		_rdl++;
+		_rd[_rdl] = {};
+		for(var i in this.room_matrix )
+			_rd[_rdl][i] = this.room_matrix[i];
+	}
+	
 	
 	if( connector instanceof Point ) {
 		//connecting room
@@ -738,7 +762,16 @@ DataManager.prototype.addRoom = function(options, level, direction, cursor, conn
 					var branch_size = "size" in options ? Math.floor(options.size/2) : 8;
 					this.key_counter++;
 					bid = this.branch_counter + 1;
-					success = this.addBranch({"rules":this.rules.item,"item":key_name,"difficulty":2,"size":branch_size}, 8, Object.keys(this.junctions_matrix));
+					success = this.addBranch({
+							"rules":this.rules.item,
+							"item":key_name,
+							"difficulty":2,
+							"size":branch_size
+						}, 
+						8, 
+						Object.keys(this.junctions_matrix),
+						("branch_id" in options ? options.branch_id : false)
+					);
 					//console.log("Room: " + room_id + " _ " + success + " " + current_junctions );
 				}
 			}
@@ -921,7 +954,7 @@ DataManager.prototype.damage = function(level){
 		case 6: damage = 40; break;//6 strike from SUPER boss
 	}
 	
-	var multi = 1 + this.currentTemple * 0.25;
+	var multi = 1 + this.currentTemple * 0.22;
 	damage = Math.floor( damage * multi );
 	return damage;
 }

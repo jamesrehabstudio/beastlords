@@ -13,12 +13,27 @@ function TitleMenu(){
 	
 	this.progress = 0;
 	this.cursor = 0;
+	this.loading = true;
 	
-	this.stars = {
-		"pos" : new Point(),
-		"timer" : 0,
-		"reset" : 0.2
-	};
+	this.starPositions = [
+		new Point(84,64),
+		new Point(102,80),
+		new Point(99,93),
+		new Point(117,99),
+		new Point(117,111),
+		new Point(128,71),
+		new Point(191,41),
+		new Point(64,108 ),
+		new Point(158,65),
+		new Point(15,5),
+		new Point(229,69)
+	]
+	
+	this.stars = [
+		{ "pos" : new Point(), "timer" : 10 },
+		{ "pos" : new Point(), "timer" : 0 },
+		{ "pos" : new Point(), "timer" : 0 }
+	];
 	
 	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [
@@ -29,6 +44,7 @@ function TitleMenu(){
 
 TitleMenu.prototype.update = function(){
 	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
+		this.loading = false;
 		if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
 		if( this.start_options ) {
@@ -57,7 +73,11 @@ TitleMenu.prototype.update = function(){
 }
 
 TitleMenu.prototype.render = function(g,c){
-	if( this.start ) {
+	if( this.loading ){ 
+		g.font = (30*pixel_scale)+"px monospace";
+		g.fillStyle = "#FFF";
+		g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
+	} else if( this.start ) {
 		
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
@@ -65,13 +85,25 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(),2);
 		
 		//Random twinkling stars
+		for(var i=0; i<this.stars.length; i++) {
+			var frame = 2;
+			if( 
+				this.stars[i].timer > Game.DELTASECOND * 0.5 * 0.3 && 
+				this.stars[i].timer < Game.DELTASECOND * 0.5 * 0.67
+			) frame = 3;
+				
+			sprites.bullets.render(g,this.stars[i].pos,frame,2);
+			this.stars[i].timer -= this.delta;
+			if( this.stars[i].timer <= 0 ){
+				this.stars[i].timer = Game.DELTASECOND * 0.5;
+				this.stars[i].pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+			}			
+		}
 		this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
 		if( this.progress > this.stars.timer ) {
 			this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
 			this.stars.timer += this.stars.reset;
 		}
-		g.fillStyle = "#000";
-		g.scaleFillRect ( this.stars.pos.x, this.stars.pos.y, 16,16);
 		
 		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),1);
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
@@ -106,6 +138,8 @@ TitleMenu.prototype.startGame = function(){
 	
 	var world = new WorldMap(0,0);
 	world.mode = this.cursor > 0 ? 1 : 0;
+	
+	ga("send","game","gamestart","difficulty",world.mode);
 	
 	game.clearAll();
 	game.addObject(world);

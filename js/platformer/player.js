@@ -59,6 +59,9 @@ function Player(x, y){
 		game.getObject(PauseMenu).open = true;
 		audio.play("playerdeath");
 		this.destroy();
+		
+		ga("send","game","death","temple",dataManager.currentTemple);
+		ga("send","game","death","level",this.level);
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -94,6 +97,8 @@ function Player(x, y){
 	this.on("added", function(){
 		this.damage_buffer = 0;
 		this.lock_overwrite = false;
+		this.checkpoint.x = this.position.x;
+		this.checkpoint.y = this.position.y;
 		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
@@ -267,7 +272,7 @@ Player.prototype.update = function(){
 	this.states.guard = false;
 	
 	this.buffer_damage = this.hasCharm("charm_elephant");
-	if( this.manaHeal > 0 || this.hasCharm("charm_mana") ){
+	if( this.manaHeal > 0 ){
 		this.mana = Math.min(this.mana += 2, this.manaMax);
 		this.manaHeal-= 2;
 		if( this.mana >= this.manaMax ) this.manaHeal = 0;
@@ -435,8 +440,10 @@ Player.prototype.equipCharm = function(c){
 		this.charm.position.y = this.position.y;
 		if(!this.charm.hasModule(mod_rigidbody)) this.charm.addModule(mod_rigidbody);
 		game.addObject(this.charm);
+		this.charm.trigger("unequip");
 	}
 	this.charm = c;
+	c.trigger("equip");
 }
 Player.prototype.equip = function(sword, shield){
 	try {
@@ -556,6 +563,7 @@ Player.prototype.addXP = function(value){
 		this.life = this.lifeMax;
 		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
+		ga("send","game","levelup","level",this.level);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
@@ -643,7 +651,7 @@ Player.prototype.render = function(g,c){
 	textArea(g,"#"+this.waystones,8, 216+12 );
 	
 	if( this.stat_points > 0 )
-		textArea(g,"Press Start",8, 57 );
+		textArea(g,"Press Start",8, 32 );
 	
 	//Keys
 	for(var i=0; i < this.keys.length; i++) {

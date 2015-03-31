@@ -169,7 +169,19 @@ Item.prototype.setName = function(n){
 	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
 	
 	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
-	if( this.name == "charm_mana") { this.frame = 1; this.frame_row = 8; this.message = "Mana Charm\nEndless supply of mana.";}
+	if( this.name == "charm_mana") { 
+		this.frame = 1; 
+		this.frame_row = 8;
+		this.message = "Mana Charm\nLarger supply of mana.";
+		this.on("equip",function(){ 
+			_player.manaMax += 3;
+			_player.mana += 3;
+		});
+		this.on("unequip",function(){
+			_player.manaMax -= 3;
+			_player.mana -= 3;
+		});
+	}
 	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
 	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
 	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
@@ -204,7 +216,7 @@ Item.drop = function(obj,money){
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
-		money = money == undefined ? (3+Math.random()*5) : money;
+		money = money == undefined ? (2+Math.random()*4) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;

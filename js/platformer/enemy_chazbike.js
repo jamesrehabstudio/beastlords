@@ -16,11 +16,11 @@ function ChazBike(x,y){
 	
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		this.hurt( obj, this.damage );
+		this.hurt( obj, damage );
 	});
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
-		this.states.backwards = Game.DELTASECOND * 3;
+		this.states.backwards = Game.DELTASECOND * 0.75;
 	});
 	this.on("collideObject", function(obj){
 		if( this.states.collideCooldown > 0 || this.team == obj.team ) return;

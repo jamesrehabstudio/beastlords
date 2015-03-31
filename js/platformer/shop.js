@@ -121,27 +121,33 @@ Shop.prototype.restockTown = function(data){
 		var x = this.position.x + (i*32) + -40;
 		
 		for(var j=0; j<_player.equipment.length; j++){
-			if( _player.equipment[j].name == treasure.name ){
-				treasure = data.randomTreasure(0,["stone"]);
-				break;
-			} else {
-				for(var k=0; k<i; k++){
-					if(treasure.name == this.items[k].name){
-						treasure = data.randomTreasure(0,["stone"]);
-						break;
+			if( treasure != null ) {
+				if( _player.equipment[j].name == treasure.name ){
+					treasure = null;
+					break;
+				} else {
+					for(var k=0; k<i; k++){
+						if(this.items[k] != null && treasure.name == this.items[k].name){
+							treasure = null;
+							break;
+						}
 					}
 				}
 			}
 		}
 		
 		//treasure.remaining--;
-		this.items[i] = new Item(x, this.position.y-80, treasure.name);
-		this.prices[i] = treasure.price;
-	
-		if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
-		this.items[i].gravity = 0;
-		this.items[i].interactive = false;
-		game.addObject(this.items[i]);
+		if( treasure != null ) {
+			this.items[i] = new Item(x, this.position.y-80, treasure.name);
+			this.prices[i] = treasure.price;
+		
+			if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
+			this.items[i].gravity = 0;
+			this.items[i].interactive = false;
+			game.addObject(this.items[i]);
+		} else {
+			this.items[i] = null;
+		}
 	}
 }
 Shop.prototype.getPrice = function(i){

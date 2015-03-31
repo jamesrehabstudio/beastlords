@@ -18,6 +18,7 @@
 	<div class="wrap">
 		<!--<canvas id="game" width="256" height="240"></canvas>-->
 		<canvas id="game" width="512" height="480"></canvas>
+		<p>Click for fullscreen.</p>
 		
 		<div>
 			<div class="field volume">
@@ -44,7 +45,27 @@
 			<img src="/img/controls.png" alt="controls" />
 		</div>
 		
-		<p>Destroy this temple's Caput Anguli.</p>
+		<div class="feedback">
+			<h2>Feedback</h2>
+			<div class="error"></div>
+			<div class="thanks">
+				<p>Thank you for your feedback</p>
+			</div>
+			<form id="comments">
+				<div class="field">
+					<input type="text" placeholder="Name" name="name" />
+				</div>
+				<div class="field">
+					<input type="email" placeholder="Email (optional)" name="email" />
+				</div>	
+				<div class="field">
+					<textarea name="comment" placeholder="Your feedback" name="comment"></textarea>
+				</div>
+				<div class="field">
+					<input type="submit" value="submit" name="submit" />
+				</div>	
+			</form>
+		</div>
 	</div>	
 	
 	<script>
@@ -63,6 +84,46 @@
 		$("select[name=musvolume]").on("change",function(e){
 			audio.musVolume.gain.value = this.value - 0;
 		});
+		
+		$("#comments").on("submit",function(e){
+			e.preventDefault();
+			var data = {
+				"name" : $("#comments [name=name]").val(),
+				"email" : $("#comments [name=email]").val(),
+				"comment" : $("#comments [name=comment]").val()
+			};
+			var error = false;
+			$(".feedback .error").html("");
+			if( data.name.trim().length <= 0 ) { error=true; $(".feedback .error").append("<p>You must specify a name.</p>"); }
+			if( data.comment.trim().length <= 0 ) { error=true; $(".feedback .error").append("<p>Please make a comment.</p>"); }
+			
+			if(error) { 
+				$(".feedback .error").show(); 
+				$(".thanks").hide(); 
+			} else { 
+				$("#comments [name=comment]").val("")
+				$(".thanks").show(); 
+				$(".feedback .error").hide(); 
+				
+				$.ajax({
+					"url":"/feedback",
+					"type":"POST",
+					"contentType":"application/json; charset=utf-8",
+					"data":JSON.stringify(data)
+				});
+			}
+		});
 	}
+	</script>
+	
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-36519880-3', 'auto');
+	  ga('send', 'pageview');
+
 	</script>
 </body>

@@ -7,7 +7,7 @@ function Healer(x,y,n,options){
 	this.sprite = sprites.retailers;
 	this.width = 16;
 	this.height = 32;
-	this.zIndex = -1;
+	this.zIndex = 5;
 	this.life = 1;
 	
 	this.frame = 0;
