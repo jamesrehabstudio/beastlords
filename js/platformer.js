@@ -160,7 +160,7 @@ Arena.prototype.update = function(g,c){
 		var total_life = 0;
 		this.enemies_ready -= this.delta;
 		for(var i=0; i < this.enemies.length; i++){
-			if(this.enemies[i].awake && game.objects.indexOf(_player) >= 0){
+			if(this.enemies[i].awake && game.objects.indexOf(this.enemies[i]) >= 0){
 				total_life += Math.max(this.enemies[i].life, 0);
 				this.enemies[i].interactive = this.enemies_ready <= 0;
 			}
@@ -4179,8 +4179,8 @@ function Yeti(x,y){
 	
 	this.life = dataManager.life(6);
 	this.mass = 2.2;
-	this.collideDamage = dataManager.damage(4);
-	this.damage = dataManager.damage(6);
+	this.collideDamage = dataManager.damage(2);
+	this.damage = dataManager.damage(4);
 	this.stun_time = 0;
 	
 	this.attack_release = Game.DELTASECOND * 1.2;

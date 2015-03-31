@@ -78,7 +78,7 @@ Arena.prototype.update = function(g,c){
 		var total_life = 0;
 		this.enemies_ready -= this.delta;
 		for(var i=0; i < this.enemies.length; i++){
-			if(this.enemies[i].awake && game.objects.indexOf(_player) >= 0){
+			if(this.enemies[i].awake && game.objects.indexOf(this.enemies[i]) >= 0){
 				total_life += Math.max(this.enemies[i].life, 0);
 				this.enemies[i].interactive = this.enemies_ready <= 0;
 			}

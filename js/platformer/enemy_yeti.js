@@ -22,8 +22,8 @@ function Yeti(x,y){
 	
 	this.life = dataManager.life(6);
 	this.mass = 2.2;
-	this.collideDamage = dataManager.damage(4);
-	this.damage = dataManager.damage(6);
+	this.collideDamage = dataManager.damage(2);
+	this.damage = dataManager.damage(4);
 	this.stun_time = 0;
 	
 	this.attack_release = Game.DELTASECOND * 1.2;
