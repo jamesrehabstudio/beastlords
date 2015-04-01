@@ -153,19 +153,12 @@ Sprite.prototype.imageLoaded = function() {
 	for( var f in this.filters ) {
 		var canvas = document.createElement("canvas");
 		var c = canvas.getContext('2d');
-		c.width = this.img.width;
-		c.height = this.img.height;
+		canvas.width = c.width = this.img.width;
+		canvas.height = c.height = this.img.height;
 		c.drawImage(this.img,0,0);
-		var a = c.getImageData(0,0,c.width,c.height);
+		var a = c.getImageData(0,0,this.img.width,this.img.height);
 		for(var i=0; i < a.data.length; i+=4) {
 			this.filters[f](a.data,i,c.width,c.height);
-			/*
-			if( a.data[i+3] > 100 ) {
-				a.data[i+0] = Math.floor(255-a.data[i+0]*0.5);
-				a.data[i+1] = 255-a.data[i+1];
-				a.data[i+2] = 255-a.data[i+2];
-			}
-			*/
 		}
 		c.putImageData(a,0,0);
 		this.altimg[f] = new Image();

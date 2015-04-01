@@ -60,7 +60,7 @@ Svarog.prototype.update = function(){
 	this.flip = this.force.x < 0;
 	
 	var dir = this.position.subtract(_player.position);
-	this.force.y += ( dir.y > -56 ? -.1 : .1 );
+	this.force.y += ( dir.y > -56 ? -.2 : .2 ) * this.delta;
 	
 	if( this.states.cooldown <= 0 ) {
 		this.states.cooldown = Game.DELTASECOND * 1.0;

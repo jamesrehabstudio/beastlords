@@ -39,7 +39,7 @@ Lift.prototype.update = function(){
 	this.force.y *= 0.9;
 	
 	var dir = this.position.subtract( _player.position );
-	var goto_y = 192 + (Math.floor( _player.position.y / 240 ) * 240);
+	var goto_y = 200 + (Math.floor( _player.position.y / 240 ) * 240);
 	if( this.onboard ) {
 		if( input.state("up") > 0 ) {
 			this.force.y = -this.speed;
@@ -49,12 +49,8 @@ Lift.prototype.update = function(){
 			audio.playLock("lift",0.2);
 		}
 	} else {
-		if( Math.abs( this.position.y - goto_y ) > 16 ) {
-			if( this.position.y > goto_y ) 
-				this.force.y = -this.speed;
-			else 
-				this.force.y = this.speed;
-		}
+		var speed = Math.min(Math.max(goto_y - this.position.y,-4.5),4.5);
+		this.force.y = speed;
 	}
 	
 	this.onboard = false;

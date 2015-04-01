@@ -33,7 +33,7 @@ WaystoneChest.prototype.update = function(g,c){
 				for(var i=0; i < this.door_blocks.length; i++){
 					game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, 1, 0);
 				}
-				Item.drop(this);
+				Item.drop(this,15,Game.DELTASECOND);
 			} else {
 				if( Math.random() > 0.2 ) {
 					treasure = dataManager.randomTreasure(Math.random(), ["chest"]);
@@ -42,14 +42,15 @@ WaystoneChest.prototype.update = function(g,c){
 					item.sleep = Game.DELTASECOND;
 					game.addObject(item);
 				} else {
-					Item.drop(this);
+					Item.drop(this,15,Game.DELTASECOND);
 				}
 			}
 			audio.play("open");
+			this.close();
 			this.destroy();
 		} else {
 			audio.play("negative");
-			this.open = 0;
+			this.close();
 		}
 	}
 }

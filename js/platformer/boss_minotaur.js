@@ -22,7 +22,7 @@ function Minotaur(x,y){
 		"dizzy" : 0
 	}
 	
-	this.life = dataManager.life(16);
+	this.life = dataManager.life(24);
 	this.mass = 5.0;
 	this.damage = 25;
 	this.collideDamage = 25;

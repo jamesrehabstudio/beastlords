@@ -29,7 +29,7 @@ function Marquis(x,y){
 		"rest" : Game.DELTASECOND * 1.0
 	};
 		
-	this.life = dataManager.life(16);
+	this.life = dataManager.life(24);
 	this.mass = 4.0;
 	this.damage = 25;
 	this.collideDamage = 10;
@@ -72,6 +72,13 @@ function Marquis(x,y){
 		
 		Item.drop(this,30);
 		this.destroy();
+	});
+	this.on("player_death", function(){
+		this.states["attack"] = 0;
+		this.states["cooldown"] = 100.0;
+		this.states["attack_type"] = 0;
+		this.states["direction"] = 1;
+		this.states["attack_down"] = false;
 	});
 	this.calculateXP();
 }

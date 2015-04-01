@@ -67,7 +67,7 @@ Healer.prototype.update = function(g,c){
 						audio.play("item1");
 					}
 					_player[this.currency] -= this.price;
-					this.open = 0;
+					this.close();
 					game.pause = false;
 				} else {
 					//Cannot afford it
@@ -75,12 +75,12 @@ Healer.prototype.update = function(g,c){
 				}
 			} else {
 				//Player selected no
-				this.open = 0;
+				this.close();
 				game.pause = false;
 			}
 		}
 		if( input.state("jump") == 1 || input.state("pause") == 1 ){
-			this.open = 0;
+			this.close();
 			game.pause = false;
 		}
 	}

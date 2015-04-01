@@ -97,8 +97,8 @@ function Player(x, y){
 	this.on("added", function(){
 		this.damage_buffer = 0;
 		this.lock_overwrite = false;
-		this.checkpoint.x = this.position.x;
-		this.checkpoint.y = this.position.y;
+		this.checkpoint = new Point(this.position.x, this.position.y);
+		this.force.x = this.force.y = 0;
 		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
@@ -335,12 +335,13 @@ Player.prototype.update = function(){
 			if( !this.states.startSwing ) {
 				audio.play("swing");
 				if( this.spellsCounters.magic_sword > 0 || this.hasCharm("charm_sword") ){
-					var offset_y = this.states.duck ? 6 : -4;
+					var offset_y = this.states.duck ? 6 : -6;
 					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
 					bullet.team = this.team;
 					bullet.speed = this.speed * 2;
+					bullet.knockbackScale = 0.0;
 					bullet.frame = 1;
-					bullet.damage = Math.max( Math.floor( this.damage * 0.75 ), 1 );
+					bullet.damage = Math.max( Math.floor( this.damage * 0.25 ), 1 );
 					game.addObject(bullet);
 				}
 			}

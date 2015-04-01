@@ -39,12 +39,12 @@ Villager.prototype.update = function(){
 			this.state++;
 			if( this.state >= this.message.length ){
 				this.state = 0;
-				this.open = false;
+				this.close();
 				game.pause = false;
 			}
 		}
 		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
-			this.open = false;
+			this.close();
 			game.pause = false;
 		}
 	} else {

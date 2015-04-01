@@ -64,12 +64,12 @@ Arena.prototype.update = function(g,c){
 			this.trigger("activate");
 			this.items = false;
 			this.canOpen = false;
-			this.open = 0;
+			this.close();
 			game.pause = false;
 			
 		}
 		if( input.state("jump") == 1 || input.state("pause") == 1 ){
-			this.open = 0;
+			this.close();
 			game.pause = false;
 		}
 	}

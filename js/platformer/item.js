@@ -98,7 +98,7 @@ Item.prototype.setName = function(n){
 	if(n == "short_sword") { 
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=4; this.bonus_att=0;
+		this.level=2; this.bonus_att=0;
 		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
 		return; 
 	}
@@ -133,10 +133,10 @@ Item.prototype.setName = function(n){
 	if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
 	if(n == "map") { this.frame = 3; this.frame_row = 1; return }
 	
-	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "mana_small") { this.frame = 4; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "money_bag") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
-	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); return; }
+	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "mana_small") { this.frame = 4; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "money_bag") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
 	
 	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.bounce = 0.5; return; }
@@ -193,11 +193,11 @@ Item.prototype.setName = function(n){
 Item.prototype.update = function(){
 	if( this.sleep != null ){
 		this.sleep -= this.delta;
+		this.interactive = this.sleep <= 0;
 		if(this.sleep > 0 ){
 			this.visible = !this.visible;
 		} else {
 			this.visible = true;
-			this.interactive = this.sleep <= 0;
 		}
 	}
 	if( this.frames.length > 0 ) {
@@ -207,12 +207,16 @@ Item.prototype.update = function(){
 		this.frame = Math.abs(this.frame);
 	}
 }
-Item.drop = function(obj,money){
+Item.drop = function(obj,money,sleep){
 	var money_only = obj.hasModule(mod_boss);
 	if(Math.random() > (_player.life / _player.lifeMax) && !money_only){
-		game.addObject( new Item( obj.position.x, obj.position.y, "life_small" ) );
+		var item = new Item( obj.position.x, obj.position.y, "life_small" );
+		if( sleep != undefined ) item.sleep = sleep;
+		game.addObject( item );
 	} else if (Math.random() < _player.waystone_bonus && !money_only) {
-		game.addObject( new Item( obj.position.x, obj.position.y, "waystone" ) );
+		var item = new Item( obj.position.x, obj.position.y, "waystone" );
+		if( sleep != undefined ) item.sleep = sleep;
+		game.addObject( item );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
@@ -232,6 +236,7 @@ Item.drop = function(obj,money){
 				money -= 1;
 			}
 			coin.force.y -= 5.0;
+			if( sleep != undefined ) coin.sleep = sleep;
 			game.addObject(coin);
 			
 		}

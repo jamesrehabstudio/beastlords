@@ -16,7 +16,7 @@ function Poseidon(x,y){
 	this.addModule( mod_boss );
 	
 	this.death_time = Game.DELTASECOND * 3;
-	this.life = dataManager.life(20);
+	this.life = dataManager.life(26);
 	this.collideDamage = 5;
 	this.damage = dataManager.damage(4);
 	this.landDamage = dataManager.damage(6);

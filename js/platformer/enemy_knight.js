@@ -39,7 +39,7 @@ function Knight(x,y){
 	this.xp_award = 18;
 	this.money_award = 8;
 	
-	this.level = 0.5 + Math.floor( Math.random() + dataManager.currentTemple / 3 );
+	this.level = 1 + Math.floor( dataManager.currentTemple / 3 );
 	this.fr_offset = 0;
 	this.cooldown_time = Game.DELTASECOND * 2.4;
 	

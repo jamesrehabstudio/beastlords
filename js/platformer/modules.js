@@ -242,7 +242,8 @@ var mod_combat = {
 					this.life -= damage;
 				
 				var dir = this.position.subtract( obj.position ).normalize();
-				this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) );
+				var scale = ("knockbackScale" in obj) ? obj.knockbackScale : 1.0;
+				this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) ) * scale;
 				this.invincible = this.invincible_time;
 				this.stun = this.stun_time;
 				this.trigger("hurt",obj,damage);
@@ -251,6 +252,9 @@ var mod_combat = {
 			}
 		}
 		this.calculateXP = function(scale){
+			if(!(this instanceof Player) && !this.hasModule(mod_boss))
+				this.filter = "t"+dataManager.currentTemple;
+			
 			scale = scale == undefined ? 1 : scale;
 			this.xp_award = 0;
 			this.xp_award += this.life / 8;
@@ -267,11 +271,14 @@ var mod_combat = {
 		});
 	},
 	"update" : function(){
+		if( this._base_filter == undefined ) {
+			this._base_filter = this.filter;
+		}
 		if( this.invincible > 0 ) {
 			this._hurt_strobe = (this._hurt_strobe + game.deltaUnscaled * 0.5 ) % 2;
-			this.filter = this._hurt_strobe < 1 ? "hurt" : false;
+			this.filter = this._hurt_strobe < 1 ? "hurt" : this._base_filter;
 		} else {
-			this.filter = false;
+			this.filter = this._base_filter;
 		}
 		
 		this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
@@ -397,6 +404,16 @@ var mod_talk = {
 		this.canOpen = true;
 		this._talk_is_over = 0;
 		
+		if(window._dialogueOpen == undefined){
+			window._dialogueOpen = false;
+		}
+		
+		this.close = function(){
+			this.open = 0;
+			window._dialogueOpen = false;
+			this.trigger("close");
+		}
+		
 		this.on("collideObject", function(obj){
 			if( obj instanceof Player ){
 				this._talk_is_over = 2;
@@ -404,8 +421,9 @@ var mod_talk = {
 		});
 	},
 	"update" : function(){
-		if( !game.pause && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
+		if( !window._dialogueOpen && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
 			this.open = 1;
+			window._dialogueOpen = true;
 			this.trigger("open");
 		}
 		this._talk_is_over--;

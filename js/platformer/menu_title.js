@@ -31,7 +31,7 @@ function TitleMenu(){
 	
 	this.stars = [
 		{ "pos" : new Point(), "timer" : 10 },
-		{ "pos" : new Point(), "timer" : 0 },
+		{ "pos" : new Point(), "timer" : 20 },
 		{ "pos" : new Point(), "timer" : 0 }
 	];
 	
@@ -88,14 +88,14 @@ TitleMenu.prototype.render = function(g,c){
 		for(var i=0; i<this.stars.length; i++) {
 			var frame = 2;
 			if( 
-				this.stars[i].timer > Game.DELTASECOND * 0.5 * 0.3 && 
-				this.stars[i].timer < Game.DELTASECOND * 0.5 * 0.67
+				this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
+				this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
 			) frame = 3;
 				
 			sprites.bullets.render(g,this.stars[i].pos,frame,2);
 			this.stars[i].timer -= this.delta;
 			if( this.stars[i].timer <= 0 ){
-				this.stars[i].timer = Game.DELTASECOND * 0.5;
+				this.stars[i].timer = Game.DELTASECOND * 1.0;
 				this.stars[i].pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
 			}			
 		}

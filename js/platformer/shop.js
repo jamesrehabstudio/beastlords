@@ -39,7 +39,7 @@ Shop.prototype.update = function(g,c){
 	if( this.open > 0 ) {
 		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
 			audio.playLock("unpause",0.3);
-			this.open = 0;
+			this.close();
 			game.pause = false;
 		}
 		
@@ -175,7 +175,11 @@ Shop.prototype.render = function(g,c){
 		if( this.soldout ) {
 			textArea(g,this.message[1],32,32,192);
 		} else {
-			textArea(g,this.message[0],32,32,192);
+			if( this.items[this.cursor] instanceof Item && "message" in this.items[this.cursor] ){
+				textArea(g,this.items[this.cursor].message,32,32,192);
+			} else {
+				textArea(g,this.message[0],32,32,192);
+			}
 		}
 	}
 }

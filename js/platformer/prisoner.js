@@ -80,7 +80,6 @@ Prisoner.prototype.update = function(){
 Prisoner.prototype.giveSpell = function(){
 	var spell_list = {
 		"magic_strength" : {"name":"Magic Strength","rarity":1.0},
-		"invincibility" : {"name":"Invincibility","rarity":0.5},
 		"flight" : {"name":"Flight","rarity":0.08},
 		"haste" : {"name":"Haste","rarity":0.7},
 		"magic_sword" : {"name":"Magic Sword","rarity":0.3},
@@ -88,6 +87,7 @@ Prisoner.prototype.giveSpell = function(){
 		"feather_foot" : {"name":"Feather Foot","rarity":0.9},
 		"thorns" : {"name":"Thorns","rarity":0.7},
 		"recover" : {"name":"Recover","rarity":0.2},
+		"invincibility" : {"name":"Invincibility","rarity":0.08},
 		"magic_song" : {"name":"Magic Song","rarity":0.05}
 	};
 	var total = 0;
