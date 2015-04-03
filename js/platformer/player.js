@@ -547,7 +547,7 @@ Player.prototype.addWaystone = function(value){
 Player.prototype.addMoney = function(value){
 	this.money += value;
 	if( this.hasCharm("charm_musa") ) {
-		this.life = Math.min( this.life + value, this.lifeMax );
+		this.life = Math.min( this.life + value*2, this.lifeMax );
 	}
 }
 Player.prototype.addXP = function(value){

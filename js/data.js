@@ -1017,7 +1017,7 @@ filter_pack_enemies = {
 	"t5" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.7); d[i+1] = Math.floor(d[i+1]*0.6); d[i+2] = Math.floor(d[i+2]*1.6); },
 	"t6" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.6); d[i+1] = Math.floor(d[i+1]*0.5); d[i+2] = Math.floor(d[i+2]*1.9); },
 	"t7" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.8); d[i+1] = Math.floor(d[i+1]*1.3); d[i+2] = Math.floor(d[i+2]*0.5); },
-	"t8" : function(d,i){ d[i+0]=d[i+1]=d[i+2]=Math.floor((d[i+0]+d[i+1]+d[i+2])/3); },
+	"t8" : function(d,i){ d[i+0]=d[i+1]=d[i+2]=Math.floor((d[i+0]+d[i+1]+d[i+2])/2.5); },
 	"special" : filter_enchanted
 }
 
