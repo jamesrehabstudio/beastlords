@@ -1524,7 +1524,7 @@ function CornerStone(x,y,parm,options){
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
-			ga("send","game","cornerstone","level",dataManager.currentTemple);
+			_gaq.push(["_trackEvent","cornerstone","level",dataManager.currentTemple]);
 		}
 	});
 	
@@ -5219,7 +5219,8 @@ TitleMenu.prototype.startGame = function(){
 	var world = new WorldMap(0,0);
 	world.mode = this.cursor > 0 ? 1 : 0;
 	
-	ga("send","game","gamestart","difficulty",world.mode);
+	_gaq.push(["_trackEvent","gamestart","difficulty",world.mode]);
+	
 	
 	game.clearAll();
 	game.addObject(world);
@@ -5731,8 +5732,8 @@ function Player(x, y){
 		audio.play("playerdeath");
 		this.destroy();
 		
-		ga("send","game","death","temple",dataManager.currentTemple);
-		ga("send","game","death","level",this.level);
+		_gaq.push(["_trackEvent","death","temple",dataManager.currentTemple]);
+		_gaq.push(["_trackEvent","death","level",this.level]);
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -6235,7 +6236,8 @@ Player.prototype.addXP = function(value){
 		this.life = this.lifeMax;
 		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
-		ga("send","game","levelup","level",this.level);
+		
+		_gaq.push(["_trackEvent","levelup",this.level]);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
