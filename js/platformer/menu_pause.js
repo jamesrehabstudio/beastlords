@@ -32,6 +32,7 @@ PauseMenu.prototype.update = function(){
 			}
 		} else if( this.page == 0 ) {
 			//Equipment page
+			/*
 			if( input.state("up") == 1 ) { this.cursor-=1; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor+=1; audio.play("cursor"); }
 			
@@ -46,6 +47,7 @@ PauseMenu.prototype.update = function(){
 					_player.equip( item, _player.equip_shield );
 				}
 			}
+			*/
 		} else if( this.page == 1 ) {
 			//Map page
 			if( input.state("fire") ) {
@@ -104,7 +106,7 @@ PauseMenu.prototype.update = function(){
 	} else {
 		if( ( input.state("pause") == 1 || input.state("select") == 1 ) && _player instanceof Player && _player.life > 0 ) {
 			this.open = true;
-			_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
+			//_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
 			this.mapCursor.x = 11 - Math.floor(_player.position.x / 256);
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
@@ -190,7 +192,7 @@ PauseMenu.prototype.render = function(g,c){
 			
 			boxArea(g,68,8,120,224);
 			textArea(g,"Equipment",94,20);
-			
+			/*
 			for(var i=0; i < _player.equipment.length; i++ ) {
 				var _y = 40 + i * 24;
 				_player.equipment[i].position.x = 0;
@@ -208,7 +210,7 @@ PauseMenu.prototype.render = function(g,c){
 			}
 			//Draw cursor
 			textArea(g,"@",80, 36 + this.cursor * 24 );
-			
+			*/
 		} else if ( this.page == 1 ) {
 			//Map
 			boxArea(g,16,8,224,224);

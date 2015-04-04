@@ -45,3 +45,7 @@ function textArea(g,s,x,y,w,h){
 		}
 	}
 }
+function textBox(g,s,x,y,w,h){
+	boxArea(g,x,y,w,h);
+	textArea(g,s,x+16,y+16,w-32,h-32);
+}

@@ -88,8 +88,9 @@ function DataManager() {
 		{"tags":["treasure","shop"],"name":"life_up","rarity":0.01,"pathSize":4,"doors":0.5,"pergame":9999,"price":500},
 		{"tags":["stone","chest"],"name":"waystone","rarity":0.2,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
 		
-		{"tags":["weapon"],"name":"long_sword","rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
-		{"tags":["weapon"],"name":"spear","rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
+		{"tags":["treasure","chest","weapon"],"name":"short_sword","rarity":0.2,"pathSize":2,"doors":0.0,"pergame":10,"price":20},
+		{"tags":["treasure","chest","weapon"],"name":"long_sword","rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
+		{"tags":["treasure","chest","weapon"],"name":"spear","rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
 		{"tags":["weapon"],"name":"tower_shield","rarity":0.05,"pathSize":4,"doors":0.5,"pergame":10,"price":50},
 		
 		{"tags":["treasure","shop"],"name":"seed_oriax","rarity":0.1,"pathSize":6,"doors":0.3,"pergame":1,"price":100},
@@ -1011,9 +1012,9 @@ filter_enchanted = function(d,i,w){
 filter_pack_enemies = {
 	"hurt":filter_hurt,
 	"t1" : function(d,i){ d[i+0] = Math.floor(d[i+0]*1.3); d[i+1] = Math.floor(d[i+1]*0.7); d[i+2] = Math.floor(d[i+2]*0.5); },
-	"t2" : function(d,i){ d[i+0] = Math.floor(d[i+0]*1.6); d[i+1] = Math.floor(d[i+1]*0.6); d[i+2] = Math.floor(d[i+2]*0.4); },
-	"t3" : function(d,i){ d[i+0] = Math.floor(d[i+0]*1.9); d[i+1] = Math.floor(d[i+1]*0.5); d[i+2] = Math.floor(d[i+2]*0.3); },
-	"t4" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.8); d[i+1] = Math.floor(d[i+1]*0.7); d[i+2] = Math.floor(d[i+2]*1.3); },
+	"t2" : function(d,i){ var r = d[i+0]; d[i+0] = d[i+1]; d[i+1] = r; },
+	"t3" : function(d,i){ var g = d[i+1]; d[i+1] = d[i+2]; d[i+2] = g; },
+	"t4" : function(d,i){ var b = d[i+2]; d[i+2] = d[i+0]; d[i+0] = b; },
 	"t5" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.7); d[i+1] = Math.floor(d[i+1]*0.6); d[i+2] = Math.floor(d[i+2]*1.6); },
 	"t6" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.6); d[i+1] = Math.floor(d[i+1]*0.5); d[i+2] = Math.floor(d[i+2]*1.9); },
 	"t7" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.8); d[i+1] = Math.floor(d[i+1]*1.3); d[i+2] = Math.floor(d[i+2]*0.5); },

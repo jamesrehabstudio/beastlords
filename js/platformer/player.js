@@ -11,12 +11,12 @@ function Player(x, y){
 	this.checkpoint = new Point(x,y);
 	
 	this.keys = [];
-	this.equipment = [new Item(0,0,"short_sword"), new Item(0,0,"small_shield")];
+	//this.equipment = [new Item(0,0,"short_sword"), new Item(0,0,"small_shield")];
 	this.spells = [];
 	this.charm = false;
 	
-	this.equip_sword = this.equipment[0];
-	this.equip_shield = this.equipment[1];
+	this.equip_sword = new Item(0,0,"short_sword",{"enchantChance":0});
+	this.equip_shield = new Item(0,0,"small_shield",{"enchantChance":0});
 	
 	
 	window._player = this;
@@ -152,7 +152,7 @@ function Player(x, y){
 		"technique" : 1
 	}
 	
-	this.equip(this.equipment[0], this.equipment[1]);
+	this.equip(this.equip_sword, this.equip_shield);
 	
 	this.spellsUnlocked = {};
 	this.selectedSpell = "";
@@ -335,7 +335,7 @@ Player.prototype.update = function(){
 			if( !this.states.startSwing ) {
 				audio.play("swing");
 				if( this.spellsCounters.magic_sword > 0 || this.hasCharm("charm_sword") ){
-					var offset_y = this.states.duck ? 6 : -6;
+					var offset_y = this.states.duck ? 6 : -8;
 					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
 					bullet.team = this.team;
 					bullet.speed = this.speed * 2;
@@ -349,11 +349,12 @@ Player.prototype.update = function(){
 			
 			//Create box to detect enemies
 			var temp_damage = this.damage;
+			var type = this.equip_sword.phantom ? "hurt" : "struck";
 			if( this.spellsCounters.magic_strength > 0 ) temp_damage = Math.floor(temp_damage*1.25);
 			this.strike(new Line(
 				new Point( 12, (this.states.duck ? 4 : -4) ),
 				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
-			), "struck", temp_damage );
+			), type, temp_damage );
 		} else {
 			this.states.startSwing = false;
 		}
@@ -447,7 +448,7 @@ Player.prototype.equipCharm = function(c){
 	c.trigger("equip");
 }
 Player.prototype.equip = function(sword, shield){
-	try {
+	try {		
 		if( sword.isWeapon && "stats" in sword ){
 			this.attackProperites.warm =  sword.stats.warm;
 			this.attackProperites.strike = sword.stats.strike;
@@ -485,6 +486,28 @@ Player.prototype.equip = function(sword, shield){
 			this.shieldProperties.stand = Number.MAX_VALUE;
 			this.shieldProperties.frame_row = 5;
 		}
+		
+		//Drop old weapon
+		if( this.equip_sword != undefined && this.equip_sword != sword ){
+			this.equip_sword.trigger("unequip",this);
+			this.equip_sword.sleep = Game.DELTASECOND * 2;
+			this.equip_sword.position.x = this.position.x;
+			this.equip_sword.position.y = this.position.y;
+			game.addObject( this.equip_sword );
+		}
+		
+		//Drop old shield
+		if( this.equip_shield != undefined && this.equip_shield != shield ){
+			this.equip_shield.trigger("unequip",this);
+			this.equip_shield.sleep = Game.DELTASECOND * 2;
+			this.equip_shield.position.x = this.position.x;
+			this.equip_shield.position.y = this.position.y;
+			game.addObject( this.equip_shield );
+		}
+		
+		if( this.equip_sword != sword && sword instanceof Item ) sword.trigger("equip", this);
+		if( this.equip_shield != shield && shield instanceof Item ) shield.trigger("equip", this);
+		
 		this.equip_sword = sword;
 		this.equip_shield = shield;
 		

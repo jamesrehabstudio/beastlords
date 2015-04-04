@@ -120,6 +120,7 @@ Shop.prototype.restockTown = function(data){
 		var treasure = data.randomTreasure(s.random(),tags);
 		var x = this.position.x + (i*32) + -40;
 		
+		/*
 		for(var j=0; j<_player.equipment.length; j++){
 			if( treasure != null ) {
 				if( _player.equipment[j].name == treasure.name ){
@@ -135,6 +136,7 @@ Shop.prototype.restockTown = function(data){
 				}
 			}
 		}
+		*/
 		
 		//treasure.remaining--;
 		if( treasure != null ) {
