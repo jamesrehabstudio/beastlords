@@ -63,9 +63,7 @@ Villager.prototype.update = function(){
 		this.frame = Math.max( (this.frame + Math.abs(this.direction) * this.delta * this.speed * 0.2) % (this.base_frame+3), this.base_frame);
 	}
 }
-Villager.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	
+Villager.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {
 		var m = this.message[this.state].replace("%TOWNNAME%",this.town.name);
 		boxArea(g,16,48,224,64);

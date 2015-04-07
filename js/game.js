@@ -153,12 +153,19 @@ Sprite.prototype.imageLoaded = function() {
 	for( var f in this.filters ) {
 		var canvas = document.createElement("canvas");
 		var c = canvas.getContext('2d');
-		canvas.width = c.width = this.img.width;
-		canvas.height = c.height = this.img.height;
+		c.width = this.img.width;
+		c.height = this.img.height;
 		c.drawImage(this.img,0,0);
-		var a = c.getImageData(0,0,this.img.width,this.img.height);
+		var a = c.getImageData(0,0,c.width,c.height);
 		for(var i=0; i < a.data.length; i+=4) {
 			this.filters[f](a.data,i,c.width,c.height);
+			/*
+			if( a.data[i+3] > 100 ) {
+				a.data[i+0] = Math.floor(255-a.data[i+0]*0.5);
+				a.data[i+1] = 255-a.data[i+1];
+				a.data[i+2] = 255-a.data[i+2];
+			}
+			*/
 		}
 		c.putImageData(a,0,0);
 		this.altimg[f] = new Image();
@@ -248,6 +255,7 @@ function Game( elm ) {
 	this.g.imageSmoothingEnabled = false;
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
+	this.renderOrder = [0,1,"o"];
 	
 	this.element.onclick = function(){
 		var fullscreen = 
@@ -354,6 +362,7 @@ Game.prototype.update = function( ) {
 	//this._pathfinder.postMessage(this.objects);
 	this.renderTree = [];
 	this.prerenderTree = [];
+	this.postrenderTree = [];
 	//rebuild Interactive Objects
 	//this.renderTree = new BSPTree(this.bounds, 4);
 	var temp_interactive = new BSPTree(this.bounds, 4);
@@ -388,6 +397,9 @@ Game.prototype.update = function( ) {
 			}
 			if ( obj.prerender instanceof Function ) {
 				this.prerenderTree.push( obj );
+			}
+			if ( obj.postrender instanceof Function ) {
+				this.postrenderTree.push( obj );
 			}
 			if ( obj.visible ) {
 				this.renderTree.push( obj );
@@ -439,6 +451,40 @@ Game.prototype.render = function( ) {
 		}
 	}
 	
+	for(var o=0; o < this.renderOrder.length; o++){
+		if( this.renderOrder[o] == "o" ){
+			for ( var i in renderList ) {
+				if ( renderList[i] instanceof GameObject ) {
+					var obj = renderList[i];
+					obj.render( this.g, camera_center );
+					
+					for(var i=0; i < obj.modules.length; i++){
+						if( "render" in obj.modules[i] ) obj.modules[i].render.apply(obj,[this.g, camera_center]);
+					}
+				}		
+			}
+		} else {
+			this.renderTile( this.renderOrder[o] );
+		}
+	}
+	
+	//Postrender
+	for ( var i in this.postrenderTree ) {
+		if ( this.postrenderTree[i] instanceof GameObject ) {
+			this.postrenderTree[i].postrender(this.g, camera_center);
+		}
+	}
+	
+	
+	//Debug, show collisions
+	if ( window.debug && this.lines instanceof BSPTree ) {
+		var lines = this.lines.get(new Line(this.camera.x-32,this.camera.y-32,this.camera.x+game.width+32,this.camera.y+game.height+32));
+		for ( var i = 0; i < lines.length; i++ ){
+			lines[i].render( this.g, camera_center );
+		}
+	}
+}
+Game.prototype.renderTile = function(layer){
 	//Render tiles
 	if( this.tiles != null ){
 		var ts = 16;
@@ -447,15 +493,14 @@ Game.prototype.render = function( ) {
 			(this.camera.y%ts)
 		);
 		for(var x=0; x <= (1+this.width)/ts; x++)
-		for(var y=0; y <= (1+this.height)/ts; y++)
-		for(var l=0; l < this.tiles.length; l++) {
+		for(var y=0; y <= (1+this.height)/ts; y++){
 			var _x = x + Math.floor(this.camera.x / ts) - this.tileDimension.start.x;
 			var tile_index = Math.floor(
 				_x + (y + Math.trunc(this.camera.y / ts) - this.tileDimension.start.y) * this.tileDimension.width()
 			);
 			if(_x >= 0 && _x < this.tileDimension.width() ){
 				
-				var tile_render_index = this.tiles[l][tile_index] - 1;
+				var tile_render_index = this.tiles[layer][tile_index] - 1;
 				if( tile_render_index >= 0 ) {
 					var offset = new Point( 
 						(x*ts)-camera_offset.x,
@@ -464,25 +509,6 @@ Game.prototype.render = function( ) {
 					this.tileSprite.render(this.g,offset,tile_render_index);
 				}
 			}
-		}
-	}
-	
-	for ( var i in renderList ) {
-		if ( renderList[i] instanceof GameObject ) {
-			var obj = renderList[i];
-			obj.render( this.g, camera_center );
-			
-			for(var i=0; i < obj.modules.length; i++){
-				if( "render" in obj.modules[i] ) obj.modules[i].render.apply(obj,[this.g, camera_center]);
-			}
-		}		
-	}
-	
-	//Debug, show collisions
-	if ( window.debug && this.lines instanceof BSPTree ) {
-		var lines = this.lines.get(new Line(this.camera.x-32,this.camera.y-32,this.camera.x+game.width+32,this.camera.y+game.height+32));
-		for ( var i = 0; i < lines.length; i++ ){
-			lines[i].render( this.g, camera_center );
 		}
 	}
 }

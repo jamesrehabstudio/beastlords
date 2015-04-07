@@ -105,9 +105,7 @@ Prisoner.prototype.giveSpell = function(){
 		}
 	}
 }
-Prisoner.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	
+Prisoner.prototype.postrender = function(g,c){	
 	if( this.phase == 1 ){
 		boxArea(g,16,16,224,64);
 		textArea(g, this.message_thanks, 32,32,192);

@@ -241,9 +241,11 @@ var mod_combat = {
 				else
 					this.life -= damage;
 				
-				var dir = this.position.subtract( obj.position ).normalize();
-				var scale = ("knockbackScale" in obj) ? obj.knockbackScale : 1.0;
-				this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) ) * scale;
+				if(this.hasModule(mod_rigidbody)){
+					var dir = this.position.subtract( obj.position ).normalize();
+					var scale = ("knockbackScale" in obj) ? obj.knockbackScale : 1.0;
+					this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) ) * scale;
+				}
 				this.invincible = this.invincible_time;
 				this.stun = this.stun_time;
 				this.trigger("hurt",obj,damage);

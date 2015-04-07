@@ -161,7 +161,9 @@ Shop.prototype.getPrice = function(i){
 Shop.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	sprites.retailers.render(g,this.position.subtract(c),this.anim_character,0,false);
-	
+}
+
+Shop.prototype.postrender = function(g,c){	
 	if( this.open > 0 ){		
 		this.soldout = true;
 		for(var i=0; i < this.items.length; i++ ){

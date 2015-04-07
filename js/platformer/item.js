@@ -118,7 +118,7 @@ Item.prototype.setName = function(n){
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":10,"rest":7.0,"range":18, "sprite":sprites.sword2 };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":18, "sprite":sprites.sword2 };
 		this.message = "Long sword\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -142,7 +142,7 @@ Item.prototype.setName = function(n){
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":27, "sprite":sprites.sword3 };
 		this.message = "Spear\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);

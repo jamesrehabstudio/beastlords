@@ -9,6 +9,9 @@ function Bullet(x,y,d){
 	this.blockable = true;
 	this.range = 512;
 	
+	this.delay = 0;
+	this.delayVector = new Point();
+	
 	this.effect = null;
 	this.effect_time = 0;
 	
@@ -58,6 +61,8 @@ function Bullet(x,y,d){
 Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
 	if( this.range <= 0 ) this.destroy();
+	
+	if(
 	
 	if(this.effect!=null){
 		if( this.effect_time <= 0 ){

@@ -86,9 +86,7 @@ Healer.prototype.update = function(g,c){
 	}
 	this.frame = this.open > 0 ? 1 : 0;
 }
-Healer.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	
+Healer.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {
 		boxArea(g,16,48,224,64);
 		textArea(g,this.message[this.type].replace("%PRICE%",this.price),32,64,192,64);

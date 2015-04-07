@@ -1389,6 +1389,9 @@ function Bullet(x,y,d){
 	this.blockable = true;
 	this.range = 512;
 	
+	this.delay = 0;
+	this.delayVector = new Point();
+	
 	this.effect = null;
 	this.effect_time = 0;
 	
@@ -1438,6 +1441,8 @@ function Bullet(x,y,d){
 Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
 	if( this.range <= 0 ) this.destroy();
+	
+	if(
 	
 	if(this.effect!=null){
 		if( this.effect_time <= 0 ){
@@ -1829,7 +1834,7 @@ function Amon(x,y){
 		this.destroy();
 	});
 	
-	this.life = dataManager.life(3);
+	this.life = dataManager.life(0);
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;
 	this.friction = 0.0;
@@ -4396,9 +4401,7 @@ Healer.prototype.update = function(g,c){
 	}
 	this.frame = this.open > 0 ? 1 : 0;
 }
-Healer.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	
+Healer.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {
 		boxArea(g,16,48,224,64);
 		textArea(g,this.message[this.type].replace("%PRICE%",this.price),32,64,192,64);
@@ -4535,7 +4538,7 @@ Item.prototype.setName = function(n){
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":10,"rest":7.0,"range":18, "sprite":sprites.sword2 };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":18, "sprite":sprites.sword2 };
 		this.message = "Long sword\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -4559,7 +4562,7 @@ Item.prototype.setName = function(n){
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":13.5,"rest":8.0,"range":27, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":27, "sprite":sprites.sword3 };
 		this.message = "Spear\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -4921,23 +4924,24 @@ PauseMenu.prototype.update = function(){
 				return;
 			}
 		} else if( this.page == 0 ) {
-			//Equipment page
-			/*
+			//Option page
+			
 			if( input.state("up") == 1 ) { this.cursor-=1; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor+=1; audio.play("cursor"); }
 			
-			this.cursor = Math.max( Math.min( this.cursor, _player.equipment.length -1 ), 0 );
+			this.cursor = Math.max( Math.min( this.cursor, 2), 0 );
 			
-			if( input.state("fire") == 1 ) {
-				var item = _player.equipment[this.cursor];
-				audio.play("equip");
-				if( item.name.match(/shield/) ){
-					_player.equip( _player.equip_sword, item );
-				} else {
-					_player.equip( item, _player.equip_shield );
-				}
+			if( input.state("fire") == 1) {
+				audio.play("cursor");
+				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
+				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
+				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
+			} else if( input.state("jump") == 1) {
+				audio.play("cursor");
+				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
+				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
+				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
 			}
-			*/
 		} else if( this.page == 1 ) {
 			//Map page
 			if( input.state("fire") ) {
@@ -5078,10 +5082,29 @@ PauseMenu.prototype.render = function(g,c){
 			boxArea(g,68,168,120,40);
 			textArea(g,"Press start",84,184);
 		} else if( this.page == 0 ) {
-			//Equipment
+			//Option
 			
 			boxArea(g,68,8,120,224);
-			textArea(g,"Equipment",94,20);
+			textArea(g,"Settings",98,20);
+			
+			textArea(g,"Difficulty",84,40);
+			textArea(g,(_world.mode==0?"Easy":"Hardcore"),88,52);
+			
+			textArea(g,"Guard Style",84,72);
+			textArea(g,(_player.autoblock?"Automatic":"Manual"),88,84);
+			
+			textArea(g,"SFX Volume",84,104);
+			g.fillStyle = "#e45c10";
+			for(var i=0; i<audio.sfxVolume.gain.value*20; i++)
+				g.scaleFillRect(88+i*4, 116, 3, 8 );
+			
+			textArea(g,"MUS Volume",84,136);
+			g.fillStyle = "#e45c10";
+			for(var i=0; i<audio.musVolume.gain.value*20; i++)
+				g.scaleFillRect(88+i*4, 148, 3, 8 );
+			
+			//Draw cursor
+			textArea(g,"@",80, 84 + this.cursor * 32 );
 			/*
 			for(var i=0; i < _player.equipment.length; i++ ) {
 				var _y = 40 + i * 24;
@@ -5596,9 +5619,11 @@ var mod_combat = {
 				else
 					this.life -= damage;
 				
-				var dir = this.position.subtract( obj.position ).normalize();
-				var scale = ("knockbackScale" in obj) ? obj.knockbackScale : 1.0;
-				this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) ) * scale;
+				if(this.hasModule(mod_rigidbody)){
+					var dir = this.position.subtract( obj.position ).normalize();
+					var scale = ("knockbackScale" in obj) ? obj.knockbackScale : 1.0;
+					this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) ) * scale;
+				}
 				this.invincible = this.invincible_time;
 				this.stun = this.stun_time;
 				this.trigger("hurt",obj,damage);
@@ -5826,7 +5851,8 @@ function Player(x, y){
 		"attack" : 0.0,
 		"stun" : 0.0,
 		"start_attack" : false,
-		"death_clock" : Game.DELTASECOND
+		"death_clock" : Game.DELTASECOND,
+		"guard_down" : false
 	};
 	
 	this.attackProperites = {
@@ -6056,7 +6082,7 @@ function Player(x, y){
 		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
-	this.waystone_bonus = 0.02;
+	this.waystone_bonus = 0.04;
 	this.life_steal = 0.0;
 	
 	this.addXP(0);
@@ -6088,38 +6114,42 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
-			if ( !this.autoblock ) {
-				if( input.state('block') > 0 ){
-					this.force.x = Math.min( Math.max( this.force.x, -2), 2);
-					this.states.guard = this.states.attack <= 0;
-				}
-			} else {
-				this.states.guard = this.states.attack <= 0;
-			}
-			
-			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
-			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
+			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand();}
+			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); }
 			if ( input.state('fire') == 1 ) { this.attack(); }
 			
-			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
-			if ( input.state('up') == 1 ) { this.stand(); }
+			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
 			
-			if( this.spellsCounters.flight > 0 ) {
-				this.gravity = 0.1;
-				if ( input.state('down') > 0 ) { this.force.y += speed * this.delta * 0.3 }
-				if ( input.state('up') > 0 || input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.3 }
-			} else { 
-				if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
-				this.gravity = 1.0; 
+			if ( !this.autoblock &&  input.state('block') > 0) {
+				if( input.state("block") == 1 ) this.states.guard_down = this.states.duck;
+				if( input.state('down') == 1 ) this.states.guard_down = true;
+				if( input.state('up') == 1 ) this.states.guard_down = false;
+				
+				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
+				this.states.guard = this.states.attack <= 0;
+			} else {
+				if ( input.state('left') > 0 ) { this.flip = true;}
+				if ( input.state('right') > 0 ) { this.flip = false; }
+				if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
+				if ( input.state('up') == 1 ) { this.stand(); }
+				
+				if( this.autoblock ) this.states.guard = this.states.attack <= 0;
 			}
 		}
 		
 		//Apply jump boost
-		if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
-			var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-			this.force.y -= this.gravity * boost * this.delta; 
-		} else {
-			this.jump_boost = false;
+		if( this.spellsCounters.flight > 0 ) {
+			this.gravity = 0.2;
+			if ( input.state('down') > 0 ) { this.force.y += speed * this.delta * 0.3 }
+			if ( input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.4 }
+		} else { 
+			this.gravity = 1.0; 
+			if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
+				var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+				this.force.y -= this.gravity * boost * this.delta; 
+			} else {
+				this.jump_boost = false;
+			}
 		}
 		
 		this.friction = this.grounded ? 0.2 : 0.05;
@@ -6158,7 +6188,12 @@ Player.prototype.update = function(){
 	
 	//Shield
 	this.guard.active = this.states.guard;
-	this.guard.y = this.states.duck ? this.shieldProperties.duck : this.shieldProperties.stand;
+	if( this.autoblock ) {
+		this.states.guard_down = this.states.duck;
+		this.guard.y = this.states.duck ? this.shieldProperties.duck : this.shieldProperties.stand;
+	} else { 
+		this.guard.y = this.states.guard_down ? this.shieldProperties.duck : this.shieldProperties.stand;
+	}
 	
 	//Animation
 	if ( this.stun > 0 || this.life < 0 ) {
@@ -6211,6 +6246,9 @@ Player.prototype.duck = function(){
 }
 Player.prototype.jump = function(){ 
 	var force = 7;
+	
+	if( this.spellsCounters.flight > 0 ) force = 1;
+	
 	this.force.y -= force; 
 	this.grounded = false; 
 	this.jump_boost = true; 
@@ -6397,20 +6435,22 @@ Player.prototype.hasCharm = function(value){
 	return false;
 }
 Player.prototype.render = function(g,c){
-	var shield_frame = (this.states.duck ? 1:0) + (this.states.guard ? 0:2);
+	var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
 	this.sprite.render(g, this.position.subtract(c), shield_frame, this.shieldProperties.frame_row, this.flip);
 	
 	
 	if( this.spellsCounters.flight > 0 ){
 		var wings_offset = new Point((this.flip?8:-8),0);
-		sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),3-(this.spellsCounters.flight*0.2)%3, 0, this.flip);
+		var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
+		if( this.grounded ) wings_frame = 0;
+		sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
+	}
+	if( this.spellsCounters.magic_armour > 0 ){
+		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
 	}
 	
 	GameObject.prototype.render.apply(this,[g,c]);
 	
-	if( this.spellsCounters.magic_armour > 0 ){
-		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
-	}
 	if( this.spellsCounters.thorns > 0 ){
 		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
 	}
@@ -6595,9 +6635,7 @@ Prisoner.prototype.giveSpell = function(){
 		}
 	}
 }
-Prisoner.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	
+Prisoner.prototype.postrender = function(g,c){	
 	if( this.phase == 1 ){
 		boxArea(g,16,16,224,64);
 		textArea(g, this.message_thanks, 32,32,192);
@@ -6827,7 +6865,9 @@ Shop.prototype.getPrice = function(i){
 Shop.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	sprites.retailers.render(g,this.position.subtract(c),this.anim_character,0,false);
-	
+}
+
+Shop.prototype.postrender = function(g,c){	
 	if( this.open > 0 ){		
 		this.soldout = true;
 		for(var i=0; i < this.items.length; i++ ){
@@ -7030,9 +7070,7 @@ Villager.prototype.update = function(){
 		this.frame = Math.max( (this.frame + Math.abs(this.direction) * this.delta * this.speed * 0.2) % (this.base_frame+3), this.base_frame);
 	}
 }
-Villager.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	
+Villager.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {
 		var m = this.message[this.state].replace("%TOWNNAME%",this.town.name);
 		boxArea(g,16,48,224,64);

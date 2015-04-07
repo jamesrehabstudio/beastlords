@@ -31,23 +31,24 @@ PauseMenu.prototype.update = function(){
 				return;
 			}
 		} else if( this.page == 0 ) {
-			//Equipment page
-			/*
+			//Option page
+			
 			if( input.state("up") == 1 ) { this.cursor-=1; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor+=1; audio.play("cursor"); }
 			
-			this.cursor = Math.max( Math.min( this.cursor, _player.equipment.length -1 ), 0 );
+			this.cursor = Math.max( Math.min( this.cursor, 2), 0 );
 			
-			if( input.state("fire") == 1 ) {
-				var item = _player.equipment[this.cursor];
-				audio.play("equip");
-				if( item.name.match(/shield/) ){
-					_player.equip( _player.equip_sword, item );
-				} else {
-					_player.equip( item, _player.equip_shield );
-				}
+			if( input.state("fire") == 1) {
+				audio.play("cursor");
+				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
+				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
+				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
+			} else if( input.state("jump") == 1) {
+				audio.play("cursor");
+				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
+				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
+				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
 			}
-			*/
 		} else if( this.page == 1 ) {
 			//Map page
 			if( input.state("fire") ) {
@@ -188,10 +189,29 @@ PauseMenu.prototype.render = function(g,c){
 			boxArea(g,68,168,120,40);
 			textArea(g,"Press start",84,184);
 		} else if( this.page == 0 ) {
-			//Equipment
+			//Option
 			
 			boxArea(g,68,8,120,224);
-			textArea(g,"Equipment",94,20);
+			textArea(g,"Settings",98,20);
+			
+			textArea(g,"Difficulty",84,40);
+			textArea(g,(_world.mode==0?"Easy":"Hardcore"),88,52);
+			
+			textArea(g,"Guard Style",84,72);
+			textArea(g,(_player.autoblock?"Automatic":"Manual"),88,84);
+			
+			textArea(g,"SFX Volume",84,104);
+			g.fillStyle = "#e45c10";
+			for(var i=0; i<audio.sfxVolume.gain.value*20; i++)
+				g.scaleFillRect(88+i*4, 116, 3, 8 );
+			
+			textArea(g,"MUS Volume",84,136);
+			g.fillStyle = "#e45c10";
+			for(var i=0; i<audio.musVolume.gain.value*20; i++)
+				g.scaleFillRect(88+i*4, 148, 3, 8 );
+			
+			//Draw cursor
+			textArea(g,"@",80, 84 + this.cursor * 32 );
 			/*
 			for(var i=0; i < _player.equipment.length; i++ ) {
 				var _y = 40 + i * 24;

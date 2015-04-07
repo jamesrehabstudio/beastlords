@@ -30,7 +30,8 @@ function Player(x, y){
 		"attack" : 0.0,
 		"stun" : 0.0,
 		"start_attack" : false,
-		"death_clock" : Game.DELTASECOND
+		"death_clock" : Game.DELTASECOND,
+		"guard_down" : false
 	};
 	
 	this.attackProperites = {
@@ -260,7 +261,7 @@ function Player(x, y){
 		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
-	this.waystone_bonus = 0.02;
+	this.waystone_bonus = 0.04;
 	this.life_steal = 0.0;
 	
 	this.addXP(0);
@@ -292,38 +293,42 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
-			if ( !this.autoblock ) {
-				if( input.state('block') > 0 ){
-					this.force.x = Math.min( Math.max( this.force.x, -2), 2);
-					this.states.guard = this.states.attack <= 0;
-				}
-			} else {
-				this.states.guard = this.states.attack <= 0;
-			}
-			
-			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand(); this.flip = true;}
-			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); this.flip = false; }
+			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand();}
+			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); }
 			if ( input.state('fire') == 1 ) { this.attack(); }
 			
-			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
-			if ( input.state('up') == 1 ) { this.stand(); }
+			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
 			
-			if( this.spellsCounters.flight > 0 ) {
-				this.gravity = 0.1;
-				if ( input.state('down') > 0 ) { this.force.y += speed * this.delta * 0.3 }
-				if ( input.state('up') > 0 || input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.3 }
-			} else { 
-				if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
-				this.gravity = 1.0; 
+			if ( !this.autoblock &&  input.state('block') > 0) {
+				if( input.state("block") == 1 ) this.states.guard_down = this.states.duck;
+				if( input.state('down') == 1 ) this.states.guard_down = true;
+				if( input.state('up') == 1 ) this.states.guard_down = false;
+				
+				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
+				this.states.guard = this.states.attack <= 0;
+			} else {
+				if ( input.state('left') > 0 ) { this.flip = true;}
+				if ( input.state('right') > 0 ) { this.flip = false; }
+				if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
+				if ( input.state('up') == 1 ) { this.stand(); }
+				
+				if( this.autoblock ) this.states.guard = this.states.attack <= 0;
 			}
 		}
 		
 		//Apply jump boost
-		if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
-			var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-			this.force.y -= this.gravity * boost * this.delta; 
-		} else {
-			this.jump_boost = false;
+		if( this.spellsCounters.flight > 0 ) {
+			this.gravity = 0.2;
+			if ( input.state('down') > 0 ) { this.force.y += speed * this.delta * 0.3 }
+			if ( input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.4 }
+		} else { 
+			this.gravity = 1.0; 
+			if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
+				var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+				this.force.y -= this.gravity * boost * this.delta; 
+			} else {
+				this.jump_boost = false;
+			}
 		}
 		
 		this.friction = this.grounded ? 0.2 : 0.05;
@@ -362,7 +367,12 @@ Player.prototype.update = function(){
 	
 	//Shield
 	this.guard.active = this.states.guard;
-	this.guard.y = this.states.duck ? this.shieldProperties.duck : this.shieldProperties.stand;
+	if( this.autoblock ) {
+		this.states.guard_down = this.states.duck;
+		this.guard.y = this.states.duck ? this.shieldProperties.duck : this.shieldProperties.stand;
+	} else { 
+		this.guard.y = this.states.guard_down ? this.shieldProperties.duck : this.shieldProperties.stand;
+	}
 	
 	//Animation
 	if ( this.stun > 0 || this.life < 0 ) {
@@ -415,6 +425,9 @@ Player.prototype.duck = function(){
 }
 Player.prototype.jump = function(){ 
 	var force = 7;
+	
+	if( this.spellsCounters.flight > 0 ) force = 1;
+	
 	this.force.y -= force; 
 	this.grounded = false; 
 	this.jump_boost = true; 
@@ -601,20 +614,22 @@ Player.prototype.hasCharm = function(value){
 	return false;
 }
 Player.prototype.render = function(g,c){
-	var shield_frame = (this.states.duck ? 1:0) + (this.states.guard ? 0:2);
+	var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
 	this.sprite.render(g, this.position.subtract(c), shield_frame, this.shieldProperties.frame_row, this.flip);
 	
 	
 	if( this.spellsCounters.flight > 0 ){
 		var wings_offset = new Point((this.flip?8:-8),0);
-		sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),3-(this.spellsCounters.flight*0.2)%3, 0, this.flip);
+		var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
+		if( this.grounded ) wings_frame = 0;
+		sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
+	}
+	if( this.spellsCounters.magic_armour > 0 ){
+		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
 	}
 	
 	GameObject.prototype.render.apply(this,[g,c]);
 	
-	if( this.spellsCounters.magic_armour > 0 ){
-		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
-	}
 	if( this.spellsCounters.thorns > 0 ){
 		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
 	}

@@ -42,7 +42,7 @@ function Amon(x,y){
 		this.destroy();
 	});
 	
-	this.life = dataManager.life(3);
+	this.life = dataManager.life(0);
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;
 	this.friction = 0.0;
