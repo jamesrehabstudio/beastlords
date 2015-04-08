@@ -10,7 +10,6 @@ function Bullet(x,y,d){
 	this.range = 512;
 	
 	this.delay = 0;
-	this.delayVector = new Point();
 	
 	this.effect = null;
 	this.effect_time = 0;
@@ -62,7 +61,11 @@ Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
 	if( this.range <= 0 ) this.destroy();
 	
-	if(
+	if( this.delay > 0 ) {
+		this.deltaScale = 0.0;
+		this.delay -= this.deltaUnscaled;
+		if( this.delay <= 0 ) this.deltaScale = 1.0;
+	}
 	
 	if(this.effect!=null){
 		if( this.effect_time <= 0 ){

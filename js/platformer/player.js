@@ -426,7 +426,7 @@ Player.prototype.duck = function(){
 Player.prototype.jump = function(){ 
 	var force = 7;
 	
-	if( this.spellsCounters.flight > 0 ) force = 1;
+	if( this.spellsCounters.flight > 0 ) force = 2;
 	
 	this.force.y -= force; 
 	this.grounded = false; 

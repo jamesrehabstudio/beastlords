@@ -77,7 +77,7 @@ function Item(x,y,name, ops){
 			if( this.name == "broken_banana") { obj.attackEffects.weaken[0] += .2; audio.play("levelup"); }
 			if( this.name == "blood_letter") { obj.attackEffects.bleeding[0] += .2; audio.play("levelup"); }
 			if( this.name == "red_cape") { obj.attackEffects.rage[0] += .2; audio.play("levelup"); }
-			if( this.name == "chort_nose") { obj.waystone_bonus += .08; audio.play("levelup"); }
+			if( this.name == "chort_nose") { obj.waystone_bonus *= 2.0; audio.play("levelup"); }
 			if( this.name == "plague_mask") { obj.spellsCounters.poison=0; obj.on("status_effect",function(i){ this.spellsCounters.poison=0; }); audio.play("levelup"); }
 			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); audio.play("levelup"); }
 			

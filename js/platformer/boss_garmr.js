@@ -73,6 +73,7 @@ Garmr.prototype.update = function(){
 				bullet.team = this.team;
 				bullet.damage = this.damage;
 				bullet.knockbackScale = 0.0;
+				bullet.delay = Game.DELTASECOND * 0.5;
 				bullet.force = new Point((this.flip?-1:1)*3, 0);
 				game.addObject(bullet);
 			}
