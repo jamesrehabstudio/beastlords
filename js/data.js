@@ -740,7 +740,7 @@ DataManager.prototype.addRoom = function(options, level, direction, cursor, conn
 			//Add waterfall
 			if( 
 				this.currentTemple == 3 &&
-				seed.randomBool(0.1) &&
+				seed.randomBool(0.6) &&
 				this.isValidWaterfall(cursor) &&
 				this.isValidWaterfall(new Point(cursor.x, cursor.y+1))
 			){
