@@ -13,7 +13,7 @@ function Item(x,y,name, ops){
 	this.frames = false;
 	this.animation_frame = Math.random() * 3;
 	this.animation_speed = 0.25;
-	this.enchantChance = 0.2;
+	this.enchantChance = 0.6;
 	
 	ops = ops || {}
 	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
@@ -91,7 +91,7 @@ function Item(x,y,name, ops){
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
-				pm.message( this.message );
+				pm.message( this.getMessage() );
 			}
 			this.interactive = false;
 			this.destroy();
@@ -110,7 +110,7 @@ Item.prototype.setName = function(n){
 		this.message = "Short sword\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
+			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
 		return; 
 	}
@@ -122,7 +122,7 @@ Item.prototype.setName = function(n){
 		this.message = "Long sword\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
+			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
 		return; 
 	}
@@ -134,7 +134,7 @@ Item.prototype.setName = function(n){
 		this.message = "Broad sword\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
+			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
 		return; 
 	}
@@ -146,7 +146,7 @@ Item.prototype.setName = function(n){
 		this.message = "Spear\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
+			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
 		return; 
 	}
@@ -217,6 +217,17 @@ Item.prototype.setName = function(n){
 	if( this.name == "charm_elephant") { this.frame = 7; this.frame_row = 8; this.message = "Elephant Charm\nWounds open slowly.";}
 	
 }
+Item.prototype.getMessage = function(){
+	if( "message" in this ) {
+		if( this.message instanceof Function){
+			return this.message();
+		} else {
+			return this.message;
+		}
+	} else {
+		return this.name.replace("_", " ").replace(/(^|\s)(.)/g, function($1) { return $1.toUpperCase(); })
+	}
+}
 Item.prototype.update = function(){
 	if( this.sleep != null ){
 		this.sleep -= this.delta;
@@ -270,21 +281,57 @@ Item.drop = function(obj,money,sleep){
 	}
 }
 
+Item.weaponDescription = function(){
+	var out = "";
+	var att = this.bonus_att || 0;
+	var def = this.bonus_def || 0;
+	if( "weaponProperties" in this ){
+		if("prefix" in this.weaponProperties) out += this.weaponProperties.prefix + " ";
+		if("title" in this.weaponProperties) out += this.weaponProperties.title + " ";
+		if("suffix" in this.weaponProperties) out += this.weaponProperties.suffix;
+		out += "\n\v" + att + " ";
+		if( def > 0 ) out += "\n\b" + def;
+		out += "\n";
+		
+		if("props" in this.weaponProperties){
+			for(var i=0; i < this.weaponProperties.props.length && i < 2; i++){
+				out += this.weaponProperties.props[i] + "\n";
+			}
+		}
+	} else { 
+		out += this.name.replace("_", " ").replace(/(^|\s)(.)/g, function($1) { return $1.toUpperCase(); })
+		out += "\n\v" + att + " ";
+		if( def > 0 ) out += "\n\b" + def;
+		out += "\n";
+	}
+	return out;
+}
 Item.enchantWeapon = function(weapon){
+	if(!("weaponProperties" in weapon)){
+		weapon.message = Item.weaponDescription;
+		weapon.weaponProperties = {
+			"prefix" : "",
+			"title" : weapon.name.replace("_", " ").replace(/(^|\s)(.)/g, function($1) { return $1.toUpperCase(); }),
+			"suffix" : "",
+			"props" : []
+		};
+	}
+	
+	
 	var enchantments = {
-		"lifesteal":{"prefix":"Bloody","suffix":"of Blood","rarity":0.1},
+		"lifesteal":{"prefix":"Bloody","suffix":"of Blood","rarity":0.1,"description":"Life steal"},
 		"sharp":{"prefix":"Sharp","suffix":"of Sharpness","rarity":2.0},
 		"deadly":{"prefix":"Deadly","suffix":"of Death","rarity":1.3},
 		"cruel":{"prefix":"Cruel","suffix":"of Cruelty","rarity":0.9},
 		"savage":{"prefix":"Savage","suffix":"of Savagery","rarity":0.5},
-		"phantom":{"prefix":"Phantom","suffix":"of Phantom","rarity":0.01},
+		"phantom":{"prefix":"Phantom","suffix":"of Phantom","rarity":0.01,"description":"Ignores shields"},
 		"swiftness":{"prefix":"Swift","suffix":"of Swiftness","rarity":0.5},
-		"wise":{"prefix":"Wise","suffix":"of Wisdom","rarity":0.3},
+		"wise":{"prefix":"Wise","suffix":"of Wisdom","rarity":0.3,"description":"Increased Mana"},
 		"slayer":{"prefix":"Slayer's","suffix":"of Slaying","rarity":0.2},
 		"guard":{"prefix":"Guardian's","suffix":"of the guardian","rarity":0.5},
-		"poison":{"prefix":"Poisonous","suffix":"of Poison","rarity":0.2},
-		"slow":{"prefix":"Frozen","suffix":"of Frost","rarity":0.2},
-		"weakness":{"prefix":"Weakening","suffix":"of Weakness","rarity":0.2}
+		"poison":{"prefix":"Poisonous","suffix":"of Poison","rarity":0.2,"description":"Poison chance"},
+		"slow":{"prefix":"Frozen","suffix":"of Frost","rarity":0.2,"description":"Freeze chance"},
+		"weakness":{"prefix":"Weakening","suffix":"of Weakness","rarity":0.2,"description":"Weakness chance"}
 	};
 	var total=0; for(var i in enchantments) total += enchantments[i].rarity;
 	roll = Math.random() * total;
@@ -350,18 +397,15 @@ Item.enchantWeapon = function(weapon){
 		weapon.level += 1;
 	}
 	
-	if(!("prefix" in weapon)){
-		weapon.prefix = enchantment.prefix;
-	} else if(!("suffix" in weapon)){
+	if(weapon.weaponProperties.prefix == ""){
+		weapon.weaponProperties.prefix = enchantment.prefix;
+	} else if(weapon.weaponProperties.suffix == ""){
+		weapon.weaponProperties.suffix = enchantment.suffix;
 		weapon.suffix = enchantment.suffix
+	}
+	if("description" in enchantment){
+		weapon.weaponProperties.props.push( enchantment.description );
 	}
 	
 	weapon.filter = "gold";
-	weapon.message = ("prefix" in weapon ? weapon.prefix+" " : "") + weapon.name + ("suffix" in weapon ? " "+weapon.suffix : "");
-	if( "bonus_att" in weapon || "bonus_def" in weapon ){
-		weapon.message += "\n";
-		if( "bonus_att" in weapon ) weapon.message += "\v" + weapon.bonus_att +" ";
-		if( "bonus_def" in weapon ) weapon.message += "\b" + weapon.bonus_def;
-		weapon.message += "\n";
-	}
 }

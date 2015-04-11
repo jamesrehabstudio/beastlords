@@ -180,7 +180,7 @@ Shop.prototype.postrender = function(g,c){
 			textArea(g,this.message[1],32,32,192);
 		} else {
 			if( this.items[this.cursor] instanceof Item && "message" in this.items[this.cursor] ){
-				textArea(g,this.items[this.cursor].message,32,32,192);
+				textArea(g,this.items[this.cursor].getMessage(),32,32,192);
 			} else {
 				textArea(g,this.message[0],32,32,192);
 			}

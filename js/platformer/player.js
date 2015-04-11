@@ -278,6 +278,10 @@ Player.prototype.update = function(){
 		this.manaHeal-= 2;
 		if( this.mana >= this.manaMax ) this.manaHeal = 0;
 	}
+	if( this.hasCharm("charm_methuselah") ){
+		for(var i in _player.statusEffects)
+			_player.statusEffects[i] = 0;
+	}
 	if( this.heal > 0 ){
 		audio.play("heal");
 		this.life += 2;

@@ -24,6 +24,7 @@
  </layer>
  <objectgroup name="lines" width="16" height="15">
   <properties>
+   <property name="max_temple" value="3"/>
    <property name="min_temple" value="1"/>
    <property name="rarity" value=".5"/>
   </properties>

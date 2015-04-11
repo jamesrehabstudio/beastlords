@@ -63,7 +63,7 @@ def main():
 				print "Error reading: " + file + " " + str(err)
 	
 	#Write out regular rooms
-	write = "\tthis.rooms = [\n"
+	write = "window._map_rooms = [\n"
 	i = 0
 	for room in rooms:
 		if i > 0 : write += ",\n"
@@ -72,7 +72,7 @@ def main():
 	write += "\n\t];"
 	
 	#Write out junctions
-	write += "\n\n\tthis.junctions = [\n"
+	write += "\n\nwindow._map_junctions = [\n"
 	i = 0
 	for room in junctions:
 		if i > 0 : write += ",\n"
@@ -81,7 +81,7 @@ def main():
 	write += "\n\t];"
 	
 	#Write out junctions
-	write += "\n\n\tthis.town = [\n"
+	write += "\n\nwindow._map_town = [\n"
 	i = 0
 	for room in towns:
 		if i > 0 : write += ",\n"
@@ -90,7 +90,7 @@ def main():
 	write += "\n\t];"
 	
 	#Save file
-	outputfile = open("rooms.txt", "w")
+	outputfile = open("rooms.js", "w")
 	outputfile.write( write )
 	outputfile.close()
 		

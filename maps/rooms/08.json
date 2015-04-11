@@ -122,6 +122,7 @@
          "opacity":1,
          "properties":
             {
+             "max_temple":"3",
              "min_temple":"1",
              "rarity":".5"
             },

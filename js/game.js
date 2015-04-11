@@ -781,7 +781,7 @@ Game.prototype.getTile = function( x,y,layer ) {
 Game.prototype.setTile = function( x,y,layer,t ) {
 	if( x instanceof Point ) { layer=y; y=x.y; x=x.x; }
 	var ts = 16;
-	layer = layer || 1;
+	if(layer == undefined) layer = 1;
 	x = Math.floor(x/ts);
 	y = Math.floor(y/ts);
 	var index = (

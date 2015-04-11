@@ -108,6 +108,9 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),1);
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
+		textArea(g,"Copyright Pogames.uk 2015",8,4);
+		textArea(g,"Version 0.1.1",8,228);
+		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
 				boxArea(g,32,32,192,88);
@@ -144,4 +147,6 @@ TitleMenu.prototype.startGame = function(){
 	game.clearAll();
 	game.addObject(world);
 	audio.stop("music_intro");
+	
+	world.trigger("activate");
 }
