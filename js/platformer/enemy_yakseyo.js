@@ -62,6 +62,7 @@ function Yakseyo(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Yakseyo.prototype.update = function(){	

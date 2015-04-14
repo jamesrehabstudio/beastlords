@@ -47,8 +47,14 @@ function Bullet(x,y,d){
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
-	this.on("struck", function(obj){ if(this.blockable && obj.team!=this.team) this.trigger("death");});
 	this.on("death", function(){ this.destroy();});
+	this.on("struck", function(obj){ 
+		if(this.blockable && obj.team!=this.team) {
+			this.trigger("death");
+			audio.play("slash");
+			game.slow(0,Game.DELTASECOND*0.1);
+		}
+	});
 	
 	this.team = 0;
 	this.damage = 8;

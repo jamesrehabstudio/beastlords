@@ -73,6 +73,8 @@ function Skeleton(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Skeleton.prototype.update = function(){	

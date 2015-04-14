@@ -117,7 +117,7 @@ var mod_combat = {
 		this.attackEffects = {
 			"slow" : [0,10],
 			"poison" : [0,10],
-			"cursed" : [0,15],
+			"cursed" : [0,25],
 			"weaken" : [0,30],
 			"bleeding" : [0,30],
 			"rage" : [0,30]
@@ -254,7 +254,7 @@ var mod_combat = {
 			}
 		}
 		this.calculateXP = function(scale){
-			if(!(this instanceof Player) && !this.hasModule(mod_boss))
+			if(!this.filter && !(this instanceof Player) && !this.hasModule(mod_boss))
 				this.filter = "t"+dataManager.currentTemple;
 			
 			scale = scale == undefined ? 1 : scale;
@@ -264,7 +264,7 @@ var mod_combat = {
 			if( this.speed != undefined )
 				this.xp_award += Math.max((this.speed-0.3)*3,0);
 			this.xp_award += this.bounds().area() / 400;
-			this.xp_award = Math.floor(this.xp_award * scale);
+			this.xp_award = Math.floor(this.xp_award * scale * this.deltaScale);
 			return this.xp_award;
 		}
 		
@@ -437,4 +437,40 @@ var mod_talk = {
 			sprites.text.render(g,pos,4,6);
 		}
 	}
+}
+
+SpecialEnemy = function(enemy){
+	if(Math.random() > 0.05) return;
+	var effects = 1 + Math.floor(Math.random()*3);
+	
+	for(var i=0; i < effects; i++){
+		try{
+			if(Math.random() < 0.1){
+				enemy.life *= 2;
+			} else if(Math.random() < 0.1){
+				if("damage" in enemy) enemy.damage = Math.floor(enemy.damage*1.5);
+				enemy.collideDamage = Math.floor(enemy.damage*1.5);
+			} else if(Math.random() < 0.1){
+				enemy.deltaScale = 1.3333;
+			} else if(Math.random() < 0.1){
+				enemy.attackEffects.slow[0] += 0.5;
+			} else if(Math.random() < 0.1){
+				enemy.attackEffects.poison[0] += 0.5;
+			} else if(Math.random() < 0.1){
+				enemy.attackEffects.cursed[0] += 0.5;
+			} else if(Math.random() < 0.1){
+				enemy.attackEffects.weakness[0] += 0.5;
+			} else if(Math.random() < 0.1){
+				enemy.attackEffects.bleeding[0] += 0.5;
+			} else if(Math.random() < 0.1){
+				enemy.attackEffects.rage[0] += 0.5;
+			} else if(Math.random() < 0.1){
+				enemy.invincible_time += Game.DELTASECOND;
+			}
+		} catch (err){
+			console.error(err);
+		}
+	}
+	enemy.filter = "special";
+	console.log("SPECIAL: " + typeof(this));
 }

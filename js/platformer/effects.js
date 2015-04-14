@@ -12,7 +12,7 @@ function EffectExplosion(x, y, sound){
 	
 	this.speed = 0.3;	
 	sound = sound || "explode2";
-	audio.play(sound);
+	audio.playLock(sound,0.1);
 }
 
 EffectExplosion.prototype.update = function(){

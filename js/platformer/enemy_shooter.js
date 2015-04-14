@@ -41,6 +41,8 @@ function Shooter(x,y){
 		Item.drop(this);
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Shooter.prototype.update = function(){

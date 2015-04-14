@@ -101,6 +101,8 @@ function Knight(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Knight.prototype.update = function(){	

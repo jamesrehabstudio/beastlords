@@ -52,6 +52,8 @@ function Svarog(x,y){
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Svarog.prototype.update = function(){

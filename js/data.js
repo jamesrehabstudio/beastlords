@@ -1,7 +1,7 @@
 function DataManager() {	
 	this.temples = [
-		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":[1,2],"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker"],"minorfly":["Batty"]},
-		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":[1,3],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker"],"minorfly":["Amon","Batty"]},
+		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":[1,2],"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker","Shell"],"minorfly":["Batty"]},
+		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":[1,3],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"]},
 		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":[2,4],"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
 		{"tiles":"tiles5","size":13,"maxkeys":3,"treasures":[3,4],"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
 		{"tiles":"tiles4","size":14,"maxkeys":3,"treasures":[3,5],"boss":["Zoder"],"miniboss":["Knight","Oriax"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Svarog"]},
@@ -240,10 +240,9 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 			//Add branches for items
 			var current_brances = this.branch_counter;
 			for(var i=0; i < Math.max(temple.treasures[1]-current_brances,temple.treasures[0]); i++ ){
-				var treasure = this.randomTreasure(seed.random());
-				if( this.addBranch({"rules":this.rules.item,"item":treasure.name,"door":treasure.doors,"size":treasure.pathSize,"optional":true}, treasure.pathSize, Object.keys(_map_junctions_matrix)) ) {
-					//Remove item from treasures
-					treasure.remaining--;
+				var size = seed.randomInt(2,6);
+				if( this.addBranch({"rules":this.rules.item,"door":0.15,"size":size,"optional":true}, size, Object.keys(_map_junctions_matrix)) ) {
+					//Branch created successfully. 
 				}
 			}
 			
@@ -337,7 +336,10 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 			~~i.match(/(-?\d+)/g)[0],
 			~~i.match(/(-?\d+)/g)[1]
 		);
+		var map_index = Math.floor( pos.x - mapDimension.start.x + (pos.y - mapDimension.start.y) * mapDimension.width() );
+		pm.map
 		this.cut( 256*(this.secret_matrix[i] > 0 ? pos.x-1 : pos.x), 240*pos.y);
+		pm.map[map_index] = -pm.map[map_index];
 	}
 	
 	//Add wall meat
@@ -349,6 +351,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 			~~i.match(/(-?\d+)/g)[0],
 			~~i.match(/(-?\d+)/g)[1]
 		);
+		var map_index = Math.floor( pos.x - mapDimension.start.x + (pos.y - mapDimension.start.y) * mapDimension.width() );
 		var limits = new Line(
 			64+pos.x*256,
 			120+pos.y*240,
@@ -465,10 +468,13 @@ DataManager.prototype.createRoom = function(g,room,cursor,id,room_size){
 				//Special rules for items
 				if( !this.temple_instance ) {
 					new_obj = new Item(cursor.x + obj[0], cursor.y + obj[1]);
-					if( "item" in props ) 
+					if( "item" in props && props.item != undefined ) {
 						new_obj.setName(props.item);
-					else
-						new_obj.setName(this.randomTreasure(Math.random(),["treasure"]).name);
+					} else {
+						var treasure = this.randomTreasure(Math.random(),["treasure"]);
+						new_obj.setName(treasure.name);
+						treasure.remaining--;
+					}
 				}
 			} else if ( objectName == "Door" ){
 				//Special rules for doors
@@ -749,7 +755,7 @@ DataManager.prototype.addRoom = function(options, level, direction, cursor, conn
 				while( this.isValidWaterfall( new Point(cursor.x, cursor.y+1+waterfallHeight) )){
 					waterfallHeight++;
 				}
-				var id = ~~pos.x +"_"+ ~~pos.y;
+				var id = ~~cursor.x +"_"+ ~~cursor.y;
 				this.waterfall_matrix[ id ] = waterfallHeight;
 			}
 			
@@ -854,7 +860,7 @@ DataManager.prototype.isValidWaterfall = function(pos){
 	var room = this.getRoomMatrix(pos);
 	if(!room) return false;
 	if(room == "j") return false;
-	if(room > 0 && _map_rooms[room].rarity <= 0) return false;
+	if(room >= 0 && _map_rooms[room].rarity <= 0) return false;
 	return true
 }
 
@@ -940,7 +946,7 @@ DataManager.prototype.wallmeat = function(){
 				var breakable = new BreakableTile( tile.x,  tile.y );
 				var item_name = "coin_3";
 				if( seed.randomBool(0.85) ){
-					var item_name = "waystone";
+					var item_name = "life_small";
 				}
 				breakable.item = new Item( tile.x,  tile.y, item_name);
 				game.addObject( breakable );
@@ -997,6 +1003,9 @@ Seed.prototype.random = function(){
 Seed.prototype.randomBool = function(odds){
 	odds = odds == undefined ? 0.5 : odds;
 	return this.random() < odds;
+}
+Seed.prototype.randomInt = function(s,m){
+	return s + Math.floor(this.random() * ((m+1) - s));
 }
 
 var sprites = {};
@@ -1079,6 +1088,7 @@ function load_sprites (){
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});
 	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
+	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16,"filters":filter_pack_enemies});
 	sprites['shooter'] = new Sprite(RT+"img/shooter.gif", {offset:new Point(32, 24),width:64,height:48,"filters":filter_pack_enemies});
 	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48,"filters":filter_pack_enemies});
@@ -1147,6 +1157,7 @@ window.audio = new AudioPlayer({
 	"pickup1" : {"url":RT+"sounds/pickup1.wav"},
 	"playerhurt" : {"url":RT+"sounds/playerhurt.wav"},
 	"playerdeath" : {"url":RT+"sounds/playerdeath.wav"},
+	"slash" : {"url":RT+"sounds/slash.wav"},
 	"spell" : {"url":RT+"sounds/spell.wav"},
 	"swing" : {"url":RT+"sounds/swing.wav"},
 	"unpause" : {"url":RT+"sounds/unpause.wav"},

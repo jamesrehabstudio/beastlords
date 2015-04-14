@@ -101,6 +101,9 @@ function Player(x, y){
 		this.checkpoint = new Point(this.position.x, this.position.y);
 		this.force.x = this.force.y = 0;
 		
+		game.camera.x = this.position.x-128;
+		game.camera.y = Math.floor(this.position.y/240)*240;
+		
 		for(var i in this.spellsCounters ){
 			this.spellsCounters[i] = 0;
 		}
@@ -222,6 +225,18 @@ function Player(x, y){
 				audio.play("spell");
 			} else audio.play("negative");
 		},
+		"transmute" : function(){
+			if( this.mana >= 2 ){
+				this.mana -= 2;
+				var objs = game.overlaps(
+					new Line(game.camera.x,game.camera.y,game.camera.x+256,game.camera.y+240)
+				);
+				for(var i=0; i<objs.length; i++) if( objs[i] instanceof Item){
+					if( objs[i].name.match(/coin_\d*/) ) objs[i].setName("waystone");
+				}
+				audio.play("spell");
+			} else audio.play("negative");
+		},
 		"magic_song" : function(){
 			if( this.mana >= 3 && this.spellsCounters.magic_song <= 0 ){
 				this.mana -= 3;
@@ -243,9 +258,9 @@ function Player(x, y){
 					this.heal = 999;
 				} else {
 					var map = game.getObject(PauseMenu);
-					if( map instanceof PauseMenu) map.revealMap();
+					if( map instanceof PauseMenu) map.revealMap(1);
 				}
-				this.spellsCounters.magic_armour = this.spellEffectLength * 2; 
+				this.spellsCounters.magic_song = this.spellEffectLength * 2; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -281,6 +296,9 @@ Player.prototype.update = function(){
 	if( this.hasCharm("charm_methuselah") ){
 		for(var i in _player.statusEffects)
 			_player.statusEffects[i] = 0;
+	}
+	if( this.statusEffects.cursed > 0 ){
+		this.heal = 0;
 	}
 	if( this.heal > 0 ){
 		audio.play("heal");

@@ -7,7 +7,7 @@ function CollapseTile(x,y){
 	this.position.x = x-8;
 	this.position.y = y-8;
 	this.sprite = game.tileSprite;
-	this.origin = new Point(0.0, 1);
+	this.origin = new Point(0.0, 0.5);
 	this.width = this.height = 16;
 	this.frame = 6;
 	this.frame_row = 11;

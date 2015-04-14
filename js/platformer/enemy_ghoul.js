@@ -54,6 +54,8 @@ function Ghoul(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Ghoul.prototype.update = function(){

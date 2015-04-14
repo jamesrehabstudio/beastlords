@@ -11,6 +11,7 @@ function Debuger(x, y){
 	
 	window.pixel_scale = 0.25;
 }
+Debuger.prototype.idle = function(){}
 Debuger.prototype.update = function(){
 	if ( input.state('left') > 0 ) {  this.position.x -= this.speed * this.delta }
 	if ( input.state('right') > 0 ) {  this.position.x += this.speed * this.delta }

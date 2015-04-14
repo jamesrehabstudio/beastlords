@@ -75,6 +75,7 @@ function Batty(x,y){
 		Item.drop(this);
 		audio.play("kill");
 	});
+	
 	this.calculateXP();
 }
 Batty.prototype.update = function(){

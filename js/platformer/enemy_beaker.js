@@ -53,6 +53,8 @@ function Beaker(x, y){
 		Item.drop(this);
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Beaker.prototype.update = function(){

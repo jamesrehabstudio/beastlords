@@ -18,12 +18,14 @@ function WaystoneChest(x,y,d,options){
 		new Point(x,y-16)
 	];
 	
-	if(this.door){
-		this.frame = 1;
-		for(var i=0; i < this.door_blocks.length; i++){
-			game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, 1, window.BLANK_TILE);
+	this.on("added",function(){
+		if(this.door){
+			this.frame = 1;
+			for(var i=0; i < this.door_blocks.length; i++){
+				game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, 1, window.BLANK_TILE);
+			}
 		}
-	}
+	});
 }
 WaystoneChest.prototype.update = function(g,c){
 	if( this.open > 0 ) {

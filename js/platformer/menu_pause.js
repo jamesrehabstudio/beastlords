@@ -156,10 +156,13 @@ PauseMenu.prototype.message = function(m){
 	this.message_text = m;
 	this.message_time = Game.DELTASECOND*2;
 }
-PauseMenu.prototype.revealMap = function(){
+PauseMenu.prototype.revealMap = function(secrets){
+	secrets = secrets || 0;
 	for(var i=0; i < this.map.length; i++ ) {
-		if( this.map_reveal[i] == undefined ) this.map_reveal[i] = 0;
-		this.map_reveal[i] = Math.max( this.map_reveal[i], 1 );
+		if( secrets > 0 || this.map[i] >= 0 ){
+			if( this.map_reveal[i] == undefined ) this.map_reveal[i] = 0;
+			this.map_reveal[i] = Math.max( this.map_reveal[i], 1 );
+		}
 	}
 }
 PauseMenu.prototype.render = function(g,c){
@@ -293,7 +296,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		var shop = game.getObject(Shop);
 		
 		for(var i=0; i < this.map.length; i++ ){
-			if( this.map[i] > 0 && this.map_reveal[i] > 0 )  {
+			if( Math.abs(this.map[i]) > 0 && this.map_reveal[i] > 0 )  {
 				var tile = new Point(
 					this.mapDimension.start.x + (i%this.mapDimension.width() ),
 					this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
@@ -303,7 +306,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
 				);
 				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-					sprites.map.render(g,pos.add(offset),this.map[i]-1,(this.map_reveal[i]>=2?0:1));
+					sprites.map.render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
 					
 					if( this.map_reveal[i] >= 2 ) {					
 						for(var j=0; j < doors.length; j++ ){

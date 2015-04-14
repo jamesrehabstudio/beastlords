@@ -41,6 +41,7 @@ function ChazBike(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
 	this.calculateXP();
 	
 	this.life = dataManager.life(6);

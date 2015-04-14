@@ -32,6 +32,8 @@ function Chaz(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 	
 	this.life = dataManager.life(7);

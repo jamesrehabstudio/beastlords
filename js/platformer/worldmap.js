@@ -12,7 +12,7 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
-	//this.seed = "0.2828029908705503";
+	this.seed = "0.9003371542785317"
 	this.active = true;
 	this.mode = 0;
 	
@@ -168,13 +168,15 @@ WorldMap.prototype.encounter = function(){
 	_player.position.y = 192;
 	
 	background = new Background(0,0);
+	background.walls = false;
 	game.addObject(background);
 	
 	game.addObject(_player);
 	game.addObject(new Exit(8,120));
 	game.addObject(new Exit(1528,120));
 	game.addObject(new PauseMenu());
-	_player.lock_overwrite = game.bounds;
+	_player.lock = game.bounds;
+	_player.lock_overwrite = false;
 	
 	for(var x=32; x < 96*16; x+=64){
 		if( Math.random() < 0.4 && Math.abs(x-768) > 80 ) {

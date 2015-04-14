@@ -40,6 +40,8 @@ function Oriax(x,y){
 	this.mass = 1.0;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 1;
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 	
 	this.states = {

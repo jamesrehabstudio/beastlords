@@ -69,6 +69,7 @@ function Deckard(x,y){
 			game.addObject(batty);
 		}
 	});
+	
 	this.calculateXP();
 }
 Deckard.prototype.update = function(){

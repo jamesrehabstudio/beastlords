@@ -42,6 +42,8 @@ function Malsum(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Malsum.prototype.update = function(){	

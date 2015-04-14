@@ -69,6 +69,8 @@ function Igbo(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Igbo.prototype.update = function(){	

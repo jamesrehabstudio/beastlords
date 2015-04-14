@@ -47,6 +47,7 @@ function Yeti(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Yeti.prototype.update = function(){

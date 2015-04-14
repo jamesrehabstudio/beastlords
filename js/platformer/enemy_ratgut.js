@@ -53,6 +53,8 @@ function Ratgut(x,y){
 		audio.play("kill");
 		this.destroy();
 	});
+	
+	SpecialEnemy(this);
 	this.calculateXP();
 }
 Ratgut.prototype.update = function(){

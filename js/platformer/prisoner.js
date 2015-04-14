@@ -80,6 +80,7 @@ Prisoner.prototype.update = function(){
 Prisoner.prototype.giveSpell = function(){
 	var spell_list = {
 		"magic_strength" : {"name":"Magic Strength","rarity":1.0},
+		"transmute" : {"name":"Transmute","rarity":0.7},
 		"flight" : {"name":"Flight","rarity":0.08},
 		"haste" : {"name":"Haste","rarity":0.7},
 		"magic_sword" : {"name":"Magic Sword","rarity":0.3},
