@@ -74,6 +74,8 @@ Yeti.prototype.update = function(){
 						bullet.attackEffects.slow[0] = 1.0;
 						bullet.team = this.team;
 						bullet.damage = this.damage;
+						bullet.frame_row = 2;
+						bullet.frames = [4,5,6];
 						bullet.range = 64;
 						bullet.effect = EffectIce;
 						game.addObject(bullet);

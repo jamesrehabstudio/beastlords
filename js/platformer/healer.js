@@ -58,7 +58,8 @@ Healer.prototype.update = function(g,c){
 						_player.manaHeal = Number.MAX_VALUE;
 						audio.play("item1");
 					} else if ( this.type == 1 ){
-						if( this.cursor == 0 ) _player.heal = Number.MAX_VALUE;
+						game.addObject(new Dream(0,0,0));
+						if( this.cursor == 0 ) _player.life = _player.lifeMax;
 					} else if ( this.type == 2 ){
 						_player.equip_sword.bonus_att++;
 						_player.equip_sword.level++;

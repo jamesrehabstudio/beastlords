@@ -61,16 +61,21 @@ function Bullet(x,y,d){
 	this.mass = 0.0;
 	this.gravity = 0.0;
 	this.friction = 0.0;
-	this.flip = d < 0;
 }
 Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
+	this.flip = this.force.x < 0;
 	if( this.range <= 0 ) this.destroy();
 	
 	if( this.delay > 0 ) {
 		this.deltaScale = 0.0;
 		this.delay -= this.deltaUnscaled;
 		if( this.delay <= 0 ) this.deltaScale = 1.0;
+	}
+	
+	if(this.frames != undefined ) {
+		var f = ( 99999 - this.range) % this.frames.length;
+		this.frame = this.frames[Math.floor(f)];
 	}
 	
 	if(this.effect!=null){

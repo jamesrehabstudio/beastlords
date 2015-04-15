@@ -83,6 +83,12 @@ AudioPlayer.prototype.play = function(l){
 		console.error("Trying to play a sound that does not exist");
 	}
 }
+AudioPlayer.prototype.isPlayingAs = function(n){
+	if(n in this.alias){
+		return this.alias[n];
+	}
+	return "";
+}
 AudioPlayer.prototype.playAs = function(l,n){
 	if( n in this.alias ) 
 		this.stop(this.alias[n]);

@@ -1442,16 +1442,21 @@ function Bullet(x,y,d){
 	this.mass = 0.0;
 	this.gravity = 0.0;
 	this.friction = 0.0;
-	this.flip = d < 0;
 }
 Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
+	this.flip = this.force.x < 0;
 	if( this.range <= 0 ) this.destroy();
 	
 	if( this.delay > 0 ) {
 		this.deltaScale = 0.0;
 		this.delay -= this.deltaUnscaled;
 		if( this.delay <= 0 ) this.deltaScale = 1.0;
+	}
+	
+	if(this.frames != undefined ) {
+		var f = ( 99999 - this.range) % this.frames.length;
+		this.frame = this.frames[Math.floor(f)];
 	}
 	
 	if(this.effect!=null){
@@ -4373,6 +4378,8 @@ Yeti.prototype.update = function(){
 						bullet.attackEffects.slow[0] = 1.0;
 						bullet.team = this.team;
 						bullet.damage = this.damage;
+						bullet.frame_row = 2;
+						bullet.frames = [4,5,6];
 						bullet.range = 64;
 						bullet.effect = EffectIce;
 						game.addObject(bullet);
@@ -4488,7 +4495,8 @@ Healer.prototype.update = function(g,c){
 						_player.manaHeal = Number.MAX_VALUE;
 						audio.play("item1");
 					} else if ( this.type == 1 ){
-						if( this.cursor == 0 ) _player.heal = Number.MAX_VALUE;
+						game.addObject(new Dream(0,0,0));
+						if( this.cursor == 0 ) _player.life = _player.lifeMax;
 					} else if ( this.type == 2 ){
 						_player.equip_sword.bonus_att++;
 						_player.equip_sword.level++;
@@ -4640,7 +4648,7 @@ Item.prototype.setName = function(n){
 	if(n == "short_sword") { 
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=2; this.bonus_att=0;
+		this.level=1; this.bonus_att=0;
 		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
 		this.message = "Short sword\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
@@ -7901,6 +7909,45 @@ WorldEncounter.prototype.update = function(){
 				this.active = true;
 			}
 		}
+	}
+}
+
+ /* platformer/scenes/dream.js*/ 
+
+Dream.prototype = new GameObject();
+Dream.prototype.constructor = GameObject;
+function Dream(x, y, t){	
+	this.constructor();
+	this.progress = 0;
+	
+	this.previousMusic = audio.isPlayingAs("music");
+	this.type = t || 0;
+	this.length = 5.0;
+	
+	if( this.type == 0 ){
+		audio.playAs("music_sleep","music");
+	} else {
+		audio.playAs("music_goeson","music");
+		this.length = 20.0;
+	}
+	game.pause = true;
+}
+
+Dream.prototype.idle = function(){}
+Dream.prototype.update = function(){
+	this.progress += game.deltaUnscaled;
+	
+	if(this.progress > Game.DELTASECOND * this.length){
+		game.pause = false;
+		audio.playAs(this.previousMusic,"music");
+		this.destroy();
+	}
+}
+Dream.prototype.postrender = function(g,c){
+	if( this.type == 0 ){
+		sprites.title.render(g,new Point(),0,2);
+	} else {
+		sprites.dreams.render(g,new Point(),0,0);
 	}
 }
 

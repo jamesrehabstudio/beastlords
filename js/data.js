@@ -1055,6 +1055,7 @@ function load_sprites (){
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['pig'] = new Sprite(RT+"img/pig.gif", {offset:new Point(0, 0),width:32,height:40});
 	sprites['title'] = new Sprite(RT+"img/title.gif", {offset:new Point(0, 0),width:256,height:240});
+	sprites['dreams'] = new Sprite(RT+"img/dreams.gif", {offset:new Point(0, 0),width:256,height:240});
 	
 	sprites['items'] = new Sprite(RT+"img/items.gif", {offset:new Point(8, 8),width:16,height:16,"filters":{"gold":filter_gold}});
 	sprites['waystones'] = new Sprite(RT+"img/waystones.gif", {offset:new Point(16, 24),width:32,height:48});
@@ -1120,12 +1121,13 @@ function load_sprites (){
 }
 
 window.audio = new AudioPlayer({
-	//"music_goeson" : {"url":RT+"sounds/music_goeson.mp3"},
+	"music_goeson" : {"url":RT+"sounds/music_goeson.mp3"},
 	"music_goodbye" : {"url":RT+"sounds/music_goodbye.mp3"},
 	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
 	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":24.0},
 	"music_town" : {"url":RT+"sounds/music_intro.ogg","music":true,"loop":0.0},
 	//"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
+	"music_sleep" : {"url":RT+"sounds/music_sleep.mp3"},
 	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},
 	"fanfair" : {"url":RT+"sounds/fanfair.ogg","music":true},
 	

@@ -105,7 +105,7 @@ Item.prototype.setName = function(n){
 	if(n == "short_sword") { 
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=2; this.bonus_att=0;
+		this.level=1; this.bonus_att=0;
 		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
 		this.message = "Short sword\n\v"+this.bonus_att;
 		if( dataManager.currentTemple >= 0 ) {
