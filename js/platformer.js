@@ -176,10 +176,10 @@ Arena.prototype.update = function(g,c){
 					this.enemies = new Array();
 					this.waves--;
 					for(var i=0; i < current_wave.count; i++){
-						var x_off = i*(240/current_wave.count)-120;
+						var x_off = i*(232/current_wave.count)-116;
 						var enemy_list = current_temple[current_wave["type"]];
 						var enemy_name = enemy_list[Math.floor(Math.random()*enemy_list.length)];
-						var enemy = new window[enemy_name](this.position.x+x_off, this.position.y);
+						var enemy = new window[enemy_name](this.position.x+x_off, this.position.y-16);
 						enemy.interactive = false;
 						this.enemies.push( enemy );
 						game.addObject( enemy );
@@ -4484,12 +4484,11 @@ Healer.prototype.update = function(g,c){
 	
 	
 	if( this.open > 0 ) {
-		if( this.price > 0 ) {
-			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
-		}
+		if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
+		if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		
 		if( input.state("fire") == 1 ){
-			if( this.cursor == 0 || this.price <= 0 ) {
+			if( this.cursor == 0 ) {
 				if( this.price <= _player[this.currency] ) {
 					if( this.type == 0 ){ 
 						_player.manaHeal = Number.MAX_VALUE;
@@ -4529,13 +4528,11 @@ Healer.prototype.postrender = function(g,c){
 		boxArea(g,16,48,224,64);
 		textArea(g,this.message[this.type].replace("%PRICE%",this.price),32,64,192,64);
 		
-		if( this.price > 0 ) {
-			boxArea(g,16,120,64,56);
-			textArea(g," Yes",32,136);
-			textArea(g," No",32,152);
-			
-			sprites.text.render(g, new Point(28,136+this.cursor*16), 95);
-		}
+		boxArea(g,16,120,64,56);
+		textArea(g," Yes",32,136);
+		textArea(g," No",32,152);
+		
+		sprites.text.render(g, new Point(28,136+this.cursor*16), 95);
 	}
 }
 
@@ -4650,7 +4647,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
 		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
-		this.message = "Short sword\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -4662,7 +4659,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
 		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":18, "sprite":sprites.sword2 };
-		this.message = "Long sword\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -4674,7 +4671,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
 		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword2 };
-		this.message = "Broad sword\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -4686,7 +4683,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
 		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":27, "sprite":sprites.sword3 };
-		this.message = "Spear\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -4833,7 +4830,7 @@ Item.weaponDescription = function(){
 		if("title" in this.weaponProperties) out += this.weaponProperties.title + " ";
 		if("suffix" in this.weaponProperties) out += this.weaponProperties.suffix;
 		out += "\n\v" + att + " ";
-		if( def > 0 ) out += "\n\b" + def;
+		if( def > 0 ) out += "\b" + def;
 		out += "\n";
 		
 		if("props" in this.weaponProperties){
@@ -4924,6 +4921,7 @@ Item.enchantWeapon = function(weapon){
 		weapon.bonus_att += 1;
 		weapon.level += 1;
 	} else if(i=="guard"){
+		weapon.bonus_def = weapon.bonus_def || 0;
 		weapon.bonus_def += 2;
 		weapon.level += 1;
 	} else if(i=="poison"){
@@ -5507,7 +5505,7 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
 		textArea(g,"Copyright Pogames.uk 2015",8,4);
-		textArea(g,"Version 0.1.1",8,228);
+		textArea(g,"Version 0.1.2",8,228);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
@@ -5612,13 +5610,20 @@ var mod_camera = {
 		this.lock = false;
 		this.lock_overwrite = false;
 		this._lock_current = false;
+		this.camerShake = new Point();
 		this.camera_target = new Point();
 		game.camera.x = this.position.x - 160;
 		game.camera.y = this.position.y - 120;
+		
+		var self = this;
+		window.shakeCamera = function(p,y){
+			if(!(p instanceof Point)) p = new Point(p,y);
+			self.camerShake = p;
+		};
 	},
 	'update' : function(){		
 		var screen = new Point(256,240);
-		game.camera.x = this.position.x - (256 / 2);
+		game.camera.x = this.position.x - (screen.x / 2);
 		game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		
 		//Set up locks
@@ -5644,6 +5649,9 @@ var mod_camera = {
 			game.camera.x = Math.min( Math.max( game.camera.x, this._lock_current.start.x ), this._lock_current.end.x - screen.x );
 			game.camera.y = Math.min( Math.max( game.camera.y, this._lock_current.start.y ), this._lock_current.end.y - screen.y );
 		}
+		game.camera.x += this.camerShake.x;
+		//game.camera.y += this.camerShake.y;
+		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));
 	}
 }
 
@@ -6162,8 +6170,13 @@ function Player(x, y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(obj, damage){
-		this.states.attack = 0;
-		game.slow(0,5.0);
+		var dir = this.position.subtract(obj.position).normalize(damage);
+		window.shakeCamera(dir);
+		if(this.stun_time > 0 ){
+			this.states.attack = 0;
+			game.slow(0,5.0);
+		}
+		
 		audio.play("playerhurt");
 	})
 	this.on("hurt_other", function(obj, damage){
@@ -7557,9 +7570,12 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
-	this.seed = "0.9003371542785317"
+	//this.seed = "0.9003371542785317"
 	this.active = true;
 	this.mode = 0;
+	
+	this.dreams = 0;
+	this.lastDream = 0;
 	
 	window._world = this;
 	new Player(0,0);
@@ -7852,6 +7868,8 @@ WorldEncounter.prototype = new GameObject();
 WorldEncounter.prototype.constructor = GameObject;
 function WorldEncounter(x, y){	
 	this.constructor();
+	x = Math.floor(x/16)*16;
+	y = Math.floor(y/16)*16;
 	
 	this.position.x = x;
 	this.position.y = y;
@@ -7916,39 +7934,100 @@ WorldEncounter.prototype.update = function(){
 
 Dream.prototype = new GameObject();
 Dream.prototype.constructor = GameObject;
-function Dream(x, y, t){	
+function Dream(x, y){	
 	this.constructor();
-	this.progress = 0;
+	this.progress = -Game.DELTASECOND;
+	
+	//Decide dream
+	this.type = 0;
+	var completed = 0;
+	for(var i=0; i < _world.temples.length; i++) if( _world.temples[i].complete ) completed++;
+	if( _world.dreams < 3 && dataManager.currentTown > 0 && completed > _world.lastDream ) {
+		_world.lastDream = completed;
+		_world.dreams++;
+		this.type = _world.dreams;
+	}
 	
 	this.previousMusic = audio.isPlayingAs("music");
-	this.type = t || 0;
 	this.length = 5.0;
+	this.waveStrength = 1.0;
 	
 	if( this.type == 0 ){
 		audio.playAs("music_sleep","music");
 	} else {
 		audio.playAs("music_goeson","music");
-		this.length = 20.0;
+		this.length = 19.5;
+		this.waveStrength = this.type * 3;
 	}
-	game.pause = true;
 }
 
 Dream.prototype.idle = function(){}
 Dream.prototype.update = function(){
 	this.progress += game.deltaUnscaled;
 	
-	if(this.progress > Game.DELTASECOND * this.length){
+	if(this.progress > Game.DELTASECOND * (this.length+0.5)){
 		game.pause = false;
 		audio.playAs(this.previousMusic,"music");
 		this.destroy();
+	} else {
+		game.pause = true;
 	}
 }
 Dream.prototype.postrender = function(g,c){
-	if( this.type == 0 ){
-		sprites.title.render(g,new Point(),0,2);
-	} else {
-		sprites.dreams.render(g,new Point(),0,0);
+	g.fillStyle = "#000";
+	g.scaleFillRect(0,0,256,240);
+	
+	//Wavy background
+	var x = this.type % 2;
+	var _y = Math.floor(this.type / 2)*15;
+	for(var y=0; y < 240/16; y++){
+		var wave = Math.sin(this.progress*0.1+y*0.2) * this.waveStrength;
+		sprites.dreams.render(g,new Point(wave,y*16),x,_y+y);
 	}
+	
+	if(this.type == 1){
+		var f = 4 + Math.abs(this.progress/Game.DELTASECOND*3) % 2;
+		sprites.characters.render(g,new Point(184,192),f,0,true);
+		sprites.characters.render(g,new Point(104,192),f,1,false);
+	} else if(this.type == 2){
+		var f = Math.abs(this.progress/Game.DELTASECOND*3) % 3;
+		var distance = 256 * (this.progress / (this.length*Game.DELTASECOND));
+		sprites.characters.render(g,new Point(distance,192),f,0,false);
+		if(this.progress > Game.DELTASECOND*7){
+			sprites.characters.render(g,new Point(16+distance,192),3,1,true);
+		} else {
+			f = Math.abs(this.progress/Game.DELTASECOND*5) % 3;
+			distance = Math.lerp(-64,distance+16,this.progress/(Game.DELTASECOND*7));
+			sprites.characters.render(g,new Point(distance,192),3+f,2,false);
+		}
+	} else if(this.type == 3){
+		var distance = Math.lerp(-64,96,Math.min(this.progress/(Game.DELTASECOND*7),1));
+		var f = Math.abs(distance*0.2) % 3;
+		sprites.characters.render(g,new Point(distance,192),3+f,2,false);
+		
+		if(this.progress > Game.DELTASECOND * 15){
+			sprites.poseidon.render(g,new Point(168,160),2,1,true);
+		}
+		sprites.characters.render(g,new Point(176,192),3,0,true);
+		
+		//White flashes
+		if(
+			Math.abs(this.progress-(12*Game.DELTASECOND)) <= 1 ||
+			Math.abs(this.progress-(14*Game.DELTASECOND)) <= 1 ||
+			Math.abs(this.progress-(15*Game.DELTASECOND)) <= 1
+		){
+			g.fillStyle = "#FFF";
+			g.scaleFillRect(0,0,256,240);	
+		}
+	}
+	
+	//Fade in and out
+	var fade = Math.max(Math.max(
+		0-this.progress/Game.DELTASECOND, 
+		(this.progress/Game.DELTASECOND)-(this.length-1)
+	), 0);
+	g.fillStyle = "RGBA(0,0,0,"+fade+")";
+	g.scaleFillRect(0,0,256,240);
 }
 
  /* platformer/scenes/ending.js*/ 
@@ -7993,6 +8072,7 @@ function SceneEnding(x,y){
 SceneEnding.prototype.update = function(){
 	game.camera.x = this.x_off;
 	game.camera.y = 0;
+	game.pause = false;
 	
 	if( this.phase == 0 ) {
 		this.progress += this.delta;

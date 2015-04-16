@@ -107,7 +107,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
 		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
-		this.message = "Short sword\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -119,7 +119,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
 		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":18, "sprite":sprites.sword2 };
-		this.message = "Long sword\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -131,7 +131,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
 		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword2 };
-		this.message = "Broad sword\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -143,7 +143,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
 		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":27, "sprite":sprites.sword3 };
-		this.message = "Spear\n\v"+this.bonus_att;
+		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
@@ -290,7 +290,7 @@ Item.weaponDescription = function(){
 		if("title" in this.weaponProperties) out += this.weaponProperties.title + " ";
 		if("suffix" in this.weaponProperties) out += this.weaponProperties.suffix;
 		out += "\n\v" + att + " ";
-		if( def > 0 ) out += "\n\b" + def;
+		if( def > 0 ) out += "\b" + def;
 		out += "\n";
 		
 		if("props" in this.weaponProperties){
@@ -381,6 +381,7 @@ Item.enchantWeapon = function(weapon){
 		weapon.bonus_att += 1;
 		weapon.level += 1;
 	} else if(i=="guard"){
+		weapon.bonus_def = weapon.bonus_def || 0;
 		weapon.bonus_def += 2;
 		weapon.level += 1;
 	} else if(i=="poison"){

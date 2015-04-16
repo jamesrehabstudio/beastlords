@@ -88,8 +88,13 @@ function Player(x, y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(obj, damage){
-		this.states.attack = 0;
-		game.slow(0,5.0);
+		var dir = this.position.subtract(obj.position).normalize(damage);
+		window.shakeCamera(dir);
+		if(this.stun_time > 0 ){
+			this.states.attack = 0;
+			game.slow(0,5.0);
+		}
+		
 		audio.play("playerhurt");
 	})
 	this.on("hurt_other", function(obj, damage){

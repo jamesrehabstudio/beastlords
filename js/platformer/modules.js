@@ -59,13 +59,20 @@ var mod_camera = {
 		this.lock = false;
 		this.lock_overwrite = false;
 		this._lock_current = false;
+		this.camerShake = new Point();
 		this.camera_target = new Point();
 		game.camera.x = this.position.x - 160;
 		game.camera.y = this.position.y - 120;
+		
+		var self = this;
+		window.shakeCamera = function(p,y){
+			if(!(p instanceof Point)) p = new Point(p,y);
+			self.camerShake = p;
+		};
 	},
 	'update' : function(){		
 		var screen = new Point(256,240);
-		game.camera.x = this.position.x - (256 / 2);
+		game.camera.x = this.position.x - (screen.x / 2);
 		game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		
 		//Set up locks
@@ -91,6 +98,9 @@ var mod_camera = {
 			game.camera.x = Math.min( Math.max( game.camera.x, this._lock_current.start.x ), this._lock_current.end.x - screen.x );
 			game.camera.y = Math.min( Math.max( game.camera.y, this._lock_current.start.y ), this._lock_current.end.y - screen.y );
 		}
+		game.camera.x += this.camerShake.x;
+		//game.camera.y += this.camerShake.y;
+		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));
 	}
 }
 

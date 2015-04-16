@@ -94,10 +94,10 @@ Arena.prototype.update = function(g,c){
 					this.enemies = new Array();
 					this.waves--;
 					for(var i=0; i < current_wave.count; i++){
-						var x_off = i*(240/current_wave.count)-120;
+						var x_off = i*(232/current_wave.count)-116;
 						var enemy_list = current_temple[current_wave["type"]];
 						var enemy_name = enemy_list[Math.floor(Math.random()*enemy_list.length)];
-						var enemy = new window[enemy_name](this.position.x+x_off, this.position.y);
+						var enemy = new window[enemy_name](this.position.x+x_off, this.position.y-16);
 						enemy.interactive = false;
 						this.enemies.push( enemy );
 						game.addObject( enemy );

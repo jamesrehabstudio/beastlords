@@ -1,36 +1,97 @@
 Dream.prototype = new GameObject();
 Dream.prototype.constructor = GameObject;
-function Dream(x, y, t){	
+function Dream(x, y){	
 	this.constructor();
-	this.progress = 0;
+	this.progress = -Game.DELTASECOND;
+	
+	//Decide dream
+	this.type = 0;
+	var completed = 0;
+	for(var i=0; i < _world.temples.length; i++) if( _world.temples[i].complete ) completed++;
+	if( _world.dreams < 3 && dataManager.currentTown > 0 && completed > _world.lastDream ) {
+		_world.lastDream = completed;
+		_world.dreams++;
+		this.type = _world.dreams;
+	}
 	
 	this.previousMusic = audio.isPlayingAs("music");
-	this.type = t || 0;
 	this.length = 5.0;
+	this.waveStrength = 1.0;
 	
 	if( this.type == 0 ){
 		audio.playAs("music_sleep","music");
 	} else {
 		audio.playAs("music_goeson","music");
-		this.length = 20.0;
+		this.length = 19.5;
+		this.waveStrength = this.type * 3;
 	}
-	game.pause = true;
 }
 
 Dream.prototype.idle = function(){}
 Dream.prototype.update = function(){
 	this.progress += game.deltaUnscaled;
 	
-	if(this.progress > Game.DELTASECOND * this.length){
+	if(this.progress > Game.DELTASECOND * (this.length+0.5)){
 		game.pause = false;
 		audio.playAs(this.previousMusic,"music");
 		this.destroy();
+	} else {
+		game.pause = true;
 	}
 }
 Dream.prototype.postrender = function(g,c){
-	if( this.type == 0 ){
-		sprites.title.render(g,new Point(),0,2);
-	} else {
-		sprites.dreams.render(g,new Point(),0,0);
+	g.fillStyle = "#000";
+	g.scaleFillRect(0,0,256,240);
+	
+	//Wavy background
+	var x = this.type % 2;
+	var _y = Math.floor(this.type / 2)*15;
+	for(var y=0; y < 240/16; y++){
+		var wave = Math.sin(this.progress*0.1+y*0.2) * this.waveStrength;
+		sprites.dreams.render(g,new Point(wave,y*16),x,_y+y);
 	}
+	
+	if(this.type == 1){
+		var f = 4 + Math.abs(this.progress/Game.DELTASECOND*3) % 2;
+		sprites.characters.render(g,new Point(184,192),f,0,true);
+		sprites.characters.render(g,new Point(104,192),f,1,false);
+	} else if(this.type == 2){
+		var f = Math.abs(this.progress/Game.DELTASECOND*3) % 3;
+		var distance = 256 * (this.progress / (this.length*Game.DELTASECOND));
+		sprites.characters.render(g,new Point(distance,192),f,0,false);
+		if(this.progress > Game.DELTASECOND*7){
+			sprites.characters.render(g,new Point(16+distance,192),3,1,true);
+		} else {
+			f = Math.abs(this.progress/Game.DELTASECOND*5) % 3;
+			distance = Math.lerp(-64,distance+16,this.progress/(Game.DELTASECOND*7));
+			sprites.characters.render(g,new Point(distance,192),3+f,2,false);
+		}
+	} else if(this.type == 3){
+		var distance = Math.lerp(-64,96,Math.min(this.progress/(Game.DELTASECOND*7),1));
+		var f = Math.abs(distance*0.2) % 3;
+		sprites.characters.render(g,new Point(distance,192),3+f,2,false);
+		
+		if(this.progress > Game.DELTASECOND * 15){
+			sprites.poseidon.render(g,new Point(168,160),2,1,true);
+		}
+		sprites.characters.render(g,new Point(176,192),3,0,true);
+		
+		//White flashes
+		if(
+			Math.abs(this.progress-(12*Game.DELTASECOND)) <= 1 ||
+			Math.abs(this.progress-(14*Game.DELTASECOND)) <= 1 ||
+			Math.abs(this.progress-(15*Game.DELTASECOND)) <= 1
+		){
+			g.fillStyle = "#FFF";
+			g.scaleFillRect(0,0,256,240);	
+		}
+	}
+	
+	//Fade in and out
+	var fade = Math.max(Math.max(
+		0-this.progress/Game.DELTASECOND, 
+		(this.progress/Game.DELTASECOND)-(this.length-1)
+	), 0);
+	g.fillStyle = "RGBA(0,0,0,"+fade+")";
+	g.scaleFillRect(0,0,256,240);
 }

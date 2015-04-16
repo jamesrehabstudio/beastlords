@@ -12,9 +12,12 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
-	this.seed = "0.9003371542785317"
+	//this.seed = "0.9003371542785317"
 	this.active = true;
 	this.mode = 0;
+	
+	this.dreams = 0;
+	this.lastDream = 0;
 	
 	window._world = this;
 	new Player(0,0);
@@ -307,6 +310,8 @@ WorldEncounter.prototype = new GameObject();
 WorldEncounter.prototype.constructor = GameObject;
 function WorldEncounter(x, y){	
 	this.constructor();
+	x = Math.floor(x/16)*16;
+	y = Math.floor(y/16)*16;
 	
 	this.position.x = x;
 	this.position.y = y;

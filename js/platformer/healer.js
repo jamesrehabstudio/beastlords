@@ -47,12 +47,11 @@ Healer.prototype.update = function(g,c){
 	
 	
 	if( this.open > 0 ) {
-		if( this.price > 0 ) {
-			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
-		}
+		if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
+		if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		
 		if( input.state("fire") == 1 ){
-			if( this.cursor == 0 || this.price <= 0 ) {
+			if( this.cursor == 0 ) {
 				if( this.price <= _player[this.currency] ) {
 					if( this.type == 0 ){ 
 						_player.manaHeal = Number.MAX_VALUE;
@@ -92,12 +91,10 @@ Healer.prototype.postrender = function(g,c){
 		boxArea(g,16,48,224,64);
 		textArea(g,this.message[this.type].replace("%PRICE%",this.price),32,64,192,64);
 		
-		if( this.price > 0 ) {
-			boxArea(g,16,120,64,56);
-			textArea(g," Yes",32,136);
-			textArea(g," No",32,152);
-			
-			sprites.text.render(g, new Point(28,136+this.cursor*16), 95);
-		}
+		boxArea(g,16,120,64,56);
+		textArea(g," Yes",32,136);
+		textArea(g," No",32,152);
+		
+		sprites.text.render(g, new Point(28,136+this.cursor*16), 95);
 	}
 }

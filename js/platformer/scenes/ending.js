@@ -38,6 +38,7 @@ function SceneEnding(x,y){
 SceneEnding.prototype.update = function(){
 	game.camera.x = this.x_off;
 	game.camera.y = 0;
+	game.pause = false;
 	
 	if( this.phase == 0 ) {
 		this.progress += this.delta;
