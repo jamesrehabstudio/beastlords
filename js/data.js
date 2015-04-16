@@ -519,7 +519,7 @@ DataManager.prototype.randomExistingKey = function(){
 DataManager.prototype.existingKeys = function(){
 	var out = [];
 	for(var i in this.properties_matrix){
-		if( "item" in this.properties_matrix[i] ){
+		if( "item" in this.properties_matrix[i] && this.properties_matrix[i] != undefined ){
 			if( this.properties_matrix[i]["item"].match(/^key_\d+$/) ) {
 				out.push( this.properties_matrix[i]["item"] );
 			}

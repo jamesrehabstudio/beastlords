@@ -7526,7 +7526,6 @@ function Well(x,y,t){
 	this.position.y = y;
 	this.width = 64;
 	this.height = 48;
-	this.visible = false;
 	
 	this.addModule(mod_talk);
 }
@@ -7555,6 +7554,7 @@ Well.prototype.update = function(){
 		this.close();
 	}
 }
+Well.prototype.render = function(g,c){}
 
  /* platformer/worldmap.js*/ 
 
