@@ -5435,7 +5435,7 @@ function TitleMenu(){
 	this.message = "The folk of the land of Cahan have been plagued for centuries by a yearly spell they call \"The Trace\". Victims are drawn to the bowels of demonic temples where they're never heard from again. After our hero lost his father to the trance, he set on a mission to rescue him. You must destroy the five demonic temples to enter the final temple that houses your father.";
 	this.options = [
 		"Death is not the end. If you die you will return to the entrance of the area.",
-		"You only have one chance. Death will will send you to the beginning of your quest."
+		"You only have one chance. Death will send you to the beginning of your quest."
 	];
 }
 
