@@ -13,7 +13,7 @@ function Item(x,y,name, ops){
 	this.frames = false;
 	this.animation_frame = Math.random() * 3;
 	this.animation_speed = 0.25;
-	this.enchantChance = 0.6;
+	this.enchantChance = 0.8;
 	
 	ops = ops || {}
 	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
@@ -251,10 +251,6 @@ Item.drop = function(obj,money,sleep){
 		var item = new Item( obj.position.x, obj.position.y, "life_small" );
 		if( sleep != undefined ) item.sleep = sleep;
 		game.addObject( item );
-	} else if (Math.random() < _player.waystone_bonus && !money_only) {
-		var item = new Item( obj.position.x, obj.position.y, "waystone" );
-		if( sleep != undefined ) item.sleep = sleep;
-		game.addObject( item );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
@@ -276,7 +272,11 @@ Item.drop = function(obj,money,sleep){
 			coin.force.y -= 5.0;
 			if( sleep != undefined ) coin.sleep = sleep;
 			game.addObject(coin);
-			
+		}
+		if (Math.random() < _player.waystone_bonus && !money_only) {
+			var item = new Item( obj.position.x, obj.position.y, "waystone" );
+			if( sleep != undefined ) item.sleep = sleep;
+			game.addObject( item );
 		}
 	}
 }

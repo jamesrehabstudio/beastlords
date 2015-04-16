@@ -36,6 +36,7 @@ function TitleMenu(){
 	];
 	
 	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
+	this.message = "The folk of the land of Cahan have been plagued for centuries by a yearly spell they call \"The Trace\". Victims are drawn to the bowels of demonic temples where they're never heard from again. After our hero lost his father to the trance, he set on a mission to rescue him. You must destroy the five demonic temples to enter the final temple that houses your father.";
 	this.options = [
 		"Death is not the end. If you die you will return to the entrance of the area.",
 		"You only have one chance. Death will will send you to the beginning of your quest."
@@ -127,8 +128,7 @@ TitleMenu.prototype.render = function(g,c){
 		
 		if( this.progress >= 24 ) {
 			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
-			boxArea(g,0,y_pos,256,240);
-			textArea(g,this.message,16,y_pos+16,240);
+			textBox(g,this.message,0,y_pos,256,240);
 		}
 	}
 }

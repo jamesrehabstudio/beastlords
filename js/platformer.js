@@ -4553,7 +4553,7 @@ function Item(x,y,name, ops){
 	this.frames = false;
 	this.animation_frame = Math.random() * 3;
 	this.animation_speed = 0.25;
-	this.enchantChance = 0.6;
+	this.enchantChance = 0.8;
 	
 	ops = ops || {}
 	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
@@ -4791,10 +4791,6 @@ Item.drop = function(obj,money,sleep){
 		var item = new Item( obj.position.x, obj.position.y, "life_small" );
 		if( sleep != undefined ) item.sleep = sleep;
 		game.addObject( item );
-	} else if (Math.random() < _player.waystone_bonus && !money_only) {
-		var item = new Item( obj.position.x, obj.position.y, "waystone" );
-		if( sleep != undefined ) item.sleep = sleep;
-		game.addObject( item );
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
@@ -4816,7 +4812,11 @@ Item.drop = function(obj,money,sleep){
 			coin.force.y -= 5.0;
 			if( sleep != undefined ) coin.sleep = sleep;
 			game.addObject(coin);
-			
+		}
+		if (Math.random() < _player.waystone_bonus && !money_only) {
+			var item = new Item( obj.position.x, obj.position.y, "waystone" );
+			if( sleep != undefined ) item.sleep = sleep;
+			game.addObject( item );
 		}
 	}
 }
@@ -5432,6 +5432,7 @@ function TitleMenu(){
 	];
 	
 	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
+	this.message = "The folk of the land of Cahan have been plagued for centuries by a yearly spell they call \"The Trace\". Victims are drawn to the bowels of demonic temples where they're never heard from again. After our hero lost his father to the trance, he set on a mission to rescue him. You must destroy the five demonic temples to enter the final temple that houses your father.";
 	this.options = [
 		"Death is not the end. If you die you will return to the entrance of the area.",
 		"You only have one chance. Death will will send you to the beginning of your quest."
@@ -5523,8 +5524,7 @@ TitleMenu.prototype.render = function(g,c){
 		
 		if( this.progress >= 24 ) {
 			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
-			boxArea(g,0,y_pos,256,240);
-			textArea(g,this.message,16,y_pos+16,240);
+			textBox(g,this.message,0,y_pos,256,240);
 		}
 	}
 }
@@ -6257,9 +6257,10 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 		"invincibility" : function(){ 
-			if( this.mana >= 2 && this.invincible < this.invincible_time ){
+			if( this.mana >= 2 && this.spellsCounters.invincibility <= 0 ){
 				this.mana -= 2;
 				this.invincible = Game.DELTASECOND * 20; 
+				this.spellsCounters.invincibility = this.invincible; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -6358,12 +6359,13 @@ function Player(x, y){
 		"haste" : 0,
 		"magic_sword" : 0,
 		"magic_armour" : 0,
+		"invincibility" : 0,
 		"feather_foot" : 0,
 		"thorns" : 0,
 		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
-	this.waystone_bonus = 0.04;
+	this.waystone_bonus = 0.06;
 	this.life_steal = 0.0;
 	
 	this.addXP(0);
@@ -7666,15 +7668,15 @@ function WorldMap(x, y){
 		} else {
 			game.clearAll();
 			this.seed = this.seed = "" + Math.random();
-			for(var i=0; i < this.temples.length; i++ ) {
+			for(var i=0; i < 6; i++ ) {
 				this.temples[i].complete = false;
 				this.temples[i].seed = i+this.seed;
 				delete this.temples[i].instance;
 			}
-			this.player = new Point(16*37,16*6);
-			this.player_goto = new Point(16*37,16*6);
+			this.player = new Point(16*77,16*57);
 			dataManager.reset();
 			
+			new Player(0,0);
 			this.trigger("activate");
 		}
 	});

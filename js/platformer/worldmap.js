@@ -108,15 +108,15 @@ function WorldMap(x, y){
 		} else {
 			game.clearAll();
 			this.seed = this.seed = "" + Math.random();
-			for(var i=0; i < this.temples.length; i++ ) {
+			for(var i=0; i < 6; i++ ) {
 				this.temples[i].complete = false;
 				this.temples[i].seed = i+this.seed;
 				delete this.temples[i].instance;
 			}
-			this.player = new Point(16*37,16*6);
-			this.player_goto = new Point(16*37,16*6);
+			this.player = new Point(16*77,16*57);
 			dataManager.reset();
 			
+			new Player(0,0);
 			this.trigger("activate");
 		}
 	});

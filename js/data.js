@@ -18,7 +18,7 @@ function DataManager() {
 	this.treasures = [
 		{"tags":["goods","chest"],"name":"life","rarity":0.5,"pathSize":1,"doors":0.0,"pergame":9999,"price":20},
 		{"tags":["goods","chest"],"name":"mana_small","rarity":0.3,"pathSize":1,"doors":0.0,"pergame":9999,"price":30},
-		{"tags":["treasure","chest","shop"],"name":"xp_big","rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":40},
+		{"tags":["chest","shop"],"name":"xp_big","rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":40},
 		{"tags":["treasure","chest"],"name":"money_bag","rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
 		{"tags":["treasure","shop"],"name":"life_up","rarity":0.01,"pathSize":4,"doors":0.5,"pergame":9999,"price":500},
 		{"tags":["stone","chest"],"name":"waystone","rarity":0.2,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
@@ -36,9 +36,9 @@ function DataManager() {
 		{"tags":["treasure","shop"],"name":"seed_minotaur","rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"tags":["treasure","shop"],"name":"seed_plaguerat","rarity":0.05,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
 		{"tags":["treasure","shop"],"name":"seed_marquis","rarity":0.06,"pathSize":3,"doors":0.1,"pergame":1,"price":90},
-		{"tags":["treasure","shop"],"name":"seed_batty","rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+		{"tags":["alter","treasure","shop"],"name":"seed_batty","rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
 		
-		{"tags":["treasure","shop"],"name":"pedila","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"tags":["alter","treasure","shop"],"name":"pedila","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"tags":["treasure","shop"],"name":"haft","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"tags":["treasure","shop"],"name":"zacchaeus_stick","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 		{"tags":["treasure","shop"],"name":"fangs","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
@@ -54,7 +54,7 @@ function DataManager() {
 		{"tags":["treasure","shop"],"name":"spiked_shield","rarity":0.04,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
 		
 		{"tags":["chest","alter"],"name":"charm_sword","rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["chest"],"name":"charm_mana","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["chest","alter"],"name":"charm_mana","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
 		{"tags":["treasure","shop"],"name":"charm_alchemist","rarity":0.1,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
 		{"tags":["chest","treasure","shop"],"name":"charm_musa","rarity":0.04,"pathSize":6,"doors":0.3,"pergame":1,"price":120},
 		{"tags":["treasure"],"name":"charm_wise","rarity":0.04,"pathSize":3,"doors":0.3,"pergame":1,"price":80},

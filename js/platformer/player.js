@@ -175,9 +175,10 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 		"invincibility" : function(){ 
-			if( this.mana >= 2 && this.invincible < this.invincible_time ){
+			if( this.mana >= 2 && this.spellsCounters.invincibility <= 0 ){
 				this.mana -= 2;
 				this.invincible = Game.DELTASECOND * 20; 
+				this.spellsCounters.invincibility = this.invincible; 
 				audio.play("spell");
 			} else audio.play("negative");
 		},
@@ -276,12 +277,13 @@ function Player(x, y){
 		"haste" : 0,
 		"magic_sword" : 0,
 		"magic_armour" : 0,
+		"invincibility" : 0,
 		"feather_foot" : 0,
 		"thorns" : 0,
 		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
-	this.waystone_bonus = 0.04;
+	this.waystone_bonus = 0.06;
 	this.life_steal = 0.0;
 	
 	this.addXP(0);
