@@ -519,7 +519,7 @@ DataManager.prototype.randomExistingKey = function(){
 DataManager.prototype.existingKeys = function(){
 	var out = [];
 	for(var i in this.properties_matrix){
-		if( "item" in this.properties_matrix[i] && this.properties_matrix[i] != undefined ){
+		if( "item" in this.properties_matrix[i] && this.properties_matrix[i].item != undefined ){
 			if( this.properties_matrix[i]["item"].match(/^key_\d+$/) ) {
 				out.push( this.properties_matrix[i]["item"] );
 			}
@@ -918,7 +918,7 @@ DataManager.prototype.cut = function(x,y){
 		(Math.floor(x/256)*256)+144,
 		(Math.floor(y/240)*240)+64,
 		(Math.floor(x/256)*256)+368,
-		(Math.floor(y/240)*240)+184
+		(Math.floor(y/240)*240)+168
 	);
 	
 	for(var x=l.start.x; x < l.end.x; x += 16)
