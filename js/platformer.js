@@ -1544,7 +1544,7 @@ function CornerStone(x,y,parm,options){
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
-			_gaq.push(["_trackEvent","cornerstone","level",dataManager.currentTemple]);
+			ga("send","event","cornerstone",dataManager.currentTemple);
 		}
 	});
 	
@@ -5538,7 +5538,7 @@ TitleMenu.prototype.startGame = function(){
 	var world = new WorldMap(0,0);
 	world.mode = this.cursor > 0 ? 1 : 0;
 	
-	_gaq.push(["_trackEvent","gamestart","difficulty",world.mode]);
+	ga("send","event","start_game",world.mode);
 	
 	game.clearAll();
 	game.addObject(world);
@@ -6143,8 +6143,8 @@ function Player(x, y){
 		audio.play("playerdeath");
 		this.destroy();
 		
-		_gaq.push(["_trackEvent","death","temple",dataManager.currentTemple]);
-		_gaq.push(["_trackEvent","death","level",this.level]);
+		ga("send","event", "death","temple",dataManager.currentTemple);
+		ga("send","event", "death","level",this.level);
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -6712,7 +6712,7 @@ Player.prototype.addXP = function(value){
 		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
 		
-		_gaq.push(["_trackEvent","levelup",this.level]);
+		ga("send","event", "levelup",this.level);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
@@ -8056,6 +8056,8 @@ function SceneEnding(x,y){
 	this.animation = {
 		0.0 : [{"id":0,"position":new Point(104,192),"render":function(g,p,c){}}]
 	};*/
+	
+	ga("send","event","finished",_player.level);
 	
 	this.text_credits = "" +
 	"BEAST LORDS\n\n"+

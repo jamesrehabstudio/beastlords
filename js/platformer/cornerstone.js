@@ -31,7 +31,7 @@ function CornerStone(x,y,parm,options){
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
-			_gaq.push(["_trackEvent","cornerstone","level",dataManager.currentTemple]);
+			ga("send","event","cornerstone",dataManager.currentTemple);
 		}
 	});
 	

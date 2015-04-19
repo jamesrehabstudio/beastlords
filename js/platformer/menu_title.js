@@ -142,7 +142,7 @@ TitleMenu.prototype.startGame = function(){
 	var world = new WorldMap(0,0);
 	world.mode = this.cursor > 0 ? 1 : 0;
 	
-	_gaq.push(["_trackEvent","gamestart","difficulty",world.mode]);
+	ga("send","event","start_game",world.mode);
 	
 	game.clearAll();
 	game.addObject(world);

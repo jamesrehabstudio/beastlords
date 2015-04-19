@@ -21,6 +21,8 @@ function SceneEnding(x,y){
 		0.0 : [{"id":0,"position":new Point(104,192),"render":function(g,p,c){}}]
 	};*/
 	
+	ga("send","event","finished",_player.level);
+	
 	this.text_credits = "" +
 	"BEAST LORDS\n\n"+
 	"POGAMES.UK\n"+
