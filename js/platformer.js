@@ -577,6 +577,12 @@ Chort.prototype.update = function(){
 			}
 			this.states.attack -= this.delta;
 		}
+		/*
+		if( this.force.y > 5 && !this.grounded ) {
+			this.criticalChance = 1.0;
+		} else {
+			this.criticalChance = 0.0;
+		}*/
 	} else {
 		this.collideDamage = 5;
 		this.states.jump_phase = 0;
@@ -2111,6 +2117,7 @@ Beaker.prototype.update = function(){
 	}
 	
 	this.friction = this.grounded ? 0.4 : 0.025;
+	this.criticalChance = this.grounded ? 0.0 : 1.0;
 	
 	/* Animation */
 	this.frame = 0;
@@ -5626,6 +5633,9 @@ var mod_camera = {
 		game.camera.x = this.position.x - (screen.x / 2);
 		game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		
+		game.camera.x += this.camerShake.x;
+		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));
+		
 		//Set up locks
 		if( this.lock_overwrite instanceof Line ) {
 			if( this._lock_current instanceof Line ) {
@@ -5649,9 +5659,6 @@ var mod_camera = {
 			game.camera.x = Math.min( Math.max( game.camera.x, this._lock_current.start.x ), this._lock_current.end.x - screen.x );
 			game.camera.y = Math.min( Math.max( game.camera.y, this._lock_current.start.y ), this._lock_current.end.y - screen.y );
 		}
-		game.camera.x += this.camerShake.x;
-		//game.camera.y += this.camerShake.y;
-		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));
 	}
 }
 
@@ -5660,6 +5667,7 @@ var mod_combat = {
 		this.life = 100;
 		this.invincible = 0;
 		this.invincible_time = 10.0;
+		this.criticalChance = 0.0;
 		this.damage = 10;
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
@@ -5794,6 +5802,13 @@ var mod_combat = {
 			}
 			
 			if( this.invincible <= 0 ) {
+				//Determine if its a critical shot
+				if( Math.random() < this.criticalChance ) {
+					damage *= 2;
+					audio.play("critical");
+					game.slow(0.1, Game.DELTASECOND * 0.5 );
+					this.trigger("critical",obj,damage);
+				}
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
 				

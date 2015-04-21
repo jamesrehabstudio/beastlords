@@ -118,6 +118,12 @@ Chort.prototype.update = function(){
 			}
 			this.states.attack -= this.delta;
 		}
+		/*
+		if( this.force.y > 5 && !this.grounded ) {
+			this.criticalChance = 1.0;
+		} else {
+			this.criticalChance = 0.0;
+		}*/
 	} else {
 		this.collideDamage = 5;
 		this.states.jump_phase = 0;

@@ -87,6 +87,7 @@ Beaker.prototype.update = function(){
 	}
 	
 	this.friction = this.grounded ? 0.4 : 0.025;
+	this.criticalChance = this.grounded ? 0.0 : 1.0;
 	
 	/* Animation */
 	this.frame = 0;
