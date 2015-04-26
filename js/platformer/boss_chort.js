@@ -7,7 +7,7 @@ function Chort(x,y){
 	this.width = 28;
 	this.height = 56;
 	this.sprite = sprites.pigboss;
-	this.speed = .1;
+	this.speed = .9;
 	this.active = false;
 	this.start_x = x;
 	
@@ -22,14 +22,14 @@ function Chort(x,y){
 	this.landDamage = dataManager.damage(6);
 	
 	this.mass = 6.0;
+	this.gravity = 0.4;
 	
 	this.states = {
-		"attack" : 0,
+		"attack" : 0.0,
 		"cooldown" : 100.0,
-		"jump_phase" : 0,
-		"land_wait" : 0.0,
-		"recover" : 0.0,
-		"backup" : false
+		"bounce" : 0.0,
+		"bounceCount" : 0,
+		"direction" : 1.0,
 	}
 	
 	this.attack_times = {
@@ -38,17 +38,6 @@ function Chort(x,y){
 		"cool" : 5
 	}
 	
-	this.on("collideVertical", function(y){
-		if( y > 0 && this.states.jump_phase == 2) {
-			this.force.x = 0;
-			this.states.recover = Game.DELTASECOND * 2;
-		} 
-		if ( y < 0 && this.states.jump_phase == 1) {
-			this.force.x = 0;
-			this.states.jump_phase = 2;
-			this.states.land_wait = Game.DELTASECOND;
-		}
-	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function )
@@ -57,10 +46,8 @@ function Chort(x,y){
 			else
 				obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
+	
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -76,85 +63,76 @@ function Chort(x,y){
 Chort.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
 	
-	if( this.life > 0 && this.states.recover <= 0 && this.active ) {
-		if ( this.states.cooldown <= 0 ){
-			//In air attack
-			this.friction = 0.04;
-			
-			if( this.states.land_wait <= 0 && this.states.jump_phase == 2){
-				this.gravity = 1.0;
-				this.collideDamage = 15;
-			} 
-			if( this.states.jump_phase == 1 ){
-				//Aim for player
-				var direction = dir.x > 0 ? -1 : 1;
-				this.force.x += direction * this.speed * 6.0 * this.delta;
-			}
-			this.states.land_wait -= this.delta;
-		} else {
-			//Ground actions
-			if( this.states.attack <= 0 ) {
-				if( this.states.backup && this.position.x - this.start_x > 64) this.states.backup = false;
-				if( !this.states.backup && this.position.x - this.start_x < -64) this.states.backup = true;
-				
-				this.friction = 0.1;
-				var direction = this.states.backup ? 1 : -1;
-				this.force.x += direction * this.speed * this.delta;
-				
-				if( Math.abs(dir.x) < 48 && this.states.attack < -10 ) this.states.attack = this.attack_times.warm;
-				
-				this.flip = dir.x > 0;
-				this.states.cooldown -= this.delta;
-				if( this.states.cooldown <= 0 ) {
-					this.gravity = 0.2;
-					this.force.y = -12;
-					this.states.jump_phase = 1;
+	if( this.life > 0 && this.active ) {
+		if( this.states.bounce > 0 ) {
+			if( this.grounded ) {
+				this.collideDamage = 5;
+				this.criticalChance = 0.0;
+				if( this.states.bounceCount > 0 ) {
+					this.force.y = -9;
+					this.states.bounceCount--;
+				} else {
+					this.states.bounce -= this.delta;
 				}
 			} else {
-				this.force.x = 0;
-				if( this.states.attack <= this.attack_times.release && this.states.attack > this.attack_times.cool ) {
-					this.strike( new Line(12,-6,32,10), "hurt" );
+				if( this.force.y < 0 ) {
+					//Target player
+					this.force.x += ( dir.x > 0 ? -1 : 1 ) * this.speed * this.delta * 0.5;
+				} else {
+					this.collideDamage = this.landDamage;
+					this.criticalChance = 1.0;
 				}
 			}
-			this.states.attack -= this.delta;
-		}
-		/*
-		if( this.force.y > 5 && !this.grounded ) {
-			this.criticalChance = 1.0;
 		} else {
-			this.criticalChance = 0.0;
-		}*/
-	} else {
-		this.collideDamage = 5;
-		this.states.jump_phase = 0;
-		this.gravity = 1.0;
-		this.states.cooldown = Game.DELTASECOND * 3;
-		this.states.recover -= this.delta;
+			if( this.states.attack > 0 ) {
+				//Swing at player
+				this.states.attack -= this.delta;
+			} else if( Math.abs(dir.x) < 32 ) {
+				//Start punch
+				this.states.attack = this.attack_times.warm;
+				this.force.x = 0;
+			} else {
+				//Walking phase
+				if(this.position.x - this.start_x < -64 ) this.states.direction = 1;
+				if(this.position.x - this.start_x > 64 ) this.states.direction = -1;
+				
+				this.flip = dir.x > 0;
+				this.force.x = this.speed * this.states.direction * this.delta;
+				this.states.cooldown -= this.delta;
+				if( this.states.cooldown <= 0 ){
+					this.states.bounce = Game.DELTASECOND * 3;
+					this.states.bounceCount = 3 + Math.floor(Math.random() * 3);
+					this.states.cooldown = Game.DELTASECOND * (2+(Math.random()*3));
+				}
+			}
+		}
+		
+		if( this.states.attack <= this.attack_times.release && this.states.attack > this.attack_times.cool ) {
+			this.strike( new Line(12,-6,32,10), "hurt" );
+		}
 	}
 	
 	/* animation */
-	if( this.states.jump_phase == 0 ) {
-		if( this.states.recover > 0 ) { 
-			this.frame_row = 1; 
-			this.frame = 3; 
-			this.width = 48;
-		} else {
-			this.width = 28;
-			if( this.states.attack > 0 ) {
-				this.frame_row = 2; 
-				this.frame = 0; 
-				if( this.states.attack <= this.attack_times.release ) this.frame = 1;
-				if( this.states.attack <= this.attack_times.cool ) this.frame = 2;
-			} else {
-				this.frame_row = 0; 
-				this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 3;
-			}
-		}
-	} else {
+	
+	//28, 48
+	if( this.states.bounce > 0 ) {
 		this.width = 48;
 		this.frame_row = 1;
 		this.frame = 1;
-		if( this.force.y > 0.3 ) this.frame = 2;
-		if( this.force.y < -0.3 ) { this.frame = 0; this.width = 28; }
+		if( this.grounded ) {
+			this.frame = 3;
+		} else if ( this.force.y < 0 ) {
+			this.frame = 2;
+		}
+	}else if ( this.states.attack > 0 ){
+		this.width = 28;
+		this.frame_row = 2; 
+		this.frame = 0; 
+		if( this.states.attack <= this.attack_times.release ) this.frame = 1;
+		if( this.states.attack <= this.attack_times.cool ) this.frame = 2;
+	} else {
+		this.width = 28;
+		this.frame = (this.frame + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
+		this.frame_row = 0;
 	}
 }

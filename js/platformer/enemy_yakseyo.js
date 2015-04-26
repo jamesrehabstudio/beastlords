@@ -47,12 +47,7 @@ function Yakseyo(x,y){
 			}
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		if(this.states.phase == 2){
-			this.hurt(obj,damage);
-		}
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});

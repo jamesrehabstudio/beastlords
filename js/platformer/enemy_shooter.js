@@ -27,10 +27,7 @@ function Shooter(x,y){
 	this.death_time = Game.DELTASECOND;
 	this.max_distance = 360;
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});

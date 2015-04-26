@@ -13,10 +13,7 @@ function Oriax(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
 		audio.play("hurt");
@@ -83,9 +80,11 @@ Oriax.prototype.update = function(){
 					missle = new SnakeBullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
 				}
 				game.addObject( missle ); 
+				this.criticalChance = 1.0;
 			}
 		} else {
 			this.states.thrown = false;
+			this.criticalChance = 0.0;
 		}
 		
 		this.states.cooldown -= this.delta;

@@ -34,12 +34,7 @@ function Bear(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
-		
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		if( this.inviciple > 0 ) return;
@@ -114,7 +109,9 @@ Bear.prototype.update = function(){
 		if( this.states.attack > 0 ) {
 			this.frame = (this.states.attack_down == 1 ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
 			this.frame_row = 1;
+			this.criticalChance = 1.0;
 		} else {
+			this.criticalChance = 0.0;
 			if( Math.abs( this.force.x ) > 0.1 ) {
 				this.frame = Math.max( (this.frame + this.delta * Math.abs(this.force.x) * 0.2) % 4, 1 );
 			} else {

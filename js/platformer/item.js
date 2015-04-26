@@ -254,7 +254,7 @@ Item.drop = function(obj,money,sleep){
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
-		money = money == undefined ? (2+Math.random()*4) : money;
+		money = money == undefined ? (1+Math.random()*3) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;

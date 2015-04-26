@@ -77,7 +77,7 @@ Background.prototype.roomAtLocation = function(x,y){
 	var code = x+"_"+y;
 		if( code in this.saved_rooms ) {
 			return this.saved_rooms[code];
-		} else if( code in dataManager.room_matrix ) {
+		} else if( code in dataManager.slices.peek().data ) {
 			var tags = ["normal"];
 			var total = 0;
 			for(var i=0; i<this.backgrounds.length; i++) if(this.backgrounds[i].tags.intersection(tags).length>0) total += this.backgrounds[i].rarity;

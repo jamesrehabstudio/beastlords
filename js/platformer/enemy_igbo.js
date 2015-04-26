@@ -54,10 +54,7 @@ function Igbo(x,y){
 		//this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
 		this.states.cooldown -= 20;

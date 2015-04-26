@@ -50,10 +50,7 @@ function Batty(x,y){
 		else this.states.lockon = true;
 		
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -102,8 +99,10 @@ Batty.prototype.update = function(){
 					this.flip = this.force.x < 0; 
 				} else {
 					this.gravity = 0.6;
+					this.criticalChance = 1.0;
 					if( dir.y + 16.0 > 0 ) {
 						this.states.lockon = true;
+						this.criticalChance = 0.0;
 						this.states.direction = dir.x > 0 ? -1 : 1;
 					}
 				}

@@ -34,10 +34,7 @@ function Malphas(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.damage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 		this.states.cooldown -= 10;
@@ -63,6 +60,7 @@ Malphas.prototype.update = function(){
 			//Attack
 			this.states.attack -= this.delta;
 			this.states.combo -= this.delta;
+			this.criticalChance = 1.0;
 			if( this.states.attack <= 0 ) {
 				this.states.attack_low = Math.random() < 0.75 ? !this.states.attack_low : this.states.attack_low;
 				this.states.attack = this.attack_time;
@@ -72,6 +70,7 @@ Malphas.prototype.update = function(){
 				this.states.cooldown = Game.DELTASECOND * 2;
 				this.states.combo_timer = Game.DELTASECOND * 4;
 				this.states.attack_low = false;
+				this.criticalChance = 0.0;
 			}
 			this.force.x += (dir.x > 0 ? -1 : 1) * this.delta * this.speed * 0.3;
 		} else if ( this.states.cooldown > 0 ) {

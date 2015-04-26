@@ -38,11 +38,7 @@ function Ratgut(x,y){
 			this.states.runaway = Game.DELTASECOND * 1.5;
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.force.x = -this.force.x;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 		this.states.runaway = Game.DELTASECOND * 1.5;
@@ -101,6 +97,7 @@ Ratgut.prototype.update = function(){
 	
 	this.friction = this.grounded ? 0.1 : 0.02;
 	this.gravity = this.states.attack > 0 ? 0.2 : 1.0;
+	this.criticleChance = this.grounded ? 0.0 : 1.0;
 	
 	if( this.states.attack > 0 ){
 		this.frame_row = 2;

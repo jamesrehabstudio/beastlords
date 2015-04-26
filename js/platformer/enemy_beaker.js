@@ -31,10 +31,8 @@ function Beaker(x, y){
 	this.on("collideHorizontal", function(x){
 		this.states.backwards = !this.states.backwards;
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
+	
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -72,8 +70,10 @@ Beaker.prototype.update = function(){
 			if( this.states.jumps > 2 ) {
 				speed = 7;
 				jump = 7;
+				this.grounded = false;
 				this.states.cooldown = Game.DELTASECOND * 3;
 				this.states.jumps = 0;
+				this.criticalChance = 1.0;
 			}
 			this.force.x += direction * speed;
 			this.force.y = -jump;
@@ -84,10 +84,11 @@ Beaker.prototype.update = function(){
 		
 		/* counters */
 		this.states.cooldown -= this.delta;
+		
 	}
 	
+	if(this.grounded) this.criticalChance = 0.0;
 	this.friction = this.grounded ? 0.4 : 0.025;
-	this.criticalChance = this.grounded ? 0.0 : 1.0;
 	
 	/* Animation */
 	this.frame = 0;

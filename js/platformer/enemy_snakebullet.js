@@ -14,10 +14,7 @@ function SnakeBullet(x,y,d){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.on("struck", function(obj,pos,damage){
-		this.hurt( obj, this.damage );
-		audio.play("hurt");
-	});
+	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
 		if( this.states.landed && obj instanceof Oriax ){
 			this.trigger("death");

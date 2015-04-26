@@ -246,10 +246,11 @@ var mod_combat = {
 			if( this.invincible <= 0 ) {
 				//Determine if its a critical shot
 				if( Math.random() < this.criticalChance ) {
-					damage *= 2;
+					damage *= 4;
 					audio.play("critical");
 					game.slow(0.1, Game.DELTASECOND * 0.5 );
 					this.trigger("critical",obj,damage);
+					game.addObject(new EffectCritical(this.position.x, this.position.y));
 				}
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
@@ -491,4 +492,13 @@ SpecialEnemy = function(enemy){
 	}
 	enemy.filter = "special";
 	console.log("SPECIAL: " + typeof(this));
+}
+
+EnemyStruck = function(obj,pos,damage){
+	if( this.team == obj.team ) return;
+	var clife = this.life;
+	this.hurt( obj, damage );
+	if(clife != this.life) game.addObject(new EffectBlood(
+		pos.x, pos.y, this.position.subtract(obj.position).normalize(), clife - this.life)
+	);
 }

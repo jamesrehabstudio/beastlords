@@ -49,6 +49,7 @@ function Player(x, y){
 	}
 	
 	this.on("pre_death", function(){
+		this.heal = 0;
 		game.slow(0,this.death_time);
 		audio.stopAs("music");
 	});

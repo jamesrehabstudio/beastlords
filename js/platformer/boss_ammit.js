@@ -37,10 +37,7 @@ function Ammit(x,y){
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		this.states.dizzy -= Game.DELTASECOND * 0.5;
 		audio.play("hurt");

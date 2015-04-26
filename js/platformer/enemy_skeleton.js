@@ -59,7 +59,7 @@ function Skeleton(x,y){
 		audio.playLock("block",0.1);
 	});
 	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
+		if(this.team == obj.team) return;
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){

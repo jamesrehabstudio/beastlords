@@ -34,10 +34,7 @@ function Yeti(x,y){
 			obj.hurt( this, this.collideDamage );
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -57,6 +54,7 @@ Yeti.prototype.update = function(){
 		if( this.states.cooldown <= 0 ){
 			if( !this.states.attack_release && this.states.attack < this.attack_release ) {
 				this.states.attack_release = true;
+				this.criticalChance = 0.0;
 				if( this.states.attack_type > 0 ) {
 					//missle
 					var y_offset = this.states.attack_type == 1 ? 4 : 17;
@@ -92,6 +90,7 @@ Yeti.prototype.update = function(){
 				this.states.attack = this.attack_time;
 				this.states.attack_type = Math.abs( dir.x ) < 64 ? 0 : (Math.random() > .5 ? 1 : 2);
 				this.states.attack_release = false;
+				this.criticalChance = 1.0;
 			}
 		}
 	} 

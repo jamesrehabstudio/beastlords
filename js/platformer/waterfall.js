@@ -1,6 +1,6 @@
 Waterfall.prototype = new GameObject();
 Waterfall.prototype.constructor = GameObject;
-function Waterfall(x,y,t){
+function Waterfall(x,y,t,o){
 	this.constructor();
 	this.position.x=x;
 	this.position.y=y;

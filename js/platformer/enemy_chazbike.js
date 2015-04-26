@@ -14,10 +14,7 @@ function ChazBike(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 		this.states.backwards = Game.DELTASECOND * 0.75;

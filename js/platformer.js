@@ -303,7 +303,7 @@ Background.prototype.roomAtLocation = function(x,y){
 	var code = x+"_"+y;
 		if( code in this.saved_rooms ) {
 			return this.saved_rooms[code];
-		} else if( code in dataManager.room_matrix ) {
+		} else if( code in dataManager.slices.peek().data ) {
 			var tags = ["normal"];
 			var total = 0;
 			for(var i=0; i<this.backgrounds.length; i++) if(this.backgrounds[i].tags.intersection(tags).length>0) total += this.backgrounds[i].rarity;
@@ -363,10 +363,7 @@ function Ammit(x,y){
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		this.states.dizzy -= Game.DELTASECOND * 0.5;
 		audio.play("hurt");
@@ -466,7 +463,7 @@ function Chort(x,y){
 	this.width = 28;
 	this.height = 56;
 	this.sprite = sprites.pigboss;
-	this.speed = .1;
+	this.speed = .9;
 	this.active = false;
 	this.start_x = x;
 	
@@ -481,14 +478,14 @@ function Chort(x,y){
 	this.landDamage = dataManager.damage(6);
 	
 	this.mass = 6.0;
+	this.gravity = 0.4;
 	
 	this.states = {
-		"attack" : 0,
+		"attack" : 0.0,
 		"cooldown" : 100.0,
-		"jump_phase" : 0,
-		"land_wait" : 0.0,
-		"recover" : 0.0,
-		"backup" : false
+		"bounce" : 0.0,
+		"bounceCount" : 0,
+		"direction" : 1.0,
 	}
 	
 	this.attack_times = {
@@ -497,17 +494,6 @@ function Chort(x,y){
 		"cool" : 5
 	}
 	
-	this.on("collideVertical", function(y){
-		if( y > 0 && this.states.jump_phase == 2) {
-			this.force.x = 0;
-			this.states.recover = Game.DELTASECOND * 2;
-		} 
-		if ( y < 0 && this.states.jump_phase == 1) {
-			this.force.x = 0;
-			this.states.jump_phase = 2;
-			this.states.land_wait = Game.DELTASECOND;
-		}
-	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function )
@@ -516,10 +502,8 @@ function Chort(x,y){
 			else
 				obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
+	
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -535,86 +519,77 @@ function Chort(x,y){
 Chort.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
 	
-	if( this.life > 0 && this.states.recover <= 0 && this.active ) {
-		if ( this.states.cooldown <= 0 ){
-			//In air attack
-			this.friction = 0.04;
-			
-			if( this.states.land_wait <= 0 && this.states.jump_phase == 2){
-				this.gravity = 1.0;
-				this.collideDamage = 15;
-			} 
-			if( this.states.jump_phase == 1 ){
-				//Aim for player
-				var direction = dir.x > 0 ? -1 : 1;
-				this.force.x += direction * this.speed * 6.0 * this.delta;
-			}
-			this.states.land_wait -= this.delta;
-		} else {
-			//Ground actions
-			if( this.states.attack <= 0 ) {
-				if( this.states.backup && this.position.x - this.start_x > 64) this.states.backup = false;
-				if( !this.states.backup && this.position.x - this.start_x < -64) this.states.backup = true;
-				
-				this.friction = 0.1;
-				var direction = this.states.backup ? 1 : -1;
-				this.force.x += direction * this.speed * this.delta;
-				
-				if( Math.abs(dir.x) < 48 && this.states.attack < -10 ) this.states.attack = this.attack_times.warm;
-				
-				this.flip = dir.x > 0;
-				this.states.cooldown -= this.delta;
-				if( this.states.cooldown <= 0 ) {
-					this.gravity = 0.2;
-					this.force.y = -12;
-					this.states.jump_phase = 1;
+	if( this.life > 0 && this.active ) {
+		if( this.states.bounce > 0 ) {
+			if( this.grounded ) {
+				this.collideDamage = 5;
+				this.criticalChance = 0.0;
+				if( this.states.bounceCount > 0 ) {
+					this.force.y = -9;
+					this.states.bounceCount--;
+				} else {
+					this.states.bounce -= this.delta;
 				}
 			} else {
-				this.force.x = 0;
-				if( this.states.attack <= this.attack_times.release && this.states.attack > this.attack_times.cool ) {
-					this.strike( new Line(12,-6,32,10), "hurt" );
+				if( this.force.y < 0 ) {
+					//Target player
+					this.force.x += ( dir.x > 0 ? -1 : 1 ) * this.speed * this.delta * 0.5;
+				} else {
+					this.collideDamage = this.landDamage;
+					this.criticalChance = 1.0;
 				}
 			}
-			this.states.attack -= this.delta;
-		}
-		/*
-		if( this.force.y > 5 && !this.grounded ) {
-			this.criticalChance = 1.0;
 		} else {
-			this.criticalChance = 0.0;
-		}*/
-	} else {
-		this.collideDamage = 5;
-		this.states.jump_phase = 0;
-		this.gravity = 1.0;
-		this.states.cooldown = Game.DELTASECOND * 3;
-		this.states.recover -= this.delta;
+			if( this.states.attack > 0 ) {
+				//Swing at player
+				this.states.attack -= this.delta;
+			} else if( Math.abs(dir.x) < 32 ) {
+				//Start punch
+				this.states.attack = this.attack_times.warm;
+				this.force.x = 0;
+			} else {
+				//Walking phase
+				if(this.position.x - this.start_x < -64 ) this.states.direction = 1;
+				if(this.position.x - this.start_x > 64 ) this.states.direction = -1;
+				
+				this.flip = dir.x > 0;
+				this.force.x = this.speed * this.states.direction * this.delta;
+				this.states.cooldown -= this.delta;
+				if( this.states.cooldown <= 0 ){
+					this.states.bounce = Game.DELTASECOND * 3;
+					this.states.bounceCount = 3 + Math.floor(Math.random() * 3);
+					this.states.cooldown = Game.DELTASECOND * (2+(Math.random()*3));
+				}
+			}
+		}
+		
+		if( this.states.attack <= this.attack_times.release && this.states.attack > this.attack_times.cool ) {
+			this.strike( new Line(12,-6,32,10), "hurt" );
+		}
 	}
 	
 	/* animation */
-	if( this.states.jump_phase == 0 ) {
-		if( this.states.recover > 0 ) { 
-			this.frame_row = 1; 
-			this.frame = 3; 
-			this.width = 48;
-		} else {
-			this.width = 28;
-			if( this.states.attack > 0 ) {
-				this.frame_row = 2; 
-				this.frame = 0; 
-				if( this.states.attack <= this.attack_times.release ) this.frame = 1;
-				if( this.states.attack <= this.attack_times.cool ) this.frame = 2;
-			} else {
-				this.frame_row = 0; 
-				this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 3;
-			}
-		}
-	} else {
+	
+	//28, 48
+	if( this.states.bounce > 0 ) {
 		this.width = 48;
 		this.frame_row = 1;
 		this.frame = 1;
-		if( this.force.y > 0.3 ) this.frame = 2;
-		if( this.force.y < -0.3 ) { this.frame = 0; this.width = 28; }
+		if( this.grounded ) {
+			this.frame = 3;
+		} else if ( this.force.y < 0 ) {
+			this.frame = 2;
+		}
+	}else if ( this.states.attack > 0 ){
+		this.width = 28;
+		this.frame_row = 2; 
+		this.frame = 0; 
+		if( this.states.attack <= this.attack_times.release ) this.frame = 1;
+		if( this.states.attack <= this.attack_times.cool ) this.frame = 2;
+	} else {
+		this.width = 28;
+		this.frame = (this.frame + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
+		this.frame_row = 0;
 	}
 }
 
@@ -656,10 +631,7 @@ function Garmr(x,y){
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		this.states.dizzy -= Game.DELTASECOND * 0.5;
 		audio.play("hurt");
@@ -794,8 +766,8 @@ function Marquis(x,y){
 		
 	this.life = dataManager.life(24);
 	this.mass = 4.0;
-	this.damage = 25;
-	this.collideDamage = 10;
+	this.damage = dataManager.damage(5);
+	this.collideDamage = dataManager.damage(3);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -809,13 +781,12 @@ function Marquis(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
+	this.on("struck", EnemyStruck);
+	this.on("critical", function(){
+		this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
 	});
 	this.on("hurt", function(){
 		this.states.attack = -1.0;
-		//this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
 		audio.play("hurt");
 	});
 	this.on("block", function(obj,pos,damage){
@@ -851,6 +822,7 @@ Marquis.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 				
 		if( this.states.attack <= 0 ) {
+			this.criticalChance = 0.0;
 			if(this.position.x - this.start_x > 64) this.states.direction = -1;
 			if(this.position.x - this.start_x < -64) this.states.direction = 1;
 			
@@ -866,6 +838,7 @@ Marquis.prototype.update = function(){
 			}
 		} else {
 			if( this.states.attack < this.attack_times.attack ) {
+				this.criticalChance = 1.0;
 				var y_offset = this.states.attack_down ? 18 : 0;
 				this.strike(new Line(
 					new Point( 16, y_offset+8 ),
@@ -943,10 +916,7 @@ function Minotaur(x,y){
 			}
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		this.states.dizzy -= Game.DELTASECOND * 0.5;
 		audio.play("hurt");
@@ -1069,10 +1039,7 @@ function Poseidon(x,y){
 			else
 				obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -1279,10 +1246,7 @@ function Zoder(x,y){
 		obj.force.x += (dir.x > 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 		if( Math.random() > 0.2 ) {
@@ -1711,13 +1675,17 @@ function EffectExplosion(x, y, sound){
 	this.speed = 0.3;	
 	sound = sound || "explode2";
 	audio.playLock(sound,0.1);
+	this.on("sleep",function(){ this.destroy(); } );
 }
 
 EffectExplosion.prototype.update = function(){
 	this.frame = this.frame + (this.speed * game.deltaUnscaled);
 	this.frame_row = 1;
 	
-	if(this.frame >= 3) this.destroy();
+	if(this.frame >= 3) {
+		this.destroy();
+		this.frame = 2;
+	}
 }
 
 EffectSmoke.prototype = new GameObject();
@@ -1734,6 +1702,8 @@ function EffectSmoke(x, y){
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
+	
+	this.on("sleep",function(){ this.destroy(); } );
 }
 
 EffectSmoke.prototype.update = function(){
@@ -1760,6 +1730,8 @@ function EffectIce(x, y){
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
+	
+	this.on("sleep",function(){ this.destroy(); } );
 }
 
 EffectIce.prototype.update = function(){
@@ -1786,6 +1758,8 @@ function EffectStatus(x, y){
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.interactive = false;
 	this.frame_row = 4;
+	
+	this.on("sleep",function(){ this.destroy(); } );
 }
 
 EffectStatus.prototype.update = function(){
@@ -1810,6 +1784,102 @@ EffectStatus.prototype.update = function(){
 	if(this.time <=0 ) this.destroy();
 }
 
+EffectBlood.prototype = new GameObject();
+EffectBlood.prototype.constructor = GameObject;
+function EffectBlood(x, y, dir, dam){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 8;
+	this.height = 8;
+	this.zIndex = 2;
+	this.sprite = sprites.bullets;
+	
+	this.frame = 3
+	this.frame_row = 1;
+	
+	this.drops = [];
+	for(var i=0; i < Math.min(Math.max(dam/3,3),10); i++){
+		var speed = Math.min(dam*0.2,3.0) + 0.3 + Math.random()*2.0;
+		this.drops.push({
+			"time" : Game.DELTASECOND * (0.1 + Math.random()*0.2),
+			"vector" : new Point(dir.x*speed, dir.y*speed),
+			"pos" : new Point(Math.random()*6, Math.random()*6),
+			"frame" : 3 + Math.floor(Math.random() * 2)
+		});
+	}
+	
+	this.on("sleep",function(){ this.destroy(); } );
+}
+
+EffectBlood.prototype.update = function(){
+	var kill = true;
+	
+	for(var i=0; i < this.drops.length; i++){
+		this.drops[i].time -= this.delta;
+		this.drops[i].vector.x = this.drops[i].vector.x * (1.0-0.05*this.delta);
+		this.drops[i].vector.y = this.drops[i].vector.y + this.delta * 0.3;
+		this.drops[i].pos.x += this.drops[i].vector.x * this.delta;
+		this.drops[i].pos.y += this.drops[i].vector.y * this.delta;
+		if(this.drops[i].time > 0) kill = false;
+	}
+	if(kill) this.destroy();
+}
+
+EffectBlood.prototype.render = function(g,c){
+	for(var i=0; i < this.drops.length; i++){
+		this.sprite.render(
+			g,
+			this.drops[i].pos.add(this.position).subtract(c),
+			this.drops[i].frame,
+			this.frame_row
+		);
+	}
+}
+
+EffectCritical.prototype = new GameObject();
+EffectCritical.prototype.constructor = GameObject;
+function EffectCritical(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 8;
+	this.height = 8;
+	this.zIndex = 99;
+	this.sprite = sprites.bullets;
+	
+	this.progress = 0;
+	this.flash = true;
+	
+	this.on("sleep",function(){ this.destroy(); } );
+	
+}
+
+EffectCritical.prototype.update = function(){
+	this.progress += this.delta;
+	if(this.progress > Game.DELTASECOND * 0.25){
+		this.destroy();
+	}
+}
+
+EffectCritical.prototype.render = function(g,c){
+	var radius = this.progress * 2.5;
+	var points = 16;
+	for(var i=0; i < points; i++){
+		var angle = (i/points) * Math.PI * 2;
+		var p = new Point(radius*Math.sin(angle),radius*Math.cos(angle));
+		this.sprite.render(g,p.add(this.position).subtract(c),2,2);
+	}
+	
+	if( this.flash ) {
+		g.fillStyle = "#FFF";
+		g.scaleFillRect(0,0,256,240);
+		this.flash = false;
+	}
+}
+
  /* platformer/enemy_amon.js*/ 
 
 Amon.prototype = new GameObject();
@@ -1830,10 +1900,7 @@ function Amon(x,y){
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
@@ -1941,10 +2008,7 @@ function Batty(x,y){
 		else this.states.lockon = true;
 		
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -1993,8 +2057,10 @@ Batty.prototype.update = function(){
 					this.flip = this.force.x < 0; 
 				} else {
 					this.gravity = 0.6;
+					this.criticalChance = 1.0;
 					if( dir.y + 16.0 > 0 ) {
 						this.states.lockon = true;
+						this.criticalChance = 0.0;
 						this.states.direction = dir.x > 0 ? -1 : 1;
 					}
 				}
@@ -2061,10 +2127,8 @@ function Beaker(x, y){
 	this.on("collideHorizontal", function(x){
 		this.states.backwards = !this.states.backwards;
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
+	
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -2102,8 +2166,10 @@ Beaker.prototype.update = function(){
 			if( this.states.jumps > 2 ) {
 				speed = 7;
 				jump = 7;
+				this.grounded = false;
 				this.states.cooldown = Game.DELTASECOND * 3;
 				this.states.jumps = 0;
+				this.criticalChance = 1.0;
 			}
 			this.force.x += direction * speed;
 			this.force.y = -jump;
@@ -2114,10 +2180,11 @@ Beaker.prototype.update = function(){
 		
 		/* counters */
 		this.states.cooldown -= this.delta;
+		
 	}
 	
+	if(this.grounded) this.criticalChance = 0.0;
 	this.friction = this.grounded ? 0.4 : 0.025;
-	this.criticalChance = this.grounded ? 0.0 : 1.0;
 	
 	/* Animation */
 	this.frame = 0;
@@ -2163,12 +2230,7 @@ function Bear(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
-		
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		if( this.inviciple > 0 ) return;
@@ -2243,7 +2305,9 @@ Bear.prototype.update = function(){
 		if( this.states.attack > 0 ) {
 			this.frame = (this.states.attack_down == 1 ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
 			this.frame_row = 1;
+			this.criticalChance = 1.0;
 		} else {
+			this.criticalChance = 0.0;
 			if( Math.abs( this.force.x ) > 0.1 ) {
 				this.frame = Math.max( (this.frame + this.delta * Math.abs(this.force.x) * 0.2) % 4, 1 );
 			} else {
@@ -2292,10 +2356,8 @@ function Chaz(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
+	
 	this.on("hurt", function(obj,damage){
 		this.states.attack = 0;
 		audio.play("hurt");
@@ -2402,10 +2464,7 @@ function ChazBike(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 		this.states.backwards = Game.DELTASECOND * 0.75;
@@ -2603,10 +2662,7 @@ function Deckard(x,y){
 			this.force.y = 0;
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -2742,15 +2798,12 @@ function Derring(x,y){
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
 			obj.hurt( this, this.damage );
-			this.force.x *= -1;
+			this.force.x = this.force.x > 0 ? -2.5 : 2.5;
 		}
 	});
 	this.on("death", function(obj,pos,damage){
@@ -3029,10 +3082,7 @@ function Igbo(x,y){
 		//this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
 		this.states.cooldown -= 20;
@@ -3214,10 +3264,7 @@ function Knight(x,y){
 		//this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 		if( Math.random() > 0.2 ) {
@@ -3363,10 +3410,7 @@ function Malphas(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.damage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 		this.states.cooldown -= 10;
@@ -3392,6 +3436,7 @@ Malphas.prototype.update = function(){
 			//Attack
 			this.states.attack -= this.delta;
 			this.states.combo -= this.delta;
+			this.criticalChance = 1.0;
 			if( this.states.attack <= 0 ) {
 				this.states.attack_low = Math.random() < 0.75 ? !this.states.attack_low : this.states.attack_low;
 				this.states.attack = this.attack_time;
@@ -3401,6 +3446,7 @@ Malphas.prototype.update = function(){
 				this.states.cooldown = Game.DELTASECOND * 2;
 				this.states.combo_timer = Game.DELTASECOND * 4;
 				this.states.attack_low = false;
+				this.criticalChance = 0.0;
 			}
 			this.force.x += (dir.x > 0 ? -1 : 1) * this.delta * this.speed * 0.3;
 		} else if ( this.states.cooldown > 0 ) {
@@ -3477,10 +3523,7 @@ function Malsum(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.damage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -3525,10 +3568,7 @@ function Oriax(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
 		audio.play("hurt");
@@ -3595,9 +3635,11 @@ Oriax.prototype.update = function(){
 					missle = new SnakeBullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
 				}
 				game.addObject( missle ); 
+				this.criticalChance = 1.0;
 			}
 		} else {
 			this.states.thrown = false;
+			this.criticalChance = 0.0;
 		}
 		
 		this.states.cooldown -= this.delta;
@@ -3663,11 +3705,7 @@ function Ratgut(x,y){
 			this.states.runaway = Game.DELTASECOND * 1.5;
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.force.x = -this.force.x;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 		this.states.runaway = Game.DELTASECOND * 1.5;
@@ -3726,6 +3764,7 @@ Ratgut.prototype.update = function(){
 	
 	this.friction = this.grounded ? 0.1 : 0.02;
 	this.gravity = this.states.attack > 0 ? 0.2 : 1.0;
+	this.criticleChance = this.grounded ? 0.0 : 1.0;
 	
 	if( this.states.attack > 0 ){
 		this.frame_row = 2;
@@ -3764,10 +3803,7 @@ function Shell(x,y){
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
@@ -3840,10 +3876,7 @@ function Shooter(x,y){
 	this.death_time = Game.DELTASECOND;
 	this.max_distance = 360;
 	
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -3972,7 +4005,7 @@ function Skeleton(x,y){
 		audio.playLock("block",0.1);
 	});
 	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
+		if(this.team == obj.team) return;
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
@@ -4071,10 +4104,7 @@ function SnakeBullet(x,y,d){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.on("struck", function(obj,pos,damage){
-		this.hurt( obj, this.damage );
-		audio.play("hurt");
-	});
+	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
 		if( this.states.landed && obj instanceof Oriax ){
 			this.trigger("death");
@@ -4145,10 +4175,7 @@ function Svarog(x,y){
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
@@ -4254,12 +4281,7 @@ function Yakseyo(x,y){
 			}
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		if(this.states.phase == 2){
-			this.hurt(obj,damage);
-		}
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -4345,10 +4367,7 @@ function Yeti(x,y){
 			obj.hurt( this, this.collideDamage );
 		}
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
@@ -4368,6 +4387,7 @@ Yeti.prototype.update = function(){
 		if( this.states.cooldown <= 0 ){
 			if( !this.states.attack_release && this.states.attack < this.attack_release ) {
 				this.states.attack_release = true;
+				this.criticalChance = 0.0;
 				if( this.states.attack_type > 0 ) {
 					//missle
 					var y_offset = this.states.attack_type == 1 ? 4 : 17;
@@ -4403,6 +4423,7 @@ Yeti.prototype.update = function(){
 				this.states.attack = this.attack_time;
 				this.states.attack_type = Math.abs( dir.x ) < 64 ? 0 : (Math.random() > .5 ? 1 : 2);
 				this.states.attack_release = false;
+				this.criticalChance = 1.0;
 			}
 		}
 	} 
@@ -4801,7 +4822,7 @@ Item.drop = function(obj,money,sleep){
 	} else {
 		var bonus = _player.money_bonus || 1.0;
 		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
-		money = money == undefined ? (2+Math.random()*4) : money;
+		money = money == undefined ? (1+Math.random()*3) : money;
 		money = Math.floor( money * bonus );
 		while(money > 0){
 			var coin;
@@ -5032,9 +5053,8 @@ Lift.prototype.render = function(g,c){
 MapDebug.prototype = new GameObject();
 MapDebug.prototype.constructor = GameObject;
 function MapDebug(x,y){
-	_rd
 	this.slice = 0;
-	this.offset = new Point(0,0);
+	this.offset = new Point(-104,-96);
 }
 MapDebug.prototype.update = function(){
 	if( input.state("up") == 1) this.offset.y -= 8;
@@ -5049,13 +5069,16 @@ MapDebug.prototype.render = function(g,c){
 	try {
 		var size = new Point(8,8);
 		
-		for(var i in _rd[this.slice] ){
-			var tile = _rd[this.slice][i] == "j" ? 8 : 0;
+		var slice = dataManager.slices[this.slice].data;
+		for(var i in slice ){
+			var tile = slice[i].room == "j" ? 8 : 0;
+			var row = 0;
+			if( dataManager.slices[this.slice].data[i].room == -1 ) row++;
 			var pos = new Point(
 				size.x * ~~i.match(/(-?\d+)/g)[0],
 				size.y * ~~i.match(/(-?\d+)/g)[1]
 			);
-			sprites.map.render(g,pos.subtract(this.offset),tile,0)
+			sprites.map.render(g,pos.subtract(this.offset),tile,row)
 		}
 	} catch (err) {}
 }
@@ -5804,10 +5827,11 @@ var mod_combat = {
 			if( this.invincible <= 0 ) {
 				//Determine if its a critical shot
 				if( Math.random() < this.criticalChance ) {
-					damage *= 2;
+					damage *= 4;
 					audio.play("critical");
 					game.slow(0.1, Game.DELTASECOND * 0.5 );
 					this.trigger("critical",obj,damage);
+					game.addObject(new EffectCritical(this.position.x, this.position.y));
 				}
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
@@ -6051,6 +6075,15 @@ SpecialEnemy = function(enemy){
 	console.log("SPECIAL: " + typeof(this));
 }
 
+EnemyStruck = function(obj,pos,damage){
+	if( this.team == obj.team ) return;
+	var clife = this.life;
+	this.hurt( obj, damage );
+	if(clife != this.life) game.addObject(new EffectBlood(
+		pos.x, pos.y, this.position.subtract(obj.position).normalize(), clife - this.life)
+	);
+}
+
  /* platformer/platform_generator.js*/ 
 
 PlatformGenerator.prototype = new GameObject();
@@ -6146,6 +6179,7 @@ function Player(x, y){
 	}
 	
 	this.on("pre_death", function(){
+		this.heal = 0;
 		game.slow(0,this.death_time);
 		audio.stopAs("music");
 	});
@@ -7451,7 +7485,7 @@ Villager.TextOptions = [
 
 Waterfall.prototype = new GameObject();
 Waterfall.prototype.constructor = GameObject;
-function Waterfall(x,y,t){
+function Waterfall(x,y,t,o){
 	this.constructor();
 	this.position.x=x;
 	this.position.y=y;
@@ -7587,7 +7621,7 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
-	//this.seed = "0.9003371542785317"
+	this.seed = "0.3551526877563447";
 	this.active = true;
 	this.mode = 0;
 	

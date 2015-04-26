@@ -16,15 +16,12 @@ function Derring(x,y){
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt( obj, damage );
-	});
+	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
 			obj.hurt( this, this.damage );
-			this.force.x *= -1;
+			this.force.x = this.force.x > 0 ? -2.5 : 2.5;
 		}
 	});
 	this.on("death", function(obj,pos,damage){

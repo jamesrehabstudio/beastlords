@@ -53,10 +53,7 @@ function Poseidon(x,y){
 			else
 				obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
-	});
+	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});

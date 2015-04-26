@@ -31,8 +31,8 @@ function Marquis(x,y){
 		
 	this.life = dataManager.life(24);
 	this.mass = 4.0;
-	this.damage = 25;
-	this.collideDamage = 10;
+	this.damage = dataManager.damage(5);
+	this.collideDamage = dataManager.damage(3);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -46,13 +46,12 @@ function Marquis(x,y){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		this.hurt(obj,damage);
+	this.on("struck", EnemyStruck);
+	this.on("critical", function(){
+		this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
 	});
 	this.on("hurt", function(){
 		this.states.attack = -1.0;
-		//this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
 		audio.play("hurt");
 	});
 	this.on("block", function(obj,pos,damage){
@@ -88,6 +87,7 @@ Marquis.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 				
 		if( this.states.attack <= 0 ) {
+			this.criticalChance = 0.0;
 			if(this.position.x - this.start_x > 64) this.states.direction = -1;
 			if(this.position.x - this.start_x < -64) this.states.direction = 1;
 			
@@ -103,6 +103,7 @@ Marquis.prototype.update = function(){
 			}
 		} else {
 			if( this.states.attack < this.attack_times.attack ) {
+				this.criticalChance = 1.0;
 				var y_offset = this.states.attack_down ? 18 : 0;
 				this.strike(new Line(
 					new Point( 16, y_offset+8 ),
