@@ -62,8 +62,7 @@ function Player(x, y){
 		audio.play("playerdeath");
 		this.destroy();
 		
-		ga("send","event", "death","temple",dataManager.currentTemple);
-		ga("send","event", "death","level",this.level);
+		ga("send","event", "death","died:"+dataManager.currentTemple+" at level:"+this.level);
 	});
 	this.on("land", function(){
 		audio.play("land");
@@ -631,7 +630,7 @@ Player.prototype.addXP = function(value){
 		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
 		
-		ga("send","event", "levelup",this.level);
+		ga("send","event", "levelup","level:" + this.level);
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
