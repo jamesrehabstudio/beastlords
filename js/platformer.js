@@ -5216,7 +5216,7 @@ PauseMenu.prototype.update = function(){
 		this.map_reveal[map_index] = 2;
 		
 		var lock;
-		switch( this.map[map_index] ){
+		switch( Math.abs(this.map[map_index]) ){
 			case 1: lock = new Line(-256,0,512,240); break;
 			case 2: lock = new Line(-256,-240,512,240); break;
 			case 3: lock = new Line(-256,0,512,480); break;
@@ -5536,7 +5536,7 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
 		textArea(g,"Copyright Pogames.uk 2015",8,4);
-		textArea(g,"Version 0.1.3",8,228);
+		textArea(g,"Version 0.1.4",8,228);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
@@ -7573,17 +7573,33 @@ function Well(x,y,t){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 64;
-	this.height = 48;
+	this.width = 72;
+	this.height = 72;
 	
 	this.addModule(mod_talk);
+	this.unlocked = false;
+	this.total = 0;
+	
+	this.on("collideObject", function(obj){
+		var dir = this.position.y - obj.position.y;
+		if( dir < -24 && obj instanceof Player && !this.unlocked ) {
+			obj.invincible = -999;
+			obj.position.x = obj.checkpoint.x;
+			obj.position.y = obj.checkpoint.y;
+			obj.hurt( this, Math.floor( obj.lifeMax * .2) );
+		}
+	});
+	
 }
 Well.prototype.update = function(){
 	if( this.open ){
 		if( _player.money > 0 ) {
 			_player.money--;
+			this.total++;
 			audio.play("coin");
-			if(Math.random() < 0.02){
+			if(!this.unlocked && this.total >= 100) {
+				this.unlocked = true;
+			} else if(Math.random() < 0.03){
 				var name = "life";
 				
 				if(Math.random() < 0.2) name = "xp_big";
@@ -7604,6 +7620,7 @@ Well.prototype.update = function(){
 	}
 }
 Well.prototype.render = function(g,c){}
+Well.prototype.idle = function(){}
 
  /* platformer/worldmap.js*/ 
 
@@ -7621,7 +7638,7 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
-	//this.seed = "0.3551526877563447";
+	this.seed = "0.08349138917401433";
 	this.active = true;
 	this.mode = 0;
 	

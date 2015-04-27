@@ -29,20 +29,6 @@
                 {
                  "gid":136,
                  "height":0,
-                 "name":"DeathTrigger",
-                 "properties":
-                    {
-
-                    },
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":120,
-                 "y":256
-                }, 
-                {
-                 "gid":136,
-                 "height":0,
                  "name":"Well",
                  "properties":
                     {
@@ -52,14 +38,13 @@
                  "visible":true,
                  "width":0,
                  "x":120,
-                 "y":192
+                 "y":216
                 }],
          "opacity":1,
          "properties":
             {
              "rarity":"0",
-             "tags":"[\"well\"]",
-             "valid_temples":"4"
+             "tags":"[\"well\"]"
             },
          "type":"objectgroup",
          "visible":true,

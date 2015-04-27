@@ -128,7 +128,7 @@ PauseMenu.prototype.update = function(){
 		this.map_reveal[map_index] = 2;
 		
 		var lock;
-		switch( this.map[map_index] ){
+		switch( Math.abs(this.map[map_index]) ){
 			case 1: lock = new Line(-256,0,512,240); break;
 			case 2: lock = new Line(-256,-240,512,240); break;
 			case 3: lock = new Line(-256,0,512,480); break;

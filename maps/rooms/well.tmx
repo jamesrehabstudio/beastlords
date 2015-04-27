@@ -45,9 +45,7 @@
   <properties>
    <property name="rarity" value="0"/>
    <property name="tags" value="[&quot;well&quot;]"/>
-   <property name="valid_temples" value="4"/>
   </properties>
-  <object name="DeathTrigger" gid="136" x="120" y="256"/>
-  <object name="Well" gid="136" x="120" y="192"/>
+  <object name="Well" gid="136" x="120" y="216"/>
  </objectgroup>
 </map>

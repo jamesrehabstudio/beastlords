@@ -4,7 +4,7 @@ function DataManager() {
 		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":[1,3],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"]},
 		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":[2,4],"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
 		{"tiles":"tiles5","size":13,"maxkeys":3,"treasures":[3,4],"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
-		{"tiles":"tiles4","size":14,"maxkeys":3,"treasures":[3,5],"boss":["Zoder"],"miniboss":["Knight","Oriax"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Svarog"]},
+		{"tiles":"tiles4","size":14,"maxkeys":3,"treasures":[3,5],"boss":["Zoder"],"miniboss":["Knight","Oriax"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
 		{"tiles":"tiles2","size":15,"maxkeys":4,"treasures":[2,4],"boss":["Poseidon"],"miniboss":["Knight","Oriax","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		
@@ -225,6 +225,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 			}
 			
 			this.addSecret({"item":"life_up"});
+			console.log("Add well? " + this.addWell(this.slices.peek().filter({"width":1,"rarity":0.001})) );
 		} else {
 			console.error("Seriously? No junctions? Try that again.");
 			success = false;
@@ -256,9 +257,10 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 		try{
 			var pos = MapSlice.idToLoc(i);
 			var map_index = Math.floor( pos.x - mapDimension.start.x + (pos.y - mapDimension.start.y) * mapDimension.width() );
+			var secret = slice.data[i].secret ? -1 : 1;
 			
 			if( mapTiles[ map_index ] == undefined )
-				mapTiles[ map_index ] = 1;
+				mapTiles[ map_index ] = secret;
 			
 			var room;
 			if( slice.data[i].room == "j" ) {
@@ -278,7 +280,6 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 				if( "map_tile" in room ) {
 					var map_tiles = room["map_tile"].split(",");
 					for(var j=0; j < map_tiles.length; j++ ){
-						var secret = slice.data[i].secret ? -1 : 1;
 						mapTiles[ map_index + j ] = map_tiles[j] * secret;
 					}
 				}
@@ -518,37 +519,24 @@ DataManager.prototype.getJunctionRoomIndex = function(tags){
 	var out = [];
 	var dir = ["n","e","s","w"];
 	for( var i=0; i < _map_junctions.length; i++ ) {
-		var match = true;
-		for(var j=0; j < dir.length; j++ ){
-			var o = dir[j];
-			if((_map_junctions[i].type.indexOf(o) < 0) != (tags.indexOf(o) < 0))
-				match = false;
+		var intersect = tags.intersection(_map_junctions[i].type);
+		if(intersect.length == tags.length && intersect.length == _map_junctions[i].type.length ){
+			out.push(i);
 		}
-		if( match ) out.push(i);
 	}
 	return out[0];
 }
-DataManager.prototype.addBranch = function(options, level, junctions, current_branch){
-	var compass = ["n","e","s","w"];
+DataManager.prototype.addBranch = function(options, level, junctions, compass){
+	compass = compass || ["n","e","s","w"];
 	
 	junctions.sort(function(){ return seed.random()-.5; });
-	compass.sort(function(){ return seed.random()-.5; });
-	this.branch_counter++;
-	
-	options["branch_id"] = this.branch_counter;
-	
-	/*
-	if( current_branch ) {
-		this.branch_matrix[current_branch][0].children.push( options["branch_id"] );
-	}
-	*/
+	compass.sort(function(){ return seed.random()-.5; });	
 	
 	for( var i=0; i < junctions.length; i++ ) {
 		var _i = junctions[i];
 		//var tags = this.junctions_matrix[_i];
 		//pos = new Point( ~~_i.match(/(-?\d+)/g)[0], ~~_i.match(/(-?\d+)/g)[1] );
 		var pos = MapSlice.idToLoc(_i);
-		//this.branch_matrix[ options.branch_id ] = [{"id":_i,"d":"x","children":[],"connections":[]}];
 		
 		for(var j=0; j < compass.length; j++ ){
 			//Check the four cardinal directions to see if one is free
@@ -685,6 +673,8 @@ DataManager.prototype.addRoom = function(options, level, direction, cursor, conn
 				this.slices.peek().add(cursor,room,temp_properties,new_direction);
 			}
 			
+			if("secret" in options) this.slices.peek().setSecret(cursor,options.secret);
+			
 			//Add waterfall
 			/*
 			if( 
@@ -751,8 +741,7 @@ DataManager.prototype.addRoom = function(options, level, direction, cursor, conn
 							"size":branch_size
 						}, 
 						branch_size, 
-						this.slices.peek().getJunctions(),
-						("branch_id" in options ? options.branch_id : false)
+						this.slices.peek().getJunctions()
 					);
 					//console.log("Room: " + room_id + " _ " + success + " " + current_junctions );
 				}
@@ -920,6 +909,41 @@ DataManager.prototype.attemptLoop = function(options,level,direction,cursor,dest
 	return true;
 }
 
+DataManager.prototype.addWell = function(junctions){
+	junctions.sort(function(a,b){ MapSlice.idToLoc(a).y - MapSlice.idToLoc(a).y });
+	var size = 6 + Math.floor(seed.random() * 5);
+	var options = {
+		"secret":true,
+		"rules":this.rules.item,
+		"difficulty":2,
+		"size":size
+	}
+	
+	for(var i=0; i < junctions.length; i++){
+		var cursor = MapSlice.idToLoc(junctions[i]);
+		if(
+			this.slices.peek().isFree(cursor.add(new Point(0,1))) &&
+			this.slices.peek().isFree(cursor.add(new Point(0,2)))
+		){
+			rid = this.slices.length;
+			this.slices.push( this.slices.peek().clone() );
+			this.slices.peek().add(cursor,this.roomFromTags(["well"]));
+			this.slices.peek().add(cursor.add(new Point(0,1)),"j");
+			this.slices.peek().setJunction(cursor.add(new Point(0,1)),["n","s"]);
+			this.slices.peek().setSecret(cursor.add(new Point(0,1)),true);
+			this.slices.peek().add(cursor.add(new Point(0,2)),"j");
+			this.slices.peek().setJunction(cursor.add(new Point(0,2)),["n","well"]);
+			this.slices.peek().setSecret(cursor.add(new Point(0,2)),true);
+			
+			if( this.addBranch(options, options.size, [MapSlice.locToId(cursor.add(new Point(0,2)))], ["e","w"]) ){
+				return true;
+			} else {
+				this.revertSlice(rid);
+			}
+		}
+	}
+	return false;
+}
 	
 DataManager.prototype.getRoomMatrix = function(pos){
 	var id = ~~pos.x +"_"+~~pos.y;
@@ -1148,16 +1172,31 @@ MapSlice.prototype.getJunctions = function(){
 		out.push(i);
 	return out;
 }
-MapSlice.prototype.getSecret = function(loc,s){ 
+MapSlice.prototype.getSecret = function(loc){ 
 	if( loc in this.data ) return this.data[loc].secret;
 	return false;
 }
 MapSlice.prototype.setSecret = function(loc,s){ 
 	loc = MapSlice.locToId(loc);
-	if( loc in this.data ) this.data[loc].secret = s;
+	if( loc in this.data ) {
+		this.data[loc].secret = s;
+		if( this.data[loc].room >= 0 ) {
+			try{
+				var room = _map_rooms[ this.data[loc].room ];
+				var pos = MapSlice.idToLoc(loc);
+				for(var i=1; i < room.width; i++ ) {
+					this.setSecret(pos.add(new Point(i,0)),s);
+				}
+			} catch (err){}
+		}
+	}
 }
 MapSlice.prototype.junctionCount = function(){
 	return this.getJunctions().length;
+}
+MapSlice.prototype.isFree = function(loc,width,direction){
+	loc = MapSlice.locToId(loc);
+	return !(loc in this.data && this.data[loc] != undefined );
 }
 MapSlice.prototype.keys = function(){
 	return Object.keys(this.data);
@@ -1178,9 +1217,16 @@ MapSlice.prototype.filter = function(f){
 	for(var i in this.data ){
 		var room = _map_rooms[ this.data[i].room ];
 		var addit = true;
-		if("width" in f ){
-			if( room == undefined ) addit = false;
-			else if( room.width != f.width ) addit = false;
+
+		if( room != undefined ) {
+			if("width" in f && room.width != f.width) addit = false;
+			if("rarity" in f && room.rarity < f.rarity) addit = false;
+			if("raritylt" in f && room.rarity > f.raritylt) addit = false;
+		} else {
+			if("raritylt" in f ) addit = false;
+			if("rarity" in f ) addit = false;
+			if("isRoom" in f ) addit = false;
+			if("width" in f) addit = false;
 		}
 		if("rooms" in f ){
 			if( room == undefined ) addit = false;
@@ -1193,6 +1239,7 @@ MapSlice.prototype.clone = function(){
 	out = new MapSlice();
 	for(var i in this.data){
 		out.add(i,this.data[i].room,this.data[i].properties);
+		out.data[i].secret = this.data[i].secret;
 		out.data[i].junctions = [];
 		for(var j=0; j < this.data[i].junctions.length; j++){
 			out.data[i].junctions.push( this.data[i].junctions[j] );
