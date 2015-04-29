@@ -25,13 +25,13 @@ function Ratgut(x,y){
 	this.collideDamage = dataManager.damage(4);
 	this.damage = dataManager.damage(6);
 	this.stun_time = Game.DELTASECOND;
+	this.attackEffects.poison = [1.0,30.0];
 	
 	this.attack_release = Game.DELTASECOND * 1.2;
 	this.attack_time = Game.DELTASECOND * 2.0;
 	
 	this.on("collideObject", function(obj){
 		if( this.team != obj.team && obj.hasModule(mod_combat) ) {
-			obj.statusEffects.poison = Game.DELTASECOND * 15;
 			obj.hurt( this, this.collideDamage );
 			
 			this.states.cooldown = Game.DELTASECOND * 3;

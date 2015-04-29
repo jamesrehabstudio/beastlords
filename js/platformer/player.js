@@ -283,7 +283,7 @@ function Player(x, y){
 		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
-	this.waystone_bonus = 0.06;
+	this.waystone_bonus = 0.1;
 	this.life_steal = 0.0;
 	
 	this.addXP(0);

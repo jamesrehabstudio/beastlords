@@ -14,7 +14,7 @@ function DeathTrigger(x,y){
 			obj.position.y = obj.checkpoint.y;
 			obj.hurt( this, Math.floor( obj.lifeMax * .2) );
 		} else if( obj instanceof Item ){
-			if( obj.name.match(/coin_\d+/) ) {
+			if( obj.name.match(/coin_\d+/) || obj.name.match(/waystone/) ) {
 				obj.trigger("collideObject", _player);
 			}
 		} else if( obj.hasModule(mod_combat) ) {

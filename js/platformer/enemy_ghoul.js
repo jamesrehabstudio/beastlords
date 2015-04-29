@@ -23,11 +23,11 @@ function Ghoul(x,y){
 	this.collideDamage = dataManager.damage(2);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = 0;
+	this.attackEffects.weaken = [1.0,20];
 	
 	this.on("collideObject", function(obj){
 		if( this.team != obj.team && obj.hasModule(mod_combat) ) {
 			obj.hurt( this, this.collideDamage );
-			obj.statusEffects.weaken = Game.DELTASECOND * 15;
 			this.states.cooldown = Game.DELTASECOND * 5;
 		}
 	});

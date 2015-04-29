@@ -31,6 +31,10 @@ Dream.prototype.idle = function(){}
 Dream.prototype.update = function(){
 	this.progress += game.deltaUnscaled;
 	
+	if( input.state("pause") == 1 ) {
+		this.progress = Math.max( Game.DELTASECOND * this.length, this.progress );
+	}
+	
 	if(this.progress > Game.DELTASECOND * (this.length+0.5)){
 		game.pause = false;
 		audio.playAs(this.previousMusic,"music");

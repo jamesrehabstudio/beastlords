@@ -99,7 +99,6 @@ function DataManager() {
 			if(level==(options.size-2) && this.keysRemaining()>0 && seed.randomBool("doors" in options ? options.doors : .6) ) return [[this.roomFromTags(["door"]),direction,0,{"door":this.randomKey(0.95)}]];
 			if(level==1) return [[this.roomFromTags(["miniboss"]), direction, 0]];
 			if("optional" in options && seed.randomBool(0.4)) return [[this.roomFromTags(["optional"]), direction, 0]];
-			if(cursor.y>1 && seed.randomBool(0.04)) return [[this.roomFromTags(["well"]), direction, 0]];
 			if(seed.randomBool(.1) && level > 2) return [["j",direction,-1],["j",direction,1],[this.randomRoom(), direction, 0]]; 
 			return [[this.randomRoom(), direction, 0],[this.randomRoom(), direction, 0],[this.randomRoom(), direction, 0],[this.randomRoom(), direction, 0],[this.randomRoom(), direction, 0]]; 
 		},
@@ -133,6 +132,7 @@ DataManager.prototype.randomTown = function(g, town){
 	
 	this.currentTemple = -1;
 	this.currentTown = town.id;
+	this.slices = [];
 	
 	var specials = {
 		3: {"odds":0.3, count:0},
@@ -752,6 +752,10 @@ DataManager.prototype.addRoom = function(options, level, direction, cursor, conn
 			
 			//More rooms to go?
 			if( level > 0 ){
+				
+				if( "tags" in room && room.tags.indexOf("optional") >= 0) {
+					delete options["optional"];
+				}
 				
 				if( isJunction ) {
 					//This is a junction, go up

@@ -1572,7 +1572,7 @@ function DeathTrigger(x,y){
 			obj.position.y = obj.checkpoint.y;
 			obj.hurt( this, Math.floor( obj.lifeMax * .2) );
 		} else if( obj instanceof Item ){
-			if( obj.name.match(/coin_\d+/) ) {
+			if( obj.name.match(/coin_\d+/) || obj.name.match(/waystone/) ) {
 				obj.trigger("collideObject", _player);
 			}
 		} else if( obj.hasModule(mod_combat) ) {
@@ -2968,11 +2968,11 @@ function Ghoul(x,y){
 	this.collideDamage = dataManager.damage(2);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = 0;
+	this.attackEffects.weaken = [1.0,20];
 	
 	this.on("collideObject", function(obj){
 		if( this.team != obj.team && obj.hasModule(mod_combat) ) {
 			obj.hurt( this, this.collideDamage );
-			obj.statusEffects.weaken = Game.DELTASECOND * 15;
 			this.states.cooldown = Game.DELTASECOND * 5;
 		}
 	});
@@ -3692,13 +3692,13 @@ function Ratgut(x,y){
 	this.collideDamage = dataManager.damage(4);
 	this.damage = dataManager.damage(6);
 	this.stun_time = Game.DELTASECOND;
+	this.attackEffects.poison = [1.0,30.0];
 	
 	this.attack_release = Game.DELTASECOND * 1.2;
 	this.attack_time = Game.DELTASECOND * 2.0;
 	
 	this.on("collideObject", function(obj){
 		if( this.team != obj.team && obj.hasModule(mod_combat) ) {
-			obj.statusEffects.poison = Game.DELTASECOND * 15;
 			obj.hurt( this, this.collideDamage );
 			
 			this.states.cooldown = Game.DELTASECOND * 3;
@@ -4646,7 +4646,7 @@ function Item(x,y,name, ops){
 			if( this.name == "blood_letter") { obj.attackEffects.bleeding[0] += .2; audio.play("levelup"); }
 			if( this.name == "red_cape") { obj.attackEffects.rage[0] += .2; audio.play("levelup"); }
 			if( this.name == "chort_nose") { obj.waystone_bonus *= 2.0; audio.play("levelup"); }
-			if( this.name == "plague_mask") { obj.spellsCounters.poison=0; obj.on("status_effect",function(i){ this.spellsCounters.poison=0; }); audio.play("levelup"); }
+			if( this.name == "plague_mask") { obj.statusEffects.poison=0; obj.statusResistance.poison = 1.0; audio.play("levelup"); }
 			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); audio.play("levelup"); }
 			
 			if( this.name == "charm_sword") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
@@ -5730,6 +5730,14 @@ var mod_combat = {
 			"bleeding" : 0,
 			"rage" : 0
 		};
+		this.statusResistance = {
+			"slow" : 0.0,
+			"poison" : 0.0,
+			"cursed" : 0.0,
+			"weaken" : 0.0,
+			"bleeding" : 0.0,
+			"rage" : 0.0
+		};
 		
 		var self = this;
 		this.guard = {
@@ -5817,10 +5825,12 @@ var mod_combat = {
 			//Add effects to attack
 			if( "attackEffects" in obj ){
 				for( var i in obj.attackEffects ) {
-					if( Math.random() < obj.attackEffects[i][0] )
+					var resistence = Math.random() + this.statusResistance[i];
+					if( resistence < obj.attackEffects[i][0] ){
 						this.statusEffects[i] = Math.max( Game.DELTASECOND * obj.attackEffects[i][1], this.statusEffects[i] );
-						this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
+						this.statusEffectsTimers[i] = Math.max( this.statusEffects[i] - Game.DELTASECOND * 0.5, this.statusEffectsTimers[i]);
 						this.trigger("status_effect", i);
+					}
 				}
 			}
 			
@@ -5892,7 +5902,11 @@ var mod_combat = {
 				this.statusEffects[i] -= this.deltaUnscaled;
 				if( this.statusEffectsTimers[i] > this.statusEffects[i]/* || this.statusEffectsTimers[i] <= 0 */){
 					this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
-					if( i == "poison" ) { this.life -= 1; this.isDead(); }
+					if( this instanceof Player ){
+						if( this.life > 30 ) this.life -= 1;
+					} else {
+						this.life -= 3; this.isDead(); 
+					}
 					var effect = new EffectStatus(this.position.x+(Math.random()-.5)*this.width, this.position.y+(Math.random()-.5)*this.height);
 					effect.frame = j;
 					game.addObject(effect);
@@ -6059,7 +6073,7 @@ SpecialEnemy = function(enemy){
 			} else if(Math.random() < 0.1){
 				enemy.attackEffects.cursed[0] += 0.5;
 			} else if(Math.random() < 0.1){
-				enemy.attackEffects.weakness[0] += 0.5;
+				enemy.attackEffects.weaken[0] += 0.5;
 			} else if(Math.random() < 0.1){
 				enemy.attackEffects.bleeding[0] += 0.5;
 			} else if(Math.random() < 0.1){
@@ -6413,7 +6427,7 @@ function Player(x, y){
 		"magic_song" : 0
 	};
 	this.money_bonus = 1.0;
-	this.waystone_bonus = 0.06;
+	this.waystone_bonus = 0.1;
 	this.life_steal = 0.0;
 	
 	this.addXP(0);
@@ -7579,6 +7593,9 @@ function Well(x,y,t){
 	this.unlocked = false;
 	this.total = 0;
 	
+	this.progress = 0;
+	this.coin = new Point();
+	
 	this.on("collideObject", function(obj){
 		var dir = this.position.y - obj.position.y;
 		if( dir < -24 && obj instanceof Player && !this.unlocked ) {
@@ -7596,13 +7613,16 @@ Well.prototype.update = function(){
 			_player.money--;
 			this.total++;
 			audio.play("coin");
+			this.progress = 1.0;
+			this.coin = new Point(_player.position.x, _player.position.y);
+			
 			if(!this.unlocked && this.total >= 100) {
 				this.unlocked = true;
 			} else if(Math.random() < 0.03){
 				var name = "life";
 				
-				if(Math.random() < 0.2) name = "xp_big";
-				else if(Math.random() < 0.1) name = "waystone";
+				if(Math.random() < 0.5) name = "waystone";
+				else if(Math.random() < 0.2) name = dataManager.randomTreasure(Math.random(), ["chest"]).name;
 				else if(Math.random() < 0.01) name = "life_up";
 				
 				var item = new Item(this.position.x, this.position.y - 48, name);
@@ -7617,8 +7637,19 @@ Well.prototype.update = function(){
 		}
 		this.close();
 	}
+	
+	this.progress -= this.delta / Game.DELTASECOND;
 }
-Well.prototype.render = function(g,c){}
+Well.prototype.render = function(g,c){
+	if(this.progress > 0 ){
+		var fall = (0.66 - this.progress)*20;
+		var frame = (this.progress*10) % 3;
+		this.coin.x = Math.lerp(this.position.x, this.coin.x, this.progress);
+		this.coin.y += fall;
+		
+		sprites.items.render(g,this.coin.subtract(c),7+frame,1);
+	}
+}
 Well.prototype.idle = function(){}
 
  /* platformer/worldmap.js*/ 
@@ -8031,6 +8062,10 @@ function Dream(x, y){
 Dream.prototype.idle = function(){}
 Dream.prototype.update = function(){
 	this.progress += game.deltaUnscaled;
+	
+	if( input.state("pause") == 1 ) {
+		this.progress = Math.max( Game.DELTASECOND * this.length, this.progress );
+	}
 	
 	if(this.progress > Game.DELTASECOND * (this.length+0.5)){
 		game.pause = false;

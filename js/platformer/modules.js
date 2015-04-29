@@ -149,6 +149,14 @@ var mod_combat = {
 			"bleeding" : 0,
 			"rage" : 0
 		};
+		this.statusResistance = {
+			"slow" : 0.0,
+			"poison" : 0.0,
+			"cursed" : 0.0,
+			"weaken" : 0.0,
+			"bleeding" : 0.0,
+			"rage" : 0.0
+		};
 		
 		var self = this;
 		this.guard = {
@@ -236,10 +244,12 @@ var mod_combat = {
 			//Add effects to attack
 			if( "attackEffects" in obj ){
 				for( var i in obj.attackEffects ) {
-					if( Math.random() < obj.attackEffects[i][0] )
+					var resistence = Math.random() + this.statusResistance[i];
+					if( resistence < obj.attackEffects[i][0] ){
 						this.statusEffects[i] = Math.max( Game.DELTASECOND * obj.attackEffects[i][1], this.statusEffects[i] );
-						this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
+						this.statusEffectsTimers[i] = Math.max( this.statusEffects[i] - Game.DELTASECOND * 0.5, this.statusEffectsTimers[i]);
 						this.trigger("status_effect", i);
+					}
 				}
 			}
 			
@@ -311,7 +321,11 @@ var mod_combat = {
 				this.statusEffects[i] -= this.deltaUnscaled;
 				if( this.statusEffectsTimers[i] > this.statusEffects[i]/* || this.statusEffectsTimers[i] <= 0 */){
 					this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
-					if( i == "poison" ) { this.life -= 1; this.isDead(); }
+					if( this instanceof Player ){
+						if( this.life > 30 ) this.life -= 1;
+					} else {
+						this.life -= 3; this.isDead(); 
+					}
 					var effect = new EffectStatus(this.position.x+(Math.random()-.5)*this.width, this.position.y+(Math.random()-.5)*this.height);
 					effect.frame = j;
 					game.addObject(effect);
@@ -478,7 +492,7 @@ SpecialEnemy = function(enemy){
 			} else if(Math.random() < 0.1){
 				enemy.attackEffects.cursed[0] += 0.5;
 			} else if(Math.random() < 0.1){
-				enemy.attackEffects.weakness[0] += 0.5;
+				enemy.attackEffects.weaken[0] += 0.5;
 			} else if(Math.random() < 0.1){
 				enemy.attackEffects.bleeding[0] += 0.5;
 			} else if(Math.random() < 0.1){
