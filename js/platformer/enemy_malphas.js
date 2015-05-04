@@ -32,7 +32,7 @@ function Malphas(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.damage );
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.damage );
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){

@@ -16,7 +16,7 @@ function Poseidon(x,y){
 	this.addModule( mod_boss );
 	
 	this.death_time = Game.DELTASECOND * 3;
-	this.life = dataManager.life(26);
+	this.life = dataManager.life(30);
 	this.collideDamage = 5;
 	this.damage = dataManager.damage(4);
 	this.landDamage = dataManager.damage(6);
@@ -50,8 +50,8 @@ function Poseidon(x,y){
 		if( obj.hurt instanceof Function )
 			if( this.force.y > 5 ) 
 				obj.hurt( this, this.landDamage );
-			else
-				obj.hurt( this, this.collideDamage );
+			//else
+			//	obj.hurt( this, this.collideDamage );
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){

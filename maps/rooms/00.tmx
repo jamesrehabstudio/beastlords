@@ -47,7 +47,7 @@
    <property name="rarity" value="0"/>
    <property name="tags" value="[&quot;entry&quot;]"/>
   </properties>
-  <object name="Player" gid="136" x="240" y="192"/>
+  <object name="Player" gid="136" x="128" y="192"/>
   <object name="Exit" gid="136" x="0" y="112"/>
  </objectgroup>
 </map>

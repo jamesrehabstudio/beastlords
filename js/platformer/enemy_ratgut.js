@@ -32,10 +32,10 @@ function Ratgut(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team != obj.team && obj.hasModule(mod_combat) ) {
-			obj.hurt( this, this.collideDamage );
+			//obj.hurt( this, this.collideDamage );
 			
-			this.states.cooldown = Game.DELTASECOND * 3;
-			this.states.runaway = Game.DELTASECOND * 1.5;
+			//this.states.cooldown = Game.DELTASECOND * 3;
+			//this.states.runaway = Game.DELTASECOND * 1.5;
 		}
 	});
 	this.on("struck", EnemyStruck);
@@ -72,6 +72,7 @@ Ratgut.prototype.update = function(){
 				this.force.y = -3;
 				this.states.cooldown = Game.DELTASECOND * 5;
 			}
+			this.strike( new Line(-8,-16,8,16) );
 		} else {
 			//wander
 			if( this.states.runaway > 0 ) {

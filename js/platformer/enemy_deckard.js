@@ -35,8 +35,8 @@ function Deckard(x,y){
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function ) {
-			obj.hurt( this, this.collideDamage );
-			this.states.attack = 0;
+			//obj.hurt( this, this.collideDamage );
+			//this.states.attack = 0;
 		}
 	});
 	this.on("collideHorizontal", function(x){

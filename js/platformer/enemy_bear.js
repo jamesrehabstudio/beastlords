@@ -32,7 +32,7 @@ function Bear(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("struck", EnemyStruck);
 	this.on("block", function(obj,pos,damage){

@@ -127,6 +127,55 @@ DataManager.prototype.reset = function(){
 	
 	for(var i=0; i < this.treasures.length; i++ ) this.treasures[i]["remaining"] = this.treasures[i].pergame;
 }
+DataManager.prototype.loadMap = function(g,map,options){
+	this.slices = [];
+	g.clearAll();
+	g.tileSprite = sprites.town;
+	options = options || {};
+	
+	g.bounds = new Line(0,0,map.width*256,240);
+	g.tileDimension = new Line(
+		g.bounds.start.x/16,
+		g.bounds.start.y/16,
+		g.bounds.end.x/16,
+		g.bounds.end.y/16
+	);
+	g.tiles = [
+		new Array( ~~g.tileDimension.area() ),
+		new Array( ~~g.tileDimension.area() )
+	];
+	g.buildCollisions();
+	for(var i=0; i < map.front.length; i++){
+		g.tiles[1][i] = map.front[i];
+		g.tiles[0][i] = map.back[i];
+	}
+	for(var i=0; i < map.objects.length; i++){
+		var obj = map.objects[i];
+		g.addObject( new window[obj[2]](
+			obj[0],
+			obj[1],
+			null,
+			obj[3]
+		));
+	}
+	if( _player instanceof Player ) {
+		g.addObject(_player);
+		if( "direction" in options && options.direction.x < 0 ){
+			_player.position.x = g.bounds.end.x - 64;
+			_player.position.y = 200;
+			_player.flip = true;
+		} else {
+			_player.position.x = 64;
+			_player.position.y = 200;
+			_player.flip = false;
+		}
+		_player.lock = g.bounds;
+		_player.lock_overwrite = false;
+		_player.keys = new Array();
+	}
+	g.addObject(new PauseMenu());
+	g.addObject(new Background());
+}
 DataManager.prototype.randomTown = function(g, town){
 	var s = new Seed(town.seed);
 	
@@ -147,24 +196,31 @@ DataManager.prototype.randomTown = function(g, town){
 	
 	var rooms = new Array();
 	var length = 6 + town.size * 2;
+	var pos = 0;
 	for(var i=0; i < length; i++){
 		if( i == 0 ) { 
-			rooms[i] = 10;
+			rooms[pos] = 10;
 		} else if ( i == length-1) {
-			rooms[i] = 9;
+			rooms[pos] = 9;
 		} else {
-			rooms[i] = town.size-1;
+			rooms[pos] = town.size-1;
 			for(var j in specials){
 				if( s.randomBool(specials[j].odds) && specials[j].count <= 0) {
-					rooms[i] = j;
+					rooms[pos] = j;
 					specials[j].count++;
 				}
 			}
 			if( s.randomBool(0.7) )
-				g.addObject(new Villager(128+i*128,192,town));
+				g.addObject(new Villager(128+pos*128,192,town));
+		}
+		try{
+			var w = _map_town[ rooms[pos] ].width;
+			pos += w;
+		} catch ( err) {
+			pos++;
 		}
 	}
-	g.bounds = g.tileDimension = new Line(0,0,rooms.length*8,15);
+	g.bounds = g.tileDimension = new Line(0,0,pos*8,15);
 	g.tiles = [
 		new Array( ~~g.tileDimension.area() ),
 		new Array( ~~g.tileDimension.area() )
@@ -174,10 +230,12 @@ DataManager.prototype.randomTown = function(g, town){
 	g.addObject(new Background());
 	
 	for(var i=0; i < rooms.length; i++){
-		this.createRoom(g,_map_town[ rooms[i] ], new Point(i*128,0),"TOWNS_DONT_HAVE_PROPERTIES",8);
+		if( rooms[i] != undefined && rooms[i] >= 0 ) {
+			this.createRoom(g,_map_town[ rooms[i] ], new Point(i*128,0),"TOWNS_DONT_HAVE_PROPERTIES",8);
+		}
 	}
 	if( _player instanceof Player ) {
-		_player.lock = new Line(0,0,rooms.length*128,240);
+		_player.lock = new Line(0,0,pos*128,240);
 		_player.lock_overwrite = false;
 		_player.keys = new Array();
 	}

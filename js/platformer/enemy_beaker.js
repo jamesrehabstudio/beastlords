@@ -26,7 +26,7 @@ function Beaker(x, y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("collideHorizontal", function(x){
 		this.states.backwards = !this.states.backwards;
@@ -85,6 +85,9 @@ Beaker.prototype.update = function(){
 		/* counters */
 		this.states.cooldown -= this.delta;
 		
+		if( this.criticalChance > 0 ) {
+			this.strike( new Line(-8,-4,8,4) );
+		}
 	}
 	
 	if(this.grounded) this.criticalChance = 0.0;

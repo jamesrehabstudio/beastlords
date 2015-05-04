@@ -28,6 +28,7 @@ function Bullet(x,y,d){
 	
 	this.addModule( mod_rigidbody );
 	this.force.x = d * this.speed;
+	this.pushable = false;
 	
 	this.on("collideObject", function(obj){
 		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {

@@ -24,91 +24,6 @@
         }, 
         {
          "height":15,
-         "name":"lines",
-         "objects":[
-                {
-                 "height":0,
-                 "name":"",
-                 "polyline":[
-                        {
-                         "x":0,
-                         "y":0
-                        }, 
-                        {
-                         "x":-256,
-                         "y":0
-                        }],
-                 "properties":
-                    {
-
-                    },
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":256,
-                 "y":208
-                }, 
-                {
-                 "height":0,
-                 "name":"",
-                 "polyline":[
-                        {
-                         "x":0,
-                         "y":0
-                        }, 
-                        {
-                         "x":0,
-                         "y":128
-                        }, 
-                        {
-                         "x":16,
-                         "y":128
-                        }, 
-                        {
-                         "x":16,
-                         "y":0
-                        }, 
-                        {
-                         "x":240,
-                         "y":0
-                        }, 
-                        {
-                         "x":240,
-                         "y":128
-                        }, 
-                        {
-                         "x":256,
-                         "y":128
-                        }, 
-                        {
-                         "x":256,
-                         "y":0
-                        }],
-                 "properties":
-                    {
-
-                    },
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":0,
-                 "y":32
-                }],
-         "opacity":1,
-         "properties":
-            {
-             "map_tile":"13",
-             "rarity":"0",
-             "tags":"[\"exit_w\"]"
-            },
-         "type":"objectgroup",
-         "visible":false,
-         "width":16,
-         "x":0,
-         "y":0
-        }, 
-        {
-         "height":15,
          "name":"objects",
          "objects":[
                 {
@@ -122,10 +37,16 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":128,
+                 "x":144,
                  "y":160
                 }],
          "opacity":1,
+         "properties":
+            {
+             "map_tile":"13",
+             "rarity":"0",
+             "tags":"[\"exit_w\"]"
+            },
          "type":"objectgroup",
          "visible":true,
          "width":16,

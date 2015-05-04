@@ -43,8 +43,8 @@ function Chort(x,y){
 		if( obj.hurt instanceof Function )
 			if( this.force.y > 5 ) 
 				obj.hurt( this, this.landDamage );
-			else
-				obj.hurt( this, this.collideDamage );
+			//else
+			//	obj.hurt( this, this.collideDamage );
 	});
 	this.on("struck", EnemyStruck);
 	

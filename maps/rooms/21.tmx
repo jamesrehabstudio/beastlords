@@ -14,7 +14,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,216,216,216,216,216,216,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,152,0,0,0,0,0,0,0,0,0,0,0,0,152,0,
 0,168,0,0,0,0,0,0,0,0,0,0,0,0,168,0,
@@ -27,12 +27,6 @@
    <property name="min_temple" value="4"/>
    <property name="rarity" value="0.1"/>
   </properties>
-  <object name="CollapseTile" gid="136" x="80" y="160"/>
-  <object name="CollapseTile" gid="136" x="112" y="160"/>
-  <object name="CollapseTile" gid="136" x="96" y="160"/>
-  <object name="CollapseTile" gid="136" x="128" y="160"/>
-  <object name="CollapseTile" gid="136" x="160" y="160"/>
-  <object name="CollapseTile" gid="136" x="144" y="160"/>
   <object name="Igbo" gid="136" x="120" y="128"/>
   <object name="Malsum" gid="136" x="120" y="192"/>
   <object name="DeathTrigger" gid="136" x="128" y="240"/>

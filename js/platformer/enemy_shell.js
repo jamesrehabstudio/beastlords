@@ -5,7 +5,7 @@ function Shell(x,y){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
-	this.height = 16;
+	this.height = 12;
 	
 	this.speed = 0.5;
 	this.sprite = sprites.shell;
@@ -24,7 +24,7 @@ function Shell(x,y){
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
-			obj.hurt( this, this.damage );
+			//obj.hurt( this, this.damage );
 			this.force.x *= -1;
 		}
 	});
@@ -60,4 +60,6 @@ Shell.prototype.update = function(){
 	} else {
 		this.force.x = this.force.y = 0;
 	}
+	
+	this.strike( new Line(-8,-4,8,4) );
 }

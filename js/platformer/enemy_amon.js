@@ -17,21 +17,9 @@ function Amon(x,y){
 		audio.play("hurt");
 	});
 	this.on("struck", EnemyStruck);
-	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
-			obj.hurt( this, this.damage );
-			this.force.x *= -1;
-		}
-	});
-	/*
-	this.on("collideHorizontal", function(dir){
+	this.on("hurt_other", function(obj){
 		this.force.x *= -1;
 	});
-	this.on("collideVertical", function(dir){
-		this.force.y *= -1;
-	});
-	*/
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
 		_player.addXP(this.xp_award);
@@ -60,11 +48,14 @@ Amon.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.2) % 2;
 	if( this.stun < 0 ) {
 		if( Math.abs( this.force.x ) > 0.1 ) {
+			this.force.x = this.speed * (this.force.x > 0 ? 1 : -1);
+			this.force.y = this.speed * (this.force.y > 0 ? 1 : -1);
 			this.backupForce = new Point(this.force.x, this.force.y);
 		} else {
 			this.force = new Point(this.backupForce.x, this.backupForce.y);
 		}
 		this.flip = this.force.x < 0;
+		this.strike( new Line(-8,0,8,4) );
 	} else {
 		this.force.x = this.force.y = 0;
 	}

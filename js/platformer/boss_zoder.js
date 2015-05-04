@@ -25,14 +25,14 @@ function Zoder(x,y){
 		"backup" : 0
 	}
 	
-	this.attack_warm = 24.0;
+	this.attack_warm = 34.0;
 	this.attack_time = 10.5;
 	this.attack_rest = 7.0;
 	this.thrust_power = 6;
 	
 	this.life = dataManager.life(24);
-	this.damage = 50;
-	this.collideDamage = 20;
+	this.damage = dataManager.damage(5);
+	this.collideDamage = dataManager.damage(3);
 	this.mass = 5.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 3;
@@ -42,7 +42,7 @@ function Zoder(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;

@@ -26,9 +26,27 @@ var mod_rigidbody = {
 		this.on("collideObject", function(obj){
 			if( obj.hasModule(mod_rigidbody) && this.pushable && obj.pushable ) {
 				var dir = this.position.subtract( obj.position ).normalize();
-				var mass = Math.max( 1.0 - Math.max(this.mass - obj.mass, 0), 0);
-				this.force.y += dir.y * this.friction * mass * this.delta;
-				this.force.x += dir.x * this.friction * mass * this.delta;
+				/*
+				var b = this.bounds();
+				var c = obj.bounds();
+				var overlap = new Point(
+					dir.x > 0 ? (c.end.x-b.start.x) : (b.end.x-c.start.x),
+					dir.y > 0 ? (c.end.y-b.start.y) : (b.end.y-c.start.y)
+				);
+				var percent = new Point(
+					Math.min(Math.abs(overlap.x) / Math.max(this.width*0.5,0.0001),1.0),
+					Math.min(Math.abs(overlap.y) / Math.max(this.height*0.5,0.0001),1.0)
+				);
+				*/
+				
+				if( obj.mass > 0.5 ) {
+					if( (this.force.x < 0 && dir.x > 0) || (this.force.x > 0 && dir.x < 0) ){
+						this.force.x = dir.x;
+					}
+				} else { 
+					this.force.x += dir.x * 0.2 * this.delta;
+					this.force.y += dir.y * 0.2 * this.delta;
+				}
 			}
 		});
 	},
@@ -321,10 +339,12 @@ var mod_combat = {
 				this.statusEffects[i] -= this.deltaUnscaled;
 				if( this.statusEffectsTimers[i] > this.statusEffects[i]/* || this.statusEffectsTimers[i] <= 0 */){
 					this.statusEffectsTimers[i] = this.statusEffects[i] - Game.DELTASECOND * 0.5;
-					if( this instanceof Player ){
-						if( this.life > 30 ) this.life -= 1;
-					} else {
-						this.life -= 3; this.isDead(); 
+					if( i == "poison" ) {
+						if( this instanceof Player ){
+							if( this.life > 30 ) this.life -= 1;
+						} else {
+							this.life -= 3; this.isDead(); 
+						}
 					}
 					var effect = new EffectStatus(this.position.x+(Math.random()-.5)*this.width, this.position.y+(Math.random()-.5)*this.height);
 					effect.frame = j;
@@ -475,9 +495,10 @@ var mod_talk = {
 SpecialEnemy = function(enemy){
 	if(Math.random() > 0.05) return;
 	var effects = 1 + Math.floor(Math.random()*3);
+	enemy.life = Math.floor(8 + enemy.life * 1.5);
 	
 	for(var i=0; i < effects; i++){
-		try{
+		try{			
 			if(Math.random() < 0.1){
 				enemy.life *= 2;
 			} else if(Math.random() < 0.1){

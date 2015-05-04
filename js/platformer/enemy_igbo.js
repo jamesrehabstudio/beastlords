@@ -43,7 +43,7 @@ function Igbo(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;

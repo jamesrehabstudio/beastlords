@@ -22,24 +22,26 @@ function Minotaur(x,y){
 		"dizzy" : 0
 	}
 	
-	this.life = dataManager.life(24);
+	this.life = dataManager.life(30);
 	this.mass = 5.0;
-	this.damage = 25;
-	this.collideDamage = 25;
+	this.damage = dataManager.damage(5);
+	this.collideDamage = dataManager.damage(5);
 	this.inviciple_tile = this.stun_time;
 	this.collisionReduction = -1.0;
-	this.death_time = Game.DELTASECOND * 3;
 	this.death_time = Game.DELTASECOND * 3;
 	
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+		if( obj.hurt instanceof Function ) 
+			if( this.states.attack > 0 ) {
+				obj.hurt( this, this.damage );
+			}
 	});
 	this.on("collideHorizontal", function(dir){
 		if( this.states.attack > 0 && Math.abs(this.force.x) > 1.0 ) {
 			this.states.attack = 0;
 			this.states.cooldown = Game.DELTASECOND;
-			this.states.dizzy = Game.DELTASECOND * 3.5;
+			this.states.dizzy = Game.DELTASECOND * 2.5;
 			
 			if( dir > 0 ) {
 				game.addObject(new EffectExplosion(this.position.x + 20, this.position.y-32));

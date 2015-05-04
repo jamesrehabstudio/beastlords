@@ -42,8 +42,8 @@ function Skeleton(x,y){
 		if( obj.hurt instanceof Function ){
 			if( !this.grounded && this.position.y < obj.position.y ) 
 				obj.hurt( this, this.damage );
-			else 
-				obj.hurt( this, this.collideDamage );
+			//else 
+			//	obj.hurt( this, this.collideDamage );
 		}
 	});
 	this.on("collideHorizontal", function(x){

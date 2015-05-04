@@ -49,11 +49,14 @@ def main():
 	rooms = []
 	junctions = []
 	towns = []
+	maps = []
 	
 	for file in os.listdir(os.getcwd()):
 		if re.match(".*\.json", file):
 			try:
-				if file[0:4] == "town":
+				if file[0:4] == "map_":
+					maps.append( compile( json.loads( open(file,"r").read() ) ) )
+				elif file[0:4] == "town":
 					towns.append( compile( json.loads( open(file,"r").read() ), 8 ) )
 				elif file[0] == "j":
 					junctions.append( compile( json.loads( open(file,"r").read() ) ) )
@@ -80,12 +83,21 @@ def main():
 		i += 1
 	write += "\n\t];"
 	
-	#Write out junctions
+	#Write out towns
 	write += "\n\nwindow._map_town = [\n"
 	i = 0
 	for room in towns:
 		if i > 0 : write += ",\n"
 		write += "\t\t" + json.dumps(room)
+		i += 1
+	write += "\n\t];"
+	
+	#Write out fully formed maps
+	write += "\n\nwindow._map_maps = [\n"
+	i = 0
+	for map in maps:
+		if i > 0 : write += ",\n"
+		write += "\t\t" + json.dumps(map)
 		i += 1
 	write += "\n\t];"
 	

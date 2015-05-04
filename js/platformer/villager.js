@@ -1,6 +1,6 @@
 Villager.prototype = new GameObject();
 Villager.prototype.constructor = GameObject;
-function Villager(x,y,t){
+function Villager(x,y,t,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -8,7 +8,9 @@ function Villager(x,y,t){
 	this.height = 32;
 	this.start_x = x;
 	this.sprite = sprites.characters;
-	this.town = t;
+	this.town = t || _world.towns[1];
+	
+	o = o || {};
 	
 	this.state = 0;
 	this.speed = 0.5 + Math.random() * 0.9;
@@ -21,6 +23,11 @@ function Villager(x,y,t){
 	var m = Villager.getMessage(this.town);
 	
 	this.message = m.message;
+	try{
+		this.path = 1*(o.path || this.path);
+		this.message = JSON.parse(o.message);
+	} catch(err){}
+
 	this.base_frame = 0;
 	this.frame_row = 1;
 	

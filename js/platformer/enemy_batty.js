@@ -22,7 +22,7 @@ function Batty(x,y){
 	this.life = dataManager.life(0);
 	this.lifeMax = dataManager.life(0);
 	this.mass = 0.8;
-	this.collideDamage = dataManager.damage(2);
+	this.collideDamage = this.damage = dataManager.damage(2);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
 	this.fuse = dataManager.currentTemple >= 4;
@@ -34,10 +34,6 @@ function Batty(x,y){
 			obj.destroy();
 			this.fuse = obj.fuse = false;
 			game.addObject(new Deckard( this.position.x, this.position.y ));
-		}
-		if( this.team != obj.team && obj.hurt instanceof Function ) {
-			obj.hurt( this, this.collideDamage );
-			this.states.attack = 0;
 		}
 	});
 	this.on("collideHorizontal", function(x){
@@ -114,6 +110,8 @@ Batty.prototype.update = function(){
 				} else {
 					this.states.attack -= this.delta
 				}
+				
+				this.strike( new Line(-8,-4,8,4) );
 			}
 		} else {
 			this.states.cooldown -= this.delta;

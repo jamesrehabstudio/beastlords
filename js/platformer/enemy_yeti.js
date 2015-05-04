@@ -31,7 +31,7 @@ function Yeti(x,y){
 	
 	this.on("collideObject", function(obj){
 		if( this.team != obj.team && obj.hasModule(mod_combat) ) {
-			obj.hurt( this, this.collideDamage );
+			//obj.hurt( this, this.collideDamage );
 		}
 	});
 	this.on("struck", EnemyStruck);

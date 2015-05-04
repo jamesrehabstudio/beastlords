@@ -13,52 +13,8 @@
         }, 
         {
          "height":15,
-         "name":"lines",
+         "name":"objects",
          "objects":[
-                {
-                 "height":0,
-                 "name":"",
-                 "polyline":[
-                        {
-                         "x":0,
-                         "y":0
-                        }, 
-                        {
-                         "x":-256,
-                         "y":0
-                        }],
-                 "properties":
-                    {
-
-                    },
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":256,
-                 "y":208
-                }, 
-                {
-                 "height":0,
-                 "name":"",
-                 "polyline":[
-                        {
-                         "x":0,
-                         "y":0
-                        }, 
-                        {
-                         "x":256,
-                         "y":0
-                        }],
-                 "properties":
-                    {
-
-                    },
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":0,
-                 "y":32
-                }, 
                 {
                  "gid":232,
                  "height":0,
@@ -72,23 +28,7 @@
                  "width":0,
                  "x":160,
                  "y":192
-                }],
-         "opacity":1,
-         "properties":
-            {
-             "rarity":"0.3",
-             "tags":"[\"miniboss\"]"
-            },
-         "type":"objectgroup",
-         "visible":true,
-         "width":16,
-         "x":0,
-         "y":0
-        }, 
-        {
-         "height":15,
-         "name":"objects",
-         "objects":[
+                }, 
                 {
                  "gid":17,
                  "height":0,
@@ -100,10 +40,15 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":128,
-                 "y":192
+                 "x":144,
+                 "y":128
                 }],
          "opacity":1,
+         "properties":
+            {
+             "rarity":"0.3",
+             "tags":"[\"miniboss\"]"
+            },
          "type":"objectgroup",
          "visible":true,
          "width":16,

@@ -29,7 +29,7 @@ function Lift(x,y){
 		}
 	});
 	
-	this.mass = 0;
+	this.pushable = false;
 	this.gravity = 0.0;
 }
 
