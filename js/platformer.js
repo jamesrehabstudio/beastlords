@@ -5545,7 +5545,7 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
 		textArea(g,"Copyright Pogames.uk 2015",8,4);
-		textArea(g,"Version 0.1.5",8,228);
+		textArea(g,"Version 0.1.6",8,228);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
