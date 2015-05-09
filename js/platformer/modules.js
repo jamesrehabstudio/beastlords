@@ -38,8 +38,9 @@ var mod_rigidbody = {
 					Math.min(Math.abs(overlap.y) / Math.max(this.height*0.5,0.0001),1.0)
 				);
 				*/
-				
-				if( obj.mass > 0.5 ) {
+				if( this.mass - obj.mass > 1.0 ){
+					obj.force.x += this.force.x * 0.8;
+				} else if( obj.mass > 0.5 ) {
 					if( (this.force.x < 0 && dir.x > 0) || (this.force.x > 0 && dir.x < 0) ){
 						this.force.x = dir.x;
 					}
@@ -128,6 +129,7 @@ var mod_combat = {
 		this.invincible = 0;
 		this.invincible_time = 10.0;
 		this.criticalChance = 0.0;
+		this.criticalMultiplier = 4.0;
 		this.damage = 10;
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
@@ -253,6 +255,14 @@ var mod_combat = {
 					return true;
 			return false;
 		}
+		this.addEffect = function(name, chance, time){
+			var resistence = Math.random() + this.statusResistance[name];
+			if( resistence < chance ){
+				this.statusEffects[name] = Math.max( Game.DELTASECOND * time, this.statusEffects[name] );
+				this.statusEffectsTimers[name] = Math.max( this.statusEffects[name] - Game.DELTASECOND * 0.5, this.statusEffectsTimers[name]);
+				this.trigger("status_effect", name);
+			}
+		}
 		this.hurt = function(obj, damage){
 			if( this.statusEffects.bleeding > 0 ) damage *= 2;
 			if( this.statusEffects.rage > 0 ) damage = Math.floor( damage * 1.5 );
@@ -262,19 +272,14 @@ var mod_combat = {
 			//Add effects to attack
 			if( "attackEffects" in obj ){
 				for( var i in obj.attackEffects ) {
-					var resistence = Math.random() + this.statusResistance[i];
-					if( resistence < obj.attackEffects[i][0] ){
-						this.statusEffects[i] = Math.max( Game.DELTASECOND * obj.attackEffects[i][1], this.statusEffects[i] );
-						this.statusEffectsTimers[i] = Math.max( this.statusEffects[i] - Game.DELTASECOND * 0.5, this.statusEffectsTimers[i]);
-						this.trigger("status_effect", i);
-					}
+					this.addEffect(i, obj.attackEffects[i][0], obj.attackEffects[i][1]);
 				}
 			}
 			
 			if( this.invincible <= 0 ) {
 				//Determine if its a critical shot
 				if( Math.random() < this.criticalChance ) {
-					damage *= 4;
+					damage *= this.criticalMultiplier;
 					audio.play("critical");
 					game.slow(0.1, Game.DELTASECOND * 0.5 );
 					this.trigger("critical",obj,damage);

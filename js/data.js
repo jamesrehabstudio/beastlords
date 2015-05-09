@@ -1,11 +1,14 @@
-function DataManager() {	
+window._version = "0.1.7";
+
+function DataManager() {
 	this.temples = [
 		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":[1,2],"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker","Shell"],"minorfly":["Batty"]},
 		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":[1,3],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"]},
-		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":[2,4],"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
-		{"tiles":"tiles5","size":13,"maxkeys":3,"treasures":[3,4],"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
-		{"tiles":"tiles4","size":14,"maxkeys":3,"treasures":[3,5],"boss":["Zoder"],"miniboss":["Knight","Oriax"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
-		{"tiles":"tiles2","size":15,"maxkeys":4,"treasures":[2,4],"boss":["Poseidon"],"miniboss":["Knight","Oriax","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
+		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":[2,3],"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
+		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":[2,3],"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
+		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":[3,4],"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
+		//{"tiles":"tiles2","size":12,"maxkeys":3,"treasures":[1,2],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
+		{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		
 		{"tiles":"tiles5","size":16,"maxkeys":4,"treasures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Ratgut"],"minorfly":["Batty","Svarog"]},
@@ -16,51 +19,60 @@ function DataManager() {
 	/* Set data */
 	
 	this.treasures = [
-		{"tags":["goods","chest"],"name":"life","rarity":0.5,"pathSize":1,"doors":0.0,"pergame":9999,"price":20},
-		{"tags":["goods","chest"],"name":"mana_small","rarity":0.3,"pathSize":1,"doors":0.0,"pergame":9999,"price":30},
-		{"tags":["chest","shop"],"name":"xp_big","rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":40},
-		{"tags":["treasure","chest"],"name":"money_bag","rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
-		{"tags":["treasure","shop"],"name":"life_up","rarity":0.01,"pathSize":4,"doors":0.5,"pergame":9999,"price":500},
-		{"tags":["stone","chest"],"name":"waystone","rarity":0.2,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
+		{"tags":["goods","chest"],"name":"life","unlocked":1,"rarity":0.5,"pathSize":1,"doors":0.0,"pergame":9999,"price":20},
+		{"tags":["goods","chest"],"name":"mana_small","unlocked":1,"rarity":0.3,"pathSize":1,"doors":0.0,"pergame":9999,"price":30},
+		{"tags":["chest","shop"],"name":"xp_big","unlocked":1,"rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":40},
+		{"tags":["treasure","chest"],"name":"money_bag","unlocked":1,"rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
+		{"tags":["treasure","shop"],"name":"life_up","unlocked":1,"rarity":0.01,"pathSize":4,"doors":0.5,"pergame":9999,"price":500},
+		{"tags":["stone","chest"],"name":"waystone","unlocked":1,"rarity":0.2,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
 		
-		{"tags":["treasure","chest","weapon"],"name":"short_sword","rarity":0.2,"pathSize":2,"doors":0.0,"pergame":10,"price":20},
-		{"tags":["treasure","chest","weapon"],"name":"long_sword","rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
-		{"tags":["treasure","chest","weapon"],"name":"spear","rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
-		{"tags":["weapon"],"name":"tower_shield","rarity":0.05,"pathSize":4,"doors":0.5,"pergame":10,"price":50},
+		{"tags":["treasure","chest","weapon"],"name":"short_sword","unlocked":1,"rarity":0.2,"pathSize":2,"doors":0.0,"pergame":10,"price":20},
+		{"tags":["treasure","chest","weapon"],"name":"long_sword","unlocked":1,"rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
+		{"tags":["treasure","chest","weapon"],"name":"spear","unlocked":1,"rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
+		{"tags":["weapon"],"name":"tower_shield","unlocked":1,"rarity":0.05,"pathSize":4,"doors":0.5,"pergame":10,"price":50},
 		
-		{"tags":["treasure","shop"],"name":"seed_oriax","rarity":0.1,"pathSize":6,"doors":0.3,"pergame":1,"price":100},
-		{"tags":["treasure","shop"],"name":"seed_bear","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
-		{"tags":["treasure","shop"],"name":"seed_malphas","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
-		{"tags":["treasure","shop"],"name":"seed_cryptid","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
-		{"tags":["treasure","shop"],"name":"seed_knight","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
-		{"tags":["treasure","shop"],"name":"seed_minotaur","rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
-		{"tags":["treasure","shop"],"name":"seed_plaguerat","rarity":0.05,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["treasure","shop"],"name":"seed_marquis","rarity":0.06,"pathSize":3,"doors":0.1,"pergame":1,"price":90},
-		{"tags":["alter","treasure","shop"],"name":"seed_batty","rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+		{"tags":["treasure","shop"],"name":"seed_oriax","unlocked":1,"rarity":0.1,"pathSize":6,"doors":0.3,"pergame":1,"price":100},
+		{"tags":["treasure","shop"],"name":"seed_bear","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"seed_malphas","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"seed_cryptid","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"seed_knight","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"seed_minotaur","unlocked":0,"rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"tags":["treasure","shop"],"name":"seed_plaguerat","unlocked":0,"rarity":0.05,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure","shop"],"name":"seed_marquis","unlocked":1,"rarity":0.06,"pathSize":3,"doors":0.1,"pergame":1,"price":90},
+		{"tags":["alter","treasure","shop"],"name":"seed_batty","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+		{"tags":["alter","treasure","shop"],"name":"seed_chort","unlocked":0,"rarity":0.03,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+		{"tags":["alter","treasure","shop"],"name":"seed_poseidon","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":200},
+		{"tags":["alter","treasure","shop"],"name":"seed_tails","unlocked":0,"rarity":0.1,"pathSize":7,"doors":0.1,"pergame":1,"price":100},
+		{"tags":["alter","treasure","shop"],"name":"seed_mair","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+		{"tags":["alter","treasure","shop"],"name":"seed_igbo","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":100},
 		
-		{"tags":["alter","treasure","shop"],"name":"pedila","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
-		{"tags":["treasure","shop"],"name":"haft","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
-		{"tags":["treasure","shop"],"name":"zacchaeus_stick","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
-		{"tags":["treasure","shop"],"name":"fangs","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
-		{"tags":["chest","treasure","shop"],"name":"passion_fruit","rarity":0.1,"pathSize":2,"doors":0.0,"pergame":9999,"price":100},
-		{"tags":["treasure","shop"],"name":"shield_metal","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
-		//{"tags":["treasure","shop"],"name":"magic_gem","rarity":0.05,"pathSize":6,"doors":0.1,"pergame":1,"price":100},
-		{"tags":["treasure","shop"],"name":"snake_head","rarity":0.04,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["treasure","shop"],"name":"broken_banana","rarity":0.05,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["treasure","shop"],"name":"blood_letter","rarity":0.05,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["treasure","shop"],"name":"red_cape","rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
-		{"tags":["treasure","shop"],"name":"chort_nose","rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
-		{"tags":["treasure","shop"],"name":"plague_mask","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
-		{"tags":["treasure","shop"],"name":"spiked_shield","rarity":0.04,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["alter","treasure","shop"],"name":"pedila","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"tags":["treasure","shop"],"name":"haft","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"tags":["treasure","shop"],"name":"zacchaeus_stick","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"tags":["treasure","shop"],"name":"fangs","unlocked":0,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		{"tags":["chest","treasure","shop"],"name":"passion_fruit","unlocked":1,"rarity":0.1,"pathSize":2,"doors":0.0,"pergame":9999,"price":100},
+		{"tags":["treasure","shop"],"name":"shield_metal","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+		//{"tags":["treasure","shop"],"name":"magic_gem","unlocked":1,"rarity":0.05,"pathSize":6,"doors":0.1,"pergame":1,"price":100},
+		{"tags":["treasure","shop"],"name":"snake_head","unlocked":1,"rarity":0.04,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure","shop"],"name":"broken_banana","unlocked":0,"rarity":0.05,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure","shop"],"name":"blood_letter","unlocked":1,"rarity":0.05,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure","shop"],"name":"red_cape","unlocked":0,"rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"chort_nose","unlocked":1,"rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"plague_mask","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"spiked_shield","unlocked":1,"rarity":0.04,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure","shop"],"name":"black_heart","unlocked":0,"rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["shop"],"name":"treasure_map","unlocked":0,"rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+		{"tags":["treasure","shop"],"name":"life_fruit","unlocked":0,"rarity":0.2,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure","shop"],"name":"mana_fruit","unlocked":0,"rarity":0.2,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
 		
-		{"tags":["chest","alter"],"name":"charm_sword","rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["chest","alter"],"name":"charm_mana","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["treasure","shop"],"name":"charm_alchemist","rarity":0.1,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["chest","treasure","shop"],"name":"charm_musa","rarity":0.04,"pathSize":6,"doors":0.3,"pergame":1,"price":120},
-		{"tags":["treasure"],"name":"charm_wise","rarity":0.04,"pathSize":3,"doors":0.3,"pergame":1,"price":80},
-		{"tags":["chest","shop"],"name":"charm_methuselah","rarity":0.06,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["treasure"],"name":"charm_barter","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
-		{"tags":["chest","shop"],"name":"charm_elephant","rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70}
+		{"tags":["chest","alter"],"name":"charm_sword","unlocked":0,"rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["chest","alter"],"name":"charm_mana","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure","shop"],"name":"charm_alchemist","unlocked":1,"rarity":0.1,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["chest","treasure","shop"],"name":"charm_musa","unlocked":0,"rarity":0.04,"pathSize":6,"doors":0.3,"pergame":1,"price":120},
+		{"tags":["treasure"],"name":"charm_wise","unlocked":0,"rarity":0.04,"pathSize":3,"doors":0.3,"pergame":1,"price":80},
+		{"tags":["chest","shop"],"name":"charm_methuselah","unlocked":1,"rarity":0.06,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["treasure"],"name":"charm_barter","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+		{"tags":["chest","shop"],"name":"charm_elephant","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70}
 	];
 	
 	this.rules = {
@@ -112,6 +124,23 @@ function DataManager() {
 		}
 	}
 	
+	this.treasures.sort(function(a,b){
+		var _a = a.unlocked > 0 ? 0 : 999999;
+		var _b = b.unlocked > 0 ? 0 : 999999;
+		_a -= a.pergame;
+		_b -= b.pergame;
+		return _a - _b;
+	});
+	
+	this.unlocks = [];
+	for(var i=0; i < this.treasures.length; i++){
+		var name = this.treasures[i].name;
+		if( localStorage.getItem("item_"+name) ) {
+			this.treasures[i].unlocked = localStorage.getItem("item_"+name);
+		}
+	}
+	
+	localStorage.setItem("version", window._version);
 	load_sprites();
 	this.reset();
 }
@@ -125,8 +154,40 @@ DataManager.prototype.reset = function(){
 	this.currentTemple = -1;
 	this.currentTown = -1;
 	
-	for(var i=0; i < this.treasures.length; i++ ) this.treasures[i]["remaining"] = this.treasures[i].pergame;
+	this.unlocks = [];
+	for(var i=0; i < this.treasures.length; i++ ) {
+		if(this.treasures[i].unlocked > 0) {
+			this.treasures[i]["remaining"] = this.treasures[i].pergame;
+		} else { 
+			this.treasures[i]["remaining"] = 0;
+		}
+	}
 }
+DataManager.prototype.itemGet = function(name){
+	for(var i=0; i < this.treasures.length; i++){
+		if( this.treasures[i].name == name ) {
+			
+			if( this.treasures[i].unlocked == 0 && this.unlocks.indexOf(name) < 0){
+				this.unlocks.push( name );
+			}
+			this.treasures[i].unlocked = 2;
+			localStorage.setItem("item_"+name,2);
+		}
+	}
+}
+DataManager.prototype.itemUnlock = function(name){
+	for(var i=0; i < this.treasures.length; i++){
+		if( this.treasures[i].name == name ) {
+			
+			if( this.treasures[i].unlocked == 0 && this.unlocks.indexOf(name) < 0){
+				this.unlocks.push( name );
+				this.treasures[i].unlocked = 1;
+				localStorage.setItem("item_"+name,1);
+			}
+		}
+	}
+}
+	
 DataManager.prototype.loadMap = function(g,map,options){
 	this.slices = [];
 	g.clearAll();
@@ -184,8 +245,8 @@ DataManager.prototype.randomTown = function(g, town){
 	this.slices = [];
 	
 	var specials = {
-		3: {"odds":0.3, count:0},
-		4: {"odds":0.3, count:0},
+		3: {"odds":0.4, count:0},
+		4: {"odds":0.0, count:0},
 		6: {"odds":0.3, count:0},
 		8: {"odds":0.3, count:0}
 		
@@ -259,14 +320,14 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 		this.slices = [new MapSlice()];
 		
 		var options = {
-			"rules":(this.currentTemple == 5 ? this.rules.final : this.rules.main),
+			"rules":(this.currentTemple == 5 ? this.rules.main : this.rules.main),
 			"size":temple.size
 		}
 		
 		success = this.addRoom(options,temple.size,1, new Point(0,0));
 		//success = this.addRoom(options,1,1, new Point(0,0));
 		
-		if( this.slices.peek().junctionCount() > 0 ) {
+		if( this.slices.peek().junctionCount() > 0 || true) {
 			//Add a branch for a map
 			var map_size = Math.floor(1+seed.random()*3);
 			
@@ -974,11 +1035,13 @@ DataManager.prototype.attemptLoop = function(options,level,direction,cursor,dest
 DataManager.prototype.addWell = function(junctions){
 	junctions.sort(function(a,b){ MapSlice.idToLoc(a).y - MapSlice.idToLoc(a).y });
 	var size = 6 + Math.floor(seed.random() * 5);
+	var item = this.randomTreasure(seed.random(), [], {"remaining":-999,"locked":true});
 	var options = {
 		"secret":true,
 		"rules":this.rules.item,
 		"difficulty":2,
-		"size":size
+		"size":size,
+		"item" : item.name
 	}
 	
 	for(var i=0; i < junctions.length; i++){
@@ -1116,14 +1179,23 @@ DataManager.prototype.wallmeat = function(){
 		}
 	}
 }
-DataManager.prototype.randomTreasure = function(roll, tags){
+DataManager.prototype.randomTreasure = function(roll, tags, ops){
 	tags = tags || [];
+	ops = ops || {};
+	ops.remaining = ops.remaining || 0;
+	
+	var shortlist = [];
 	var total = 0.0;
-	for(var i=0; i<this.treasures.length; i++) if(this.treasures[i].remaining > 0) if(this.treasures[i].tags.intersection(tags).length == tags.length) total += this.treasures[i].rarity;
+	for(var i=0; i<this.treasures.length; i++) 
+		if((!ops.locked && this.treasures[i].remaining > ops.remaining) || (ops.locked && this.treasures[i].unlocked <= 0))
+			if(this.treasures[i].tags.intersection(tags).length == tags.length) {
+				total += this.treasures[i].rarity;
+				shortlist.push(this.treasures[i]);
+			}
 	roll *= total;
-	for(var i=0; i<this.treasures.length; i++) if(this.treasures[i].remaining > 0) if(this.treasures[i].tags.intersection(tags).length == tags.length) {
-		if( roll < this.treasures[i].rarity ) return this.treasures[i];
-		roll -= this.treasures[i].rarity;
+	for(var i=0; i<shortlist.length; i++) {
+		if( roll < shortlist[i].rarity ) return shortlist[i];
+		roll -= shortlist[i].rarity;
 	}
 	return this.treasures[0];
 }

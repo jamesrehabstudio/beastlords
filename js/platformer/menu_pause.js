@@ -43,11 +43,17 @@ PauseMenu.prototype.update = function(){
 				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
 				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
 				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
+				
+				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
+				localStorage.setItem("musvolume",audio.musVolume.gain.value);
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
 				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
 				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
 				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
+				
+				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
+				localStorage.setItem("musvolume",audio.musVolume.gain.value);
 			}
 		} else if( this.page == 1 ) {
 			//Map page

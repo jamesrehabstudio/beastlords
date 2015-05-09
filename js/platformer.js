@@ -4125,6 +4125,7 @@ function SnakeBullet(x,y,d){
 	this.life = dataManager.life(0);
 	this.collideDamage = dataManager.damage(1);
 	this.damage = dataManager.damage(2);
+	this.pushable = false;
 	this.mass = 0.0;
 	this.gravity = 0.1;
 	
@@ -4628,26 +4629,33 @@ function Item(x,y,name, ops){
 			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; audio.play("levelup"); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
-			if( this.name == "seed_minotaur") { obj.on("collideObject", function(obj){ if( this.team != obj.team && obj.hurt instanceof Function ) obj.hurt( this, Math.ceil(this.damage/5) ); }); }
+			if( this.name == "seed_minotaur") { 
+				obj.on("collideObject", function(obj){ 
+					if( this.team != obj.team && obj.hurt instanceof Function && Math.abs(this.force.x) > 4) {
+						this.force.x *= -0.5;
+						obj.hurt( this, Math.ceil(this.damage/2) ); 
+					}
+				});
+			}
 			if( this.name == "seed_plaguerat") { 
-				obj.attackEffects.poison[0] += 1.0; 
-				obj.life_steal = Math.min(obj.life_steal+0.2,0.4); 
-				obj.statusEffectsTimers.poison = obj.statusEffects.poison = Game.DELTAYEAR;
-				obj.trigger("status_effect", "poison");
-				obj.on("added",function(){
-					obj.statusEffectsTimers.poison=this.statusEffects.poison=Game.DELTAYEAR; 
-					this.trigger("status_effect", "poison");
-				}); 
+				obj.attackEffects.poison[0] = 1.0; 
+				obj.life_steal += 0.2
+				obj.on("added",function(){ this.addEffect("poison", 1.0, Game.DELTAYEAR);}); 
 				audio.play("levelup"); 
 			}
 			if( this.name == "seed_marquis") { obj.stun_time = 0; audio.play("levelup"); }
 			if( this.name == "seed_batty") { obj.spellsCounters.flight=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.flight=Game.DELTAYEAR}); audio.play("levelup"); }
+			if( this.name == "seed_chort") { obj.lifeMax += 20; obj.heal += 20; obj.stats.defence+=1; audio.play("levelup"); }
+			if( this.name == "seed_poseidon") { obj.stats.attack+=1; obj.stats.defence+=1; obj.stats.technique+=1; audio.play("levelup"); }
+			if( this.name == "seed_tails") { obj.on("money", function(v){this.life = Math.min(this.lifeMax, this.life+v);}); audio.play("levelup"); }
+			if( this.name == "seed_mair") { obj.stats.attack=Math.max(obj.stats.attack-1,1); obj.stats.defence=Math.max(obj.stats.defence-1,1); obj.stats.technique+=4; audio.play("levelup"); }
+			if( this.name == "seed_igbo") { obj.stats.defence+=3; audio.play("levelup"); }
 			
 			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.feather_foot=Game.DELTAYEAR}); audio.play("levelup"); }
-			if( this.name == "haft") { obj.equip_sword.bonus_def = obj.equip_sword.bonus_def+1 || 1; obj.equip_sword.level++; audio.play("levelup"); }
+			if( this.name == "haft") { obj.criticalMultiplier += 2.0; audio.play("levelup"); }
 			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; audio.play("levelup"); }
-			if( this.name == "fangs") { obj.life_steal = Math.min(obj.life_steal+0.1,0.4); audio.play("levelup"); }
-			if( this.name == "passion_fruit") { obj.manaHeal = obj.heal = Game.DELTAYEAR; audio.play("levelup"); }
+			if( this.name == "fangs") { obj.life_steal += 0.1; audio.play("levelup"); }
+			if( this.name == "passion_fruit") { obj.manaHeal = obj.heal = Game.DELTAYEAR; audio.play("gulp"); }
 			if( this.name == "shield_metal") { if( obj.equip_shield == null ) return; obj.equip_shield.bonus_def = obj.equip_shield.bonus_def + 1 || 1; audio.play("levelup"); }
 			if( this.name == "magic_gem"){ obj.spellsCounters.magic_sword=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.magic_sword=Game.DELTAYEAR}); audio.play("levelup"); }
 			if( this.name == "snake_head") { obj.attackEffects.poison[0] += .2; audio.play("levelup"); }
@@ -4657,6 +4665,10 @@ function Item(x,y,name, ops){
 			if( this.name == "chort_nose") { obj.waystone_bonus *= 2.0; audio.play("levelup"); }
 			if( this.name == "plague_mask") { obj.statusEffects.poison=0; obj.statusResistance.poison = 1.0; audio.play("levelup"); }
 			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); audio.play("levelup"); }
+			if( this.name == "black_heart") { obj.stats.attack+=1; obj.stats.defence+=2; obj.stats.technique+=1; obj.lifeMax -= 20; obj.life = Math.min(obj.lifeMax,obj.life); audio.play("levelup"); }
+			if( this.name == "treasure_map") { game.getObject(PauseMenu).revealMap(2); audio.play("levelup"); }
+			if( this.name == "life_fruit") { obj.lifeMax += 20; obj.heal = 9999; audio.play("gulp"); }
+			if( this.name == "mana_fruit") { obj.manaMax += 2; obj.manaHeal = 999; audio.play("gulp"); }
 			
 			if( this.name == "charm_sword") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_mana") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
@@ -4666,6 +4678,13 @@ function Item(x,y,name, ops){
 			if( this.name == "charm_methuselah") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			
+			dataManager.itemGet(this.name);
+			
+			if( "equip" in obj ){
+				obj.equip();
+			}
+			
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
 				pm.message( this.getMessage() );
@@ -4745,9 +4764,9 @@ Item.prototype.setName = function(n){
 	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "waystone") { this.frames = [13,14,15]; this.frame_row = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame = 13; this.frame_row = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
 	
-	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nDamage up.";}
+	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nAttack up.";}
 	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}
 	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; this.message = "Malphas Seed\nTechnique up.";}
 	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; this.message = "Yeti Seed\nCold Strike.";}
@@ -4756,9 +4775,14 @@ Item.prototype.setName = function(n){
 	if( this.name == "seed_plaguerat") { this.frame = 6; this.frame_row = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
 	if( this.name == "seed_marquis") { this.frame = 7; this.frame_row = 4; this.message = "Marquis Seed\nPain no longer phases you.";}
 	if( this.name == "seed_batty") { this.frame = 8; this.frame_row = 4; this.message = "Batty Seed\nYou can fly.";}
+	if( this.name == "seed_chort") { this.frame = 9; this.frame_row = 4; this.message = "Chort Seed\nYour body is a tank.";}
+	if( this.name == "seed_poseidon") { this.frame = 10; this.frame_row = 4; this.message = "Poseidon Seed\nAll attributes up.";}
+	if( this.name == "seed_tails") { this.frame = 11; this.frame_row = 4; this.message = "Tails Seed\nGold runs in your veins.";}
+	if( this.name == "seed_mair") { this.frame = 12; this.frame_row = 4; this.message = "Mair Seed\nTrades attack and defence for technique.";}
+	if( this.name == "seed_igbo") { this.frame = 13; this.frame_row = 4; this.message = "Igbo Seed\nDefence very up.";}
 	
 	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; this.message = "Pedila\nFantastically light shoes.";}
-	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; this.message = "Haft\nCurrent weapon defence up.";}
+	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; this.message = "Haft\nIncreased critical damage.";}
 	if( this.name == "zacchaeus_stick") { this.frame = 3; this.frame_row = 5; this.message = "Zacchaeus'\nMore money.";}
 	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; this.message = "Fangs\nLife steal.";}
 	if( this.name == "passion_fruit") { this.frame = 5; this.frame_row = 5; this.message = "Passion Fruit\nFull restoration.";}
@@ -4771,6 +4795,10 @@ Item.prototype.setName = function(n){
 	if( this.name == "chort_nose") { this.frame = 12; this.frame_row = 5; this.message = "Chort Nose\nSniffs out Waystones.";}
 	if( this.name == "plague_mask") { this.frame = 13; this.frame_row = 5; this.message = "Plague Mask\nImmune to poison.";}
 	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
+	if( this.name == "black_heart") { this.frame = 15; this.frame_row = 5; this.message = "Black Heart\nLess life, more attributes.";}
+	if( this.name == "treasure_map") { this.frame = 0; this.frame_row = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
+	if( this.name == "life_fruit") { this.frame = 1; this.frame_row = 6; this.message = "Life fruit\nLife up.";}
+	if( this.name == "mana_fruit") { this.frame = 2; this.frame_row = 6; this.message = "Mana fruit\nMana up.";}
 	
 	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
 	if( this.name == "charm_mana") { 
@@ -4782,8 +4810,8 @@ Item.prototype.setName = function(n){
 			_player.mana += 3;
 		});
 		this.on("unequip",function(){
-			_player.manaMax -= 3;
-			_player.mana -= 3;
+			_player.manaMax = Math.max(_player.manaMax-3,0);
+			_player.mana = Math.max(_player.mana-3,0);
 		});
 	}
 	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
@@ -5093,6 +5121,129 @@ MapDebug.prototype.render = function(g,c){
 }
 MapDebug.prototype.idle = function(){}
 
+ /* platformer/menu_item.js*/ 
+
+ItemMenu.prototype = new GameObject();
+ItemMenu.prototype.constructor = GameObject;
+function ItemMenu(unlocks){
+	this.constructor();
+	this.sprite = sprites.items;
+	this.zIndex = 999;
+	
+	this.open = false;
+	this.page = 1;
+	this.progress = 0;
+	
+	game.pause = true;
+	
+	this.unlocks = unlocks || [];
+	this.complete = this.unlocks.length <= 0;
+	
+	this.burst = null;
+	this.burstProgress = 999;
+	this.scrollProgress = 1;
+	
+	if( !this.complete ){
+		this.burst = this.itemPosition( this.unlocks.peek() );
+		this.scrollProgress = 0;
+	}
+	
+	this.scroll = new Point(0,0);
+}
+ItemMenu.prototype.idle = function(){}
+ItemMenu.prototype.update = function(){
+	this.burstProgress += game.deltaUnscaled / Game.DELTASECOND;
+	
+	if( this.scrollProgress < 1.0 ) {
+		var scrollTo = this.burst.y - 120;
+		this.scroll.y = Math.lerp(this.scroll.y, scrollTo, this.scrollProgress);
+		this.scrollProgress += game.deltaUnscaled / (Game.DELTASECOND*0.5);
+	} else if( this.complete ) {
+		if( (input.state("pause") == 1 || input.state("jump") == 1 ) && this.complete) {
+			game.pause = false;
+			this.destroy();
+		} else if( input.state("up") > 0 ) {
+			this.scroll.y -= game.deltaUnscaled * 3.0;
+		} else if ( input.state("down") > 0 ) {
+			this.scroll.y += game.deltaUnscaled * 3.0;
+		}
+	} else {
+		this.progress += game.deltaUnscaled / Game.DELTASECOND;
+		
+		if( this.progress >= 1 ) {
+			audio.play("spell");
+			this.burstProgress = 0;
+			this.burst = this.itemPosition(this.unlocks.pop()).add(new Point(12,12));
+			
+			if( this.unlocks.length > 0 ) {
+				this.progress = 0;
+				this.scrollProgress = 0;
+			} else { 
+				this.complete = true;
+			}
+		}
+	}
+}
+ItemMenu.prototype.itemPosition = function(name){
+	var columnWidth = 6;
+	var index = 0;
+	for(var i=0; i < dataManager.treasures.length; i++) 
+		if( dataManager.treasures[i].name == name )
+			index = i;
+		
+	var colmpos = (index % columnWidth);
+	var x = 16 + colmpos * 40;
+	var y = 24 + Math.floor(index / columnWidth) * 40;
+	return new Point(x,y);
+}
+ItemMenu.prototype.postrender = function(g,c){
+	g.fillStyle = "#004058";
+	g.scaleFillRect(0,0,256,240);
+	
+	var columnWidth = 6;
+	var scrollHeight = Math.max( 
+		Math.ceil( (dataManager.treasures.length+1) / columnWidth ) * 40 - (240-24), 0 
+	);
+	
+	this.scroll.y = Math.min(Math.max(this.scroll.y,0), scrollHeight);
+	
+	textArea(g,"Unlocked Items", 72+this.scroll.x,8-this.scroll.y);
+	
+	for(var i=0; i < dataManager.treasures.length; i++) {
+		var name = dataManager.treasures[i].name;
+		
+		switch(dataManager.treasures[i].unlocked * 1) {
+			case 1 : g.fillStyle = "#d8b8f8"; break;
+			case 2 : g.fillStyle = "#FFF"; break;
+			default : g.fillStyle = "#4428bc"; break;
+		}
+		
+		var colmpos = (i % columnWidth);
+		var x = 16 + colmpos * 40;
+		var y = 24 + Math.floor(i / columnWidth) * 40;
+		var pos = new Point(x+12,y+12);
+		g.scaleFillRect(x,y-this.scroll.y,24,24);
+		
+		if( dataManager.treasures[i].unlocked > 0 && this.unlocks.indexOf(name) < 0  ){
+			Item.prototype.setName.apply(this, [ name ] );
+			this.sprite.render(g,pos.subtract(this.scroll),this.frame, this.frame_row);
+		} else {
+			this.sprite.render(g,pos.subtract(this.scroll),12, 0);
+		}
+	}
+	
+	if( this.burst instanceof Point && this.burstProgress <= 1.0 ) {
+		//Animation
+		var radius = this.burstProgress * 48;
+		var points = 16;
+		for(var j=0; j < points; j++){
+			var angle = (j/points) * Math.PI * 2;
+			var p = new Point(radius*Math.sin(angle),radius*Math.cos(angle));
+			sprites.bullets.render(g,p.add(this.burst).subtract(this.scroll),2,2);
+		}
+	}
+}
+
  /* platformer/menu_pause.js*/ 
 
 PauseMenu.prototype = new GameObject();
@@ -5140,11 +5291,17 @@ PauseMenu.prototype.update = function(){
 				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
 				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
 				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
+				
+				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
+				localStorage.setItem("musvolume",audio.musVolume.gain.value);
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
 				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
 				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
 				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
+				
+				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
+				localStorage.setItem("musvolume",audio.musVolume.gain.value);
 			}
 		} else if( this.page == 1 ) {
 			//Map page
@@ -5545,7 +5702,7 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
 		
 		textArea(g,"Copyright Pogames.uk 2015",8,4);
-		textArea(g,"Version 0.1.6",8,228);
+		textArea(g,"Version "+window._version,8,228);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
@@ -5628,8 +5785,9 @@ var mod_rigidbody = {
 					Math.min(Math.abs(overlap.y) / Math.max(this.height*0.5,0.0001),1.0)
 				);
 				*/
-				
-				if( obj.mass > 0.5 ) {
+				if( this.mass - obj.mass > 1.0 ){
+					obj.force.x += this.force.x * 0.8;
+				} else if( obj.mass > 0.5 ) {
 					if( (this.force.x < 0 && dir.x > 0) || (this.force.x > 0 && dir.x < 0) ){
 						this.force.x = dir.x;
 					}
@@ -5718,6 +5876,7 @@ var mod_combat = {
 		this.invincible = 0;
 		this.invincible_time = 10.0;
 		this.criticalChance = 0.0;
+		this.criticalMultiplier = 4.0;
 		this.damage = 10;
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
@@ -5843,6 +6002,14 @@ var mod_combat = {
 					return true;
 			return false;
 		}
+		this.addEffect = function(name, chance, time){
+			var resistence = Math.random() + this.statusResistance[name];
+			if( resistence < chance ){
+				this.statusEffects[name] = Math.max( Game.DELTASECOND * time, this.statusEffects[name] );
+				this.statusEffectsTimers[name] = Math.max( this.statusEffects[name] - Game.DELTASECOND * 0.5, this.statusEffectsTimers[name]);
+				this.trigger("status_effect", name);
+			}
+		}
 		this.hurt = function(obj, damage){
 			if( this.statusEffects.bleeding > 0 ) damage *= 2;
 			if( this.statusEffects.rage > 0 ) damage = Math.floor( damage * 1.5 );
@@ -5852,19 +6019,14 @@ var mod_combat = {
 			//Add effects to attack
 			if( "attackEffects" in obj ){
 				for( var i in obj.attackEffects ) {
-					var resistence = Math.random() + this.statusResistance[i];
-					if( resistence < obj.attackEffects[i][0] ){
-						this.statusEffects[i] = Math.max( Game.DELTASECOND * obj.attackEffects[i][1], this.statusEffects[i] );
-						this.statusEffectsTimers[i] = Math.max( this.statusEffects[i] - Game.DELTASECOND * 0.5, this.statusEffectsTimers[i]);
-						this.trigger("status_effect", i);
-					}
+					this.addEffect(i, obj.attackEffects[i][0], obj.attackEffects[i][1]);
 				}
 			}
 			
 			if( this.invincible <= 0 ) {
 				//Determine if its a critical shot
 				if( Math.random() < this.criticalChance ) {
-					damage *= 4;
+					damage *= this.criticalMultiplier;
 					audio.play("critical");
 					game.slow(0.1, Game.DELTASECOND * 0.5 );
 					this.trigger("critical",obj,damage);
@@ -6272,7 +6434,8 @@ function Player(x, y){
 		audio.play("playerhurt");
 	})
 	this.on("hurt_other", function(obj, damage){
-		this.life = Math.min( this.life + Math.round(damage * this.life_steal), this.lifeMax );
+		var ls = Math.min(this.life_steal, 0.4);
+		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
 	});
 	this.on("added", function(){
 		this.damage_buffer = 0;
@@ -6788,6 +6951,7 @@ Player.prototype.addMoney = function(value){
 	if( this.hasCharm("charm_musa") ) {
 		this.life = Math.min( this.life + value*2, this.lifeMax );
 	}
+	this.trigger("money", value);
 }
 Player.prototype.addXP = function(value){
 	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 50 );
@@ -6805,6 +6969,11 @@ Player.prototype.addXP = function(value){
 		audio.playLock("levelup2",0.1);
 		
 		ga("send","event", "levelup","level:" + this.level);
+		
+		if(Math.random() < 0.1){
+			var treasure = dataManager.randomTreasure(Math.random(),[],{"locked":true});
+			dataManager.itemUnlock(treasure.name);
+		}
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);
@@ -7811,10 +7980,15 @@ function WorldMap(x, y){
 				delete this.temples[i].instance;
 			}
 			this.player = new Point(16*77,16*57);
-			dataManager.reset();
 			
-			new Player(0,0);
-			this.trigger("activate");
+			var im = new ItemMenu(dataManager.unlocks);
+			im.on("destroy", function(){
+				new Player(0,0);
+				_world.trigger("activate");
+			});
+			game.addObject(im);
+			
+			dataManager.reset();
 		}
 	});
 }
@@ -8256,18 +8430,22 @@ SceneEnding.prototype.update = function(){
 		this.progress += this.delta / Game.DELTASECOND;
 		if( this.progress > 60 ) {
 			this.phase = 3;
+			var im = new ItemMenu(dataManager.unlocks);
+			im.on("destroy", function(){
+				game.clearAll();
+				game.addObject(new TitleMenu());
+				audio.stopAs("music");
+			});
+			game.addObject(im);
 		}
 	} else if( this.phase == 3 ){
 		//Show Scores
-		if(input.state("pause") == 1) {
-			//Return to title screen
-			game.clearAll();
-			game.addObject(new TitleMenu());
-			audio.stopAs("music");
-		}
 	}
 	
-	if(this.phase < 3 && input.state("pause") == 1 ) this.phase = 3;
+	if(this.phase < 3 && input.state("pause") == 1 ) {
+		this.phase = 3;
+		this.progress = 9999;
+	}
 }
 SceneEnding.prototype.render = function(g,c){
 	for(var x=0; x<17; x++) for(var y=0; y<16; y++) {
@@ -8292,7 +8470,7 @@ SceneEnding.prototype.render = function(g,c){
 		var credit_pos = Math.lerp(360,-320,Math.min(this.progress/40,1));
 		textArea(g,this.text_credits,128,credit_pos,120);
 	} else if( this.phase == 3 ) {
-		boxArea(g,0,0,256,240);
+		
 	}
 }
 SceneEnding.prototype.idle = function(){}

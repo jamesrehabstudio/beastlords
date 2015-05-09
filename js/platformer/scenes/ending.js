@@ -66,18 +66,22 @@ SceneEnding.prototype.update = function(){
 		this.progress += this.delta / Game.DELTASECOND;
 		if( this.progress > 60 ) {
 			this.phase = 3;
+			var im = new ItemMenu(dataManager.unlocks);
+			im.on("destroy", function(){
+				game.clearAll();
+				game.addObject(new TitleMenu());
+				audio.stopAs("music");
+			});
+			game.addObject(im);
 		}
 	} else if( this.phase == 3 ){
 		//Show Scores
-		if(input.state("pause") == 1) {
-			//Return to title screen
-			game.clearAll();
-			game.addObject(new TitleMenu());
-			audio.stopAs("music");
-		}
 	}
 	
-	if(this.phase < 3 && input.state("pause") == 1 ) this.phase = 3;
+	if(this.phase < 3 && input.state("pause") == 1 ) {
+		this.phase = 3;
+		this.progress = 9999;
+	}
 }
 SceneEnding.prototype.render = function(g,c){
 	for(var x=0; x<17; x++) for(var y=0; y<16; y++) {
@@ -102,7 +106,7 @@ SceneEnding.prototype.render = function(g,c){
 		var credit_pos = Math.lerp(360,-320,Math.min(this.progress/40,1));
 		textArea(g,this.text_credits,128,credit_pos,120);
 	} else if( this.phase == 3 ) {
-		boxArea(g,0,0,256,240);
+		
 	}
 }
 SceneEnding.prototype.idle = function(){}

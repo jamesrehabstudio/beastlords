@@ -98,7 +98,8 @@ function Player(x, y){
 		audio.play("playerhurt");
 	})
 	this.on("hurt_other", function(obj, damage){
-		this.life = Math.min( this.life + Math.round(damage * this.life_steal), this.lifeMax );
+		var ls = Math.min(this.life_steal, 0.4);
+		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
 	});
 	this.on("added", function(){
 		this.damage_buffer = 0;
@@ -614,6 +615,7 @@ Player.prototype.addMoney = function(value){
 	if( this.hasCharm("charm_musa") ) {
 		this.life = Math.min( this.life + value*2, this.lifeMax );
 	}
+	this.trigger("money", value);
 }
 Player.prototype.addXP = function(value){
 	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 50 );
@@ -631,6 +633,11 @@ Player.prototype.addXP = function(value){
 		audio.playLock("levelup2",0.1);
 		
 		ga("send","event", "levelup","level:" + this.level);
+		
+		if(Math.random() < 0.1){
+			var treasure = dataManager.randomTreasure(Math.random(),[],{"locked":true});
+			dataManager.itemUnlock(treasure.name);
+		}
 		
 		//Call again, just in case the player got more than one level
 		this.addXP(0);

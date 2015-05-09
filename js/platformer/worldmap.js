@@ -118,10 +118,15 @@ function WorldMap(x, y){
 				delete this.temples[i].instance;
 			}
 			this.player = new Point(16*77,16*57);
-			dataManager.reset();
 			
-			new Player(0,0);
-			this.trigger("activate");
+			var im = new ItemMenu(dataManager.unlocks);
+			im.on("destroy", function(){
+				new Player(0,0);
+				_world.trigger("activate");
+			});
+			game.addObject(im);
+			
+			dataManager.reset();
 		}
 	});
 }

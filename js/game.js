@@ -263,6 +263,12 @@ function Game( elm ) {
 	this.height = Math.floor( this.element.height / pixel_scale );
 	this.renderOrder = [0,1,"o"];
 	
+	if( localStorage.getItem("sfxvolume") ){
+		audio.sfxVolume.gain.value = localStorage.getItem("sfxvolume");
+	} if( localStorage.getItem("sfxvolume") ){
+		audio.musVolume.gain.value = localStorage.getItem("musvolume");
+	}
+	
 	this.element.onclick = function(){
 		var fullscreen = 
 			Element.prototype.requestFullscreen || 
@@ -319,8 +325,8 @@ Game.prototype.clearAll = function(){
 	this.objects = [];
 	this.collisions = [];
 	this.bounds = new Line(0,0,0,0);
-	this.tileDimension = null;
-	this.tiles = null;
+	this.tileDimension = new Line(0,0,0,0);
+	this.tiles = [[],[]];
 }
 
 
@@ -1080,6 +1086,7 @@ GameObject.prototype.assignParent = function ( parent ) {
 	this.parent = parent;
 }
 GameObject.prototype.destroy = function() {
+	this.trigger("destroy");
 	var index = game.objects.indexOf(this);
 	if( index >= 0 ) game.objects.remove( game.objects.indexOf(this) );
 }
