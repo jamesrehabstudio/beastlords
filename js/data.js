@@ -7,8 +7,8 @@ function DataManager() {
 		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":[2,3],"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
 		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":[2,3],"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
 		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":[3,4],"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
-		//{"tiles":"tiles2","size":12,"maxkeys":3,"treasures":[1,2],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
-		{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
+		{"tiles":"tiles2","size":12,"maxkeys":3,"treasures":[1,2],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
+		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		
 		{"tiles":"tiles5","size":16,"maxkeys":4,"treasures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Ratgut"],"minorfly":["Batty","Svarog"]},
@@ -320,14 +320,14 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 		this.slices = [new MapSlice()];
 		
 		var options = {
-			"rules":(this.currentTemple == 5 ? this.rules.main : this.rules.main),
+			"rules":(this.currentTemple == 5 ? this.rules.final : this.rules.main),
 			"size":temple.size
 		}
 		
 		success = this.addRoom(options,temple.size,1, new Point(0,0));
 		//success = this.addRoom(options,1,1, new Point(0,0));
 		
-		if( this.slices.peek().junctionCount() > 0 || true) {
+		if( this.slices.peek().junctionCount() > 0) {
 			//Add a branch for a map
 			var map_size = Math.floor(1+seed.random()*3);
 			

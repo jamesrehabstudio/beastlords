@@ -169,7 +169,7 @@ Poseidon.prototype.update = function(){
 				}
 			} else {
 				this.states.recover -= this.delta;
-				this.states.cooldown = Game.DELTASECOND * 3;
+				this.states.cooldown = Game.DELTASECOND * 1.5;
 			}
 		}
 	}
