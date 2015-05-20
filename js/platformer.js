@@ -255,6 +255,8 @@ Background.prototype.prerender = function(g,c){
 		this.roomAtLocation(room_matrix_index.x - (room_off+2), room_matrix_index.y)
 	];
 	
+	this.sprite.renderScale(g, new Line(0,0,256,180), 203);
+	
 	if( room_matrix_index.y > 0 && this.walls ) {
 		//Background wall
 		for(x=0; x < 18; x++) for(y=0; y < 15; y++) {
@@ -1616,7 +1618,7 @@ Debuger.prototype.update = function(){
 
 Door.prototype = new GameObject();
 Door.prototype.constructor = GameObject;
-function Door(x,y){
+function Door(x,y,d,ops){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -1654,6 +1656,9 @@ function Door(x,y){
 		audio.playLock("open",1.0);
 		this.destroy();
 	});
+	
+	ops = ops || {};
+	if("name" in ops) this.name = ops.name;
 }
 Door.prototype.update = function(){
 	var r = this.name.match(/\d+/) - 0;
@@ -2331,6 +2336,140 @@ Bear.prototype.render = function(g,c){
 		new Point(_x + this.position.x - c.x, this.position.y - c.y), 
 		this.frame, this.frame_row+3, this.flip
 	);
+}
+
+ /* platformer/enemy_bigbone.js*/ 
+
+BigBones.prototype = new GameObject();
+BigBones.prototype.constructor = GameObject;
+function BigBones(x,y,d,ops){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 40;
+	this.sprite = sprites.bigbones;
+	this.speed = .3;
+	this.active = true;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.states = {
+		"attack" : 0,
+		"cooldown" : Game.DELTASECOND,
+		"block_down" : false,
+		"attack_down" : false,
+		"prep_jump" : false
+	}
+	
+	//this.guard.active = true;
+	
+	this.attacktimes = {
+		"warm" : 30.0,
+		"release" : 14.0,
+		"rest" : 10.0
+	};
+	this.attack_warm = 30.0;
+	this.attack_time = 10.0;
+	
+	this.life = dataManager.life(9);
+	this.mass = 2.0;
+	this.damage = dataManager.damage(3);
+	this.stun_time = Game.DELTASECOND * 0.25;
+	
+	//Set options
+	ops = ops || {};
+	if( "active" in ops ) this.active = ops.active.toLowerCase() == "true";
+	if( "flip" in ops ) this.flip = ops.flip.toLowerCase() == "true";
+	
+	this.on("block", function(obj,pos,damage){
+		if( this.team == obj.team ) return;
+		
+		var dir = this.position.subtract(obj.position);
+		//blocked
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		audio.playLock("block",0.1);
+	});
+	this.on("struck", function(obj,pos,damage){
+		if(this.team == obj.team) return;
+		this.hurt(obj,damage);
+	});
+	this.on("hurt", function(){
+		//this.states.attack = -1.0;
+		//this.states.cooldown = 30.0;
+		audio.play("hurt");
+	});
+	this.on("death", function(){
+		Item.drop(this);
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	SpecialEnemy(this);
+	this.calculateXP();
+}
+BigBones.prototype.update = function(){	
+	if ( this.stun <= 0 && this.life > 0 ) {
+		var dir = this.position.subtract( _player.position );
+		
+		if( this.active ) {
+			if( this.states.attack <= 0 ) {
+				var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
+				this.force.x += direction * this.delta * this.speed;
+				this.flip = dir.x > 0;
+				this.states.cooldown -= this.delta;
+				
+				if( this.states.prep_jump && this.grounded ) {
+					this.force.y = -10.0;
+					this.states.prep_jump = false;
+				}
+			} else {
+				this.force.x = 0;
+			}
+		}
+	
+		if( this.states.cooldown < 0 && Math.abs(dir.x) < 64 ){
+			this.states.attack = this.attacktimes.warm;
+			this.states.cooldown = Game.DELTASECOND;
+		}
+		
+		if ( this.states.attack > this.attacktimes.rest && this.states.attack <= this.attacktimes.release ){
+			this.strike(new Line(
+				new Point( 12, -1 ),
+				new Point( 32, 3 )
+			) );
+		}
+	}
+	/* counters */
+	this.states.attack -= this.delta;
+	
+	/* Animation */
+	if ( this.stun > 0 ) {
+		this.frame = 0;
+		this.frame_row = 3;
+	} else { 
+		if( this.states.attack > this.attacktimes.rest ) {
+			if( this.states.attack <= this.attacktimes.release ) {
+				this.frame_row = 1;
+				this.frame = 1;
+			} else { 
+				this.frame_row = 0;
+				var progress = (this.attacktimes.warm - this.states.attack) / Math.abs(this.attacktimes.release-this.attacktimes.warm);
+				this.frame = Math.floor(progress * 4);
+			}
+		} else {
+			var progress = (1000-this.states.cooldown*0.1) % 6;
+			this.frame = (progress+2) % 4;
+			this.frame_row = progress >= 2 ? 2 : 1;
+		}
+	}
+}
+BigBones.prototype.render = function(g,c){
+	this.sprite.render(g,this.position.subtract(c),4,0,this.flip);
+	GameObject.prototype.render.apply(this,[g,c]);
 }
 
  /* platformer/enemy_chaz.js*/ 
@@ -3775,6 +3914,91 @@ Ratgut.prototype.update = function(){
 	}
 }
 
+ /* platformer/enemy_sentry.js*/ 
+
+Sentry.prototype = new GameObject();
+Sentry.prototype.constructor = GameObject;
+function Sentry(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 20;
+	this.height = 32;
+	
+	this.speed = 0.0;
+	this.sprite = sprites.chaz;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.on("struck", EnemyStruck);
+	
+	this.on("hurt", function(obj,damage){
+		this.states.attack = 0;
+		audio.play("hurt");
+	});
+	this.on("death", function(obj,pos,damage){
+		_player.addXP(this.xp_award);
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	this.calculateXP();
+	
+	this.life = dataManager.life(3);
+	this.damage = dataManager.damage(3);
+	this.mass = 1.3;
+	
+	this.states = {
+		"cooldown" : 33,
+		"attack" : 0,
+		"bullet" : 0,
+		"attack_lower" : true
+	};
+	this.attack = {
+		"warm" : Game.DELTASECOND * 3.5,
+		"release" : Game.DELTASECOND * 3.0
+	};
+}
+Sentry.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.stun < 0 ) {
+		if( this.states.cooldown <= 0 ) {
+			if( this.states.attack <= 0 ) {
+				this.states.cooldown = Game.DELTASECOND;
+			} else if( this.states.attack <= this.attack.release ) {
+				if( this.states.attack <= this.states.bullet ) {
+					this.states.bullet = this.states.attack - Game.DELTASECOND * 0.25;
+					var direction = this.flip ? -1 : 1;
+					var bullet = new Bullet(this.position.x, this.position.y, direction);
+					bullet.team = this.team;
+					bullet.position.y += this.states.attack_lower ? 10 : -8;
+					bullet.damage = this.damage;
+					bullet.knockbackScale = 5;
+					game.addObject(bullet);
+				}
+			}
+			this.states.attack -= this.delta;
+		} else {
+			this.states.cooldown -= this.delta;
+			this.flip = dir.x > 0;
+			if( this.states.cooldown <= 0 ) {
+				this.states.attack_lower = !this.states.attack_lower;
+				this.states.bullet = this.states.attack = this.attack.warm;
+			}
+		}
+	}
+	
+	/* Animate */
+	this.frame_row = 4;
+	if( this.states.attack > 0 && this.states.attack <= this.attack.release ) {
+		this.frame = (this.frame + this.delta * 0.5) % 2;
+	} else {
+		this.frame = 0;
+	}
+}
+
  /* platformer/enemy_shell.js*/ 
 
 Shell.prototype = new GameObject();
@@ -4471,6 +4695,75 @@ function Exit(x,y,t,o){
 }
 Exit.prototype.idle = function(){}
 
+ /* platformer/gate.js*/ 
+
+//transform
+
+Gate.prototype = new GameObject();
+Gate.prototype.constructor = GameObject;
+function Gate(x,y,d,ops){
+	x -= 8;
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	
+	this.sprite = sprites.gate;
+	this.open = false;
+	this.progress = 0;
+	
+	this.addModule( mod_combat );
+	
+	this.on("struck", function(obj,pos,damage){
+		if(this.team == obj.team) return;
+		if( damage >= this.minDamage ) {
+			this.unlock();
+		} else {
+			var dir = this.position.subtract(obj.position);
+			audio.playLock("block",0.25);
+		}
+	});
+	
+	this.lock = function(){
+		this.open = false;
+		for(var i=0; i<this.tiles.length; i++){
+			game.setTile(this.tiles[i], 1, BLANK_TILE);
+		}
+	};
+	this.unlock = function(){
+		if( !this.open ) {
+			this.open = true;
+			audio.play("open");
+			for(var i=0; i<this.tiles.length; i++){
+				game.setTile(this.tiles[i], 1, 0);
+			}
+		}
+	};
+	
+	this.tiles = [
+		new Point(x-8, y-24),
+		new Point(x-8, y-8),
+		new Point(x-8, y+8),
+		new Point(x+8, y-24),
+		new Point(x+8, y-8),
+		new Point(x+8, y+8)
+	];
+	
+	this.minDamage = 0;
+	this.lock();
+	
+	ops = ops || {};
+	if( "min_damage" in ops ) this.minDamage = ops.min_damage;
+}
+Gate.prototype.update = function(){
+	var increment = this.delta / (Game.DELTASECOND*0.5);
+	if( this.open ) {
+		this.progress = Math.min( this.progress + increment, 1.0 );
+	} else { 
+		this.progress = Math.max( this.progress - increment, 0.0 );
+	}
+	this.frame = Math.floor(Math.min(this.progress*5,4));
+}
+
  /* platformer/healer.js*/ 
 
 Healer.prototype = new GameObject();
@@ -4574,6 +4867,49 @@ Healer.prototype.postrender = function(g,c){
 	}
 }
 
+ /* platformer/i18n.js*/ 
+
+window.language = "english";
+window._messages = {
+	"intro_text" : {
+		"english" : "The folk of the land of Cahan have been plagued for centuries by a yearly spell they call \"The Trance\". Victims are drawn to the bowels of demonic temples where they're never heard from again. After our hero lost his father to the trance, he set on a mission to rescue him. You must destroy the five demonic temples to enter the final temple that houses your father.",
+		"engrish" : "Ethnic Cahan of land, has been plagued for centuries by every year spell which they referred to as a \"Trance\". Victims, they are drawn deep into the demon of the temple that is never heard from again. Our hero, after losing his father to the trance, he was set to turn on the mission to rescue him. You must destroy the 5 devil temple to enter the housing final temple your father."
+	},
+	"introduction" : {
+		"english" : "Intro",
+		"engrish" : "Learning"
+	},
+	"new_game" : {
+		"english" : "New game",
+		"engrish" : "Game new"
+	},
+	"press_start" : {
+		"english" : "Press start",
+		"engrish" : "Start button"
+	},
+	"introduction_help" : {
+		"english" : "See how this story began.",
+		"engrish" : "You will learn How to play. Please enjoy to the story of origin."
+	},
+	"start_help" : {
+		"english" : "Enter the world of Beast Lords. Beware, death will end the game.",
+		"engrish" : "Play the game. Please note, death is permanent."
+	}
+};
+function i18n(name,replace){
+	replace = replace || {};
+	var out = "";
+	if( name in window._messages ){
+		if( window.language in window._messages[name] ){
+			out = window._messages[name][window.language];
+		}
+	}
+	for(var i in replace){
+		out = out.replace(i, replace[i]);
+	}
+	return out;
+}
+
  /* platformer/item.js*/ 
 
 Item.prototype = new GameObject();
@@ -4593,12 +4929,12 @@ function Item(x,y,name, ops){
 	this.animation_speed = 0.25;
 	this.enchantChance = 0.8;
 	
-	ops = ops || {}
-	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
-	
+	ops = ops || {};	
 	if( name != undefined ) {
 		this.setName( name );
 	}
+	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
+	if( "name" in ops ) this.setName( ops.name );
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
@@ -4624,6 +4960,9 @@ function Item(x,y,name, ops){
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			//Enchanted items
+			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = sprites.player; audio.play("levelup"); }
+			
+			
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
 			if( this.name == "seed_bear") { obj.stats.defence+=1; audio.play("levelup"); }
 			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
@@ -4765,6 +5104,8 @@ Item.prototype.setName = function(n){
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "waystone") { this.frames = [13,14,15]; this.frame = 13; this.frame_row = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
+	
+	if( this.name == "intro_item") { this.frame = 0; this.frame_row = 4; this.message = "Mysterious drink.";}
 	
 	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nAttack up.";}
 	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}
@@ -5275,7 +5616,12 @@ PauseMenu.prototype.update = function(){
 		if( _player.life <= 0 ) {
 			//Player is dead, just wait for the start button to be pressed
 			if( input.state("pause") == 1 ) { 
-				_world.trigger("reset");
+				if( window._world instanceof WorldMap ) {
+					_world.trigger("reset");
+				} else {
+					game.clearAll();
+					game.addObject(new TitleMenu());
+				}
 				return;
 			}
 		} else if( this.page == 0 ) {
@@ -5444,7 +5790,7 @@ PauseMenu.prototype.render = function(g,c){
 		if( _player.life <= 0 ) {
 			sprites.title.render(g,new Point(), 3);
 			boxArea(g,68,168,120,40);
-			textArea(g,"Press start",84,184);
+			textArea(g,i18n("press_start"),84,184);
 		} else if( this.page == 0 ) {
 			//Option
 			
@@ -5627,11 +5973,13 @@ function TitleMenu(){
 		{ "pos" : new Point(), "timer" : 0 }
 	];
 	
-	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
-	this.message = "The folk of the land of Cahan have been plagued for centuries by a yearly spell they call \"The Trace\". Victims are drawn to the bowels of demonic temples where they're never heard from again. After our hero lost his father to the trance, he set on a mission to rescue him. You must destroy the five demonic temples to enter the final temple that houses your father.";
+	this.playedIntro = !!localStorage.getItem("playedintro");
+	if( this.playedIntro ) this.cursor = 1;
+	
+	//this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [
-		"Death is not the end. If you die you will return to the entrance of the area.",
-		"You only have one chance. Death will send you to the beginning of your quest."
+		"introduction_help",
+		"start_help"
 	];
 }
 
@@ -5644,6 +5992,7 @@ TitleMenu.prototype.update = function(){
 			this.progress = 10.0;
 			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+			if( !this.playedIntro ) this.cursor = 0;
 		} else {
 			this.progress += this.delta / Game.DELTASECOND;
 		}
@@ -5707,20 +6056,20 @@ TitleMenu.prototype.render = function(g,c){
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
 				boxArea(g,32,32,192,88);
-				textArea(g,this.options[this.cursor],48,48,160);
+				textArea(g,i18n(this.options[this.cursor]),48,48,160);
 				boxArea(g,68,146,120,56);
-				textArea(g,"Easy",92,162);
-				textArea(g,"Hard core",92,178);
+				textArea(g,i18n("introduction"),92,162);
+				if( this.playedIntro ) textArea(g,i18n("new_game"),92,178);
 				sprites.text.render(g, new Point(80,162+(16*this.cursor)),15,5);
 			} else { 
 				boxArea(g,68,168,120,40);
-				textArea(g,"Press start",84,184);
+				textArea(g,i18n("press_start"),84,184);
 			}
 		}
 		
 		if( this.progress >= 24 ) {
 			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
-			textBox(g,this.message,0,y_pos,256,240);
+			textBox(g,i18n("intro_text"),0,y_pos,256,240);
 		}
 	}
 }
@@ -5730,17 +6079,22 @@ TitleMenu.prototype.startGame = function(){
 	this.start = true;
 	
 	dataManager.reset();
-	
-	var world = new WorldMap(0,0);
-	world.mode = this.cursor > 0 ? 1 : 0;
-	
-	ga("send","event","start_game","game mode:" + world.mode);
-	
-	game.clearAll();
-	game.addObject(world);
-	audio.stop("music_intro");
-	
-	world.trigger("activate");
+	if(this.cursor == 1) {
+		var world = new WorldMap(0,0);
+		world.mode = this.cursor > 0 ? 1 : 0;
+		
+		ga("send","event","start_game");
+		
+		game.clearAll();
+		game.addObject(world);
+		audio.stop("music_intro");
+		
+		world.trigger("activate");
+	} else { 
+		ga("send","event","start_intro");
+		dataManager.loadMap(game,_map_maps[1]);
+		audio.stop("music_intro");
+	}
 }
 
  /* platformer/modules.js*/ 
@@ -6461,13 +6815,13 @@ function Player(x, y){
 	this.addModule( mod_camera );
 	this.addModule( mod_combat );
 	
-	this.life = 0;
+	this.life = 100;
 	this.lifeMax = 100;
 	this.mana = 3;
 	this.manaMax = 3;
 	this.money = 0;
 	this.waystones = 0;
-	this.heal = 100;
+	this.heal = 0;
 	this.healMana = 0;
 	this.damage = 5;
 	this.team = 1;
@@ -6475,6 +6829,9 @@ function Player(x, y){
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = 20;
 	this.autoblock = true;
+	
+	this.frictionGrounded = 0.2;
+	this.frictionAir = 0.05;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -6697,7 +7054,7 @@ Player.prototype.update = function(){
 			}
 		}
 		
-		this.friction = this.grounded ? 0.2 : 0.05;
+		this.friction = this.grounded ? this.frictionGrounded : this.frictionAir;
 		this.inertia = this.grounded ? 0.9 : 0.2;
 		this.height = this.states.duck ? 24 : 30;
 		
@@ -7512,7 +7869,7 @@ CollapseTile.prototype.destroy = function(){
 
 BreakableTile.prototype = new GameObject();
 BreakableTile.prototype.constructor = GameObject;
-function BreakableTile(x, y){	
+function BreakableTile(x, y, d, ops){	
 	this.constructor();
 	
 	this.position.x = x;
@@ -7522,6 +7879,11 @@ function BreakableTile(x, y){
 	this.life = 1;
 	this.item = false;
 	this.death_time = Game.DELTASECOND * 0.15;
+	
+	ops = ops || {};
+	if( "item" in ops ) {
+		this.item = new Item(x,y,ops.item);
+	}
 	
 	this.on("struck", function(obj,pos,damage){
 		if( obj instanceof Player){
@@ -8474,3 +8836,265 @@ SceneEnding.prototype.render = function(g,c){
 	}
 }
 SceneEnding.prototype.idle = function(){}
+
+ /* platformer/scenes/intro.js*/ 
+
+SceneIntro.prototype = new GameObject();
+SceneIntro.prototype.constructor = GameObject;
+function SceneIntro(x,y){
+	this.progress = 0.0;
+	this.phase = 0;
+	
+	this.father = {"pos":new Point(160, 160), "frame":0, "frame_row":0, "flip":false};
+	this.player = {"pos":new Point(160, 160), "frame":3, "frame_row":1, "flip":true};
+}
+SceneIntro.prototype.update = function(){
+	//_player.position = game.getObject(SceneEndIntro).position.scale(1.0);
+	//this.destroy();
+	
+	if( this.phase == 0 ) {
+		if( _player instanceof Player ) { 
+			_player.visible = false;
+			_player.stun = Game.DELTAYEAR;
+			_player.sprite = sprites.playerhuman;
+		}
+		
+		this.player.pos.y = this.father.pos.y = 160;
+		this.father.pos.x += this.delta;
+		this.player.pos.x = this.father.pos.x + 16;
+		if( this.father.pos.x > 352 ) {
+			this.phase = 1;
+		}
+		this.father.frame = (this.father.frame + this.delta * 0.2) % 3;
+	} else if( this.phase == 1 ){
+		this.father.pos.x += this.delta;
+		if( this.father.pos.x > 432 ) {
+			this.phase = 2;
+		}
+		this.player.frame_row = 2;
+		this.player.flip = this.player.pos.x > this.father.pos.x;
+		
+	} else if( this.phase == 2 ){
+		this.father.pos.x += this.delta;
+		this.player.pos.x += this.delta * 2;
+		if( this.player.pos.x > 400 ) {
+			this.phase = 3;
+		}
+		this.player.flip = false;
+	} else if( this.phase == 3 ){
+		var velocity = Math.max( 1.0 - this.progress / (Game.DELTASECOND * 1), 0 );
+		var fall = -1.0 + (this.progress / (Game.DELTASECOND * 0.5)); 
+		
+		this.player.pos.x -= this.delta * 6 * velocity;
+		this.player.pos.y = Math.min(this.player.pos.y+fall*2, 160);
+		this.father.pos.x += this.delta;
+		this.progress += this.delta;
+		if( this.progress >= Game.DELTASECOND * 3 ) {
+			_player.visible = true;
+			_player.stun = 0;
+			_player.life = 1;
+			_player.heal = 1000;
+			game.getObject(BigBones).active = true
+			this.destroy();
+		}
+	}
+
+	if( _player instanceof Player ) {
+		_player.position.x = this.player.pos.x;
+		_player.position.y = this.player.pos.y;
+	}
+}
+SceneIntro.prototype.render = function(g,c){
+	sprites.characters.render(g, this.father.pos.subtract(c), this.father.frame, this.father.frame_row, this.father.flip);
+	sprites.characters.render(g, this.player.pos.subtract(c), this.player.frame, this.player.frame_row, this.player.flip);
+}
+SceneIntro.prototype.idle = function(){}
+
+ /* platformer/scenes/introend.js*/ 
+
+SceneEndIntro.prototype = new GameObject();
+SceneEndIntro.prototype.constructor = GameObject;
+function SceneEndIntro(x,y){
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 64;
+	this.height = 64;
+	
+	this.progress = 0.0;
+	this.phase = 0;
+		
+	this.objPlayer = {"pos":new Point(1744, 144),"frame":0,"frame_row":0,"visible":true};
+	this.objZoder = {"pos":new Point(2032, 116),"frame":0,"frame_row":1,"visible":true};
+	this.objSpear = {"pos":new Point(1992, 116),"frame":1,"frame_row":0,"visible":false};
+	
+	this.playerFrame = 0;
+	this.fatherFrame = 0;
+	
+	this.activated = false;
+	this.clearAll = false;
+	
+	this.stars = [];
+	for(var i=0; i < 32; i++){
+		this.stars.push( {"pos":new Point(256*Math.random(),300+Math.random()*200), "speed":0.5+Math.random()*1.2} );
+	}
+	
+	this.villagers = [];
+	for(var i=0; i < 8; i++){
+		var fr = i == 4 ? 0 : 1+Math.floor(Math.random()*3);
+		this.villagers.push( {"pos":new Point(Math.random()*16+1832+(i*16),192), "frame_row":fr, "frame":0} );
+	}
+	
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player ) {
+			if( !this.activated ) {
+				this.trigger("activate");
+			}
+		}
+	});
+	this.on("activate", function(){
+		this.activated = true;
+		_player.visible = false;
+		_player.stun = Game.DELTAYEAR;
+		_player.lock_overwrite = new Line(1760,0,1760+256,240);
+	});
+	
+	localStorage.setItem("playedintro", true);
+}
+SceneEndIntro.prototype.idle = function(){}
+
+SceneEndIntro.prototype.update = function(){
+	if( this.activated ) {
+		this.progress += this.delta / Game.DELTASECOND;
+		
+		if( this.progress > 1.0 && this.progress < 4.0 ) {
+			var p = (this.progress - 1.0) / 3.0;
+			this.objZoder.pos = Point.lerp(new Point(2032, 116), new Point(1992, 116), p);
+		}
+		
+		if( this.progress > 5.0 && this.progress < 6.0 ) {
+			var p = (this.progress - 5.0) / 1.0;
+			this.objPlayer.pos = Point.lerp(new Point(1744, 144), new Point(1800, 144), p);
+		}
+		
+		if( this.progress > 8.0 && this.progress < 10.0 ) {
+			if( this.progress < 9.5 ) {
+				//Wind up for attack
+				this.objZoder.frame = 0;
+				this.objZoder.frame_row = 2;
+			} else {
+				var p = (this.progress - 9.5) / 0.5;
+				this.objZoder.frame = 2;
+				this.objZoder.frame_row = 0;
+				this.objSpear.visible = true;
+				this.objSpear.pos = Point.lerp(new Point(1992, 116), this.objPlayer.pos, p);
+			}
+		}
+		
+		if( this.progress > 10.0 ) {
+			if( !this.clearAll ) {
+				game.clearAll();
+				game.addObject(this);
+				audio.play("slash");
+				audio.stopAs("music");
+				this.clearAll = true;
+			}
+		}
+	}
+}
+
+SceneEndIntro.prototype.render = function(g,c){
+	if( this.activated ) {
+		if( this.clearAll ) {
+			//Death
+			if( this.progress < 13.0 ) {
+				g.fillStyle = (this.progress * 6.0) % 1.0 > 0.5 ? "#000" : "#A00";
+				g.scaleFillRect(0,0,256,240);
+				sprites.player.render(g,new Point(128,120), 4, 0, false);
+			} else {
+				g.fillStyle = "#000";
+				g.scaleFillRect(0,0,256,240);
+				
+				var lowest = 0;
+				for(var i=0; i < this.stars.length; i++){
+					this.stars[i].pos.y -= this.stars[i].speed * this.delta;
+					if( this.stars[i].pos.y > lowest ) lowest = this.stars[i].pos.y;
+					sprites.bullets.render(g, this.stars[i].pos, 3, 2);
+				}
+				sprites.title.render(g, new Point(0, lowest), 0, 2);
+				
+				if( lowest <= 0 ) {
+					this.destroy();
+					game.addObject( new TitleMenu() );
+				}
+			}
+		} else {
+			//Cut scene
+			sprites.player.render(g,this.objPlayer.pos.subtract(c), 0, 3, false);
+			sprites.player.render(g,this.objPlayer.pos.subtract(c), this.objPlayer.frame, this.objPlayer.frame_row, false);
+			
+			sprites.zoder.render(g,this.objZoder.pos.subtract(c), this.objZoder.frame, this.objZoder.frame_row, true);
+			
+			if( this.objSpear.visible ) {
+				sprites.zoder.render(g,this.objSpear.pos.subtract(c), this.objSpear.frame, this.objSpear.frame_row, true);
+			}
+			
+			for(var i=0; i < this.villagers.length; i++ ){
+				sprites.characters.render(g,this.villagers[i].pos.subtract(c), this.villagers[i].frame, this.villagers[i].frame_row, false);
+			}
+		}
+	}
+}
+
+ /* platformer/scenes/transform.js*/ 
+
+//transform
+
+SceneTransform.prototype = new GameObject();
+SceneTransform.prototype.constructor = GameObject;
+function SceneTransform(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	
+	this.sprite = sprites.transform;
+	
+	_player.visible = false;
+	_player.stun = Game.DELTAYEAR;
+	
+	this.frame = 0;
+	this.progress = 0.32 * Game.DELTASECOND;
+	this.sequence = [
+		[0,0.32],
+		[1,0.08],
+		[2,0.32],
+		[3,0.32],
+		[4,0.08],
+		[5,0.08],
+		[6,0.08],
+		[7,0.32],
+		[8,0.32],
+		[9,0.08],
+		[10,0.08],
+		[11,0.08],
+		[12,0.32],
+		[13,0.32],
+		[14,0.66]
+	];
+}
+SceneTransform.prototype.render = function(g,c){
+	this.progress -= this.delta * 0.5;
+	var f = 0;
+	if( this.progress <= 0 ){
+		this.frame++;
+		if( this.frame < this.sequence.length ) {
+			var seq = this.sequence[this.frame];
+			f = seq[0];
+			this.progress = seq[1] * Game.DELTASECOND;
+		} else {
+			_player.visible = true;
+			_player.stun = 0;
+			this.destroy();
+		}
+	}
+	this.sprite.render(g,this.position.subtract(c),this.frame);
+}

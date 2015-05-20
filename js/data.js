@@ -1,4 +1,4 @@
-window._version = "0.1.7";
+window._version = "0.1.8";
 
 function DataManager() {
 	this.temples = [
@@ -7,7 +7,7 @@ function DataManager() {
 		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":[2,3],"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
 		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":[2,3],"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
 		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":[3,4],"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
-		{"tiles":"tiles2","size":12,"maxkeys":3,"treasures":[1,2],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
+		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":[1,2],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		
@@ -194,7 +194,11 @@ DataManager.prototype.loadMap = function(g,map,options){
 	g.tileSprite = sprites.town;
 	options = options || {};
 	
-	g.bounds = new Line(0,0,map.width*256,240);
+	if( "tileset" in map ) g.tileSprite = sprites[map.tileset];
+	if( "tileset" in options ) g.tileSprite = sprites[options.tileset];
+	
+	g.bounds = new Line(0,0,map.width*256,map.height*240);
+	var mapDimension = new Line(0,0,map.width,map.height);
 	g.tileDimension = new Line(
 		g.bounds.start.x/16,
 		g.bounds.start.y/16,
@@ -219,7 +223,14 @@ DataManager.prototype.loadMap = function(g,map,options){
 			obj[3]
 		));
 	}
-	if( _player instanceof Player ) {
+	var mapTiles = [];
+	if( "map_tile" in map ) {
+		var map_tiles = map["map_tile"].split(",");
+		for(var j=0; j < map_tiles.length; j++ ){
+			mapTiles[j] = map_tiles[j];
+		}
+	}
+	if( _player instanceof Player && !game.getObject(Player) ) {
 		g.addObject(_player);
 		if( "direction" in options && options.direction.x < 0 ){
 			_player.position.x = g.bounds.end.x - 64;
@@ -234,7 +245,11 @@ DataManager.prototype.loadMap = function(g,map,options){
 		_player.lock_overwrite = false;
 		_player.keys = new Array();
 	}
-	g.addObject(new PauseMenu());
+	var pm = new PauseMenu();
+	pm.map = mapTiles;
+	pm.mapDimension = mapDimension;
+	
+	g.addObject(pm);
 	g.addObject(new Background());
 }
 DataManager.prototype.randomTown = function(g, town){
@@ -1468,6 +1483,7 @@ function load_sprites (){
 	sprites['pig'] = new Sprite(RT+"img/pig.gif", {offset:new Point(0, 0),width:32,height:40});
 	sprites['title'] = new Sprite(RT+"img/title.gif", {offset:new Point(0, 0),width:256,height:240});
 	sprites['dreams'] = new Sprite(RT+"img/dreams.gif", {offset:new Point(0, 0),width:256,height:16});
+	sprites['transform'] = new Sprite(RT+"img/transform.gif", {offset:new Point(16, 17),width:33,height:34});
 	
 	sprites['items'] = new Sprite(RT+"img/items.gif", {offset:new Point(8, 8),width:16,height:16,"filters":{"gold":filter_gold}});
 	sprites['waystones'] = new Sprite(RT+"img/waystones.gif", {offset:new Point(16, 24),width:32,height:48});
@@ -1478,6 +1494,7 @@ function load_sprites (){
 	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(48, 48),width:96,height:96});
 	sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['doors'] = new Sprite(RT+"img/doors.gif", {offset:new Point(16, 32),width:32,height:64});
+	sprites['gate'] = new Sprite(RT+"img/gate.gif", {offset:new Point(16, 24),width:32,height:48});
 	
 	sprites['sword1'] = new Sprite(RT+"img/sword1.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted}});
 	sprites['sword2'] = new Sprite(RT+"img/sword2.gif", {offset:new Point(10, 32),width:64,height:48,"filters":{"enchanted":filter_enchanted}});
@@ -1488,6 +1505,7 @@ function load_sprites (){
 	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48,"filters":filter_pack_enemies});
 	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24,"filters":filter_pack_enemies});
 	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32,"filters":filter_pack_enemies});
+	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56,"filters":filter_pack_enemies});
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32,"filters":filter_pack_enemies});
 	sprites['chazbike'] = new Sprite(RT+"img/chazbike.gif", {offset:new Point(24, 32),width:48,height:48,"filters":filter_pack_enemies});
@@ -1499,6 +1517,7 @@ function load_sprites (){
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48,"filters":filter_pack_enemies});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":filter_pack_enemies});
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});
+	sprites['playerhuman'] = new Sprite(RT+"img/playerhuman.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});
 	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
 	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16,"filters":filter_pack_enemies});
@@ -1523,6 +1542,7 @@ function load_sprites (){
 	sprites['tiles3'] = new Sprite(RT+"img/tiles/tiles3.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles4'] = new Sprite(RT+"img/tiles/tiles4.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles5'] = new Sprite(RT+"img/tiles/tiles5.gif", {offset:new Point(0, 0),width:16,height:16});
+	sprites['tilesintro'] = new Sprite(RT+"img/tiles/tilesintro.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['town'] = new Sprite(RT+"img/tiles/town.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['world'] = new Sprite(RT+"img/tiles/world.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['waterfall'] = new Sprite(RT+"img/waterfall.gif", {offset:new Point(64, 120),width:128,height:240});

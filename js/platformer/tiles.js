@@ -57,7 +57,7 @@ CollapseTile.prototype.destroy = function(){
 
 BreakableTile.prototype = new GameObject();
 BreakableTile.prototype.constructor = GameObject;
-function BreakableTile(x, y){	
+function BreakableTile(x, y, d, ops){	
 	this.constructor();
 	
 	this.position.x = x;
@@ -67,6 +67,11 @@ function BreakableTile(x, y){
 	this.life = 1;
 	this.item = false;
 	this.death_time = Game.DELTASECOND * 0.15;
+	
+	ops = ops || {};
+	if( "item" in ops ) {
+		this.item = new Item(x,y,ops.item);
+	}
 	
 	this.on("struck", function(obj,pos,damage){
 		if( obj instanceof Player){

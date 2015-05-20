@@ -336,7 +336,12 @@ Point.fromAngle = function(a,scale){
 		Math.sin( a ) * scale
 	);
 }
-
+Point.lerp = function(a,b,d){
+	return new Point(
+		a.x + (b.x-a.x) * d,
+		a.y + (b.y-a.y) * d
+	);
+}
 
 //Data
 /*

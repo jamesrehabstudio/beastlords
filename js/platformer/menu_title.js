@@ -35,11 +35,13 @@ function TitleMenu(){
 		{ "pos" : new Point(), "timer" : 0 }
 	];
 	
-	this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
-	this.message = "The folk of the land of Cahan have been plagued for centuries by a yearly spell they call \"The Trace\". Victims are drawn to the bowels of demonic temples where they're never heard from again. After our hero lost his father to the trance, he set on a mission to rescue him. You must destroy the five demonic temples to enter the final temple that houses your father.";
+	this.playedIntro = !!localStorage.getItem("playedintro");
+	if( this.playedIntro ) this.cursor = 1;
+	
+	//this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [
-		"Death is not the end. If you die you will return to the entrance of the area.",
-		"You only have one chance. Death will send you to the beginning of your quest."
+		"introduction_help",
+		"start_help"
 	];
 }
 
@@ -52,6 +54,7 @@ TitleMenu.prototype.update = function(){
 			this.progress = 10.0;
 			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+			if( !this.playedIntro ) this.cursor = 0;
 		} else {
 			this.progress += this.delta / Game.DELTASECOND;
 		}
@@ -115,20 +118,20 @@ TitleMenu.prototype.render = function(g,c){
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
 				boxArea(g,32,32,192,88);
-				textArea(g,this.options[this.cursor],48,48,160);
+				textArea(g,i18n(this.options[this.cursor]),48,48,160);
 				boxArea(g,68,146,120,56);
-				textArea(g,"Easy",92,162);
-				textArea(g,"Hard core",92,178);
+				textArea(g,i18n("introduction"),92,162);
+				if( this.playedIntro ) textArea(g,i18n("new_game"),92,178);
 				sprites.text.render(g, new Point(80,162+(16*this.cursor)),15,5);
 			} else { 
 				boxArea(g,68,168,120,40);
-				textArea(g,"Press start",84,184);
+				textArea(g,i18n("press_start"),84,184);
 			}
 		}
 		
 		if( this.progress >= 24 ) {
 			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
-			textBox(g,this.message,0,y_pos,256,240);
+			textBox(g,i18n("intro_text"),0,y_pos,256,240);
 		}
 	}
 }
@@ -138,15 +141,20 @@ TitleMenu.prototype.startGame = function(){
 	this.start = true;
 	
 	dataManager.reset();
-	
-	var world = new WorldMap(0,0);
-	world.mode = this.cursor > 0 ? 1 : 0;
-	
-	ga("send","event","start_game","game mode:" + world.mode);
-	
-	game.clearAll();
-	game.addObject(world);
-	audio.stop("music_intro");
-	
-	world.trigger("activate");
+	if(this.cursor == 1) {
+		var world = new WorldMap(0,0);
+		world.mode = this.cursor > 0 ? 1 : 0;
+		
+		ga("send","event","start_game");
+		
+		game.clearAll();
+		game.addObject(world);
+		audio.stop("music_intro");
+		
+		world.trigger("activate");
+	} else { 
+		ga("send","event","start_intro");
+		dataManager.loadMap(game,_map_maps[1]);
+		audio.stop("music_intro");
+	}
 }

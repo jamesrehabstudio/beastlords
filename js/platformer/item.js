@@ -15,12 +15,12 @@ function Item(x,y,name, ops){
 	this.animation_speed = 0.25;
 	this.enchantChance = 0.8;
 	
-	ops = ops || {}
-	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
-	
+	ops = ops || {};	
 	if( name != undefined ) {
 		this.setName( name );
 	}
+	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
+	if( "name" in ops ) this.setName( ops.name );
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
@@ -46,6 +46,9 @@ function Item(x,y,name, ops){
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			//Enchanted items
+			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = sprites.player; audio.play("levelup"); }
+			
+			
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
 			if( this.name == "seed_bear") { obj.stats.defence+=1; audio.play("levelup"); }
 			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
@@ -187,6 +190,8 @@ Item.prototype.setName = function(n){
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "waystone") { this.frames = [13,14,15]; this.frame = 13; this.frame_row = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
+	
+	if( this.name == "intro_item") { this.frame = 0; this.frame_row = 4; this.message = "Mysterious drink.";}
 	
 	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nAttack up.";}
 	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}

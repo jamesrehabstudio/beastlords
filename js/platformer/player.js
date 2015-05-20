@@ -125,13 +125,13 @@ function Player(x, y){
 	this.addModule( mod_camera );
 	this.addModule( mod_combat );
 	
-	this.life = 0;
+	this.life = 100;
 	this.lifeMax = 100;
 	this.mana = 3;
 	this.manaMax = 3;
 	this.money = 0;
 	this.waystones = 0;
-	this.heal = 100;
+	this.heal = 0;
 	this.healMana = 0;
 	this.damage = 5;
 	this.team = 1;
@@ -139,6 +139,9 @@ function Player(x, y){
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = 20;
 	this.autoblock = true;
+	
+	this.frictionGrounded = 0.2;
+	this.frictionAir = 0.05;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -361,7 +364,7 @@ Player.prototype.update = function(){
 			}
 		}
 		
-		this.friction = this.grounded ? 0.2 : 0.05;
+		this.friction = this.grounded ? this.frictionGrounded : this.frictionAir;
 		this.inertia = this.grounded ? 0.9 : 0.2;
 		this.height = this.states.duck ? 24 : 30;
 		

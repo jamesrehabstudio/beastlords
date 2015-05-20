@@ -43,6 +43,7 @@
  </layer>
  <objectgroup name="objects" width="48" height="15">
   <properties>
+   <property name="map_tile" value="12,1,13"/>
    <property name="rarity" value="0"/>
   </properties>
   <object name="CornerStone" gid="114" x="240" y="128">

@@ -213,6 +213,41 @@ Sprite.prototype.render = function( g, pos, frame, row, flip, filter ) {
 	g.restore();
 	g.closePath();
 }
+Sprite.prototype.renderScale = function( g, cover, frame, row, flip, filter ) {
+	if(frame == undefined ){
+		x_off = y_off = 0;
+	} else if ( row == undefined ) {
+		x_off = (frame % this.width) * this.frame_width;
+		y_off = Math.floor(frame / this.width) * this.frame_height;
+	} else {
+		x_off = ~~frame * this.frame_width;
+		y_off = ~~row * this.frame_height;
+	}
+	
+	var img = filter in this.altimg ? this.altimg[filter] : this.img;
+	
+	g.beginPath();
+	if( flip ) {
+		g.save();
+		g.scale(-1,1);
+		cover.start.x = g.canvas.width + (g.canvas.width * -1) - cover.start.x;
+	}
+	try{
+		g.drawImage( 
+			img, 
+			x_off, y_off, 
+			this.frame_width, 
+			this.frame_height,
+			pixel_scale * cover.start.x,
+			pixel_scale * cover.start.y,
+			pixel_scale * cover.width(),
+			pixel_scale * cover.height()
+			
+		);
+	} catch (err) {}
+	g.restore();
+	g.closePath();
+}
 
 /* MAIN GAME OBJECT */
 
@@ -791,7 +826,7 @@ Game.prototype.getTile = function( x,y,layer ) {
 	return this.tiles[layer][index] || 0;
 }
 Game.prototype.setTile = function( x,y,layer,t ) {
-	if( x instanceof Point ) { layer=y; y=x.y; x=x.x; }
+	if( x instanceof Point ) { t=layer; layer=y; y=x.y; x=x.x; }
 	var ts = 16;
 	if(layer == undefined) layer = 1;
 	x = Math.floor(x/ts);

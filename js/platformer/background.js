@@ -29,6 +29,8 @@ Background.prototype.prerender = function(g,c){
 		this.roomAtLocation(room_matrix_index.x - (room_off+2), room_matrix_index.y)
 	];
 	
+	this.sprite.renderScale(g, new Line(0,0,256,180), 203);
+	
 	if( room_matrix_index.y > 0 && this.walls ) {
 		//Background wall
 		for(x=0; x < 18; x++) for(y=0; y < 15; y++) {

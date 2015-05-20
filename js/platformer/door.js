@@ -1,6 +1,6 @@
 Door.prototype = new GameObject();
 Door.prototype.constructor = GameObject;
-function Door(x,y){
+function Door(x,y,d,ops){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -38,6 +38,9 @@ function Door(x,y){
 		audio.playLock("open",1.0);
 		this.destroy();
 	});
+	
+	ops = ops || {};
+	if("name" in ops) this.name = ops.name;
 }
 Door.prototype.update = function(){
 	var r = this.name.match(/\d+/) - 0;

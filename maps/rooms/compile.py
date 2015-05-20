@@ -5,6 +5,7 @@ import re
 def compile(data, width=16):
 	out = {}
 	out["width"] = int(data["width"]) / width
+	out["height"] = int(data["height"]) / 15
 	for layer in data["layers"]:
 		if layer["name"] == "lines":
 			if "properties" in layer :
