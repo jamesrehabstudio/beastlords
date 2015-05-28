@@ -241,7 +241,12 @@ function Background(x,y){
 	this.animation = 0;
 	this.walls = true;
 }
-Background.prototype.prerender = function(g,c){
+Background.prototype.render = function(gl,c){}
+Background.prototype.prerender = function(gl,c){
+	gl.bindTexture( gl.TEXTURE_2D, game.tileSprite.gl_tex );
+	var shader = window.shaders["default"];
+	shader.use();
+	/*
 	var screen_width = 256;
 	var screen_height = 240;
 	var c_x = c.x%screen_width;
@@ -265,24 +270,84 @@ Background.prototype.prerender = function(g,c){
 			this.sprite.render(g, new Point(pos_x, y*16), tile );
 		}
 	} else {
+	*/
 		//Clouds
+		//cloud length = 128
+		//var pos = window.shaders["test"]["properties"]["position"];
+		//var uvs = window.shaders["test"]["properties"]["uvs"];
+		//var res = window.shaders["test"]["properties"]["resolution"];
+		//var cam = window.shaders["test"]["properties"]["camera"];
+		
+		var cloudVerts = new Array();
 		var sky_offset = this.animation / 20.0;
-		var sky_tile_offset = Math.floor(sky_offset/16);
-		for(l=0; l < 17; l++) for(x=0; x < 17; x++) for(y=0; y < 2; y++) {
-			var y_offset = Math.min( 4 * Math.abs( room_matrix_index.y ), 32);
-			var c_x_minus = c.x - game.bounds.start.x;
-			//layer 3
-			if(l==0) this.sprite.render(g, new Point(x*16-((c_x_minus*0.025)%16), 168+y*16), 202+(y*16) );
-			//layer 2
-			if(l==1) this.sprite.render(g, new Point(x*16-((c_x_minus*0.125)%16), (y_offset*0.5)+176+y*16), 201+(y*16) );
-			//layer 1
-			if(l==2) this.sprite.render(g, new Point(x*16-((c_x_minus*0.333)%16), (y_offset*2)+184+y*16), 200+(y*16) );
+		var draws = Math.ceil(game.width / 128.0) + 1;
+		for(var i = 0; i < draws; i++){
+			var offsetx = Math.floor((i * 128)-(sky_offset%128));
+			var buffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+			gl.bufferData( gl.ARRAY_BUFFER, Background.cloudBuffer, gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+			shader.set("a_position");
 			
-			var tile = 224 + 8+((x+sky_tile_offset)%8) + 16*y;
-			if(l==3) this.sprite.render(g, new Point(x*16-(sky_offset%16), 144+y*16), tile );
+			var tbuffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
+			gl.bufferData( gl.ARRAY_BUFFER, Background.cloudTexture, gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);			
+			shader.set("a_texCoord");
+			
+			//gl.uniform2f(res, game.resolution.x, game.resolution.y);
+			//gl.uniform2f(cam, offsetx, 144);
+			shader.set("u_resolution", game.resolution.x, game.resolution.y);
+			shader.set("u_camera", offsetx, 144);
+			
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 		}
-	}
-	
+		
+		for(var l=0; l < 3; l++) {
+			var tiles = [];
+			var textr = [];
+			var ts = 16;
+			for(var i=0; i < game.width+ts; i+=ts){
+				tiles.push(i); tiles.push(0); 
+				tiles.push(i+ts); tiles.push(0); 
+				tiles.push(i); tiles.push(32); 
+				tiles.push(i); tiles.push(32); 
+				tiles.push(i+ts); tiles.push(0); 
+				tiles.push(i+ts); tiles.push(32);
+				
+				var txoff = (2-l)*0.0625
+				textr.push(txoff+0.5); textr.push(0.75);
+				textr.push(txoff+0.5625); textr.push(0.75);
+				textr.push(txoff+0.5); textr.push(0.875);
+				textr.push(txoff+0.5); textr.push(0.875);
+				textr.push(txoff+0.5625); textr.push(0.75);
+				textr.push(txoff+0.5625); textr.push(0.875);
+			}
+			var buffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+			gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tiles), gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+			shader.set("a_position");
+			
+			var tbuffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
+			gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(textr), gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
+			shader.set("a_texCoord");
+			
+			var offcam = new Point(
+				Math.floor((0.2*(l+0.1))*-c.x)%ts,
+				Math.floor(168+l*8+l*(c.y*-0.003))
+			);
+			
+			//gl.uniform2f(res, game.resolution.x, game.resolution.y);
+			//gl.uniform2f(cam, offcam.x, offcam.y);
+			shader.set("u_resolution", game.resolution.x, game.resolution.y);
+			shader.set("u_camera", offcam.x, offcam.y);
+			
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, tiles.length/2);
+		}
+	/*
 	if(this.walls ) for(var i=0; i < rooms.length; i++) {
 		if( rooms[i] >= 0 && rooms[i] < this.backgrounds.length ) {
 			for(x=0; x < 15; x++) for(y=0; y < 15; y++) {
@@ -296,6 +361,7 @@ Background.prototype.prerender = function(g,c){
 			}
 		}
 	}
+	*/
 	this.animation += this.delta;
 }
 Background.prototype.roomAtLocation = function(x,y){
@@ -323,6 +389,18 @@ Background.prototype.roomAtLocation = function(x,y){
 	}
 }
 Background.prototype.idle = function(){}
+
+Background.cloudBuffer = new Float32Array([
+	0, 0,
+	128, 0,
+	0, 32,
+	0, 32,
+	128, 0,
+	128, 32
+]);
+Background.cloudTexture = new Float32Array([
+	0.5, 0.875, 1.0, 0.875, 0.5, 1.0, 0.5, 1.0, 1.0, 0.875, 1.0, 1.0
+]);
 
  /* platformer/boss_ammit.js*/ 
 
@@ -5776,7 +5854,7 @@ PauseMenu.prototype.render = function(g,c){
 	/* mini map */
 	
 	if( _player instanceof Player ) {
-		g.fillStyle = "#000";
+		g.color = [0.0,0.0,0.0,1.0];
 		g.scaleFillRect(216,8,32,24);
 		this.renderMap(g,new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)), new Point(232,24), new Line(-16,-16,16,8));
 	}
@@ -5804,12 +5882,13 @@ PauseMenu.prototype.render = function(g,c){
 			textArea(g,(_player.autoblock?"Automatic":"Manual"),88,84);
 			
 			textArea(g,"SFX Volume",84,104);
-			g.fillStyle = "#e45c10";
+			//g.fillStyle = "#e45c10";
+			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<audio.sfxVolume.gain.value*20; i++)
 				g.scaleFillRect(88+i*4, 116, 3, 8 );
 			
 			textArea(g,"MUS Volume",84,136);
-			g.fillStyle = "#e45c10";
+			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<audio.musVolume.gain.value*20; i++)
 				g.scaleFillRect(88+i*4, 148, 3, 8 );
 			
@@ -5852,13 +5931,13 @@ PauseMenu.prototype.render = function(g,c){
 			for(attr in _player.stats) {
 				var y = attr_i * 28;
 				textArea(g,attr ,88,60+y);
-				g.fillStyle = "#e45c10";
+				g.color = [0.8,0.6,0.1,1.0];
 				for(var i=0; i<_player.stats[attr]; i++)
 					g.scaleFillRect(88+i*4, 72 + y, 3, 8 );
 				
 				if( _player.stat_points > 0 ) {
 					//Draw cursor
-					g.fillStyle = "#FFF";
+					g.color = [1.0,1.0,1.0,1.0];
 					if( this.stat_cursor == attr_i )
 						g.scaleFillRect(80, 62 + y, 4, 4 );
 				}
@@ -5877,7 +5956,7 @@ PauseMenu.prototype.render = function(g,c){
 				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
 					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / _player.spellEffectLength), 8);
 					var y_offset = 8 - remaining;
-					g.fillStyle = "#3CBCFC";
+					g.color = [0.1,0.7,0.98,1.0];
 					g.scaleFillRect(184, 36+y+y_offset, 8, remaining );
 					sprites.text.render(g,new Point(184,36+y), 5, 6);
 				}
@@ -5928,7 +6007,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 			2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
 		);
 		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-			g.fillStyle = "#F00";
+			g.color = [1.0,0.0,0.0,1.0];
 			g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
 		}
 	} catch (err) {}
@@ -6016,9 +6095,9 @@ TitleMenu.prototype.update = function(){
 
 TitleMenu.prototype.render = function(g,c){
 	if( this.loading ){ 
-		g.font = (30*pixel_scale)+"px monospace";
-		g.fillStyle = "#FFF";
-		g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
+		//g.font = (30*pixel_scale)+"px monospace";
+		//g.fillStyle = "#FFF";
+		//g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
 	} else if( this.start ) {
 		
 	} else {
@@ -7370,19 +7449,19 @@ Player.prototype.render = function(g,c){
 	
 	/* Render HP */
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,7,(this.lifeMax/4)+2,10);
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,this.lifeMax/4,8);
 	g.closePath();
 	g.beginPath();
-	g.fillStyle = "#F00";
+	g.color = [1.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,Math.max(this.life/4,0),8);
 	g.closePath();
 	
 	/* Render Buffered Damage */
 	g.beginPath();
-	g.fillStyle = "#A81000";
+	g.color = [0.65,0.0625,0.0,1.0];
 	var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer) / 4, 8)
 	g.scaleFillRect(
 		Math.max(this.life/4,0)+8,
@@ -7394,25 +7473,26 @@ Player.prototype.render = function(g,c){
 	
 	/* Render Mana */
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,19,25+2,4);
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,20,25,2);
 	g.closePath();
 	g.beginPath();
 	g.fillStyle = "#3CBCFC";
+	g.color = [0.23,0.73,0.98,1.0];
 	g.scaleFillRect(8,20,Math.floor(25*(this.mana/this.manaMax)),2);
 	g.closePath();
 	
 	/* Render XP */
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,25,25+2,4);
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,26,25,2);
 	g.closePath();
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*25 ),2);
 	g.closePath();
 	
@@ -7566,11 +7646,11 @@ var textLookup = [
 	"p","q","r","s","t","u","v","w","x","y","z","{","}","\v","\b","@"
 ];
 function boxArea(g,x,y,w,h){
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x, y, w, h );
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(x+7, y+7, w-14, h-14 );
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x+8, y+8, w-16, h-16 );
 }
 function textArea(g,s,x,y,w,h){

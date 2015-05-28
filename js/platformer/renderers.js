@@ -7,11 +7,11 @@ var textLookup = [
 	"p","q","r","s","t","u","v","w","x","y","z","{","}","\v","\b","@"
 ];
 function boxArea(g,x,y,w,h){
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x, y, w, h );
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(x+7, y+7, w-14, h-14 );
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x+8, y+8, w-16, h-16 );
 }
 function textArea(g,s,x,y,w,h){

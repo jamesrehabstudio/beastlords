@@ -78,9 +78,9 @@ TitleMenu.prototype.update = function(){
 
 TitleMenu.prototype.render = function(g,c){
 	if( this.loading ){ 
-		g.font = (30*pixel_scale)+"px monospace";
-		g.fillStyle = "#FFF";
-		g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
+		//g.font = (30*pixel_scale)+"px monospace";
+		//g.fillStyle = "#FFF";
+		//g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
 	} else if( this.start ) {
 		
 	} else {

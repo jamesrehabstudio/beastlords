@@ -230,6 +230,9 @@ DataManager.prototype.loadMap = function(g,map,options){
 			mapTiles[j] = map_tiles[j];
 		}
 	}
+	if( _player instanceof Player ){
+		_player.keys = new Array();
+	}
 	if( _player instanceof Player && !game.getObject(Player) ) {
 		g.addObject(_player);
 		if( "direction" in options && options.direction.x < 0 ){
@@ -1437,7 +1440,7 @@ Seed.prototype.randomInt = function(s,m){
 
 var sprites = {};
 var audio = {};
-var RT = "/";
+var RT = "";
 
 filter_hurt = function(d,i){
 	d[i] = Math.floor(d[i+1]*0.9);

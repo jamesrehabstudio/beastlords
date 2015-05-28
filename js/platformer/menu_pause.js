@@ -187,7 +187,7 @@ PauseMenu.prototype.render = function(g,c){
 	/* mini map */
 	
 	if( _player instanceof Player ) {
-		g.fillStyle = "#000";
+		g.color = [0.0,0.0,0.0,1.0];
 		g.scaleFillRect(216,8,32,24);
 		this.renderMap(g,new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)), new Point(232,24), new Line(-16,-16,16,8));
 	}
@@ -215,12 +215,13 @@ PauseMenu.prototype.render = function(g,c){
 			textArea(g,(_player.autoblock?"Automatic":"Manual"),88,84);
 			
 			textArea(g,"SFX Volume",84,104);
-			g.fillStyle = "#e45c10";
+			//g.fillStyle = "#e45c10";
+			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<audio.sfxVolume.gain.value*20; i++)
 				g.scaleFillRect(88+i*4, 116, 3, 8 );
 			
 			textArea(g,"MUS Volume",84,136);
-			g.fillStyle = "#e45c10";
+			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<audio.musVolume.gain.value*20; i++)
 				g.scaleFillRect(88+i*4, 148, 3, 8 );
 			
@@ -263,13 +264,13 @@ PauseMenu.prototype.render = function(g,c){
 			for(attr in _player.stats) {
 				var y = attr_i * 28;
 				textArea(g,attr ,88,60+y);
-				g.fillStyle = "#e45c10";
+				g.color = [0.8,0.6,0.1,1.0];
 				for(var i=0; i<_player.stats[attr]; i++)
 					g.scaleFillRect(88+i*4, 72 + y, 3, 8 );
 				
 				if( _player.stat_points > 0 ) {
 					//Draw cursor
-					g.fillStyle = "#FFF";
+					g.color = [1.0,1.0,1.0,1.0];
 					if( this.stat_cursor == attr_i )
 						g.scaleFillRect(80, 62 + y, 4, 4 );
 				}
@@ -288,7 +289,7 @@ PauseMenu.prototype.render = function(g,c){
 				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
 					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / _player.spellEffectLength), 8);
 					var y_offset = 8 - remaining;
-					g.fillStyle = "#3CBCFC";
+					g.color = [0.1,0.7,0.98,1.0];
 					g.scaleFillRect(184, 36+y+y_offset, 8, remaining );
 					sprites.text.render(g,new Point(184,36+y), 5, 6);
 				}
@@ -339,7 +340,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 			2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
 		);
 		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-			g.fillStyle = "#F00";
+			g.color = [1.0,0.0,0.0,1.0];
 			g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
 		}
 	} catch (err) {}

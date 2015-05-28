@@ -122,133 +122,6 @@ AudioPlayer.prototype.isLoaded = function(l){
 	return false;
 }
 
-
-/* Object for wrapping sprites */
-
-function Sprite(url, options) {
-	options = options || {};
-	
-	var offset = options['offset'] || new Point();
-	
-	this.img = new Image();
-	this.img.src = url;
-	this.img.sprite = this;
-	this.img.onload = function(){ this.sprite.imageLoaded(); }
-	this.offset = offset;
-	this.loaded = false;
-	this.filters = options["filters"] || {};
-	this.altimg = {};
-	
-	this.frame_width = options['width'] || 0;
-	this.frame_height = options['height'] || 0;
-	this.width = -1;
-	
-	this.name = "";
-}
-Sprite.prototype.imageLoaded = function() {
-	this.loaded = true;
-	if ( this.frame_width < 1 ) {
-		this.frame_width = this.img.width;
-	}
-	if ( this.frame_height < 1 ) {
-		this.frame_height = this.img.height;
-	}
-	this.width = Math.ceil( this.img.width / this.frame_width );
-	
-	//Create inverted version
-	for( var f in this.filters ) {
-		var canvas = document.createElement("canvas");
-		var c = canvas.getContext('2d');
-		canvas.width = c.width = this.img.width;
-		canvas.height = c.height = this.img.height;
-		c.drawImage(this.img,0,0);
-		var a = c.getImageData(0,0,c.width,c.height);
-		for(var i=0; i < a.data.length; i+=4) {
-			this.filters[f](a.data,i,c.width,c.height);
-			/*
-			if( a.data[i+3] > 100 ) {
-				a.data[i+0] = Math.floor(255-a.data[i+0]*0.5);
-				a.data[i+1] = 255-a.data[i+1];
-				a.data[i+2] = 255-a.data[i+2];
-			}
-			*/
-		}
-		c.putImageData(a,0,0);
-		this.altimg[f] = new Image();
-		this.altimg[f].src = canvas.toDataURL();
-	}
-}
-Sprite.prototype.render = function( g, pos, frame, row, flip, filter ) {
-	if(frame == undefined ){
-		x_off = y_off = 0;
-	} else if ( row == undefined ) {
-		x_off = (frame % this.width) * this.frame_width;
-		y_off = Math.floor(frame / this.width) * this.frame_height;
-	} else {
-		x_off = ~~frame * this.frame_width;
-		y_off = ~~row * this.frame_height;
-	}
-	
-	var img = filter in this.altimg ? this.altimg[filter] : this.img;
-	
-	g.beginPath();
-	if( flip ) {
-		g.save();
-		g.scale(-1,1);
-		pos.x = g.canvas.width + (g.canvas.width * -1) - pos.x;
-	}
-	try{
-		g.drawImage( 
-			img, 
-			x_off, y_off, 
-			this.frame_width, 
-			this.frame_height,
-			Math.floor( pixel_scale * ( pos.x - this.offset.x )),
-			Math.floor( pixel_scale * ( pos.y - this.offset.y )),
-			pixel_scale * this.frame_width,
-			pixel_scale * this.frame_height
-			
-		);
-	} catch (err) {}
-	g.restore();
-	g.closePath();
-}
-Sprite.prototype.renderScale = function( g, cover, frame, row, flip, filter ) {
-	if(frame == undefined ){
-		x_off = y_off = 0;
-	} else if ( row == undefined ) {
-		x_off = (frame % this.width) * this.frame_width;
-		y_off = Math.floor(frame / this.width) * this.frame_height;
-	} else {
-		x_off = ~~frame * this.frame_width;
-		y_off = ~~row * this.frame_height;
-	}
-	
-	var img = filter in this.altimg ? this.altimg[filter] : this.img;
-	
-	g.beginPath();
-	if( flip ) {
-		g.save();
-		g.scale(-1,1);
-		cover.start.x = g.canvas.width + (g.canvas.width * -1) - cover.start.x;
-	}
-	try{
-		g.drawImage( 
-			img, 
-			x_off, y_off, 
-			this.frame_width, 
-			this.frame_height,
-			pixel_scale * cover.start.x,
-			pixel_scale * cover.start.y,
-			pixel_scale * cover.width(),
-			pixel_scale * cover.height()
-			
-		);
-	} catch (err) {}
-	g.restore();
-	g.closePath();
-}
-
 /* MAIN GAME OBJECT */
 
 function Game( elm ) {
@@ -291,12 +164,38 @@ function Game( elm ) {
 	this.slowdown_time = 0.0;
 	
 	this.element = elm;
-	this.g = elm.getContext('2d');
-	this.g.mozImageSmoothingEnabled = false;
-	this.g.imageSmoothingEnabled = false;
+	this.g = elm.getContext('webgl', {"alpha":false});
+	//this.g.mozImageSmoothingEnabled = false;
+	//this.g.imageSmoothingEnabled = false;
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
 	this.renderOrder = [0,1,"o"];
+	this.resolution = new Point(256,240);
+	
+	this.shader = false;
+	new Shader(this.g, "default", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader"} );
+	new Shader(this.g, "solid", {"fs":"2d-fragment-solid","vs":"2d-vertex-shader"} );
+	
+	this.g.pixelStorei(this.g.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA);
+	//this.g.scaleFillRect = function(){};
+	this.g.beginPath = function(){};
+	this.g.closePath = function(){};
+	
+	//Build tile buffer for faster rendering
+	var tileVerts = new Array();
+	var ts = 16;
+	for(var _x=0; _x < 27; _x++) for(var _y=0; _y < 16; _y++) {
+		var x = _x*ts;
+		var y = _y*ts;
+		tileVerts.push(x); tileVerts.push(y);
+		tileVerts.push(x+ts); tileVerts.push(y);
+		tileVerts.push(x); tileVerts.push(y+ts);
+		tileVerts.push(x); tileVerts.push(y+ts);
+		tileVerts.push(x+ts); tileVerts.push(y);
+		tileVerts.push(x+ts); tileVerts.push(y+ts);
+	}
+	this._tileBuffer = new Float32Array(tileVerts);
 	
 	if( localStorage.getItem("sfxvolume") ){
 		audio.sfxVolume.gain.value = localStorage.getItem("sfxvolume");
@@ -326,6 +225,10 @@ Game.prototype.zoom = function( x ) {
 	this.element.width = 256 * x;
 	this.element.height = 240 * x;
 	this.g.imageSmoothingEnabled = false;
+	var res = 240.0 / this.element.height;
+	var ratio = this.element.width / ( this.element.height * 1.0 );
+	this.resolution.y = 240 * res;
+	this.resolution.x = 240 * ratio * res;
 }
 Game.prototype.avr = function( obj ) {
 	return 1 / ((this.delta_tot / this.delta_avr) / 1000.0);
@@ -375,7 +278,14 @@ Game.prototype.slow = function(s,d) {
 }
 
 Game.prototype.update = function( ) {
+	//
+	
+	//this.g.viewport(0,0,this.g.drawingBufferWidth,this.g.drawingBufferHeight);
+	
+	//sprites.items.render(this.g, new Point(0,0), 0, 0);
+	
 	//Update logic
+	
 	var newTime = new Date();
 	this.delta = Math.min(newTime - this.time, 100.0) / 30.0;
 	this.deltaUnscaled = this.delta;
@@ -487,9 +397,9 @@ Game.prototype.render = function( ) {
 	var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex } );
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	
-	this.g.beginPath();
-	this.g.clearRect(0,0,this.element.width, this.element.height );
-	this.g.closePath();
+	this.g.clearColor(1,1,0,1);
+	this.g.clear(this.g.COLOR_BUFFER_BIT);
+	this.g.enable(this.g.BLEND);
 	
 	//Prerender
 	for ( var i in this.prerenderTree ) {
@@ -530,8 +440,76 @@ Game.prototype.render = function( ) {
 			lines[i].render( this.g, camera_center );
 		}
 	}
+	
+	this.g.flush();
+}
+Game.prototype.renderTiles = function(layer){
+	if( !this.tileSprite.loaded || this.tiles == null ) return;
+	
+	//var tileVerts = new Array();
+	var shader = window.shaders["default"];
+	var uvVerts = new Array();
+	var ts = 16;
+	var gl = this.g;
+	for(var _x=0; _x < 27; _x++) for(var _y=0; _y < 16; _y++) {
+		/*
+		var x = _x*ts;
+		var y = _y*ts;
+		tileVerts.push(x); tileVerts.push(y);
+		tileVerts.push(x+ts); tileVerts.push(y);
+		tileVerts.push(x); tileVerts.push(y+ts);
+		tileVerts.push(x); tileVerts.push(y+ts);
+		tileVerts.push(x+ts); tileVerts.push(y);
+		tileVerts.push(x+ts); tileVerts.push(y+ts);
+		*/
+		var cam = new Point(Math.floor(this.camera.x/ts),Math.floor(this.camera.y/ts));
+		var tile_index = (_x+cam.x-game.tileDimension.start.x) + ((_y+cam.y-game.tileDimension.start.y) * game.tileDimension.width());
+		var tile = this.tiles[layer][tile_index];
+		if( tile == 0 || tile == undefined) tile = window.BLANK_TILE;
+		var tileUV = this.tileSprite.uv(tile-1);
+		
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+	}
+	var campos = new Point(
+		0-Math.floor(this.camera.x%ts),
+		0-Math.floor(this.camera.y%ts)
+	);
+	if( this.camera.x < 0 && this.camera.x % 1.0 != 0 ) {
+		campos.x -= ts;
+	}
+	
+	shader.use();
+	//var pos = window.shaders["test"]["properties"]["position"];
+	//var uvs = window.shaders["test"]["properties"]["uvs"];
+	//var res = window.shaders["test"]["properties"]["resolution"];
+	//var cam = window.shaders["test"]["properties"]["camera"];
+	//gl.uniform2f(res, game.resolution.x, game.resolution.y);
+	//gl.uniform2f(cam, campos.x, campos.y);
+	shader.set("u_resolution", game.resolution.x, game.resolution.y);
+	shader.set("u_camera", campos.x, campos.y);
+	gl.bindTexture(gl.TEXTURE_2D, this.tileSprite.gl_tex);
+	
+	var gridBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, this._tileBuffer, gl.DYNAMIC_DRAW);
+	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+	shader.set("a_position");
+	
+	var textBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, textBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvVerts), gl.DYNAMIC_DRAW);
+	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
+	shader.set("a_texCoord");
+	
+	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
 }
 Game.prototype.renderTile = function(layer){
+	this.renderTiles(layer); return;
 	//Render tiles
 	if( this.tiles != null ){
 		var ts = 16;

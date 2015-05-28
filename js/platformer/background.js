@@ -15,7 +15,12 @@ function Background(x,y){
 	this.animation = 0;
 	this.walls = true;
 }
-Background.prototype.prerender = function(g,c){
+Background.prototype.render = function(gl,c){}
+Background.prototype.prerender = function(gl,c){
+	gl.bindTexture( gl.TEXTURE_2D, game.tileSprite.gl_tex );
+	var shader = window.shaders["default"];
+	shader.use();
+	/*
 	var screen_width = 256;
 	var screen_height = 240;
 	var c_x = c.x%screen_width;
@@ -39,24 +44,84 @@ Background.prototype.prerender = function(g,c){
 			this.sprite.render(g, new Point(pos_x, y*16), tile );
 		}
 	} else {
+	*/
 		//Clouds
+		//cloud length = 128
+		//var pos = window.shaders["test"]["properties"]["position"];
+		//var uvs = window.shaders["test"]["properties"]["uvs"];
+		//var res = window.shaders["test"]["properties"]["resolution"];
+		//var cam = window.shaders["test"]["properties"]["camera"];
+		
+		var cloudVerts = new Array();
 		var sky_offset = this.animation / 20.0;
-		var sky_tile_offset = Math.floor(sky_offset/16);
-		for(l=0; l < 17; l++) for(x=0; x < 17; x++) for(y=0; y < 2; y++) {
-			var y_offset = Math.min( 4 * Math.abs( room_matrix_index.y ), 32);
-			var c_x_minus = c.x - game.bounds.start.x;
-			//layer 3
-			if(l==0) this.sprite.render(g, new Point(x*16-((c_x_minus*0.025)%16), 168+y*16), 202+(y*16) );
-			//layer 2
-			if(l==1) this.sprite.render(g, new Point(x*16-((c_x_minus*0.125)%16), (y_offset*0.5)+176+y*16), 201+(y*16) );
-			//layer 1
-			if(l==2) this.sprite.render(g, new Point(x*16-((c_x_minus*0.333)%16), (y_offset*2)+184+y*16), 200+(y*16) );
+		var draws = Math.ceil(game.width / 128.0) + 1;
+		for(var i = 0; i < draws; i++){
+			var offsetx = Math.floor((i * 128)-(sky_offset%128));
+			var buffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+			gl.bufferData( gl.ARRAY_BUFFER, Background.cloudBuffer, gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+			shader.set("a_position");
 			
-			var tile = 224 + 8+((x+sky_tile_offset)%8) + 16*y;
-			if(l==3) this.sprite.render(g, new Point(x*16-(sky_offset%16), 144+y*16), tile );
+			var tbuffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
+			gl.bufferData( gl.ARRAY_BUFFER, Background.cloudTexture, gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);			
+			shader.set("a_texCoord");
+			
+			//gl.uniform2f(res, game.resolution.x, game.resolution.y);
+			//gl.uniform2f(cam, offsetx, 144);
+			shader.set("u_resolution", game.resolution.x, game.resolution.y);
+			shader.set("u_camera", offsetx, 144);
+			
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 		}
-	}
-	
+		
+		for(var l=0; l < 3; l++) {
+			var tiles = [];
+			var textr = [];
+			var ts = 16;
+			for(var i=0; i < game.width+ts; i+=ts){
+				tiles.push(i); tiles.push(0); 
+				tiles.push(i+ts); tiles.push(0); 
+				tiles.push(i); tiles.push(32); 
+				tiles.push(i); tiles.push(32); 
+				tiles.push(i+ts); tiles.push(0); 
+				tiles.push(i+ts); tiles.push(32);
+				
+				var txoff = (2-l)*0.0625
+				textr.push(txoff+0.5); textr.push(0.75);
+				textr.push(txoff+0.5625); textr.push(0.75);
+				textr.push(txoff+0.5); textr.push(0.875);
+				textr.push(txoff+0.5); textr.push(0.875);
+				textr.push(txoff+0.5625); textr.push(0.75);
+				textr.push(txoff+0.5625); textr.push(0.875);
+			}
+			var buffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+			gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tiles), gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+			shader.set("a_position");
+			
+			var tbuffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
+			gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(textr), gl.DYNAMIC_DRAW);
+			//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
+			shader.set("a_texCoord");
+			
+			var offcam = new Point(
+				Math.floor((0.2*(l+0.1))*-c.x)%ts,
+				Math.floor(168+l*8+l*(c.y*-0.003))
+			);
+			
+			//gl.uniform2f(res, game.resolution.x, game.resolution.y);
+			//gl.uniform2f(cam, offcam.x, offcam.y);
+			shader.set("u_resolution", game.resolution.x, game.resolution.y);
+			shader.set("u_camera", offcam.x, offcam.y);
+			
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, tiles.length/2);
+		}
+	/*
 	if(this.walls ) for(var i=0; i < rooms.length; i++) {
 		if( rooms[i] >= 0 && rooms[i] < this.backgrounds.length ) {
 			for(x=0; x < 15; x++) for(y=0; y < 15; y++) {
@@ -70,6 +135,7 @@ Background.prototype.prerender = function(g,c){
 			}
 		}
 	}
+	*/
 	this.animation += this.delta;
 }
 Background.prototype.roomAtLocation = function(x,y){
@@ -97,3 +163,15 @@ Background.prototype.roomAtLocation = function(x,y){
 	}
 }
 Background.prototype.idle = function(){}
+
+Background.cloudBuffer = new Float32Array([
+	0, 0,
+	128, 0,
+	0, 32,
+	0, 32,
+	128, 0,
+	128, 32
+]);
+Background.cloudTexture = new Float32Array([
+	0.5, 0.875, 1.0, 0.875, 0.5, 1.0, 0.5, 1.0, 1.0, 0.875, 1.0, 1.0
+]);

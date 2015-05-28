@@ -1,0 +1,11 @@
+{
+	"name" : "beastlords",
+	"main" : "index.html",
+	"version" : "0.2.0",
+	"window" : {
+		"frame" : true,
+		"width" : 853,
+		"height" : 483,
+		"toolbar" : false
+	}
+}

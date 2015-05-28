@@ -7,6 +7,7 @@
 	
 	<script src="js/jquery.js"></script>
 	<script src="js/game.js" type="text/javascript"></script>
+	<script src="js/gl.js" type="text/javascript"></script>
 	<script src="js/queue.js" type="text/javascript"></script>
 	<script src="maps/rooms/rooms.js" type="text/javascript"></script>
 	<script src="js/data.js" type="text/javascript"></script>
@@ -17,70 +18,47 @@
 <body>
 	
 	<div class="wrap">
-		<!--<canvas id="game" width="256" height="240"></canvas>-->
 		<canvas id="game" width="512" height="480"></canvas>
-		<p>Click for fullscreen.</p>
-		<!--
-		<div>
-			<div class="field volume">
-				<label>Sound effects volume</label>
-				<select name="sfxvolume">
-					<option value=0.0>Off</option>
-					<option value=0.3>Low</option>
-					<option value=0.8 selected>High</option>
-				</select>
-			</div>
-			<div class="field volume">
-				<label>Music volume</label>
-				<select name="musvolume">
-					<option value=0.0>Off</option>
-					<option value=0.3 selected>Low</option>
-					<option value=0.8>High</option>
-				</select>
-			</div>
-		</div>
-		-->
-		<h2 id = "how">How to play</h2>
-		
-		<div>
-			<img src="/img/controls.png" alt="controls" />
-			<div>Move with WADS</div>
-			<div>Attack with J</div>
-			<div>Jump with K</div>
-			<div>Block (if enabled) with H</div>
-			<div>Map/Menu with ENTER</div>
-			<div>Spell menu with SHIFT</div>
-		</div>
-		
-		<div>
-			<h2>Follow us</h2>
-			<div><a href="http://pogames.uk" target="_blank">Pogames.uk</a></div>
-			<div><a href="https://twitter.com/pogamesuk" target="_blank">@pogamesuk</a></div>
-		</div>
-		
-		<div class="feedback">
-			<h2>Feedback</h2>
-			<div class="error"></div>
-			<div class="thanks">
-				<p>Thank you for your feedback</p>
-			</div>
-			<form id="comments">
-				<div class="field">
-					<input type="text" placeholder="Name" name="name" />
-				</div>
-				<div class="field">
-					<input type="email" placeholder="Email (optional)" name="email" />
-				</div>	
-				<div class="field">
-					<textarea name="comment" placeholder="Your feedback" name="comment"></textarea>
-				</div>
-				<div class="field">
-					<input type="submit" value="submit" name="submit" />
-				</div>	
-			</form>
-		</div>
-	</div>	
+	</div>
 	
+	<script id="2d-vertex-shader" type="x-shader/x-vertex">
+		attribute vec2 a_position;
+		attribute vec2 a_texCoord;
+		uniform vec2 u_resolution;
+		uniform vec2 u_camera;
+		
+		varying vec2 v_texCoord;
+		
+		void main() {
+			vec2 pos = a_position + u_camera;
+			pos.y = u_resolution.y + pos.y*-1.0;
+			pos.x = pos.x - u_resolution.x;
+			gl_Position = vec4(pos/(u_resolution*1.0), 0, 1);
+			v_texCoord = a_texCoord;
+		}
+	</script>
+
+	<script id="2d-fragment-shader" type="x-shader/x-fragment">
+		precision mediump float;
+		uniform sampler2D u_image;
+		varying vec2 v_texCoord;
+		
+		void main() {
+			gl_FragColor = texture2D(u_image, v_texCoord);
+			//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);
+		}
+	</script>
+	
+	<script id="2d-fragment-solid" type="x-shader/x-fragment">
+		precision mediump float;
+		uniform vec4 u_color;
+		
+		void main() {
+			gl_FragColor = u_color;
+			//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);
+		}
+	</script>
+		
 	<script>
 	window.onload = function() {
 		window.dataManager = new DataManager();
@@ -90,42 +68,6 @@
 		
 		//game.buildPaths();
 		loop();
-		
-		$("select[name=sfxvolume]").on("change",function(e){
-			audio.sfxVolume.gain.value = this.value - 0;
-		});
-		$("select[name=musvolume]").on("change",function(e){
-			audio.musVolume.gain.value = this.value - 0;
-		});
-		
-		$("#comments").on("submit",function(e){
-			e.preventDefault();
-			var data = {
-				"name" : $("#comments [name=name]").val(),
-				"email" : $("#comments [name=email]").val(),
-				"comment" : $("#comments [name=comment]").val()
-			};
-			var error = false;
-			$(".feedback .error").html("");
-			if( data.name.trim().length <= 0 ) { error=true; $(".feedback .error").append("<p>You must specify a name.</p>"); }
-			if( data.comment.trim().length <= 0 ) { error=true; $(".feedback .error").append("<p>Please make a comment.</p>"); }
-			
-			if(error) { 
-				$(".feedback .error").show(); 
-				$(".thanks").hide(); 
-			} else { 
-				$("#comments [name=comment]").val("")
-				$(".thanks").show(); 
-				$(".feedback .error").hide(); 
-				
-				$.ajax({
-					"url":"/feedback",
-					"type":"POST",
-					"contentType":"application/json; charset=utf-8",
-					"data":JSON.stringify(data)
-				});
-			}
-		});
 	}
 	</script>
 	

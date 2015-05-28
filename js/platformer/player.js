@@ -680,19 +680,19 @@ Player.prototype.render = function(g,c){
 	
 	/* Render HP */
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,7,(this.lifeMax/4)+2,10);
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,this.lifeMax/4,8);
 	g.closePath();
 	g.beginPath();
-	g.fillStyle = "#F00";
+	g.color = [1.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,Math.max(this.life/4,0),8);
 	g.closePath();
 	
 	/* Render Buffered Damage */
 	g.beginPath();
-	g.fillStyle = "#A81000";
+	g.color = [0.65,0.0625,0.0,1.0];
 	var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer) / 4, 8)
 	g.scaleFillRect(
 		Math.max(this.life/4,0)+8,
@@ -704,25 +704,26 @@ Player.prototype.render = function(g,c){
 	
 	/* Render Mana */
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,19,25+2,4);
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,20,25,2);
 	g.closePath();
 	g.beginPath();
 	g.fillStyle = "#3CBCFC";
+	g.color = [0.23,0.73,0.98,1.0];
 	g.scaleFillRect(8,20,Math.floor(25*(this.mana/this.manaMax)),2);
 	g.closePath();
 	
 	/* Render XP */
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,25,25+2,4);
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,26,25,2);
 	g.closePath();
 	g.beginPath();
-	g.fillStyle = "#FFF";
+	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*25 ),2);
 	g.closePath();
 	
