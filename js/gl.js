@@ -1,16 +1,16 @@
-window.shaders = {
+window.materials = {
 	
 };
 
-function Shader(gl,name,ops){
-	var fragmentShader = this.getShader(gl, ops["fs"]);
-	var vertexShader = this.getShader(gl, ops["vs"]);
+function Material(gl,name,ops){
+	var fragmentMaterial = this.getShader(gl, ops["fs"]);
+	var vertexMaterial = this.getShader(gl, ops["vs"]);
 
 	// Create the shader program
 
 	this.program = gl.createProgram();
-	gl.attachShader(this.program, vertexShader);
-	gl.attachShader(this.program, fragmentShader);
+	gl.attachShader(this.program, vertexMaterial);
+	gl.attachShader(this.program, fragmentMaterial);
 	gl.linkProgram(this.program);
 
 	// If creating the shader program failed, alert
@@ -23,8 +23,14 @@ function Shader(gl,name,ops){
 	//Fetch properties
 	this.gl = gl;
 	this.properties = {};
-	//Find exposed Uniforms
 	
+	this.settings = [];
+	if( "settings" in ops ) for( var i in ops.settings ){
+		ops.settings[i].unshift(i);
+		this.settings.push( ops.settings[i] );
+	}
+	
+	//Find exposed Uniforms and attributes
 	var props = [
 		document.getElementById(ops["fs"]).innerHTML.match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
 		document.getElementById(ops["vs"]).innerHTML.match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
@@ -37,13 +43,13 @@ function Shader(gl,name,ops){
 		}
 	}
 	
-	window.shaders[name] = this;
-	if( !("default" in window.shaders ) ){
-		window.shaders["default"] = this
+	window.materials[name] = this;
+	if( !("default" in window.materials ) ){
+		window.materials["default"] = this
 	}
 }
 
-Shader.prototype.addProperty = function(prop) {
+Material.prototype.addProperty = function(prop) {
 	try{
 		prop = prop.trim().replace(";","");
 		var props = prop.split(" ");
@@ -62,7 +68,7 @@ Shader.prototype.addProperty = function(prop) {
 			}
 			this.properties[name] = {
 				"uniform" : isUniform,
-				"type" : Shader.propertyTypes.indexOf(type),
+				"type" : Material.propertyTypes.indexOf(type),
 				"location" : location
 			}
 		}
@@ -71,35 +77,39 @@ Shader.prototype.addProperty = function(prop) {
 	}
 }
 
-Shader.propertyTypes = [
+Material.propertyTypes = [
+	"float",
 	"vec2",
 	"vec4"
 ];
-Shader.prototype.set = function(name) {
+Material.prototype.set = function(name) {
 	if(!(name in this.properties )) return;
 	var prop = this.properties[name];
 	var args = Array.prototype.slice.apply(arguments, [1]);
 	
 	if( prop.uniform ) {
 		if( prop.type == 0 ) {
+			this.gl.uniform1f(prop.location, args[0]);
+		} else if( prop.type == 1 ) {
 			this.gl.uniform2f(prop.location, args[0], args[1]);
-		} else if( prop.type == 1 ){
+		} else if( prop.type == 2 ){
 			this.gl.uniform4f(prop.location, args[0], args[1], args[2], args[3]);
 		}
 	} else {
-		if( prop.type == 0 ) {
-			this.gl.vertexAttribPointer(prop.location, 2, this.gl.FLOAT, false, 0, 0);
-		} else if ( prop.type == 1 ) {
-			
-		}
+		this.gl.vertexAttribPointer(prop.location, 2, this.gl.FLOAT, false, 0, 0);
 	}
 }
 
-Shader.prototype.use = function() {
+Material.prototype.use = function() {
 	game.shader = this;
 	this.gl.useProgram(this.program);
+	
+	for(var i = 0; i < this.settings.length; i++){
+		this.set.apply(this, this.settings[i]);
+	}
+	return this;
 }
-Shader.prototype.getShader = function(gl, id) {
+Material.prototype.getShader = function(gl, id) {
 	var shaderScript, theSource, currentChild, shader;
 
 	shaderScript = document.getElementById(id);
@@ -133,95 +143,14 @@ Shader.prototype.getShader = function(gl, id) {
 
 	// See if it compiled successfully
 	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {  
-		alert("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));  
+		alert("An error occurred compiling the materials: " + gl.getShaderInfoLog(shader));  
 		return null;  
 	}
 
 	return shader;
 }
-/*
-window.loadShader = function(gl,name,ops){
-	var fragmentShader = getShader(gl, ops["fs"]);
-	var vertexShader = getShader(gl, ops["vs"]);
 
-	// Create the shader program
 
-	shaderProgram = gl.createProgram();
-	gl.attachShader(shaderProgram, vertexShader);
-	gl.attachShader(shaderProgram, fragmentShader);
-	gl.linkProgram(shaderProgram);
-
-	// If creating the shader program failed, alert
-
-	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-		console.error("Cannot load shader");
-		return;
-	}
-
-	gl.useProgram(shaderProgram);
-	
-	var pos = gl.getAttribLocation(shaderProgram, "a_position");
-	gl.enableVertexAttribArray(pos);
-	var res = gl.getUniformLocation(shaderProgram, "u_resolution");
-	gl.enableVertexAttribArray(res);
-	var cam = gl.getUniformLocation(shaderProgram, "u_camera");
-	gl.enableVertexAttribArray(cam);
-	//var texture = gl.getAttribLocation(shaderProgram, "a_position");
-	var uvs = gl.getAttribLocation(shaderProgram, "a_texCoord");
-	gl.enableVertexAttribArray(uvs);
-	
-	window.shaders[ name ] = {
-		"program":shaderProgram,
-		"properties" : {
-			"position" : pos,
-			"uvs" : uvs,
-			"resolution" : res,
-			"camera" : cam
-		}
-	};
-}
-
-function getShader(gl, id) {
-	var shaderScript, theSource, currentChild, shader;
-
-	shaderScript = document.getElementById(id);
-
-	if (!shaderScript) {
-		return null;
-	}
-
-	theSource = "";
-	currentChild = shaderScript.firstChild;
-
-	while(currentChild) {
-		if (currentChild.nodeType == currentChild.TEXT_NODE) {
-			theSource += currentChild.textContent;
-		}
-		currentChild = currentChild.nextSibling;
-	}
-	
-	if (shaderScript.type == "x-shader/x-fragment") {
-		shader = gl.createShader(gl.FRAGMENT_SHADER);
-	} else if (shaderScript.type == "x-shader/x-vertex") {
-		shader = gl.createShader(gl.VERTEX_SHADER);
-	} else {
-		// Unknown shader type
-		return null;
-	}
-	gl.shaderSource(shader, theSource);
-
-	// Compile the shader program
-	gl.compileShader(shader);  
-
-	// See if it compiled successfully
-	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {  
-		alert("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));  
-		return null;  
-	}
-
-	return shader;
-}
-*/
 /* Object for wrapping sprites */
 function Sprite(url, options) {
 	options = options || {};
@@ -332,8 +261,68 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader ) {
 		row = ~~row;
 	}
 	
-	var shader = window.shaders["default"];
-	shader.use();
+	var shader;
+	if( shader in window.materials ){
+		shader = window.materials[shader].use();
+	} else { 
+		shader = window.materials["default"].use();
+	}
+	
+	var xinc = this.frame_width / (this.img.width * 1.0);
+	var yinc = this.frame_height / (this.img.height * 1.0);
+	
+	var x1 = frame * xinc;
+	var x2 = (frame+1) * xinc;
+	var y1 = row * yinc;
+	var y2 = (row+1) * yinc;
+	var offset = new Point(this.offset.x, this.offset.y);
+	if( flip ) {
+		var temp = x1;
+		x1 = x2;
+		x2 = temp;
+		offset.x = this.frame_width - offset.x;
+	}
+	
+	var texbuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, texbuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+		x1, y1,
+		x2, y1,
+		x1, y2,
+		x1, y2,
+		x2, y1,
+		x2, y2
+	]), gl.DYNAMIC_DRAW);
+	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
+	shader.set("a_texCoord");
+	
+	gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
+	if( !this.buffer ) this.buffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+	
+	gl.bufferData(gl.ARRAY_BUFFER, this.bufferData, gl.DYNAMIC_DRAW);
+	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+	shader.set("a_position");
+	shader.set("u_resolution",game.resolution.x, game.resolution.y);
+	shader.set("u_camera", Math.floor(p.x-offset.x), Math.floor(p.y-offset.y));
+	
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
+}
+Sprite.prototype.renderSize = function( gl, x,y,w,h, frame, row, flip ) {
+if( !this.loaded  ) return;
+	
+	if(frame == undefined ){
+		frame = row = 0;
+	} else if ( row == undefined ) {
+		var f = Math.floor(frame);
+		frame = f % Math.floor(this.width/this.frame_width);
+		row = Math.floor(f / Math.floor(this.width/this.frame_width));
+	} else {
+		frame = ~~frame;
+		row = ~~row;
+	}
+	
+	var shader = window.materials["default"].use();
 	
 	var xinc = this.frame_width / (this.img.width * 1.0);
 	var yinc = this.frame_height / (this.img.height * 1.0);
@@ -359,55 +348,26 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader ) {
 		x2, y1,
 		x2, y2
 	]), gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
 	shader.set("a_texCoord");
 	
 	gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
 	if( !this.buffer ) this.buffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	
-	gl.bufferData(gl.ARRAY_BUFFER, this.bufferData, gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+	var bufferData = new Float32Array([
+		x, y,
+		x+w, y,
+		x, y+h,
+		x, y+h,
+		x+w, y,
+		x+w, y+h
+	]);
+	gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.DYNAMIC_DRAW);
 	shader.set("a_position");
 	shader.set("u_resolution",game.resolution.x, game.resolution.y);
-	shader.set("u_camera", Math.floor(p.x-this.offset.x), Math.floor(p.y-this.offset.y));
-	
-	//gl.uniform2f(res, game.resolution.x, game.resolution.y);
-	//gl.uniform2f(cam, Math.floor(p.x-this.offset.x), Math.floor(p.y-this.offset.y));
+	shader.set("u_camera", 0, 0);
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
-}
-Sprite.renderBuffer = function( gl, p, geo, tex ) {
-	/*
-	var pos = window.shaders["test"]["properties"]["position"];
-	var uvs = window.shaders["test"]["properties"]["uvs"];
-	var res = window.shaders["test"]["properties"]["resolution"];
-	var cam = window.shaders["test"]["properties"]["camera"];
-	
-	if( geo instanceof Array ) {
-		geo = new Float32Array(geo);
-	}
-	if( tex instanceof Array ) {
-		tex = new Float32Array(tex);
-	}
-	
-	var buffer = gl.createBuffer();
-	gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-	gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(geo), gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-	window.shaders["test"].set("a_position");
-	
-	var tbuffer = gl.createBuffer();
-	gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-	gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tex), gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);		
-	window.shaders["test"].set("a_position");	
-	
-	gl.uniform2f(res, game.resolution.x, game.resolution.y);
-	gl.uniform2f(cam, p.x, p.y);
-	
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, geo.length/2);
-	*/
 }
 Sprite.prototype.renderScale = function( g, cover, frame, row, flip, filter ) {
 	/*
@@ -448,10 +408,10 @@ Sprite.prototype.renderScale = function( g, cover, frame, row, flip, filter ) {
 }
 
 WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
-	//var pos = window.shaders["test"]["properties"]["position"];
-	//var uvs = window.shaders["test"]["properties"]["uvs"];
-	//var res = window.shaders["test"]["properties"]["resolution"];
-	//var cam = window.shaders["test"]["properties"]["camera"];
+	//var pos = window.materials["test"]["properties"]["position"];
+	//var uvs = window.materials["test"]["properties"]["uvs"];
+	//var res = window.materials["test"]["properties"]["resolution"];
+	//var cam = window.materials["test"]["properties"]["camera"];
 	
 	geo = new Float32Array([
 		x,y,
@@ -462,7 +422,7 @@ WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
 		x+w,y+h
 	]);
 	
-	var shader = window.shaders["solid"];
+	var shader = window.materials["solid"];
 	var buffer = this.createBuffer();
 	var color = this.color || [0.0,0.0,0.0,1.0];
 	

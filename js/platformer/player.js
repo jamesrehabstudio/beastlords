@@ -140,8 +140,14 @@ function Player(x, y){
 	this.invincible_time = 20;
 	this.autoblock = true;
 	
-	this.frictionGrounded = 0.2;
-	this.frictionAir = 0.05;
+	this.speeds = {
+		"inertiaGrounded" : 0.9,
+		"inertiaAir" : 0.2,
+		"frictionGrounded" : 0.2,
+		"frictionAir" : 0.05
+	//this.frictionGrounded = 0.2;
+	//this.frictionAir = 0.05;
+	};
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -331,22 +337,24 @@ Player.prototype.update = function(){
 			if ( input.state('fire') == 1 ) { this.attack(); }
 			
 			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
+			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
+			if ( input.state('up') == 1 ) { this.stand(); }
 			
-			if ( !this.autoblock &&  input.state('block') > 0) {
-				if( input.state("block") == 1 ) this.states.guard_down = this.states.duck;
-				if( input.state('down') == 1 ) this.states.guard_down = true;
-				if( input.state('up') == 1 ) this.states.guard_down = false;
-				
-				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
-				this.states.guard = this.states.attack <= 0;
-			} else {
+			if( this.autoblock ){
+				//Always block and turn
 				if ( input.state('left') > 0 ) { this.flip = true;}
 				if ( input.state('right') > 0 ) { this.flip = false; }
-				if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
-				if ( input.state('up') == 1 ) { this.stand(); }
-				
-				if( this.autoblock ) this.states.guard = this.states.attack <= 0;
-			}
+				this.states.guard = this.states.attack <= 0;
+			} else {
+				if (input.state('block') > 0) {
+					this.force.x = Math.min( Math.max( this.force.x, -2), 2);
+					this.states.guard = this.states.attack <= 0;
+				} else { 
+					this.states.guard = false;
+					if ( input.state('left') > 0 ) { this.flip = true;}
+					if ( input.state('right') > 0 ) { this.flip = false; }
+				}
+			} 
 		}
 		
 		//Apply jump boost
@@ -364,8 +372,8 @@ Player.prototype.update = function(){
 			}
 		}
 		
-		this.friction = this.grounded ? this.frictionGrounded : this.frictionAir;
-		this.inertia = this.grounded ? 0.9 : 0.2;
+		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
+		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
 		
 		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
@@ -399,13 +407,9 @@ Player.prototype.update = function(){
 	}
 	
 	//Shield
+	this.states.guard_down = this.states.duck;
 	this.guard.active = this.states.guard;
-	if( this.autoblock ) {
-		this.states.guard_down = this.states.duck;
-		this.guard.y = this.states.duck ? this.shieldProperties.duck : this.shieldProperties.stand;
-	} else { 
-		this.guard.y = this.states.guard_down ? this.shieldProperties.duck : this.shieldProperties.stand;
-	}
+	this.guard.y = this.states.guard_down ? this.shieldProperties.duck : this.shieldProperties.stand;
 	
 	//Animation
 	if ( this.stun > 0 || this.life < 0 ) {

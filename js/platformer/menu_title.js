@@ -86,7 +86,7 @@ TitleMenu.prototype.render = function(g,c){
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
 		
-		this.sprite.render(g,new Point(),2);
+		this.sprite.render(g,new Point(),0,2);
 		
 		//Random twinkling stars
 		for(var i=0; i<this.stars.length; i++) {
@@ -109,8 +109,8 @@ TitleMenu.prototype.render = function(g,c){
 			this.stars.timer += this.stars.reset;
 		}
 		
-		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),1);
-		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0);
+		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),0,1);
+		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0,0);
 		
 		textArea(g,"Copyright Pogames.uk 2015",8,4);
 		textArea(g,"Version "+window._version,8,228);

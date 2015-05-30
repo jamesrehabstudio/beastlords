@@ -148,6 +148,7 @@ function Game( elm ) {
 	this.tileDimension = null;
 	this.tiles = null;
 	this.tileSprite = sprites.tiles2;
+	this.tileCollideLayer = 2;
 	
 	//Per frame datastructures
 	this.renderTree;
@@ -169,12 +170,11 @@ function Game( elm ) {
 	//this.g.imageSmoothingEnabled = false;
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
-	this.renderOrder = [0,1,"o"];
+	this.renderOrder = [0,1,2,"o"];
+	this.layerCamera = {
+		0 : function(c){ return new Point(c.x*0.9375, c.y); }
+	}
 	this.resolution = new Point(256,240);
-	
-	this.shader = false;
-	new Shader(this.g, "default", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader"} );
-	new Shader(this.g, "solid", {"fs":"2d-fragment-solid","vs":"2d-vertex-shader"} );
 	
 	this.g.pixelStorei(this.g.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA);
@@ -264,7 +264,7 @@ Game.prototype.clearAll = function(){
 	this.collisions = [];
 	this.bounds = new Line(0,0,0,0);
 	this.tileDimension = new Line(0,0,0,0);
-	this.tiles = [[],[]];
+	this.tiles = [[],[],[]];
 }
 
 
@@ -446,8 +446,11 @@ Game.prototype.render = function( ) {
 Game.prototype.renderTiles = function(layer){
 	if( !this.tileSprite.loaded || this.tiles == null ) return;
 	
+	var camera = this.camera;
+	if( layer in this.layerCamera ) camera = this.layerCamera[layer](this.camera);
+	
 	//var tileVerts = new Array();
-	var shader = window.shaders["default"];
+	var material = window.materials["default"].use();
 	var uvVerts = new Array();
 	var ts = 16;
 	var gl = this.g;
@@ -462,7 +465,7 @@ Game.prototype.renderTiles = function(layer){
 		tileVerts.push(x+ts); tileVerts.push(y);
 		tileVerts.push(x+ts); tileVerts.push(y+ts);
 		*/
-		var cam = new Point(Math.floor(this.camera.x/ts),Math.floor(this.camera.y/ts));
+		var cam = new Point(Math.floor(camera.x/ts),Math.floor(camera.y/ts));
 		var tile_index = (_x+cam.x-game.tileDimension.start.x) + ((_y+cam.y-game.tileDimension.start.y) * game.tileDimension.width());
 		var tile = this.tiles[layer][tile_index];
 		if( tile == 0 || tile == undefined) tile = window.BLANK_TILE;
@@ -476,35 +479,26 @@ Game.prototype.renderTiles = function(layer){
 		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
 	}
 	var campos = new Point(
-		0-Math.floor(this.camera.x%ts),
-		0-Math.floor(this.camera.y%ts)
+		0-Math.floor(camera.x%ts),
+		0-Math.floor(camera.y%ts)
 	);
-	if( this.camera.x < 0 && this.camera.x % 1.0 != 0 ) {
+	if( camera.x < 0 && camera.x % 1.0 != 0 ) {
 		campos.x -= ts;
 	}
 	
-	shader.use();
-	//var pos = window.shaders["test"]["properties"]["position"];
-	//var uvs = window.shaders["test"]["properties"]["uvs"];
-	//var res = window.shaders["test"]["properties"]["resolution"];
-	//var cam = window.shaders["test"]["properties"]["camera"];
-	//gl.uniform2f(res, game.resolution.x, game.resolution.y);
-	//gl.uniform2f(cam, campos.x, campos.y);
-	shader.set("u_resolution", game.resolution.x, game.resolution.y);
-	shader.set("u_camera", campos.x, campos.y);
+	material.set("u_resolution", game.resolution.x, game.resolution.y);
+	material.set("u_camera", campos.x, campos.y);
 	gl.bindTexture(gl.TEXTURE_2D, this.tileSprite.gl_tex);
 	
 	var gridBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, this._tileBuffer, gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-	shader.set("a_position");
+	material.set("a_position");
 	
 	var textBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, textBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvVerts), gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
-	shader.set("a_texCoord");
+	material.set("a_texCoord");
 	
 	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
 }
@@ -632,34 +626,175 @@ Game.prototype.unstick = function( obj, hitbox, collisions ) {
 	}
 }
 Game.prototype.t_move = function(obj, x, y) {
+	var hitbox = obj.bounds();
+	var interation_size = 1.0;
+	var ts = 16;
+	
+	var limits = [
+		Number.MAX_SAFE_INTEGER, //Furthest left
+		Number.MAX_SAFE_INTEGER, //Furthest down
+		-Number.MAX_SAFE_INTEGER, //Furthest right
+		-Number.MAX_SAFE_INTEGER //Furthest up
+	];
+	var dirs = [0,1];
+	
+	//for(var dir=0; dir < dirs.length; dir++ ){
+	for(var dir=1; dir >= 0; dir-- ){
+		
+		if( dir == 0 ) 
+			obj.transpose(0, y * interation_size);
+		else
+			obj.transpose(x * interation_size, 0);
+		
+		var hitbox = obj.bounds();
+		
+		var margins = [
+			obj.position.x - hitbox.left(),
+			obj.position.y - hitbox.top(),
+			obj.position.x - hitbox.right(),
+			obj.position.y - hitbox.bottom(),
+		];
+		
+		var xinc = obj.width/ Math.ceil(obj.width/ts);
+		var yinc = obj.height/ Math.ceil(obj.height/ts);
+		
+		for(var _x=hitbox.left(); _x<=hitbox.right(); _x+=xinc )
+		for(var _y=hitbox.top(); _y <=hitbox.bottom(); _y+=yinc ) { 
+			var tile = this.getTile(_x,_y);
+			var corner = new Point(Math.floor(_x/ts)*ts, Math.floor(_y/ts)*ts);
+			if( dir == 0 ){
+				if( tile == 137 ) {
+					var peak = (corner.y) + Math.max((hitbox.left()-corner.x)*0.5, 0);
+					limits[1] = Math.min(limits[1], peak-1);
+				} else if( tile == 138 ) {
+					var peak = (corner.y+(ts*0.5)) + Math.max((hitbox.left()-corner.x)*0.5, 0);
+					limits[1] = Math.min(limits[1], peak-1);
+				} else if( tile == 139 ) {
+					var peak = (corner.y) + Math.max(hitbox.left()-corner.x, 0);
+					limits[1] = Math.min(limits[1], peak-1);
+				} else if( tile == 140 ) {
+					var peak = (corner.y+ts) + Math.max(corner.x-hitbox.right(), -ts);
+					limits[1] = Math.min(limits[1], peak-1);
+				} else if( tile == 141 ) {
+					var peak = (corner.y+ts) + Math.max((corner.x-hitbox.right()) * 0.5, -ts*0.5);
+					limits[1] = Math.min(limits[1], peak-1);
+				} else if( tile == 142 ) {
+					var peak = (corner.y+ts) + Math.max((corner.x-(hitbox.right()+ts)) * 0.5, -ts);
+					limits[1] = Math.min(limits[1], peak-1);
+				} else if( tile != 0 ) {
+					if(y>0) limits[1] = Math.min(limits[1], corner.y);
+					if(y<0) limits[3] = Math.max(limits[3], corner.y+ts);
+				}
+			} else {
+				if( tile != 0 && (tile < 137 || tile > 142) ) {
+					if(x>0) limits[0] = Math.min(limits[0], corner.x);
+					if(x<0) limits[2] = Math.max(limits[2], corner.x+ts);
+				}
+			}
+		}
+	
+		//for(var i=0; i<limits.length; i++) limits[i] -= margins[i];
+		if( dir == 1) {
+			limits[0] -= margins[0];
+			limits[2] -= margins[2];
+			if( obj.position.x > limits[0] ) {
+				obj.position.x = limits[0] - 1;
+				obj.trigger("collideHorizontal", x);
+			} else if ( obj.position.x < limits[2] ) {
+				obj.position.x = limits[2] + 1;
+				obj.trigger("collideHorizontal", x);
+			}
+		} else {
+			limits[1] -= margins[1];
+			limits[3] -= margins[3];
+			if( obj.position.y > limits[1] ) {
+				obj.position.y= limits[1] - 1;
+				obj.trigger("collideVertical", y);
+			} else if ( obj.position.y < limits[3] ) {
+				obj.position.y = limits[3] + 1;
+				obj.trigger("collideVertical", y);
+			}
+		}
+	
+	}
+	
+	this.collideObject(obj);
+}
+Game.prototype.collideObject = function(obj) {
+	var hitbox = obj.bounds();
+	var area = new Line( 
+		new Point(hitbox.start.x - obj.width, hitbox.start.y - obj.height),
+		new Point(hitbox.end.x + obj.width, hitbox.end.y + obj.height) 
+	);
+	
+	if( obj.interactive ) {
+		//Collide with other objects
+		var objs = this.interactive.get( area );
+		
+		for(var o=0; o < objs.length; o++ ){
+			if( objs[o] != obj ) {
+				if( obj.intersects( objs[o] ) ){
+					obj.trigger("collideObject", objs[o]);
+					objs[o].trigger("collideObject", obj);
+				}
+			}
+		}
+	}
+	
+}
+Game.prototype.t_move2 = function(obj, x, y) {
+	
+	var special = function(x,y,t){
+		var corner = new Point(Math.floor(x/16)*16,Math.floor(y/16)*16);
+		var highest = 9999999;
+		var hit = false;
+		if( t == 140 ){
+			hit = true;
+			highest = Math.min( corner.y + 16 - (hitbox.right() - corner.x), highest);
+		}
+		
+		highest -= hitbox.bottom() - obj.position.y;
+		obj.position.y = Math.min( highest - (hitbox.bottom()-obj.position.y), obj.position.y );
+		return hit;
+	}
 	
 	var bounds = {
 		"right" : function(){ 
-			for(var y=hitbox.top(); y <= hitbox.bottom(); y+=16 )
-				if( game.getTile( new Point(hitbox.right(), y) ) != 0 ) return true;
-			if( game.getTile( new Point(hitbox.right(), hitbox.bottom())) != 0 ) return true;
+			for(var y=hitbox.top(); y <= hitbox.bottom(); y+=16 ){
+				var tile = game.getTile( new Point(hitbox.right(), y) );
+				if( !special(hitbox.right(), y, tile) && tile != 0 ) return true;
+			}
+			//if( game.getTile( new Point(hitbox.right(), hitbox.bottom())) != 0 ) return true;
 			return false;
 		},
 		"left" : function(){ 
-			for(var y=hitbox.top(); y <= hitbox.bottom(); y+=16 )
-				if( game.getTile( new Point(hitbox.left(), y) ) != 0 ) return true;
-			if( game.getTile( new Point(hitbox.left(), hitbox.bottom())) != 0 ) return true;
+			for(var y=hitbox.top(); y <= hitbox.bottom(); y+=16 ){
+				var tile = game.getTile( new Point(hitbox.left(), y) );
+				if( !special(hitbox.left(), y, tile) && tile != 0 ) return true;
+			}
+			//if( game.getTile( new Point(hitbox.left(), hitbox.bottom())) != 0 ) return true;
 			return false;
 		},
 		"top" : function(){ 
-			for(var x=hitbox.left(); x <= hitbox.right(); x+=16 )
-				if( game.getTile( new Point(x, hitbox.top()) ) != 0 ) return true;
-			if( game.getTile( new Point(hitbox.right(), hitbox.top())) != 0 ) return true;
+			for(var x=hitbox.left(); x <= hitbox.right(); x+=16 ){
+				var tile = game.getTile( new Point(x, hitbox.top()) );
+				if( !special(x, hitbox.top(), tile) && tile != 0 ) return true;
+			}
+			//if( game.getTile( new Point(hitbox.right(), hitbox.top())) != 0 ) return true;
 			return false;
 		},
 		"bottom" : function(){ 
-			for(var x=hitbox.left(); x <= hitbox.right(); x+=16 )
-				if( game.getTile( new Point(x,hitbox.bottom()) ) != 0 ) return true;
-			if( game.getTile( new Point(hitbox.right(), hitbox.bottom())) != 0 ) return true;
+			for(var x=hitbox.left(); x <= hitbox.right(); x+=16 ){
+				var tile = game.getTile( new Point(x,hitbox.bottom()) );
+				if( !special(x,hitbox.bottom(),tile) && tile != 0 ) return true;
+			}
+			//if( game.getTile( new Point(hitbox.right(), hitbox.bottom())) != 0 ) return true;
 			return false;
 		}
 	};
 	
+	//slope \ 139
+	//slope / 140
 	
 	//Unstick
 	var hitbox = obj.bounds();
@@ -794,7 +929,7 @@ Game.prototype.c_move = function( obj, x, y ) {
 Game.prototype.getTile = function( x,y,layer ) {
 	if( x instanceof Point ) { layer=y; y=x.y; x=x.x; }
 	var ts = 16;
-	layer = layer || 1;
+	if(layer == undefined) layer = this.tileCollideLayer;
 	x = Math.floor(x/ts);
 	y = Math.floor(y/ts);
 	var index = (
@@ -806,7 +941,7 @@ Game.prototype.getTile = function( x,y,layer ) {
 Game.prototype.setTile = function( x,y,layer,t ) {
 	if( x instanceof Point ) { t=layer; layer=y; y=x.y; x=x.x; }
 	var ts = 16;
-	if(layer == undefined) layer = 1;
+	if(layer == undefined) layer = this.tileCollideLayer;
 	x = Math.floor(x/ts);
 	y = Math.floor(y/ts);
 	var index = (

@@ -72,7 +72,7 @@ ItemMenu.prototype.itemPosition = function(name){
 	return new Point(x,y);
 }
 ItemMenu.prototype.postrender = function(g,c){
-	g.fillStyle = "#004058";
+	g.color = [0.0,0.3,0.4,1.0];
 	g.scaleFillRect(0,0,256,240);
 	
 	var columnWidth = 6;
@@ -88,9 +88,9 @@ ItemMenu.prototype.postrender = function(g,c){
 		var name = dataManager.treasures[i].name;
 		
 		switch(dataManager.treasures[i].unlocked * 1) {
-			case 1 : g.fillStyle = "#d8b8f8"; break;
-			case 2 : g.fillStyle = "#FFF"; break;
-			default : g.fillStyle = "#4428bc"; break;
+			case 1 : g.color = [0.8,0.6,0.9,1.0]; break;
+			case 2 : g.color = [1.0,1.0,1.0,1.0]; break;
+			default : g.color = [0.2,0.1,0.6,1.0]; break;
 		}
 		
 		var colmpos = (i % columnWidth);

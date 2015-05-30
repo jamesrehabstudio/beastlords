@@ -22,7 +22,7 @@ function WaystoneChest(x,y,d,options){
 		if(this.door){
 			this.frame = 1;
 			for(var i=0; i < this.door_blocks.length; i++){
-				game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, 1, window.BLANK_TILE);
+				game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, window.BLANK_TILE);
 			}
 		}
 	});
@@ -33,7 +33,7 @@ WaystoneChest.prototype.update = function(g,c){
 			_player.waystones -= 1;
 			if(this.door){
 				for(var i=0; i < this.door_blocks.length; i++){
-					game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, 1, 0);
+					game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
 				}
 				Item.drop(this,15,Game.DELTASECOND);
 			} else {

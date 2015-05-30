@@ -207,12 +207,14 @@ DataManager.prototype.loadMap = function(g,map,options){
 	);
 	g.tiles = [
 		new Array( ~~g.tileDimension.area() ),
+		new Array( ~~g.tileDimension.area() ),
 		new Array( ~~g.tileDimension.area() )
 	];
 	g.buildCollisions();
 	for(var i=0; i < map.front.length; i++){
-		g.tiles[1][i] = map.front[i];
-		g.tiles[0][i] = map.back[i];
+		if("front" in map) g.tiles[2][i] = map.front[i];
+		if("back" in map) g.tiles[1][i] = map.back[i];
+		if("far" in map) g.tiles[0][i] = map.far[i];
 	}
 	for(var i=0; i < map.objects.length; i++){
 		var obj = map.objects[i];
@@ -302,6 +304,7 @@ DataManager.prototype.randomTown = function(g, town){
 	g.bounds = g.tileDimension = new Line(0,0,pos*8,15);
 	g.tiles = [
 		new Array( ~~g.tileDimension.area() ),
+		new Array( ~~g.tileDimension.area() ),
 		new Array( ~~g.tileDimension.area() )
 	];
 	g.buildCollisions();
@@ -384,6 +387,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 	g.tileDimension = mapDimension.scale(16,15);
 	
 	g.tiles = [
+		new Array( ~~g.tileDimension.area() ),
 		new Array( ~~g.tileDimension.area() ),
 		new Array( ~~g.tileDimension.area() )
 	];
@@ -502,7 +506,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 }
 
 DataManager.prototype.createRoom = function(g,room,cursor,id,room_size){
-	var layers = ["back","front"];
+	var layers = ["far","back","front"];
 	
 	if( this.currentTemple < 0 || this.currentTemple >= this.temples.length ) {
 		var temple = this.temples[ 0 ];
@@ -530,6 +534,23 @@ DataManager.prototype.createRoom = function(g,room,cursor,id,room_size){
 					Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * g.tileDimension.width() )
 				);
 				g.tiles[j][offset] = room[layers[j]][i];
+			}
+		}
+	}
+	
+	if( dataManager.currentTemple >= 0 && (cursor.x != 0 || cursor.y != 0) ) {
+		var bgsize = room_size - 1;
+		for(var w=0; w < room.width; w++ ){
+			var bg = Background.rooms[Math.floor(Math.random()*Background.rooms.length)];
+			for(var i=0; i < bg.tiles.length; i++){
+				var x = Math.floor( i % bgsize );
+				var y = Math.floor( i / bgsize );
+				var offset = Math.floor( 
+					w * bgsize + 
+					Math.floor( (x-g.tileDimension.start.x) + Math.floor( (cursor.x) / (room_size+1) ) ) + 
+					Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / (room_size) ) ) * g.tileDimension.width() )
+				);
+				g.tiles[0][offset] = bg.tiles[i];
 			}
 		}
 	}
@@ -1481,7 +1502,7 @@ filter_pack_enemies = {
 	"special" : filter_enchanted
 }
 
-function load_sprites (){
+function load_sprites (){	
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['pig'] = new Sprite(RT+"img/pig.gif", {offset:new Point(0, 0),width:32,height:40});
 	sprites['title'] = new Sprite(RT+"img/title.gif", {offset:new Point(0, 0),width:256,height:240});
@@ -1540,6 +1561,7 @@ function load_sprites (){
 	
 	sprites['prisoner'] = new Sprite(RT+"img/prisoner.gif", {offset:new Point(16, 24),width:32,height:48});
 	
+	sprites['tiles0'] = new Sprite(RT+"img/tiles/tiles0.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles1'] = new Sprite(RT+"img/tiles/tiles1.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles2'] = new Sprite(RT+"img/tiles/tiles2.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles3'] = new Sprite(RT+"img/tiles/tiles3.gif", {offset:new Point(0, 0),width:16,height:16});

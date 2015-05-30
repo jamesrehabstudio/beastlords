@@ -44,7 +44,7 @@ Dream.prototype.update = function(){
 	}
 }
 Dream.prototype.postrender = function(g,c){
-	g.fillStyle = "#000";
+	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(0,0,256,240);
 	
 	//Wavy background
@@ -86,7 +86,7 @@ Dream.prototype.postrender = function(g,c){
 			Math.abs(this.progress-(14*Game.DELTASECOND)) <= 1 ||
 			Math.abs(this.progress-(15*Game.DELTASECOND)) <= 1
 		){
-			g.fillStyle = "#FFF";
+			g.color = [1.0,1.0,1.0,1.0];
 			g.scaleFillRect(0,0,256,240);	
 		}
 	}
@@ -96,6 +96,6 @@ Dream.prototype.postrender = function(g,c){
 		0-this.progress/Game.DELTASECOND, 
 		(this.progress/Game.DELTASECOND)-(this.length-1)
 	), 0);
-	g.fillStyle = "RGBA(0,0,0,"+fade+")";
+	g.color = [0.0,0.0,0.0,fade]
 	g.scaleFillRect(0,0,256,240);
 }

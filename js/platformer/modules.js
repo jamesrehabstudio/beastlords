@@ -424,7 +424,7 @@ var mod_boss = {
 			this.position.y = this.boss_starting_position.y;
 			this.active = false;
 			for(var i=0; i < this.boss_doors.length; i++ )
-				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, 0);
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
 			_player.lock_overwrite = false;
 		}
 		this._boss_is_active = function(){
@@ -443,13 +443,13 @@ var mod_boss = {
 		});
 		this.on("activate", function() {
 			for(var i=0; i < this.boss_doors.length; i++ ) 
-				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, window.BLANK_TILE);
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, window.BLANK_TILE);
 			_player.lock_overwrite = this.boss_lock;
 			this.interactive = true;
 		});
 		this.on("death", function() {
 			for(var i=0; i < this.boss_doors.length; i++ )
-				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, 1, 0);
+				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
 			_player.lock_overwrite = false;
 		});
 	},

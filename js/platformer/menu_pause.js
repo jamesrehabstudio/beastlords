@@ -199,7 +199,7 @@ PauseMenu.prototype.render = function(g,c){
 	
 	if( this.open && _player instanceof Player ) {
 		if( _player.life <= 0 ) {
-			sprites.title.render(g,new Point(), 3);
+			sprites.title.render(g,new Point(), 0,3);
 			boxArea(g,68,168,120,40);
 			textArea(g,i18n("press_start"),84,184);
 		} else if( this.page == 0 ) {

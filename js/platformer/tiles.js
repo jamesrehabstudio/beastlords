@@ -29,7 +29,7 @@ function CollapseTile(x,y){
 		this.active = false;
 		this.position.x = this.center.x;
 		this.position.y = this.center.y;
-		game.setTile(this.position.x, this.position.y, 1, window.BLANK_TILE);
+		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, window.BLANK_TILE);
 		this.timer = 20;
 	});
 }
@@ -48,10 +48,10 @@ CollapseTile.prototype.hide = function(){
 	this.visible = false;
 	this.position.x = this.center.x;
 	this.position.y = this.center.y;
-	game.setTile(this.position.x, this.position.y, 1, 0);
+	game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 0);
 }
 CollapseTile.prototype.destroy = function(){
-	game.setTile(this.position.x, this.position.y, 1, 0);
+	game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 0);
 	GameObject.prototype.destroy.apply(this);
 }
 
@@ -86,7 +86,7 @@ BreakableTile.prototype.update = function(){
 	if( this.death_time <= 0 ) {
 		if( game.getTile(this.position.x, this.position.y ) != 0 ) {
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
-			game.setTile(this.position.x, this.position.y, 1, 0 );
+			game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 0 );
 			if( this.item instanceof Item){
 				this.item.position.x = this.position.x;
 				this.item.position.y = this.position.y;
@@ -94,7 +94,7 @@ BreakableTile.prototype.update = function(){
 			}
 			//Set off neighbours
 			var hits = game.overlaps(new Line(
-				this.position.x - 24, this.position.y - 24,
+				this.position.x - 8, this.position.y - 8,
 				this.position.x + 24, this.position.y + 24
 			));
 			for(var i=0; i<hits.length; i++) if( hits[i] instanceof BreakableTile && hits[i].life > 0 ) {

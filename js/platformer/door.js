@@ -17,7 +17,7 @@ function Door(x,y,d,ops){
 	];
 	
 	for(var i=0; i < this.door_blocks.length; i++){
-		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, 1, window.BLANK_TILE);
+		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, window.BLANK_TILE);
 	}
 	
 	this.on("collideObject", function(obj){
@@ -33,7 +33,7 @@ function Door(x,y,d,ops){
 	});
 	this.on("death", function(obj){
 		for(var i=0; i < this.door_blocks.length; i++){
-			game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, 1, 0);
+			game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
 		}
 		audio.playLock("open",1.0);
 		this.destroy();

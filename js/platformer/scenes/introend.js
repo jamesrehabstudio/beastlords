@@ -93,11 +93,11 @@ SceneEndIntro.prototype.render = function(g,c){
 		if( this.clearAll ) {
 			//Death
 			if( this.progress < 13.0 ) {
-				g.fillStyle = (this.progress * 6.0) % 1.0 > 0.5 ? "#000" : "#A00";
+				g.color = (this.progress * 6.0) % 1.0 > 0.5 ? [0.0,0.0,0.0,1.0] : [0.7,0.0,0.0,1.0];
 				g.scaleFillRect(0,0,256,240);
 				sprites.player.render(g,new Point(128,120), 4, 0, false);
 			} else {
-				g.fillStyle = "#000";
+				g.color = [0.0,0.0,0.0,1.0];
 				g.scaleFillRect(0,0,256,240);
 				
 				var lowest = 0;

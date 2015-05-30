@@ -38,9 +38,11 @@ function CornerStone(x,y,parm,options){
 	var tile = this.broken ? 0 : window.BLANK_TILE;
 	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
 		game.setTile(
-		-32 + x + _x,
-		-32 + y +_y,
-		1,tile);
+			-32 + x + _x,
+			-32 + y +_y,
+			game.tileCollideLayer, 
+			tile
+		);
 	}
 	
 	this.addModule(mod_combat);
