@@ -212,8 +212,8 @@ EffectCritical.prototype.render = function(g,c){
 	}
 	
 	if( this.flash ) {
-		g.fillStyle = "#FFF";
-		g.scaleFillRect(0,0,256,240);
+		g.color = [1.0,1.0,1.0,1.0];
+		g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 		this.flash = false;
 	}
 }

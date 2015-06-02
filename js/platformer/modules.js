@@ -90,7 +90,7 @@ var mod_camera = {
 		};
 	},
 	'update' : function(){		
-		var screen = new Point(256,240);
+		var screen = game.resolution;
 		game.camera.x = this.position.x - (screen.x / 2);
 		game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		

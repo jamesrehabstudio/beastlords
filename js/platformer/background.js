@@ -25,7 +25,8 @@ Background.prototype.prerender = function(gl,c){
 		var tiles = new Array();
 		var textr = new Array();
 		var ts = 32;
-		for(var x=-ts; x < game.width+ts; x+=ts) for(var y=-ts; y < game.height+ts; y+=ts){
+		for(var x=-ts; x < game.resolution.x+ts; x+=ts) 
+		for(var y=-ts; y < game.resolution.y+ts; y+=ts){
 			tiles.push(x); tiles.push(y); 
 			tiles.push(x+ts); tiles.push(y); 
 			tiles.push(x); tiles.push(y+ts); 
@@ -62,11 +63,11 @@ Background.prototype.prerender = function(gl,c){
 	} else {
 		//Clouds
 		//cloud length = 128
-		this.sprite.renderSize(gl,0,0,game.width,176,203);
+		this.sprite.renderSize(gl,0,0,game.resolution.x,176,203);
 		
 		var cloudVerts = new Array();
 		var sky_offset = this.animation / 20.0;
-		var draws = Math.ceil(game.width / 128.0) + 1;
+		var draws = Math.ceil(game.resolution.x / 128.0) + 1;
 		for(var i = 0; i < draws; i++){
 			var offsetx = Math.floor((i * 128)-(sky_offset%128));
 			var buffer = gl.createBuffer();
@@ -93,7 +94,7 @@ Background.prototype.prerender = function(gl,c){
 			var tiles = [];
 			var textr = [];
 			var ts = 16;
-			for(var i=0; i < game.width+ts; i+=ts){
+			for(var i=0; i < game.resolution.x+ts; i+=ts){
 				tiles.push(i); tiles.push(0); 
 				tiles.push(i+ts); tiles.push(0); 
 				tiles.push(i); tiles.push(32); 

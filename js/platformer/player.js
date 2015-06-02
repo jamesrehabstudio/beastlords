@@ -332,8 +332,10 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
-			if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; this.stand();}
-			if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; this.stand(); }
+			if( !this.states.duck ) {
+				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
+				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
+			}
 			if ( input.state('fire') == 1 ) { this.attack(); }
 			
 			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
@@ -455,7 +457,7 @@ Player.prototype.stand = function(){
 }
 Player.prototype.duck = function(){
 	if( !this.states.duck ) {
-		this.position.y += 3.9999999;
+		this.position.y += 3.0;
 		this.states.duck = true;
 		if( this.grounded )	this.force.x = 0;
 	}

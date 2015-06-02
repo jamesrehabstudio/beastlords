@@ -4,6 +4,7 @@ h1, h2, h3, h4 { font-size:14px; font-weight:normal; }
 body, html { 
     overflow-x: hidden; 
     overflow-y: auto;
+	background: black;
 }
 
 h2{
@@ -11,6 +12,9 @@ h2{
 	margin:15px 0 10px;
 }
 
+div.fullscreen_wrap {
+	font-size:0;
+}
 div.wrap {
 	width:512px;
 	margin:0 auto;
@@ -23,13 +27,16 @@ div.wrap {
 }
 
 #game { 
-	background:#3CBCFC;
+	background:black;
 	position:relative;
 	overflow:hidden;
 	image-rendering: pixelated; /* future */
 	image-rendering: -webkit-optimize-contrast; /* webkit */
 	image-rendering: -moz-crisp-edges; /* Firefox */
 	cursor:pointer;
+}
+div.fullscreen_wrap #game {
+	cursor:none;
 }
 
 div.feedback {}

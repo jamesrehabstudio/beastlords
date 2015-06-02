@@ -166,8 +166,8 @@ function Game( elm ) {
 	
 	this.element = elm;
 	this.g = elm.getContext('webgl', {"alpha":false});
-	//this.g.mozImageSmoothingEnabled = false;
-	//this.g.imageSmoothingEnabled = false;
+	this.g.clearColor(0,0,0,1);
+	
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
 	this.renderOrder = [0,1,2,"o"];
@@ -185,7 +185,7 @@ function Game( elm ) {
 	//Build tile buffer for faster rendering
 	var tileVerts = new Array();
 	var ts = 16;
-	for(var _x=0; _x < 27; _x++) for(var _y=0; _y < 16; _y++) {
+	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
 		var x = _x*ts;
 		var y = _y*ts;
 		tileVerts.push(x); tileVerts.push(y);
@@ -196,6 +196,7 @@ function Game( elm ) {
 		tileVerts.push(x+ts); tileVerts.push(y+ts);
 	}
 	this._tileBuffer = new Float32Array(tileVerts);
+	this.backBuffer = this.g.createF();
 	
 	if( localStorage.getItem("sfxvolume") ){
 		audio.sfxVolume.gain.value = localStorage.getItem("sfxvolume");
@@ -203,14 +204,8 @@ function Game( elm ) {
 		audio.musVolume.gain.value = localStorage.getItem("musvolume");
 	}
 	
-	this.element.onclick = function(){
-		var fullscreen = 
-			Element.prototype.requestFullscreen || 
-			Element.prototype.msRequestFullscreen || 
-			Element.prototype.mozRequestFullScreen ||
-			Element.prototype.webkitRequestFullscreen;
-		fullscreen.apply(this);
-	}
+	var fs = !!localStorage.getItem("fullscreen");
+	this.fullscreen(fs);
 	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
@@ -220,15 +215,15 @@ function Game( elm ) {
 	}
 }
 
-Game.prototype.zoom = function( x ) {
-	window.pixel_scale = x;
-	this.element.width = 256 * x;
-	this.element.height = 240 * x;
-	this.g.imageSmoothingEnabled = false;
-	var res = 240.0 / this.element.height;
-	var ratio = this.element.width / ( this.element.height * 1.0 );
-	this.resolution.y = 240 * res;
-	this.resolution.x = 240 * ratio * res;
+Game.prototype.resize = function(x,y) {
+	//window.pixel_scale = x;
+	this.element.width = x;
+	this.element.height = y;
+	var ratio = Math.min(this.element.width / ( this.element.height * 1.0 ), Game.MAX_RATIO);
+	
+	this.g.viewport(0,0,this.element.width,this.element.height);
+	this.resolution.x = Math.ceil(240 * ratio);
+	this.resolution.y = 240;
 }
 Game.prototype.avr = function( obj ) {
 	return 1 / ((this.delta_tot / this.delta_avr) / 1000.0);
@@ -304,18 +299,6 @@ Game.prototype.update = function( ) {
 		this.delta *= (this.slowdown_time > 0 ? this.slowdown : 1.0 );
 	}
 	
-	if( 
-		(document.webkitIsFullScreen != undefined && document.webkitIsFullScreen) ||
-		(document.mozIsFullScreen != undefined && document.mozIsFullScreen) ||
-		(document.msIsFullScreen != undefined && document.msIsFullScreen) ||
-		(document.isFullScreen != undefined && document.isFullScreen) 
-	) {
-		this.zoom( Math.floor(screen.height / 256) );
-	} else {
-		this.zoom(2);
-	}
-		
-	
 	//this._pathfinder.postMessage(this.objects);
 	this.renderTree = [];
 	this.prerenderTree = [];
@@ -385,6 +368,11 @@ Game.prototype.update = function( ) {
 }
 
 Game.prototype.render = function( ) {
+	//this.resolution = new Point(512,512);
+	this.g.viewport(0,0,this.resolution.x,this.resolution.y);
+	this.backBuffer.use(this.g);
+	
+	/*
 	var margin = 0;
 	var screen = new Point( 160, 120 );
 	var screen = new Point( 960, 720 );
@@ -393,11 +381,10 @@ Game.prototype.render = function( ) {
 		new Point( this.camera.x + (screen.x + margin), this.camera.y + (screen.y + margin) )
 	);
 	var view = new Line(new Point(Number.MIN_VALUE,Number.MIN_VALUE), new Point(Number.MAX_VALUE,Number.MAX_VALUE));
-	
+	*/
 	var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex } );
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	
-	this.g.clearColor(1,1,0,1);
 	this.g.clear(this.g.COLOR_BUFFER_BIT);
 	this.g.enable(this.g.BLEND);
 	
@@ -421,7 +408,7 @@ Game.prototype.render = function( ) {
 				}		
 			}
 		} else {
-			this.renderTile( this.renderOrder[o] );
+			this.renderTiles( this.renderOrder[o] );
 		}
 	}
 	
@@ -441,6 +428,12 @@ Game.prototype.render = function( ) {
 		}
 	}
 	
+	this.backBuffer.reset(this.g);
+	
+	this.g.viewport(0,0,this.element.width,this.element.height);
+	this.g.renderBackbuffer(this.backBuffer.texture);
+	//this.g.renderImage(0,0,this.resolution.x,this.resolution.y, this.backBuffer.texture);
+	
 	this.g.flush();
 }
 Game.prototype.renderTiles = function(layer){
@@ -454,7 +447,7 @@ Game.prototype.renderTiles = function(layer){
 	var uvVerts = new Array();
 	var ts = 16;
 	var gl = this.g;
-	for(var _x=0; _x < 27; _x++) for(var _y=0; _y < 16; _y++) {
+	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
 		/*
 		var x = _x*ts;
 		var y = _y*ts;
@@ -479,10 +472,10 @@ Game.prototype.renderTiles = function(layer){
 		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
 	}
 	var campos = new Point(
-		0-Math.floor(camera.x%ts),
-		0-Math.floor(camera.y%ts)
+		0-Math.round(camera.x%ts),
+		0-Math.round(camera.y%ts)
 	);
-	if( camera.x < 0 && camera.x % 1.0 != 0 ) {
+	if( camera.x < 0 && camera.x % 256.0 != 0 ) {
 		campos.x -= ts;
 	}
 	
@@ -614,19 +607,54 @@ Game.prototype.i_move = function(obj,x, y ){
 	}
 }
 
-Game.prototype.unstick = function( obj, hitbox, collisions ) {
-	
-	for( var i = 0; i < collisions.length; i++ ) {
-		var c = collisions[i];
-		if ( c.polyInstersects(hitbox) ){
-			var normal = c.normal().normalize();
-			obj.transpose(normal);
-			hitbox.transpose(normal.x, normal.y);
+Game.prototype.t_unstick = function( obj ) {
+	var hitbox = obj.corners();
+	var isStuck = false;
+	var escape = {
+		"top" : 0,
+		"bottom" : 0,
+		"left" : 0,
+		"right" : 0
+	}
+	var ts = 16;
+	var xinc = obj.width/ Math.ceil(obj.width/ts);
+	var yinc = obj.height/ Math.ceil(obj.height/ts);
+	var xmid = hitbox.left + Math.floor(obj.width/ts) * 0.5 * xinc;
+	var ymid = hitbox.top + Math.floor(obj.height/ts) * 0.5 * xinc;
+	for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc ) {
+		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
+			var tile = this.getTile(_x,_y);
+			if( tile != 0 && (tile < 137 || tile > 142) ) {
+				//You're stuck, do something about it!
+				isStuck = true;
+			} else {
+				if( _x == hitbox.left ) escape["left"] ++;
+				else if( _x == hitbox.right ) escape["right"] ++;
+				
+				if ( _y == hitbox.top ) escape["top"] ++;
+				else if( _y == hitbox.bottom ) escape["bottom"] ++;
+			}
 		}
 	}
+	if( isStuck ) {
+		//Try to escape
+		var dir = new Point(
+			escape["right"] - escape["left"],
+			escape["bottom"] - escape["top"]
+		);
+		if( dir.x == 0 && dir.y == 0 ) {
+			obj.position.x += 1.0;
+		} else {
+			obj.position = obj.position.add(dir);
+		}
+	}
+	return isStuck;
 }
 Game.prototype.t_move = function(obj, x, y) {
-	var hitbox = obj.bounds();
+	
+	if( this.t_unstick(obj) ) return;
+	
+	var hitbox = obj.corners();
 	var interation_size = 1.0;
 	var ts = 16;
 	
@@ -635,6 +663,12 @@ Game.prototype.t_move = function(obj, x, y) {
 		Number.MAX_SAFE_INTEGER, //Furthest down
 		-Number.MAX_SAFE_INTEGER, //Furthest right
 		-Number.MAX_SAFE_INTEGER //Furthest up
+	];
+	var margins = [
+		obj.position.x - hitbox.left,
+		obj.position.y - hitbox.top,
+		obj.position.x - hitbox.right,
+		obj.position.y - hitbox.bottom
 	];
 	var dirs = [0,1];
 	
@@ -646,40 +680,33 @@ Game.prototype.t_move = function(obj, x, y) {
 		else
 			obj.transpose(x * interation_size, 0);
 		
-		var hitbox = obj.bounds();
-		
-		var margins = [
-			obj.position.x - hitbox.left(),
-			obj.position.y - hitbox.top(),
-			obj.position.x - hitbox.right(),
-			obj.position.y - hitbox.bottom(),
-		];
+		var hitbox = obj.corners();
 		
 		var xinc = obj.width/ Math.ceil(obj.width/ts);
 		var yinc = obj.height/ Math.ceil(obj.height/ts);
 		
-		for(var _x=hitbox.left(); _x<=hitbox.right(); _x+=xinc )
-		for(var _y=hitbox.top(); _y <=hitbox.bottom(); _y+=yinc ) { 
+		for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc )
+		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) { 
 			var tile = this.getTile(_x,_y);
 			var corner = new Point(Math.floor(_x/ts)*ts, Math.floor(_y/ts)*ts);
 			if( dir == 0 ){
 				if( tile == 137 ) {
-					var peak = (corner.y) + Math.max((hitbox.left()-corner.x)*0.5, 0);
+					var peak = (corner.y) + Math.max((hitbox.left-corner.x)*0.5, 1);
 					limits[1] = Math.min(limits[1], peak-1);
 				} else if( tile == 138 ) {
-					var peak = (corner.y+(ts*0.5)) + Math.max((hitbox.left()-corner.x)*0.5, 0);
+					var peak = (corner.y+(ts*0.5)) + Math.max((hitbox.left-corner.x)*0.5, 1);
 					limits[1] = Math.min(limits[1], peak-1);
 				} else if( tile == 139 ) {
-					var peak = (corner.y) + Math.max(hitbox.left()-corner.x, 0);
+					var peak = (corner.y) + Math.max(hitbox.left-corner.x, 1);
 					limits[1] = Math.min(limits[1], peak-1);
 				} else if( tile == 140 ) {
-					var peak = (corner.y+ts) + Math.max(corner.x-hitbox.right(), -ts);
+					var peak = (corner.y+ts) + Math.max(corner.x-hitbox.right, 1-ts);
 					limits[1] = Math.min(limits[1], peak-1);
 				} else if( tile == 141 ) {
-					var peak = (corner.y+ts) + Math.max((corner.x-hitbox.right()) * 0.5, -ts*0.5);
+					var peak = (corner.y+ts) + Math.max((corner.x-hitbox.right) * 0.5, 1-ts*0.5);
 					limits[1] = Math.min(limits[1], peak-1);
 				} else if( tile == 142 ) {
-					var peak = (corner.y+ts) + Math.max((corner.x-(hitbox.right()+ts)) * 0.5, -ts);
+					var peak = (corner.y+ts) + Math.max((corner.x-(hitbox.right+ts)) * 0.5, 1-ts);
 					limits[1] = Math.min(limits[1], peak-1);
 				} else if( tile != 0 ) {
 					if(y>0) limits[1] = Math.min(limits[1], corner.y);
@@ -695,23 +722,23 @@ Game.prototype.t_move = function(obj, x, y) {
 	
 		//for(var i=0; i<limits.length; i++) limits[i] -= margins[i];
 		if( dir == 1) {
-			limits[0] -= margins[0];
-			limits[2] -= margins[2];
+			limits[0] += margins[2] - 0.1;
+			limits[2] += margins[0] + 0.1;
 			if( obj.position.x > limits[0] ) {
-				obj.position.x = limits[0] - 1;
+				obj.position.x = limits[0];
 				obj.trigger("collideHorizontal", x);
 			} else if ( obj.position.x < limits[2] ) {
-				obj.position.x = limits[2] + 1;
+				obj.position.x = limits[2];
 				obj.trigger("collideHorizontal", x);
 			}
 		} else {
-			limits[1] -= margins[1];
-			limits[3] -= margins[3];
+			limits[1] += margins[3] - 0.1;
+			limits[3] += margins[1] + 0.1;
 			if( obj.position.y > limits[1] ) {
-				obj.position.y= limits[1] - 1;
+				obj.position.y= limits[1];
 				obj.trigger("collideVertical", y);
 			} else if ( obj.position.y < limits[3] ) {
-				obj.position.y = limits[3] + 1;
+				obj.position.y = limits[3];
 				obj.trigger("collideVertical", y);
 			}
 		}
@@ -925,7 +952,36 @@ Game.prototype.c_move = function( obj, x, y ) {
 	}
 	return false;
 }
-
+Game.prototype.isFullscreen = function(){
+	var fullscreen = 
+		document.fullscreenElement ||
+		document.mozFullScreenElement ||
+		document.webkitFullscreenElement ||
+		document.msFullscreenElement;
+	return fullscreen;
+}
+Game.prototype.fullscreen = function(fs){
+	try{
+		if( fs ) {
+			var fullscreen = 
+				Element.prototype.requestFullscreen || 
+				Element.prototype.msRequestFullscreen || 
+				Element.prototype.mozRequestFullScreen ||
+				Element.prototype.webkitRequestFullscreen;
+			fullscreen.apply(this.element);
+		} else { 
+			var cancelscreen = 
+				document.exitFullscreen || 
+				document.msExitFullscreen || 
+				document.mozCancelFullScreen ||
+				document.webkitExitFullscreen;
+			cancelscreen.apply(document);
+		}
+		localStorage.setItem("fullscreen", this.isFullscreen());
+	} catch (err) {
+		console.error("Cannot fullscreen.");
+	}
+}
 Game.prototype.getTile = function( x,y,layer ) {
 	if( x instanceof Point ) { layer=y; y=x.y; x=x.x; }
 	var ts = 16;
@@ -1048,6 +1104,9 @@ Game.prototype.buildCollisions = function(){
 		this.lines.push(this.collisions[i]);
 	}
 }
+
+//Constants
+Game.MAX_RATIO = 1.7777777777777777777777777777778;
 Game.DELTASECOND = 33.33333333;
 Game.DELTADAY = 2880000.0;
 Game.DELTAYEAR = 1036800000.0;
@@ -1139,6 +1198,14 @@ GameObject.prototype.transpose = function(x, y) {
 		this.position.y += y;
 	}
 }
+GameObject.prototype.corners = function() {
+	return {
+		"left" : this.position.x + (-this.width*this.origin.x),
+		"right" : this.position.x + (this.width*(1.0-this.origin.x)),
+		"top" : this.position.y + (-this.height*this.origin.y),
+		"bottom" : this.position.y + (this.height*(1.0-this.origin.y))
+	};
+}
 GameObject.prototype.bounds = function() {
 	var left_width = Math.floor( this.width * this.origin.x );
 	var right_width = Math.floor( this.width * (1.0-this.origin.x) );
@@ -1157,10 +1224,16 @@ GameObject.prototype.bounds = function() {
 	);
 }
 GameObject.prototype.hitbox = function() {
+	/*
 	var left_width = Math.floor( this.width * this.origin.x );
 	var right_width = Math.floor( this.width * (1.0-this.origin.x) );
 	var top_height = Math.floor( this.height * this.origin.y );
 	var bot_height = Math.floor( this.height * (1.0-this.origin.y) );
+	*/
+	var left_width =  ( this.width * this.origin.x );
+	var right_width = ( this.width * (1.0-this.origin.x) );
+	var top_height = ( this.height * this.origin.y );
+	var bot_height = ( this.height * (1.0-this.origin.y) );
 	
 	this._hitbox = new Polygon();
 	this._hitbox.addPoint( new Point(this.position.x-left_width , this.position.y-top_height) );
@@ -1203,8 +1276,8 @@ GameObject.prototype.idle = function(){
 	this.awake = (
 		_cam.x > -margin_x && 
 		_cam.y > -margin_y && 
-		_cam.x-game.width < margin_x &&
-		_cam.y-game.height < margin_y
+		_cam.x-game.resolution.x < margin_x &&
+		_cam.y-game.resolution.y < margin_y
 	); 
 	
 	if( current != this.awake ){

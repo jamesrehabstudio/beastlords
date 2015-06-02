@@ -19,7 +19,7 @@ function PauseMenu(){
 	this.message_time = 0;
 }
 PauseMenu.prototype.idle = function(){}
-PauseMenu.prototype.update = function(){
+PauseMenu.prototype.update = function(){	
 	if( this.open ) {
 		game.pause = true;
 		this.message_time = 0;
@@ -41,21 +41,23 @@ PauseMenu.prototype.update = function(){
 			if( input.state("up") == 1 ) { this.cursor-=1; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor+=1; audio.play("cursor"); }
 			
-			this.cursor = Math.max( Math.min( this.cursor, 2), 0 );
+			this.cursor = Math.max( Math.min( this.cursor, 3), 0 );
 			
 			if( input.state("fire") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
-				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
+				if(this.cursor == 0 ) game.fullscreen(!game.isFullscreen());
+				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
+				if(this.cursor == 2 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
+				if(this.cursor == 3 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
 				
 				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
 				localStorage.setItem("musvolume",audio.musVolume.gain.value);
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 1 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
-				if(this.cursor == 2 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
+				if(this.cursor == 0 ) game.fullscreen(!game.isFullscreen());
+				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
+				if(this.cursor == 2 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
+				if(this.cursor == 3 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
 				
 				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
 				localStorage.setItem("musvolume",audio.musVolume.gain.value);
@@ -177,6 +179,8 @@ PauseMenu.prototype.revealMap = function(secrets){
 	}
 }
 PauseMenu.prototype.render = function(g,c){
+	var xpos = (game.resolution.x - 256) * 0.5;
+	
 	/*
 	var ani = [0,1,2,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,6,7,7,7,7,7,8,9,10];
 	var row = ani[ Math.floor( Math.min(this.cursor,ani.length-1) ) ];
@@ -199,17 +203,20 @@ PauseMenu.prototype.render = function(g,c){
 	
 	if( this.open && _player instanceof Player ) {
 		if( _player.life <= 0 ) {
-			sprites.title.render(g,new Point(), 0,3);
-			boxArea(g,68,168,120,40);
-			textArea(g,i18n("press_start"),84,184);
+			g.color = [0,0,0,1.0];
+			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+			sprites.title.render(g,new Point(xpos,0), 0,3);
+			
+			boxArea(g,xpos+68,168,120,40);
+			textArea(g,i18n("press_start"),xpos+84,184);
 		} else if( this.page == 0 ) {
 			//Option
 			
 			boxArea(g,68,8,120,224);
 			textArea(g,"Settings",98,20);
 			
-			textArea(g,"Difficulty",84,40);
-			textArea(g,(_world.mode==0?"Easy":"Hardcore"),88,52);
+			textArea(g,"Screen",84,40);
+			textArea(g,(game.isFullscreen()?"Fullscreen":"Windowed"),88,52);
 			
 			textArea(g,"Guard Style",84,72);
 			textArea(g,(_player.autoblock?"Automatic":"Manual"),88,84);
@@ -225,8 +232,8 @@ PauseMenu.prototype.render = function(g,c){
 			for(var i=0; i<audio.musVolume.gain.value*20; i++)
 				g.scaleFillRect(88+i*4, 148, 3, 8 );
 			
-			//Draw cursor
-			textArea(g,"@",80, 84 + this.cursor * 32 );
+			//Draw cursor 84
+			textArea(g,"@",80, 52 + this.cursor * 32 );
 			/*
 			for(var i=0; i < _player.equipment.length; i++ ) {
 				var _y = 40 + i * 24;

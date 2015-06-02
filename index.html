@@ -14,20 +14,17 @@
 	<script src="js/polygons.js" type="text/javascript"></script>
 	<script src="js/input.js" type="text/javascript"></script>
 	<script src="js/platformer.js" type="text/javascript"></script>
-</head>
-<body>
 	
-	<div class="wrap">
-		<canvas id="game" width="512" height="480"></canvas>
-	</div>
-		
 	<script>
 	window.onload = function() {
 		window.dataManager = new DataManager();
 		window.input = new Input();
 		
 		window.game = new Game( document.getElementById( 'game' ) );
-		
+		$(window).resize(function(x,y){
+			game.resize(window.innerWidth, window.innerHeight);
+		});
+		$(window).trigger("resize");
 		//game.buildPaths();
 		loop();
 	}
@@ -48,6 +45,21 @@
 	</script>
 	
 	<!-- SHADERS GO HERE!!! -->
+	<script id="back-vertex-shader" type="x-shader/x-vertex">
+		attribute vec2 a_position;
+		attribute vec2 a_texCoord;
+		uniform vec2 u_resolution;
+		
+		varying vec2 v_texCoord;
+		
+		void main() {
+			//vec2 pos = a_position + u_camera - u_resolution * 0.5;
+			//pos.x = pos.x - u_resolution.x;
+			gl_Position = vec4(a_position, 0, 1);
+			v_texCoord = a_texCoord;
+		}
+	</script>
+	
 	<script id="2d-vertex-shader" type="x-shader/x-vertex">
 		attribute vec2 a_position;
 		attribute vec2 a_texCoord;
@@ -57,10 +69,11 @@
 		varying vec2 v_texCoord;
 		
 		void main() {
-			vec2 pos = a_position + u_camera;
-			pos.y = u_resolution.y + pos.y*-1.0;
-			pos.x = pos.x - u_resolution.x;
-			gl_Position = vec4(pos/(u_resolution*1.0), 0, 1);
+			vec2 pos = a_position + u_camera - u_resolution * 0.5;
+			//pos.y = u_resolution.y + pos.y*-1.0;
+			pos.y = pos.y*-1.0;
+			//pos.x = pos.x - u_resolution.x;
+			gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);
 			v_texCoord = a_texCoord;
 		}
 	</script>
@@ -133,5 +146,10 @@
 		void main() {
 			gl_FragColor = u_color;
 		}
-	</script>
+	</script>	
+</head>
+<body>
+	<div class="fullscreen_wrap">
+		<canvas id="game" width="256" height="240"></canvas>
+	</div>
 </body>

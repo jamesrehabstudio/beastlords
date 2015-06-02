@@ -72,8 +72,13 @@ ItemMenu.prototype.itemPosition = function(name){
 	return new Point(x,y);
 }
 ItemMenu.prototype.postrender = function(g,c){
+	var xpos = (game.resolution.x - 256) * 0.5;
+	
+	g.color = [0.0,0.0,0.0,1.0];
+	g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+	
 	g.color = [0.0,0.3,0.4,1.0];
-	g.scaleFillRect(0,0,256,240);
+	g.scaleFillRect(xpos,0,256,240);
 	
 	var columnWidth = 6;
 	var scrollHeight = Math.max( 
@@ -82,7 +87,7 @@ ItemMenu.prototype.postrender = function(g,c){
 	
 	this.scroll.y = Math.min(Math.max(this.scroll.y,0), scrollHeight);
 	
-	textArea(g,"Unlocked Items", 72+this.scroll.x,8-this.scroll.y);
+	textArea(g,"Unlocked Items", xpos+72+this.scroll.x,8-this.scroll.y);
 	
 	for(var i=0; i < dataManager.treasures.length; i++) {
 		var name = dataManager.treasures[i].name;
@@ -96,8 +101,8 @@ ItemMenu.prototype.postrender = function(g,c){
 		var colmpos = (i % columnWidth);
 		var x = 16 + colmpos * 40;
 		var y = 24 + Math.floor(i / columnWidth) * 40;
-		var pos = new Point(x+12,y+12);
-		g.scaleFillRect(x,y-this.scroll.y,24,24);
+		var pos = new Point(xpos+x+12,y+12);
+		g.scaleFillRect(xpos+x,y-this.scroll.y,24,24);
 		
 		if( dataManager.treasures[i].unlocked > 0 && this.unlocks.indexOf(name) < 0  ){
 			Item.prototype.setName.apply(this, [ name ] );
@@ -113,7 +118,7 @@ ItemMenu.prototype.postrender = function(g,c){
 		var points = 16;
 		for(var j=0; j < points; j++){
 			var angle = (j/points) * Math.PI * 2;
-			var p = new Point(radius*Math.sin(angle),radius*Math.cos(angle));
+			var p = new Point(xpos+radius*Math.sin(angle),radius*Math.cos(angle));
 			sprites.bullets.render(g,p.add(this.burst).subtract(this.scroll),2,2);
 		}
 	}

@@ -1,4 +1,4 @@
-window._version = "0.1.8";
+window._version = "0.2.0";
 
 function DataManager() {
 	this.temples = [

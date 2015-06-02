@@ -304,7 +304,8 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader ) {
 	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 	shader.set("a_position");
 	shader.set("u_resolution",game.resolution.x, game.resolution.y);
-	shader.set("u_camera", Math.floor(p.x-offset.x), Math.floor(p.y-offset.y));
+	shader.set("u_camera", Math.round(p.x-offset.x), Math.round(p.y-offset.y));
+	//shader.set("u_camera", p.x-offset.x, p.y-offset.y);
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 }
@@ -406,7 +407,44 @@ Sprite.prototype.renderScale = function( g, cover, frame, row, flip, filter ) {
 	g.closePath();
 	*/
 }
-
+WebGLRenderingContext.prototype.createF = function(){
+	var fb = this.createFramebuffer();
+	this.bindFramebuffer( this.FRAMEBUFFER, fb );
+	fb.width = 512;
+	fb.height = 512;
+	
+	var ft = this.createTexture();
+	this.bindTexture(this.TEXTURE_2D, ft);
+	this.texParameteri(this.TEXTURE_2D, this.TEXTURE_WRAP_S, this.CLAMP_TO_EDGE);
+	this.texParameteri(this.TEXTURE_2D, this.TEXTURE_WRAP_T, this.CLAMP_TO_EDGE);
+	this.texParameteri(this.TEXTURE_2D, this.TEXTURE_MAG_FILTER, this.NEAREST);
+	this.texParameteri(this.TEXTURE_2D, this.TEXTURE_MIN_FILTER, this.NEAREST);
+	
+	this.texImage2D(this.TEXTURE_2D, 0, this.RGBA, fb.width, fb.height, 0, this.RGBA, this.UNSIGNED_BYTE, null);
+	
+	var rb = this.createRenderbuffer();
+	this.bindRenderbuffer(this.RENDERBUFFER, rb);
+	this.renderbufferStorage(this.RENDERBUFFER, this.DEPTH_COMPONENT16, fb.width, fb.height);
+	
+	this.framebufferTexture2D(this.FRAMEBUFFER, this.COLOR_ATTACHMENT0, this.TEXTURE_2D, ft, 0);
+	this.framebufferRenderbuffer(this.FRAMEBUFFER, this.DEPTH_ATTACHMENT, this.RENDERBUFFER, rb);
+	
+	//Reset
+	this.bindTexture(this.TEXTURE_2D, null);
+	this.bindRenderbuffer(this.RENDERBUFFER, null);
+	this.bindFramebuffer(this.FRAMEBUFFER, null);
+	
+	return {
+		"texture" : ft,
+		"buffer" : fb,
+		"use" : function(gl){
+			gl.bindFramebuffer(gl.FRAMEBUFFER, this.buffer);
+		},
+		"reset" : function(gl){
+			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		}
+	}
+}
 WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
 	//var pos = window.materials["test"]["properties"]["position"];
 	//var uvs = window.materials["test"]["properties"]["uvs"];
@@ -442,6 +480,47 @@ WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
 	//this.uniform2f(cam, 0, 0);
 	shader.set("u_resolution", game.resolution.x, game.resolution.y);
 	shader.set("u_camera", 0, 0);
+	
+	this.drawArrays(this.TRIANGLE_STRIP, 0, geo.length/2);
+}
+
+WebGLRenderingContext.prototype.renderBackbuffer = function(image){
+	var geo = new Float32Array([
+		-1,-1,
+		+1,-1,
+		-1,+1,
+		-1,+1,
+		+1,-1,
+		+1,+1
+	]);
+	var top = game.resolution.y / 512;
+	var lef = game.resolution.x / 512;
+	var tex = new Float32Array([
+		0,0,
+		lef,0,
+		0,top,
+		0,top,
+		lef,0,
+		lef,top
+	]);
+	
+	var shader = window.materials["backbuffer"].use();
+	
+	var buffer = this.createBuffer();
+	
+	this.bindTexture(this.TEXTURE_2D, image);
+	//shader.set("u_color", color[0], color[1], color[2], color[3]);
+	this.bindBuffer( this.ARRAY_BUFFER, buffer );
+	this.bufferData( this.ARRAY_BUFFER, new Float32Array(geo), this.DYNAMIC_DRAW);
+	//this.vertexAttribPointer(pos, 2, this.FLOAT, false, 0, 0);
+	shader.set("a_position");
+	
+	var tbuffer = this.createBuffer();
+	this.bindBuffer( this.ARRAY_BUFFER, tbuffer );
+	this.bufferData( this.ARRAY_BUFFER, new Float32Array(tex), this.DYNAMIC_DRAW);
+	shader.set("a_texCoord");
+	
+	shader.set("u_resolution", game.resolution.x, game.resolution.y);
 	
 	this.drawArrays(this.TRIANGLE_STRIP, 0, geo.length/2);
 }

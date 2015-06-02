@@ -84,15 +84,15 @@ SceneEnding.prototype.update = function(){
 	}
 }
 SceneEnding.prototype.render = function(g,c){
-	for(var x=0; x<17; x++) for(var y=0; y<16; y++) {
+	for(var x=0; x<27; x++) for(var y=0; y<16; y++) {
 		var tile = y <= 0 ? 32 : 96;
 		var off = c.x % 16;
 		game.tileSprite.render(g,new Point(x*16-off,208+y*16),tile);
 	}
 	
 	if( this.phase == 0 ) {
-		g.fillStyle = "#000";
-		g.scaleFillRect(0, 0, 256, 240 );
+		g.color = [0,0,0,1];
+		g.scaleFillRect(0, 0, game.resolution.x, game.resolution.y );
 	} else if( this.phase == 1 ) {
 		sprites.chazbike.render(g,new Point(104,192),0,2);
 		sprites.ending.render(g,new Point(this.father_position*20-64,176),0,0);		

@@ -77,6 +77,8 @@ TitleMenu.prototype.update = function(){
 }
 
 TitleMenu.prototype.render = function(g,c){
+	var xpos = (game.resolution.x - 256) * 0.5;
+	
 	if( this.loading ){ 
 		//g.font = (30*pixel_scale)+"px monospace";
 		//g.fillStyle = "#FFF";
@@ -86,7 +88,7 @@ TitleMenu.prototype.render = function(g,c){
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
 		
-		this.sprite.render(g,new Point(),0,2);
+		this.sprite.render(g,new Point(xpos,0),0,2);
 		
 		//Random twinkling stars
 		for(var i=0; i<this.stars.length; i++) {
@@ -96,7 +98,7 @@ TitleMenu.prototype.render = function(g,c){
 				this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
 			) frame = 3;
 				
-			sprites.bullets.render(g,this.stars[i].pos,frame,2);
+			sprites.bullets.render(g,this.stars[i].pos.add(new Point(xpos,0)),frame,2);
 			this.stars[i].timer -= this.delta;
 			if( this.stars[i].timer <= 0 ){
 				this.stars[i].timer = Game.DELTASECOND * 1.0;
@@ -109,29 +111,29 @@ TitleMenu.prototype.render = function(g,c){
 			this.stars.timer += this.stars.reset;
 		}
 		
-		this.sprite.render(g,new Point(0,Math.lerp( this.castle_position, 0, pan)),0,1);
-		this.sprite.render(g,new Point(0,Math.lerp( this.title_position, 0, pan)),0,0);
+		this.sprite.render(g,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),0,1);
+		this.sprite.render(g,new Point(xpos,Math.lerp( this.title_position, 0, pan)),0,0);
 		
-		textArea(g,"Copyright Pogames.uk 2015",8,4);
-		textArea(g,"Version "+window._version,8,228);
+		textArea(g,"Copyright Pogames.uk 2015",xpos+8,4);
+		textArea(g,"Version "+window._version,xpos+8,228);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
-				boxArea(g,32,32,192,88);
-				textArea(g,i18n(this.options[this.cursor]),48,48,160);
-				boxArea(g,68,146,120,56);
-				textArea(g,i18n("introduction"),92,162);
-				if( this.playedIntro ) textArea(g,i18n("new_game"),92,178);
-				sprites.text.render(g, new Point(80,162+(16*this.cursor)),15,5);
+				boxArea(g,xpos+32,32,192,88);
+				textArea(g,i18n(this.options[this.cursor]),xpos+48,48,160);
+				boxArea(g,xpos+68,146,120,56);
+				textArea(g,i18n("introduction"),xpos+92,162);
+				if( this.playedIntro ) textArea(g,i18n("new_game"),xpos+92,178);
+				sprites.text.render(g, new Point(xpos+80,162+(16*this.cursor)),15,5);
 			} else { 
-				boxArea(g,68,168,120,40);
-				textArea(g,i18n("press_start"),84,184);
+				boxArea(g,xpos+68,168,120,40);
+				textArea(g,i18n("press_start"),xpos+84,184);
 			}
 		}
 		
 		if( this.progress >= 24 ) {
 			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
-			textBox(g,i18n("intro_text"),0,y_pos,256,240);
+			textBox(g,i18n("intro_text"),xpos,y_pos,256,240);
 		}
 	}
 }

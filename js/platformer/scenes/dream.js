@@ -44,41 +44,43 @@ Dream.prototype.update = function(){
 	}
 }
 Dream.prototype.postrender = function(g,c){
+	var xpos = (game.resolution.x - 256) * 0.5;
+	
 	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(0,0,256,240);
+	g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 	
 	//Wavy background
 	var x = this.type % 2;
 	var _y = Math.floor(this.type / 2)*15;
 	for(var y=0; y < 240/16; y++){
 		var wave = Math.sin(this.progress*0.1+y*0.2) * this.waveStrength;
-		sprites.dreams.render(g,new Point(wave,y*16),x,_y+y);
+		sprites.dreams.render(g,new Point(xpos+wave,y*16),x,_y+y);
 	}
 	
 	if(this.type == 1){
 		var f = 4 + Math.abs(this.progress/Game.DELTASECOND*3) % 2;
-		sprites.characters.render(g,new Point(184,192),f,0,true);
-		sprites.characters.render(g,new Point(104,192),f,1,false);
+		sprites.characters.render(g,new Point(xpos+184,192),f,0,true);
+		sprites.characters.render(g,new Point(xpos+104,192),f,1,false);
 	} else if(this.type == 2){
 		var f = Math.abs(this.progress/Game.DELTASECOND*3) % 3;
 		var distance = 256 * (this.progress / (this.length*Game.DELTASECOND));
-		sprites.characters.render(g,new Point(distance,192),f,0,false);
+		sprites.characters.render(g,new Point(xpos+distance,192),f,0,false);
 		if(this.progress > Game.DELTASECOND*7){
-			sprites.characters.render(g,new Point(16+distance,192),3,1,true);
+			sprites.characters.render(g,new Point(xpos+16+distance,192),3,1,true);
 		} else {
 			f = Math.abs(this.progress/Game.DELTASECOND*5) % 3;
 			distance = Math.lerp(-64,distance+16,this.progress/(Game.DELTASECOND*7));
-			sprites.characters.render(g,new Point(distance,192),3+f,2,false);
+			sprites.characters.render(g,new Point(xpos+distance,192),3+f,2,false);
 		}
 	} else if(this.type == 3){
 		var distance = Math.lerp(-64,96,Math.min(this.progress/(Game.DELTASECOND*7),1));
 		var f = Math.abs(distance*0.2) % 3;
-		sprites.characters.render(g,new Point(distance,192),3+f,2,false);
+		sprites.characters.render(g,new Point(xpos+distance,192),3+f,2,false);
 		
 		if(this.progress > Game.DELTASECOND * 15){
-			sprites.poseidon.render(g,new Point(168,160),2,1,true);
+			sprites.poseidon.render(g,new Point(xpos+168,160),2,1,true);
 		}
-		sprites.characters.render(g,new Point(176,192),3,0,true);
+		sprites.characters.render(g,new Point(xpos+176,192),3,0,true);
 		
 		//White flashes
 		if(
@@ -87,7 +89,7 @@ Dream.prototype.postrender = function(g,c){
 			Math.abs(this.progress-(15*Game.DELTASECOND)) <= 1
 		){
 			g.color = [1.0,1.0,1.0,1.0];
-			g.scaleFillRect(0,0,256,240);	
+			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 		}
 	}
 	
@@ -97,5 +99,5 @@ Dream.prototype.postrender = function(g,c){
 		(this.progress/Game.DELTASECOND)-(this.length-1)
 	), 0);
 	g.color = [0.0,0.0,0.0,fade]
-	g.scaleFillRect(0,0,256,240);
+	g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 }
