@@ -1,0 +1,28 @@
+{ //steps
+	"rarity": 1.0,
+	"width" : 1,
+	"height" : 2,
+	"entrances" : [
+		[0,1],
+		[1,0]
+	],
+	"front" : function(seed,w,h,ops){
+		var width = w * 16;
+		var height = h * 15;
+		var out = new Array(width * height);
+		for(var x=0; x < width; x++) for(var y=0; y < height; y++) {
+			var i = x + y * width;
+			if( x == 0 ){
+				out[i] = (y > 23 && y < 28) ? 0 : 1;
+			} else if (x==width-1) {
+				out[i] = (y > 8 && y < 13) ? 0 : 1;
+			} else if( y < 2 || y > height-3 ) {
+				out[i] = 1;
+			} else {
+				out[i] = 0;
+			}
+		}
+		return DataManager.prettyBlocks(out,width);
+	}
+
+}

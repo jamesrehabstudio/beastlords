@@ -1,0 +1,20 @@
+{ //steps
+	"rarity": 0.0,
+	"width" : 3,
+	"front" : function(seed,w,h,ops){
+		var width = w * 16;
+		var height = h * 15;
+		var out = new Array(width * height);
+		for(var x=0; x < width; x++) for(var y=0; y < height; y++) {
+			var i = x + y * width;
+			var h = Math.max(Math.round(Math.sin(x*0.2) * 2),0) * 2;
+			if( y < 2 || y > 12-h ) {
+				out[i] = 1;
+			} else {
+				out[i] = 0;
+			}
+		}
+		return DataManager.prettyBlocks(out,width);
+	}
+
+}

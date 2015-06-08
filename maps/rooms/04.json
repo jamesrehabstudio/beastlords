@@ -121,6 +121,7 @@
          "opacity":1,
          "properties":
             {
+             "entrances":"[[1,0]]",
              "map_tile":"12",
              "rarity":"0",
              "tags":"[\"item_e\"]"

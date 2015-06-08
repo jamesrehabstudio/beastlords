@@ -1,0 +1,47 @@
+{ //Junction
+	"rarity": 1.0,
+	"width" : 1,
+	"height" : 2,
+	"entrances" : [
+		[0,0],
+		[1,0],
+		[0,1],
+		[1,1]
+	],
+	"exits" : function(entrance){
+		if( entrance.y > 0 ) {
+			return [[0,0],[1,0]];
+		} else {
+			return [[0,1],[1,1]];
+		}
+	},
+	"objects":[
+		[120,240,"Lift",{}]
+	],
+	"front" : function(seed,w,h,ops){
+		ops = ops || {};
+		var width = w * 16;
+		var height = h * 15;
+		var out = new Array(width * height);
+		var entrances = ops.entrances || [];
+		for(var x=0; x < width; x++) for(var y=0; y < height; y++) {
+			var i = x + y * width;
+			if( y < 9 || y > height-3 || x<7 || x>8 ) {
+				out[i] = 1;
+			} else {
+				out[i] = 0;
+			}
+		}
+		
+		console.log(entrances.length);
+		for(var i=0; i < entrances.length; i++) {
+			var start = new Point(Math.min(entrances[i].x*8,width), entrances[i].y*15+9);
+			for(var x=0; x < 8; x++) for(var y=0; y < 4; y++) {
+				var index = start.x + x + (start.y+y) * width;
+				out[index] = 0;
+			}
+		}
+		
+		return DataManager.prettyBlocks(out,width);
+	}
+}

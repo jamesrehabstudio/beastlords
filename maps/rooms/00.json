@@ -57,6 +57,7 @@
          "opacity":1,
          "properties":
             {
+             "entrances":"[[3,0]]",
              "map_tile":"15",
              "rarity":"0",
              "tags":"[\"entry\"]"

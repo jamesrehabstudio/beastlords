@@ -43,6 +43,7 @@
  </layer>
  <objectgroup name="lines" width="16" height="15" visible="0">
   <properties>
+   <property name="entrances" value="[[1,0]]"/>
    <property name="map_tile" value="12"/>
    <property name="rarity" value="0"/>
    <property name="tags" value="[&quot;item_e&quot;]"/>

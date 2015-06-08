@@ -91,8 +91,9 @@ var mod_camera = {
 	},
 	'update' : function(){		
 		var screen = game.resolution;
-		game.camera.x = this.position.x - (screen.x / 2);
-		game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
+		game.camera.x = this.position.x - (game.resolution.x / 2);
+		game.camera.y = this.position.y - (game.resolution.y / 2);
+		//game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		
 		game.camera.x += this.camerShake.x;
 		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));

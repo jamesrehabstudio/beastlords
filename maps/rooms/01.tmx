@@ -46,6 +46,7 @@
  </layer>
  <objectgroup name="objects" width="16" height="15">
   <properties>
+   <property name="entrances" value="[[0,0]]"/>
    <property name="map_tile" value="13"/>
    <property name="rarity" value="0"/>
    <property name="tags" value="[&quot;exit_w&quot;]"/>

@@ -142,22 +142,23 @@ PauseMenu.prototype.update = function(){
 		
 		var lock;
 		switch( Math.abs(this.map[map_index]) ){
-			case 1: lock = new Line(-256,0,512,240); break;
-			case 2: lock = new Line(-256,-240,512,240); break;
+			case 0: lock = new Line(0,0,256,480); break;
+			case 1: lock = new Line(0,0,512,480); break;
+			case 2: lock = new Line(-256,0,256,480); break;
 			case 3: lock = new Line(-256,0,512,480); break;
-			case 4: lock = new Line(-256,-240,256,240); break;
-			case 5: lock = new Line(0,-240,512,240); break;
-			case 6: lock = new Line(-256,0,256,480); break;
-			case 7: lock = new Line(0,0,512,480); break;
+			case 4: lock = new Line(0,0,256,240); break;
+			case 5: lock = new Line(0,0,512,240); break;
+			case 6: lock = new Line(-256,0,256,240); break;
+			case 7: lock = new Line(-256,0,512,240); break;
 			case 8: lock = new Line(0,-240,256,480); break;
-			case 9: lock = new Line(-256,-240,512,480); break;
-			case 10: lock = new Line(0,-240,512,480); break;
-			case 11: lock = new Line(-256,-240,256,480); break;
-			case 12: lock = new Line(0,0,512,240); break;
-			case 13: lock = new Line(-256,0,256,240); break;
-			case 14: lock = new Line(0,0,256,240); break;
-			case 15: lock = new Line(0,0,512,240); break;
-			default: lock = new Line(0,0,256,240); break;
+			case 9: lock = new Line(0,-240,512,480); break;
+			case 10: lock = new Line(-256,-240,256,480); break;
+			case 11: lock = new Line(-256,-240,512,480); break;
+			case 12: lock = new Line(0,-240,256,240); break;
+			case 13: lock = new Line(0,-240,512,240); break;
+			case 14: lock = new Line(-256,-240,256,240); break;
+			case 15: lock = new Line(-256,-240,512,240); break;
+			default: lock = new Line(-256,-240,256,480); break;
 		}
 		lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
 		_player.lock = lock;
@@ -315,7 +316,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		var shop = game.getObject(Shop);
 		
 		for(var i=0; i < this.map.length; i++ ){
-			if( Math.abs(this.map[i]) > 0 && this.map_reveal[i] > 0 )  {
+			if( this.map[i] != undefined && this.map_reveal[i] > 0 )  {
 				var tile = new Point(
 					this.mapDimension.start.x + (i%this.mapDimension.width() ),
 					this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
@@ -325,7 +326,10 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
 				);
 				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-					sprites.map.render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
+					//sprites.map.render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
+					var xtile = 0;
+					if( this.map_reveal[i] <= 2 ) xtile += 4;
+					sprites.map.render(g,pos.add(offset),xtile,this.map[i]);
 					
 					if( this.map_reveal[i] >= 2 ) {					
 						for(var j=0; j < doors.length; j++ ){

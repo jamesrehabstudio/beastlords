@@ -43,6 +43,7 @@
          "opacity":1,
          "properties":
             {
+             "entrances":"[[0,0]]",
              "map_tile":"13",
              "rarity":"0",
              "tags":"[\"exit_w\"]"

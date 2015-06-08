@@ -43,6 +43,7 @@
  </layer>
  <objectgroup name="lines" width="48" height="15">
   <properties>
+   <property name="entrances" value="[[0,0]]"/>
    <property name="map_tile" value="1,1,13"/>
    <property name="min_difficulty" value="1"/>
    <property name="min_temple" value="2"/>

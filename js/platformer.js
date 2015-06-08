@@ -5822,22 +5822,23 @@ PauseMenu.prototype.update = function(){
 		
 		var lock;
 		switch( Math.abs(this.map[map_index]) ){
-			case 1: lock = new Line(-256,0,512,240); break;
-			case 2: lock = new Line(-256,-240,512,240); break;
+			case 0: lock = new Line(0,0,256,480); break;
+			case 1: lock = new Line(0,0,512,480); break;
+			case 2: lock = new Line(-256,0,256,480); break;
 			case 3: lock = new Line(-256,0,512,480); break;
-			case 4: lock = new Line(-256,-240,256,240); break;
-			case 5: lock = new Line(0,-240,512,240); break;
-			case 6: lock = new Line(-256,0,256,480); break;
-			case 7: lock = new Line(0,0,512,480); break;
+			case 4: lock = new Line(0,0,256,240); break;
+			case 5: lock = new Line(0,0,512,240); break;
+			case 6: lock = new Line(-256,0,256,240); break;
+			case 7: lock = new Line(-256,0,512,240); break;
 			case 8: lock = new Line(0,-240,256,480); break;
-			case 9: lock = new Line(-256,-240,512,480); break;
-			case 10: lock = new Line(0,-240,512,480); break;
-			case 11: lock = new Line(-256,-240,256,480); break;
-			case 12: lock = new Line(0,0,512,240); break;
-			case 13: lock = new Line(-256,0,256,240); break;
-			case 14: lock = new Line(0,0,256,240); break;
-			case 15: lock = new Line(0,0,512,240); break;
-			default: lock = new Line(0,0,256,240); break;
+			case 9: lock = new Line(0,-240,512,480); break;
+			case 10: lock = new Line(-256,-240,256,480); break;
+			case 11: lock = new Line(-256,-240,512,480); break;
+			case 12: lock = new Line(0,-240,256,240); break;
+			case 13: lock = new Line(0,-240,512,240); break;
+			case 14: lock = new Line(-256,-240,256,240); break;
+			case 15: lock = new Line(-256,-240,512,240); break;
+			default: lock = new Line(-256,-240,256,480); break;
 		}
 		lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
 		_player.lock = lock;
@@ -5995,7 +5996,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		var shop = game.getObject(Shop);
 		
 		for(var i=0; i < this.map.length; i++ ){
-			if( Math.abs(this.map[i]) > 0 && this.map_reveal[i] > 0 )  {
+			if( this.map[i] != undefined && this.map_reveal[i] > 0 )  {
 				var tile = new Point(
 					this.mapDimension.start.x + (i%this.mapDimension.width() ),
 					this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
@@ -6005,7 +6006,10 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
 				);
 				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-					sprites.map.render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
+					//sprites.map.render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
+					var xtile = 0;
+					if( this.map_reveal[i] <= 2 ) xtile += 4;
+					sprites.map.render(g,pos.add(offset),xtile,this.map[i]);
 					
 					if( this.map_reveal[i] >= 2 ) {					
 						for(var j=0; j < doors.length; j++ ){
@@ -6293,8 +6297,9 @@ var mod_camera = {
 	},
 	'update' : function(){		
 		var screen = game.resolution;
-		game.camera.x = this.position.x - (screen.x / 2);
-		game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
+		game.camera.x = this.position.x - (game.resolution.x / 2);
+		game.camera.y = this.position.y - (game.resolution.y / 2);
+		//game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		
 		game.camera.x += this.camerShake.x;
 		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));
@@ -9128,24 +9133,26 @@ SceneEndIntro.prototype.update = function(){
 }
 
 SceneEndIntro.prototype.render = function(g,c){
+	var xpos = (game.resolution.x - 256) * 0.5;
+	
 	if( this.activated ) {
 		if( this.clearAll ) {
 			//Death
 			if( this.progress < 13.0 ) {
 				g.color = (this.progress * 6.0) % 1.0 > 0.5 ? [0.0,0.0,0.0,1.0] : [0.7,0.0,0.0,1.0];
-				g.scaleFillRect(0,0,256,240);
-				sprites.player.render(g,new Point(128,120), 4, 0, false);
+				g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+				sprites.player.render(g,new Point(xpos+128,120), 4, 0, false);
 			} else {
 				g.color = [0.0,0.0,0.0,1.0];
-				g.scaleFillRect(0,0,256,240);
+				g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 				
 				var lowest = 0;
 				for(var i=0; i < this.stars.length; i++){
 					this.stars[i].pos.y -= this.stars[i].speed * this.delta;
 					if( this.stars[i].pos.y > lowest ) lowest = this.stars[i].pos.y;
-					sprites.bullets.render(g, this.stars[i].pos, 3, 2);
+					sprites.bullets.render(g, this.stars[i].pos.add(new Point(xpos,0)), 3, 2);
 				}
-				sprites.title.render(g, new Point(0, lowest), 0, 2);
+				sprites.title.render(g, new Point(xpos, lowest), 0, 2);
 				
 				if( lowest <= 0 ) {
 					this.destroy();

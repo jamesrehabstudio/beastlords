@@ -155,6 +155,7 @@
          "opacity":1,
          "properties":
             {
+             "entrances":"[[0,0]]",
              "map_tile":"1,1,13",
              "min_difficulty":"1",
              "min_temple":"2",

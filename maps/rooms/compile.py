@@ -12,7 +12,7 @@ def compile(data, width=16):
 				for property in layer["properties"]:
 					if property == "rarity":
 						out[str(property)] = float(layer["properties"][property])
-					elif property == "tags" or property == "type":
+					elif property in ["tags", "type", "entrances"]:
 						out[str(property)] = json.loads(layer["properties"][property])
 					else:
 						out[str(property)] = str(layer["properties"][property])
@@ -32,13 +32,16 @@ def compile(data, width=16):
 				for property in layer["properties"]:
 					if property == "rarity":
 						out[str(property)] = float(layer["properties"][property])
-					elif property == "tags" or property == "type":
+					elif property in ["tags", "type", "entrances"]:
 						out[str(property)] = json.loads(layer["properties"][property])
 					else:
 						out[str(property)] = str(layer["properties"][property])
 			out["objects"] = []
 			for object in layer["objects"]:
-				out["objects"].append( [ int(object["x"])+8, int(object["y"])-8, str(object["name"]), object["properties"] ] )
+				objname = str(object["name"])
+				out["objects"].append( [ int(object["x"])+8, int(object["y"])-8, objname, object["properties"] ] )
+				if objname == "Door":
+					out["key_required"] = True
 		elif layer["name"] == "back":
 			out["back"] = layer["data"]
 		elif layer["name"] == "front":
@@ -53,13 +56,25 @@ def main():
 	maps = []
 	
 	for file in os.listdir(os.getcwd()):
-		if re.match(".*\.json", file):
+		if re.match(".*\.room", file):
+			try:
+				if file[0:4] == "map_":
+					maps.append( open(file,"r").read() )
+				elif file[0:4] == "town":
+					towns.append( open(file,"r").read() )
+				elif re.match("j\d+\..*", file):
+					junctions.append( open(file,"r").read() )
+				else:
+					rooms.append( open(file,"r").read() )
+			except Exception, err:
+				print "Error reading: " + file + " " + str(err)
+		elif re.match(".*\.json", file):
 			try:
 				if file[0:4] == "map_":
 					maps.append( compile( json.loads( open(file,"r").read() ) ) )
 				elif file[0:4] == "town":
 					towns.append( compile( json.loads( open(file,"r").read() ), 8 ) )
-				elif file[0] == "j":
+				elif re.match("j\d+\..*", file):
 					junctions.append( compile( json.loads( open(file,"r").read() ) ) )
 				else:
 					rooms.append( compile( json.loads( open(file,"r").read() ) ) )
@@ -71,7 +86,10 @@ def main():
 	i = 0
 	for room in rooms:
 		if i > 0 : write += ",\n"
-		write += "\t\t" + json.dumps(room)
+		if type(room) == dict:
+			write += "\t\t" + json.dumps(room)
+		else:
+			write += "\t\t" + str(room)
 		i += 1
 	write += "\n\t];"
 	
@@ -80,7 +98,10 @@ def main():
 	i = 0
 	for room in junctions:
 		if i > 0 : write += ",\n"
-		write += "\t\t" + json.dumps(room)
+		if type(room) == dict:
+			write += "\t\t" + json.dumps(room)
+		else:
+			write += "\t\t" + str(room)
 		i += 1
 	write += "\n\t];"
 	
@@ -89,21 +110,27 @@ def main():
 	i = 0
 	for room in towns:
 		if i > 0 : write += ",\n"
-		write += "\t\t" + json.dumps(room)
+		if type(room) == dict:
+			write += "\t\t" + json.dumps(room)
+		else:
+			write += "\t\t" + str(room)
 		i += 1
 	write += "\n\t];"
 	
 	#Write out fully formed maps
 	write += "\n\nwindow._map_maps = [\n"
 	i = 0
-	for map in maps:
+	for room in maps:
 		if i > 0 : write += ",\n"
-		write += "\t\t" + json.dumps(map)
+		if type(room) == dict:
+			write += "\t\t" + json.dumps(room)
+		else:
+			write += "\t\t" + str(room)
 		i += 1
 	write += "\n\t];"
 	
 	#Save file
-	outputfile = open("rooms.js", "w")
+	outputfile = open("../map.js", "w")
 	outputfile.write( write )
 	outputfile.close()
 		

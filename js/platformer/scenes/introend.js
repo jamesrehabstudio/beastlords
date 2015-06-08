@@ -89,24 +89,26 @@ SceneEndIntro.prototype.update = function(){
 }
 
 SceneEndIntro.prototype.render = function(g,c){
+	var xpos = (game.resolution.x - 256) * 0.5;
+	
 	if( this.activated ) {
 		if( this.clearAll ) {
 			//Death
 			if( this.progress < 13.0 ) {
 				g.color = (this.progress * 6.0) % 1.0 > 0.5 ? [0.0,0.0,0.0,1.0] : [0.7,0.0,0.0,1.0];
-				g.scaleFillRect(0,0,256,240);
-				sprites.player.render(g,new Point(128,120), 4, 0, false);
+				g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+				sprites.player.render(g,new Point(xpos+128,120), 4, 0, false);
 			} else {
 				g.color = [0.0,0.0,0.0,1.0];
-				g.scaleFillRect(0,0,256,240);
+				g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 				
 				var lowest = 0;
 				for(var i=0; i < this.stars.length; i++){
 					this.stars[i].pos.y -= this.stars[i].speed * this.delta;
 					if( this.stars[i].pos.y > lowest ) lowest = this.stars[i].pos.y;
-					sprites.bullets.render(g, this.stars[i].pos, 3, 2);
+					sprites.bullets.render(g, this.stars[i].pos.add(new Point(xpos,0)), 3, 2);
 				}
-				sprites.title.render(g, new Point(0, lowest), 0, 2);
+				sprites.title.render(g, new Point(xpos, lowest), 0, 2);
 				
 				if( lowest <= 0 ) {
 					this.destroy();
