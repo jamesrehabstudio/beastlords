@@ -40,7 +40,13 @@
 				var index = start.x + x + (start.y+y) * width;
 				out[index] = 0;
 			}
+			if( entrances[i].x == 0 && entrances[i].y == 0 ) out[213] = out[214] = 0;
+			if( entrances[i].x == 1 && entrances[i].y == 0 ) out[217] = out[218] = 0;
+			if( entrances[i].x == 0 && entrances[i].y == 1 ) out[453] = out[454] = 0;
+			if( entrances[i].x == 1 && entrances[i].y == 1 ) out[457] = out[458] = 0;
 		}
+		
+		out[215] = out[216] = out[455] = out[456] = 0;
 		
 		return DataManager.prettyBlocks(out,width);
 	}

@@ -20,47 +20,8 @@ Background.prototype.prerender = function(gl,c){
 	gl.bindTexture( gl.TEXTURE_2D, game.tileSprite.gl_tex );
 	var shader = window.materials["default"].use();
 	
-	if( c.y > 32 && this.walls ) {
-		//Background wall
-		var tiles = new Array();
-		var textr = new Array();
-		var ts = 32;
-		for(var x=-ts; x < game.resolution.x+ts; x+=ts) 
-		for(var y=-ts; y < game.resolution.y+ts; y+=ts){
-			tiles.push(x); tiles.push(y); 
-			tiles.push(x+ts); tiles.push(y); 
-			tiles.push(x); tiles.push(y+ts); 
-			tiles.push(x); tiles.push(y+ts); 
-			tiles.push(x+ts); tiles.push(y); 
-			tiles.push(x+ts); tiles.push(y+ts);
-			
-			textr.push(0.5); textr.push(0.375);
-			textr.push(0.625); textr.push(0.375);
-			textr.push(0.5); textr.push(0.5);
-			textr.push(0.5); textr.push(0.5);
-			textr.push(0.625); textr.push(0.375);
-			textr.push(0.625); textr.push(0.5);
-		}
-		var buffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tiles), gl.DYNAMIC_DRAW);
-		shader.set("a_position");
-		
-		var tbuffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(textr), gl.DYNAMIC_DRAW);
-		shader.set("a_texCoord");
-		
-		var offcam = new Point(
-			(c.x * -0.3) % ts,
-			(c.y * -0.3) % ts
-		);
-		
-		shader.set("u_resolution", game.resolution.x, game.resolution.y);
-		shader.set("u_camera", offcam.x, offcam.y);
-		
-		gl.drawArrays(gl.TRIANGLES, 0, tiles.length/2);
-	} else {
+	
+	if( c.y < game.resolution.y / Background.wallEffect ) {
 		//Clouds
 		//cloud length = 128
 		this.sprite.renderSize(gl,0,0,game.resolution.x,176,203);
@@ -136,6 +97,55 @@ Background.prototype.prerender = function(gl,c){
 		}
 	}
 	
+	//if( c.y > 32 && this.walls ) {
+	if( c.y > -64 ) {
+		//Background wall
+		var tiles = new Array();
+		var textr = new Array();
+		var ts = 32;
+		var starty = 0;
+		for(var x=-ts; x < game.resolution.x+ts; x+=ts) 
+		for(var y=-ts; y < game.resolution.y+ts; y+=ts){
+			tiles.push(x); tiles.push(y); 
+			tiles.push(x+ts); tiles.push(y); 
+			tiles.push(x); tiles.push(y+ts); 
+			tiles.push(x); tiles.push(y+ts); 
+			tiles.push(x+ts); tiles.push(y); 
+			tiles.push(x+ts); tiles.push(y+ts);
+			
+			textr.push(0.5); textr.push(0.375);
+			textr.push(0.625); textr.push(0.375);
+			textr.push(0.5); textr.push(0.5);
+			textr.push(0.5); textr.push(0.5);
+			textr.push(0.625); textr.push(0.375);
+			textr.push(0.625); textr.push(0.5);
+		}
+		var buffer = gl.createBuffer();
+		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tiles), gl.DYNAMIC_DRAW);
+		shader.set("a_position");
+		
+		var tbuffer = gl.createBuffer();
+		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
+		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(textr), gl.DYNAMIC_DRAW);
+		shader.set("a_texCoord");
+		
+		var y_offset = (c.y * -Background.wallEffect) % ts
+		if( c.y < game.resolution.y / Background.wallEffect ) {
+			y_offset = game.resolution.y - c.y * Background.wallEffect;
+		}
+		var offcam = new Point(
+			Math.round((c.x * -Background.wallEffect) % ts),
+			Math.round(y_offset)
+		);
+		
+		shader.set("u_resolution", game.resolution.x, game.resolution.y);
+		shader.set("u_camera", offcam.x, offcam.y);
+		
+		gl.drawArrays(gl.TRIANGLES, 0, tiles.length/2);
+	} 
+	
+	
 	this.animation += this.delta;
 }
 Background.prototype.roomAtLocation = function(x,y){
@@ -175,6 +185,7 @@ Background.cloudBuffer = new Float32Array([
 Background.cloudTexture = new Float32Array([
 	0.5, 0.875, 1.0, 0.875, 0.5, 1.0, 0.5, 1.0, 1.0, 0.875, 1.0, 1.0
 ]);
+Background.wallEffect = 0.5;
 Background.rooms = [
 		{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,41,42,9,9,9,9,9,9,9,9,9,41,42,9,9,57,58,9,9,9,9,9,9,9,9,9,57,58,9,9,57,58,9,9,9,9,9,9,9,9,9,57,58,9,9,57,58,9,30,31,32,32,32,64,48,9,57,58,9,9,73,74,9,46,0,0,0,0,0,47,9,73,74,9,9,89,90,9,62,0,0,0,0,0,63,9,89,90,9,9,9,9,9,62,0,0,0,0,0,63,9,9,9,9,9,9,91,92,62,0,0,0,0,0,63,91,92,9,9,9,9,107,108,62,0,0,0,0,0,63,107,108,9,9,9,9,9,9,62,0,0,0,0,0,63,9,9,9,9,9,9,9,9,62,0,0,0,0,0,63,9,9,9,9,93,94,94,93,12,28,28,28,28,28,13,93,94,94,93,109,110,110,109,94,93,93,94,93,94,93,109,110,110,109]},
 		{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,77,78,9,9,9,9,9,27,27,9,9,27,27,9,9,27,27,9,9,9,9,25,0,0,26,25,0,0,26,25,0,0,26,9,9,9,25,0,0,26,25,0,0,26,25,0,0,26,91,92,9,25,0,0,26,25,0,0,26,25,0,0,26,107,108,9,25,0,0,26,25,0,0,26,25,0,0,26,9,9,9,9,28,28,9,9,28,28,9,9,28,28,9,9,9,9,93,94,9,93,94,9,94,94,93,9,94,94,93,94,94,109,110,93,109,110,93,110,110,109,93,110,110,109,110,110,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]},

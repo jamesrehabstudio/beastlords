@@ -27,7 +27,7 @@ function Gate(x,y,d,ops){
 	this.lock = function(){
 		this.open = false;
 		for(var i=0; i<this.tiles.length; i++){
-			game.setTile(this.tiles[i], 1, BLANK_TILE);
+			game.setTile(this.tiles[i], game.tileCollideLayer, BLANK_TILE);
 		}
 	};
 	this.unlock = function(){
@@ -35,7 +35,7 @@ function Gate(x,y,d,ops){
 			this.open = true;
 			audio.play("open");
 			for(var i=0; i<this.tiles.length; i++){
-				game.setTile(this.tiles[i], 1, 0);
+				game.setTile(this.tiles[i], game.tileCollideLayer, 0);
 			}
 		}
 	};

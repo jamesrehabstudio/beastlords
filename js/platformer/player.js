@@ -14,6 +14,7 @@ function Player(x, y){
 	//this.equipment = [new Item(0,0,"short_sword"), new Item(0,0,"small_shield")];
 	this.spells = [];
 	this.charm = false;
+	this.knockedout = false;
 	
 	this.equip_sword = new Item(0,0,"short_sword",{"enchantChance":0});
 	this.equip_shield = new Item(0,0,"small_shield",{"enchantChance":0});
@@ -66,6 +67,18 @@ function Player(x, y){
 	});
 	this.on("land", function(){
 		audio.play("land");
+	});
+	this.on("collideVertical", function(v){
+		if(v>0) this.knockedout = false;
+	});
+	this.on("guardbreak", function(obj,position,damage){
+		dir = this.position.subtract(obj.position);
+		this.knockedout = true;
+		this.grounded = false;
+		this.force.y = -8;
+		this.force.x = 12 * (dir.x > 0 ? 1.0 : -1.0);
+		
+		game.slow(0.1, Game.DELTASECOND);
 	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
@@ -331,7 +344,7 @@ Player.prototype.update = function(){
 		if( this.life < this.lifeMax * .2 && this.delta > 0 ) audio.playLock("danger",1.00);
 	}
 	if ( this.life > 0 ) {
-		if( this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+		if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
 				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
@@ -414,7 +427,10 @@ Player.prototype.update = function(){
 	this.guard.y = this.states.guard_down ? this.shieldProperties.duck : this.shieldProperties.stand;
 	
 	//Animation
-	if ( this.stun > 0 || this.life < 0 ) {
+	if ( this.knockedout ){
+		this.frame_row = 4;
+		this.frame = (this.frame + this.delta * 0.2 ) % 3;
+	} else if ( this.stun > 0 || this.life < 0 ) {
 		this.stand();
 		this.frame = 4;
 		this.frame_row = 0;
@@ -463,7 +479,7 @@ Player.prototype.duck = function(){
 	}
 }
 Player.prototype.jump = function(){ 
-	var force = 7;
+	var force = 7.7;
 	
 	if( this.spellsCounters.flight > 0 ) force = 2;
 	
@@ -659,8 +675,16 @@ Player.prototype.hasCharm = function(value){
 	return false;
 }
 Player.prototype.render = function(g,c){
+	//Render shield
 	var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
-	this.sprite.render(g, this.position.subtract(c), shield_frame, this.shieldProperties.frame_row, this.flip);
+	this.sprite.render(g, 
+		this.position.subtract(c), 
+		shield_frame, 
+		this.shieldProperties.frame_row, 
+		this.flip,
+		"heat",
+		{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
+	);
 	
 	
 	if( this.spellsCounters.flight > 0 ){
@@ -682,8 +706,9 @@ Player.prototype.render = function(g,c){
 	//Render current sword
 	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : "default";
 	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip, weapon_filter);
-	
-	
+}
+
+Player.prototype.postrender = function(g,c){
 	/* Render HP */
 	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];

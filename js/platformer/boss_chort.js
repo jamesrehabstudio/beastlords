@@ -108,7 +108,7 @@ Chort.prototype.update = function(){
 		}
 		
 		if( this.states.attack <= this.attack_times.release && this.states.attack > this.attack_times.cool ) {
-			this.strike( new Line(12,-6,32,10), "hurt" );
+			this.strike( new Line(12,-6,32,10) );
 		}
 	}
 	

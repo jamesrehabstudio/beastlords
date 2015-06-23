@@ -2,18 +2,18 @@ window._version = "0.2.0";
 
 function DataManager() {
 	this.temples = [
-		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":[1,2],"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker","Shell"],"minorfly":["Batty"]},
-		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":[1,3],"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"]},
-		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":[2,3],"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
-		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":[2,3],"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
-		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":[3,4],"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
-		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":[1,2],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
+		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":1,"difficulty":0,"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker","Shell"],"minorfly":["Batty"]},
+		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1,"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"]},
+		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2,"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
+		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3,"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
+		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":4,"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
+		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":5,"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		
-		{"tiles":"tiles5","size":16,"maxkeys":4,"treasures":[2,4],"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Ratgut"],"minorfly":["Batty","Svarog"]},
-		{"tiles":"tiles2","size":17,"maxkeys":4,"treasures":[2,4],"boss":["Zoder"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"]},
-		{"tiles":"tiles2","size":18,"maxkeys":5,"treasures":[2,4],"boss":["Poseidon"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"]}
+		{"tiles":"tiles5","size":16,"maxkeys":4,"treasures":1,"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Ratgut"],"minorfly":["Batty","Svarog"]},
+		{"tiles":"tiles2","size":17,"maxkeys":4,"treasures":1,"boss":["Zoder"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"]},
+		{"tiles":"tiles2","size":18,"maxkeys":5,"treasures":1,"boss":["Poseidon"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"]}
 	];
 	
 	/* Set data */
@@ -78,7 +78,7 @@ function DataManager() {
 	this.rules = {
 		"start": function(){ return [[this.roomFromTags(["entry"]),1,0]]; 
 		},
-		"final" : function(level, direction,options){ 
+		"final" : function(level,options,cursor){ 
 			if(level==options.size) return this.roomsFromTags(["entry_final"]);
 			if(level==0) return this.roomsFromTags(["exit_w","exit_e"]);
 			if(level==1) return this.roomsFromTags(["boss"]);
@@ -95,7 +95,7 @@ function DataManager() {
 			if(seed.randomBool(0.1) && this.keysRemaining()>0) return this.roomsFromTags(["door"]);
 			return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
 		},
-		"item" : function(level,direction,options,cursor){
+		"item" : function(level,options,cursor){
 			//if(level==options.size) return this.roomsFromTags(["entry"]);
 			if(level==0) return this.roomsFromTags(["item_w","item_e"]);
 			if(level==1) return this.roomsFromTags(["miniboss"]);
@@ -103,7 +103,7 @@ function DataManager() {
 			if(seed.randomBool(0.1) && this.keysRemaining()>0) return this.roomsFromTags(["door"]);
 			return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
 		},
-		"prison" : function(level,direction,options){
+		"prison" : function(level,options){
 			if(level==0) return this.roomsFromTags(["prison_w","prison_e"], options);
 			return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
 		}
@@ -298,7 +298,7 @@ DataManager.prototype.randomTown = function(g, town){
 	
 	for(var i=0; i < rooms.length; i++){
 		if( rooms[i] != undefined && rooms[i] >= 0 ) {
-			this.createRoom(g,_map_town[ rooms[i] ], new Point(i*128,0),"TOWNS_DONT_HAVE_PROPERTIES",{"room_size":8});
+			this.createRoom(g,_map_town[ rooms[i] ], new Point(i*128,0),{"background":false, "room_size":8});
 		}
 	}
 	if( _player instanceof Player ) {
@@ -340,20 +340,14 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 			this.addBranch({"rules":this.rules.item,"item":"map","doors":0.0,"size":map_size}, map_size, this.slices.peek().getEntrances());
 			this.addBranch({"rules":this.rules.prison}, Math.floor(1+seed.random()*3), this.slices.peek().getEntrances());
 			
-			/*
-			//Add branches for items
-			var current_brances = this.branch_counter;
-			
-			for(var i=0; i < Math.max(temple.treasures[1]-current_brances,temple.treasures[0]); i++ ){
-				var size = seed.randomInt(2,6);
-				if( this.addBranch({"rules":this.rules.item,"door":0.15,"size":size,"optional":true}, size, this.slices.peek().getJunctions()) ) {
-					//Branch created successfully. 
-				}
+			var size = seed.randomInt(2,6);
+			for(var i=0; i<temple.treasures; i++){
+				this.addBranch({"rules":this.rules.item,"optional":true,"doors":0.5,"size":size}, size, this.slices.peek().getEntrances());
 			}
 			
-			this.addSecret({"item":"life_up"});
-			console.log("Add well? " + this.addWell(this.slices.peek().filter({"width":1,"rarity":0.001})) );
-			*/
+			console.log("Added secret? " + this.addSecret({"item":"life_up"}) );
+			//console.log("Add well? " + this.addWell(this.slices.peek().filter({"width":1,"rarity":0.001})) );
+			
 		} else {
 			console.error("Seriously? No junctions? Try that again.");
 			success = false;
@@ -393,20 +387,19 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 			//if( mapTiles[ map_index ] == undefined )
 			//	mapTiles[ map_index ] = secret;
 			
+			var room_slice = slice.data[i];
 			var room;
-			if( slice.data[i].room == "j" ) {
-				var tags = slice.data[i].junctions;
-				room = _map_junctions[ this.getJunctionRoomIndex(tags) ];
-			} else if ( slice.data[i].room >= 0 ) { 
-				room = _map_rooms[ slice.data[i].room ];
+			
+			if ( room_slice.room >= 0 ) { 
+				room = _map_rooms[ room_slice.room ];
 			} else { 
 				room = null;
 			}
 			
 			room_options["id"] = i;
 			room_options["entrances"] = new Array();
-			for(var ent in slice.data[i].entrances ){
-				if( slice.data[i].entrances[ent] ){
+			for(var ent in room_slice.entrances ){
+				if( room_slice.entrances[ent] ){
 					room_options["entrances"].push( MapSlice.idToLoc(ent) );
 				}
 			}
@@ -428,17 +421,57 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 				var mapHeight = slice.data[i].height;
 				for(var mapx=0; mapx < mapWidth; mapx++)
 				for(var mapy=0; mapy < mapHeight; mapy++){
-					var tileY = 0
-					if( mapy > 0) tileY += 8;
-					if( mapy >= mapHeight-1) tileY += 4;
-					if( mapx > 0) tileY += 2;
-					if( mapx < mapWidth-1) tileY += 1;
-					//var tile = tileY * 16;
 					var map_index = Math.floor( 
 						(mapx + pos.x) - mapDimension.start.x + 
 						((mapy + pos.y) - mapDimension.start.y) * mapDimension.width() 
 					);
+					var start_id = MapSlice.locToId(new Point(mapx, mapy));
+					var end_id = MapSlice.locToId(new Point(mapx+1, mapy));
+					//determine the map tile
+					var tileY = 0
+					if( mapy > 0) tileY += 8;
+					if( mapy >= mapHeight-1) tileY += 4;
+					if( mapx > 0) {
+						tileY += 2;
+					} else if (start_id in room_slice.entrances && room_slice.entrances[start_id]){
+						tileY += 16;
+					}
+					if( mapx < mapWidth-1) {
+						tileY += 1;
+					} else if ( end_id in room_slice.entrances && room_slice.entrances[end_id] ) {
+						tileY += 32;
+					}
+					//var tile = tileY * 16;
+					
 					mapTiles[ map_index ] = tileY;
+					
+					if( mapHeight==1 ){
+						var pre_map = {
+							20 : {36:[6,5],52:[6,21],38:[6,7]},
+							52 : {36:[38,5],52:[38,21],38:[38,7]},
+							21 : {36:[7,5],52:[7,21],38:[7,7]}
+						};
+						
+						var nxt_map = {
+							36 : {20:[5,6],21:[5,7],52:[5,38]},
+							52 : {20:[21,6],21:[21,7],52:[21,38]},
+							38 : {20:[7,6],21:[7,7],52:[7,38]}
+						};
+						//If rooms are on same level connect them
+						var tilePrev = mapTiles[map_index-1];
+						var tileNext = mapTiles[map_index+1];
+						
+						if( tileY in pre_map && tilePrev in pre_map[tileY] ) {
+							//Attach to the left room
+							mapTiles[map_index] = pre_map[tileY][tilePrev][0];
+							mapTiles[map_index-1] = pre_map[tileY][tilePrev][1];
+						}
+						if( tileY in nxt_map && tileNext in nxt_map[tileY] ) {
+							//Attach to the right room
+							mapTiles[map_index] = nxt_map[tileY][tileNext][0];
+							mapTiles[map_index+1] = nxt_map[tileY][tileNext][1];
+						}
+					}
 				}
 			}
 		} catch (err){
@@ -502,13 +535,16 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 	var ts = 16;
 	room_options = room_options || {};
 	var room_size = room_options.room_size || 16;
+	var addBackground = true;
+	
+	if( "background" in room_options ) addBackground = room_options.background;
 	
 	
 	//Render tiles
 	for(var j=0; j < layers.length; j++ ) {
 		if( layers[j] in room ) {
 			var layer = room[layers[j]];
-			if( layer instanceof Function ) layer = layer(seed, width, height, room_options);
+			if( layer instanceof Function ) layer = layer.apply(room, [seed, width, height, room_options]);
 			
 			for(var i=0; i < layer.length; i++){
 				var x = Math.floor( i % ( room_size * width ) );
@@ -522,19 +558,22 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 		}
 	}
 	
-	if( dataManager.currentTemple >= 0 && (cursor.x != 0 || cursor.y != 0) ) {
-		var bgsize = room_size - 1;
-		for(var w=0; w < width; w++ ){
-			var bg = Background.rooms[Math.floor(Math.random()*Background.rooms.length)];
-			for(var i=0; i < bg.tiles.length; i++){
-				var x = Math.floor( i % bgsize );
-				var y = Math.floor( i / bgsize );
-				var offset = Math.floor( 
-					w * bgsize + 
-					Math.floor( (x-g.tileDimension.start.x) + Math.floor( (cursor.x) / (room_size+1) ) ) + 
-					Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / (room_size) ) ) * g.tileDimension.width() )
-				);
-				g.tiles[0][offset] = bg.tiles[i];
+	//Add background
+	if( addBackground ) {
+		if( dataManager.currentTemple >= 0 && (cursor.x != 0 || cursor.y != 0) ) {
+			var bgsize = room_size - 1;
+			for(var w=0; w < width; w++ ){
+				var bg = Background.rooms[Math.floor(Math.random()*Background.rooms.length)];
+				for(var i=0; i < bg.tiles.length; i++){
+					var x = Math.floor( i % bgsize );
+					var y = Math.floor( i / bgsize );
+					var offset = Math.floor( 
+						w * bgsize + 
+						Math.floor( (x-g.tileDimension.start.x) + Math.floor( (cursor.x) / (room_size+1) ) ) + 
+						Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / (room_size) ) ) * g.tileDimension.width() )
+					);
+					g.tiles[0][offset] = bg.tiles[i];
+				}
 			}
 		}
 	}
@@ -606,25 +645,19 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 			g.addObject( new_obj );
 		}
 	}
-	
-	//Add collisions
-	if( "lines" in room ) {
-		for(var j=0; j < room.lines.length; j++){
-			var line = room.lines[j];
-			temp = new Line( 
-				new Point( cursor.x + line[0], cursor.y + line[1] ),
-				new Point( cursor.x + line[2], cursor.y + line[3] )
-			);
-			g.collisions.push( temp );
-		}
-	}
 }
 
 DataManager.prototype.randomKey = function(oddsOfReuse){
-	if( seed.randomBool(oddsOfReuse) && this.existingKeys().length > 0 ) {
-		return this.randomExistingKey();
+	var max_keys = this.temples[this.currentTemple].maxkeys;
+	var out = 0;
+	
+	if( this.slices.peek().keys > 0 && (seed.randomBool(oddsOfReuse) || this.slices.peek().keys < max_keys) ) {
+		out = Math.floor( seed.random() * this.slices.peek().keys );
+	} else {
+		out = this.slices.peek().keys;
+		this.slices.peek().keys++;
 	}
-	return this.key_counter;
+	return out;
 }
 DataManager.prototype.randomExistingKey = function(){
 	var keys = this.existingKeys();
@@ -693,7 +726,7 @@ DataManager.prototype.addBranch = function(options, level, entrances){
 }
 
 DataManager.prototype.addSecret = function(options){
-	var locations = this.slices.peek().keys().sort(function(){ return seed.random() - 0.5; });
+	var locations = this.slices.peek().roomIds().sort(function(){ return seed.random() - 0.5; });
 	
 	var directions = [1,-1];
 	var banlist = [0,1,2];
@@ -711,7 +744,7 @@ DataManager.prototype.addSecret = function(options){
 				pos.x += directions[j];
 				var id = MapSlice.locToId(pos);
 			
-				if( this.isFree(room, directions[j], pos) ){
+				if( this.slices.peek().isFree(pos, 1, directions[j]) ){
 					options = options || {};
 					this.slices.peek().add(id,room_id,options);
 					this.slices.peek().setSecret(id,true);
@@ -753,7 +786,7 @@ DataManager.prototype.addRoom = function(options, level, cursor){
 			var cursorEnter = cursor.subtract(entrance);
 			if( this.isFree( room, cursorEnter ) ) {
 				success = true;
-				bid = false;
+				var bid = false;
 				
 				this.slices.peek().add(cursorEnter,room,temp_properties);
 				this.slices.peek().useEntrance(cursorEnter,entrance);
@@ -761,21 +794,29 @@ DataManager.prototype.addRoom = function(options, level, cursor){
 				if("secret" in options) this.slices.peek().setSecret(cursor,options.secret);
 				
 				if( "key_required" in room ){
-					var key_name = "key_" + this.key_counter;
-					var branch_size = "size" in options ? Math.floor(options.size/2) : 4;
-					this.key_counter++;
-					console.log("New Key " + key_name);
-					bid = this.slices.length;
+					var max_keys = this.temples[this.currentTemple].maxkeys;
+					var randomKey = this.slices.peek().randomKey(seed.random(), max_keys);
+					var newKey = randomKey[0];
+					var newPathToKey = randomKey[1];
+					var key_name = "key_" + newKey;
 					this.slices.peek().setProperty(cursorEnter,"door",key_name);
-					success = this.addBranch({
-							"rules":this.rules.item,
-							"item":key_name,
-							"difficulty":2,
-							"size":branch_size
-						}, 
-						branch_size, 
-						this.slices.peek().getEntrances()
-					);
+					
+					if( newPathToKey ) {
+						//Needs to add the key with a new branch.
+						var branch_size = "size" in options ? Math.floor(options.size/2) : 4;
+						bid = this.slices.length;
+						console.log("Created new branch at " + bid);
+						success = this.addBranch({
+								"rules":this.rules.item,
+								"item":key_name,
+								"key":newKey,
+								"difficulty":2,
+								"size":branch_size
+							}, 
+							branch_size, 
+							this.slices.peek().getEntrances()
+						);
+					}
 				}
 				/*
 				if( "door" in temp_properties ){
@@ -825,12 +866,20 @@ DataManager.prototype.addRoom = function(options, level, cursor){
 					
 					if( !success ) {
 						//clear this room
-						//if(bid) this.revertSlice(bid);
+						if(bid){
+							//A branch was created, destroy it.
+							this.revertSlice(bid);
+						}
 						this.slices.peek().remove(cursorEnter, room);
+						return false;
 					} else {
 						return true;
 					}
-				} else { 
+				} else {
+					if( "key" in options ) {
+						this.slices.peek().keys.push( options.key );
+					}
+					
 				/*
 					var loopSuccess = false;
 					var junx = this.slices.peek().getJunctions();
@@ -1077,7 +1126,7 @@ DataManager.prototype.wallmeat = function(){
 			p = MapSlice.idToLoc(i);
 			var tiles = new Array();
 			for(var y=144; y < 240; y+=16) for(var x=0; x < 256; x+=16) {
-				if( ( game.getTile(p.x+x,p.y+y) != 232 && game.getTile(p.x+x,p.y+y) != 0 ) && ( game.getTile(p.x+x+16,p.y+y) == 0 || game.getTile(p.x+x-16,p.y+y) == 0) ){
+				if( ( game.getTile(p.x+x,p.y+y) != BreakableTile.unbreakable && game.getTile(p.x+x,p.y+y) != 0 ) && ( game.getTile(p.x+x+16,p.y+y) == 0 || game.getTile(p.x+x-16,p.y+y) == 0) ){
 					tiles.push( new Point(p.x+x+8,p.y+y+8) );
 				}
 			}
@@ -1192,6 +1241,8 @@ DataManager.prettyBlocks = function(data, w){
 }
 
 function MapSlice() {
+	this.keys = [];
+	this.keyCount = 0;
 	this.data = {};
 }
 MapSlice.prototype.add = function(loc,room,p, secret){
@@ -1240,7 +1291,10 @@ MapSlice.prototype.add = function(loc,room,p, secret){
 		
 		for(var x=0; x< width; x++) for(var y=0; y< height; y++){
 			if( x!=0 || y!=0 ) {
-				this.add(new Point(pos.x+x, pos.y+y), -1, p);
+				var new_id = MapSlice.locToId(new Point(pos.x+x, pos.y+y));
+				this.add(new_id, -1, p);
+				this.data[new_id].width = width;
+				this.data[new_id].height = height;
 			}
 		}
 	}
@@ -1350,7 +1404,7 @@ MapSlice.prototype.isFree = function(loc,width,direction){
 	loc = MapSlice.locToId(loc);
 	return !(loc in this.data && this.data[loc] != undefined );
 }
-MapSlice.prototype.keys = function(){
+MapSlice.prototype.roomIds = function(){
 	return Object.keys(this.data);
 }
 MapSlice.prototype.size = function(){
@@ -1387,8 +1441,24 @@ MapSlice.prototype.filter = function(f){
 	}
 	return out;
 }
+MapSlice.prototype.randomKey = function(roll, max_keys){
+	var out = [0, true];
+	
+	if( this.keys.length > 0 && this.keys.length >= max_keys ) {
+		out[0] = this.keys[ Math.floor( roll * this.keys.length ) ];
+		out[1] = false;
+	} else {
+		out[0] = this.keyCount;
+		this.keyCount++;
+	}
+	return out;
+}
 MapSlice.prototype.clone = function(){
 	out = new MapSlice();
+	out.keyCount = this.keyCount;
+	for(var i=0; i < this.keys.length; i++){
+		out.keys.push(this.keys[i]);
+	}
 	for(var i in this.data){
 		out.add(i,this.data[i].room,this.data[i].properties);
 		out.data[i].secret = this.data[i].secret;
@@ -1507,6 +1577,8 @@ function load_sprites (){
 	sprites['magic_effects'] = new Sprite(RT+"img/magic_effects.gif", {offset:new Point(16, 32),width:32,height:48});
 	
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(8, 8),width:16,height:16,"filters":filter_pack_enemies});
+	sprites['axedog'] = new Sprite(RT+"img/axedog.gif", {offset:new Point(20, 24),width:40,height:40});
+	sprites['baller'] = new Sprite(RT+"img/baller.gif", {offset:new Point(40, 60),width:80,height:96,"filters":filter_pack_enemies});
 	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48,"filters":filter_pack_enemies});
 	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24,"filters":filter_pack_enemies});
 	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32,"filters":filter_pack_enemies});
@@ -1517,9 +1589,11 @@ function load_sprites (){
 	sprites['deckard'] = new Sprite(RT+"img/deckard.gif", {offset:new Point(24, 30),width:64,height:48,"filters":filter_pack_enemies});
 	sprites['ghoul'] = new Sprite(RT+"img/ghoul.gif", {offset:new Point(16, 24),width:32,height:48,"filters":filter_pack_enemies});
 	sprites['ending'] = new Sprite(RT+"img/ending.gif", {offset:new Point(48, 32),width:96,height:64});
+	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
 	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64,"filters":filter_pack_enemies});
 	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48,"filters":filter_pack_enemies});
+	sprites['flederknife'] = new Sprite(RT+"img/flederknife.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":filter_pack_enemies});
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});
 	sprites['playerhuman'] = new Sprite(RT+"img/playerhuman.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});

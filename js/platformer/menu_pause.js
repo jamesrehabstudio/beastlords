@@ -141,7 +141,7 @@ PauseMenu.prototype.update = function(){
 		this.map_reveal[map_index] = 2;
 		
 		var lock;
-		switch( Math.abs(this.map[map_index]) ){
+		switch( Math.abs(this.map[map_index]) % 16 ){
 			case 0: lock = new Line(0,0,256,480); break;
 			case 1: lock = new Line(0,0,512,480); break;
 			case 2: lock = new Line(-256,0,256,480); break;
@@ -327,15 +327,16 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 				);
 				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 					//sprites.map.render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
-					var xtile = 0;
-					if( this.map_reveal[i] <= 2 ) xtile += 4;
-					sprites.map.render(g,pos.add(offset),xtile,this.map[i]);
+					var xtile = Math.floor(this.map[i] / 16);
+					var ytile = this.map[i] % 16;
+					if( this.map_reveal[i] < 2 ) xtile += 4;
+					sprites.map.render(g,pos.add(offset),xtile,ytile);
 					
 					if( this.map_reveal[i] >= 2 ) {					
 						for(var j=0; j < doors.length; j++ ){
 							if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
 								var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
-								sprites.map.render(g,pos.add(offset),door_id,2);
+								sprites.map.render(g,pos.add(offset),8,door_id);
 							}
 						}
 						if( shop != null && tile.x == Math.floor(shop.position.x/256) && tile.y == Math.floor(shop.position.y/240) ){
@@ -352,7 +353,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		);
 		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 			g.color = [1.0,0.0,0.0,1.0];
-			g.scaleFillRect(pos.x + offset.x, pos.y + offset.y, 5, 5 );
+			g.scaleFillRect(1 + pos.x + offset.x, 1 + pos.y + offset.y, 4, 3 );
 		}
 	} catch (err) {}
 }

@@ -204,7 +204,7 @@ function Game( elm ) {
 		audio.musVolume.gain.value = localStorage.getItem("musvolume");
 	}
 	
-	var fs = !!localStorage.getItem("fullscreen");
+	var fs = localStorage.getItem("fullscreen") == "true";
 	this.fullscreen(fs);
 	
 	this._id_index = 0;
@@ -475,6 +475,9 @@ Game.prototype.renderTiles = function(layer){
 		0-Math.round(camera.x%ts),
 		0-Math.round(camera.y%ts)
 	);
+	if( camera.y < 0 && camera.y % 240.0 != 0 ) {
+		campos.y -= ts;
+	}
 	if( camera.x < 0 && camera.x % 256.0 != 0 ) {
 		campos.x -= ts;
 	}

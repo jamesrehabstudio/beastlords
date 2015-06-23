@@ -84,7 +84,8 @@ BreakableTile.prototype.update = function(){
 	if( this.life <= 0 ) this.death_time -= this.delta;
 	
 	if( this.death_time <= 0 ) {
-		if( game.getTile(this.position.x, this.position.y ) != 0 ) {
+		var tile = game.getTile(this.position.x, this.position.y );
+		if( tile != 0 && tile != BreakableTile.unbreakable ) {
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
 			game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 0 );
 			if( this.item instanceof Item){
@@ -104,3 +105,5 @@ BreakableTile.prototype.update = function(){
 		this.destroy();
 	}
 }
+
+BreakableTile.unbreakable = 232;

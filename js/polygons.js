@@ -154,7 +154,7 @@ Line.prototype.correct = function(){
 }
 
 Line.prototype.render = function(g, camera){
-	var s = this.start.subtract(camera).scale(pixel_scale);
+/*	var s = this.start.subtract(camera).scale(pixel_scale);
 	var e = this.end.subtract(camera).scale(pixel_scale);
 	g.strokeStyle = "#FF0000";
 	g.beginPath();
@@ -173,6 +173,7 @@ Line.prototype.render = function(g, camera){
 		g.closePath();
 		g.stroke();	
 	}
+	*/
 }
 
 Line.prototype.scale = function(s,y){

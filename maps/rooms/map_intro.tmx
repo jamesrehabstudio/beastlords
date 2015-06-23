@@ -73,7 +73,7 @@
  </layer>
  <objectgroup name="objects" width="128" height="30">
   <properties>
-   <property name="map_tile" value="15,1,1,1,3,1,1,13,0,0,0,12,4,0,0,0"/>
+   <property name="map_tile" value="5,7,7,38,48,21,7,6,0,0,0,36,28,0,0,0"/>
    <property name="tileset" value="tilesintro"/>
   </properties>
   <object name="SceneIntro" gid="199" x="160" y="160"/>

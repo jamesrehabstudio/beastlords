@@ -127,7 +127,7 @@
          "opacity":1,
          "properties":
             {
-             "map_tile":"15",
+             "entrances":"[[5,0]]",
              "rarity":"0",
              "tags":"[\"entry_final\"]"
             },

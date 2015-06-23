@@ -89,7 +89,7 @@ var mod_camera = {
 			self.camerShake = p;
 		};
 	},
-	'update' : function(){		
+	'update' : function(){
 		var screen = game.resolution;
 		game.camera.x = this.position.x - (game.resolution.x / 2);
 		game.camera.y = this.position.y - (game.resolution.y / 2);
@@ -118,8 +118,22 @@ var mod_camera = {
 		}
 		
 		if( this._lock_current instanceof Line ) {
+			if( this._lock_current.width() < game.resolution.x ){
+				var center = (this._lock_current.start.x + this._lock_current.end.x) / 2;
+				this._lock_current.start.x = center - (game.resolution.x/2);
+				this._lock_current.end.x = center + (game.resolution.x/2);
+			}
 			game.camera.x = Math.min( Math.max( game.camera.x, this._lock_current.start.x ), this._lock_current.end.x - screen.x );
 			game.camera.y = Math.min( Math.max( game.camera.y, this._lock_current.start.y ), this._lock_current.end.y - screen.y );
+		}
+	},
+	"render" : function(g,c){
+		var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
+		if( viewWidth < game.resolution.x ){
+			var excess = game.resolution.x - viewWidth;
+			g.color = [0,0,0,1];
+			g.scaleFillRect(0,0,excess*0.5, game.resolution.y);
+			g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
 		}
 	}
 }
@@ -185,7 +199,11 @@ var mod_combat = {
 			"y" : -5,
 			"h" : 16,
 			"w" : 16,
-			"active" : false
+			"active" : false,
+			"life" : 30,
+			"lifeMax" : 30,
+			"restore" : 0.5,
+			"invincible" : 0.0
 		};
 		this._shield = new GameObject();
 		this._shield.life = 1;
@@ -194,10 +212,11 @@ var mod_combat = {
 			for(var i in this.statusEffectsTimers )this.statusEffectsTimers[i] = -1;
 			game.addObject(this._shield); 
 		});
+		/*
 		this._shield.on("struck",function(obj,position,damage){
 			if( obj != self ) 
 				self.trigger("block",obj,position,damage);
-		});
+		});*/
 			
 		this.strike = function(l,trigger,damage){
 			trigger = trigger == undefined ? "struck" : trigger;
@@ -221,7 +240,19 @@ var mod_combat = {
 						hits[i].hurt(this, damage);
 						out.push(hits[i]);
 					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
-						//
+						//block?
+						hits[i].trigger("block",this, offset.center(), damage);
+						if( hits[i].guard.invincible <= 0 ) {
+							if( damage > hits[i].guard.life ) {
+								damage = Math.max( damage - hits[i].guard.life, 0);
+								hits[i].guard.life = 0;
+								hits[i].trigger("guardbreak", this, offset.center(), damage);
+								hits[i].hurt(this, damage);
+							} else {
+								hits[i].guard.life -= damage;
+								hits[i].guard.invincible = Game.DELTASECOND * 0.6;
+							}
+						}
 					} else {
 						hits[i].trigger(trigger, this, offset.center(), damage);
 						out.push(hits[i]);
@@ -381,14 +412,17 @@ var mod_combat = {
 		
 		this._shield.interactive = this.guard.active;
 		this._shield.team = this.team;
+		this.guard.invincible -= this.deltaUnscaled;
 		if( this.guard.active ) {
 			this._shield.position.x = this.position.x+(this.flip?-1:1)*this.guard.x;
 			this._shield.position.y = this.position.y+this.guard.y;
 			this._shield.width = this.guard.w;
 			this._shield.height = this.guard.h;
+			this.guard.life = Math.min(this.guard.life + this.guard.restore * this.delta * 0.75, this.guard.lifeMax);
 		} else {
 			this._shield.position.x = -Number.MAX_VALUE;
 			this._shield.position.y = -Number.MAX_VALUE;
+			this.guard.life = Math.min(this.guard.life + this.guard.restore * this.delta, this.guard.lifeMax);
 		}
 		
 		this.invincible -= this.deltaUnscaled;

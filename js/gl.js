@@ -82,10 +82,13 @@ Material.propertyTypes = [
 	"vec2",
 	"vec4"
 ];
-Material.prototype.set = function(name) {
+Material.prototype.set = function(name, args) {
 	if(!(name in this.properties )) return;
 	var prop = this.properties[name];
-	var args = Array.prototype.slice.apply(arguments, [1]);
+	
+	if( !(args instanceof Array )) {
+		args = Array.prototype.slice.apply(arguments, [1]);
+	}
 	
 	if( prop.uniform ) {
 		if( prop.type == 0 ) {
@@ -247,7 +250,7 @@ Sprite.prototype.uv = function( frame, row ) {
 	return [frame * xinc, row * yinc, (frame+1) * xinc, (row+1) * yinc];
 }
 	
-Sprite.prototype.render = function( gl, p, frame, row, flip, shader ) {
+Sprite.prototype.render = function( gl, p, frame, row, flip, shader, shaderOps ) {
 	if( !this.loaded  ) return;
 	
 	if(frame == undefined ){
@@ -261,11 +264,17 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader ) {
 		row = ~~row;
 	}
 	
-	var shader;
-	if( shader in window.materials ){
+	if( shader instanceof Material ){
+		//Correct shader already selected
+	} else if( shader in window.materials ){
 		shader = window.materials[shader].use();
 	} else { 
 		shader = window.materials["default"].use();
+	}
+	
+	shaderOps = shaderOps || {};
+	for(var i in shaderOps){
+		shader.set(i, shaderOps[i]);
 	}
 	
 	var xinc = this.frame_width / (this.img.width * 1.0);
@@ -370,43 +379,7 @@ if( !this.loaded  ) return;
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 }
-Sprite.prototype.renderScale = function( g, cover, frame, row, flip, filter ) {
-	/*
-	if(frame == undefined ){
-		x_off = y_off = 0;
-	} else if ( row == undefined ) {
-		x_off = (frame % this.width) * this.frame_width;
-		y_off = Math.floor(frame / this.width) * this.frame_height;
-	} else {
-		x_off = ~~frame * this.frame_width;
-		y_off = ~~row * this.frame_height;
-	}
-	
-	var img = filter in this.altimg ? this.altimg[filter] : this.img;
-	
-	g.beginPath();
-	if( flip ) {
-		g.save();
-		g.scale(-1,1);
-		cover.start.x = g.canvas.width + (g.canvas.width * -1) - cover.start.x;
-	}
-	try{
-		g.drawImage( 
-			img, 
-			x_off, y_off, 
-			this.frame_width, 
-			this.frame_height,
-			pixel_scale * cover.start.x,
-			pixel_scale * cover.start.y,
-			pixel_scale * cover.width(),
-			pixel_scale * cover.height()
-			
-		);
-	} catch (err) {}
-	g.restore();
-	g.closePath();
-	*/
-}
+
 WebGLRenderingContext.prototype.createF = function(){
 	var fb = this.createFramebuffer();
 	this.bindFramebuffer( this.FRAMEBUFFER, fb );

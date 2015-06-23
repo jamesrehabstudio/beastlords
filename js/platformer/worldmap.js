@@ -12,7 +12,7 @@ function WorldMap(x, y){
 	this.zIndex = 999;
 	this.speed = 2.5;
 	this.seed = "" + Math.random();
-	//this.seed = "0.08349138917401433";
+	//this.seed = "0.3662224621511996";
 	this.active = true;
 	this.mode = 0;
 	

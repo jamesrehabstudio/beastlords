@@ -19,14 +19,19 @@ MapDebug.prototype.render = function(g,c){
 		
 		var slice = dataManager.slices[this.slice].data;
 		for(var i in slice ){
-			var tile = slice[i].room == "j" ? 8 : 0;
-			var row = 0;
-			if( dataManager.slices[this.slice].data[i].room == -1 ) row++;
-			var pos = new Point(
-				size.x * ~~i.match(/(-?\d+)/g)[0],
-				size.y * ~~i.match(/(-?\d+)/g)[1]
-			);
-			sprites.map.render(g,pos.subtract(this.offset),tile,row)
+			if( slice[i].room != -1 ) {
+				var pos = MapSlice.idToLoc(i);
+				for(var w=0; w < slice[i].width; w++) for(var h=0; h < slice[i].height; h++) {
+					var pos = MapSlice.idToLoc(i);
+					var tileY = 0;
+					if( h > 0) tileY += 8;
+					if( h >= slice[i].height-1) tileY += 4;
+					if( w > 0) tileY += 2;
+					if( w < slice[i].width-1) tileY += 1;
+					var mpos = pos.add(new Point(w,h)).scale(8).subtract(this.offset);
+					sprites.map.render(g,mpos,0,tileY);
+				}
+			}
 		}
 	} catch (err) {}
 }

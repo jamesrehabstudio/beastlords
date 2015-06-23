@@ -86,7 +86,7 @@
          "opacity":1,
          "properties":
             {
-             "map_tile":"12,1,13",
+             "map_tile":"5,7,6",
              "rarity":"0"
             },
          "type":"objectgroup",

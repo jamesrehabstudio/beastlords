@@ -48,10 +48,14 @@ function Marquis(x,y){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("critical", function(){
-		this.states.cooldown = (Math.random() > 0.6 ? 0.0 : 10.0);
+		this.states.attack = 0;
+		this.states.cooldown = this.attack_times.warm;
+	});
+	this.on("struckTarget", function(){
+		this.states.attack = 0;
+		this.states.cooldown = this.attack_times.warm;
 	});
 	this.on("hurt", function(){
-		this.states.attack = -1.0;
 		audio.play("hurt");
 	});
 	this.on("block", function(obj,pos,damage){
