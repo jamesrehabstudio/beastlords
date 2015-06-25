@@ -2,18 +2,18 @@ window._version = "0.2.0";
 
 function DataManager() {
 	this.temples = [
-		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":1,"difficulty":0,"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker","Shell"],"minorfly":["Batty"]},
-		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1,"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"]},
-		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2,"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"]},
-		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3,"boss":["Minotaur","Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"]},
-		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":4,"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"]},
-		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":5,"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
+		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":1,"difficulty":0,"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker","Shell"],"minorfly":["Batty"],"perchmonster":["Axedog"]},
+		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1,"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"],"perchmonster":["Axedog"]},
+		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2,"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"],"perchmonster":["Axedog"]},
+		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3,"boss":["Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"],"perchmonster":["Axedog"]},
+		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":4,"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"],"perchmonster":["Axedog"]},
+		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":5,"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"],"perchmonster":["Axedog"]},
 		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		
-		{"tiles":"tiles5","size":16,"maxkeys":4,"treasures":1,"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Ratgut"],"minorfly":["Batty","Svarog"]},
-		{"tiles":"tiles2","size":17,"maxkeys":4,"treasures":1,"boss":["Zoder"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"]},
-		{"tiles":"tiles2","size":18,"maxkeys":5,"treasures":1,"boss":["Poseidon"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"]}
+		{"tiles":"tiles5","size":16,"maxkeys":4,"treasures":1,"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Ratgut"],"minorfly":["Batty","Svarog"],"perchmonster":["Axedog"]},
+		{"tiles":"tiles2","size":17,"maxkeys":4,"treasures":1,"boss":["Zoder"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"],"perchmonster":["Axedog"]},
+		{"tiles":"tiles2","size":18,"maxkeys":5,"treasures":1,"boss":["Poseidon"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"],"perchmonster":["Axedog"]}
 	];
 	
 	/* Set data */
@@ -29,7 +29,15 @@ function DataManager() {
 		{"tags":["treasure","chest","weapon"],"name":"short_sword","unlocked":1,"rarity":0.2,"pathSize":2,"doors":0.0,"pergame":10,"price":20},
 		{"tags":["treasure","chest","weapon"],"name":"long_sword","unlocked":1,"rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
 		{"tags":["treasure","chest","weapon"],"name":"spear","unlocked":1,"rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
-		{"tags":["weapon"],"name":"tower_shield","unlocked":1,"rarity":0.05,"pathSize":4,"doors":0.5,"pergame":10,"price":50},
+		
+		{"tags":["treasure","chest"],"name":"small_shield","unlocked":1,"rarity":0.2,"doors":0.5,"pergame":0,"price":30},
+		{"tags":["treasure","chest"],"name":"large_shield","unlocked":0,"rarity":0.14,"doors":0.5,"pergame":10,"price":35},
+		{"tags":["treasure","chest"],"name":"kite_shield","unlocked":0,"rarity":0.12,"doors":0.5,"pergame":10,"price":40},
+		{"tags":["treasure","chest"],"name":"broad_shield","unlocked":0,"rarity":0.1,"doors":0.5,"pergame":10,"price":40},
+		{"tags":["treasure","chest"],"name":"knight_shield","unlocked":0,"rarity":0.08,"doors":0.5,"pergame":10,"price":40},
+		{"tags":["treasure","chest"],"name":"spiked_shield","unlocked":0,"rarity":0.07,"doors":0.5,"pergame":10,"price":50},
+		{"tags":["treasure","chest"],"name":"heavy_shield","unlocked":0,"rarity":0.06,"doors":0.5,"pergame":10,"price":40},
+		{"tags":["treasure","chest"],"name":"tower_shield","unlocked":0,"rarity":0.05,"doors":0.5,"pergame":10,"price":50},
 		
 		{"tags":["treasure","shop"],"name":"seed_oriax","unlocked":1,"rarity":0.1,"pathSize":6,"doors":0.3,"pergame":1,"price":100},
 		{"tags":["treasure","shop"],"name":"seed_bear","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
@@ -528,6 +536,7 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 	var majormonster = temple.majormonster;
 	var miniboss = temple.miniboss;
 	var boss = temple.boss;
+	var perchmonster = temple.perchmonster;
 	
 	var width = ("width" in room) ? room.width : 1;
 	var height = ("height" in room) ? room.height : 1;
@@ -601,6 +610,7 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 			if(objectName == "MajorMonster") objectName = majormonster[ Math.floor( seed.random() * majormonster.length ) ];
 			if(objectName == "MinorMonster") objectName = minormonster[ Math.floor( seed.random() * minormonster.length ) ];
 			if(objectName == "MinorFly") objectName = minorfly[ Math.floor( seed.random() * minorfly.length ) ];
+			if(objectName == "PerchMonster") objectName = perchmonster[ Math.floor( seed.random() * minorfly.length ) ];
 			
 			//Debug mode
 			if( window.debug && objectName == "Player" ) objectName = "Debuger";
@@ -914,6 +924,26 @@ DataManager.prototype.addRoom = function(options, level, cursor){
 }
 
 DataManager.prototype.attemptLoop = function(options,level,direction,cursor,destination,connection){
+	var distance = Math.abs(direction.x - cursor.x);
+	for(var attempt=1; attempt < distance; attempt++){
+		var lowest = new Point(Math.min(direction.x, cursor.x), Math.min(direction.y, cursor.y));
+		if( direction.y == cursor.y ) {
+			var width = Math.abs(direction.x - cursor.x);
+			if( this.slices.peek().isFree({"width":distance, "height":1}, lowest) ){
+				//fill it up with rooms
+				return true;
+			}
+			return false;
+		} else { 
+			var leftmost = cursor.x > direction.x;
+			if( this.slices.peek().isFree({"width":distance, "height":1}, new Point(cursor.x-distance,cursor.y)) ){
+				
+			}
+		}
+	}
+	return false;
+}
+DataManager.prototype.attemptLoopOld = function(options,level,direction,cursor,destination,connection){
 	if( level > 30 ) {
 		console.error("Couldn't reach destination in "+level+" steps.");
 		return false;
@@ -1600,6 +1630,7 @@ function load_sprites (){
 	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
 	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16,"filters":filter_pack_enemies});
+	sprites['shields'] = new Sprite(RT+"img/shields.gif", {offset:new Point(0, 16),width:16,height:32});
 	sprites['shooter'] = new Sprite(RT+"img/shooter.gif", {offset:new Point(32, 24),width:64,height:48,"filters":filter_pack_enemies});
 	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48,"filters":filter_pack_enemies});

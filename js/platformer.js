@@ -5498,8 +5498,15 @@ function Item(x,y,name, ops){
 			if( this.name == "short_sword") { obj.equip(this, obj.equip_shield); audio.play("equip") }
 			if( this.name == "long_sword") { obj.equip(this, obj.equip_shield); audio.play("equip") }
 			if( this.name == "spear") { obj.equip(this, obj.equip_shield); audio.play("equip") }
-			if( this.name == "small_shield") { obj.equip(obj.equip_sword, this); audio.play("equip") }
-			if( this.name == "tower_shield") { obj.equip(obj.equip_sword, this); audio.play("equip") }
+			
+			if( this.name == "small_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "large_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "kite_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "broad_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "knight_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "spiked_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "heavy_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "tower_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
 			
 			if( this.name == "map") { game.getObject(PauseMenu).revealMap(); audio.play("pickup1"); }
 			
@@ -5634,14 +5641,60 @@ Item.prototype.setName = function(n){
 		}
 		return; 
 	}
-	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
-	if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
+	if(n == "small_shield") { 
+		this.frame = 0; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.0,"guardlife":30,"height":11, "frame":0, "frame_row":0}
+		return; 
+	}
+	if(n == "large_shield") { 
+		this.frame = 1; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1}
+		return; 
+	}
+	if(n == "kite_shield") { 
+		this.frame = 2; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=1;
+		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2}
+		return; 
+	}
+	if(n == "broad_shield") { 
+		this.frame = 3; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.4,"guardlife":50,"height":18, "frame":0, "frame_row":3}
+		return; 
+	}
+	if(n == "knight_shield") { 
+		this.frame = 4; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.1,"guardlife":50,"height":17, "frame":2, "frame_row":0}
+		return; 
+	}
+	if(n == "spiked_shield") { 
+		this.frame = 5; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":2, "frame_row":1}
+		return; 
+	}
+	if(n == "heavy_shield") { 
+		this.frame = 6; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=1;
+		this.stats = {"speed":1.2,"guardlife":60,"height":17, "frame":2, "frame_row":2}
+		return; 
+	}
+	if(n == "tower_shield") { 
+		this.frame = 7; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=1;
+		this.stats = {"speed":1.5,"guardlife":70,"height":30, "frame":2, "frame_row":3}
+		return; 
+	}
 	
 	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
 	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
 	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
-	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
-	if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
+	//if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
+	//if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
 	if(n == "map") { this.frame = 3; this.frame_row = 1; return }
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
@@ -7815,7 +7868,7 @@ Player.prototype.equipCharm = function(c){
 	c.trigger("equip");
 }
 Player.prototype.equip = function(sword, shield){
-	try {		
+	try {	
 		if( sword.isWeapon && "stats" in sword ){
 			this.attackProperites.warm =  sword.stats.warm;
 			this.attackProperites.strike = sword.stats.strike;
@@ -7829,24 +7882,17 @@ Player.prototype.equip = function(sword, shield){
 		
 		//Shields
 		if( shield != null ) {
-			if( shield.name == "small_shield" ){
-				this.shieldProperties.duck = 6.0;
+			if( "stats" in shield){
+				this.attackProperites.warm *= shield.stats.speed;
+				this.attackProperites.strike *= shield.stats.speed;
+				this.attackProperites.rest *= shield.stats.speed;
+				this.shieldProperties.duck = -5.0 + (15 - (shield.stats.height/2));
 				this.shieldProperties.stand = -5.0;
-				this.shieldProperties.frame_row = 3;
-				this.guard.h = 16;
-			} else if ( shield.name == "tower_shield" ){
-				this.attackProperites.warm += 15.0;
-				this.attackProperites.strike +=  12.0;
-				this.attackProperites.rest +=  12.0;
-				this.shieldProperties.duck = -5.0;
-				this.shieldProperties.stand = -5.0;
-				this.guard.h = 32;
-				this.shieldProperties.frame_row = 4;
-			} else {
-				this.shieldProperties.duck = -Number.MAX_VALUE;
-				this.shieldProperties.stand = -Number.MAX_VALUE;
-				this.shieldProperties.frame_row = 5;
-				this.guard.h = 16;
+				this.guard.lifeMax = shield.stats.guardlife;
+				this.guard.life = this.guard.lifeMax;
+				this.guard.h = shield.stats.height;
+				this.shieldProperties.frame = shield.stats.frame;
+				this.shieldProperties.frame_row = shield.stats.frame_row;
 			}
 		} else {
 			this.shieldProperties.duck = -Number.MAX_VALUE;
@@ -7896,6 +7942,9 @@ Player.prototype.equip = function(sword, shield){
 		var att = Math.max( Math.min( att_bonus + this.stats.attack - 1, 19), 0 );
 		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
+		
+		this.guard.lifeMax += 3 * def;
+		this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
@@ -7974,18 +8023,7 @@ Player.prototype.hasCharm = function(value){
 	return false;
 }
 Player.prototype.render = function(g,c){
-	//Render shield
-	var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
-	this.sprite.render(g, 
-		this.position.subtract(c), 
-		shield_frame, 
-		this.shieldProperties.frame_row, 
-		this.flip,
-		"heat",
-		{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
-	);
-	
-	
+	//Spell effects
 	if( this.spellsCounters.flight > 0 ){
 		var wings_offset = new Point((this.flip?8:-8),0);
 		var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
@@ -7996,10 +8034,24 @@ Player.prototype.render = function(g,c){
 		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
 	}
 	
+	//Render player
 	GameObject.prototype.render.apply(this,[g,c]);
 	
 	if( this.spellsCounters.thorns > 0 ){
 		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
+	}
+	
+	//Render shield
+	if( this.guard.active ) {
+		var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
+		sprites.shields.render(g, 
+			this.position.subtract(c).add(new Point(0, this.guard.y)), 
+			this.shieldProperties.frame, 
+			this.shieldProperties.frame_row, 
+			this.flip,
+			"heat",
+			{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
+		);
 	}
 	
 	//Render current sword

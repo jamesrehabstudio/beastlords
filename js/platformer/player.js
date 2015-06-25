@@ -516,7 +516,7 @@ Player.prototype.equipCharm = function(c){
 	c.trigger("equip");
 }
 Player.prototype.equip = function(sword, shield){
-	try {		
+	try {	
 		if( sword.isWeapon && "stats" in sword ){
 			this.attackProperites.warm =  sword.stats.warm;
 			this.attackProperites.strike = sword.stats.strike;
@@ -530,24 +530,17 @@ Player.prototype.equip = function(sword, shield){
 		
 		//Shields
 		if( shield != null ) {
-			if( shield.name == "small_shield" ){
-				this.shieldProperties.duck = 6.0;
+			if( "stats" in shield){
+				this.attackProperites.warm *= shield.stats.speed;
+				this.attackProperites.strike *= shield.stats.speed;
+				this.attackProperites.rest *= shield.stats.speed;
+				this.shieldProperties.duck = -5.0 + (15 - (shield.stats.height/2));
 				this.shieldProperties.stand = -5.0;
-				this.shieldProperties.frame_row = 3;
-				this.guard.h = 16;
-			} else if ( shield.name == "tower_shield" ){
-				this.attackProperites.warm += 15.0;
-				this.attackProperites.strike +=  12.0;
-				this.attackProperites.rest +=  12.0;
-				this.shieldProperties.duck = -5.0;
-				this.shieldProperties.stand = -5.0;
-				this.guard.h = 32;
-				this.shieldProperties.frame_row = 4;
-			} else {
-				this.shieldProperties.duck = -Number.MAX_VALUE;
-				this.shieldProperties.stand = -Number.MAX_VALUE;
-				this.shieldProperties.frame_row = 5;
-				this.guard.h = 16;
+				this.guard.lifeMax = shield.stats.guardlife;
+				this.guard.life = this.guard.lifeMax;
+				this.guard.h = shield.stats.height;
+				this.shieldProperties.frame = shield.stats.frame;
+				this.shieldProperties.frame_row = shield.stats.frame_row;
 			}
 		} else {
 			this.shieldProperties.duck = -Number.MAX_VALUE;
@@ -597,6 +590,9 @@ Player.prototype.equip = function(sword, shield){
 		var att = Math.max( Math.min( att_bonus + this.stats.attack - 1, 19), 0 );
 		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
+		
+		this.guard.lifeMax += 3 * def;
+		this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
@@ -675,18 +671,7 @@ Player.prototype.hasCharm = function(value){
 	return false;
 }
 Player.prototype.render = function(g,c){
-	//Render shield
-	var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
-	this.sprite.render(g, 
-		this.position.subtract(c), 
-		shield_frame, 
-		this.shieldProperties.frame_row, 
-		this.flip,
-		"heat",
-		{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
-	);
-	
-	
+	//Spell effects
 	if( this.spellsCounters.flight > 0 ){
 		var wings_offset = new Point((this.flip?8:-8),0);
 		var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
@@ -697,10 +682,24 @@ Player.prototype.render = function(g,c){
 		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
 	}
 	
+	//Render player
 	GameObject.prototype.render.apply(this,[g,c]);
 	
 	if( this.spellsCounters.thorns > 0 ){
 		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
+	}
+	
+	//Render shield
+	if( this.guard.active ) {
+		var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
+		sprites.shields.render(g, 
+			this.position.subtract(c).add(new Point(0, this.guard.y)), 
+			this.shieldProperties.frame, 
+			this.shieldProperties.frame_row, 
+			this.flip,
+			"heat",
+			{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
+		);
 	}
 	
 	//Render current sword

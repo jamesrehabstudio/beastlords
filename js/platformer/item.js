@@ -35,8 +35,15 @@ function Item(x,y,name, ops){
 			if( this.name == "short_sword") { obj.equip(this, obj.equip_shield); audio.play("equip") }
 			if( this.name == "long_sword") { obj.equip(this, obj.equip_shield); audio.play("equip") }
 			if( this.name == "spear") { obj.equip(this, obj.equip_shield); audio.play("equip") }
-			if( this.name == "small_shield") { obj.equip(obj.equip_sword, this); audio.play("equip") }
-			if( this.name == "tower_shield") { obj.equip(obj.equip_sword, this); audio.play("equip") }
+			
+			if( this.name == "small_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "large_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "kite_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "broad_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "knight_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "spiked_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "heavy_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.name == "tower_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
 			
 			if( this.name == "map") { game.getObject(PauseMenu).revealMap(); audio.play("pickup1"); }
 			
@@ -171,14 +178,60 @@ Item.prototype.setName = function(n){
 		}
 		return; 
 	}
-	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
-	if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
+	if(n == "small_shield") { 
+		this.frame = 0; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.0,"guardlife":30,"height":11, "frame":0, "frame_row":0}
+		return; 
+	}
+	if(n == "large_shield") { 
+		this.frame = 1; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1}
+		return; 
+	}
+	if(n == "kite_shield") { 
+		this.frame = 2; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=1;
+		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2}
+		return; 
+	}
+	if(n == "broad_shield") { 
+		this.frame = 3; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.4,"guardlife":50,"height":18, "frame":0, "frame_row":3}
+		return; 
+	}
+	if(n == "knight_shield") { 
+		this.frame = 4; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.1,"guardlife":50,"height":17, "frame":2, "frame_row":0}
+		return; 
+	}
+	if(n == "spiked_shield") { 
+		this.frame = 5; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=0;
+		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":2, "frame_row":1}
+		return; 
+	}
+	if(n == "heavy_shield") { 
+		this.frame = 6; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=1;
+		this.stats = {"speed":1.2,"guardlife":60,"height":17, "frame":2, "frame_row":2}
+		return; 
+	}
+	if(n == "tower_shield") { 
+		this.frame = 7; this.frame_row = 3; 
+		this.bonus_att=0; this.bonus_def=1;
+		this.stats = {"speed":1.5,"guardlife":70,"height":30, "frame":2, "frame_row":3}
+		return; 
+	}
 	
 	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
 	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
 	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
-	if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
-	if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
+	//if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
+	//if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
 	if(n == "map") { this.frame = 3; this.frame_row = 1; return }
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }

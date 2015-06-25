@@ -76,5 +76,8 @@
    <property name="entrances" value="[[1,0],[0,1]]"/>
    <property name="rarity" value="1.0"/>
   </properties>
+  <object name="PerchMonster" gid="199" x="192" y="192"/>
+  <object name="PerchMonster" gid="199" x="128" y="288"/>
+  <object name="PerchMonster" gid="199" x="208" y="320"/>
  </objectgroup>
 </map>
