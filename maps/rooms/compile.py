@@ -46,6 +46,8 @@ def compile(data, width=16):
 			out["back"] = layer["data"]
 		elif layer["name"] == "front":
 			out["front"] = layer["data"]
+		elif layer["name"] == "far":
+			out["far"] = layer["data"]
 	
 	return out
 	

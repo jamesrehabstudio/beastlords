@@ -262,7 +262,6 @@ DataManager.prototype.randomTown = function(g, town){
 		4: {"odds":0.0, count:0},
 		6: {"odds":0.3, count:0},
 		8: {"odds":0.3, count:0}
-		
 	}
 	
 	g.clearAll();
@@ -273,9 +272,9 @@ DataManager.prototype.randomTown = function(g, town){
 	var pos = 0;
 	for(var i=0; i < length; i++){
 		if( i == 0 ) { 
-			rooms[pos] = 10;
-		} else if ( i == length-1) {
 			rooms[pos] = 9;
+		} else if ( i == length-1) {
+			rooms[pos] = 10;
 		} else {
 			rooms[pos] = town.size-1;
 			for(var j in specials){
@@ -327,6 +326,15 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 	g.tileSprite = sprites[temple.tiles];
 	
 	while( !success ) {
+		//Refresh room counts
+		for(var i=0; i < window._map_rooms.length; i++){
+			if( "count" in window._map_rooms[i] ) {
+				window._map_rooms.remaining = window._map_rooms[i].count - 0;
+			} else {
+				window._map_rooms.remaining = 9999;
+			}
+		}
+		
 		this.key_counter = 0;
 		this.shop_counter = 0;
 		this.branch_counter = 0;		
@@ -354,7 +362,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 			}
 			
 			console.log("Added secret? " + this.addSecret({"item":"life_up"}) );
-			//console.log("Add well? " + this.addWell(this.slices.peek().filter({"width":1,"rarity":0.001})) );
+			console.log("Add well? " + this.addWell(this.slices.peek().filter({"height":1,"width":1,"rarity":0.001})) );
 			
 		} else {
 			console.error("Seriously? No junctions? Try that again.");
@@ -564,6 +572,10 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 				);
 				g.tiles[j][offset] = layer[i];
 			}
+			
+			if( layers[j] == "far") {
+				addBackground = false;
+			}
 		}
 	}
 	
@@ -571,12 +583,13 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 	if( addBackground ) {
 		if( dataManager.currentTemple >= 0 && (cursor.x != 0 || cursor.y != 0) ) {
 			var bgsize = room_size - 1;
-			for(var w=0; w < width; w++ ){
+			for(var w=0; w < width; w++ ) for(var h=0; h < height; h++ ){
 				var bg = Background.rooms[Math.floor(Math.random()*Background.rooms.length)];
 				for(var i=0; i < bg.tiles.length; i++){
 					var x = Math.floor( i % bgsize );
 					var y = Math.floor( i / bgsize );
 					var offset = Math.floor( 
+						(h * g.tileDimension.width() * 15) +
 						w * bgsize + 
 						Math.floor( (x-g.tileDimension.start.x) + Math.floor( (cursor.x) / (room_size+1) ) ) + 
 						Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / (room_size) ) ) * g.tileDimension.width() )
@@ -1038,8 +1051,12 @@ DataManager.prototype.attemptLoopOld = function(options,level,direction,cursor,d
 	return true;
 }
 
-DataManager.prototype.addWell = function(junctions){
-	junctions.sort(function(a,b){ MapSlice.idToLoc(a).y - MapSlice.idToLoc(a).y });
+DataManager.prototype.addWell = function(){
+	//junctions.sort(function(a,b){ MapSlice.idToLoc(a).y - MapSlice.idToLoc(a).y });
+	
+	//var junctions = dataManager.slices.peek().getEntrances();
+	var rooms = this.slices.peek().filter({"width":1,"height":1,"rarity":0.001});
+	
 	var size = 6 + Math.floor(seed.random() * 5);
 	var item = this.randomTreasure(seed.random(), [], {"remaining":-999,"locked":true});
 	var options = {
@@ -1050,23 +1067,19 @@ DataManager.prototype.addWell = function(junctions){
 		"item" : item.name
 	}
 	
-	for(var i=0; i < junctions.length; i++){
-		var cursor = MapSlice.idToLoc(junctions[i]);
+	for(var i=0; i < rooms.length; i++){
+		//var cursor = MapSlice.idToLoc(junctions[i]);
+		var cursor = MapSlice.idToLoc(rooms[i]);
 		if(
 			this.slices.peek().isFree(cursor.add(new Point(0,1))) &&
 			this.slices.peek().isFree(cursor.add(new Point(0,2)))
 		){
 			rid = this.slices.length;
 			this.slices.push( this.slices.peek().clone() );
-			this.slices.peek().add(cursor,this.roomFromTags(["well"]));
-			this.slices.peek().add(cursor.add(new Point(0,1)),"j");
-			this.slices.peek().setJunction(cursor.add(new Point(0,1)),["n","s"]);
-			this.slices.peek().setSecret(cursor.add(new Point(0,1)),true);
-			this.slices.peek().add(cursor.add(new Point(0,2)),"j");
-			this.slices.peek().setJunction(cursor.add(new Point(0,2)),["n","well"]);
-			this.slices.peek().setSecret(cursor.add(new Point(0,2)),true);
 			
-			if( this.addBranch(options, options.size, [MapSlice.locToId(cursor.add(new Point(0,2)))], ["e","w"]) ){
+			this.slices.peek().add(cursor,this.roomFromTags(["well"]));
+			
+			if( this.addBranch(options, options.size, [cursor.add(new Point(0,2))]) ){
 				return true;
 			} else {
 				this.revertSlice(rid);
@@ -1456,6 +1469,7 @@ MapSlice.prototype.filter = function(f){
 
 		if( room != undefined ) {
 			if("width" in f && room.width != f.width) addit = false;
+			if("height" in f && room.height != f.height) addit = false;
 			if("rarity" in f && room.rarity < f.rarity) addit = false;
 			if("raritylt" in f && room.rarity > f.raritylt) addit = false;
 		} else {
@@ -1595,6 +1609,7 @@ function load_sprites (){
 	sprites['arena'] = new Sprite(RT+"img/arena.gif", {offset:new Point(64, 128),width:128,height:128});
 	sprites['shops'] = new Sprite(RT+"img/shops.gif", {offset:new Point(80, 104),width:160,height:128});
 	sprites['bullets'] = new Sprite(RT+"img/bullets.gif", {offset:new Point(16, 16),width:32,height:32});
+	sprites['halo'] = new Sprite(RT+"img/halo.gif", {offset:new Point(120, 120),width:240,height:240});
 	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(48, 48),width:96,height:96});
 	//sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['map'] = new Sprite(RT+"img/maptiles.gif", {offset:new Point(0, 0),width:8,height:8});
@@ -1622,17 +1637,20 @@ function load_sprites (){
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
 	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64,"filters":filter_pack_enemies});
 	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
+	sprites['lamps'] = new Sprite(RT+"img/lamps.gif", {offset:new Point(8, 16),width:16,height:32});
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48,"filters":filter_pack_enemies});
 	sprites['flederknife'] = new Sprite(RT+"img/flederknife.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":filter_pack_enemies});
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});
 	sprites['playerhuman'] = new Sprite(RT+"img/playerhuman.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});
 	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
+	sprites['ring'] = new Sprite(RT+"img/ring.gif", {offset:new Point(120, 120),width:240,height:240});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
 	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16,"filters":filter_pack_enemies});
 	sprites['shields'] = new Sprite(RT+"img/shields.gif", {offset:new Point(0, 16),width:16,height:32});
 	sprites['shooter'] = new Sprite(RT+"img/shooter.gif", {offset:new Point(32, 24),width:64,height:48,"filters":filter_pack_enemies});
 	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
+	sprites['statues'] = new Sprite(RT+"img/statues.gif", {offset:new Point(32, 32),width:64,height:64});
 	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48,"filters":filter_pack_enemies});
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48,"filters":filter_pack_enemies});
@@ -1678,6 +1696,8 @@ window.audio = new AudioPlayer({
 	"burst1" : {"url":RT+"sounds/burst1.wav"},
 	"critical" : {"url":RT+"sounds/critical.wav"},
 	"clang" : {"url":RT+"sounds/clang.wav"},
+	"charge" : {"url":RT+"sounds/charge.wav"},
+	"chargeready" : {"url":RT+"sounds/chargeready.wav"},
 	"coin" : {"url":RT+"sounds/coin.wav"},
 	"cracking" : {"url":RT+"sounds/cracking.wav"},
 	"crash" : {"url":RT+"sounds/crash.wav"},
@@ -1703,6 +1723,7 @@ window.audio = new AudioPlayer({
 	"pickup1" : {"url":RT+"sounds/pickup1.wav"},
 	"playerhurt" : {"url":RT+"sounds/playerhurt.wav"},
 	"playerdeath" : {"url":RT+"sounds/playerdeath.wav"},
+	"powerup" : {"url":RT+"sounds/powerup.wav"},
 	"slash" : {"url":RT+"sounds/slash.wav"},
 	"spell" : {"url":RT+"sounds/spell.wav"},
 	"swing" : {"url":RT+"sounds/swing.wav"},

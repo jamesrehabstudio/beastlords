@@ -335,13 +335,13 @@ Game.prototype.update = function( ) {
 					obj.update();
 				}
 			}
-			if ( obj.prerender instanceof Function ) {
-				this.prerenderTree.push( obj );
-			}
-			if ( obj.postrender instanceof Function ) {
-				this.postrenderTree.push( obj );
-			}
-			if ( obj.visible ) {
+			if( obj.shouldRender() ) {
+				if ( obj.prerender instanceof Function ) {
+					this.prerenderTree.push( obj );
+				}
+				if ( obj.postrender instanceof Function ) {
+					this.postrenderTree.push( obj );
+				}
 				this.renderTree.push( obj );
 			}
 			if ( obj.interactive ) {
@@ -382,7 +382,7 @@ Game.prototype.render = function( ) {
 	);
 	var view = new Line(new Point(Number.MIN_VALUE,Number.MIN_VALUE), new Point(Number.MAX_VALUE,Number.MAX_VALUE));
 	*/
-	var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex } );
+	var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex; } );
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	
 	this.g.clear(this.g.COLOR_BUFFER_BIT);
@@ -395,6 +395,7 @@ Game.prototype.render = function( ) {
 		}
 	}
 	
+	//Render tiles and objects
 	for(var o=0; o < this.renderOrder.length; o++){
 		if( this.renderOrder[o] == "o" ){
 			for ( var i in renderList ) {
@@ -472,15 +473,9 @@ Game.prototype.renderTiles = function(layer){
 		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
 	}
 	var campos = new Point(
-		0-Math.round(camera.x%ts),
-		0-Math.round(camera.y%ts)
+		0-Math.round(Math.mod(camera.x,ts)),
+		0-Math.round(Math.mod(camera.y,ts))
 	);
-	if( camera.y < 0 && camera.y % 240.0 != 0 ) {
-		campos.y -= ts;
-	}
-	if( camera.x < 0 && camera.x % 256.0 != 0 ) {
-		campos.x -= ts;
-	}
 	
 	material.set("u_resolution", game.resolution.x, game.resolution.y);
 	material.set("u_camera", campos.x, campos.y);
@@ -1163,7 +1158,7 @@ function GameObject() {
 	this.frame = 0;
 	this.frame_row = 0;
 	this.flip = false;
-	this.zIndex = null;
+	this.zIndex = 0;
 	this.awake = true;
 	this.interactive = true;
 	this.properties = false;
@@ -1286,6 +1281,11 @@ GameObject.prototype.idle = function(){
 	if( current != this.awake ){
 		this.trigger( (this.awake ? "wakeup" : "sleep") );
 	}
+}
+GameObject.prototype.shouldRender = function(){
+	if(!this.visible) return false;
+	if(!this.awake) return false;
+	return true;
 }
 GameObject.prototype.render = function( g, camera ){
 	if( window.debug ) {
@@ -1512,6 +1512,13 @@ Math.angleTurnDirection = function(_a,_b){
 }
 Math.trunc = function(x){
 	return x < 0 ? Math.ceil(x) : Math.floor(x);
+}
+Math.mod = function(x,n){
+	if( x >= 0 ) return x % n;
+	while(x < 0 ) {
+		x += n;
+	}
+	return x;
 }
 Math.lerp = function(x,y,delta){
 	return x + (y-x) * delta;

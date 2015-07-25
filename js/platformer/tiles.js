@@ -1,4 +1,4 @@
-window.BLANK_TILE = 166;
+window.BLANK_TILE = 16;
 
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;

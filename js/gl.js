@@ -318,7 +318,7 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader, shaderOps )
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 }
-Sprite.prototype.renderSize = function( gl, x,y,w,h, frame, row, flip ) {
+Sprite.prototype.renderSize = function( gl, x,y,w,h, frame, row, flip, shader, shaderOps ) {
 if( !this.loaded  ) return;
 	
 	if(frame == undefined ){
@@ -332,7 +332,18 @@ if( !this.loaded  ) return;
 		row = ~~row;
 	}
 	
-	var shader = window.materials["default"].use();
+	if( shader instanceof Material ){
+		//Correct shader already selected
+	} else if( shader in window.materials ){
+		shader = window.materials[shader].use();
+	} else { 
+		shader = window.materials["default"].use();
+	}
+	
+	shaderOps = shaderOps || {};
+	for(var i in shaderOps){
+		shader.set(i, shaderOps[i]);
+	}
 	
 	var xinc = this.frame_width / (this.img.width * 1.0);
 	var yinc = this.frame_height / (this.img.height * 1.0);
@@ -380,11 +391,28 @@ if( !this.loaded  ) return;
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 }
 
-WebGLRenderingContext.prototype.createF = function(){
+Sprite.RectBuffer = function(p, w, h, r){
+	//creates a set of data for a generic rectangle
+	if( r == undefined ) r = 0;
+	r = r / 180 * Math.PI;
+	var s = Math.sin(r); 
+	var c = Math.cos(r); 
+	return new Float32Array([
+		p.x, p.y,
+		p.x+(w*c), p.y+(w*s),
+		p.x-(h*s), p.y+(h*c),
+		p.x-(h*s), p.y+(h*c),
+		p.x+(w*c), p.y+(w*s),
+		p.x+(w*c)-(h*s), p.y+(w*s)+(h*c),
+	]);
+}
+
+WebGLRenderingContext.prototype.createF = function(size){
+	//Create a Frame Buffer
 	var fb = this.createFramebuffer();
 	this.bindFramebuffer( this.FRAMEBUFFER, fb );
-	fb.width = 512;
-	fb.height = 512;
+	fb.width = size || 512;
+	fb.height = size || 512;
 	
 	var ft = this.createTexture();
 	this.bindTexture(this.TEXTURE_2D, ft);
@@ -458,39 +486,24 @@ WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
 }
 
 WebGLRenderingContext.prototype.renderBackbuffer = function(image){
-	var geo = new Float32Array([
-		-1,-1,
-		+1,-1,
-		-1,+1,
-		-1,+1,
-		+1,-1,
-		+1,+1
-	]);
 	var top = game.resolution.y / 512;
 	var lef = game.resolution.x / 512;
-	var tex = new Float32Array([
-		0,0,
-		lef,0,
-		0,top,
-		0,top,
-		lef,0,
-		lef,top
-	]);
+	
+	var geo = Sprite.RectBuffer(new Point(-1, -1),2 ,2);
+	var tex = Sprite.RectBuffer(new Point(),lef ,top);
 	
 	var shader = window.materials["backbuffer"].use();
 	
-	var buffer = this.createBuffer();
-	
 	this.bindTexture(this.TEXTURE_2D, image);
-	//shader.set("u_color", color[0], color[1], color[2], color[3]);
+	
+	var buffer = this.createBuffer();
 	this.bindBuffer( this.ARRAY_BUFFER, buffer );
-	this.bufferData( this.ARRAY_BUFFER, new Float32Array(geo), this.DYNAMIC_DRAW);
-	//this.vertexAttribPointer(pos, 2, this.FLOAT, false, 0, 0);
+	this.bufferData( this.ARRAY_BUFFER, geo, this.DYNAMIC_DRAW);
 	shader.set("a_position");
 	
 	var tbuffer = this.createBuffer();
 	this.bindBuffer( this.ARRAY_BUFFER, tbuffer );
-	this.bufferData( this.ARRAY_BUFFER, new Float32Array(tex), this.DYNAMIC_DRAW);
+	this.bufferData( this.ARRAY_BUFFER, tex, this.DYNAMIC_DRAW);
 	shader.set("a_texCoord");
 	
 	shader.set("u_resolution", game.resolution.x, game.resolution.y);

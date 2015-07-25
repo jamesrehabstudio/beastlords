@@ -200,8 +200,8 @@ var mod_combat = {
 			"h" : 16,
 			"w" : 16,
 			"active" : false,
-			"life" : 30,
-			"lifeMax" : 30,
+			"life" : 99999,
+			"lifeMax" : 99999,
 			"restore" : 0.5,
 			"invincible" : 0.0
 		};

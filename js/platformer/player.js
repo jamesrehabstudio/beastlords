@@ -32,10 +32,14 @@ function Player(x, y){
 		"stun" : 0.0,
 		"start_attack" : false,
 		"death_clock" : Game.DELTASECOND,
-		"guard_down" : false
+		"guard_down" : false,
+		"attack_charge" : 0,
+		"charge_multiplier" : false
 	};
 	
 	this.attackProperites = {
+		"charge_start" : 0.2 * Game.DELTASECOND,
+		"charge_end" : 0.5 * Game.DELTASECOND,
 		"warm" : 8.5,
 		"strike" : 8.5,
 		"rest" : 5.0,
@@ -344,6 +348,8 @@ Player.prototype.update = function(){
 		if( this.life < this.lifeMax * .2 && this.delta > 0 ) audio.playLock("danger",1.00);
 	}
 	if ( this.life > 0 ) {
+		var strafe = input.state('block') > 0;
+		
 		if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
@@ -351,25 +357,40 @@ Player.prototype.update = function(){
 			}
 			if ( input.state('fire') == 1 ) { this.attack(); }
 			
+			if ( input.state('fire') > 0 ) { 
+				this.states.attack_charge += this.delta; 
+				if( this.states.attack_charge >= this.attackProperites.charge_start){
+					strafe = true;
+				}
+			} else { 
+				this.states.charge_multiplier = false;
+				
+				//Release charge if it has built up
+				if( this.states.attack_charge > this.attackProperites.charge_end ){
+					this.states.charge_multiplier = true;
+					this.attack();
+					strafe = true;
+					if( !this.states.duck ) {
+						this.force.x = 5.0 * (this.flip ? -1.0 : 1.0);
+					}
+				}
+				this.states.attack_charge = 0; 
+			}
+			
 			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
 			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
 			if ( input.state('up') == 1 ) { this.stand(); }
 			
-			if( this.autoblock ){
-				//Always block and turn
+			this.states.guard = this.states.attack <= 0 && ( input.state('block') > 0 || this.autoblock );
+			
+			if (strafe) {
+				//Limit speed and face current direction
+				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
+			} else {
+				//Change to face player's selected direction
 				if ( input.state('left') > 0 ) { this.flip = true;}
 				if ( input.state('right') > 0 ) { this.flip = false; }
-				this.states.guard = this.states.attack <= 0;
-			} else {
-				if (input.state('block') > 0) {
-					this.force.x = Math.min( Math.max( this.force.x, -2), 2);
-					this.states.guard = this.states.attack <= 0;
-				} else { 
-					this.states.guard = false;
-					if ( input.state('left') > 0 ) { this.flip = true;}
-					if ( input.state('right') > 0 ) { this.flip = false; }
-				}
-			} 
+			}
 		}
 		
 		//Apply jump boost
@@ -412,6 +433,7 @@ Player.prototype.update = function(){
 			var temp_damage = this.damage;
 			var type = this.equip_sword.phantom ? "hurt" : "struck";
 			if( this.spellsCounters.magic_strength > 0 ) temp_damage = Math.floor(temp_damage*1.25);
+			if( this.states.charge_multiplier ) temp_damage *= 2.0;
 			this.strike(new Line(
 				new Point( 12, (this.states.duck ? 4 : -4) ),
 				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
@@ -432,7 +454,7 @@ Player.prototype.update = function(){
 		this.frame = (this.frame + this.delta * 0.2 ) % 3;
 	} else if ( this.stun > 0 || this.life < 0 ) {
 		this.stand();
-		this.frame = 4;
+		this.frame = 3;
 		this.frame_row = 0;
 	} else {
 		if( this.states.duck ) {
@@ -444,7 +466,7 @@ Player.prototype.update = function(){
 			if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
 		} else {
 			this.frame_row = 0;
-			if( this.states.attack > 0 ) this.frame_row = 2;
+			if( this.states.attack_charge > this.attackProperites.charge_start || this.states.attack > 0 ) this.frame_row = 2;
 			if( Math.abs( this.force.x ) > 0.1 ) {
 				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
 			} else {
@@ -452,6 +474,7 @@ Player.prototype.update = function(){
 			}
 		}
 		
+		if( this.states.attack_charge > this.attackProperites.charge_start ) this.frame = 0;
 		if( this.states.attack > 0 ) this.frame = 2;
 		if( this.states.attack > this.attackProperites.rest ) this.frame = 1;
 		if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
@@ -682,6 +705,11 @@ Player.prototype.render = function(g,c){
 		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
 	}
 	
+	//Render shield behind the player
+	if( !this.guard.active ){
+		this.rendershield(g,c);
+	}
+	
 	//Render player
 	GameObject.prototype.render.apply(this,[g,c]);
 	
@@ -689,24 +717,41 @@ Player.prototype.render = function(g,c){
 		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
 	}
 	
-	//Render shield
-	if( this.guard.active ) {
-		var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
-		sprites.shields.render(g, 
-			this.position.subtract(c).add(new Point(0, this.guard.y)), 
-			this.shieldProperties.frame, 
-			this.shieldProperties.frame_row, 
-			this.flip,
-			"heat",
-			{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
-		);
+	//Render shield after player if active
+	if( this.guard.active ){
+		this.rendershield(g,c);
 	}
 	
 	//Render current sword
-	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : "default";
+	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
 	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip, weapon_filter);
+	
+	//Charge effect
+	if( this.states.attack_charge > 0 ) {
+		var effectPos = new Point(this.position.x, this.position.y - 16);
+		EffectList.charge(g, effectPos.subtract(c), this.states.attack_charge);
+	}
+	
+	//Create light
+	Background.pushLight( this.position.subtract(c), 240 );
 }
 
+
+
+Player.prototype.rendershield = function(g,c){
+	//Render shield
+	var frame = this.guard.active ? 0 : 1;
+	
+	//var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
+	sprites.shields.render(g, 
+		this.position.subtract(c).add(new Point(0, this.guard.y)), 
+		this.shieldProperties.frame + frame, 
+		this.shieldProperties.frame_row, 
+		this.flip,
+		"heat",
+		{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
+	);
+}
 Player.prototype.postrender = function(g,c){
 	/* Render HP */
 	g.beginPath();
@@ -765,7 +810,12 @@ Player.prototype.postrender = function(g,c){
 	
 	//Keys
 	for(var i=0; i < this.keys.length; i++) {
-		this.keys[i].sprite.render(g, new Point(223+i*4, 40), this.keys[i].frame, this.keys[i].frame_row, false );
+		this.keys[i].sprite.render(g, 
+			new Point((game.resolution.x-33)+i*4, 40),
+			this.keys[i].frame,
+			this.keys[i].frame_row,
+			false 
+		);
 	}
 	
 	//Charm

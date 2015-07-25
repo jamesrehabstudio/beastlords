@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="32" height="15" tilewidth="16" tileheight="16">
+ <tileset firstgid="1" name="tiles1" tilewidth="16" tileheight="16">
+  <image source="../../../img/tiles/tiles0.gif" trans="ff00ff" width="256" height="256"/>
+ </tileset>
+ <layer name="front" width="32" height="15">
+  <data encoding="csv">
+97,65,66,100,115,116,85,86,119,115,81,82,69,70,116,85,86,115,87,88,115,116,85,86,119,115,116,81,82,69,70,104,
+17,7,8,23,3,4,20,1,2,3,4,5,6,7,8,23,3,4,1,2,3,4,20,1,2,3,4,5,6,7,8,24,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,33,34,49,50,37,38,53,54,55,56,38,53,54,38,38,40,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,97,98,65,66,100,83,84,65,66,100,83,84,103,116,116,104,0,0,0,0,0,0,0,0,
+0,0,0,0,0,33,51,52,133,118,83,84,116,119,118,119,116,102,102,118,119,83,84,134,34,38,40,0,0,0,0,0,
+0,0,0,0,0,97,98,114,65,66,103,101,102,102,103,99,100,117,118,103,99,100,65,66,103,116,104,0,0,0,0,0,
+0,0,33,51,52,133,118,83,84,116,115,116,117,118,83,84,116,65,66,83,84,116,117,118,119,102,134,51,52,40,0,0,
+0,0,97,98,67,68,67,68,101,102,81,82,65,66,103,101,102,83,84,103,101,102,83,84,99,100,101,83,84,104,0,0,
+33,34,133,83,84,117,118,83,84,116,119,116,117,118,119,65,66,114,81,82,65,66,114,81,82,83,84,118,119,134,37,40,
+113,98,65,66,103,65,66,103,101,102,83,84,119,87,88,100,101,67,68,114,69,70,117,118,85,86,99,65,66,102,103,104
+</data>
+ </layer>
+ <objectgroup name="objects" width="32" height="15">
+  <properties>
+   <property name="rarity" value="0.3"/>
+  </properties>
+  <object name="Dropper" x="96" y="48">
+   <properties>
+    <property name="min_temple" value="2"/>
+    <property name="rarity" value="0.8"/>
+   </properties>
+  </object>
+  <object name="Spawn" gid="232" x="400" y="144">
+   <properties>
+    <property name="min_temple" value="1"/>
+    <property name="rarity" value="0.3"/>
+    <property name="tags" value="minor"/>
+   </properties>
+  </object>
+  <object name="Spawn" gid="232" x="256" y="112">
+   <properties>
+    <property name="rarity" value="0.8"/>
+    <property name="tags" value="major"/>
+   </properties>
+  </object>
+  <object name="WaystoneChest" gid="135" x="224" y="96">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Spawn" gid="232" x="448" y="176">
+   <properties>
+    <property name="min_temple" value="1"/>
+    <property name="rarity" value="0.6"/>
+    <property name="tags" value="minor"/>
+   </properties>
+  </object>
+  <object name="Spawn" gid="232" x="48" y="176">
+   <properties>
+    <property name="min_temple" value="1"/>
+    <property name="rarity" value="0.6"/>
+    <property name="tags" value="minor"/>
+   </properties>
+  </object>
+  <object name="Spawn" gid="232" x="96" y="144">
+   <properties>
+    <property name="min_temple" value="1"/>
+    <property name="rarity" value="0.3"/>
+    <property name="tags" value="minor"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

@@ -56,11 +56,11 @@ function Item(x,y,name, ops){
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = sprites.player; audio.play("levelup"); }
 			
 			
-			if( this.name == "seed_oriax") { obj.stats.attack+=1; audio.play("levelup"); }
-			if( this.name == "seed_bear") { obj.stats.defence+=1; audio.play("levelup"); }
-			if( this.name == "seed_malphas") { obj.stats.technique+=1; audio.play("levelup"); }
-			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; audio.play("levelup"); }
-			if( this.name == "seed_knight") { obj.invincible_time+=16.666; audio.play("levelup"); }
+			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); }
+			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); }
+			if( this.name == "seed_malphas") { obj.stats.technique+=1; this.pickupEffect(); }
+			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; this.pickupEffect(); }
+			if( this.name == "seed_knight") { obj.invincible_time+=16.666; this.pickupEffect(); }
 			if( this.name == "seed_minotaur") { 
 				obj.on("collideObject", function(obj){ 
 					if( this.team != obj.team && obj.hurt instanceof Function && Math.abs(this.force.x) > 4) {
@@ -68,37 +68,38 @@ function Item(x,y,name, ops){
 						obj.hurt( this, Math.ceil(this.damage/2) ); 
 					}
 				});
+				this.pickupEffect();
 			}
 			if( this.name == "seed_plaguerat") { 
 				obj.attackEffects.poison[0] = 1.0; 
 				obj.life_steal += 0.2
 				obj.on("added",function(){ this.addEffect("poison", 1.0, Game.DELTAYEAR);}); 
-				audio.play("levelup"); 
+				this.pickupEffect();
 			}
-			if( this.name == "seed_marquis") { obj.stun_time = 0; audio.play("levelup"); }
-			if( this.name == "seed_batty") { obj.spellsCounters.flight=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.flight=Game.DELTAYEAR}); audio.play("levelup"); }
-			if( this.name == "seed_chort") { obj.lifeMax += 20; obj.heal += 20; obj.stats.defence+=1; audio.play("levelup"); }
-			if( this.name == "seed_poseidon") { obj.stats.attack+=1; obj.stats.defence+=1; obj.stats.technique+=1; audio.play("levelup"); }
-			if( this.name == "seed_tails") { obj.on("money", function(v){this.life = Math.min(this.lifeMax, this.life+v);}); audio.play("levelup"); }
-			if( this.name == "seed_mair") { obj.stats.attack=Math.max(obj.stats.attack-1,1); obj.stats.defence=Math.max(obj.stats.defence-1,1); obj.stats.technique+=4; audio.play("levelup"); }
-			if( this.name == "seed_igbo") { obj.stats.defence+=3; audio.play("levelup"); }
+			if( this.name == "seed_marquis") { obj.stun_time = 0; this.pickupEffect(); }
+			if( this.name == "seed_batty") { obj.spellsCounters.flight=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.flight=Game.DELTAYEAR}); this.pickupEffect(); }
+			if( this.name == "seed_chort") { obj.lifeMax += 20; obj.heal += 20; obj.stats.defence+=1; this.pickupEffect(); }
+			if( this.name == "seed_poseidon") { obj.stats.attack+=1; obj.stats.defence+=1; obj.stats.technique+=1; this.pickupEffect(); }
+			if( this.name == "seed_tails") { obj.on("money", function(v){this.life = Math.min(this.lifeMax, this.life+v);}); this.pickupEffect(); }
+			if( this.name == "seed_mair") { obj.stats.attack=Math.max(obj.stats.attack-1,1); obj.stats.defence=Math.max(obj.stats.defence-1,1); obj.stats.technique+=4; this.pickupEffect(); }
+			if( this.name == "seed_igbo") { obj.stats.defence+=3; this.pickupEffect(); }
 			
-			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.feather_foot=Game.DELTAYEAR}); audio.play("levelup"); }
-			if( this.name == "haft") { obj.criticalMultiplier += 2.0; audio.play("levelup"); }
-			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; audio.play("levelup"); }
-			if( this.name == "fangs") { obj.life_steal += 0.1; audio.play("levelup"); }
+			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.feather_foot=Game.DELTAYEAR}); this.pickupEffect(); }
+			if( this.name == "haft") { obj.criticalMultiplier += 2.0; this.pickupEffect(); }
+			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; this.pickupEffect(); }
+			if( this.name == "fangs") { obj.life_steal += 0.1; this.pickupEffect(); }
 			if( this.name == "passion_fruit") { obj.manaHeal = obj.heal = Game.DELTAYEAR; audio.play("gulp"); }
-			if( this.name == "shield_metal") { if( obj.equip_shield == null ) return; obj.equip_shield.bonus_def = obj.equip_shield.bonus_def + 1 || 1; audio.play("levelup"); }
-			if( this.name == "magic_gem"){ obj.spellsCounters.magic_sword=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.magic_sword=Game.DELTAYEAR}); audio.play("levelup"); }
-			if( this.name == "snake_head") { obj.attackEffects.poison[0] += .2; audio.play("levelup"); }
-			if( this.name == "broken_banana") { obj.attackEffects.weaken[0] += .2; audio.play("levelup"); }
-			if( this.name == "blood_letter") { obj.attackEffects.bleeding[0] += .2; audio.play("levelup"); }
-			if( this.name == "red_cape") { obj.attackEffects.rage[0] += .2; audio.play("levelup"); }
-			if( this.name == "chort_nose") { obj.waystone_bonus *= 2.0; audio.play("levelup"); }
-			if( this.name == "plague_mask") { obj.statusEffects.poison=0; obj.statusResistance.poison = 1.0; audio.play("levelup"); }
-			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); audio.play("levelup"); }
-			if( this.name == "black_heart") { obj.stats.attack+=1; obj.stats.defence+=2; obj.stats.technique+=1; obj.lifeMax -= 20; obj.life = Math.min(obj.lifeMax,obj.life); audio.play("levelup"); }
-			if( this.name == "treasure_map") { game.getObject(PauseMenu).revealMap(2); audio.play("levelup"); }
+			if( this.name == "shield_metal") { if( obj.equip_shield == null ) return; obj.equip_shield.bonus_def = obj.equip_shield.bonus_def + 1 || 1; this.pickupEffect(); }
+			if( this.name == "magic_gem"){ obj.spellsCounters.magic_sword=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.magic_sword=Game.DELTAYEAR}); this.pickupEffect(); }
+			if( this.name == "snake_head") { obj.attackEffects.poison[0] += .2; this.pickupEffect(); }
+			if( this.name == "broken_banana") { obj.attackEffects.weaken[0] += .2; this.pickupEffect(); }
+			if( this.name == "blood_letter") { obj.attackEffects.bleeding[0] += .2; this.pickupEffect(); }
+			if( this.name == "red_cape") { obj.attackEffects.rage[0] += .2; this.pickupEffect(); }
+			if( this.name == "chort_nose") { obj.waystone_bonus *= 2.0; this.pickupEffect(); }
+			if( this.name == "plague_mask") { obj.statusEffects.poison=0; obj.statusResistance.poison = 1.0; this.pickupEffect(); }
+			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); this.pickupEffect(); }
+			if( this.name == "black_heart") { obj.stats.attack+=1; obj.stats.defence+=2; obj.stats.technique+=1; obj.lifeMax -= 20; obj.life = Math.min(obj.lifeMax,obj.life); this.pickupEffect(); }
+			if( this.name == "treasure_map") { game.getObject(PauseMenu).revealMap(2); audio.play("pickup1"); }
 			if( this.name == "life_fruit") { obj.lifeMax += 20; obj.heal = 9999; audio.play("gulp"); }
 			if( this.name == "mana_fruit") { obj.manaMax += 2; obj.manaHeal = 999; audio.play("gulp"); }
 			
@@ -125,6 +126,12 @@ function Item(x,y,name, ops){
 			this.destroy();
 		}
 	});
+}
+Item.prototype.pickupEffect = function(){
+	game.addObject(new EffectItemPickup(
+		_player.position.x, 
+		_player.position.y
+	));
 }
 Item.prototype.setName = function(n){
 	this.name = n;

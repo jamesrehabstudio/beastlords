@@ -217,3 +217,112 @@ EffectCritical.prototype.render = function(g,c){
 		this.flash = false;
 	}
 }
+
+EffectItemPickup.prototype = new GameObject();
+EffectItemPickup.prototype.constructor = GameObject;
+function EffectItemPickup(x, y, message){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 8;
+	this.height = 8;
+	this.zIndex = 99;
+	this.sprite = sprites.bullets;
+	
+	this.time = 0;
+	this.flash = true;
+	
+	this.on("sleep",function(){ this.destroy(); } );
+	
+	audio.play("powerup");
+	game.slow(0.01, Game.DELTASECOND);
+}
+
+EffectItemPickup.prototype.render = function(gl,c){
+	this.time += game.deltaUnscaled;
+	var p1 = this.time / (Game.DELTASECOND * 0.7);
+	var p2 = (this.time-(Game.DELTASECOND * 0.7)) / (Game.DELTASECOND * 0.3);
+	
+	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA );
+	
+	var shader = window.materials["lightbeam"].use();
+	var distance = 16 + Math.max(24 * (1-p1),0);
+	var length = Math.min(32 * p1, 24*(1-p2));
+	for(var i=0; i < 16; i++ ){
+		var rotation = ((Math.PI * 2) / 16) * i;
+		var degrees = (rotation / Math.PI) * 180;
+		var variation = 1 - Math.sin( Math.PI * ((degrees / 90) % 1));
+		variation = 0.5 + variation / 2;
+		var pos = new Point(
+			variation * distance * Math.cos(rotation),
+			variation * distance * Math.sin(rotation)
+		);
+		var data = Sprite.RectBuffer(pos.add(this.position).subtract(c), variation * length, 1, degrees);
+		var tdata = Sprite.RectBuffer(new Point(), 1, 1);
+		
+		var buffer = gl.createBuffer();
+		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+		gl.bufferData( gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+		//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+		shader.set("a_position");
+		
+		var tbuffer = gl.createBuffer();
+		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
+		gl.bufferData( gl.ARRAY_BUFFER, tdata, gl.DYNAMIC_DRAW);
+		//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);			
+		shader.set("a_texCoord");
+		
+		//gl.uniform2f(res, game.resolution.x, game.resolution.y);
+		//gl.uniform2f(cam, offsetx, 144);
+		shader.set("u_resolution", game.resolution.x, game.resolution.y);
+		shader.set("u_camera", 0, 0);
+		shader.set("u_color", 1.0, 1.0, 1.0, 1.0);
+		
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
+	}
+	
+	shader = window.materials["default"].use();
+	if( p2 <= 0 ) {
+		var r = 24 * p1;
+		sprites.halo.renderSize(gl, 
+			this.position.x - r - c.x, this.position.y - r - c.y,
+			r * 2, r * 2, 0, 0 
+		);
+	}
+	
+	r = 240 * Math.max(p2,0);
+	sprites.ring.renderSize(gl, 
+		this.position.x - r - c.x, this.position.y - r - c.y,
+		r * 2, r * 2, 0, 0 
+	);
+	
+	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+	
+	if( this.time > Game.DELTASECOND ){
+		this.destroy();
+	}
+}
+
+var EffectList = {
+	"charge" : function(g,p,d){
+		if(d < Game.DELTASECOND * 0.2) return;
+		
+		var progress = (d - Game.DELTASECOND * 0.2) / (Game.DELTASECOND * 0.3);
+		var r = 10.0 * (1.0-progress);
+		
+		if( progress < 1.0 ) {
+			audio.playLock("charge",0.5);
+			for(var i=0; i < 5; i++) {
+				var off = new Point(r*Math.sin(i), r*Math.cos(i));
+				sprites.bullets.render(g,p.add(off),3,2);
+			}
+		}
+		
+		if( progress > 1.0 && progress < 1.2 ) {
+			audio.playLock("chargeready",0.5);
+			var flashprogress = Math.floor((progress - 1.0) * 10);
+			sprites.bullets.render(g,p,flashprogress,1);
+		}
+	}
+};

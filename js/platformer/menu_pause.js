@@ -192,16 +192,22 @@ PauseMenu.prototype.render = function(g,c){
 	/* mini map */
 	
 	if( _player instanceof Player ) {
+		g.color = [1.0,1.0,1.0,1.0];
+		g.scaleFillRect(game.resolution.x-41,7,34,26);
 		g.color = [0.0,0.0,0.0,1.0];
-		g.scaleFillRect(216,8,32,24);
-		this.renderMap(g,new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)), new Point(232,24), new Line(-16,-16,16,8));
+		g.scaleFillRect(game.resolution.x-40,8,32,24);
+		this.renderMap(g,
+			new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
+			new Point(game.resolution.x-24,24), 
+			new Line(-16,-16,16,8)
+		);
 	}
 	
 	if( this.message_time > 0 ) {
 		boxArea(g,16,16,224,64);
 		textArea(g,this.message_text,32,32,192);
 	}
-	
+	var leftx = 0;
 	if( this.open && _player instanceof Player ) {
 		if( _player.life <= 0 ) {
 			g.color = [0,0,0,1.0];
@@ -211,30 +217,31 @@ PauseMenu.prototype.render = function(g,c){
 			boxArea(g,xpos+68,168,120,40);
 			textArea(g,i18n("press_start"),xpos+84,184);
 		} else if( this.page == 0 ) {
-			//Option
+			//Option 68
+			leftx = game.resolution.x*0.5 - 120*0.5;
 			
-			boxArea(g,68,8,120,224);
-			textArea(g,"Settings",98,20);
+			boxArea(g,leftx,8,120,224);
+			textArea(g,"Settings",leftx+30,20);
 			
-			textArea(g,"Screen",84,40);
-			textArea(g,(game.isFullscreen()?"Fullscreen":"Windowed"),88,52);
+			textArea(g,"Screen",leftx+16,40);
+			textArea(g,(game.isFullscreen()?"Fullscreen":"Windowed"),leftx+20,52);
 			
-			textArea(g,"Guard Style",84,72);
-			textArea(g,(_player.autoblock?"Automatic":"Manual"),88,84);
+			textArea(g,"Guard Style",leftx+16,72);
+			textArea(g,(_player.autoblock?"Automatic":"Manual"),leftx+20,84);
 			
-			textArea(g,"SFX Volume",84,104);
+			textArea(g,"SFX Volume",leftx+16,104);
 			//g.fillStyle = "#e45c10";
 			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<audio.sfxVolume.gain.value*20; i++)
-				g.scaleFillRect(88+i*4, 116, 3, 8 );
+				g.scaleFillRect(leftx+20+i*4, 116, 3, 8 );
 			
-			textArea(g,"MUS Volume",84,136);
+			textArea(g,"MUS Volume",leftx+16,136);
 			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<audio.musVolume.gain.value*20; i++)
-				g.scaleFillRect(88+i*4, 148, 3, 8 );
+				g.scaleFillRect(leftx+20+i*4, 148, 3, 8 );
 			
 			//Draw cursor 84
-			textArea(g,"@",80, 52 + this.cursor * 32 );
+			textArea(g,"@",leftx+12, 52 + this.cursor * 32 );
 			/*
 			for(var i=0; i < _player.equipment.length; i++ ) {
 				var _y = 40 + i * 24;
@@ -256,50 +263,57 @@ PauseMenu.prototype.render = function(g,c){
 			*/
 		} else if ( this.page == 1 ) {
 			//Map
-			boxArea(g,16,8,224,224);
-			textArea(g,"Map",118,20);
-			this.renderMap(g,this.mapCursor,new Point(32,24), new Line(0,0,24*8,24*8) );
+			leftx = game.resolution.x*0.5 - 224*0.5;
+			
+			boxArea(g,leftx,8,224,224);
+			textArea(g,"Map",leftx+102,20);
+			this.renderMap(g,this.mapCursor,new Point(leftx+16,24), new Line(0,0,24*8,24*8) );
 			
 		} else if ( this.page == 2 ) {
 			//Stats page
-			boxArea(g,68,8,120,224);
+			leftx = game.resolution.x*0.5 - 120*0.5;
 			
-			textArea(g,"Attributes",88,20);
+			boxArea(g,leftx,8,120,224);
 			
-			textArea(g,"Points: "+_player.stat_points ,88,36);
+			textArea(g,"Attributes",leftx+20,20);
+			
+			textArea(g,"Points: "+_player.stat_points ,leftx+20,36);
 			
 			var attr_i = 0;
 			for(attr in _player.stats) {
 				var y = attr_i * 28;
-				textArea(g,attr ,88,60+y);
+				textArea(g,attr ,leftx+20,60+y);
 				g.color = [0.8,0.6,0.1,1.0];
 				for(var i=0; i<_player.stats[attr]; i++)
-					g.scaleFillRect(88+i*4, 72 + y, 3, 8 );
+					g.scaleFillRect(leftx+20+i*4, 72 + y, 3, 8 );
 				
 				if( _player.stat_points > 0 ) {
 					//Draw cursor
 					g.color = [1.0,1.0,1.0,1.0];
-					if( this.stat_cursor == attr_i )
-						g.scaleFillRect(80, 62 + y, 4, 4 );
+					if( this.stat_cursor == attr_i ){
+						g.scaleFillRect(leftx+12, 62 + y, 4, 4 );
+					}
 				}
 				attr_i++;
 			}
 		} else if ( this.page == 3 ) {
 			//Spells
-			boxArea(g,52,8,152,224);
-			textArea(g,"Spells",104,20);
+			leftx = game.resolution.x*0.5 - 152*0.5;
+			
+			boxArea(g,leftx,8,152,224);
+			textArea(g,"Spells",leftx+52,20);
 			
 			var spell_i = 0;
 			for(spell in _player.spellsUnlocked) {
 				var y = spell_i * 16;
-				textArea(g,_player.spellsUnlocked[spell] ,72,36+y);
-				if(_player.selectedSpell == spell ) textArea(g,"@",62,36+y);
+				textArea(g,_player.spellsUnlocked[spell] ,leftx+20,36+y);
+				if(_player.selectedSpell == spell ) textArea(g,"@",leftx+10,36+y);
 				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
 					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / _player.spellEffectLength), 8);
 					var y_offset = 8 - remaining;
 					g.color = [0.1,0.7,0.98,1.0];
-					g.scaleFillRect(184, 36+y+y_offset, 8, remaining );
-					sprites.text.render(g,new Point(184,36+y), 5, 6);
+					g.scaleFillRect(leftx+132, 36+y+y_offset, 8, remaining );
+					sprites.text.render(g,new Point(leftx+132,36+y), 5, 6);
 				}
 				
 				spell_i++;

@@ -37,6 +37,7 @@ function TitleMenu(){
 	
 	this.playedIntro = !!localStorage.getItem("playedintro");
 	if( this.playedIntro ) this.cursor = 1;
+	this.playedIntro = true;
 	
 	//this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [

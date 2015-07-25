@@ -8,7 +8,7 @@ function Well(x,y,t){
 	this.height = 72;
 	
 	this.addModule(mod_talk);
-	this.unlocked = false;
+	this.unlocked = true;
 	this.total = 0;
 	
 	this.progress = 0;
