@@ -13,7 +13,7 @@ function Spawn(x,y,d,ops){
 	
 	ops = ops || {};
 	
-	this.difficulty = ops.difficulty || 0;
+	this.difficulty = ops.difficulty || dataManager.currentTemple;
 	this.tags = ops.tags.split(",") || [];
 	this.theme = ops.theme || "default";
 	
@@ -36,7 +36,7 @@ Spawn.prototype.spawn = function(){
 			if( 
 				list[i].difficulty[0] <= this.difficulty && 
 				list[i].difficulty[1] >= this.difficulty && 
-				this.tags.intersection(list[i].tags).length >= list[i].tags.length 
+				this.tags.intersection(list[i].tags).length == this.tags.length
 			){
 				indices.push( i );
 			}

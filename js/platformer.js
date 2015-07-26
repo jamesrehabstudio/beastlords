@@ -2245,7 +2245,7 @@ EffectItemPickup.prototype.render = function(gl,c){
 		//gl.uniform2f(cam, offsetx, 144);
 		shader.set("u_resolution", game.resolution.x, game.resolution.y);
 		shader.set("u_camera", 0, 0);
-		shader.set("u_color", 1.0, 1.0, 1.0, 1.0);
+		shader.set("u_color", 1.0, 1.0, 1.0, variation * 0.5);
 		
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 	}
@@ -8967,7 +8967,7 @@ function Spawn(x,y,d,ops){
 	
 	ops = ops || {};
 	
-	this.difficulty = ops.difficulty || 0;
+	this.difficulty = ops.difficulty || dataManager.currentTemple;
 	this.tags = ops.tags.split(",") || [];
 	this.theme = ops.theme || "default";
 	
@@ -8990,7 +8990,7 @@ Spawn.prototype.spawn = function(){
 			if( 
 				list[i].difficulty[0] <= this.difficulty && 
 				list[i].difficulty[1] >= this.difficulty && 
-				this.tags.intersection(list[i].tags).length >= list[i].tags.length 
+				this.tags.intersection(list[i].tags).length == this.tags.length
 			){
 				indices.push( i );
 			}

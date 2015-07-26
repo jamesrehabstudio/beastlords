@@ -277,7 +277,7 @@ EffectItemPickup.prototype.render = function(gl,c){
 		//gl.uniform2f(cam, offsetx, 144);
 		shader.set("u_resolution", game.resolution.x, game.resolution.y);
 		shader.set("u_camera", 0, 0);
-		shader.set("u_color", 1.0, 1.0, 1.0, 1.0);
+		shader.set("u_color", 1.0, 1.0, 1.0, variation * 0.5);
 		
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 	}
