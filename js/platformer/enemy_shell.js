@@ -57,6 +57,16 @@ Shell.prototype.update = function(){
 	if( this.stun < 0 ) {
 		this.force.x += this.speed * this.delta * this.states.direction;
 		this.flip = this.force.x < 0;
+		
+		//Stop at edges
+		if( game.getTile( 
+			16 * this.states.direction + this.position.x, 
+			this.position.y + 16, game.tileCollideLayer) == 0 
+		){
+			//Turn around, don't fall off the edge
+			this.force.x = 0;
+			this.states.direction *= -1.0;
+		}
 	} else {
 		this.force.x = this.force.y = 0;
 	}
