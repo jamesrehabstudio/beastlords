@@ -1,6 +1,6 @@
 
 
- /* platformer/alter.js*/ 
+ /* platformer\alter.js*/ 
 
 Alter.prototype = new GameObject();
 Alter.prototype.constructor = GameObject;
@@ -78,7 +78,7 @@ Alter.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/arena.js*/ 
+ /* platformer\arena.js*/ 
 
 Arena.prototype = new GameObject();
 Arena.prototype.constructor = GameObject;
@@ -222,7 +222,7 @@ Arena.Waves = [
 	{"type":"majormonster", "count":3}
 ];
 
- /* platformer/background.js*/ 
+ /* platformer\background.js*/ 
 
 Background.prototype = new GameObject();
 Background.prototype.constructor = GameObject;
@@ -616,7 +616,7 @@ Background.pushLight = function(p,r,c){
 	}
 }
 
- /* platformer/boss_ammit.js*/ 
+ /* platformer\boss_ammit.js*/ 
 
 Ammit.prototype = new GameObject();
 Ammit.prototype.constructor = GameObject;
@@ -746,7 +746,7 @@ Ammit.prototype.update = function(){
 	}
 }
 
- /* platformer/boss_chort.js*/ 
+ /* platformer\boss_chort.js*/ 
 
 Chort.prototype = new GameObject();
 Chort.prototype.constructor = GameObject;
@@ -887,7 +887,7 @@ Chort.prototype.update = function(){
 	}
 }
 
- /* platformer/boss_garmr.js*/ 
+ /* platformer\boss_garmr.js*/ 
 
 Garmr.prototype = new GameObject();
 Garmr.prototype.constructor = GameObject;
@@ -1025,7 +1025,7 @@ Garmr.prototype.render = function(g,c){
 }
 Garmr.prototype.idle = function(){}
 
- /* platformer/boss_marquis.js*/ 
+ /* platformer\boss_marquis.js*/ 
 
 Marquis.prototype = new GameObject();
 Marquis.prototype.constructor = GameObject;
@@ -1162,7 +1162,7 @@ Marquis.prototype.update = function(){
 	}
 }
 
- /* platformer/boss_minotaur.js*/ 
+ /* platformer\boss_minotaur.js*/ 
 
 Minotaur.prototype = new GameObject();
 Minotaur.prototype.constructor = GameObject;
@@ -1282,7 +1282,7 @@ Minotaur.prototype.update = function(){
 	
 }
 
- /* platformer/boss_poseidon.js*/ 
+ /* platformer\boss_poseidon.js*/ 
 
 Poseidon.prototype = new GameObject();
 Poseidon.prototype.constructor = GameObject;
@@ -1490,7 +1490,7 @@ Poseidon.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/boss_zoder.js*/ 
+ /* platformer\boss_zoder.js*/ 
 
 Zoder.prototype = new GameObject();
 Zoder.prototype.constructor = GameObject;
@@ -1647,7 +1647,7 @@ Zoder.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this, [g,c]);
 }
 
- /* platformer/bullet.js*/ 
+ /* platformer\bullet.js*/ 
 
 Bullet.prototype = new GameObject();
 Bullet.prototype.constructor = GameObject;
@@ -1780,7 +1780,54 @@ Fire.prototype.update = function(){
 	}
 }
 
- /* platformer/cornerstone.js*/ 
+ExplodingEnemy.prototype = new GameObject();
+ExplodingEnemy.prototype.constructor = GameObject;
+function ExplodingEnemy(x,y, direction, ops){
+	this.constructor();
+	ops = ops || {};
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 24;
+	this.team = 1;
+	
+	this.damage = ops.damage || 0;
+	this.speed = ops.speed || 20;
+	
+	this.addModule( mod_rigidbody );
+	
+	this.gravity = 0.1;
+	this.pushable = false;
+	this.launch = false;
+	this.force = direction.normalize(this.speed);
+	
+	this.sprite = sprites.bullets;
+	this.frame = 0;
+	this.frame_row = 0;
+	this.life = Game.DELTASECOND * 0.5;
+
+	this.on("collideObject", function(obj){
+		if( this.launch && obj.hurt instanceof Function && this.team != obj.team ) {
+			this.life = 0;
+			obj.hurt( this, this.damage );
+		}
+	});
+	this.on("death", function(){
+		game.addObject(new EffectSmoke(this.position.x, this.position.y));
+		this.destroy();
+	});
+}
+ExplodingEnemy.prototype.update = function(){
+	this.frame = (this.frame + (this.delta * 0.3)) % 2;
+	this.life -= this.delta;
+	this.launch = true;
+	if( this.life <= 0 ){
+		this.trigger("death");
+	}
+}
+
+ /* platformer\cornerstone.js*/ 
 
 CornerStone.prototype = new GameObject();
 CornerStone.prototype.constructor = GameObject;
@@ -1857,7 +1904,7 @@ CornerStone.prototype.update = function(){
 }
 CornerStone.prototype.idle = function(){}
 
- /* platformer/deathtrigger.js*/ 
+ /* platformer\deathtrigger.js*/ 
 
 DeathTrigger.prototype = new GameObject();
 DeathTrigger.prototype.constructor = GameObject;
@@ -1889,7 +1936,7 @@ function DeathTrigger(x,y){
 }
 
 
- /* platformer/debugger.js*/ 
+ /* platformer\debugger.js*/ 
 
 Debuger.prototype = new GameObject();
 Debuger.prototype.constructor = GameObject;
@@ -1912,7 +1959,7 @@ Debuger.prototype.update = function(){
 	if ( input.state('down') > 0 ) {  this.position.y += this.speed * this.delta }
 }
 
- /* platformer/door.js*/ 
+ /* platformer\door.js*/ 
 
 Door.prototype = new GameObject();
 Door.prototype.constructor = GameObject;
@@ -1964,7 +2011,7 @@ Door.prototype.update = function(){
 	this.frame_row = Math.floor( r / 8 );
 }
 
- /* platformer/effects.js*/ 
+ /* platformer\effects.js*/ 
 
 EffectExplosion.prototype = new GameObject();
 EffectExplosion.prototype.constructor = GameObject;
@@ -2295,7 +2342,7 @@ var EffectList = {
 	}
 };
 
- /* platformer/enemy_amon.js*/ 
+ /* platformer\enemy_amon.js*/ 
 
 Amon.prototype = new GameObject();
 Amon.prototype.constructor = GameObject;
@@ -2360,7 +2407,7 @@ Amon.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_axedog.js*/ 
+ /* platformer\enemy_axedog.js*/ 
 
 Axedog.prototype = new GameObject();
 Axedog.prototype.constructor = GameObject;
@@ -2465,7 +2512,7 @@ Axedog.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_baller.js*/ 
+ /* platformer\enemy_baller.js*/ 
 
 Baller.prototype = new GameObject();
 Baller.prototype.constructor = GameObject;
@@ -2650,7 +2697,7 @@ BallerBall.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_batty.js*/ 
+ /* platformer\enemy_batty.js*/ 
 
 Batty.prototype = new GameObject();
 Batty.prototype.constructor = GameObject;
@@ -2786,7 +2833,7 @@ Batty.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_beaker.js*/ 
+ /* platformer\enemy_beaker.js*/ 
 
 Beaker.prototype = new GameObject();
 Beaker.prototype.constructor = GameObject;
@@ -2889,7 +2936,7 @@ Beaker.prototype.update = function(){
 	if( !this.grounded ) this.frame = 2;
 }
 
- /* platformer/enemy_bear.js*/ 
+ /* platformer\enemy_bear.js*/ 
 
 Bear.prototype = new GameObject();
 Bear.prototype.constructor = GameObject;
@@ -3035,7 +3082,7 @@ Bear.prototype.render = function(g,c){
 	);
 }
 
- /* platformer/enemy_bigbone.js*/ 
+ /* platformer\enemy_bigbone.js*/ 
 
 BigBones.prototype = new GameObject();
 BigBones.prototype.constructor = GameObject;
@@ -3169,7 +3216,7 @@ BigBones.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
- /* platformer/enemy_chaz.js*/ 
+ /* platformer\enemy_chaz.js*/ 
 
 Chaz.prototype = new GameObject();
 Chaz.prototype.constructor = GameObject;
@@ -3277,7 +3324,7 @@ Chaz.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_chazbike.js*/ 
+ /* platformer\enemy_chazbike.js*/ 
 
 ChazBike.prototype = new GameObject();
 ChazBike.prototype.constructor = GameObject;
@@ -3366,7 +3413,7 @@ ChazBike.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_crusher.js*/ 
+ /* platformer\enemy_crusher.js*/ 
 
 Crusher.prototype = new GameObject();
 Crusher.prototype.constructor = GameObject;
@@ -3442,7 +3489,7 @@ Crusher.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/enemy_deckard.js*/ 
+ /* platformer\enemy_deckard.js*/ 
 
 Deckard.prototype = new GameObject();
 Deckard.prototype.constructor = GameObject;
@@ -3609,7 +3656,7 @@ Deckard.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_derring.js*/ 
+ /* platformer\enemy_derring.js*/ 
 
 Derring.prototype = new GameObject();
 Derring.prototype.constructor = GameObject;
@@ -3662,7 +3709,7 @@ Derring.prototype.update = function(){
 	this.flip = this.force.x < 0;
 }
 
- /* platformer/enemy_dropper.js*/ 
+ /* platformer\enemy_dropper.js*/ 
 
 Dropper.prototype = new GameObject();
 Dropper.prototype.constructor = GameObject;
@@ -3695,7 +3742,7 @@ Dropper.prototype.update = function(){
 	this.cooldown -= this.delta;
 }
 
- /* platformer/enemy_father.js*/ 
+ /* platformer\enemy_father.js*/ 
 
 Father.prototype = new GameObject();
 Father.prototype.constructor = GameObject;
@@ -3772,7 +3819,7 @@ Father.prototype.update = function(){
 }
 Father.prototype.idle = function(){}
 
- /* platformer/enemy_flederknife.js*/ 
+ /* platformer\enemy_flederknife.js*/ 
 
 Flederknife.prototype = new GameObject();
 Flederknife.prototype.constructor = GameObject;
@@ -3838,7 +3885,7 @@ Flederknife.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_ghoul.js*/ 
+ /* platformer\enemy_ghoul.js*/ 
 
 Ghoul.prototype = new GameObject();
 Ghoul.prototype.constructor = GameObject;
@@ -3921,7 +3968,7 @@ Ghoul.prototype.update = function(){
 	this.frame_row = 0;
 }
 
- /* platformer/enemy_hammer.js*/ 
+ /* platformer\enemy_hammer.js*/ 
 
 HammerMathers.prototype = new GameObject();
 HammerMathers.prototype.constructor = GameObject;
@@ -4013,7 +4060,7 @@ HammerMathers.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_igbo.js*/ 
+ /* platformer\enemy_igbo.js*/ 
 
 Igbo.prototype = new GameObject();
 Igbo.prototype.constructor = GameObject;
@@ -4165,7 +4212,7 @@ Igbo.prototype.render = function(g,c){
 }
 
 
- /* platformer/enemy_knight.js*/ 
+ /* platformer\enemy_knight.js*/ 
 
 Knight.prototype = new GameObject();
 Knight.prototype.constructor = GameObject;
@@ -4361,7 +4408,7 @@ Knight.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this, [g,c]);
 }
 
- /* platformer/enemy_malphas.js*/ 
+ /* platformer\enemy_malphas.js*/ 
 
 Malphas.prototype = new GameObject();
 Malphas.prototype.constructor = GameObject;
@@ -4479,7 +4526,7 @@ Malphas.prototype.update = function(){
 	
 }
 
- /* platformer/enemy_malsum.js*/ 
+ /* platformer\enemy_malsum.js*/ 
 
 Malsum.prototype = new GameObject();
 Malsum.prototype.constructor = GameObject;
@@ -4540,7 +4587,7 @@ Malsum.prototype.update = function(){
 	this.frame_row = 0;
 }
 
- /* platformer/enemy_oriax.js*/ 
+ /* platformer\enemy_oriax.js*/ 
 
 Oriax.prototype = new GameObject();
 Oriax.prototype.constructor = GameObject;
@@ -4652,7 +4699,7 @@ Oriax.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_ratgut.js*/ 
+ /* platformer\enemy_ratgut.js*/ 
 
 Ratgut.prototype = new GameObject();
 Ratgut.prototype.constructor = GameObject;
@@ -4769,7 +4816,7 @@ Ratgut.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_sentry.js*/ 
+ /* platformer\enemy_sentry.js*/ 
 
 Sentry.prototype = new GameObject();
 Sentry.prototype.constructor = GameObject;
@@ -4854,7 +4901,7 @@ Sentry.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_shell.js*/ 
+ /* platformer\enemy_shell.js*/ 
 
 Shell.prototype = new GameObject();
 Shell.prototype.constructor = GameObject;
@@ -4932,7 +4979,7 @@ Shell.prototype.update = function(){
 	this.strike( new Line(-8,-4,8,4) );
 }
 
- /* platformer/enemy_shooter.js*/ 
+ /* platformer\enemy_shooter.js*/ 
 
 Shooter.prototype = new GameObject();
 Shooter.prototype.constructor = GameObject;
@@ -5029,7 +5076,7 @@ Shooter.prototype.update = function(){
 }
 Shooter.prototype.idle = function(){}
 
- /* platformer/enemy_skeleton.js*/ 
+ /* platformer\enemy_skeleton.js*/ 
 
 Skeleton.prototype = new GameObject();
 Skeleton.prototype.constructor = GameObject;
@@ -5173,7 +5220,7 @@ Skeleton.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
- /* platformer/enemy_snakebullet.js*/ 
+ /* platformer\enemy_snakebullet.js*/ 
 
 SnakeBullet.prototype = new GameObject();
 SnakeBullet.prototype.constructor = GameObject;
@@ -5243,7 +5290,7 @@ SnakeBullet.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_svarog.js*/ 
+ /* platformer\enemy_svarog.js*/ 
 
 Svarog.prototype = new GameObject();
 Svarog.prototype.constructor = GameObject;
@@ -5318,7 +5365,7 @@ Svarog.prototype.update = function(){
 	this.states.cooldown -= this.delta;
 }
 
- /* platformer/enemy_yakseyo.js*/ 
+ /* platformer\enemy_yakseyo.js*/ 
 
 Yakseyo.prototype = new GameObject();
 Yakseyo.prototype.constructor = GameObject;
@@ -5417,7 +5464,7 @@ Yakseyo.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_yeti.js*/ 
+ /* platformer\enemy_yeti.js*/ 
 
 Yeti.prototype = new GameObject();
 Yeti.prototype.constructor = GameObject;
@@ -5527,7 +5574,7 @@ Yeti.prototype.update = function(){
 	}
 }
 
- /* platformer/exit.js*/ 
+ /* platformer\exit.js*/ 
 
 Exit.prototype = new GameObject();
 Exit.prototype.constructor = GameObject;
@@ -5560,7 +5607,7 @@ function Exit(x,y,t,o){
 }
 Exit.prototype.idle = function(){}
 
- /* platformer/gate.js*/ 
+ /* platformer\gate.js*/ 
 
 //transform
 
@@ -5629,7 +5676,7 @@ Gate.prototype.update = function(){
 	this.frame = Math.floor(Math.min(this.progress*5,4));
 }
 
- /* platformer/healer.js*/ 
+ /* platformer\healer.js*/ 
 
 Healer.prototype = new GameObject();
 Healer.prototype.constructor = GameObject;
@@ -5732,7 +5779,7 @@ Healer.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/i18n.js*/ 
+ /* platformer\i18n.js*/ 
 
 window.language = "english";
 window._messages = {
@@ -5775,7 +5822,7 @@ function i18n(name,replace){
 	return out;
 }
 
- /* platformer/item.js*/ 
+ /* platformer\item.js*/ 
 
 Item.prototype = new GameObject();
 Item.prototype.constructor = GameObject;
@@ -6282,7 +6329,7 @@ Item.enchantWeapon = function(weapon){
 	weapon.filter = "gold";
 }
 
- /* platformer/lamp.js*/ 
+ /* platformer\lamp.js*/ 
 
 Lamp.prototype = new GameObject();
 Lamp.prototype.constructor = GameObject;
@@ -6305,7 +6352,7 @@ Lamp.prototype.render = function(g,c){
 	Background.pushLight( this.position.subtract(c), 180 );
 }
 
- /* platformer/lift.js*/ 
+ /* platformer\lift.js*/ 
 
 Lift.prototype = new GameObject();
 Lift.prototype.constructor = GameObject;
@@ -6374,7 +6421,7 @@ Lift.prototype.render = function(g,c){
 	
 }
 
- /* platformer/mapdebug.js*/ 
+ /* platformer\mapdebug.js*/ 
 
 MapDebug.prototype = new GameObject();
 MapDebug.prototype.constructor = GameObject;
@@ -6415,7 +6462,7 @@ MapDebug.prototype.render = function(g,c){
 }
 MapDebug.prototype.idle = function(){}
 
- /* platformer/menu_item.js*/ 
+ /* platformer\menu_item.js*/ 
 
 ItemMenu.prototype = new GameObject();
 ItemMenu.prototype.constructor = GameObject;
@@ -6543,7 +6590,7 @@ ItemMenu.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/menu_pause.js*/ 
+ /* platformer\menu_pause.js*/ 
 
 PauseMenu.prototype = new GameObject();
 PauseMenu.prototype.constructor = GameObject;
@@ -6919,7 +6966,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 	} catch (err) {}
 }
 
- /* platformer/menu_title.js*/ 
+ /* platformer\menu_title.js*/ 
 
 TitleMenu.prototype = new GameObject();
 TitleMenu.prototype.constructor = GameObject;
@@ -7085,7 +7132,7 @@ TitleMenu.prototype.startGame = function(){
 	}
 }
 
- /* platformer/modules.js*/ 
+ /* platformer\modules.js*/ 
 
 var mod_rigidbody = {
 	'init' : function(){
@@ -7667,7 +7714,7 @@ EnemyStruck = function(obj,pos,damage){
 	);
 }
 
- /* platformer/movingplatform.js*/ 
+ /* platformer\movingplatform.js*/ 
 
 MovingPlatform.prototype = new GameObject();
 MovingPlatform.prototype.constructor = GameObject;
@@ -7722,7 +7769,7 @@ MovingPlatform.prototype.render = function(g,c){
 	game.tileSprite.render(g, new Point(this.position.x+8-c.x, this.position.y+8-c.y), 1, 15);
 }
 
- /* platformer/platform_generator.js*/ 
+ /* platformer\platform_generator.js*/ 
 
 PlatformGenerator.prototype = new GameObject();
 PlatformGenerator.prototype.constructor = GameObject;
@@ -7764,7 +7811,7 @@ function PlatformGenerator(x,y,t,o){
 	}
 }
 
- /* platformer/player.js*/ 
+ /* platformer\player.js*/ 
 
 Player.prototype = new GameObject();
 Player.prototype.constructor = GameObject;
@@ -7802,7 +7849,9 @@ function Player(x, y){
 		"death_clock" : Game.DELTASECOND,
 		"guard_down" : false,
 		"attack_charge" : 0,
-		"charge_multiplier" : false
+		"charge_multiplier" : false,
+		"roll" : 0,
+		"rollDirection" : 1.0
 	};
 	
 	this.attackProperites = {
@@ -7854,7 +7903,7 @@ function Player(x, y){
 	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
+		if( this.invincible > 0 ) return;
 		
 		//blocked
 		var dir = this.position.subtract(obj.position);
@@ -7868,7 +7917,7 @@ function Player(x, y){
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
+		if( this.invincible > 0 ) return;
 		
 		this.hurt(obj,damage);
 	});
@@ -7885,6 +7934,18 @@ function Player(x, y){
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
+		
+		//Charge kill explosion!
+		if( this.states.charge_multiplier && obj.mass < 2.0 && obj.life <= 0 ) {
+			var dir = obj.position.subtract(this.position);
+			game.slow(0.1, Game.DELTASECOND);
+			game.addObject( new ExplodingEnemy( 
+				obj.position.x,
+				obj.position.y,
+				dir.add(new Point(0, -2))
+			));
+			
+		}
 	});
 	this.on("added", function(){
 		this.damage_buffer = 0;
@@ -8117,8 +8178,10 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
-		
-		if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+		if( this.states.roll > 0 ) {
+			this.force.x = this.states.rollDirection * 8;
+			this.states.roll -= this.delta;
+		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
 				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
@@ -8145,7 +8208,7 @@ Player.prototype.update = function(){
 				this.states.attack_charge = 0; 
 			}
 			
-			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
+			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { this.jump(); }
 			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
 			if ( input.state('up') == 1 ) { this.stand(); }
 			
@@ -8154,6 +8217,16 @@ Player.prototype.update = function(){
 			if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
+				if ( input.state('jump') == 1 && input.state('block') > 0 && this.grounded ) { 
+					//Dodge roll
+					this.states.roll = this.invincible = Game.DELTASECOND * 0.25;
+					this.states.rollDirection = 1.0;
+					if( input.state('left') > 0 || input.state('right') > 0 ) {
+						if( input.state('left') ) this.states.rollDirection = -1.0;
+					} else {
+						if( !this.flip ) this.states.rollDirection = -1.0;
+					}
+				}
 			} else {
 				//Change to face player's selected direction
 				if ( input.state('left') > 0 ) { this.flip = true;}
@@ -8593,7 +8666,7 @@ Player.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/prisoner.js*/ 
+ /* platformer\prisoner.js*/ 
 
 Prisoner.prototype = new GameObject();
 Prisoner.prototype.constructor = GameObject;
@@ -8714,7 +8787,7 @@ Prisoner.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/renderers.js*/ 
+ /* platformer\renderers.js*/ 
 
 var textLookup = [
 	" ","!","\"","#","$","%","&","'","(",")","*","+",",","-",".","/",
@@ -8768,7 +8841,7 @@ function textBox(g,s,x,y,w,h){
 	textArea(g,s,x+16,y+16,w-32,h-32);
 }
 
- /* platformer/shop.js*/ 
+ /* platformer\shop.js*/ 
 
 Shop.prototype = new GameObject();
 Shop.prototype.constructor = GameObject;
@@ -8960,7 +9033,7 @@ Shop.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/Spawn.js*/ 
+ /* platformer\Spawn.js*/ 
 
 Spawn.prototype = new GameObject();
 Spawn.prototype.constructor = GameObject;
@@ -9069,7 +9142,7 @@ Spawn.enemies = {
 	]
 };
 
- /* platformer/start.js*/ 
+ /* platformer\start.js*/ 
 
 function game_start(g){
 	new Material(g.g, "default", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
@@ -9093,7 +9166,7 @@ function game_start(g){
 	//dataManager.randomLevel(game,0);
 }
 
- /* platformer/tiles.js*/ 
+ /* platformer\tiles.js*/ 
 
 window.BLANK_TILE = 16;
 
@@ -9205,7 +9278,7 @@ BreakableTile.prototype.update = function(){
 
 BreakableTile.unbreakable = 232;
 
- /* platformer/villager.js*/ 
+ /* platformer\villager.js*/ 
 
 Villager.prototype = new GameObject();
 Villager.prototype.constructor = GameObject;
@@ -9350,7 +9423,7 @@ Villager.TextOptions = [
 {"rarity":1.0,"frames":[[0,2],[0,3]],"conditions":{"min_town":1,"nation":2},"message":["You hold your weapon well. A sign of a true warrior."]}
 ];
 
- /* platformer/waterfall.js*/ 
+ /* platformer\waterfall.js*/ 
 
 Waterfall.prototype = new GameObject();
 Waterfall.prototype.constructor = GameObject;
@@ -9373,7 +9446,7 @@ Waterfall.prototype.prerender = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
- /* platformer/WaystoneChest.js*/ 
+ /* platformer\WaystoneChest.js*/ 
 
 WaystoneChest.prototype = new GameObject();
 WaystoneChest.prototype.constructor = GameObject;
@@ -9434,7 +9507,7 @@ WaystoneChest.prototype.update = function(g,c){
 	}
 }
 
- /* platformer/well.js*/ 
+ /* platformer\well.js*/ 
 
 Well.prototype = new GameObject();
 Well.prototype.constructor = GameObject;
@@ -9508,7 +9581,7 @@ Well.prototype.render = function(g,c){
 }
 Well.prototype.idle = function(){}
 
- /* platformer/worldmap.js*/ 
+ /* platformer\worldmap.js*/ 
 
 WorldMap.prototype = new GameObject();
 WorldMap.prototype.constructor = GameObject;
@@ -9909,7 +9982,7 @@ WorldEncounter.prototype.update = function(){
 	}
 }
 
- /* platformer/scenes/dream.js*/ 
+ /* platformer\scenes\dream.js*/ 
 
 Dream.prototype = new GameObject();
 Dream.prototype.constructor = GameObject;
@@ -10015,7 +10088,7 @@ Dream.prototype.postrender = function(g,c){
 	g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 }
 
- /* platformer/scenes/ending.js*/ 
+ /* platformer\scenes\ending.js*/ 
 
 SceneEnding.prototype = new GameObject();
 SceneEnding.prototype.constructor = GameObject;
@@ -10130,7 +10203,7 @@ SceneEnding.prototype.render = function(g,c){
 }
 SceneEnding.prototype.idle = function(){}
 
- /* platformer/scenes/intro.js*/ 
+ /* platformer\scenes\intro.js*/ 
 
 SceneIntro.prototype = new GameObject();
 SceneIntro.prototype.constructor = GameObject;
@@ -10203,7 +10276,7 @@ SceneIntro.prototype.render = function(g,c){
 }
 SceneIntro.prototype.idle = function(){}
 
- /* platformer/scenes/introend.js*/ 
+ /* platformer\scenes\introend.js*/ 
 
 SceneEndIntro.prototype = new GameObject();
 SceneEndIntro.prototype.constructor = GameObject;
@@ -10340,7 +10413,7 @@ SceneEndIntro.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/scenes/transform.js*/ 
+ /* platformer\scenes\transform.js*/ 
 
 //transform
 

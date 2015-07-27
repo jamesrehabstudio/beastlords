@@ -34,7 +34,9 @@ function Player(x, y){
 		"death_clock" : Game.DELTASECOND,
 		"guard_down" : false,
 		"attack_charge" : 0,
-		"charge_multiplier" : false
+		"charge_multiplier" : false,
+		"roll" : 0,
+		"rollDirection" : 1.0
 	};
 	
 	this.attackProperites = {
@@ -86,7 +88,7 @@ function Player(x, y){
 	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
+		if( this.invincible > 0 ) return;
 		
 		//blocked
 		var dir = this.position.subtract(obj.position);
@@ -100,7 +102,7 @@ function Player(x, y){
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
-		if( this.inviciple > 0 ) return;
+		if( this.invincible > 0 ) return;
 		
 		this.hurt(obj,damage);
 	});
@@ -117,6 +119,18 @@ function Player(x, y){
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
+		
+		//Charge kill explosion!
+		if( this.states.charge_multiplier && obj.mass < 2.0 && obj.life <= 0 ) {
+			var dir = obj.position.subtract(this.position);
+			game.slow(0.1, Game.DELTASECOND);
+			game.addObject( new ExplodingEnemy( 
+				obj.position.x,
+				obj.position.y,
+				dir.add(new Point(0, -2))
+			));
+			
+		}
 	});
 	this.on("added", function(){
 		this.damage_buffer = 0;
@@ -349,8 +363,10 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
-		
-		if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+		if( this.states.roll > 0 ) {
+			this.force.x = this.states.rollDirection * 8;
+			this.states.roll -= this.delta;
+		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
 				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
@@ -377,7 +393,7 @@ Player.prototype.update = function(){
 				this.states.attack_charge = 0; 
 			}
 			
-			if ( input.state('jump') == 1 && this.grounded ) { this.jump(); }
+			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { this.jump(); }
 			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
 			if ( input.state('up') == 1 ) { this.stand(); }
 			
@@ -386,6 +402,16 @@ Player.prototype.update = function(){
 			if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
+				if ( input.state('jump') == 1 && input.state('block') > 0 && this.grounded ) { 
+					//Dodge roll
+					this.states.roll = this.invincible = Game.DELTASECOND * 0.25;
+					this.states.rollDirection = 1.0;
+					if( input.state('left') > 0 || input.state('right') > 0 ) {
+						if( input.state('left') ) this.states.rollDirection = -1.0;
+					} else {
+						if( !this.flip ) this.states.rollDirection = -1.0;
+					}
+				}
 			} else {
 				//Change to face player's selected direction
 				if ( input.state('left') > 0 ) { this.flip = true;}

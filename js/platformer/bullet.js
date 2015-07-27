@@ -128,3 +128,50 @@ Fire.prototype.update = function(){
 		this.trigger("death");
 	}
 }
+
+ExplodingEnemy.prototype = new GameObject();
+ExplodingEnemy.prototype.constructor = GameObject;
+function ExplodingEnemy(x,y, direction, ops){
+	this.constructor();
+	ops = ops || {};
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 24;
+	this.team = 1;
+	
+	this.damage = ops.damage || 0;
+	this.speed = ops.speed || 20;
+	
+	this.addModule( mod_rigidbody );
+	
+	this.gravity = 0.1;
+	this.pushable = false;
+	this.launch = false;
+	this.force = direction.normalize(this.speed);
+	
+	this.sprite = sprites.bullets;
+	this.frame = 0;
+	this.frame_row = 0;
+	this.life = Game.DELTASECOND * 0.5;
+
+	this.on("collideObject", function(obj){
+		if( this.launch && obj.hurt instanceof Function && this.team != obj.team ) {
+			this.life = 0;
+			obj.hurt( this, this.damage );
+		}
+	});
+	this.on("death", function(){
+		game.addObject(new EffectSmoke(this.position.x, this.position.y));
+		this.destroy();
+	});
+}
+ExplodingEnemy.prototype.update = function(){
+	this.frame = (this.frame + (this.delta * 0.3)) % 2;
+	this.life -= this.delta;
+	this.launch = true;
+	if( this.life <= 0 ){
+		this.trigger("death");
+	}
+}
