@@ -1609,6 +1609,7 @@ function load_sprites (){
 	sprites['arena'] = new Sprite(RT+"img/arena.gif", {offset:new Point(64, 128),width:128,height:128});
 	sprites['shops'] = new Sprite(RT+"img/shops.gif", {offset:new Point(80, 104),width:160,height:128});
 	sprites['bullets'] = new Sprite(RT+"img/bullets.gif", {offset:new Point(16, 16),width:32,height:32});
+	sprites['explosion'] = new Sprite(RT+"img/explosion.gif", {offset:new Point(64, 64),width:128,height:128});
 	sprites['halo'] = new Sprite(RT+"img/halo.gif", {offset:new Point(120, 120),width:240,height:240});
 	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(48, 48),width:96,height:96});
 	//sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
@@ -1706,6 +1707,7 @@ window.audio = new AudioPlayer({
 	"equip" : {"url":RT+"sounds/equip.wav"},
 	"explode1" : {"url":RT+"sounds/explode1.wav"},
 	"explode2" : {"url":RT+"sounds/explode2.wav"},
+	"explode3" : {"url":RT+"sounds/explode3.wav"},
 	"gulp" : {"url":RT+"sounds/gulp.wav"},
 	"heal" : {"url":RT+"sounds/heal.wav"},
 	"hurt" : {"url":RT+"sounds/hurt.wav"},

@@ -123,11 +123,13 @@ function Player(x, y){
 		//Charge kill explosion!
 		if( this.states.charge_multiplier && obj.mass < 2.0 && obj.life <= 0 ) {
 			var dir = obj.position.subtract(this.position);
-			game.slow(0.1, Game.DELTASECOND);
+			game.slow(0.1, Game.DELTASECOND * 0.5);
+			audio.playLock("explode3", 0.5);
 			game.addObject( new ExplodingEnemy( 
 				obj.position.x,
 				obj.position.y,
-				dir.add(new Point(0, -2))
+				dir.add(new Point(0, -2)),
+				{"damage" : this.damge * 4}
 			));
 			
 		}

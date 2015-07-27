@@ -147,6 +147,7 @@ function ExplodingEnemy(x,y, direction, ops){
 	this.addModule( mod_rigidbody );
 	
 	this.gravity = 0.1;
+	this.friction = 0;
 	this.pushable = false;
 	this.launch = false;
 	this.force = direction.normalize(this.speed);
@@ -156,6 +157,9 @@ function ExplodingEnemy(x,y, direction, ops){
 	this.frame_row = 0;
 	this.life = Game.DELTASECOND * 0.5;
 
+	this.on("collideVertical", function(obj){ this.life = 0; });
+	this.on("collideHorizontal", function(obj){ this.life = 0; });
+		
 	this.on("collideObject", function(obj){
 		if( this.launch && obj.hurt instanceof Function && this.team != obj.team ) {
 			this.life = 0;
@@ -163,7 +167,12 @@ function ExplodingEnemy(x,y, direction, ops){
 		}
 	});
 	this.on("death", function(){
-		game.addObject(new EffectSmoke(this.position.x, this.position.y));
+		game.addObject(new Explosion(
+			this.position.x, 
+			this.position.y,
+			null,
+			{"damage" : Math.floor( this.damage * 0.6666 ) }
+		));
 		this.destroy();
 	});
 }
@@ -174,4 +183,58 @@ ExplodingEnemy.prototype.update = function(){
 	if( this.life <= 0 ){
 		this.trigger("death");
 	}
+}
+
+Explosion.prototype = new GameObject();
+Explosion.prototype.constructor = GameObject;
+function Explosion(x,y, d, ops){
+	this.constructor();
+	ops = ops || {};
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 120;
+	this.height = 120;
+	this.team = 1;
+	
+	this.damage = ops.damage || 0;
+	
+	this.sprite = sprites.explosion;
+	
+	this.totalTime = Game.DELTASECOND * 0.5;
+	this.time = this.totalTime;
+
+	this.on("collideObject", function(obj){
+		if( obj.hurt instanceof Function && this.team != obj.team ) {
+			obj.hurt( this, this.damage );
+		}
+	});
+	this.on("death", function(){
+		game.addObject(new EffectSmoke(this.position.x, this.position.y));
+		this.destroy();
+	});
+	
+	try{
+		//Shake screen
+		var dir = this.position.subtract(_player.position).normalize(20);
+		window.shakeCamera(dir);
+	} catch (err) {}
+}
+Explosion.prototype.update = function(){
+	var progress = 1.0 - (this.time / this.totalTime);
+	
+	this.frame = Math.floor( progress * 8 ) % 4;
+	this.frame_row = Math.floor( progress * 2 );
+	
+	this.time -= this.delta;
+	if( this.time <= 0 ){
+		this.trigger("death");
+	}
+}
+
+Explosion.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this, [g,c]);
+	
+	var progress = this.time / this.totalTime;
+	Background.pushLight( this.position.subtract(c), 360 * progress );
 }
