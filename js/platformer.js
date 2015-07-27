@@ -7190,7 +7190,7 @@ TitleMenu.prototype.startGame = function(){
 		world.trigger("activate");
 	} else { 
 		ga("send","event","start_intro");
-		dataManager.loadMap(game,_map_maps[1]);
+		dataManager.loadMap(game,_map_maps[0]);
 		audio.stop("music_intro");
 	}
 }
@@ -9716,7 +9716,7 @@ function WorldMap(x, y){
 	//this.towns[6].position.x = 3*16; this.towns[6].position.y = 96*16; this.towns[6].name = "Glenanne";
 	
 	this.locations = [
-		{"position":new Point(61*16,59*16), "map":0}
+		{"position":new Point(61*16,59*16), "map":2}
 	]
 	
 	this.animation = 0;

@@ -157,7 +157,7 @@ TitleMenu.prototype.startGame = function(){
 		world.trigger("activate");
 	} else { 
 		ga("send","event","start_intro");
-		dataManager.loadMap(game,_map_maps[1]);
+		dataManager.loadMap(game,_map_maps[0]);
 		audio.stop("music_intro");
 	}
 }
