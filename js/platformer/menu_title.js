@@ -72,7 +72,7 @@ TitleMenu.prototype.update = function(){
 			}
 		}
 		
-		if( this.progress > 48 ) this.progress = 9.0;
+		if( this.progress > 52 ) this.progress = 9.0;
 		
 	}
 }

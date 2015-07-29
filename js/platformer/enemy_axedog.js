@@ -53,7 +53,7 @@ Axedog.prototype.update = function(){
 		
 		if( this.states.attack > 0 ) {
 			if(this.states.attack < this.attacks.release && this.states.attack > this.attacks.rest) {
-				this.strike( new Line(0,-16,16,16) );
+				this.strike( new Line(0,-16,24,16) );
 			}
 			this.states.attack -= this.delta;
 		} else {

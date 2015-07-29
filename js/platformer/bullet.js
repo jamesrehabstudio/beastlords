@@ -143,6 +143,11 @@ function ExplodingEnemy(x,y, direction, ops){
 	
 	this.damage = ops.damage || 0;
 	this.speed = ops.speed || 20;
+	this.sprite = ops.sprite || sprites.bullets;
+	this.frame = ops.frame || 0;
+	this.frame_row = ops.frame_row || 0;
+	this.flip = ops.flip || false;
+	this.filter = ops.filter || "hurt";
 	
 	this.addModule( mod_rigidbody );
 	
@@ -152,9 +157,6 @@ function ExplodingEnemy(x,y, direction, ops){
 	this.launch = false;
 	this.force = direction.normalize(this.speed);
 	
-	this.sprite = sprites.bullets;
-	this.frame = 0;
-	this.frame_row = 0;
 	this.life = Game.DELTASECOND * 0.5;
 
 	this.on("collideVertical", function(obj){ this.life = 0; });
@@ -176,8 +178,8 @@ function ExplodingEnemy(x,y, direction, ops){
 		this.destroy();
 	});
 }
+ExplodingEnemy.prototype.idle = function(){}
 ExplodingEnemy.prototype.update = function(){
-	this.frame = (this.frame + (this.delta * 0.3)) % 2;
 	this.life -= this.delta;
 	this.launch = true;
 	if( this.life <= 0 ){
@@ -193,8 +195,8 @@ function Explosion(x,y, d, ops){
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 120;
-	this.height = 120;
+	this.width = 96;
+	this.height = 96;
 	this.team = 1;
 	
 	this.damage = ops.damage || 0;
@@ -220,6 +222,7 @@ function Explosion(x,y, d, ops){
 		window.shakeCamera(dir);
 	} catch (err) {}
 }
+Explosion.prototype.idle = function(){}
 Explosion.prototype.update = function(){
 	var progress = 1.0 - (this.time / this.totalTime);
 	

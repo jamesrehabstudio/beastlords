@@ -28,7 +28,7 @@ EffectExplosion.prototype.update = function(){
 
 EffectSmoke.prototype = new GameObject();
 EffectSmoke.prototype.constructor = GameObject;
-function EffectSmoke(x, y){	
+function EffectSmoke(x, y, d, ops){	
 	this.constructor();
 	
 	this.position.x = x;
@@ -40,13 +40,19 @@ function EffectSmoke(x, y){
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
+	this.frame = 0;
+	this.frame_row = 2;
+	
+	ops = ops || {};
+	if( "frame" in ops ) this.frame = ops.frame;
+	if( "frame_row" in ops ) this.frame_row = ops.frame_row;
+	if( "speed" in ops ) this.speed = ops.speed;
+	if( "time" in ops ) this.time = ops.time;
 	
 	this.on("sleep",function(){ this.destroy(); } );
 }
 
 EffectSmoke.prototype.update = function(){
-	this.frame = 0;
-	this.frame_row = 2;
 	this.time -= game.deltaUnscaled;
 	
 	this.position.y -= game.deltaUnscaled * this.speed;

@@ -398,7 +398,7 @@ Background.prototype.renderDust = function(g,c){
 				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y ) 
 			),
 			11, 13, false, 
-			"blur", {"blur":0.004 * dust.scale, "scale": [0.5*dust.scale, 0.5*dust.scale]}
+			"blur", {"blur":Math.min(0.004 * dust.scale, 0.008), "scale": [0.3*dust.scale, 0.3*dust.scale]}
 		);
 	}
 }
@@ -1794,6 +1794,11 @@ function ExplodingEnemy(x,y, direction, ops){
 	
 	this.damage = ops.damage || 0;
 	this.speed = ops.speed || 20;
+	this.sprite = ops.sprite || sprites.bullets;
+	this.frame = ops.frame || 0;
+	this.frame_row = ops.frame_row || 0;
+	this.flip = ops.flip || false;
+	this.filter = ops.filter || "hurt";
 	
 	this.addModule( mod_rigidbody );
 	
@@ -1803,9 +1808,6 @@ function ExplodingEnemy(x,y, direction, ops){
 	this.launch = false;
 	this.force = direction.normalize(this.speed);
 	
-	this.sprite = sprites.bullets;
-	this.frame = 0;
-	this.frame_row = 0;
 	this.life = Game.DELTASECOND * 0.5;
 
 	this.on("collideVertical", function(obj){ this.life = 0; });
@@ -1827,8 +1829,8 @@ function ExplodingEnemy(x,y, direction, ops){
 		this.destroy();
 	});
 }
+ExplodingEnemy.prototype.idle = function(){}
 ExplodingEnemy.prototype.update = function(){
-	this.frame = (this.frame + (this.delta * 0.3)) % 2;
 	this.life -= this.delta;
 	this.launch = true;
 	if( this.life <= 0 ){
@@ -1844,8 +1846,8 @@ function Explosion(x,y, d, ops){
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 120;
-	this.height = 120;
+	this.width = 96;
+	this.height = 96;
 	this.team = 1;
 	
 	this.damage = ops.damage || 0;
@@ -1871,6 +1873,7 @@ function Explosion(x,y, d, ops){
 		window.shakeCamera(dir);
 	} catch (err) {}
 }
+Explosion.prototype.idle = function(){}
 Explosion.prototype.update = function(){
 	var progress = 1.0 - (this.time / this.totalTime);
 	
@@ -2106,7 +2109,7 @@ EffectExplosion.prototype.update = function(){
 
 EffectSmoke.prototype = new GameObject();
 EffectSmoke.prototype.constructor = GameObject;
-function EffectSmoke(x, y){	
+function EffectSmoke(x, y, d, ops){	
 	this.constructor();
 	
 	this.position.x = x;
@@ -2118,13 +2121,19 @@ function EffectSmoke(x, y){
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
+	this.frame = 0;
+	this.frame_row = 2;
+	
+	ops = ops || {};
+	if( "frame" in ops ) this.frame = ops.frame;
+	if( "frame_row" in ops ) this.frame_row = ops.frame_row;
+	if( "speed" in ops ) this.speed = ops.speed;
+	if( "time" in ops ) this.time = ops.time;
 	
 	this.on("sleep",function(){ this.destroy(); } );
 }
 
 EffectSmoke.prototype.update = function(){
-	this.frame = 0;
-	this.frame_row = 2;
 	this.time -= game.deltaUnscaled;
 	
 	this.position.y -= game.deltaUnscaled * this.speed;
@@ -2527,7 +2536,7 @@ Axedog.prototype.update = function(){
 		
 		if( this.states.attack > 0 ) {
 			if(this.states.attack < this.attacks.release && this.states.attack > this.attacks.rest) {
-				this.strike( new Line(0,-16,16,16) );
+				this.strike( new Line(0,-16,24,16) );
 			}
 			this.states.attack -= this.delta;
 		} else {
@@ -4153,7 +4162,7 @@ function Igbo(x,y){
 	this.attack_rest = Game.DELTASECOND * 1.4;
 	
 	this.guard.active = true;
-	this.guard.x = 14;
+	this.guard.x = 20;
 	this.guard.y = 0;
 	this.guard.w = 16;
 	this.guard.h = 46;	
@@ -4231,8 +4240,7 @@ Igbo.prototype.update = function(){
 			var range = this.states.attack_down ? 20 : 35;
 			this.strike(new Line(
 				new Point( 10, (this.states.attack_down ? 0: 0) ),
-				new Point( range, (this.states.attack_down ? 8 : 24) ) ), 
-				this.states.attack_down ? "struck" : "hurt"
+				new Point( range, (this.states.attack_down ? 8 : 24) ) )
 			);
 		}
 		
@@ -7105,7 +7113,7 @@ TitleMenu.prototype.update = function(){
 			}
 		}
 		
-		if( this.progress > 48 ) this.progress = 9.0;
+		if( this.progress > 52 ) this.progress = 9.0;
 		
 	}
 }
@@ -7781,21 +7789,25 @@ EnemyStruck = function(obj,pos,damage){
 
 MovingPlatform.prototype = new GameObject();
 MovingPlatform.prototype.constructor = GameObject;
-function MovingPlatform(x,y){
+function MovingPlatform(x,y,d,ops){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.start_y = y;
 	
 	this.width = 28;
 	this.height = 16;
 	
 	this.speed = 1.3;
-	this.distance = 32;
-	this.direction = 1.0;
+	this.direction = new Point(1,1);
 	this.onboard = false;
 	
 	this.sprite = game.tileSprite;
+	
+	ops = ops || {};
+	this.top = (ops.top || 0) - -y;
+	this.bottom = (ops.bottom || 0) - -y;
+	this.left = (ops.left || 0) - -x;
+	this.right = (ops.right || 0) - -x;
 	
 	this.addModule( mod_rigidbody );
 	this.clearEvents("collideObject");
@@ -7816,20 +7828,23 @@ function MovingPlatform(x,y){
 
 MovingPlatform.prototype.idle = function(){}
 MovingPlatform.prototype.update = function(){
-	var dir = this.position.y - this.start_y;
-	if( dir > this.distance ) {
-		this.direction = -1.0;
+	if( this.top != this.bottom ){
+		if( this.position.y < this.top ) this.direction.y = 1.0;
+		if( this.position.y > this.bottom ) this.direction.y = -1.0;
+		this.force.y = this.direction.y * this.speed;
 	}
-	if( dir < -this.distance ) {
-		this.direction = 1.0;
+	
+	if( this.left != this.right ){
+		if( this.position.x < this.left ) this.direction.x = 1.0;
+		if( this.position.x > this.right ) this.direction.x = -1.0;
+		this.force.x = this.direction.x * this.speed;
 	}
-	this.force.y = this.direction * this.speed;
 	
 	this.onboard = false;
 }
 MovingPlatform.prototype.render = function(g,c){
-	game.tileSprite.render(g, new Point(this.position.x-8-c.x, this.position.y+8-c.y), 0, 15);
-	game.tileSprite.render(g, new Point(this.position.x+8-c.x, this.position.y+8-c.y), 1, 15);
+	game.tileSprite.render(g, new Point(this.position.x-16-c.x, this.position.y+8-c.y), 0, 15);
+	game.tileSprite.render(g, new Point(this.position.x+0-c.x, this.position.y+8-c.y), 1, 15);
 }
 
  /* platformer/platform_generator.js*/ 
@@ -7913,6 +7928,7 @@ function Player(x, y){
 		"guard_down" : false,
 		"attack_charge" : 0,
 		"charge_multiplier" : false,
+		"rollPressCounter" : 0.0,
 		"roll" : 0,
 		"rollDirection" : 1.0
 	};
@@ -7950,7 +7966,20 @@ function Player(x, y){
 		ga("send","event", "death","died:"+dataManager.currentTemple+" at level:"+this.level);
 	});
 	this.on("land", function(){
+		//Land from a height
 		audio.play("land");
+		for(var i=0; i < 4; i++ ){
+			game.addObject( new EffectSmoke(
+				i*5+this.position.x-8, 
+				this.position.y+16-Math.random()*3 ,
+				null,
+				{
+					"frame":1, 
+					"speed":0.4 + Math.random() * 0.2,
+					"time":Game.DELTASECOND * (0.3 + 0.4 * Math.random())
+				}
+			));
+		}
 	});
 	this.on("collideVertical", function(v){
 		if(v>0) this.knockedout = false;
@@ -7961,6 +7990,8 @@ function Player(x, y){
 		this.grounded = false;
 		this.force.y = -8;
 		this.force.x = 12 * (dir.x > 0 ? 1.0 : -1.0);
+		
+		this.guard.life = this.guard.lifeMax;
 		
 		game.slow(0.1, Game.DELTASECOND);
 	});
@@ -8007,7 +8038,13 @@ function Player(x, y){
 				obj.position.x,
 				obj.position.y,
 				dir.add(new Point(0, -2)),
-				{"damage" : this.damge * 4}
+				{
+					"damage" : this.damage * 4,
+					"sprite" : obj.sprite,
+					"flip" : obj.flip,
+					"frame" : obj.frame,
+					"frame_row" : obj.frame_row
+				}
 			));
 			
 		}
@@ -8050,6 +8087,7 @@ function Player(x, y){
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = 20;
 	this.autoblock = true;
+	this.rollTime = Game.DELTASECOND * 0.5;
 	
 	this.speeds = {
 		"inertiaGrounded" : 0.9,
@@ -8244,7 +8282,7 @@ Player.prototype.update = function(){
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
 		if( this.states.roll > 0 ) {
-			this.force.x = this.states.rollDirection * 8;
+			this.force.x = this.states.rollDirection * 5;
 			this.states.roll -= this.delta;
 		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
@@ -8279,24 +8317,42 @@ Player.prototype.update = function(){
 			
 			this.states.guard = this.states.attack <= 0 && ( input.state('block') > 0 || this.autoblock );
 			
-			if (strafe) {
+			if ( 
+				(
+					(this.states.rollDirection > 0 && input.state("right") == 1) || 
+					(this.states.rollDirection < 0 && input.state("left") == 1)
+				) && 
+				this.states.rollPressCounter > 0 &&
+				this.grounded
+			) {
+				//Dodge roll
+				this.states.roll = this.invincible = this.rollTime;
+				/*
+				this.states.rollDirection = 1.0;
+				if( input.state('left') > 0 || input.state('right') > 0 ) {
+					if( input.state('left') ) this.states.rollDirection = -1.0;
+				} else {
+					if( !this.flip ) this.states.rollDirection = -1.0;
+				}
+				*/
+			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
-				if ( input.state('jump') == 1 && input.state('block') > 0 && this.grounded ) { 
-					//Dodge roll
-					this.states.roll = this.invincible = Game.DELTASECOND * 0.25;
-					this.states.rollDirection = 1.0;
-					if( input.state('left') > 0 || input.state('right') > 0 ) {
-						if( input.state('left') ) this.states.rollDirection = -1.0;
-					} else {
-						if( !this.flip ) this.states.rollDirection = -1.0;
-					}
-				}
+				
 			} else {
 				//Change to face player's selected direction
 				if ( input.state('left') > 0 ) { this.flip = true;}
 				if ( input.state('right') > 0 ) { this.flip = false; }
 			}
+			
+			//Prep roll
+			this.states.rollPressCounter -= this.delta;
+			if( input.state('left') == 1 || input.state('right') == 1 ){
+				this.states.rollDirection = 1.0;
+				this.states.rollPressCounter = Game.DELTASECOND * 0.25;
+				if( input.state('left') ) this.states.rollDirection = -1.0;
+			}
+			
 		}
 		
 		//Apply jump boost
@@ -8362,6 +8418,9 @@ Player.prototype.update = function(){
 		this.stand();
 		this.frame = 3;
 		this.frame_row = 0;
+	} else if( this.states.roll > 0 ) {
+		this.frame_row = 3;
+		this.frame = 5 * (1 - this.states.roll / this.rollTime);
 	} else {
 		if( this.states.duck ) {
 			this.frame = 3;
@@ -8617,7 +8676,12 @@ Player.prototype.render = function(g,c){
 	}
 	
 	//Render player
-	GameObject.prototype.render.apply(this,[g,c]);
+	if( this.states.roll <= 0 ){
+		GameObject.prototype.render.apply(this,[g,c]);
+	} else {
+		//When rolling, ignore flip and shader
+		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
+	}
 	
 	if( this.spellsCounters.thorns > 0 ){
 		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
@@ -8646,6 +8710,9 @@ Player.prototype.render = function(g,c){
 
 Player.prototype.rendershield = function(g,c){
 	//Render shield
+	
+	if( this.states.roll > 0 ) return;
+	
 	var frame = this.guard.active ? 0 : 1;
 	
 	//var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);

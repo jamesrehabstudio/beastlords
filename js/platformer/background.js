@@ -172,7 +172,7 @@ Background.prototype.renderDust = function(g,c){
 				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y ) 
 			),
 			11, 13, false, 
-			"blur", {"blur":0.004 * dust.scale, "scale": [0.5*dust.scale, 0.5*dust.scale]}
+			"blur", {"blur":Math.min(0.004 * dust.scale, 0.008), "scale": [0.3*dust.scale, 0.3*dust.scale]}
 		);
 	}
 }

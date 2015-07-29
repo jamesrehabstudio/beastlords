@@ -561,20 +561,24 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 	for(var j=0; j < layers.length; j++ ) {
 		if( layers[j] in room ) {
 			var layer = room[layers[j]];
+			var rs = room_size;
+			var start_x = g.tileDimension.start.x;
 			if( layer instanceof Function ) layer = layer.apply(room, [seed, width, height, room_options]);
+			
+			if( layers[j] == "far") {
+				addBackground = false;
+				rs = 15;
+				start_x = ((start_x*1.0) / room_size) * rs;
+			}
 			
 			for(var i=0; i < layer.length; i++){
 				var x = Math.floor( i % ( room_size * width ) );
 				var y = Math.floor( i / ( room_size * width ) );
 				var offset = Math.floor( 
-					Math.floor( (x-g.tileDimension.start.x) + Math.floor( cursor.x / ts ) ) + 
+					Math.floor( (x-start_x) + Math.floor( cursor.x / ts ) ) + 
 					Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * g.tileDimension.width() )
 				);
 				g.tiles[j][offset] = layer[i];
-			}
-			
-			if( layers[j] == "far") {
-				addBackground = false;
 			}
 		}
 	}

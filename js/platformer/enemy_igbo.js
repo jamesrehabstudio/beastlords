@@ -26,7 +26,7 @@ function Igbo(x,y){
 	this.attack_rest = Game.DELTASECOND * 1.4;
 	
 	this.guard.active = true;
-	this.guard.x = 14;
+	this.guard.x = 20;
 	this.guard.y = 0;
 	this.guard.w = 16;
 	this.guard.h = 46;	
@@ -104,8 +104,7 @@ Igbo.prototype.update = function(){
 			var range = this.states.attack_down ? 20 : 35;
 			this.strike(new Line(
 				new Point( 10, (this.states.attack_down ? 0: 0) ),
-				new Point( range, (this.states.attack_down ? 8 : 24) ) ), 
-				this.states.attack_down ? "struck" : "hurt"
+				new Point( range, (this.states.attack_down ? 8 : 24) ) )
 			);
 		}
 		

@@ -35,6 +35,7 @@ function Player(x, y){
 		"guard_down" : false,
 		"attack_charge" : 0,
 		"charge_multiplier" : false,
+		"rollPressCounter" : 0.0,
 		"roll" : 0,
 		"rollDirection" : 1.0
 	};
@@ -72,7 +73,20 @@ function Player(x, y){
 		ga("send","event", "death","died:"+dataManager.currentTemple+" at level:"+this.level);
 	});
 	this.on("land", function(){
+		//Land from a height
 		audio.play("land");
+		for(var i=0; i < 4; i++ ){
+			game.addObject( new EffectSmoke(
+				i*5+this.position.x-8, 
+				this.position.y+16-Math.random()*3 ,
+				null,
+				{
+					"frame":1, 
+					"speed":0.4 + Math.random() * 0.2,
+					"time":Game.DELTASECOND * (0.3 + 0.4 * Math.random())
+				}
+			));
+		}
 	});
 	this.on("collideVertical", function(v){
 		if(v>0) this.knockedout = false;
@@ -83,6 +97,8 @@ function Player(x, y){
 		this.grounded = false;
 		this.force.y = -8;
 		this.force.x = 12 * (dir.x > 0 ? 1.0 : -1.0);
+		
+		this.guard.life = this.guard.lifeMax;
 		
 		game.slow(0.1, Game.DELTASECOND);
 	});
@@ -129,7 +145,13 @@ function Player(x, y){
 				obj.position.x,
 				obj.position.y,
 				dir.add(new Point(0, -2)),
-				{"damage" : this.damge * 4}
+				{
+					"damage" : this.damage * 4,
+					"sprite" : obj.sprite,
+					"flip" : obj.flip,
+					"frame" : obj.frame,
+					"frame_row" : obj.frame_row
+				}
 			));
 			
 		}
@@ -172,6 +194,7 @@ function Player(x, y){
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = 20;
 	this.autoblock = true;
+	this.rollTime = Game.DELTASECOND * 0.5;
 	
 	this.speeds = {
 		"inertiaGrounded" : 0.9,
@@ -366,7 +389,7 @@ Player.prototype.update = function(){
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
 		if( this.states.roll > 0 ) {
-			this.force.x = this.states.rollDirection * 8;
+			this.force.x = this.states.rollDirection * 5;
 			this.states.roll -= this.delta;
 		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
@@ -401,24 +424,42 @@ Player.prototype.update = function(){
 			
 			this.states.guard = this.states.attack <= 0 && ( input.state('block') > 0 || this.autoblock );
 			
-			if (strafe) {
+			if ( 
+				(
+					(this.states.rollDirection > 0 && input.state("right") == 1) || 
+					(this.states.rollDirection < 0 && input.state("left") == 1)
+				) && 
+				this.states.rollPressCounter > 0 &&
+				this.grounded
+			) {
+				//Dodge roll
+				this.states.roll = this.invincible = this.rollTime;
+				/*
+				this.states.rollDirection = 1.0;
+				if( input.state('left') > 0 || input.state('right') > 0 ) {
+					if( input.state('left') ) this.states.rollDirection = -1.0;
+				} else {
+					if( !this.flip ) this.states.rollDirection = -1.0;
+				}
+				*/
+			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
-				if ( input.state('jump') == 1 && input.state('block') > 0 && this.grounded ) { 
-					//Dodge roll
-					this.states.roll = this.invincible = Game.DELTASECOND * 0.25;
-					this.states.rollDirection = 1.0;
-					if( input.state('left') > 0 || input.state('right') > 0 ) {
-						if( input.state('left') ) this.states.rollDirection = -1.0;
-					} else {
-						if( !this.flip ) this.states.rollDirection = -1.0;
-					}
-				}
+				
 			} else {
 				//Change to face player's selected direction
 				if ( input.state('left') > 0 ) { this.flip = true;}
 				if ( input.state('right') > 0 ) { this.flip = false; }
 			}
+			
+			//Prep roll
+			this.states.rollPressCounter -= this.delta;
+			if( input.state('left') == 1 || input.state('right') == 1 ){
+				this.states.rollDirection = 1.0;
+				this.states.rollPressCounter = Game.DELTASECOND * 0.25;
+				if( input.state('left') ) this.states.rollDirection = -1.0;
+			}
+			
 		}
 		
 		//Apply jump boost
@@ -484,6 +525,9 @@ Player.prototype.update = function(){
 		this.stand();
 		this.frame = 3;
 		this.frame_row = 0;
+	} else if( this.states.roll > 0 ) {
+		this.frame_row = 3;
+		this.frame = 5 * (1 - this.states.roll / this.rollTime);
 	} else {
 		if( this.states.duck ) {
 			this.frame = 3;
@@ -739,7 +783,12 @@ Player.prototype.render = function(g,c){
 	}
 	
 	//Render player
-	GameObject.prototype.render.apply(this,[g,c]);
+	if( this.states.roll <= 0 ){
+		GameObject.prototype.render.apply(this,[g,c]);
+	} else {
+		//When rolling, ignore flip and shader
+		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
+	}
 	
 	if( this.spellsCounters.thorns > 0 ){
 		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
@@ -768,6 +817,9 @@ Player.prototype.render = function(g,c){
 
 Player.prototype.rendershield = function(g,c){
 	//Render shield
+	
+	if( this.states.roll > 0 ) return;
+	
 	var frame = this.guard.active ? 0 : 1;
 	
 	//var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
