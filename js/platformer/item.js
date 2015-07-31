@@ -237,9 +237,7 @@ Item.prototype.setName = function(n){
 	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
 	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
 	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
-	//if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
-	//if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
-	if(n == "map") { this.frame = 3; this.frame_row = 1; return }
+	if(n == "map") { this.frame = 3; this.frame_row = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
 	if(n == "mana_small") { this.frame = 4; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }

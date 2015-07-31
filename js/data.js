@@ -92,6 +92,8 @@ function DataManager() {
 			if(level==1) return this.roomsFromTags(["boss"]);
 			if(level==2) return this.roomsFromTags(["walk"]);
 			if(level==3) return this.roomsFromTags(["door"]);
+			var shop_id = this.roomFromTags(["shop"]);
+			if(seed.randomBool(1.1-(level/options.size)) && this.slices.peek().filter({"room":shop_id}).length <= 0 ) return [shop_id];
 			if(seed.randomBool(0.1) && this.keysRemaining()>0) return this.roomsFromTags(["door"]);
 			return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
 		},
@@ -100,6 +102,8 @@ function DataManager() {
 			if(level==0) return this.roomsFromTags(["exit_w","exit_e"]);
 			if(level==1) return this.roomsFromTags(["boss"]);
 			if(level==2) return this.roomsFromTags(["door"]);
+			var shop_id = this.roomFromTags(["shop"]);
+			if(seed.randomBool(1.1-(level/options.size)) && this.slices.peek().filter({"room":shop_id}).length <= 0 ) return [shop_id];
 			if(seed.randomBool(0.1) && this.keysRemaining()>0) return this.roomsFromTags(["door"]);
 			return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
 		},
@@ -328,9 +332,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 	while( !success ) {
 		//Refresh room counts
 		for(var i=0; i < window._map_rooms.length; i++){
-			if( "count" in window._map_rooms[i] ) {
-				window._map_rooms.remaining = window._map_rooms[i].count - 0;
-			} else {
+			if( !("remaining" in window._map_rooms[i]) ) {
 				window._map_rooms.remaining = 9999;
 			}
 		}
@@ -1107,6 +1109,10 @@ DataManager.prototype.isFree = function(room, cursor){
 }
 
 DataManager.prototype.roomConditions = function(room, options){
+	var room_id = window._map_rooms.indexOf( room );
+	
+	if( this.slices.peek().filter({"room":room_id}).length >= room.remaining ) return false;
+	if( "min_temple" in room && room["min_temple"]-0 > this.currentTemple ) return false;
 	if( "min_temple" in room && room["min_temple"]-0 > this.currentTemple ) return false;
 	if( "max_temple" in room && room["max_temple"]-0 < this.currentTemple ) return false;
 	if( "valid_temples" in room && room["valid_temples"].split(",").indexOf( ""+this.currentTemple ) < 0 ) return false;
@@ -1472,11 +1478,13 @@ MapSlice.prototype.filter = function(f){
 		var addit = true;
 
 		if( room != undefined ) {
+			if("room" in f && this.data[i].room != f.room) addit = false;
 			if("width" in f && room.width != f.width) addit = false;
 			if("height" in f && room.height != f.height) addit = false;
 			if("rarity" in f && room.rarity < f.rarity) addit = false;
 			if("raritylt" in f && room.rarity > f.raritylt) addit = false;
 		} else {
+			if("room" in f ) addit = false;
 			if("raritylt" in f ) addit = false;
 			if("rarity" in f ) addit = false;
 			if("isRoom" in f ) addit = false;
@@ -1626,7 +1634,7 @@ function load_sprites (){
 	sprites['sword3'] = new Sprite(RT+"img/sword3.gif", {offset:new Point(26, 32),width:80,height:48,"filters":{"enchanted":filter_enchanted}});
 	sprites['magic_effects'] = new Sprite(RT+"img/magic_effects.gif", {offset:new Point(16, 32),width:32,height:48});
 	
-	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(8, 8),width:16,height:16,"filters":filter_pack_enemies});
+	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['axedog'] = new Sprite(RT+"img/axedog.gif", {offset:new Point(20, 24),width:40,height:40});
 	sprites['baller'] = new Sprite(RT+"img/baller.gif", {offset:new Point(40, 60),width:80,height:96,"filters":filter_pack_enemies});
 	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48,"filters":filter_pack_enemies});
@@ -1637,6 +1645,7 @@ function load_sprites (){
 	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32,"filters":filter_pack_enemies});
 	sprites['chazbike'] = new Sprite(RT+"img/chazbike.gif", {offset:new Point(24, 32),width:48,height:48,"filters":filter_pack_enemies});
 	sprites['deckard'] = new Sprite(RT+"img/deckard.gif", {offset:new Point(24, 30),width:64,height:48,"filters":filter_pack_enemies});
+	sprites['frogmonster'] = new Sprite(RT+"img/frogmonster.gif", {offset:new Point(72, 72),width:144,height:144});
 	sprites['ghoul'] = new Sprite(RT+"img/ghoul.gif", {offset:new Point(16, 24),width:32,height:48,"filters":filter_pack_enemies});
 	sprites['ending'] = new Sprite(RT+"img/ending.gif", {offset:new Point(48, 32),width:96,height:64});
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});

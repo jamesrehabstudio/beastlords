@@ -72,6 +72,8 @@ Spawn.enemies = {
 		{"tags":[],"difficulty":[5,5],"enemies":["Poseidon"]}
 	],
 	"default" : [
+		//{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]},
+		
 		{"tags":["miniboss"],"difficulty":[0,0],"enemies":["Skeleton"]},
 		{"tags":["miniboss"],"difficulty":[0,0],"enemies":["Bear"]},
 		{"tags":["miniboss"],"difficulty":[1,2],"enemies":["Oriax"]},
@@ -101,6 +103,7 @@ Spawn.enemies = {
 		{"tags":["minor","flying"],"difficulty":[0,3],"enemies":["Amon"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
+		
 		
 	]
 };

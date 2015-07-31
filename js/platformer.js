@@ -66,8 +66,7 @@ Alter.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	
 	if( this.open > 0 ) {
-		boxArea(g,16,48,224,64);
-		textArea(g,this.message[0],32,64,192,64);
+		renderDialog(g,this.message[0]);
 		
 		
 		boxArea(g,16,120,64,56);
@@ -885,6 +884,208 @@ Chort.prototype.update = function(){
 		this.frame = (this.frame + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
 		this.frame_row = 0;
 	}
+}
+
+ /* platformer/boss_frog.js*/ 
+
+FrogBoss.prototype = new GameObject();
+FrogBoss.prototype.constructor = GameObject;
+function FrogBoss(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 120;
+	this.height = 180;
+	this.team = 0;
+	this.sprite = sprites.frogmonster;
+	
+	this.addModule(mod_rigidbody);
+	this.addModule(mod_combat);
+	
+	this.speed = 1.125;
+	this.frame = 0;
+	this.frame_row = 0;
+	this.life = dataManager.life(35);
+	this.gravity = 0.5;
+	this.friction = 0.2;
+	this.mass = 20.0;
+	this.death_time = Game.DELTASECOND * 3;
+	
+	this.damage = dataManager.damage(5);
+	
+	this.times = {
+		"stump" : Game.DELTASECOND * 1.1,
+		"flySpawn" : Game.DELTASECOND * 1.5,
+		"jump" : Game.DELTASECOND * 9.0,
+		"rockSpawn" : Game.DELTASECOND * 3.0,
+	};
+	this.states = {
+		"stump" : 0.0,
+		"flySpawn" : 0.0,
+		"jump" : 0.0,
+		"rockSpawn" : Game.DELTASECOND * 3.0
+		
+	};
+	
+	//Find rock spawning limits
+	this.rockBox = new Line(this.position.x, this.position.y, this.position.x, this.position.y);
+	for(var i=0; i < 32; i++){
+		if( game.getTile( this.position.x, this.position.y - i*16, game.tileCollideLayer) > 0 ){
+			this.rockBox.start.y = this.position.y - i * 16 + 24;
+			break;
+		}
+	}
+	for(var i=0; i < 32; i++){
+		if( game.getTile( this.position.x - i*16, this.rockBox.start.y, game.tileCollideLayer) > 0 ){
+			this.rockBox.start.x = this.position.x - i * 16 + 24;
+			break;
+		}
+	}
+	for(var i=0; i < 32; i++){
+		if( game.getTile( this.position.x + i*16, this.rockBox.start.y, game.tileCollideLayer) > 0 ){
+			this.rockBox.end.x = this.position.x + i * 16 - 24;
+			break;
+		}
+	}
+	this.rockBox.end.y = this.rockBox.start.y + 64;
+	
+	//Array for tracking flies
+	this.flies = new Array();
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(){
+		audio.play("hurt");
+	});
+	this.on("collideVertical", function(dir){
+		if( this.life > 0 && dir > 3 && this.states.rockSpawn <= 0) {
+			//Shake room and cause rocks to fall
+			window.audio.play("explode1");
+			window.shakeCamera(new Point(0,8));
+			for(var i=0; i < 8; i++ ) {
+				var rock = new FallingRock( 
+					this.rockBox.start.x + this.rockBox.width() * Math.random(),
+					this.rockBox.start.y + this.rockBox.height() * Math.random()
+				);
+				rock.damage = Math.round(this.damage * 0.25);
+				game.addObject( rock );
+			}
+			
+		}
+	});
+	this.on("death", function(){
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		
+		Item.drop(this);
+		this.destroy();
+	});
+}
+FrogBoss.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if( this.life > 0 && this.stun <= 0 ) {
+		this.flip = dir.x > 0;
+		
+		this.states.stump += this.delta;
+		this.states.flySpawn += this.delta;
+		this.states.jump += this.delta;
+		
+		this.states.rockSpawn -= this.delta;
+		
+		if( this.states.jump > this.times.jump && this.grounded) {
+			this.force.y = -6;
+			this.states.jump = 0;
+		}
+		if( this.states.flySpawn > this.times.flySpawn ) {
+			this.states.flySpawn = -Game.DELTASECOND * 2;
+			//Spawn some flies
+			for(var i=0; i < 3; i++ ){
+				if( i < this.flies.length && this.flies[i].life > 0 ) {
+					//Don't spawn a fly
+				} else {
+					var fly = new Fly( this.position.x, this.position.y - 64);
+					fly.itemDrop = false;
+					this.flies[i] = fly;
+					game.addObject( fly );
+				}
+			}
+		}
+		if( this.states.stump > this.times.stump ) {
+			audio.play("explode2");
+			this.states.stump = -Game.DELTASECOND * 2;
+			this.strike( new Line(-72, 60, 72, 90) );
+		}
+	}
+	
+	this.frame = (this.frame + this.delta * 0.05) % 1.0;
+}
+FrogBoss.prototype.render = function(g,c){
+	var llegFrame = this.frame < 0.33 ? 1 : 0;
+	var rlegFrame = this.frame >= 0.5 && this.frame < 0.833  ? 1 : 0;
+	var headFrame = 0;
+	
+	var bob1 = new Point(0, 4*Math.sin(this.frame * Math.PI + 3.0 ));
+	var bob2 = new Point(0, 2*Math.sin(this.frame * Math.PI + 1.5 ));
+	var bob3 = new Point(0, 3*Math.sin(this.frame * Math.PI));
+	
+	var larm = FrogBoss.pos.larm.add(bob2);
+	var lleg = FrogBoss.pos.lleg.add(new Point());
+	var body = FrogBoss.pos.body.add(bob3);
+	var head = FrogBoss.pos.head.add(bob1);
+	var rleg = FrogBoss.pos.rleg.add(new Point());
+	var rarm = FrogBoss.pos.rarm.add(bob2);
+	
+	var flySpawnProgress = this.states.flySpawn / this.times.flySpawn;
+	headFrame = Math.max( Math.floor(flySpawnProgress * 3), 0);
+	
+	var stumpProgress = this.states.stump / this.times.stump;
+	if( stumpProgress > 0 ) {
+		llegFrame = 2;
+		rlegFrame = 0;
+		larm.x += Math.lerp(0,-8,stumpProgress); larm.y += Math.lerp(0,-12,stumpProgress);
+		rarm.x += Math.lerp(0,-8,stumpProgress); rarm.y += Math.lerp(0,-12,stumpProgress);
+		head.x += Math.lerp(0,-8,stumpProgress); head.y += Math.lerp(0,-12,stumpProgress);
+		body.x += Math.lerp(0,-8,stumpProgress); body.y += Math.lerp(0,-12,stumpProgress);
+		lleg.x += Math.lerp(0,-6,stumpProgress); lleg.y += Math.lerp(0,-16,stumpProgress);
+	}
+	
+	if( this.force.y < 0 && !this.grounded ) {
+		llegFrame = 1;
+		rlegFrame = 1;
+		lleg.y += Math.max( 2 * this.force.y, -8);
+		rleg.y += Math.max( 2 * this.force.y, -8);
+	}
+	
+	if( this.flip ) {
+		larm.x *= -1; lleg.x *= -1; body.x *= -1;
+		head.x *= -1; rleg.x *= -1; rarm.x *= -1;
+	}
+	
+	this.sprite.render(g,this.position.add(larm).subtract(c), 0, 4, this.flip, this.filter);
+	this.sprite.render(g,this.position.add(lleg).subtract(c), llegFrame, 5, this.flip, this.filter);
+	this.sprite.render(g,this.position.add(body).subtract(c), 0, 1, this.flip, this.filter);
+	this.sprite.render(g,this.position.add(head).subtract(c), headFrame, 0, this.flip, this.filter);
+	this.sprite.render(g,this.position.add(rleg).subtract(c), rlegFrame, 2, this.flip, this.filter);
+	this.sprite.render(g,this.position.add(rarm).subtract(c), 0, 3, this.flip, this.filter);
+	
+	//pupils
+	if( window._player instanceof Player ) {
+		var dir = window._player.position.normalize(4)
+		this.sprite.render(g,this.position.add(head).subtract(c).subtract(dir), 0, 6, this.flip);
+	}
+	
+	g.color = [1.0,0,0,1.0];
+	g.scaleFillRect(this.rockBox.start.x - c.x, this.rockBox.start.y - c.y, this.rockBox.width(), this.rockBox.height() );
+	
+}
+
+FrogBoss.pos = {
+	"head" : new Point(36,-70),
+	"body" : new Point(0,8),
+	"larm" : new Point(56,8),
+	"rarm" : new Point(-28,-20),
+	"lleg" : new Point(40,18),
+	"rleg" : new Point(-32,18)
 }
 
  /* platformer/boss_garmr.js*/ 
@@ -1779,6 +1980,43 @@ Fire.prototype.update = function(){
 		this.trigger("death");
 	}
 }
+
+FallingRock.prototype = new GameObject();
+FallingRock.prototype.constructor = GameObject;
+function FallingRock(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 24;
+	this.team = 0;
+	this.damage = 10;
+	
+	this.addModule( mod_rigidbody );
+	
+	this.sprite = sprites.bullets;
+	this.gravity = 0.333;
+	this.pushable = false;
+	this.frame = 3;
+	this.frame_row = 0;
+	
+	this.on("struck", function(obj, pos, damage){
+		if( damage > 0 ) this.trigger("death");
+	});
+	this.on("collideObject", function(obj){
+		if( this.team != obj.team && obj.hurt instanceof Function ){
+			obj.hurt( this, this.damage );
+		}
+	});
+	this.on("collideVertical", function(obj){ this.trigger("death");});
+	this.on("collideHorizontal", function(obj){ this.trigger("death");});
+	this.on("death", function(){
+		window.audio.play("explode2");
+		game.addObject(new EffectSmoke(this.position.x, this.position.y));
+		this.destroy();
+	});
+}
+FallingRock.prototype.idle = function(){}
 
 ExplodingEnemy.prototype = new GameObject();
 ExplodingEnemy.prototype.constructor = GameObject;
@@ -3955,6 +4193,86 @@ Flederknife.prototype.update = function(){
 		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 		this.frame_row = 1;
 	}
+}
+
+ /* platformer/enemy_fly.js*/ 
+
+Fly.prototype = new GameObject();
+Fly.prototype.constructor = GameObject;
+function Fly(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 24;
+	this.damage = dataManager.damage(2);
+	this.team = 0;
+	this.sprite = sprites.amon;
+	
+	this.addModule(mod_rigidbody);
+	this.addModule(mod_combat);
+	
+	this.speed = 0.25;
+	this.frame = 0;
+	this.frame_row = 1;
+	this.life = dataManager.life(1);
+	this.gravity = 0.0;
+	this.friction = 0.1;
+	this.mass = 0.7;
+	this.itemDrop = true;
+	
+	this.times = {
+		"attackWarm" : Game.DELTASECOND,
+		"attack" : Game.DELTASECOND * 0.25,
+	};
+	this.states = {
+		"attackWarm" : 0.0,
+		"attack" : 0.0
+	};
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(){
+		audio.play("hurt");
+	});
+	
+	this.on("death", function(){
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		if( this.itemDrop ){
+			Item.drop(this);
+		}
+		this.destroy();
+	});
+}
+
+Fly.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if( this.life > 0 && this.stun <= 0 ) {
+		
+		this.flip = dir.x > 0;
+		
+		if(this.states.attackWarm > 0) {
+			this.states.attackWarm -= this.delta;
+			this.force = this.force.scale(1 - this.delta*0.5);
+			if( this.states.attackWarm <= 0) {
+				this.force.x = -10 * (dir.x < 0 ? -1.0 : 1.0);
+				this.states.attack = this.times.attack;
+			}
+		} else if(this.states.attack > 0) {
+			this.states.attack -= this.delta;
+			this.strike( new Line(0,-6,16,12) );
+		} else {
+			if( Math.abs(dir.x) > 32 || Math.abs(dir.y) > 32 ){
+				this.force = this.force.subtract( dir.normalize( this.speed ) );
+			}
+			if( Math.abs(dir.x) < 64 && Math.abs(dir.y) < 24 ){
+				this.states.attackWarm = this.times.attackWarm;
+			}
+		}
+	}
+	
+	this.frame = (this.frame + this.delta * 0.5) % 2.0;
 }
 
  /* platformer/enemy_ghoul.js*/ 
@@ -6134,9 +6452,7 @@ Item.prototype.setName = function(n){
 	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
 	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
 	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
-	//if(n == "small_shield") { this.frame = 0; this.frame_row = 3; return; }
-	//if(n == "tower_shield") { this.frame = 1; this.frame_row = 3; return; }
-	if(n == "map") { this.frame = 3; this.frame_row = 1; return }
+	if(n == "map") { this.frame = 3; this.frame_row = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
 	if(n == "mana_small") { this.frame = 4; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
@@ -6427,7 +6743,7 @@ Lamp.prototype.render = function(g,c){
 
 Lift.prototype = new GameObject();
 Lift.prototype.constructor = GameObject;
-function Lift(x,y){
+function Lift(x,y,d,ops){
 	this.constructor();
 	this.start_x = x + 8;
 	this.position.x = this.start_x;
@@ -6458,6 +6774,9 @@ function Lift(x,y){
 	
 	this.pushable = false;
 	this.gravity = 0.0;
+	
+	ops = ops || {};
+	this.trackPlayer = !("rest" in ops);
 }
 
 Lift.prototype.idle = function(){}
@@ -6468,6 +6787,7 @@ Lift.prototype.update = function(){
 	var dir = this.position.subtract( _player.position );
 	var goto_y = 200 + (Math.floor( _player.position.y / 240 ) * 240);
 	if( this.onboard ) {
+		this.trackPlayer = true;
 		if( input.state("up") > 0 ) {
 			this.force.y = -this.speed;
 			audio.playLock("lift",0.2);
@@ -6476,8 +6796,10 @@ Lift.prototype.update = function(){
 			audio.playLock("lift",0.2);
 		}
 	} else {
-		var speed = Math.min(Math.max(goto_y - this.position.y,-4.5),4.5);
-		this.force.y = speed;
+		if( this.trackPlayer ) {
+			var speed = Math.min(Math.max(goto_y - this.position.y,-4.5),4.5);
+			this.force.y = speed;
+		}
 	}
 	
 	this.onboard = false;
@@ -6869,8 +7191,9 @@ PauseMenu.prototype.render = function(g,c){
 	}
 	
 	if( this.message_time > 0 ) {
-		boxArea(g,16,16,224,64);
-		textArea(g,this.message_text,32,32,192);
+		var left = game.resolution.x * 0.5 - 224 * 0.5;
+		boxArea(g,left,16,224,64);
+		textArea(g,this.message_text,left+16,32,192);
 	}
 	var leftx = 0;
 	if( this.open && _player instanceof Player ) {
@@ -7816,7 +8139,7 @@ function MovingPlatform(x,y,d,ops){
 		if( obj instanceof Player ) {
 			if( obj.force.y > 0 ) {
 				this.onboard = true;
-				obj.position.y = this.position.y;
+				obj.position.y = this.position.y - 8;
 				obj.trigger( "collideVertical", 1);
 			}
 		}
@@ -7930,7 +8253,8 @@ function Player(x, y){
 		"charge_multiplier" : false,
 		"rollPressCounter" : 0.0,
 		"roll" : 0,
-		"rollDirection" : 1.0
+		"rollDirection" : 1.0,
+		"effectTimer" : 0.0
 	};
 	
 	this.attackProperites = {
@@ -7968,10 +8292,15 @@ function Player(x, y){
 	this.on("land", function(){
 		//Land from a height
 		audio.play("land");
-		for(var i=0; i < 4; i++ ){
+		var dust = Math.floor(2 + Math.random() * 3);
+		for(var i=0; i < dust; i++ ){
+			var offset = new Point(
+				i * 5 + (Math.random()-0.5) * 3 - (dust*2),
+				16 - Math.random() * 3
+			);
 			game.addObject( new EffectSmoke(
-				i*5+this.position.x-8, 
-				this.position.y+16-Math.random()*3 ,
+				offset.x + this.position.x, 
+				offset.y + this.position.y,
 				null,
 				{
 					"frame":1, 
@@ -8284,6 +8613,15 @@ Player.prototype.update = function(){
 		if( this.states.roll > 0 ) {
 			this.force.x = this.states.rollDirection * 5;
 			this.states.roll -= this.delta;
+			
+			//Create dust trail for roll
+			if( this.states.effectTimer > Game.DELTASECOND / 16 ){
+				this.states.effectTimer = 0;
+				game.addObject( new EffectSmoke(
+					this.position.x, this.position.y + 16, null, 
+					{"frame":1, "speed":0.4,"time":Game.DELTASECOND*0.4}
+				));
+			}
 		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
@@ -8451,6 +8789,7 @@ Player.prototype.update = function(){
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
+	this.states.effectTimer += this.delta;
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){
@@ -8972,6 +9311,15 @@ function textBox(g,s,x,y,w,h){
 	boxArea(g,x,y,w,h);
 	textArea(g,s,x+16,y+16,w-32,h-32);
 }
+function renderDialog(g,s, top){
+	if( top == undefined ) top = 48;
+	
+	var width = 224;
+	var height = 64;
+	var left = game.resolution.x * 0.5 - width * 0.5;
+	boxArea(g,left,top,width,height);
+	textArea(g,s,left+16,top+16,width-32, height-32);
+}
 
  /* platformer/shop.js*/ 
 
@@ -9152,14 +9500,13 @@ Shop.prototype.postrender = function(g,c){
 			}
 		}
 		
-		boxArea(g,16,16,224,64);
 		if( this.soldout ) {
-			textArea(g,this.message[1],32,32,192);
+			renderDialog(g,this.message[1],16);
 		} else {
 			if( this.items[this.cursor] instanceof Item && "message" in this.items[this.cursor] ){
-				textArea(g,this.items[this.cursor].getMessage(),32,32,192);
+				renderDialog(g,this.items[this.cursor].getMessage(),16);
 			} else {
-				textArea(g,this.message[0],32,32,192);
+				renderDialog(g,this.message[0],16);
 			}
 		}
 	}
@@ -9241,6 +9588,8 @@ Spawn.enemies = {
 		{"tags":[],"difficulty":[5,5],"enemies":["Poseidon"]}
 	],
 	"default" : [
+		//{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]},
+		
 		{"tags":["miniboss"],"difficulty":[0,0],"enemies":["Skeleton"]},
 		{"tags":["miniboss"],"difficulty":[0,0],"enemies":["Bear"]},
 		{"tags":["miniboss"],"difficulty":[1,2],"enemies":["Oriax"]},
@@ -9270,6 +9619,7 @@ Spawn.enemies = {
 		{"tags":["minor","flying"],"difficulty":[0,3],"enemies":["Amon"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
+		
 		
 	]
 };
@@ -9487,8 +9837,7 @@ Villager.prototype.update = function(){
 Villager.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {
 		var m = this.message[this.state].replace("%TOWNNAME%",this.town.name);
-		boxArea(g,16,48,224,64);
-		textArea(g,m,32,64,192,64);
+		renderDialog(g, m);
 	}
 }
 Villager.prototype.idle = function(){}
@@ -9783,7 +10132,7 @@ function WorldMap(x, y){
 	//this.towns[6].position.x = 3*16; this.towns[6].position.y = 96*16; this.towns[6].name = "Glenanne";
 	
 	this.locations = [
-		{"position":new Point(61*16,59*16), "map":2}
+		{"position":new Point(61*16,59*16), "map":3}
 	]
 	
 	this.animation = 0;

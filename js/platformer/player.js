@@ -37,7 +37,8 @@ function Player(x, y){
 		"charge_multiplier" : false,
 		"rollPressCounter" : 0.0,
 		"roll" : 0,
-		"rollDirection" : 1.0
+		"rollDirection" : 1.0,
+		"effectTimer" : 0.0
 	};
 	
 	this.attackProperites = {
@@ -75,10 +76,15 @@ function Player(x, y){
 	this.on("land", function(){
 		//Land from a height
 		audio.play("land");
-		for(var i=0; i < 4; i++ ){
+		var dust = Math.floor(2 + Math.random() * 3);
+		for(var i=0; i < dust; i++ ){
+			var offset = new Point(
+				i * 5 + (Math.random()-0.5) * 3 - (dust*2),
+				16 - Math.random() * 3
+			);
 			game.addObject( new EffectSmoke(
-				i*5+this.position.x-8, 
-				this.position.y+16-Math.random()*3 ,
+				offset.x + this.position.x, 
+				offset.y + this.position.y,
 				null,
 				{
 					"frame":1, 
@@ -391,6 +397,15 @@ Player.prototype.update = function(){
 		if( this.states.roll > 0 ) {
 			this.force.x = this.states.rollDirection * 5;
 			this.states.roll -= this.delta;
+			
+			//Create dust trail for roll
+			if( this.states.effectTimer > Game.DELTASECOND / 16 ){
+				this.states.effectTimer = 0;
+				game.addObject( new EffectSmoke(
+					this.position.x, this.position.y + 16, null, 
+					{"frame":1, "speed":0.4,"time":Game.DELTASECOND*0.4}
+				));
+			}
 		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
@@ -558,6 +573,7 @@ Player.prototype.update = function(){
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
+	this.states.effectTimer += this.delta;
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){

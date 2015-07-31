@@ -175,14 +175,13 @@ Shop.prototype.postrender = function(g,c){
 			}
 		}
 		
-		boxArea(g,16,16,224,64);
 		if( this.soldout ) {
-			textArea(g,this.message[1],32,32,192);
+			renderDialog(g,this.message[1],16);
 		} else {
 			if( this.items[this.cursor] instanceof Item && "message" in this.items[this.cursor] ){
-				textArea(g,this.items[this.cursor].getMessage(),32,32,192);
+				renderDialog(g,this.items[this.cursor].getMessage(),16);
 			} else {
-				textArea(g,this.message[0],32,32,192);
+				renderDialog(g,this.message[0],16);
 			}
 		}
 	}

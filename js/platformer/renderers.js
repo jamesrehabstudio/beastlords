@@ -49,3 +49,12 @@ function textBox(g,s,x,y,w,h){
 	boxArea(g,x,y,w,h);
 	textArea(g,s,x+16,y+16,w-32,h-32);
 }
+function renderDialog(g,s, top){
+	if( top == undefined ) top = 48;
+	
+	var width = 224;
+	var height = 64;
+	var left = game.resolution.x * 0.5 - width * 0.5;
+	boxArea(g,left,top,width,height);
+	textArea(g,s,left+16,top+16,width-32, height-32);
+}

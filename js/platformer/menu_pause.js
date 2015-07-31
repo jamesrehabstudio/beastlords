@@ -204,8 +204,9 @@ PauseMenu.prototype.render = function(g,c){
 	}
 	
 	if( this.message_time > 0 ) {
-		boxArea(g,16,16,224,64);
-		textArea(g,this.message_text,32,32,192);
+		var left = game.resolution.x * 0.5 - 224 * 0.5;
+		boxArea(g,left,16,224,64);
+		textArea(g,this.message_text,left+16,32,192);
 	}
 	var leftx = 0;
 	if( this.open && _player instanceof Player ) {

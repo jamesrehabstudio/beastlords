@@ -62,8 +62,7 @@ Alter.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	
 	if( this.open > 0 ) {
-		boxArea(g,16,48,224,64);
-		textArea(g,this.message[0],32,64,192,64);
+		renderDialog(g,this.message[0]);
 		
 		
 		boxArea(g,16,120,64,56);

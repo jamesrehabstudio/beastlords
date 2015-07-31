@@ -129,6 +129,43 @@ Fire.prototype.update = function(){
 	}
 }
 
+FallingRock.prototype = new GameObject();
+FallingRock.prototype.constructor = GameObject;
+function FallingRock(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 24;
+	this.team = 0;
+	this.damage = 10;
+	
+	this.addModule( mod_rigidbody );
+	
+	this.sprite = sprites.bullets;
+	this.gravity = 0.333;
+	this.pushable = false;
+	this.frame = 3;
+	this.frame_row = 0;
+	
+	this.on("struck", function(obj, pos, damage){
+		if( damage > 0 ) this.trigger("death");
+	});
+	this.on("collideObject", function(obj){
+		if( this.team != obj.team && obj.hurt instanceof Function ){
+			obj.hurt( this, this.damage );
+		}
+	});
+	this.on("collideVertical", function(obj){ this.trigger("death");});
+	this.on("collideHorizontal", function(obj){ this.trigger("death");});
+	this.on("death", function(){
+		window.audio.play("explode2");
+		game.addObject(new EffectSmoke(this.position.x, this.position.y));
+		this.destroy();
+	});
+}
+FallingRock.prototype.idle = function(){}
+
 ExplodingEnemy.prototype = new GameObject();
 ExplodingEnemy.prototype.constructor = GameObject;
 function ExplodingEnemy(x,y, direction, ops){

@@ -27,7 +27,7 @@ function MovingPlatform(x,y,d,ops){
 		if( obj instanceof Player ) {
 			if( obj.force.y > 0 ) {
 				this.onboard = true;
-				obj.position.y = this.position.y;
+				obj.position.y = this.position.y - 8;
 				obj.trigger( "collideVertical", 1);
 			}
 		}

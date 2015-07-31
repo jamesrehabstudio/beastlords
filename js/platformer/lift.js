@@ -1,6 +1,6 @@
 Lift.prototype = new GameObject();
 Lift.prototype.constructor = GameObject;
-function Lift(x,y){
+function Lift(x,y,d,ops){
 	this.constructor();
 	this.start_x = x + 8;
 	this.position.x = this.start_x;
@@ -31,6 +31,9 @@ function Lift(x,y){
 	
 	this.pushable = false;
 	this.gravity = 0.0;
+	
+	ops = ops || {};
+	this.trackPlayer = !("rest" in ops);
 }
 
 Lift.prototype.idle = function(){}
@@ -41,6 +44,7 @@ Lift.prototype.update = function(){
 	var dir = this.position.subtract( _player.position );
 	var goto_y = 200 + (Math.floor( _player.position.y / 240 ) * 240);
 	if( this.onboard ) {
+		this.trackPlayer = true;
 		if( input.state("up") > 0 ) {
 			this.force.y = -this.speed;
 			audio.playLock("lift",0.2);
@@ -49,8 +53,10 @@ Lift.prototype.update = function(){
 			audio.playLock("lift",0.2);
 		}
 	} else {
-		var speed = Math.min(Math.max(goto_y - this.position.y,-4.5),4.5);
-		this.force.y = speed;
+		if( this.trackPlayer ) {
+			var speed = Math.min(Math.max(goto_y - this.position.y,-4.5),4.5);
+			this.force.y = speed;
+		}
 	}
 	
 	this.onboard = false;

@@ -614,6 +614,7 @@ Game.prototype.t_unstick = function( obj ) {
 		"left" : 0,
 		"right" : 0
 	}
+	var exclusive = [137,138,139,140,141,142,143,144,159,160];
 	var ts = 16;
 	var xinc = obj.width/ Math.ceil(obj.width/ts);
 	var yinc = obj.height/ Math.ceil(obj.height/ts);
@@ -622,7 +623,7 @@ Game.prototype.t_unstick = function( obj ) {
 	for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc ) {
 		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
-			if( tile != 0 && (tile < 137 || tile > 142) ) {
+			if( tile != 0 && exclusive.indexOf(tile) < 0 ) {
 				//You're stuck, do something about it!
 				isStuck = true;
 			} else {
@@ -652,6 +653,7 @@ Game.prototype.t_move = function(obj, x, y) {
 	
 	if( this.t_unstick(obj) ) return;
 	
+	var exclusive = [137,138,139,140,141,142,143,144,159,160];
 	var hitbox = obj.corners();
 	var interation_size = 1.0;
 	var ts = 16;
@@ -706,12 +708,12 @@ Game.prototype.t_move = function(obj, x, y) {
 				} else if( tile == 142 ) {
 					var peak = (corner.y+ts) + Math.max((corner.x-(hitbox.right+ts)) * 0.5, 1-ts);
 					limits[1] = Math.min(limits[1], peak-1);
-				} else if( tile != 0 ) {
+				} else if( tile != 0 && exclusive.indexOf(tile) < 0 ) {
 					if(y>0) limits[1] = Math.min(limits[1], corner.y);
 					if(y<0) limits[3] = Math.max(limits[3], corner.y+ts);
 				}
 			} else {
-				if( tile != 0 && (tile < 137 || tile > 142) ) {
+				if( tile != 0 && exclusive.indexOf(tile) < 0 ) {
 					if(x>0) limits[0] = Math.min(limits[0], corner.x);
 					if(x<0) limits[2] = Math.max(limits[2], corner.x+ts);
 				}
@@ -1268,8 +1270,8 @@ GameObject.prototype.update = function(){ }
 GameObject.prototype.idle = function(){
 	var current = this.awake;
 	var _cam = this.position.subtract(game.camera);
-	var margin_x = 64;
-	var margin_y = 32;
+	var margin_x = this.width + 32;
+	var margin_y = this.height + 32;
 	var screen = new Point( game.width*.5, game.height*.5);
 	this.awake = (
 		_cam.x > -margin_x && 

@@ -73,8 +73,7 @@ Villager.prototype.update = function(){
 Villager.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {
 		var m = this.message[this.state].replace("%TOWNNAME%",this.town.name);
-		boxArea(g,16,48,224,64);
-		textArea(g,m,32,64,192,64);
+		renderDialog(g, m);
 	}
 }
 Villager.prototype.idle = function(){}

@@ -94,7 +94,7 @@
 97,118,100,150,18,19,24,0,0,17,20,21,149,116,117,104,
 113,102,116,120,0,0,0,0,0,0,0,0,97,117,118,120,
 17,21,22,24,0,0,0,0,0,0,0,0,113,101,102,104,
-0,0,0,0,0,0,216,216,216,216,0,0,97,117,116,120,
+0,0,0,0,0,0,0,0,0,0,0,0,97,117,116,120,
 0,0,0,0,0,0,0,0,0,0,0,0,113,101,100,104,
 0,0,0,0,0,0,0,0,0,0,0,0,97,117,116,120,
 33,37,38,35,40,0,0,0,0,0,0,0,113,101,102,120,
@@ -107,11 +107,11 @@
    <property name="tags" value="[&quot;well&quot;]"/>
   </properties>
   <object name="Well" gid="136" x="120" y="216"/>
-  <object name="BreakableTile" gid="232" x="96" y="656"/>
-  <object name="BreakableTile" gid="232" x="112" y="656"/>
-  <object name="BreakableTile" gid="232" x="128" y="656"/>
-  <object name="BreakableTile" gid="232" x="144" y="656"/>
-  <object name="Lift" gid="199" x="112" y="688"/>
+  <object name="Lift" gid="199" x="112" y="688">
+   <properties>
+    <property name="rest" value="1"/>
+   </properties>
+  </object>
   <object name="Lamp" gid="199" x="48" y="672"/>
  </objectgroup>
 </map>
