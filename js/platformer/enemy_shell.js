@@ -53,7 +53,7 @@ function Shell(x,y){
 	this.calculateXP();
 }
 Shell.prototype.update = function(){
-	this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 3;
+	this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 	if( this.stun < 0 ) {
 		this.force.x += this.speed * this.delta * this.states.direction;
 		this.flip = this.force.x < 0;

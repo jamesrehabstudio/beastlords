@@ -5347,7 +5347,7 @@ function Shell(x,y){
 	this.calculateXP();
 }
 Shell.prototype.update = function(){
-	this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 3;
+	this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 	if( this.stun < 0 ) {
 		this.force.x += this.speed * this.delta * this.states.direction;
 		this.flip = this.force.x < 0;
@@ -9597,6 +9597,7 @@ Spawn.enemies = {
 		{"tags":["miniboss"],"difficulty":[3,3],"enemies":["Yeti"]},
 		{"tags":["miniboss"],"difficulty":[4,4],"enemies":["Igbo"]},
 		{"tags":["miniboss"],"difficulty":[5,99],"enemies":["ChazBike"]},
+		{"tags":["miniboss"],"difficulty":[3,99],"enemies":["Baller"]},
 		
 		{"tags":["major"],"difficulty":[1,3],"enemies":["Skeleton"]},
 		{"tags":["major"],"difficulty":[0,2],"enemies":["Bear"]},
@@ -9614,7 +9615,6 @@ Spawn.enemies = {
 		{"tags":["minor"],"difficulty":[0,2],"enemies":["Beaker"]},
 		{"tags":["minor","ledge"],"difficulty":[0,1],"enemies":["Shell"]},
 		{"tags":["minor","ledge"],"difficulty":[0,99],"enemies":["Axedog"]},
-		{"tags":["minor"],"difficulty":[3,1],"enemies":["Baller"]},
 		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
 		{"tags":["minor","flying"],"difficulty":[0,3],"enemies":["Amon"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
