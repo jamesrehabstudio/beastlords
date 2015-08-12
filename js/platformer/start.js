@@ -5,6 +5,7 @@ function game_start(g){
 	new Material(g.g, "heat", {"fs":"fragment-heat","vs":"2d-vertex-shader"} );
 	new Material(g.g, "blur", {"fs":"2d-fragment-blur","vs":"2d-vertex-scale"} );
 	new Material(g.g, "enchanted", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
+	new Material(g.g, "item", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader"} );
 	
 	new Material(g.g, "t1", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[0.1]}} );
 	new Material(g.g, "t2", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[-0.1]}} );

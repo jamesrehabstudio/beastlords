@@ -20,8 +20,7 @@ function MovingPlatform(x,y,d,ops){
 	this.left = (ops.left || 0) - -x;
 	this.right = (ops.right || 0) - -x;
 	
-	this.addModule( mod_rigidbody );
-	this.clearEvents("collideObject");
+	this.force = new Point();
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
@@ -32,9 +31,6 @@ function MovingPlatform(x,y,d,ops){
 			}
 		}
 	});
-	
-	this.pushable = false;
-	this.gravity = 0.0;
 }
 
 MovingPlatform.prototype.idle = function(){}
@@ -49,6 +45,14 @@ MovingPlatform.prototype.update = function(){
 		if( this.position.x < this.left ) this.direction.x = 1.0;
 		if( this.position.x > this.right ) this.direction.x = -1.0;
 		this.force.x = this.direction.x * this.speed;
+	}
+	
+	this.position.x += this.force.x * this.delta;
+	this.position.y += this.force.y * this.delta;
+	
+	if( this.onboard ) {
+		_player.position.x += this.force.x * this.delta;
+		_player.position.y += this.force.y * this.delta;
 	}
 	
 	this.onboard = false;

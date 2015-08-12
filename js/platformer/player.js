@@ -38,7 +38,8 @@ function Player(x, y){
 		"rollPressCounter" : 0.0,
 		"roll" : 0,
 		"rollDirection" : 1.0,
-		"effectTimer" : 0.0
+		"effectTimer" : 0.0,
+		"downStab" : false
 	};
 	
 	this.attackProperites = {
@@ -138,6 +139,13 @@ function Player(x, y){
 		
 		audio.play("playerhurt");
 	})
+	this.on("struckTarget", function(obj, pos, damage){
+		if( this.states.downStab && obj.hasModule(mod_combat) && this.force.y > 0 ) {
+			this.states.downStab = false;
+			this.force.y = 0;
+			this.jump();
+		}
+	});
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
@@ -364,7 +372,10 @@ function Player(x, y){
 Player.prototype.update = function(){
 	var speed = 1.25;
 	if( this.spellsCounters.haste > 0 ) speed = 1.4;
+	
+	//Reset states
 	this.states.guard = false;
+	this.states.downStab = false;
 	
 	this.buffer_damage = this.hasCharm("charm_elephant");
 	if( this.manaHeal > 0 ){
@@ -407,13 +418,21 @@ Player.prototype.update = function(){
 				));
 			}
 		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+			this.states.guard = ( input.state('block') > 0 || this.autoblock );
+			
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
 				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
 			}
-			if ( input.state('fire') == 1 ) { this.attack(); }
-			
-			if ( input.state('fire') > 0 ) { 
+						
+			if ( input.state("down") > 0 && !this.grounded) { 
+				//Down spike
+				this.states.downStab = true;
+				this.states.guard = false;
+				
+			} else if ( input.state('fire') == 1 ) { 
+				this.attack(); 
+			} else if ( input.state('fire') > 0 ) { 
 				this.states.attack_charge += this.delta; 
 				if( this.states.attack_charge >= this.attackProperites.charge_start){
 					strafe = true;
@@ -433,11 +452,14 @@ Player.prototype.update = function(){
 				this.states.attack_charge = 0; 
 			}
 			
-			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { this.jump(); }
-			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
-			if ( input.state('up') == 1 ) { this.stand(); }
-			
-			this.states.guard = this.states.attack <= 0 && ( input.state('block') > 0 || this.autoblock );
+			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { 
+				this.jump(); 
+			}
+			if ( input.state('up') == 0 && input.state('down') > 0 && this.grounded ) { 
+				this.duck(); 
+			} else { 
+				this.stand(); 
+			}
 			
 			if ( 
 				(
@@ -449,14 +471,6 @@ Player.prototype.update = function(){
 			) {
 				//Dodge roll
 				this.states.roll = this.invincible = this.rollTime;
-				/*
-				this.states.rollDirection = 1.0;
-				if( input.state('left') > 0 || input.state('right') > 0 ) {
-					if( input.state('left') ) this.states.rollDirection = -1.0;
-				} else {
-					if( !this.flip ) this.states.rollDirection = -1.0;
-				}
-				*/
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
@@ -495,6 +509,11 @@ Player.prototype.update = function(){
 		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
+		
+		
+		if ( this.states.downStab ) {
+			this.strike(new Line( 0, 8, 4, 8+Math.max( 12, this.attackProperites.range)));
+		}
 		
 		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
 			//Play sound effect for attack
@@ -543,6 +562,9 @@ Player.prototype.update = function(){
 	} else if( this.states.roll > 0 ) {
 		this.frame_row = 3;
 		this.frame = 5 * (1 - this.states.roll / this.rollTime);
+	} else if( this.states.downStab ){
+		this.frame = 4;
+		this.frame_row = 0; 
 	} else {
 		if( this.states.duck ) {
 			this.frame = 3;

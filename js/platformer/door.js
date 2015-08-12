@@ -9,6 +9,9 @@ function Door(x,y,d,ops){
 	this.name = "";
 	this.sprite = sprites.doors;
 	
+	this.isOpen = false;
+	this.openAnimation = 0;
+	
 	this.door_blocks = [
 		new Point(x,y+16),
 		new Point(x,y),
@@ -21,29 +24,40 @@ function Door(x,y,d,ops){
 	}
 	
 	this.on("collideObject", function(obj){
-		if( obj instanceof Player ){
-			var dir = this.position.subtract(obj.position);
+		if( !this.isOpen && obj instanceof Player ){
 			for( var i=0; i < obj.keys.length; i++ ) {
 				if( this.name == obj.keys[i].name ) {
-					this.trigger("death");
-					return;
+					this.open();
 				}
 			}
 		}
-	});
-	this.on("death", function(obj){
-		for(var i=0; i < this.door_blocks.length; i++){
-			game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
-		}
-		audio.playLock("open",1.0);
-		this.destroy();
 	});
 	
 	ops = ops || {};
 	if("name" in ops) this.name = ops.name;
 }
+Door.prototype.open = function(){
+	audio.play("open");
+	
+	for(var i=0; i < this.door_blocks.length; i++){
+		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
+	}
+	this.zIndex = -20;
+	this.isOpen = true;
+}
 Door.prototype.update = function(){
 	var r = this.name.match(/\d+/) - 0;
-	this.frame = r % 8;
-	this.frame_row = Math.floor( r / 8 );
+	this.frame = r % 4;
+	this.frame_row = Math.floor( r / 4 );
+	
+	if( this.isOpen ) {
+		this.openAnimation = Math.min(this.openAnimation + this.delta * 0.5, 3);
+	}
+}
+Door.prototype.render = function(g,c){
+	this.sprite.render(g, this.position.subtract(c), this.openAnimation, 3);
+	
+	if( !this.isOpen ) {
+		this.sprite.render(g, this.position.subtract(c).add(new Point(10,36)), this.frame, this.frame_row);
+	}
 }

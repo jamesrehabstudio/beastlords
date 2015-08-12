@@ -29,6 +29,7 @@ function DataManager() {
 		{"tags":["treasure","chest","weapon"],"name":"short_sword","unlocked":1,"rarity":0.2,"pathSize":2,"doors":0.0,"pergame":10,"price":20},
 		{"tags":["treasure","chest","weapon"],"name":"long_sword","unlocked":1,"rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
 		{"tags":["treasure","chest","weapon"],"name":"spear","unlocked":1,"rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
+		{"tags":["treasure","chest","weapon"],"name":"warhammer","unlocked":0,"rarity":0.15,"pathSize":3,"doors":0.5,"pergame":10,"price":40},
 		
 		{"tags":["treasure","chest"],"name":"small_shield","unlocked":1,"rarity":0.2,"doors":0.5,"pergame":0,"price":30},
 		{"tags":["treasure","chest"],"name":"large_shield","unlocked":0,"rarity":0.14,"doors":0.5,"pergame":10,"price":35},
@@ -1626,12 +1627,13 @@ function load_sprites (){
 	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(48, 48),width:96,height:96});
 	//sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['map'] = new Sprite(RT+"img/maptiles.gif", {offset:new Point(0, 0),width:8,height:8});
-	sprites['doors'] = new Sprite(RT+"img/doors.gif", {offset:new Point(16, 32),width:32,height:64});
+	sprites['doors'] = new Sprite(RT+"img/doors.gif", {offset:new Point(16, 32),width:64,height:64});
 	sprites['gate'] = new Sprite(RT+"img/gate.gif", {offset:new Point(16, 24),width:32,height:48});
 	
-	sprites['sword1'] = new Sprite(RT+"img/sword1.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted}});
-	sprites['sword2'] = new Sprite(RT+"img/sword2.gif", {offset:new Point(10, 32),width:64,height:48,"filters":{"enchanted":filter_enchanted}});
-	sprites['sword3'] = new Sprite(RT+"img/sword3.gif", {offset:new Point(26, 32),width:80,height:48,"filters":{"enchanted":filter_enchanted}});
+	sprites['sword1'] = new Sprite(RT+"img/sword1.gif", {offset:new Point(24, 32),width:48,height:48});
+	sprites['sword2'] = new Sprite(RT+"img/sword2.gif", {offset:new Point(10, 24),width:64,height:48});
+	sprites['sword3'] = new Sprite(RT+"img/sword3.gif", {offset:new Point(26, 24),width:80,height:48});
+	sprites['sword4'] = new Sprite(RT+"img/sword4.gif", {offset:new Point(30, 34),width:80,height:64});
 	sprites['magic_effects'] = new Sprite(RT+"img/magic_effects.gif", {offset:new Point(16, 32),width:32,height:48});
 	
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(16, 16),width:32,height:32});
@@ -1652,6 +1654,7 @@ function load_sprites (){
 	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64,"filters":filter_pack_enemies});
 	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
 	sprites['lamps'] = new Sprite(RT+"img/lamps.gif", {offset:new Point(8, 16),width:16,height:32});
+	sprites['lilghost'] = new Sprite(RT+"img/lilghost.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48,"filters":filter_pack_enemies});
 	sprites['flederknife'] = new Sprite(RT+"img/flederknife.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":filter_pack_enemies});
@@ -1685,6 +1688,7 @@ function load_sprites (){
 	sprites['tiles3'] = new Sprite(RT+"img/tiles/tiles3.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles4'] = new Sprite(RT+"img/tiles/tiles4.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles5'] = new Sprite(RT+"img/tiles/tiles5.gif", {offset:new Point(0, 0),width:16,height:16});
+	sprites['tiles6'] = new Sprite(RT+"img/tiles/tiles6.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tilesintro'] = new Sprite(RT+"img/tiles/tilesintro.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['town'] = new Sprite(RT+"img/tiles/town.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['world'] = new Sprite(RT+"img/tiles/world.gif", {offset:new Point(0, 0),width:16,height:16});

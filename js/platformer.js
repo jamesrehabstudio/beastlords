@@ -2276,6 +2276,9 @@ function Door(x,y,d,ops){
 	this.name = "";
 	this.sprite = sprites.doors;
 	
+	this.isOpen = false;
+	this.openAnimation = 0;
+	
 	this.door_blocks = [
 		new Point(x,y+16),
 		new Point(x,y),
@@ -2288,31 +2291,42 @@ function Door(x,y,d,ops){
 	}
 	
 	this.on("collideObject", function(obj){
-		if( obj instanceof Player ){
-			var dir = this.position.subtract(obj.position);
+		if( !this.isOpen && obj instanceof Player ){
 			for( var i=0; i < obj.keys.length; i++ ) {
 				if( this.name == obj.keys[i].name ) {
-					this.trigger("death");
-					return;
+					this.open();
 				}
 			}
 		}
-	});
-	this.on("death", function(obj){
-		for(var i=0; i < this.door_blocks.length; i++){
-			game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
-		}
-		audio.playLock("open",1.0);
-		this.destroy();
 	});
 	
 	ops = ops || {};
 	if("name" in ops) this.name = ops.name;
 }
+Door.prototype.open = function(){
+	audio.play("open");
+	
+	for(var i=0; i < this.door_blocks.length; i++){
+		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
+	}
+	this.zIndex = -20;
+	this.isOpen = true;
+}
 Door.prototype.update = function(){
 	var r = this.name.match(/\d+/) - 0;
-	this.frame = r % 8;
-	this.frame_row = Math.floor( r / 8 );
+	this.frame = r % 4;
+	this.frame_row = Math.floor( r / 4 );
+	
+	if( this.isOpen ) {
+		this.openAnimation = Math.min(this.openAnimation + this.delta * 0.5, 3);
+	}
+}
+Door.prototype.render = function(g,c){
+	this.sprite.render(g, this.position.subtract(c), this.openAnimation, 3);
+	
+	if( !this.isOpen ) {
+		this.sprite.render(g, this.position.subtract(c).add(new Point(10,36)), this.frame, this.frame_row);
+	}
 }
 
  /* platformer/effects.js*/ 
@@ -4797,6 +4811,87 @@ Knight.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this, [g,c]);
 }
 
+ /* platformer/enemy_lilghost.js*/ 
+
+LilGhost.prototype = new GameObject();
+LilGhost.prototype.constructor = GameObject;
+function LilGhost(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.damage = dataManager.damage(2);
+	this.team = 0;
+	this.sprite = sprites.lilghost;
+	
+	this.addModule(mod_rigidbody);
+	this.addModule(mod_combat);
+	
+	this.start = new Point(x,y);
+	this.speed = 0.25;
+	this.frame = 0;
+	this.frame_row = 0;
+	this.life = 1;
+	this.gravity = 0.0;
+	this.friction = 0.1;
+	this.mass = 0.3;
+	this.maxForce = 2.0;
+	
+	this.force.y = this.maxForce;
+	
+	this.on("struck", EnemyStruck);
+	
+	this.on("wakeup", function(){
+		this.life = 1;
+	});
+	
+	this.on("hurt", function(){
+		audio.play("hurt");
+	});
+	
+	this.on("death", function(){
+		this.gravity = 1.0;
+	});
+}
+
+LilGhost.prototype.update = function(){
+	
+	if( this.life > 0 && this.stun <= 0 ) {
+		if( this.position.y > this.start.y ) {
+			this.gravity = -0.25;
+		} else { 
+			this.gravity = 0.25;
+		}
+		
+		if( this.position.x < this.start.x - 8 ) {
+			this.force.x += this.speed * this.delta;
+		}
+		if( this.position.x > this.start.x + 8 ) {
+			this.force.x -= this.speed * this.delta;
+		}
+		this.force.y = Math.max(Math.min(this.force.y,this.maxForce),-this.maxForce);
+	}
+	
+	if( this.life <= 0 ) {
+		this.frame_row = 1;
+		this.frame = this.force.y > 0.1 ? 0 : 1;
+	} else { 
+		this.frame_row = 0;
+		this.frame = 0;
+		
+		if( this.force.y > 0.5 ) this.frame = 2;
+		if( this.force.y < -0.5 ) this.frame = 1;
+	}
+}
+
+LilGhost.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this,[g,c]);
+	if( this.life > 0 ) {
+		Background.pushLight( this.position.subtract(c), 100 );
+	}
+}
+
  /* platformer/enemy_malphas.js*/ 
 
 Malphas.prototype = new GameObject();
@@ -6225,6 +6320,9 @@ function Item(x,y,name, ops){
 	this.sprite = sprites.items;
 	this.sleep = null;
 	
+	this.glowing = false;
+	this.glow = 0.0;
+	
 	this.frames = false;
 	this.animation_frame = Math.random() * 3;
 	this.animation_speed = 0.25;
@@ -6247,18 +6345,19 @@ function Item(x,y,name, ops){
 			if( this.name == "money_bag" ) { obj.money += Math.floor(30*(1+dataManager.currentTemple*0.33)); audio.play("pickup1"); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			
-			if( this.name == "short_sword") { obj.equip(this, obj.equip_shield); audio.play("equip") }
-			if( this.name == "long_sword") { obj.equip(this, obj.equip_shield); audio.play("equip") }
-			if( this.name == "spear") { obj.equip(this, obj.equip_shield); audio.play("equip") }
+			if( this.isWeapon ) {
+				obj.equip(this, obj.equip_shield);
+				audio.play("equip");
+			}
 			
-			if( this.name == "small_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
-			if( this.name == "large_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
-			if( this.name == "kite_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
-			if( this.name == "broad_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
-			if( this.name == "knight_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
-			if( this.name == "spiked_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
-			if( this.name == "heavy_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
-			if( this.name == "tower_shield") { obj.equip(obj.equip_sword, this); audio.play("equip"); }
+			if( this.isShield ) {
+				if( obj.equip_sword instanceof Item && obj.equip_sword.twoHanded ) {
+					//Cant equip shield with a two handed weapon
+					return false;
+				}
+				obj.equip(obj.equip_sword, this); 
+				audio.play("equip");
+			}
 			
 			if( this.name == "map") { game.getObject(PauseMenu).revealMap(); audio.play("pickup1"); }
 			
@@ -6400,50 +6499,70 @@ Item.prototype.setName = function(n){
 		}
 		return; 
 	}
+	if(n == "warhammer") { 
+		this.frame = 6; this.frame_row = 2; 
+		this.isWeapon = true; this.twoHanded = true;
+		this.level=1; this.bonus_att=5; 
+		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":sprites.sword4 };
+		this.message = Item.weaponDescription;
+		if( dataManager.currentTemple >= 0 ) {
+			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
+			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
+		}
+		return; 
+	}
 	if(n == "small_shield") { 
 		this.frame = 0; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.0,"guardlife":30,"height":11, "frame":0, "frame_row":0}
 		return; 
 	}
 	if(n == "large_shield") { 
 		this.frame = 1; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1}
 		return; 
 	}
 	if(n == "kite_shield") { 
 		this.frame = 2; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2}
 		return; 
 	}
 	if(n == "broad_shield") { 
 		this.frame = 3; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.4,"guardlife":50,"height":18, "frame":0, "frame_row":3}
 		return; 
 	}
 	if(n == "knight_shield") { 
 		this.frame = 4; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":17, "frame":2, "frame_row":0}
 		return; 
 	}
 	if(n == "spiked_shield") { 
 		this.frame = 5; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":2, "frame_row":1}
 		return; 
 	}
 	if(n == "heavy_shield") { 
 		this.frame = 6; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.2,"guardlife":60,"height":17, "frame":2, "frame_row":2}
 		return; 
 	}
 	if(n == "tower_shield") { 
 		this.frame = 7; this.frame_row = 3; 
+		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.5,"guardlife":70,"height":30, "frame":2, "frame_row":3}
 		return; 
@@ -6451,7 +6570,6 @@ Item.prototype.setName = function(n){
 	
 	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
 	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
-	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
 	if(n == "map") { this.frame = 3; this.frame_row = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
 	
 	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
@@ -6464,6 +6582,32 @@ Item.prototype.setName = function(n){
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "waystone") { this.frames = [13,14,15]; this.frame = 13; this.frame_row = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
 	
+	//Charms
+	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
+	if( this.name == "charm_mana") { 
+		this.frame = 1; 
+		this.frame_row = 8;
+		this.message = "Mana Charm\nLarger supply of mana.";
+		this.on("equip",function(){ 
+			_player.manaMax += 3;
+			_player.mana += 3;
+		});
+		this.on("unequip",function(){
+			_player.manaMax = Math.max(_player.manaMax-3,0);
+			_player.mana = Math.max(_player.mana-3,0);
+		});
+	}
+	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
+	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
+	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
+	if( this.name == "charm_methuselah") { this.frame = 5; this.frame_row = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
+	if( this.name == "charm_barter") { this.frame = 6; this.frame_row = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
+	if( this.name == "charm_elephant") { this.frame = 7; this.frame_row = 8; this.message = "Elephant Charm\nWounds open slowly.";}
+	
+	//All items below this point glow!
+	this.glowing=true;
+		
+	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
 	if( this.name == "intro_item") { this.frame = 0; this.frame_row = 4; this.message = "Mysterious drink.";}
 	
 	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nAttack up.";}
@@ -6499,28 +6643,6 @@ Item.prototype.setName = function(n){
 	if( this.name == "treasure_map") { this.frame = 0; this.frame_row = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
 	if( this.name == "life_fruit") { this.frame = 1; this.frame_row = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame = 2; this.frame_row = 6; this.message = "Mana fruit\nMana up.";}
-	
-	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
-	if( this.name == "charm_mana") { 
-		this.frame = 1; 
-		this.frame_row = 8;
-		this.message = "Mana Charm\nLarger supply of mana.";
-		this.on("equip",function(){ 
-			_player.manaMax += 3;
-			_player.mana += 3;
-		});
-		this.on("unequip",function(){
-			_player.manaMax = Math.max(_player.manaMax-3,0);
-			_player.mana = Math.max(_player.mana-3,0);
-		});
-	}
-	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
-	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
-	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
-	if( this.name == "charm_methuselah") { this.frame = 5; this.frame_row = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
-	if( this.name == "charm_barter") { this.frame = 6; this.frame_row = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
-	if( this.name == "charm_elephant") { this.frame = 7; this.frame_row = 8; this.message = "Elephant Charm\nWounds open slowly.";}
-	
 }
 Item.prototype.getMessage = function(){
 	if( "message" in this ) {
@@ -6550,6 +6672,27 @@ Item.prototype.update = function(){
 		this.frame = Math.abs(this.frame);
 	}
 }
+
+Item.prototype.render = function(g,c){
+	if( !this.glowing ) {
+		GameObject.prototype.render.apply(this,[g,c]);
+	} else {
+		this.glow += this.delta * 0.05;
+		
+		var a = (1.0 + Math.sin(this.glow)) * 0.5;
+		var o = new Point(0, (a-0.5) * 2);
+		
+		this.sprite.render(g, 
+			this.position.subtract(c).add(o), 
+			this.frame, 
+			this.frame_row,
+			false,
+			"item",
+			{"u_color":[0.8,0.1,1.0,a]}
+		);
+	}
+}
+
 Item.drop = function(obj,money,sleep){
 	var money_only = obj.hasModule(mod_boss);
 	if(Math.random() > (_player.life / _player.lifeMax) && !money_only){
@@ -6727,6 +6870,7 @@ function Lamp(x,y,t,o){
 	this.width = 16;
 	this.height = 16;
 	this.sprite = sprites.lamps;
+	this.zIndex = -21;
 	
 	this.frame = 0;
 	this.frame_row = 0;
@@ -8132,8 +8276,7 @@ function MovingPlatform(x,y,d,ops){
 	this.left = (ops.left || 0) - -x;
 	this.right = (ops.right || 0) - -x;
 	
-	this.addModule( mod_rigidbody );
-	this.clearEvents("collideObject");
+	this.force = new Point();
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
@@ -8144,9 +8287,6 @@ function MovingPlatform(x,y,d,ops){
 			}
 		}
 	});
-	
-	this.pushable = false;
-	this.gravity = 0.0;
 }
 
 MovingPlatform.prototype.idle = function(){}
@@ -8161,6 +8301,14 @@ MovingPlatform.prototype.update = function(){
 		if( this.position.x < this.left ) this.direction.x = 1.0;
 		if( this.position.x > this.right ) this.direction.x = -1.0;
 		this.force.x = this.direction.x * this.speed;
+	}
+	
+	this.position.x += this.force.x * this.delta;
+	this.position.y += this.force.y * this.delta;
+	
+	if( this.onboard ) {
+		_player.position.x += this.force.x * this.delta;
+		_player.position.y += this.force.y * this.delta;
 	}
 	
 	this.onboard = false;
@@ -8254,7 +8402,8 @@ function Player(x, y){
 		"rollPressCounter" : 0.0,
 		"roll" : 0,
 		"rollDirection" : 1.0,
-		"effectTimer" : 0.0
+		"effectTimer" : 0.0,
+		"downStab" : false
 	};
 	
 	this.attackProperites = {
@@ -8354,6 +8503,13 @@ function Player(x, y){
 		
 		audio.play("playerhurt");
 	})
+	this.on("struckTarget", function(obj, pos, damage){
+		if( this.states.downStab && obj.hasModule(mod_combat) && this.force.y > 0 ) {
+			this.states.downStab = false;
+			this.force.y = 0;
+			this.jump();
+		}
+	});
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
@@ -8580,7 +8736,10 @@ function Player(x, y){
 Player.prototype.update = function(){
 	var speed = 1.25;
 	if( this.spellsCounters.haste > 0 ) speed = 1.4;
+	
+	//Reset states
 	this.states.guard = false;
+	this.states.downStab = false;
 	
 	this.buffer_damage = this.hasCharm("charm_elephant");
 	if( this.manaHeal > 0 ){
@@ -8623,13 +8782,21 @@ Player.prototype.update = function(){
 				));
 			}
 		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+			this.states.guard = ( input.state('block') > 0 || this.autoblock );
+			
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
 				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
 			}
-			if ( input.state('fire') == 1 ) { this.attack(); }
-			
-			if ( input.state('fire') > 0 ) { 
+						
+			if ( input.state("down") > 0 && !this.grounded) { 
+				//Down spike
+				this.states.downStab = true;
+				this.states.guard = false;
+				
+			} else if ( input.state('fire') == 1 ) { 
+				this.attack(); 
+			} else if ( input.state('fire') > 0 ) { 
 				this.states.attack_charge += this.delta; 
 				if( this.states.attack_charge >= this.attackProperites.charge_start){
 					strafe = true;
@@ -8649,11 +8816,14 @@ Player.prototype.update = function(){
 				this.states.attack_charge = 0; 
 			}
 			
-			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { this.jump(); }
-			if ( input.state('down') > 0 && this.grounded ) { this.duck(); } else { this.stand(); }
-			if ( input.state('up') == 1 ) { this.stand(); }
-			
-			this.states.guard = this.states.attack <= 0 && ( input.state('block') > 0 || this.autoblock );
+			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { 
+				this.jump(); 
+			}
+			if ( input.state('up') == 0 && input.state('down') > 0 && this.grounded ) { 
+				this.duck(); 
+			} else { 
+				this.stand(); 
+			}
 			
 			if ( 
 				(
@@ -8665,14 +8835,6 @@ Player.prototype.update = function(){
 			) {
 				//Dodge roll
 				this.states.roll = this.invincible = this.rollTime;
-				/*
-				this.states.rollDirection = 1.0;
-				if( input.state('left') > 0 || input.state('right') > 0 ) {
-					if( input.state('left') ) this.states.rollDirection = -1.0;
-				} else {
-					if( !this.flip ) this.states.rollDirection = -1.0;
-				}
-				*/
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
@@ -8711,6 +8873,11 @@ Player.prototype.update = function(){
 		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
+		
+		
+		if ( this.states.downStab ) {
+			this.strike(new Line( 0, 8, 4, 8+Math.max( 12, this.attackProperites.range)));
+		}
 		
 		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
 			//Play sound effect for attack
@@ -8759,6 +8926,9 @@ Player.prototype.update = function(){
 	} else if( this.states.roll > 0 ) {
 		this.frame_row = 3;
 		this.frame = 5 * (1 - this.states.roll / this.rollTime);
+	} else if( this.states.downStab ){
+		this.frame = 4;
+		this.frame_row = 0; 
 	} else {
 		if( this.states.duck ) {
 			this.frame = 3;
@@ -9633,6 +9803,7 @@ function game_start(g){
 	new Material(g.g, "heat", {"fs":"fragment-heat","vs":"2d-vertex-shader"} );
 	new Material(g.g, "blur", {"fs":"2d-fragment-blur","vs":"2d-vertex-scale"} );
 	new Material(g.g, "enchanted", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
+	new Material(g.g, "item", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader"} );
 	
 	new Material(g.g, "t1", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[0.1]}} );
 	new Material(g.g, "t2", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[-0.1]}} );
