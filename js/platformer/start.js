@@ -2,6 +2,7 @@ function game_start(g){
 	new Material(g.g, "default", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "hurt", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader","settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
 	new Material(g.g, "gold", {"fs":"fragment-greytocolor","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
+	new Material(g.g, "color", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader"} );
 	new Material(g.g, "heat", {"fs":"fragment-heat","vs":"2d-vertex-shader"} );
 	new Material(g.g, "blur", {"fs":"2d-fragment-blur","vs":"2d-vertex-scale"} );
 	new Material(g.g, "enchanted", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );

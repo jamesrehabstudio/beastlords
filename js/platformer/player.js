@@ -25,6 +25,8 @@ function Player(x, y){
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
+	this.jump_strength = 7.7;
+	
 	this.states = {
 		"duck" : false,
 		"guard" : true,
@@ -39,7 +41,8 @@ function Player(x, y){
 		"roll" : 0,
 		"rollDirection" : 1.0,
 		"effectTimer" : 0.0,
-		"downStab" : false
+		"downStab" : false,
+		"afterImage" : new Timer(999999999, Game.DELTASECOND * 0.125)
 	};
 	
 	this.attackProperites = {
@@ -56,6 +59,32 @@ function Player(x, y){
 		"duck" : 8.0,
 		"stand" : -8.0,
 		"frame_row" : 3
+	};
+	
+	
+	this.speeds = {
+		"inertiaGrounded" : 0.9,
+		"inertiaAir" : 0.2,
+		"frictionGrounded" : 0.2,
+		"frictionAir" : 0.05,
+		"airGlide" : 0.0
+	};
+	
+	this.weapon = {
+		"frame" : 0,
+		"frame_row" : 0,
+		"combo" : 0,
+		"charge" : 0,
+		"charge_ready" : false,
+		"width" : 4
+	};
+	this.cape = {
+		"active" : false,
+		"frame" : 0,
+		"frame_row" : 0,
+		"sprite" : sprites.cape1,
+		"cape" : null,
+		"flip" : this.flip
 	}
 	
 	this.on("pre_death", function(){
@@ -142,13 +171,18 @@ function Player(x, y){
 	this.on("struckTarget", function(obj, pos, damage){
 		if( this.states.downStab && obj.hasModule(mod_combat) && this.force.y > 0 ) {
 			this.states.downStab = false;
-			this.force.y = 0;
+			this.force.y = -2;
 			this.jump();
 		}
 	});
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
+		
+		if( !this.grounded && !this.states.downStab ) {
+			//Add extra float
+			this.force.y -= this.jump_strength * this.speeds.airGlide;
+		}
 		
 		//Charge kill explosion!
 		if( this.states.charge_multiplier && obj.mass < 2.0 && obj.life <= 0 ) {
@@ -209,15 +243,6 @@ function Player(x, y){
 	this.invincible_time = 20;
 	this.autoblock = true;
 	this.rollTime = Game.DELTASECOND * 0.5;
-	
-	this.speeds = {
-		"inertiaGrounded" : 0.9,
-		"inertiaAir" : 0.2,
-		"frictionGrounded" : 0.2,
-		"frictionAir" : 0.05
-	//this.frictionGrounded = 0.2;
-	//this.frictionAir = 0.05;
-	};
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -498,9 +523,16 @@ Player.prototype.update = function(){
 			if ( input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.4 }
 		} else { 
 			this.gravity = 1.0; 
-			if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
-				var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-				this.force.y -= this.gravity * boost * this.delta; 
+			if ( input.state('jump') > 0 && !this.grounded ) { 
+				
+				if( this.force.y > 0 ) {
+					this.force.y -= 0.4 * this.speeds.airGlide * this.delta;
+				}
+			
+				if( this.jump_boost ) {
+					var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+					this.force.y -= this.gravity * boost * this.delta; 
+				}
 			} else {
 				this.jump_boost = false;
 			}
@@ -519,6 +551,9 @@ Player.prototype.update = function(){
 			//Play sound effect for attack
 			if( !this.states.startSwing ) {
 				audio.play("swing");
+				if( !this.grounded ) {
+					this.force.y *= Math.max(1.0 - this.speeds.airGlide, 0);
+				}
 				if( this.spellsCounters.magic_sword > 0 || this.hasCharm("charm_sword") ){
 					var offset_y = this.states.duck ? 6 : -8;
 					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
@@ -535,11 +570,16 @@ Player.prototype.update = function(){
 			//Create box to detect enemies
 			var temp_damage = this.damage;
 			var type = this.equip_sword.phantom ? "hurt" : "struck";
-			if( this.spellsCounters.magic_strength > 0 ) temp_damage = Math.floor(temp_damage*1.25);
-			if( this.states.charge_multiplier ) temp_damage *= 2.0;
+			var weapon_top = (this.states.duck ? 4 : -4) - this.weapon.width*.5;
+			if( this.spellsCounters.magic_strength > 0 ) {
+				temp_damage = Math.floor(temp_damage*1.25);
+			}
+			if( this.states.charge_multiplier ) {
+				temp_damage *= 2.0;
+			}
 			this.strike(new Line(
-				new Point( 12, (this.states.duck ? 4 : -4) ),
-				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
+				new Point( 12, weapon_top ),
+				new Point( 12+this.attackProperites.range , weapon_top+this.weapon.width )
 			), type, temp_damage );
 		} else {
 			this.states.startSwing = false;
@@ -576,7 +616,7 @@ Player.prototype.update = function(){
 		} else {
 			this.frame_row = 0;
 			if( this.states.attack_charge > this.attackProperites.charge_start || this.states.attack > 0 ) this.frame_row = 2;
-			if( Math.abs( this.force.x ) > 0.1 ) {
+			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
 			} else {
 				this.frame = 0;
@@ -589,6 +629,61 @@ Player.prototype.update = function(){
 		if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
 	}
 	
+	//Animation Sword
+	if(this.states.attack > 0){
+		this.weapon.frame = this.frame;
+		this.weapon.frame_row = 1 + this.weapon.combo;
+	} else if (this.states.downStab) {
+		this.weapon.frame = 3;
+		this.weapon.frame_row = 0;
+	} else if( this.states.attack_charge > 0 ){ 
+		this.weapon.frame = 0;
+		this.weapon.frame_row = 2;
+	} else { 
+		this.weapon.frame = this.frame % 3;
+		this.weapon.frame_row = 0;
+	}
+	
+	//Animation Cape
+	if( this.cape.active ) {
+		if( this.flip != this.cape.flip ){
+			this.cape.flip = this.flip;
+			this.cape.frame_row = 4;
+			this.cape.frame = 0;
+		}
+		if( this.grounded || Math.abs(this.force.y) < 0.4) {
+			if(this.states.duck) {
+				//Ducking
+				if( this.cape.frame_row != 1 ) this.cape.frame = 0;
+				this.cape.frame = Math.min( this.cape.frame + this.delta * 0.2, 2);
+				this.cape.frame_row = 1;
+			} else if(this.cape.frame_row == 4) {
+				//Turning
+				this.cape.frame += this.delta * 0.2;
+				if( this.cape.frame >= 2 ) {
+					this.cape.frame = 0;
+					this.cape.frame_row = 0;
+				}
+			} else if( input.state("left") > -0 || input.state("right") > 0 ) {
+				//Running
+				this.cape.frame = (this.cape.frame + this.delta * Math.abs(this.force.x) * 0.05 ) % 3;
+				this.cape.frame_row = 0;
+			} else {
+				//Stopped or stopping
+				this.cape.frame_row = 0;
+				if( Math.abs( this.force.x ) > 0.3 ) {
+					this.cape.frame = Math.abs( this.force.x ) > 1.0 ? 3 : 4;
+				} else {
+					this.cape.frame = 0;
+				}
+			}
+		} else {
+			//In air
+			this.cape.frame = Math.abs(this.force.y) > 2.5 ? 1 : 0;
+			this.cape.frame_row = this.force.y > 0 ? 3 : 2;
+		}
+	}
+	
 	//Timers
 	var attack_decrement_modifier = this.spellsCounters.haste > 0 ? 1.3 : 1.0;
 	this.states.attack -= this.delta * attack_decrement_modifier;
@@ -596,6 +691,10 @@ Player.prototype.update = function(){
 		this.spellsCounters[i] -= this.delta;
 	}
 	this.states.effectTimer += this.delta;
+	
+	if( this.states.afterImage.status(this.delta) ){
+		game.addObject( new EffectAfterImage(this.position.x, this.position.y, this) );
+	}
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){
@@ -612,7 +711,7 @@ Player.prototype.duck = function(){
 	}
 }
 Player.prototype.jump = function(){ 
-	var force = 7.7;
+	var force = this.jump_strength;
 	
 	if( this.spellsCounters.flight > 0 ) force = 2;
 	
@@ -624,10 +723,20 @@ Player.prototype.jump = function(){
 }
 Player.prototype.attack = function(){
 	if( this.states.attack <= 0 ) {
-		this.states.attack = this.attackProperites.warm;
 		if( this.grounded ) {
 			this.force.x = 0;
+			if( this.states.attack > Game.DELTASECOND * -0.3 ) {
+				//Next combo level
+				this.weapon.combo = (this.weapon.combo + 1) % 3;
+			} else {
+				//Reset combo
+				this.weapon.combo = 0;
+			}
+		} else {
+			this.weapon.combo = 2;
 		}
+		this.weapon.width = this.weapon.combo == 2 ? 18 : 4;
+		this.states.attack = this.attackProperites.warm;
 	}
 }
 Player.prototype.castSpell = function(name){
@@ -823,6 +932,10 @@ Player.prototype.render = function(g,c){
 	//Render player
 	if( this.states.roll <= 0 ){
 		GameObject.prototype.render.apply(this,[g,c]);
+		//Render caps
+		if( this.cape.active ) {
+			this.cape.sprite.render(g, this.position.subtract(c), this.cape.frame, this.cape.frame_row, this.flip, this.filter);
+		}
 	} else {
 		//When rolling, ignore flip and shader
 		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
@@ -839,7 +952,13 @@ Player.prototype.render = function(g,c){
 	
 	//Render current sword
 	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
-	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip, weapon_filter);
+	var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
+	this.attackProperites.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+		this.weapon.frame, 
+		this.weapon.frame_row, 
+		this.flip, 
+		weapon_filter
+	);
 	
 	//Charge effect
 	if( this.states.attack_charge > 0 ) {

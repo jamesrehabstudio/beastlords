@@ -2557,6 +2557,70 @@ EffectCritical.prototype.render = function(g,c){
 	}
 }
 
+EffectAfterImage.prototype = new GameObject();
+EffectAfterImage.prototype.constructor = GameObject;
+function EffectAfterImage(x, y, obj){	
+	this.constructor();
+	
+	this.life = Game.DELTASECOND;
+	this.lifeMax = this.life;
+	
+	this.size = 64;
+	this.resolution = new Point(this.size, -this.size);
+	this.position.x = x - this.size * 0.5;
+	this.position.y = y - this.size * 0.5;
+	
+	
+	var gl = game.g;
+	this.buffer = gl.createF(this.size);
+
+	this.buffer.use(gl);
+	var tempres = game.resolution;
+	game.resolution = this.resolution;
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+	gl.viewport(0,0,this.size,this.size);
+	
+	//obj.render(gl, new Point(-24, 48-this.buffer.buffer.height*0.5).add(obj.position));
+	obj.render(gl, new Point(this.size*-0.5, this.size*0.5).add(obj.position));
+	
+	game.backBuffer.use(gl);
+	gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
+	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+	game.resolution = tempres;
+}
+
+EffectAfterImage.prototype.render = function(g,c){
+	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );
+	
+	var geo = Sprite.RectBuffer(this.position.subtract(c), 64,64);
+	var tex = Sprite.RectBuffer(new Point(), 1,1);
+	var shader = window.materials["color"].use();
+	
+	var buffer = g.createBuffer();
+	g.bindBuffer( g.ARRAY_BUFFER, buffer );
+	g.bufferData( g.ARRAY_BUFFER, geo, g.DYNAMIC_DRAW);
+	shader.set("a_position");
+	
+	var tbuffer = g.createBuffer();
+	g.bindBuffer( g.ARRAY_BUFFER, tbuffer );
+	g.bufferData( g.ARRAY_BUFFER, tex, g.DYNAMIC_DRAW);
+	shader.set("a_texCoord");
+	
+	shader.set("u_resolution", game.resolution.x, game.resolution.y);
+	shader.set("u_camera", 0,0);
+	g.bindTexture(g.TEXTURE_2D, this.buffer.texture);
+	
+	var progress = Math.max(this.life / this.lifeMax, 0);
+	shader.set("u_color", [progress,progress,1,0.5*Math.sqrt(progress)]);
+	
+	g.drawArrays(g.TRIANGLE_STRIP, 0, geo.length/2);
+	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
+	
+	this.life -= this.delta;
+	if( this.life <= 0 ) this.destroy();
+}
+
 EffectItemPickup.prototype = new GameObject();
 EffectItemPickup.prototype.constructor = GameObject;
 function EffectItemPickup(x, y, message){	
@@ -7827,8 +7891,7 @@ var mod_combat = {
 		this.stun_time = 10.0;
 		this.death_time = 0;
 		this._hurt_strobe = 0;
-		this._death_clock = Number.MAX_VALUE;
-		this._death_explosion_clock = Number.MAX_VALUE;
+		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
 		this.damage_buffer = 0;
 		this.buffer_damage = false;
 		this._damage_buffer_timer = 0;
@@ -7946,8 +8009,7 @@ var mod_combat = {
 				//Trigger death
 				if( this.death_time > 0 ) {
 					this.trigger("pre_death");
-					this._death_clock = this.death_time;
-					this._death_explosion_clock = this.death_time;
+					this._death_clock.set(this.death_time);
 					this.interactive = false;
 				} else {
 					game.addObject(new EffectExplosion(this.position.x,this.position.y));
@@ -8073,15 +8135,14 @@ var mod_combat = {
 			this.isDead();
 		}
 		
-		if( this.life <= 0 ) this._death_clock -= game.deltaUnscaled;
-		if( this._death_clock <= 0 ) this.trigger("death");
-		if( this.life <= 0 && this._death_clock < this._death_explosion_clock) {
-			//Create explosion
-			game.addObject(new EffectExplosion(
-				this.position.x + this.width*(Math.random()-.5), 
-				this.position.y + this.height*(Math.random()-.5)
-			));
-			this._death_explosion_clock = this._death_clock - Game.DELTASECOND * .25;
+		if( this.life <= 0 ) {
+			if( this._death_clock.status(game.deltaUnscaled) ) {
+				game.addObject(new EffectExplosion(
+					this.position.x + this.width*(Math.random()-.5), 
+					this.position.y + this.height*(Math.random()-.5)
+				));
+			}
+			if( this._death_clock.time <= 0 ) this.trigger("death");
 		}
 		
 		this._shield.interactive = this.guard.active;
@@ -8389,6 +8450,8 @@ function Player(x, y){
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
+	this.jump_strength = 7.7;
+	
 	this.states = {
 		"duck" : false,
 		"guard" : true,
@@ -8403,7 +8466,8 @@ function Player(x, y){
 		"roll" : 0,
 		"rollDirection" : 1.0,
 		"effectTimer" : 0.0,
-		"downStab" : false
+		"downStab" : false,
+		"afterImage" : new Timer(999999999, Game.DELTASECOND * 0.125)
 	};
 	
 	this.attackProperites = {
@@ -8420,6 +8484,32 @@ function Player(x, y){
 		"duck" : 8.0,
 		"stand" : -8.0,
 		"frame_row" : 3
+	};
+	
+	
+	this.speeds = {
+		"inertiaGrounded" : 0.9,
+		"inertiaAir" : 0.2,
+		"frictionGrounded" : 0.2,
+		"frictionAir" : 0.05,
+		"airGlide" : 0.0
+	};
+	
+	this.weapon = {
+		"frame" : 0,
+		"frame_row" : 0,
+		"combo" : 0,
+		"charge" : 0,
+		"charge_ready" : false,
+		"width" : 4
+	};
+	this.cape = {
+		"active" : false,
+		"frame" : 0,
+		"frame_row" : 0,
+		"sprite" : sprites.cape1,
+		"cape" : null,
+		"flip" : this.flip
 	}
 	
 	this.on("pre_death", function(){
@@ -8506,13 +8596,18 @@ function Player(x, y){
 	this.on("struckTarget", function(obj, pos, damage){
 		if( this.states.downStab && obj.hasModule(mod_combat) && this.force.y > 0 ) {
 			this.states.downStab = false;
-			this.force.y = 0;
+			this.force.y = -2;
 			this.jump();
 		}
 	});
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
+		
+		if( !this.grounded && !this.states.downStab ) {
+			//Add extra float
+			this.force.y -= this.jump_strength * this.speeds.airGlide;
+		}
 		
 		//Charge kill explosion!
 		if( this.states.charge_multiplier && obj.mass < 2.0 && obj.life <= 0 ) {
@@ -8573,15 +8668,6 @@ function Player(x, y){
 	this.invincible_time = 20;
 	this.autoblock = true;
 	this.rollTime = Game.DELTASECOND * 0.5;
-	
-	this.speeds = {
-		"inertiaGrounded" : 0.9,
-		"inertiaAir" : 0.2,
-		"frictionGrounded" : 0.2,
-		"frictionAir" : 0.05
-	//this.frictionGrounded = 0.2;
-	//this.frictionAir = 0.05;
-	};
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -8862,9 +8948,16 @@ Player.prototype.update = function(){
 			if ( input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.4 }
 		} else { 
 			this.gravity = 1.0; 
-			if ( input.state('jump') > 0 && !this.grounded && this.jump_boost ) { 
-				var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-				this.force.y -= this.gravity * boost * this.delta; 
+			if ( input.state('jump') > 0 && !this.grounded ) { 
+				
+				if( this.force.y > 0 ) {
+					this.force.y -= 0.4 * this.speeds.airGlide * this.delta;
+				}
+			
+				if( this.jump_boost ) {
+					var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+					this.force.y -= this.gravity * boost * this.delta; 
+				}
 			} else {
 				this.jump_boost = false;
 			}
@@ -8883,6 +8976,9 @@ Player.prototype.update = function(){
 			//Play sound effect for attack
 			if( !this.states.startSwing ) {
 				audio.play("swing");
+				if( !this.grounded ) {
+					this.force.y *= Math.max(1.0 - this.speeds.airGlide, 0);
+				}
 				if( this.spellsCounters.magic_sword > 0 || this.hasCharm("charm_sword") ){
 					var offset_y = this.states.duck ? 6 : -8;
 					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
@@ -8899,11 +8995,16 @@ Player.prototype.update = function(){
 			//Create box to detect enemies
 			var temp_damage = this.damage;
 			var type = this.equip_sword.phantom ? "hurt" : "struck";
-			if( this.spellsCounters.magic_strength > 0 ) temp_damage = Math.floor(temp_damage*1.25);
-			if( this.states.charge_multiplier ) temp_damage *= 2.0;
+			var weapon_top = (this.states.duck ? 4 : -4) - this.weapon.width*.5;
+			if( this.spellsCounters.magic_strength > 0 ) {
+				temp_damage = Math.floor(temp_damage*1.25);
+			}
+			if( this.states.charge_multiplier ) {
+				temp_damage *= 2.0;
+			}
 			this.strike(new Line(
-				new Point( 12, (this.states.duck ? 4 : -4) ),
-				new Point( 12+this.attackProperites.range , (this.states.duck ? 4 : -4)-4 )
+				new Point( 12, weapon_top ),
+				new Point( 12+this.attackProperites.range , weapon_top+this.weapon.width )
 			), type, temp_damage );
 		} else {
 			this.states.startSwing = false;
@@ -8940,7 +9041,7 @@ Player.prototype.update = function(){
 		} else {
 			this.frame_row = 0;
 			if( this.states.attack_charge > this.attackProperites.charge_start || this.states.attack > 0 ) this.frame_row = 2;
-			if( Math.abs( this.force.x ) > 0.1 ) {
+			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
 			} else {
 				this.frame = 0;
@@ -8953,6 +9054,61 @@ Player.prototype.update = function(){
 		if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
 	}
 	
+	//Animation Sword
+	if(this.states.attack > 0){
+		this.weapon.frame = this.frame;
+		this.weapon.frame_row = 1 + this.weapon.combo;
+	} else if (this.states.downStab) {
+		this.weapon.frame = 3;
+		this.weapon.frame_row = 0;
+	} else if( this.states.attack_charge > 0 ){ 
+		this.weapon.frame = 0;
+		this.weapon.frame_row = 2;
+	} else { 
+		this.weapon.frame = this.frame % 3;
+		this.weapon.frame_row = 0;
+	}
+	
+	//Animation Cape
+	if( this.cape.active ) {
+		if( this.flip != this.cape.flip ){
+			this.cape.flip = this.flip;
+			this.cape.frame_row = 4;
+			this.cape.frame = 0;
+		}
+		if( this.grounded || Math.abs(this.force.y) < 0.4) {
+			if(this.states.duck) {
+				//Ducking
+				if( this.cape.frame_row != 1 ) this.cape.frame = 0;
+				this.cape.frame = Math.min( this.cape.frame + this.delta * 0.2, 2);
+				this.cape.frame_row = 1;
+			} else if(this.cape.frame_row == 4) {
+				//Turning
+				this.cape.frame += this.delta * 0.2;
+				if( this.cape.frame >= 2 ) {
+					this.cape.frame = 0;
+					this.cape.frame_row = 0;
+				}
+			} else if( input.state("left") > -0 || input.state("right") > 0 ) {
+				//Running
+				this.cape.frame = (this.cape.frame + this.delta * Math.abs(this.force.x) * 0.05 ) % 3;
+				this.cape.frame_row = 0;
+			} else {
+				//Stopped or stopping
+				this.cape.frame_row = 0;
+				if( Math.abs( this.force.x ) > 0.3 ) {
+					this.cape.frame = Math.abs( this.force.x ) > 1.0 ? 3 : 4;
+				} else {
+					this.cape.frame = 0;
+				}
+			}
+		} else {
+			//In air
+			this.cape.frame = Math.abs(this.force.y) > 2.5 ? 1 : 0;
+			this.cape.frame_row = this.force.y > 0 ? 3 : 2;
+		}
+	}
+	
 	//Timers
 	var attack_decrement_modifier = this.spellsCounters.haste > 0 ? 1.3 : 1.0;
 	this.states.attack -= this.delta * attack_decrement_modifier;
@@ -8960,6 +9116,10 @@ Player.prototype.update = function(){
 		this.spellsCounters[i] -= this.delta;
 	}
 	this.states.effectTimer += this.delta;
+	
+	if( this.states.afterImage.status(this.delta) ){
+		game.addObject( new EffectAfterImage(this.position.x, this.position.y, this) );
+	}
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){
@@ -8976,7 +9136,7 @@ Player.prototype.duck = function(){
 	}
 }
 Player.prototype.jump = function(){ 
-	var force = 7.7;
+	var force = this.jump_strength;
 	
 	if( this.spellsCounters.flight > 0 ) force = 2;
 	
@@ -8988,10 +9148,20 @@ Player.prototype.jump = function(){
 }
 Player.prototype.attack = function(){
 	if( this.states.attack <= 0 ) {
-		this.states.attack = this.attackProperites.warm;
 		if( this.grounded ) {
 			this.force.x = 0;
+			if( this.states.attack > Game.DELTASECOND * -0.3 ) {
+				//Next combo level
+				this.weapon.combo = (this.weapon.combo + 1) % 3;
+			} else {
+				//Reset combo
+				this.weapon.combo = 0;
+			}
+		} else {
+			this.weapon.combo = 2;
 		}
+		this.weapon.width = this.weapon.combo == 2 ? 18 : 4;
+		this.states.attack = this.attackProperites.warm;
 	}
 }
 Player.prototype.castSpell = function(name){
@@ -9187,6 +9357,10 @@ Player.prototype.render = function(g,c){
 	//Render player
 	if( this.states.roll <= 0 ){
 		GameObject.prototype.render.apply(this,[g,c]);
+		//Render caps
+		if( this.cape.active ) {
+			this.cape.sprite.render(g, this.position.subtract(c), this.cape.frame, this.cape.frame_row, this.flip, this.filter);
+		}
 	} else {
 		//When rolling, ignore flip and shader
 		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
@@ -9203,7 +9377,13 @@ Player.prototype.render = function(g,c){
 	
 	//Render current sword
 	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
-	this.attackProperites.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.flip, weapon_filter);
+	var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
+	this.attackProperites.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+		this.weapon.frame, 
+		this.weapon.frame_row, 
+		this.flip, 
+		weapon_filter
+	);
 	
 	//Charge effect
 	if( this.states.attack_charge > 0 ) {
@@ -9800,6 +9980,7 @@ function game_start(g){
 	new Material(g.g, "default", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "hurt", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader","settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
 	new Material(g.g, "gold", {"fs":"fragment-greytocolor","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
+	new Material(g.g, "color", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader"} );
 	new Material(g.g, "heat", {"fs":"fragment-heat","vs":"2d-vertex-shader"} );
 	new Material(g.g, "blur", {"fs":"2d-fragment-blur","vs":"2d-vertex-scale"} );
 	new Material(g.g, "enchanted", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );

@@ -224,6 +224,70 @@ EffectCritical.prototype.render = function(g,c){
 	}
 }
 
+EffectAfterImage.prototype = new GameObject();
+EffectAfterImage.prototype.constructor = GameObject;
+function EffectAfterImage(x, y, obj){	
+	this.constructor();
+	
+	this.life = Game.DELTASECOND;
+	this.lifeMax = this.life;
+	
+	this.size = 64;
+	this.resolution = new Point(this.size, -this.size);
+	this.position.x = x - this.size * 0.5;
+	this.position.y = y - this.size * 0.5;
+	
+	
+	var gl = game.g;
+	this.buffer = gl.createF(this.size);
+
+	this.buffer.use(gl);
+	var tempres = game.resolution;
+	game.resolution = this.resolution;
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+	gl.viewport(0,0,this.size,this.size);
+	
+	//obj.render(gl, new Point(-24, 48-this.buffer.buffer.height*0.5).add(obj.position));
+	obj.render(gl, new Point(this.size*-0.5, this.size*0.5).add(obj.position));
+	
+	game.backBuffer.use(gl);
+	gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
+	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+	game.resolution = tempres;
+}
+
+EffectAfterImage.prototype.render = function(g,c){
+	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );
+	
+	var geo = Sprite.RectBuffer(this.position.subtract(c), 64,64);
+	var tex = Sprite.RectBuffer(new Point(), 1,1);
+	var shader = window.materials["color"].use();
+	
+	var buffer = g.createBuffer();
+	g.bindBuffer( g.ARRAY_BUFFER, buffer );
+	g.bufferData( g.ARRAY_BUFFER, geo, g.DYNAMIC_DRAW);
+	shader.set("a_position");
+	
+	var tbuffer = g.createBuffer();
+	g.bindBuffer( g.ARRAY_BUFFER, tbuffer );
+	g.bufferData( g.ARRAY_BUFFER, tex, g.DYNAMIC_DRAW);
+	shader.set("a_texCoord");
+	
+	shader.set("u_resolution", game.resolution.x, game.resolution.y);
+	shader.set("u_camera", 0,0);
+	g.bindTexture(g.TEXTURE_2D, this.buffer.texture);
+	
+	var progress = Math.max(this.life / this.lifeMax, 0);
+	shader.set("u_color", [progress,progress,1,0.5*Math.sqrt(progress)]);
+	
+	g.drawArrays(g.TRIANGLE_STRIP, 0, geo.length/2);
+	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
+	
+	this.life -= this.delta;
+	if( this.life <= 0 ) this.destroy();
+}
+
 EffectItemPickup.prototype = new GameObject();
 EffectItemPickup.prototype.constructor = GameObject;
 function EffectItemPickup(x, y, message){	

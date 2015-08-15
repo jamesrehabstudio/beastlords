@@ -1486,6 +1486,69 @@ BSPTree.prototype.nearest = function(position, conditions){
 	return out;
 }
 
+function Timer(time, interval){
+	this.time = this.start = this.previous = this.interval = 0;
+	this.set( time, interval );
+}
+
+Timer.prototype.set = function(time, interval){
+	this.start = time;
+	this.time = time;
+	this.previous = time+1.0;
+	if( interval != undefined ) {
+		this.interval = interval;
+	}
+	if( this.interval instanceof Array ) {
+		this.interval = this.interval.sort(function(a,b){return a-b;});
+	} else {
+		this.nextInterval = this.time;
+	}
+}
+Timer.prototype.tick = function(delta){
+	if( delta > 0 ) {
+		this.previous = this.time;
+		this.time -= delta;
+	}
+}
+Timer.prototype.status = function(delta){
+	if( this.time <= 0 ) {
+		return false;
+	}
+	this.tick(delta);
+	if( this.interval instanceof Array ) {
+		for(var i=0; i < this.interval.length; i++ ){
+			if( this.time < this.interval[i] ) {
+				return 1 + (this.interval.length - i);
+			}
+		}
+		return 1;
+	} else {
+		if( this.time <= this.nextInterval ){
+			this.nextInterval -= this.interval;
+			return true;
+		}
+		return false;
+	}
+}
+
+Timer.prototype.at = function(position){
+	return position >= this.time && position < this.previous;
+}
+Timer.prototype.progress = function(delta){
+	if( this.interval instanceof Array ) {
+		for(var i=this.interval.length-1; i >= 0; i-- ){
+			if( this.time > this.interval[i] ) {
+				var low = this.interval[i];
+				var high = (i+1 in this.interval) ? this.interval[i+1] : this.start;
+				return 1.0 - ((this.time-low) / (high-low));
+			}
+		}
+		return 1.0 - (this.time / this.interval[0]);
+	} else {
+		return 1.0 - (this.time-this.nextInterval / this.interval);
+	}
+}
+
 Array.prototype.remove = function(from, to) {
   var rest = this.slice((to || from) + 1 || this.length);
   this.length = from < 0 ? this.length + from : from;

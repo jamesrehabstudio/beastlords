@@ -153,8 +153,7 @@ var mod_combat = {
 		this.stun_time = 10.0;
 		this.death_time = 0;
 		this._hurt_strobe = 0;
-		this._death_clock = Number.MAX_VALUE;
-		this._death_explosion_clock = Number.MAX_VALUE;
+		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
 		this.damage_buffer = 0;
 		this.buffer_damage = false;
 		this._damage_buffer_timer = 0;
@@ -272,8 +271,7 @@ var mod_combat = {
 				//Trigger death
 				if( this.death_time > 0 ) {
 					this.trigger("pre_death");
-					this._death_clock = this.death_time;
-					this._death_explosion_clock = this.death_time;
+					this._death_clock.set(this.death_time);
 					this.interactive = false;
 				} else {
 					game.addObject(new EffectExplosion(this.position.x,this.position.y));
@@ -399,15 +397,14 @@ var mod_combat = {
 			this.isDead();
 		}
 		
-		if( this.life <= 0 ) this._death_clock -= game.deltaUnscaled;
-		if( this._death_clock <= 0 ) this.trigger("death");
-		if( this.life <= 0 && this._death_clock < this._death_explosion_clock) {
-			//Create explosion
-			game.addObject(new EffectExplosion(
-				this.position.x + this.width*(Math.random()-.5), 
-				this.position.y + this.height*(Math.random()-.5)
-			));
-			this._death_explosion_clock = this._death_clock - Game.DELTASECOND * .25;
+		if( this.life <= 0 ) {
+			if( this._death_clock.status(game.deltaUnscaled) ) {
+				game.addObject(new EffectExplosion(
+					this.position.x + this.width*(Math.random()-.5), 
+					this.position.y + this.height*(Math.random()-.5)
+				));
+			}
+			if( this._death_clock.time <= 0 ) this.trigger("death");
 		}
 		
 		this._shield.interactive = this.guard.active;
