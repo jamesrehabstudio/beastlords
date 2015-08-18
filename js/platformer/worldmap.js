@@ -69,6 +69,25 @@ function WorldMap(x, y){
 		{"position":new Point(61*16,59*16), "map":3}
 	]
 	
+	this.town = {
+		"people" : 5,
+		"engineers" : 0,
+		"money" : 0,
+		"science" : 0,
+		"buildings" : {
+			"hall" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"mine" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"lab" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"hunter" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"mill" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"library" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"inn" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"farm" : { "progress" : 1, "people" : 0, "engineers" : 0, "complete" : true },
+			"smith" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"bank" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false }
+		}
+	};
+	
 	this.animation = 0;
 	
 	this.on("activate", function(){
@@ -259,6 +278,45 @@ WorldMap.prototype.passable = function(x,y){
 	return block_list.indexOf( t ) < 0 && r == 0;
 }
 WorldMap.prototype.idle = function(){}
+
+WorldMap.prototype.worldTick = function(){
+	//Generate money
+	if( this.town.buildings.mine.complete ) {
+		this.town.money += this.town.buildings.mine.people * 10;
+		this.town.money += this.town.buildings.mine.engineers * 30;
+	}
+	
+	//Increase scene
+	var freePeople = this.town.people;
+	var freeEngineers = this.town.engineers;
+	var moneyNeeded = 0;
+	for(var i in this.town.buildings){
+		freePeople -= this.town.buildings[i].people;
+		freeEngineers -= this.town.buildings[i].engineers;
+		moneyNeeded += this.town.buildings[i].people + this.town.buildings[i].engineers;
+	}
+	this.town.science += freePeople;
+	this.town.science += freeEngineers * 4;
+	moneyNeeded *= 50;
+	
+	//Increase population
+	this.town.people += Math.floor( (this.town.buildings.farm.people + this.town.buildings.farm.engineers ) / 2 );
+	
+	var productionFactor = Math.min(this.town.money / moneyNeeded, 1.0);
+	this.town.money = Math.max(this.town.money - moneyNeeded, 0);
+	
+	//Increase production
+	for(var i in this.town.buildings){
+		var production = productionFactor * (this.town.buildings[i].people + this.town.buildings[i].engineers * 3);
+		this.town.buildings[i].progress += Math.floor( production );
+		
+		if( this.town.buildings[i].progress > 30 ) {
+			this.town.buildings[i].complete = true;
+			this.town.buildings[i].people = 0;
+			this.town.buildings[i].engineers = 0;
+		}
+	}
+}
 
 WorldMap.Shops = [
 	"Alter",

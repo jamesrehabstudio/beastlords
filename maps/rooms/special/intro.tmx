@@ -70,5 +70,35 @@
   <object name="Player" gid="136" x="128" y="192"/>
   <object name="Exit" gid="136" x="0" y="112"/>
   <object name="Lamp" gid="199" x="736" y="160"/>
+  <object name="Detritus" gid="139" x="400" y="176">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="464" y="176">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="544" y="176">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="672" y="176">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="624" y="176">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

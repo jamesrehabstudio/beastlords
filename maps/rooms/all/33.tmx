@@ -108,5 +108,37 @@
   <object name="Lamp" gid="199" x="48" y="240"/>
   <object name="Lamp" gid="199" x="192" y="416"/>
   <object name="Lamp" gid="199" x="48" y="368"/>
+  <object name="Detritus" gid="139" x="32" y="272">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="224" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="16" y="400">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="side" value="l"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="208" y="448">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="224" y="336">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="side" value="r"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

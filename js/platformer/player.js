@@ -42,7 +42,7 @@ function Player(x, y){
 		"rollDirection" : 1.0,
 		"effectTimer" : 0.0,
 		"downStab" : false,
-		"afterImage" : new Timer(999999999, Game.DELTASECOND * 0.125)
+		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125)
 	};
 	
 	this.attackProperites = {
@@ -95,6 +95,11 @@ function Player(x, y){
 	this.on("death", function(){
 		this.position.x = 128;
 		this.position.y = 200;
+		
+		if( window._world instanceof WorldMap ){
+			window._world.worldTick();
+		}
+		
 		for(var i=0; i < game.objects.length; i++ )
 			game.objects[i].trigger("player_death");
 		game.getObject(PauseMenu).open = true;
@@ -178,6 +183,11 @@ function Player(x, y){
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
+		
+		if( "life" in obj && obj.life <= 0 ) {
+			//Glow after a kill
+			this.states.afterImage.set(Game.DELTASECOND * 3);
+		}
 		
 		if( !this.grounded && !this.states.downStab ) {
 			//Add extra float
@@ -965,9 +975,6 @@ Player.prototype.render = function(g,c){
 		var effectPos = new Point(this.position.x, this.position.y - 16);
 		EffectList.charge(g, effectPos.subtract(c), this.states.attack_charge);
 	}
-	
-	//Create light
-	Background.pushLight( this.position.subtract(c), 240 );
 }
 
 
@@ -1060,4 +1067,7 @@ Player.prototype.postrender = function(g,c){
 		this.charm.position.x = this.charm.position.y = 0;
 		this.charm.render(g,new Point(-(this.lifeMax*0.25 + 20),-15));
 	}
+	
+	//Create light
+	Background.pushLight( this.position.subtract(c), 240 );
 }

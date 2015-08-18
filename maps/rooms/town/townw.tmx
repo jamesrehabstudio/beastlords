@@ -37,13 +37,14 @@
 0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,
-177,178,179,180,181,182,183,184,
-193,194,195,196,197,198,199,200
+177,178,179,180,177,178,179,180,
+193,194,195,196,193,194,195,196
 </data>
  </layer>
  <objectgroup name="objects" width="8" height="15">
   <properties>
    <property name="map_tile" value="12"/>
+   <property name="tags" value="[&quot;exit_w&quot;]"/>
   </properties>
   <object name="Exit" gid="114" x="0" y="128"/>
   <object name="Player" gid="115" x="48" y="192"/>

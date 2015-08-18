@@ -36,5 +36,65 @@
  </objectgroup>
  <objectgroup name="objects" width="48" height="15">
   <object name="Shooter" gid="17" x="384" y="200"/>
+  <object name="Detritus" gid="139" x="80" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="144" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="288" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="480" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="576" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="608" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="656" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="736" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="176" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Detritus" gid="139" x="32" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+    <property name="size" value="1"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

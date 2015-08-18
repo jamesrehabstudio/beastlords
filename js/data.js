@@ -255,49 +255,44 @@ DataManager.prototype.loadMap = function(g,map,options){
 	g.addObject(pm);
 	g.addObject(new Background());
 }
+DataManager.prototype.townFromTag = function(tag){
+	for(var i=0; i < _map_town.length; i++){
+		if( "tags" in _map_town[i] && _map_town[i].tags.indexOf(tag) >= 0 ){
+			return i;
+		}
+	}
+	if( tag != "house") {
+		return this.townFromTag("house");
+	}
+	return -1;
+}
 DataManager.prototype.randomTown = function(g, town){
 	var s = new Seed(town.seed);
 	
 	this.currentTemple = -1;
 	this.currentTown = town.id;
 	this.slices = [];
-	
-	var specials = {
-		3: {"odds":0.4, count:0},
-		4: {"odds":0.0, count:0},
-		6: {"odds":0.3, count:0},
-		8: {"odds":0.3, count:0}
-	}
-	
+		
 	g.clearAll();
 	g.tileSprite = sprites.town;
 	
+	var pos = 1;
 	var rooms = new Array();
-	var length = 6 + town.size * 2;
-	var pos = 0;
-	for(var i=0; i < length; i++){
-		if( i == 0 ) { 
-			rooms[pos] = 9;
-		} else if ( i == length-1) {
-			rooms[pos] = 10;
-		} else {
-			rooms[pos] = town.size-1;
-			for(var j in specials){
-				if( s.randomBool(specials[j].odds) && specials[j].count <= 0) {
-					rooms[pos] = j;
-					specials[j].count++;
-				}
+	
+	rooms.push( this.townFromTag( "exit_w" ) );
+	for( i in _world.town.buildings ){
+		if( _world.town.buildings[i].complete ){
+			var room_id = this.townFromTag( i );
+			if( room_id >= 0 ) {
+				var room = _map_town[room_id];
+				rooms[pos] = room_id;
+				pos += room.width;
 			}
-			if( s.randomBool(0.7) )
-				g.addObject(new Villager(128+pos*128,192,town));
-		}
-		try{
-			var w = _map_town[ rooms[pos] ].width;
-			pos += w;
-		} catch ( err) {
-			pos++;
 		}
 	}
+	rooms.push( this.townFromTag( "exit_e" ) );
+	pos++;
+	
 	g.bounds = g.tileDimension = new Line(0,0,pos*8,15);
 	g.tiles = [
 		new Array( ~~g.tileDimension.area() ),
@@ -317,6 +312,9 @@ DataManager.prototype.randomTown = function(g, town){
 		_player.lock = new Line(0,0,pos*128,240);
 		_player.lock_overwrite = false;
 		_player.keys = new Array();
+//		_player.position.x = 72;
+//		_player.position.y = 200;
+//		g.addObject(_player);
 	}
 }
 DataManager.prototype.randomLevel = function(g, temple, s){
@@ -1690,6 +1688,10 @@ function load_sprites (){
 	sprites['tiles4'] = new Sprite(RT+"img/tiles/tiles4.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles5'] = new Sprite(RT+"img/tiles/tiles5.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles6'] = new Sprite(RT+"img/tiles/tiles6.gif", {offset:new Point(0, 0),width:16,height:16});
+	
+	sprites['detritus1'] = new Sprite(RT+"img/tiles/detritus1.gif", {offset:new Point(16, 24),width:32,height:32});
+	sprites['detritus3'] = new Sprite(RT+"img/tiles/detritus3.gif", {offset:new Point(16, 24),width:32,height:32});
+	
 	sprites['tilesintro'] = new Sprite(RT+"img/tiles/tilesintro.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['town'] = new Sprite(RT+"img/tiles/town.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['world'] = new Sprite(RT+"img/tiles/world.gif", {offset:new Point(0, 0),width:16,height:16});

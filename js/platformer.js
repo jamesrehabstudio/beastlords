@@ -2263,6 +2263,47 @@ Debuger.prototype.update = function(){
 	if ( input.state('down') > 0 ) {  this.position.y += this.speed * this.delta }
 }
 
+ /* platformer/detritus.js*/ 
+
+Detritus.prototype = new GameObject();
+Detritus.prototype.constructor = GameObject;
+function Detritus(x, y, d, ops){
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	
+	ops = ops || {};
+	
+	switch( game.tileSprite.name ) {
+		case "tiles0": this.sprite = sprites.detritus0; break;
+		case "tiles1": this.sprite = sprites.detritus1; break;
+		case "tiles2": this.sprite = sprites.detritus2; break;
+		case "tiles3": this.sprite = sprites.detritus3; break;
+		case "tiles4": this.sprite = sprites.detritus4; break;
+		case "tiles5": this.sprite = sprites.detritus5; break;
+		case "tiles6": this.sprite = sprites.detritus6; break;
+		case "tiles7": this.sprite = sprites.detritus7; break;
+		case "tiles8": this.sprite = sprites.detritus8; break;
+		case "tiles9": this.sprite = sprites.detritus9; break;
+		default: this.sprite = sprites.detritus0; break;
+	}
+	this.interactive = false;
+	
+	this.frame = 1 + Math.floor( Math.random() * 6 );
+	this.frame_row = 0;
+	
+	if( "side" in ops ) {
+		if( ops.side == "r" ) {
+			this.frame = 7;
+			this.position.x -= 8;
+		} else { 
+			this.frame = 0;
+			this.position.x += 8;
+		}
+	}
+}
+
  /* platformer/door.js*/ 
 
 Door.prototype = new GameObject();
@@ -2569,25 +2610,25 @@ function EffectAfterImage(x, y, obj){
 	this.resolution = new Point(this.size, -this.size);
 	this.position.x = x - this.size * 0.5;
 	this.position.y = y - this.size * 0.5;
+	this.interactive = false;
 	
 	
 	var gl = game.g;
 	this.buffer = gl.createF(this.size);
+	
+	this.on("sleep", function(){ this.destroy(); } );
 
 	this.buffer.use(gl);
 	var tempres = game.resolution;
 	game.resolution = this.resolution;
 	gl.clear(gl.COLOR_BUFFER_BIT);
-	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 	gl.viewport(0,0,this.size,this.size);
 	
-	//obj.render(gl, new Point(-24, 48-this.buffer.buffer.height*0.5).add(obj.position));
 	obj.render(gl, new Point(this.size*-0.5, this.size*0.5).add(obj.position));
 	
 	game.backBuffer.use(gl);
-	gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 	game.resolution = tempres;
+	gl.viewport(0,0,game.resolution.x,game.resolution.y);
 }
 
 EffectAfterImage.prototype.render = function(g,c){
@@ -7734,6 +7775,51 @@ TitleMenu.prototype.startGame = function(){
 	}
 }
 
+ /* platformer/millblades.js*/ 
+
+MillBlades.prototype = new GameObject();
+MillBlades.prototype.constructor = GameObject;
+function MillBlades(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 96;
+	this.height = 64;
+	this.zIndex = 0;
+	this.sprite = sprites.tiles0;
+	
+	this.speed = 1.3;	
+	this.rotation = 0;
+}
+
+MillBlades.prototype.render = function(g,c){
+	this.rotation += this.speed * this.delta;
+	var p = this.position.subtract(c);
+	var material = window.materials["default"].use();
+	g.bindTexture( g.TEXTURE_2D, this.sprite.gl_tex );
+	
+	for(var i=0; i < 4; i++) {
+		var r = this.rotation + i * 90;
+		var geo = Sprite.RectBuffer(p, this.width, 32, r);
+		var tex = Sprite.RectBuffer(new Point(), 1, 1);
+		
+		var buffer = g.createBuffer();
+		var tbuffer = g.createBuffer();
+		
+		g.bindBuffer( g.ARRAY_BUFFER, buffer);
+		g.bufferData( g.ARRAY_BUFFER, geo, g.DYNAMIC_DRAW );
+		material.set("a_position");
+		g.bindBuffer( g.ARRAY_BUFFER, tbuffer);
+		g.bufferData( g.ARRAY_BUFFER, tex, g.DYNAMIC_DRAW );
+		material.set("a_texCoord");
+		material.set("u_resolution", game.resolution.x, game.resolution.y);
+		material.set("u_camera", 0, 0);
+		
+		g.drawArrays(g.TRIANGLE_STRIP, 0, 6);
+	}
+}
+
  /* platformer/modules.js*/ 
 
 var mod_rigidbody = {
@@ -8467,7 +8553,7 @@ function Player(x, y){
 		"rollDirection" : 1.0,
 		"effectTimer" : 0.0,
 		"downStab" : false,
-		"afterImage" : new Timer(999999999, Game.DELTASECOND * 0.125)
+		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125)
 	};
 	
 	this.attackProperites = {
@@ -8520,6 +8606,11 @@ function Player(x, y){
 	this.on("death", function(){
 		this.position.x = 128;
 		this.position.y = 200;
+		
+		if( window._world instanceof WorldMap ){
+			window._world.worldTick();
+		}
+		
 		for(var i=0; i < game.objects.length; i++ )
 			game.objects[i].trigger("player_death");
 		game.getObject(PauseMenu).open = true;
@@ -8603,6 +8694,11 @@ function Player(x, y){
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
+		
+		if( "life" in obj && obj.life <= 0 ) {
+			//Glow after a kill
+			this.states.afterImage.set(Game.DELTASECOND * 3);
+		}
 		
 		if( !this.grounded && !this.states.downStab ) {
 			//Add extra float
@@ -9390,9 +9486,6 @@ Player.prototype.render = function(g,c){
 		var effectPos = new Point(this.position.x, this.position.y - 16);
 		EffectList.charge(g, effectPos.subtract(c), this.states.attack_charge);
 	}
-	
-	//Create light
-	Background.pushLight( this.position.subtract(c), 240 );
 }
 
 
@@ -9485,6 +9578,9 @@ Player.prototype.postrender = function(g,c){
 		this.charm.position.x = this.charm.position.y = 0;
 		this.charm.render(g,new Point(-(this.lifeMax*0.25 + 20),-15));
 	}
+	
+	//Create light
+	Background.pushLight( this.position.subtract(c), 240 );
 }
 
  /* platformer/prisoner.js*/ 
@@ -10294,6 +10390,8 @@ function WaystoneChest(x,y,d,options){
 	
 	this.addModule(mod_talk);
 	this.door = "door" in options;
+	this.frame = 0;
+	this.frame_row = 1;
 	
 	this.door_blocks = [
 		new Point(x,y+16),
@@ -10303,7 +10401,7 @@ function WaystoneChest(x,y,d,options){
 	
 	this.on("added",function(){
 		if(this.door){
-			this.frame = 1;
+			this.frame_row = this.frame = 0;
 			for(var i=0; i < this.door_blocks.length; i++){
 				game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, window.BLANK_TILE);
 			}
@@ -10311,6 +10409,10 @@ function WaystoneChest(x,y,d,options){
 	});
 }
 WaystoneChest.prototype.update = function(g,c){
+	if( !this.interactive ) {
+		this.frame = Math.min( this.frame + this.delta * 0.4, 3);
+	}
+	
 	if( this.open > 0 ) {
 		if( _player.waystones > 0 ) {
 			_player.waystones -= 1;
@@ -10332,7 +10434,7 @@ WaystoneChest.prototype.update = function(g,c){
 			}
 			audio.play("open");
 			this.close();
-			this.destroy();
+			this.interactive = false;
 		} else {
 			audio.play("negative");
 			this.close();
@@ -10486,6 +10588,25 @@ function WorldMap(x, y){
 	this.locations = [
 		{"position":new Point(61*16,59*16), "map":3}
 	]
+	
+	this.town = {
+		"people" : 5,
+		"engineers" : 0,
+		"money" : 0,
+		"science" : 0,
+		"buildings" : {
+			"hall" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"mine" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"lab" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"hunter" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"mill" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"library" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"inn" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"farm" : { "progress" : 1, "people" : 0, "engineers" : 0, "complete" : true },
+			"smith" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
+			"bank" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false }
+		}
+	};
 	
 	this.animation = 0;
 	
@@ -10677,6 +10798,45 @@ WorldMap.prototype.passable = function(x,y){
 	return block_list.indexOf( t ) < 0 && r == 0;
 }
 WorldMap.prototype.idle = function(){}
+
+WorldMap.prototype.worldTick = function(){
+	//Generate money
+	if( this.town.buildings.mine.complete ) {
+		this.town.money += this.town.buildings.mine.people * 10;
+		this.town.money += this.town.buildings.mine.engineers * 30;
+	}
+	
+	//Increase scene
+	var freePeople = this.town.people;
+	var freeEngineers = this.town.engineers;
+	var moneyNeeded = 0;
+	for(var i in this.town.buildings){
+		freePeople -= this.town.buildings[i].people;
+		freeEngineers -= this.town.buildings[i].engineers;
+		moneyNeeded += this.town.buildings[i].people + this.town.buildings[i].engineers;
+	}
+	this.town.science += freePeople;
+	this.town.science += freeEngineers * 4;
+	moneyNeeded *= 50;
+	
+	//Increase population
+	this.town.people += Math.floor( (this.town.buildings.farm.people + this.town.buildings.farm.engineers ) / 2 );
+	
+	var productionFactor = Math.min(this.town.money / moneyNeeded, 1.0);
+	this.town.money = Math.max(this.town.money - moneyNeeded, 0);
+	
+	//Increase production
+	for(var i in this.town.buildings){
+		var production = productionFactor * (this.town.buildings[i].people + this.town.buildings[i].engineers * 3);
+		this.town.buildings[i].progress += Math.floor( production );
+		
+		if( this.town.buildings[i].progress > 30 ) {
+			this.town.buildings[i].complete = true;
+			this.town.buildings[i].people = 0;
+			this.town.buildings[i].engineers = 0;
+		}
+	}
+}
 
 WorldMap.Shops = [
 	"Alter",

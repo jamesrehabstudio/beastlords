@@ -11,6 +11,8 @@ function WaystoneChest(x,y,d,options){
 	
 	this.addModule(mod_talk);
 	this.door = "door" in options;
+	this.frame = 0;
+	this.frame_row = 1;
 	
 	this.door_blocks = [
 		new Point(x,y+16),
@@ -20,7 +22,7 @@ function WaystoneChest(x,y,d,options){
 	
 	this.on("added",function(){
 		if(this.door){
-			this.frame = 1;
+			this.frame_row = this.frame = 0;
 			for(var i=0; i < this.door_blocks.length; i++){
 				game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, window.BLANK_TILE);
 			}
@@ -28,6 +30,10 @@ function WaystoneChest(x,y,d,options){
 	});
 }
 WaystoneChest.prototype.update = function(g,c){
+	if( !this.interactive ) {
+		this.frame = Math.min( this.frame + this.delta * 0.4, 3);
+	}
+	
 	if( this.open > 0 ) {
 		if( _player.waystones > 0 ) {
 			_player.waystones -= 1;
@@ -49,7 +55,7 @@ WaystoneChest.prototype.update = function(g,c){
 			}
 			audio.play("open");
 			this.close();
-			this.destroy();
+			this.interactive = false;
 		} else {
 			audio.play("negative");
 			this.close();

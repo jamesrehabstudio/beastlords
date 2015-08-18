@@ -236,25 +236,25 @@ function EffectAfterImage(x, y, obj){
 	this.resolution = new Point(this.size, -this.size);
 	this.position.x = x - this.size * 0.5;
 	this.position.y = y - this.size * 0.5;
+	this.interactive = false;
 	
 	
 	var gl = game.g;
 	this.buffer = gl.createF(this.size);
+	
+	this.on("sleep", function(){ this.destroy(); } );
 
 	this.buffer.use(gl);
 	var tempres = game.resolution;
 	game.resolution = this.resolution;
 	gl.clear(gl.COLOR_BUFFER_BIT);
-	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 	gl.viewport(0,0,this.size,this.size);
 	
-	//obj.render(gl, new Point(-24, 48-this.buffer.buffer.height*0.5).add(obj.position));
 	obj.render(gl, new Point(this.size*-0.5, this.size*0.5).add(obj.position));
 	
 	game.backBuffer.use(gl);
-	gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 	game.resolution = tempres;
+	gl.viewport(0,0,game.resolution.x,game.resolution.y);
 }
 
 EffectAfterImage.prototype.render = function(g,c){

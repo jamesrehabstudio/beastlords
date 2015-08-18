@@ -37,13 +37,14 @@
 0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,
-177,178,179,180,181,182,183,184,
-193,194,195,196,197,198,199,200
+177,178,179,180,181,177,178,179,
+193,194,195,196,197,193,194,195
 </data>
  </layer>
  <objectgroup name="objects" width="8" height="15">
   <properties>
    <property name="map_tile" value="13"/>
+   <property name="tags" value="[&quot;exit_e&quot;]"/>
   </properties>
   <object name="Exit" gid="114" x="112" y="128"/>
  </objectgroup>
