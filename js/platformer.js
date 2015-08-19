@@ -2131,6 +2131,102 @@ Explosion.prototype.render = function(g,c){
 	Background.pushLight( this.position.subtract(c), 360 * progress );
 }
 
+ /* platformer/chancellor.js*/ 
+
+Chancellor.prototype = new GameObject();
+Chancellor.prototype.constructor = GameObject;
+function Chancellor(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = sprites.characters;
+	
+	this.addModule( mod_talk );
+	this.text = i18n("chancellor_intro");
+	this.text_progress = 0;
+	
+	this.money = 0;
+	this.rate = 1;
+	this.pay_timer = 0;
+	this.rate_timer = 0;
+	
+	this.on("open", function(){
+		this.money = 0;
+		game.pause = true;
+		audio.play("pause");
+	});
+	this.on("close", function(){
+		game.pause = false;
+	});
+}
+
+Chancellor.prototype.update = function(){
+	if( this.open ) {
+		if( Chancellor.introduction ) {
+			if( input.state("fire") == 1 ) {
+				this.text_progress++;
+				if( this.text_progress >= this.text.length){
+					this.close();
+					Chancellor.introduction = false;
+				}
+			}
+		} else {
+			if( input.state("jump") == 1 || input.state("pause") == 1 ) {
+				this.close();
+				audio.play("negative");
+			} else if( input.state("fire") == 1 ) {
+				_world.town.money += this.money;
+				_player.money -= this.money;
+				this.money = 0;
+				this.close();
+				audio.play("unpause");
+			} else if ( input.state("up") > 0 ) {
+				if( this.pay_timer <= 0 || input.state("up") == 1) {
+					this.money = Math.min( this.money + this.rate, _player.money);
+					this.pay_timer = Game.DELTASECOND * 0.125;
+					audio.play("coin");
+				}
+				if( this.rate_timer <= 0 ) {
+					this.rate *= 2;
+					this.rate_timer = Game.DELTASECOND;
+				}
+				this.pay_timer -= game.deltaUnscaled;
+				this.rate_timer -= game.deltaUnscaled;
+			} else if ( input.state("down") > 0 ) {
+				if( this.pay_timer <= 0 || input.state("down") == 1 ) {
+					this.money = Math.max( this.money - this.rate, 0);
+					this.pay_timer = Game.DELTASECOND * 0.125;
+					audio.play("coin");
+				}
+				if( this.rate_timer <= 0 ) {
+					this.rate *= 2;
+					this.rate_timer = Game.DELTASECOND;
+				}
+				this.pay_timer -= game.deltaUnscaled;
+				this.rate_timer -= game.deltaUnscaled;
+			} else {
+				this.pay_timer = Game.DELTASECOND * 0.5;
+				this.rate_timer = Game.DELTASECOND;
+				this.rate = 1;
+			}
+		}
+	}
+}
+
+Chancellor.prototype.postrender = function(g,c){
+	if( this.open ) {
+		if( Chancellor.introduction ) {
+			renderDialog(g, this.text[this.text_progress]);
+		} else {
+			var left = game.resolution.x / 2 - 112;
+			renderDialog(g, i18n("chancellor_howmuch"));
+			textBox(g, "$"+this.money, left, 120, 128, 40);
+		}
+	}
+}
+
+Chancellor.introduction = true;
+
  /* platformer/cornerstone.js*/ 
 
 CornerStone.prototype = new GameObject();
@@ -6395,7 +6491,72 @@ window._messages = {
 	"start_help" : {
 		"english" : "Enter the world of Beast Lords. Beware, death will end the game.",
 		"engrish" : "Play the game. Please note, death is permanent."
+	},
+	"mayor_intro" : {
+		"english" : [
+			"Hello. I'm the Mayor of our town. Life is hard here.",
+			"If we all work together we can make this a better place to live.",
+			"Truth is... I have no idea what I'm doing.",
+			"You look like a smart guy, maybe you can help.",
+			"If you speak to me you can assign people to different projects",
+			"Projects will cost money, the chancellor handles that."
+		],
+		"engrish" : [
+			"Hello. My name is mayor.",
+			"Help me this town better.",
+			"I know nothing.",
+			"You are smart.",
+			"Press people to other construction.",
+			"Donate to make the construction into a new with chancellor."
+		]
+	},
+	"chancellor_howmuch" :{
+		"english" : "How much would you like to donate?",
+		"engrish" : "Money is of no object.",
+	},
+	"chancellor_intro" : {
+		"english" : [
+			"I'm the chancellor of this town. I manage the money.",
+			"It turns out I don't manage it very well at all.",
+			"Say, you wouldn't want to donate a little to our good town?",
+			"I promise, every single penny will go to good projects!"
+		],
+		"engrish" : [
+			"My name is Chancellor. I make good with the money.",
+			"The money is trouble.",
+			"You can donate your money to the town through me.",
+			"I'll spend your money correctly.",
+			"Press people to other construction.",
+			"Donate to make the construction into a new with my assistant."
+		]
+	},
+	"building_names" : {
+		"english" : {
+			"hall" : "Town hall",
+			"mine" : "Gold mine",
+			"lab" : "Wizard laboratory",
+			"hunter" : "Hunter's shack",
+			"mill" : "Wheat mill",
+			"library" : "Library",
+			"inn" : "Halfway house",
+			"farm" : "Farm",
+			"smith" : "Black smith",
+			"bank" : "Bank"
+		},
+		"engrish" : {
+			"hall" : "Town hall",
+			"mine" : "Mine",
+			"lab" : "Laboratory",
+			"hunter" : "Bounty",
+			"mill" : "Mill",
+			"library" : "Library",
+			"inn" : "Inn",
+			"farm" : "Farm",
+			"smith" : "Black smith",
+			"bank" : "Bank"
+		}
 	}
+	
 };
 function i18n(name,replace){
 	replace = replace || {};
@@ -6403,6 +6564,11 @@ function i18n(name,replace){
 	if( name in window._messages ){
 		if( window.language in window._messages[name] ){
 			out = window._messages[name][window.language];
+		}else {
+			for(var i in window._messages[name]){
+				out = window._messages[name][i];
+				break;
+			}
 		}
 	}
 	for(var i in replace){
@@ -7103,6 +7269,133 @@ MapDebug.prototype.render = function(g,c){
 	} catch (err) {}
 }
 MapDebug.prototype.idle = function(){}
+
+ /* platformer/mayor.js*/ 
+
+Mayor.prototype = new GameObject();
+Mayor.prototype.constructor = GameObject;
+function Mayor(x, y, sound){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	
+	this.addModule( mod_talk );
+	this.text = i18n("mayor_intro");
+	this.text_progress = 0;
+	this.cursor = 0;
+	this.peopleFree = 0;
+	
+	this.projects = {};
+	this.projectCount = 0;
+	this.fetchProjects();
+	
+	this.on("open", function(){
+		game.pause = true;
+		audio.play("pause")
+	});
+	this.on("close", function(){
+		game.pause = false;
+		audio.play("unpause")
+	});
+}
+
+Mayor.prototype.fetchProjects = function(){
+	this.projects = {};
+	this.projectCount = 0;
+	
+	if( window._world instanceof WorldMap ) {
+		this.peopleFree = window._world.town.people;
+		
+		for(var i in window._world.town.buildings ){
+			var building = window._world.town.buildings[i];
+			this.peopleFree -= building.people;
+			
+			if( building.complete && Mayor.ongoingProjects.indexOf(i) >= 0 ){
+				this.projects[i] = building;
+				this.projectCount++;
+			} else if ( !building.complete && building.unlocked ) {
+				this.projects[i] = building;
+				this.projectCount++;
+			}
+		}
+	}
+}
+
+Mayor.prototype.update = function(){
+	if( this.open ) {
+		game.pause = true;
+		if( Mayor.introduction ) {
+			if( input.state("fire") == 1 ) {
+				this.text_progress++;
+				if( this.text_progress >= this.text.length){
+					this.close();
+					Mayor.introduction = false;
+				}
+			}
+		} else { 
+			var selected = null;
+			var j = 0;
+			for(var i in this.projects ) {
+				if( j == this.cursor ) {
+					selected = this.projects[i]; break;
+				}
+				j++
+			}
+			if( input.state("pause") == 1 || input.state("jump") == 1 ) {
+				this.close();
+			}
+			if( input.state("up") == 1 ) {
+				this.cursor = Math.max(this.cursor-1, 0);
+				audio.play("cursor")
+			}
+			if( input.state("down") == 1 ) {
+				this.cursor = Math.min(this.cursor+1, this.projectCount-1);
+				audio.play("cursor")
+			}
+			if( selected ) {
+				if( input.state("left") == 1 && selected.people > 0) {
+					selected.people--;
+					this.peopleFree++;
+					audio.play("cursor")
+				}
+				if( input.state("right") == 1 && this.peopleFree > 0) {
+					selected.people++;
+					this.peopleFree--;
+					audio.play("cursor")
+				}
+			}
+		}
+	}
+}
+
+Mayor.prototype.postrender = function(g,c){
+	if( this.open ) {
+		if( Mayor.introduction ) {
+			renderDialog(g, this.text[this.text_progress]);
+		} else {
+			var left = game.resolution.x / 2 - 128;
+			boxArea(g, left-16, 8, 256+32, 224);
+			textArea(g, "$"+_world.town.money, left, 24);
+			textArea(g, "People: "+ this.peopleFree, left, 36);
+			
+			var j = 0;
+			for(var i in this.projects ) {
+				//List projects
+				var name = i18n("building_names")[i];
+				
+				textArea(g, name, left+16, j*12+56);
+				textArea(g, "People: "+ this.projects[i].people, left+160, j*12+56);
+				j++;
+			}
+			//Draw cursor
+			textArea(g, "@", left, this.cursor*12+56);
+		}
+	}
+}
+
+
+Mayor.ongoingProjects = ["farm", "mine", "smith"];
+Mayor.introduction = true;
 
  /* platformer/menu_item.js*/ 
 
@@ -10591,22 +10884,22 @@ function WorldMap(x, y){
 	
 	this.town = {
 		"people" : 5,
-		"engineers" : 0,
 		"money" : 0,
 		"science" : 0,
 		"buildings" : {
-			"hall" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"mine" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"lab" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"hunter" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"mill" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"library" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"inn" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"farm" : { "progress" : 1, "people" : 0, "engineers" : 0, "complete" : true },
-			"smith" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"bank" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false }
+			"hall" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : true },
+			"mine" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"lab" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"hunter" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"mill" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"library" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"inn" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : false },
+			"farm" : { "progress" : 1, "people" : 0, "unlocked" : true, "complete" : true },
+			"smith" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : false },
+			"bank" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false }
 		}
 	};
+	this.loadTown();
 	
 	this.animation = 0;
 	
@@ -10799,43 +11092,75 @@ WorldMap.prototype.passable = function(x,y){
 }
 WorldMap.prototype.idle = function(){}
 
+WorldMap.prototype.saveTown = function(){
+	localStorage.setItem("town_people", this.town.people);
+	localStorage.setItem("town_money", this.town.money);
+	localStorage.setItem("town_science", this.town.science);
+	for( var i in this.town.buildings ) {
+		var building = this.town.buildings[i];
+		localStorage.setItem("town_building_"+i+"_complete", building.complete);
+		localStorage.setItem("town_building_"+i+"_people", building.people);
+		localStorage.setItem("town_building_"+i+"_progress", building.progress);
+		localStorage.setItem("town_building_"+i+"_unlocked", building.unlocked);
+	}
+}
+
+WorldMap.prototype.loadTown = function(){
+	if( localStorage.hasOwnProperty("town_people") ) {
+		
+		this.town.people = localStorage.getItem("town_people")-0;
+		this.town.money = localStorage.getItem("town_money")-0;
+		this.town.science = localStorage.getItem("town_science")-0;
+		
+		for( var i in this.town.buildings ) {
+			if( localStorage.hasOwnProperty("town_building_"+i+"_complete") ) {
+				var building = this.town.buildings[i];
+				building.complete = localStorage.getItem("town_building_"+i+"_complete") == "true";
+				building.people = localStorage.getItem("town_building_"+i+"_people")-0;
+				building.progress = localStorage.getItem("town_building_"+i+"_progress")-0;
+				building.unlocked = localStorage.getItem("town_building_"+i+"_unlocked")  == "true";
+			}
+		}
+	}
+}
+
 WorldMap.prototype.worldTick = function(){
 	//Generate money
+	this.town.money += 10;
 	if( this.town.buildings.mine.complete ) {
 		this.town.money += this.town.buildings.mine.people * 10;
-		this.town.money += this.town.buildings.mine.engineers * 30;
 	}
 	
 	//Increase scene
 	var freePeople = this.town.people;
-	var freeEngineers = this.town.engineers;
 	var moneyNeeded = 0;
 	for(var i in this.town.buildings){
 		freePeople -= this.town.buildings[i].people;
-		freeEngineers -= this.town.buildings[i].engineers;
-		moneyNeeded += this.town.buildings[i].people + this.town.buildings[i].engineers;
+		moneyNeeded += this.town.buildings[i].people * 50;
 	}
 	this.town.science += freePeople;
-	this.town.science += freeEngineers * 4;
-	moneyNeeded *= 50;
-	
-	//Increase population
-	this.town.people += Math.floor( (this.town.buildings.farm.people + this.town.buildings.farm.engineers ) / 2 );
 	
 	var productionFactor = Math.min(this.town.money / moneyNeeded, 1.0);
 	this.town.money = Math.max(this.town.money - moneyNeeded, 0);
 	
+	//Increase population
+	this.town.people += Math.floor( 
+		productionFactor*this.town.buildings.farm.people * 0.5 
+	);
+	
 	//Increase production
 	for(var i in this.town.buildings){
-		var production = productionFactor * (this.town.buildings[i].people + this.town.buildings[i].engineers * 3);
-		this.town.buildings[i].progress += Math.floor( production );
+		var building = this.town.buildings[i];
+		var production = productionFactor * building.people * 3;
+		building.progress += Math.floor( production );
 		
-		if( this.town.buildings[i].progress > 30 ) {
+		if( !building.complete && building.progress > 30 ) {
 			this.town.buildings[i].complete = true;
 			this.town.buildings[i].people = 0;
-			this.town.buildings[i].engineers = 0;
 		}
 	}
+	
+	this.saveTown();
 }
 
 WorldMap.Shops = [

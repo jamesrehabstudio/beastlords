@@ -71,22 +71,22 @@ function WorldMap(x, y){
 	
 	this.town = {
 		"people" : 5,
-		"engineers" : 0,
 		"money" : 0,
 		"science" : 0,
 		"buildings" : {
-			"hall" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"mine" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"lab" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"hunter" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"mill" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"library" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"inn" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"farm" : { "progress" : 1, "people" : 0, "engineers" : 0, "complete" : true },
-			"smith" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false },
-			"bank" : { "progress" : 0, "people" : 0, "engineers" : 0, "complete" : false }
+			"hall" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : true },
+			"mine" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"lab" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"hunter" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"mill" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"library" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
+			"inn" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : false },
+			"farm" : { "progress" : 1, "people" : 0, "unlocked" : true, "complete" : true },
+			"smith" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : false },
+			"bank" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false }
 		}
 	};
+	this.loadTown();
 	
 	this.animation = 0;
 	
@@ -279,43 +279,75 @@ WorldMap.prototype.passable = function(x,y){
 }
 WorldMap.prototype.idle = function(){}
 
+WorldMap.prototype.saveTown = function(){
+	localStorage.setItem("town_people", this.town.people);
+	localStorage.setItem("town_money", this.town.money);
+	localStorage.setItem("town_science", this.town.science);
+	for( var i in this.town.buildings ) {
+		var building = this.town.buildings[i];
+		localStorage.setItem("town_building_"+i+"_complete", building.complete);
+		localStorage.setItem("town_building_"+i+"_people", building.people);
+		localStorage.setItem("town_building_"+i+"_progress", building.progress);
+		localStorage.setItem("town_building_"+i+"_unlocked", building.unlocked);
+	}
+}
+
+WorldMap.prototype.loadTown = function(){
+	if( localStorage.hasOwnProperty("town_people") ) {
+		
+		this.town.people = localStorage.getItem("town_people")-0;
+		this.town.money = localStorage.getItem("town_money")-0;
+		this.town.science = localStorage.getItem("town_science")-0;
+		
+		for( var i in this.town.buildings ) {
+			if( localStorage.hasOwnProperty("town_building_"+i+"_complete") ) {
+				var building = this.town.buildings[i];
+				building.complete = localStorage.getItem("town_building_"+i+"_complete") == "true";
+				building.people = localStorage.getItem("town_building_"+i+"_people")-0;
+				building.progress = localStorage.getItem("town_building_"+i+"_progress")-0;
+				building.unlocked = localStorage.getItem("town_building_"+i+"_unlocked")  == "true";
+			}
+		}
+	}
+}
+
 WorldMap.prototype.worldTick = function(){
 	//Generate money
+	this.town.money += 10;
 	if( this.town.buildings.mine.complete ) {
 		this.town.money += this.town.buildings.mine.people * 10;
-		this.town.money += this.town.buildings.mine.engineers * 30;
 	}
 	
 	//Increase scene
 	var freePeople = this.town.people;
-	var freeEngineers = this.town.engineers;
 	var moneyNeeded = 0;
 	for(var i in this.town.buildings){
 		freePeople -= this.town.buildings[i].people;
-		freeEngineers -= this.town.buildings[i].engineers;
-		moneyNeeded += this.town.buildings[i].people + this.town.buildings[i].engineers;
+		moneyNeeded += this.town.buildings[i].people * 50;
 	}
 	this.town.science += freePeople;
-	this.town.science += freeEngineers * 4;
-	moneyNeeded *= 50;
-	
-	//Increase population
-	this.town.people += Math.floor( (this.town.buildings.farm.people + this.town.buildings.farm.engineers ) / 2 );
 	
 	var productionFactor = Math.min(this.town.money / moneyNeeded, 1.0);
 	this.town.money = Math.max(this.town.money - moneyNeeded, 0);
 	
+	//Increase population
+	this.town.people += Math.floor( 
+		productionFactor*this.town.buildings.farm.people * 0.5 
+	);
+	
 	//Increase production
 	for(var i in this.town.buildings){
-		var production = productionFactor * (this.town.buildings[i].people + this.town.buildings[i].engineers * 3);
-		this.town.buildings[i].progress += Math.floor( production );
+		var building = this.town.buildings[i];
+		var production = productionFactor * building.people * 3;
+		building.progress += Math.floor( production );
 		
-		if( this.town.buildings[i].progress > 30 ) {
+		if( !building.complete && building.progress > 30 ) {
 			this.town.buildings[i].complete = true;
 			this.town.buildings[i].people = 0;
-			this.town.buildings[i].engineers = 0;
 		}
 	}
+	
+	this.saveTown();
 }
 
 WorldMap.Shops = [

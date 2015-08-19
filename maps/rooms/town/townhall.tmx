@@ -45,5 +45,7 @@
   <properties>
    <property name="tags" value="[&quot;hall&quot;]"/>
   </properties>
+  <object name="Mayor" gid="113" x="176" y="192"/>
+  <object name="Chancellor" gid="113" x="272" y="192"/>
  </objectgroup>
 </map>
