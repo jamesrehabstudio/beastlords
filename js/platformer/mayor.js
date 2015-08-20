@@ -1,9 +1,15 @@
 Mayor.prototype = new GameObject();
 Mayor.prototype.constructor = GameObject;
-function Mayor(x, y, sound){
+function Mayor(x, y){
 	this.constructor();
 	this.position.x = x;
-	this.position.y = y;
+	this.position.y = y+8;
+	this.sprite = sprites.characters2;
+	
+	this.frame = 0;
+	this.frame_row = 0;
+	
+	this.width = this.height = 48;
 	
 	this.addModule( mod_talk );
 	this.text = i18n("mayor_intro");
@@ -48,6 +54,8 @@ Mayor.prototype.fetchProjects = function(){
 }
 
 Mayor.prototype.update = function(){
+	this.frame = (this.frame + this.delta * 0.2) % 4;
+	
 	if( this.open ) {
 		game.pause = true;
 		if( Mayor.introduction ) {

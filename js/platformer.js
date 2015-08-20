@@ -2138,20 +2138,27 @@ Chancellor.prototype.constructor = GameObject;
 function Chancellor(x, y){
 	this.constructor();
 	this.position.x = x;
-	this.position.y = y;
-	this.sprite = sprites.characters;
+	this.position.y = y+8;
+	this.sprite = sprites.characters2;
+	
+	this.frame = 0;
+	this.frame_row = 0;
+	
+	this.width = this.height = 48;
 	
 	this.addModule( mod_talk );
 	this.text = i18n("chancellor_intro");
 	this.text_progress = 0;
 	
 	this.money = 0;
+	this.moneyMax = 0;
 	this.rate = 1;
 	this.pay_timer = 0;
 	this.rate_timer = 0;
 	
 	this.on("open", function(){
 		this.money = 0;
+		this.moneyMax = 0;
 		game.pause = true;
 		audio.play("pause");
 	});
@@ -2210,6 +2217,31 @@ Chancellor.prototype.update = function(){
 				this.rate = 1;
 			}
 		}
+		this.moneyMax = Math.max(this.moneyMax, this.money);
+	}
+	
+	//Animation
+	if( this.open ) {
+		if( this.money > 99 ) {
+			//Jump excitedly
+			this.frame = (this.frame + game.deltaUnscaled * 0.3) % 3;
+			this.frame_row = 2;
+		} else if( this.moneyMax > 99 ) {
+			//Look disappointed
+			this.frame = 4;
+			this.frame_row = 2;
+		} else {
+			if( this.money > 10 ) {
+				this.frame = 4;
+				this.frame_row = 1;
+			} else {
+				this.frame = 0;
+				this.frame_row = 1;				
+			}
+		}
+	} else {
+		this.frame = (this.frame + this.delta * 0.125) % 4;
+		this.frame_row = 1;
 	}
 }
 
@@ -7274,10 +7306,16 @@ MapDebug.prototype.idle = function(){}
 
 Mayor.prototype = new GameObject();
 Mayor.prototype.constructor = GameObject;
-function Mayor(x, y, sound){
+function Mayor(x, y){
 	this.constructor();
 	this.position.x = x;
-	this.position.y = y;
+	this.position.y = y+8;
+	this.sprite = sprites.characters2;
+	
+	this.frame = 0;
+	this.frame_row = 0;
+	
+	this.width = this.height = 48;
 	
 	this.addModule( mod_talk );
 	this.text = i18n("mayor_intro");
@@ -7322,6 +7360,8 @@ Mayor.prototype.fetchProjects = function(){
 }
 
 Mayor.prototype.update = function(){
+	this.frame = (this.frame + this.delta * 0.2) % 4;
+	
 	if( this.open ) {
 		game.pause = true;
 		if( Mayor.introduction ) {
