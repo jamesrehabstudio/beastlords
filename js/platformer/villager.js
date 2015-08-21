@@ -9,6 +9,7 @@ function Villager(x,y,t,o){
 	this.start_x = x;
 	this.sprite = sprites.characters;
 	this.town = t || _world.towns[1];
+	this.builder = false;
 	
 	o = o || {};
 	
@@ -24,8 +25,20 @@ function Villager(x,y,t,o){
 	
 	this.message = m.message;
 	try{
-		this.path = 1*(o.path || this.path);
-		this.message = JSON.parse(o.message);
+		this.builder = "builder" in o;
+		if( "path" in o ){
+			this.path = 1 * o.path;
+		}
+		if( "message" in o ){
+			this.message = i18n(o.message);
+			if(!(this.message instanceof Array)){
+				this.message = [this.message];
+			}
+		}
+		if( this.builder ) {
+			this.sprite = sprites.characters2;
+			this.path = 2;
+		}
 	} catch(err){}
 
 	this.base_frame = 0;
@@ -55,7 +68,11 @@ Villager.prototype.update = function(){
 			game.pause = false;
 		}
 	} else {
-		if( this.path == 0 ){
+		if( this.builder ) {
+			this.frame = (this.frame + this.delta * 0.125) % 3;
+			this.frame_row = 3;
+			this.direction = 0;
+		} else if( this.path == 0 ){
 			if(this.position.x-this.start_x < -64) this.direction = 1;
 			if(this.position.x-this.start_x > 64) this.direction = -1;
 		} else if( this.path == 1) {

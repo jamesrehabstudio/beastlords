@@ -55,7 +55,7 @@ Chancellor.prototype.update = function(){
 			} else if ( input.state("up") > 0 ) {
 				if( this.pay_timer <= 0 || input.state("up") == 1) {
 					this.money = Math.min( this.money + this.rate, _player.money);
-					this.pay_timer = Game.DELTASECOND * 0.125;
+					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
 					audio.play("coin");
 				}
 				if( this.rate_timer <= 0 ) {
@@ -67,7 +67,7 @@ Chancellor.prototype.update = function(){
 			} else if ( input.state("down") > 0 ) {
 				if( this.pay_timer <= 0 || input.state("down") == 1 ) {
 					this.money = Math.max( this.money - this.rate, 0);
-					this.pay_timer = Game.DELTASECOND * 0.125;
+					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
 					audio.play("coin");
 				}
 				if( this.rate_timer <= 0 ) {

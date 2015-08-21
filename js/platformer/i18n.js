@@ -62,6 +62,18 @@ window._messages = {
 			"Donate to make the construction into a new with my assistant."
 		]
 	},
+	"builder0" : {
+		"english" : "We're just just gettin' started on this one, buddy.",
+		"engrish" : "Play the game. Please note, death is permanent."
+	},
+	"builder1" : {
+		"english" : "It's lookin' good. We'll be done in no time.",
+		"engrish" : "The structure is half way complete."
+	},
+	"builder2" : {
+		"english" : "We're nearly done building this one, buddy.",
+		"engrish" : "We will complete this structure in short time."
+	},
 	"building_names" : {
 		"english" : {
 			"hall" : "Town hall",

@@ -323,7 +323,7 @@ WorldMap.prototype.worldTick = function(){
 	var moneyNeeded = 0;
 	for(var i in this.town.buildings){
 		freePeople -= this.town.buildings[i].people;
-		moneyNeeded += this.town.buildings[i].people * 50;
+		moneyNeeded += this.town.buildings[i].people * 20;
 	}
 	this.town.science += freePeople;
 	

@@ -281,16 +281,21 @@ DataManager.prototype.randomTown = function(g, town){
 	
 	rooms.push( this.townFromTag( "exit_w" ) );
 	for( i in _world.town.buildings ){
-		if( _world.town.buildings[i].complete ){
+		var building = _world.town.buildings[i];
+		if( building.complete ){
 			var room_id = this.townFromTag( i );
 			if( room_id >= 0 ) {
 				var room = _map_town[room_id];
 				rooms[pos] = room_id;
 				pos += room.width;
 			}
+		} else if ( building.progress > 0 ) {
+			var wip = "wip" + Math.floor(Math.min( building.progress / 10, 2));
+			rooms[pos] = this.townFromTag( wip );
+			pos += 2;
 		}
 	}
-	rooms.push( this.townFromTag( "exit_e" ) );
+	rooms[pos] = this.townFromTag( "exit_e" );
 	pos++;
 	
 	g.bounds = g.tileDimension = new Line(0,0,pos*8,15);

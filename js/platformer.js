@@ -2190,7 +2190,7 @@ Chancellor.prototype.update = function(){
 			} else if ( input.state("up") > 0 ) {
 				if( this.pay_timer <= 0 || input.state("up") == 1) {
 					this.money = Math.min( this.money + this.rate, _player.money);
-					this.pay_timer = Game.DELTASECOND * 0.125;
+					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
 					audio.play("coin");
 				}
 				if( this.rate_timer <= 0 ) {
@@ -2202,7 +2202,7 @@ Chancellor.prototype.update = function(){
 			} else if ( input.state("down") > 0 ) {
 				if( this.pay_timer <= 0 || input.state("down") == 1 ) {
 					this.money = Math.max( this.money - this.rate, 0);
-					this.pay_timer = Game.DELTASECOND * 0.125;
+					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
 					audio.play("coin");
 				}
 				if( this.rate_timer <= 0 ) {
@@ -6562,6 +6562,18 @@ window._messages = {
 			"Donate to make the construction into a new with my assistant."
 		]
 	},
+	"builder0" : {
+		"english" : "We're just just gettin' started on this one, buddy.",
+		"engrish" : "Play the game. Please note, death is permanent."
+	},
+	"builder1" : {
+		"english" : "It's lookin' good. We'll be done in no time.",
+		"engrish" : "The structure is half way complete."
+	},
+	"builder2" : {
+		"english" : "We're nearly done building this one, buddy.",
+		"engrish" : "We will complete this structure in short time."
+	},
 	"building_names" : {
 		"english" : {
 			"hall" : "Town hall",
@@ -7434,7 +7446,7 @@ Mayor.prototype.postrender = function(g,c){
 }
 
 
-Mayor.ongoingProjects = ["farm", "mine", "smith"];
+Mayor.ongoingProjects = ["farm", "mine"];
 Mayor.introduction = true;
 
  /* platformer/menu_item.js*/ 
@@ -10554,6 +10566,7 @@ function Villager(x,y,t,o){
 	this.start_x = x;
 	this.sprite = sprites.characters;
 	this.town = t || _world.towns[1];
+	this.builder = false;
 	
 	o = o || {};
 	
@@ -10569,8 +10582,20 @@ function Villager(x,y,t,o){
 	
 	this.message = m.message;
 	try{
-		this.path = 1*(o.path || this.path);
-		this.message = JSON.parse(o.message);
+		this.builder = "builder" in o;
+		if( "path" in o ){
+			this.path = 1 * o.path;
+		}
+		if( "message" in o ){
+			this.message = i18n(o.message);
+			if(!(this.message instanceof Array)){
+				this.message = [this.message];
+			}
+		}
+		if( this.builder ) {
+			this.sprite = sprites.characters2;
+			this.path = 2;
+		}
 	} catch(err){}
 
 	this.base_frame = 0;
@@ -10600,7 +10625,11 @@ Villager.prototype.update = function(){
 			game.pause = false;
 		}
 	} else {
-		if( this.path == 0 ){
+		if( this.builder ) {
+			this.frame = (this.frame + this.delta * 0.125) % 3;
+			this.frame_row = 3;
+			this.direction = 0;
+		} else if( this.path == 0 ){
 			if(this.position.x-this.start_x < -64) this.direction = 1;
 			if(this.position.x-this.start_x > 64) this.direction = -1;
 		} else if( this.path == 1) {
@@ -11176,7 +11205,7 @@ WorldMap.prototype.worldTick = function(){
 	var moneyNeeded = 0;
 	for(var i in this.town.buildings){
 		freePeople -= this.town.buildings[i].people;
-		moneyNeeded += this.town.buildings[i].people * 50;
+		moneyNeeded += this.town.buildings[i].people * 20;
 	}
 	this.town.science += freePeople;
 	
@@ -11470,6 +11499,11 @@ function SceneEnding(x,y){
 	this.animation = {
 		0.0 : [{"id":0,"position":new Point(104,192),"render":function(g,p,c){}}]
 	};*/
+	
+	if( window._world instanceof WorldMap ){
+		window._world.town.money += _player.money;
+		window._world.worldTick();
+	}
 	
 	ga("send","event","finished",_player.level);
 	

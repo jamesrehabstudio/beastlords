@@ -128,5 +128,5 @@ Mayor.prototype.postrender = function(g,c){
 }
 
 
-Mayor.ongoingProjects = ["farm", "mine", "smith"];
+Mayor.ongoingProjects = ["farm", "mine"];
 Mayor.introduction = true;
