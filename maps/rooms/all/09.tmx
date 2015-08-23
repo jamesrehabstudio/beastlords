@@ -72,7 +72,7 @@
     <property name="tags" value="minor"/>
    </properties>
   </object>
-  <object name="WaystoneChest" gid="232" x="368" y="112">
+  <object name="WaystoneChest" gid="232" x="240" y="208">
    <properties>
     <property name="min_temple" value="3"/>
     <property name="rarity" value="0.1"/>
@@ -108,6 +108,11 @@
    <properties>
     <property name="rarity" value="0.3"/>
     <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="368" y="128">
+   <properties>
+    <property name="rarity" value="0.3"/>
    </properties>
   </object>
  </objectgroup>

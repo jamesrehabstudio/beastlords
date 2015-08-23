@@ -213,7 +213,9 @@ PauseMenu.prototype.render = function(g,c){
 		if( _player.life <= 0 ) {
 			g.color = [0,0,0,1.0];
 			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
-			sprites.title.render(g,new Point(xpos,0), 0,3);
+			
+			var gamex = game.resolution.x * 0.5 - 427 * 0.5;
+			sprites.title.render(g,new Point(gamex,0), 0,3);
 			
 			boxArea(g,xpos+68,168,120,40);
 			textArea(g,i18n("press_start"),xpos+84,184);
@@ -243,25 +245,6 @@ PauseMenu.prototype.render = function(g,c){
 			
 			//Draw cursor 84
 			textArea(g,"@",leftx+12, 52 + this.cursor * 32 );
-			/*
-			for(var i=0; i < _player.equipment.length; i++ ) {
-				var _y = 40 + i * 24;
-				_player.equipment[i].position.x = 0;
-				_player.equipment[i].position.y = 0;
-				_player.equipment[i].render( g, new Point(-96, -_y));
-				
-				if( "bonus_att" in _player.equipment[i] ) textArea(g,"\v"+_player.equipment[i].bonus_att,112,_y-4);
-				if( "bonus_def" in _player.equipment[i] ) textArea(g,"\b"+_player.equipment[i].bonus_def,144,_y-4);
-				
-				if( _player.equip_sword == _player.equipment[i] || _player.equip_shield == _player.equipment[i] ) {
-					g.fillStyle = "#007800";
-					g.scaleFillRect(88,_y,8,8);
-					textArea(g,"E",88, _y );
-				}
-			}
-			//Draw cursor
-			textArea(g,"@",80, 36 + this.cursor * 24 );
-			*/
 		} else if ( this.page == 1 ) {
 			//Map
 			leftx = game.resolution.x*0.5 - 224*0.5;

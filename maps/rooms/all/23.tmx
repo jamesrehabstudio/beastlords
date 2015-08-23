@@ -102,5 +102,20 @@
     <property name="size" value="1"/>
    </properties>
   </object>
+  <object name="Statue" gid="232" x="104" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="296" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="392" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

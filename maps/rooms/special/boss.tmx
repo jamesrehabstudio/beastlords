@@ -49,5 +49,10 @@
   <object name="Boss" gid="1" x="128" y="160"/>
   <object name="Lamp" gid="1" x="48" y="160"/>
   <object name="Lamp" gid="1" x="192" y="160"/>
+  <object name="Statue" gid="232" x="120" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

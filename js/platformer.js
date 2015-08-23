@@ -242,7 +242,6 @@ function Background(x,y){
 	this.zIndex = -999;
 	
 	this.time = 0;
-	this.decorations = new Array();
 	
 	this.lightbeamLoop = 16;
 	this.dustSpeed = 0.25;
@@ -258,27 +257,11 @@ function Background(x,y){
 	}
 	
 	this.lightBuffer = game.g.createF();
-	
-	if( dataManager.slices.peek() ){
-		//create statues
-		var data = dataManager.slices.peek().data;
-		for(var i in data){
-			var addStatue = false;
-			for(var j=0; j < 2; j++){
-				var pos = MapSlice.idToLoc(i);
-				pos.x = pos.x * 256 + 128; 
-				pos.y = pos.y * 240 + 176 - (j * 16);
-				if( Background.areaFree(pos, game) ) {
-					j = 9999;
-					addStatue = true;
-				}
-			}
-			if( addStatue ) {
-				this.decorations.push( [ pos, 0, 0] );
-			}
-		}
-	}
 }
+Background.prototype.render = function(gl,c){
+	this.time += this.delta;
+}
+
 Background.prototype.postrender = function(gl,c){
 	this.renderDust(gl,c);
 	
@@ -341,18 +324,7 @@ Background.prototype.postrender = function(gl,c){
 	}
 	Background.lights = new Array();
 }
-Background.prototype.render = function(gl,c){
-	this.time += this.delta;
-	
-	
-	for(var i=0; i < this.decorations.length; i++){
-		sprites.statues.render(gl,
-			this.decorations[i][0].subtract(c),
-			this.decorations[i][1],
-			this.decorations[i][2]
-		);
-	}	
-}
+
 Background.prototype.renderLightbeam = function(g,p,r,a){
 	g.blendEquation( g.FUNC_ADD );
 	g.blendFunc( g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );
@@ -2400,6 +2372,7 @@ function Detritus(x, y, d, ops){
 	
 	this.position.x = x;
 	this.position.y = y;
+	this.zIndex = -2;
 	
 	ops = ops || {};
 	
@@ -2430,6 +2403,25 @@ function Detritus(x, y, d, ops){
 			this.position.x += 8;
 		}
 	}
+}
+
+Statue.prototype = new GameObject();
+Statue.prototype.constructor = GameObject;
+function Statue(x, y, d, ops){
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.zIndex = -3;
+	
+	ops = ops || {};
+	var tilesetNumber = game.tileSprite.name.match(/\d+/)-0;
+	
+	this.sprite = sprites.statues;
+	this.frame = Math.floor( Math.random() * 2 );
+	this.frame_row = tilesetNumber-1;
+	
+	this.interactive = false;
 }
 
  /* platformer/door.js*/ 
@@ -2911,7 +2903,7 @@ function Amon(x,y){
 	this.height = 16;
 	
 	this.speed = 2.5;
-	this.sprite = sprites.amon;
+	this.sprite = sprites.lilghost;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -2948,7 +2940,8 @@ function Amon(x,y){
 	this.calculateXP();
 }
 Amon.prototype.update = function(){
-	this.frame = (this.frame + this.delta * 0.2) % 2;
+	this.frame = ( this.frame + this.delta * 0.2 ) % 3;
+	
 	if( this.stun < 0 ) {
 		if( Math.abs( this.force.x ) > 0.1 ) {
 			this.force.x = this.speed * (this.force.x > 0 ? 1 : -1);
@@ -4531,7 +4524,7 @@ function Ghoul(x,y){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 20;
-	this.height = 48;
+	this.height = 30;
 	this.sprite = sprites.ghoul;
 	this.speed = 0.1;
 	
@@ -4601,7 +4594,7 @@ Ghoul.prototype.update = function(){
 		this.states.upwards -= this.delta;
 	} 
 	
-	this.frame = (this.frame + (this.delta * 0.2)) % 3;
+	this.frame = (this.frame + (this.delta * 0.2)) % 4;
 	this.frame_row = 0;
 }
 
@@ -5042,6 +5035,92 @@ Knight.prototype.render = function(g,c){
 	}
 	//Body
 	GameObject.prototype.render.apply(this, [g,c]);
+}
+
+ /* platformer/enemy_laughing.js*/ 
+
+Laughing.prototype = new GameObject();
+Laughing.prototype.constructor = GameObject;
+function Laughing(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.collideDamage = dataManager.damage(2);
+	this.damage = dataManager.damage(2);
+	this.team = 0;
+	this.sprite = sprites.laughing;
+	
+	this.addModule(mod_rigidbody);
+	this.addModule(mod_combat);
+	
+	this.speed = 0.225;
+	this.frame = 0;
+	this.frame_row = 0;
+	this.life = dataManager.life(0);
+	this.gravity = 0.0;
+	this.friction = 0.08;
+	
+	this.cooldown = Game.DELTASECOND * 3;
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(){
+		audio.play("hurt");
+	});
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player ) {
+			
+		} else if ( obj.hasModule(mod_combat) ) {
+			var dif = this.position.subtract( obj.position ).normalize();
+			this.force.x += dif.x * this.speed * this.delta;
+			this.force.y += dif.y * this.speed * this.delta;
+		}
+	});
+	this.on("death", function(){
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		
+		Item.drop(this);
+		this.destroy();
+	});
+	
+	SpecialEnemy(this);
+	this.calculateXP();
+}
+Laughing.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if( this.life > 0 && this.stun <= 0 ) {
+		this.flip = dir.x > 0;
+		
+		var gotopos = this.position;
+		
+		if( this.cooldown <= 0 ) {
+			gotopos = new Point(
+				_player.position.x,
+				_player.position.y
+			);
+			if( this.cooldown < -Game.DELTASECOND * 2){
+				this.cooldown = Game.DELTASECOND * 3
+			}
+		} else {
+			//Hover around the player
+			gotopos = new Point(
+				_player.position.x + (this.flip?1:-1) * 96,
+				_player.position.y - 56
+			);
+			this.strike( new Line(-8,-4,8,4) );
+		}
+		
+		this.cooldown -= this.delta;
+		var direction = gotopos.subtract(this.position).normalize();
+		this.force.x += direction.x * this.delta * this.speed;
+		this.force.y += direction.y * this.delta * this.speed;
+	}
+	
+	//Animation
+	this.frame = (this.frame + this.delta * 0.2 ) % 3;
 }
 
  /* platformer/enemy_lilghost.js*/ 
@@ -5727,6 +5806,17 @@ function Shooter(x,y){
 	this.death_time = Game.DELTASECOND;
 	this.max_distance = 360;
 	
+	this.aim_direction = 0;
+	
+	this.parts = {
+		"body" : new Point(),
+		"wing" : new Point(-16,0),
+		"neck1" : new Point(),
+		"neck2" : new Point(),
+		"neck3" : new Point(),
+		"head" : new Point(32,0)
+	};
+	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
@@ -5747,7 +5837,6 @@ Shooter.prototype.update = function(){
 	
 	if( Math.abs( dir.x ) < 128 ) {
 		this.flip = dir.x > 0;
-		this.frame = ( this.frame + this.delta * 0.1 ) % 2;
 		if( Math.abs( dir.x ) < 112 ) {
 			if( this.flip ) {
 				//Move to the right
@@ -5770,25 +5859,63 @@ Shooter.prototype.update = function(){
 		
 		//Attack
 		if( this.cooldown <= 0 ) {
-			this.cooldown = Game.DELTASECOND * 0.6;
-			var shooter_direction = Math.floor( Math.random() * this.bullet_y_pos.length);
-			var y = this.bullet_y_pos[ shooter_direction ];
-			this.frame_row = shooter_direction;
+			//Fire
 			var direction = this.flip ? 1 : -1;
+			this.cooldown = Game.DELTASECOND * 0.6;
+			var y = this.bullet_y_pos[ this.aim_direction ];
 			var bullet = new Bullet(
 				this.position.x,
 				this.position.y + y, 
 				-direction
 			);
 			bullet.damage = this.damage;
-			//bullet.speed = 0.8;
 			game.addObject( bullet );
+			
+			//Choose next direction
+			this.aim_direction = Math.floor( Math.random() * this.bullet_y_pos.length);
 		}
 		this.cooldown -= this.delta;
 	} else if ( Math.abs( this.position.x - this.start_x ) < this.max_distance ){
 		this.flip = dir.x > 0;
 		var direction = this.flip ? -1 : 1;
 		this.force.x += this.delta * this.speed * direction;
+	}
+	
+	//Animation
+	this.frame = (this.frame + this.delta * 0.1) % 3;
+	
+	//Move head position
+	var head_y = this.bullet_y_pos[ this.aim_direction ];
+	this.parts.head.y = Math.lerp(this.parts.head.y, head_y, this.delta * 0.1);
+	var stem = new Point(8,-16);
+	this.parts.neck1 = Point.lerp(stem, this.parts.head, 0.666);
+	this.parts.neck2 = Point.lerp(stem, this.parts.neck1, 0.666);
+	this.parts.neck3 = Point.lerp(stem, this.parts.neck2, 0.5);
+}
+Shooter.prototype.render = function(g,c){
+	for(var i in this.parts ) {
+		var pos = new Point(this.parts[i].x, this.parts[i].y);
+		var f = 0; var fr = 0;
+		if( i == "head" ) {
+			f = 0; fr = 0;
+		} else if ( i == "body" ){
+			f = 0; fr = 1;
+		} else if ( i == "wing" ){
+			f = this.frame; fr = 2;
+			if( f < 1 ) { 
+				pos.y -= 48;
+			} else if( f < 2 ) { 
+				pos.y -= 8;
+			} else {
+				pos.y -= 32;
+			}
+		} else {
+			f = 2; fr = 0;
+		}
+		if( this.flip ){
+			pos.x *= -1;
+		}
+		this.sprite.render(g,this.position.add(pos).subtract(c),f,fr, this.flip, this.filter);
 	}
 }
 Shooter.prototype.idle = function(){}
@@ -6401,15 +6528,19 @@ function Healer(x,y,n,options){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.retailers;
+	this.sprite = sprites.characters;
 	this.width = 16;
 	this.height = 32;
 	this.zIndex = 5;
 	this.life = 1;
 	
-	this.frame = 0;
-	this.frame_row = 1;
+	this.frame = 3;
+	this.frame_row = 3;
+	this.frame_start = 3;
 	
+	//Type 0: Mana Recovery
+	//Type 1: Life Recovery
+	//Type 2: Item upgrade
 	this.type = 0;
 	this.price = 0;
 	this.cursor = 0;
@@ -6481,7 +6612,7 @@ Healer.prototype.update = function(g,c){
 			game.pause = false;
 		}
 	}
-	this.frame = this.open > 0 ? 1 : 0;
+	this.frame = Math.max((this.frame + this.delta * 0.1) % this.frame_start+3, this.frame_start);
 }
 Healer.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {
@@ -7794,7 +7925,9 @@ PauseMenu.prototype.render = function(g,c){
 		if( _player.life <= 0 ) {
 			g.color = [0,0,0,1.0];
 			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
-			sprites.title.render(g,new Point(xpos,0), 0,3);
+			
+			var gamex = game.resolution.x * 0.5 - 427 * 0.5;
+			sprites.title.render(g,new Point(gamex,0), 0,3);
 			
 			boxArea(g,xpos+68,168,120,40);
 			textArea(g,i18n("press_start"),xpos+84,184);
@@ -7824,25 +7957,6 @@ PauseMenu.prototype.render = function(g,c){
 			
 			//Draw cursor 84
 			textArea(g,"@",leftx+12, 52 + this.cursor * 32 );
-			/*
-			for(var i=0; i < _player.equipment.length; i++ ) {
-				var _y = 40 + i * 24;
-				_player.equipment[i].position.x = 0;
-				_player.equipment[i].position.y = 0;
-				_player.equipment[i].render( g, new Point(-96, -_y));
-				
-				if( "bonus_att" in _player.equipment[i] ) textArea(g,"\v"+_player.equipment[i].bonus_att,112,_y-4);
-				if( "bonus_def" in _player.equipment[i] ) textArea(g,"\b"+_player.equipment[i].bonus_def,144,_y-4);
-				
-				if( _player.equip_sword == _player.equipment[i] || _player.equip_shield == _player.equipment[i] ) {
-					g.fillStyle = "#007800";
-					g.scaleFillRect(88,_y,8,8);
-					textArea(g,"E",88, _y );
-				}
-			}
-			//Draw cursor
-			textArea(g,"@",80, 36 + this.cursor * 24 );
-			*/
 		} else if ( this.page == 1 ) {
 			//Map
 			leftx = game.resolution.x*0.5 - 224*0.5;
@@ -8036,7 +8150,7 @@ TitleMenu.prototype.update = function(){
 }
 
 TitleMenu.prototype.render = function(g,c){
-	var xpos = (game.resolution.x - 256) * 0.5;
+	var xpos = (game.resolution.x - 427) * 0.5;
 	
 	if( this.loading ){ 
 		//g.font = (30*pixel_scale)+"px monospace";
@@ -8073,26 +8187,33 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),0,1);
 		this.sprite.render(g,new Point(xpos,Math.lerp( this.title_position, 0, pan)),0,0);
 		
-		textArea(g,"Copyright Pogames.uk 2015",xpos+8,4);
-		textArea(g,"Version "+window._version,xpos+8,228);
+		textArea(g,"Copyright Pogames.uk 2015",8,4);
+		textArea(g,"Version "+window._version,8,228);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
-				boxArea(g,xpos+32,32,192,88);
-				textArea(g,i18n(this.options[this.cursor]),xpos+48,48,160);
-				boxArea(g,xpos+68,146,120,56);
-				textArea(g,i18n("introduction"),xpos+92,162);
-				if( this.playedIntro ) textArea(g,i18n("new_game"),xpos+92,178);
-				sprites.text.render(g, new Point(xpos+80,162+(16*this.cursor)),15,5);
+				var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
+				boxArea(g,x_pos,32,192,88);
+				textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+				
+				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+				boxArea(g,x_pos,146,120,56);
+				textArea(g,i18n("introduction"),x_pos+24,162);
+				if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
+				
+				sprites.text.render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
 			} else { 
-				boxArea(g,xpos+68,168,120,40);
-				textArea(g,i18n("press_start"),xpos+84,184);
+				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+				boxArea(g,x_pos,168,120,40);
+				textArea(g,i18n("press_start"),x_pos+16,184);
 			}
 		}
 		
 		if( this.progress >= 24 ) {
-			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
-			textBox(g,i18n("intro_text"),xpos,y_pos,256,240);
+			var y_pos = Math.lerp(240,16, Math.min( (this.progress-24)/8, 1) );
+			var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
+			boxArea(g,0,y_pos-16,game.resolution.x,game.resolution.y);
+			textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
 		}
 	}
 }
@@ -10408,6 +10529,8 @@ Spawn.enemies = {
 		{"tags":["minor","ledge"],"difficulty":[0,99],"enemies":["Axedog"]},
 		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
 		{"tags":["minor","flying"],"difficulty":[0,3],"enemies":["Amon"]},
+		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing"]},
+		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing","Laughing","Laughing"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
 		

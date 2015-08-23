@@ -17,7 +17,6 @@ function Background(x,y){
 	this.zIndex = -999;
 	
 	this.time = 0;
-	this.decorations = new Array();
 	
 	this.lightbeamLoop = 16;
 	this.dustSpeed = 0.25;
@@ -33,27 +32,11 @@ function Background(x,y){
 	}
 	
 	this.lightBuffer = game.g.createF();
-	
-	if( dataManager.slices.peek() ){
-		//create statues
-		var data = dataManager.slices.peek().data;
-		for(var i in data){
-			var addStatue = false;
-			for(var j=0; j < 2; j++){
-				var pos = MapSlice.idToLoc(i);
-				pos.x = pos.x * 256 + 128; 
-				pos.y = pos.y * 240 + 176 - (j * 16);
-				if( Background.areaFree(pos, game) ) {
-					j = 9999;
-					addStatue = true;
-				}
-			}
-			if( addStatue ) {
-				this.decorations.push( [ pos, 0, 0] );
-			}
-		}
-	}
 }
+Background.prototype.render = function(gl,c){
+	this.time += this.delta;
+}
+
 Background.prototype.postrender = function(gl,c){
 	this.renderDust(gl,c);
 	
@@ -116,18 +99,7 @@ Background.prototype.postrender = function(gl,c){
 	}
 	Background.lights = new Array();
 }
-Background.prototype.render = function(gl,c){
-	this.time += this.delta;
-	
-	
-	for(var i=0; i < this.decorations.length; i++){
-		sprites.statues.render(gl,
-			this.decorations[i][0].subtract(c),
-			this.decorations[i][1],
-			this.decorations[i][2]
-		);
-	}	
-}
+
 Background.prototype.renderLightbeam = function(g,p,r,a){
 	g.blendEquation( g.FUNC_ADD );
 	g.blendFunc( g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );

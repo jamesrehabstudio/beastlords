@@ -4,15 +4,19 @@ function Healer(x,y,n,options){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.retailers;
+	this.sprite = sprites.characters;
 	this.width = 16;
 	this.height = 32;
 	this.zIndex = 5;
 	this.life = 1;
 	
-	this.frame = 0;
-	this.frame_row = 1;
+	this.frame = 3;
+	this.frame_row = 3;
+	this.frame_start = 3;
 	
+	//Type 0: Mana Recovery
+	//Type 1: Life Recovery
+	//Type 2: Item upgrade
 	this.type = 0;
 	this.price = 0;
 	this.cursor = 0;
@@ -84,7 +88,7 @@ Healer.prototype.update = function(g,c){
 			game.pause = false;
 		}
 	}
-	this.frame = this.open > 0 ? 1 : 0;
+	this.frame = Math.max((this.frame + this.delta * 0.1) % this.frame_start+3, this.frame_start);
 }
 Healer.prototype.postrender = function(g,c){	
 	if( this.open > 0 ) {

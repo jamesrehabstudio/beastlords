@@ -8,7 +8,7 @@ function Amon(x,y){
 	this.height = 16;
 	
 	this.speed = 2.5;
-	this.sprite = sprites.amon;
+	this.sprite = sprites.lilghost;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -45,7 +45,8 @@ function Amon(x,y){
 	this.calculateXP();
 }
 Amon.prototype.update = function(){
-	this.frame = (this.frame + this.delta * 0.2) % 2;
+	this.frame = ( this.frame + this.delta * 0.2 ) % 3;
+	
 	if( this.stun < 0 ) {
 		if( Math.abs( this.force.x ) > 0.1 ) {
 			this.force.x = this.speed * (this.force.x > 0 ? 1 : -1);

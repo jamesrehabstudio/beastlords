@@ -78,7 +78,7 @@ TitleMenu.prototype.update = function(){
 }
 
 TitleMenu.prototype.render = function(g,c){
-	var xpos = (game.resolution.x - 256) * 0.5;
+	var xpos = (game.resolution.x - 427) * 0.5;
 	
 	if( this.loading ){ 
 		//g.font = (30*pixel_scale)+"px monospace";
@@ -115,26 +115,33 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),0,1);
 		this.sprite.render(g,new Point(xpos,Math.lerp( this.title_position, 0, pan)),0,0);
 		
-		textArea(g,"Copyright Pogames.uk 2015",xpos+8,4);
-		textArea(g,"Version "+window._version,xpos+8,228);
+		textArea(g,"Copyright Pogames.uk 2015",8,4);
+		textArea(g,"Version "+window._version,8,228);
 		
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			if( this.start_options ) {
-				boxArea(g,xpos+32,32,192,88);
-				textArea(g,i18n(this.options[this.cursor]),xpos+48,48,160);
-				boxArea(g,xpos+68,146,120,56);
-				textArea(g,i18n("introduction"),xpos+92,162);
-				if( this.playedIntro ) textArea(g,i18n("new_game"),xpos+92,178);
-				sprites.text.render(g, new Point(xpos+80,162+(16*this.cursor)),15,5);
+				var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
+				boxArea(g,x_pos,32,192,88);
+				textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+				
+				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+				boxArea(g,x_pos,146,120,56);
+				textArea(g,i18n("introduction"),x_pos+24,162);
+				if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
+				
+				sprites.text.render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
 			} else { 
-				boxArea(g,xpos+68,168,120,40);
-				textArea(g,i18n("press_start"),xpos+84,184);
+				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+				boxArea(g,x_pos,168,120,40);
+				textArea(g,i18n("press_start"),x_pos+16,184);
 			}
 		}
 		
 		if( this.progress >= 24 ) {
-			var y_pos = Math.lerp(240,0, Math.min( (this.progress-24)/8, 1) );
-			textBox(g,i18n("intro_text"),xpos,y_pos,256,240);
+			var y_pos = Math.lerp(240,16, Math.min( (this.progress-24)/8, 1) );
+			var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
+			boxArea(g,0,y_pos-16,game.resolution.x,game.resolution.y);
+			textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
 		}
 	}
 }

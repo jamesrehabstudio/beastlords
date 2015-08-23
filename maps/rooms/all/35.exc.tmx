@@ -172,5 +172,20 @@
     <property name="rarity" value="0.5"/>
    </properties>
   </object>
+  <object name="Statue" gid="232" x="264" y="656">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="48" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="448" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

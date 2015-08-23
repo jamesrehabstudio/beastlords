@@ -101,6 +101,8 @@ Spawn.enemies = {
 		{"tags":["minor","ledge"],"difficulty":[0,99],"enemies":["Axedog"]},
 		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
 		{"tags":["minor","flying"],"difficulty":[0,3],"enemies":["Amon"]},
+		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing"]},
+		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing","Laughing","Laughing"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
 		

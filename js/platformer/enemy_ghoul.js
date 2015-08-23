@@ -5,7 +5,7 @@ function Ghoul(x,y){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 20;
-	this.height = 48;
+	this.height = 30;
 	this.sprite = sprites.ghoul;
 	this.speed = 0.1;
 	
@@ -75,6 +75,6 @@ Ghoul.prototype.update = function(){
 		this.states.upwards -= this.delta;
 	} 
 	
-	this.frame = (this.frame + (this.delta * 0.2)) % 3;
+	this.frame = (this.frame + (this.delta * 0.2)) % 4;
 	this.frame_row = 0;
 }

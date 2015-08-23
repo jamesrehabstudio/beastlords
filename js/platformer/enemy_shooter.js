@@ -27,6 +27,17 @@ function Shooter(x,y){
 	this.death_time = Game.DELTASECOND;
 	this.max_distance = 360;
 	
+	this.aim_direction = 0;
+	
+	this.parts = {
+		"body" : new Point(),
+		"wing" : new Point(-16,0),
+		"neck1" : new Point(),
+		"neck2" : new Point(),
+		"neck3" : new Point(),
+		"head" : new Point(32,0)
+	};
+	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
@@ -47,7 +58,6 @@ Shooter.prototype.update = function(){
 	
 	if( Math.abs( dir.x ) < 128 ) {
 		this.flip = dir.x > 0;
-		this.frame = ( this.frame + this.delta * 0.1 ) % 2;
 		if( Math.abs( dir.x ) < 112 ) {
 			if( this.flip ) {
 				//Move to the right
@@ -70,25 +80,63 @@ Shooter.prototype.update = function(){
 		
 		//Attack
 		if( this.cooldown <= 0 ) {
-			this.cooldown = Game.DELTASECOND * 0.6;
-			var shooter_direction = Math.floor( Math.random() * this.bullet_y_pos.length);
-			var y = this.bullet_y_pos[ shooter_direction ];
-			this.frame_row = shooter_direction;
+			//Fire
 			var direction = this.flip ? 1 : -1;
+			this.cooldown = Game.DELTASECOND * 0.6;
+			var y = this.bullet_y_pos[ this.aim_direction ];
 			var bullet = new Bullet(
 				this.position.x,
 				this.position.y + y, 
 				-direction
 			);
 			bullet.damage = this.damage;
-			//bullet.speed = 0.8;
 			game.addObject( bullet );
+			
+			//Choose next direction
+			this.aim_direction = Math.floor( Math.random() * this.bullet_y_pos.length);
 		}
 		this.cooldown -= this.delta;
 	} else if ( Math.abs( this.position.x - this.start_x ) < this.max_distance ){
 		this.flip = dir.x > 0;
 		var direction = this.flip ? -1 : 1;
 		this.force.x += this.delta * this.speed * direction;
+	}
+	
+	//Animation
+	this.frame = (this.frame + this.delta * 0.1) % 3;
+	
+	//Move head position
+	var head_y = this.bullet_y_pos[ this.aim_direction ];
+	this.parts.head.y = Math.lerp(this.parts.head.y, head_y, this.delta * 0.1);
+	var stem = new Point(8,-16);
+	this.parts.neck1 = Point.lerp(stem, this.parts.head, 0.666);
+	this.parts.neck2 = Point.lerp(stem, this.parts.neck1, 0.666);
+	this.parts.neck3 = Point.lerp(stem, this.parts.neck2, 0.5);
+}
+Shooter.prototype.render = function(g,c){
+	for(var i in this.parts ) {
+		var pos = new Point(this.parts[i].x, this.parts[i].y);
+		var f = 0; var fr = 0;
+		if( i == "head" ) {
+			f = 0; fr = 0;
+		} else if ( i == "body" ){
+			f = 0; fr = 1;
+		} else if ( i == "wing" ){
+			f = this.frame; fr = 2;
+			if( f < 1 ) { 
+				pos.y -= 48;
+			} else if( f < 2 ) { 
+				pos.y -= 8;
+			} else {
+				pos.y -= 32;
+			}
+		} else {
+			f = 2; fr = 0;
+		}
+		if( this.flip ){
+			pos.x *= -1;
+		}
+		this.sprite.render(g,this.position.add(pos).subtract(c),f,fr, this.flip, this.filter);
 	}
 }
 Shooter.prototype.idle = function(){}

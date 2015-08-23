@@ -48,5 +48,28 @@
    <property name="tags" value="[&quot;walk&quot;]"/>
   </properties>
   <object name="Father" gid="1" x="512" y="192"/>
+  <object name="Statue" gid="232" x="240" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="400" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="624" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Statue" gid="232" x="768" y="208">
+   <properties>
+    <property name="rarity" value="0.3"/>
+   </properties>
+  </object>
+  <object name="Lamp" gid="232" x="880" y="112"/>
+  <object name="Lamp" gid="232" x="512" y="112"/>
+  <object name="Lamp" gid="232" x="128" y="112"/>
  </objectgroup>
 </map>

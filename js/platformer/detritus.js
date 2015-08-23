@@ -5,6 +5,7 @@ function Detritus(x, y, d, ops){
 	
 	this.position.x = x;
 	this.position.y = y;
+	this.zIndex = -2;
 	
 	ops = ops || {};
 	
@@ -35,4 +36,23 @@ function Detritus(x, y, d, ops){
 			this.position.x += 8;
 		}
 	}
+}
+
+Statue.prototype = new GameObject();
+Statue.prototype.constructor = GameObject;
+function Statue(x, y, d, ops){
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.zIndex = -3;
+	
+	ops = ops || {};
+	var tilesetNumber = game.tileSprite.name.match(/\d+/)-0;
+	
+	this.sprite = sprites.statues;
+	this.frame = Math.floor( Math.random() * 2 );
+	this.frame_row = tilesetNumber-1;
+	
+	this.interactive = false;
 }
