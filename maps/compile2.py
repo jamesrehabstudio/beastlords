@@ -88,7 +88,7 @@ def main():
 		for f in filepath:
 			if f[0:10] == "rooms\\test" or re.match(".*\.exc\.(room|tmx)", f):
 				print "pass on " + str(f)
-			if re.match(".*\.tmx", f):
+			elif re.match(".*\.tmx", f):
 				try:
 					name = f[0:len(f)-4]
 					if f[0:10] == "rooms\\town":

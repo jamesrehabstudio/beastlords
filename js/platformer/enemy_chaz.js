@@ -78,6 +78,8 @@ Chaz.prototype.update = function(){
 					missle = new Bullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
 				}
 				missle.damage = this.damage;
+				missle.frame = 4;
+				missle.frame_row = 0;
 				game.addObject( missle ); 
 			}
 		} else {

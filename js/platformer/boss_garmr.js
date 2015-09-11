@@ -15,6 +15,8 @@ function Garmr(x,y){
 	this.projection = new Point(x,y);
 	this.projection_frame = 0;
 	this.projection_frame_row = 0;
+	this.projection_flip = false;
+	this.projection_goto = new Point(x,y);
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -24,7 +26,9 @@ function Garmr(x,y){
 		"troll_cooldown" : Game.DELTASECOND * 16,
 		"troll_timer" : 0,
 		"troll_release" : false,
-		"cooldown" : 0
+		"cooldown" : 0,
+		"attack_type" : 1,
+		"fireballCount" : new Timer(0, Game.DELTASECOND * 0.1)
 	}
 	
 	this.life = dataManager.life(0);
@@ -58,24 +62,36 @@ Garmr.prototype.update = function(){
 		this.closeToBoss = false;
 		
 		if( this.active ) {
-			//Boss fight
-			this.flip = dir.x > 0;
-			_player.force.x += (this.flip ? -1 : 1) * 0.55;
-			this.states.cooldown -= this.delta;
-			if( this.states.cooldown <= 0 ){
-				this.states.cooldown = Game.DELTASECOND * 0.6;
-				var offset = Math.random() > 0.5 ? -8 : 10;
-				var bullet = new Bullet(this.position.x, this.position.y + offset);
-				bullet.blockable = true;
-				bullet.team = this.team;
-				bullet.damage = this.damage;
-				bullet.knockbackScale = 0.0;
-				bullet.delay = Game.DELTASECOND * 0.5;
-				bullet.force = new Point((this.flip?-1:1)*3, 0);
-				game.addObject(bullet);
+			
+			if( this.states.attack_type == 0 ) {
+				//Fire missiles at player
+				
+			} else if ( this.states.attack_type == 1 ) {
+				//Fire wall of bullets at player
+				
+				if( this.states.fireballCount.time <= 0 ) {
+					//Break cycle
+					this.states.fireballCount.set( Game.DELTASECOND * 10 );
+					this.projection_goto.y = _player.position.y - 16;
+					this.projection_flip = dir.x > 0;
+				} else if( this.states.fireballCount.status(this.delta) ) {
+					for(var i= 0; i < 2; i++){
+						var pos = Math.sin( this.states.fireballCount.time * 0.075 );
+						var bullet = new PhantomBullet(this.projection.x, pos*32 + this.projection.y + i * 72 - 36);
+						
+						bullet.force.x = this.projection_flip ? -4 : 4;
+						bullet.force.y = 0;
+						game.addObject( bullet );
+						
+					}
+				}
+				
+			} else if ( this.states.attack_type == 2 ) {
+				//Fire rods down at player
+				
 			}
-			this.projection.x = this.position.x;
-			this.projection.y = this.position.y - 64;
+			
+			this.projection = Point.lerp(this.projection, this.projection_goto, this.delta * 0.01);
 		} else {
 			//Troll player
 			if( Math.abs( dir.x ) < 240 && Math.floor(_player.position.y/256) == Math.floor(this.position.y/256)){
@@ -94,7 +110,7 @@ Garmr.prototype.update = function(){
 					game.addObject(bullet);
 				}
 				this.states.troll_timer -= this.delta;
-				this.states.troll_cooldown = Game.DELTASECOND * (20+Math.random()*20);
+				this.states.troll_cooldown = Game.DELTASECOND * (15+Math.random()*10);
 			} else {
 				if( this.states.troll_cooldown <= 0 ) {
 					this.states.troll_release = false;
@@ -127,9 +143,11 @@ Garmr.prototype.update = function(){
 Garmr.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	
-	if( (this.closeToBoss || this.states.troll_timer > 0 || this.active) && this.life > 0 ) {
-		var flip = this.projection.x - _player.position.x > 0;
-		this.sprite.render(g,this.projection.subtract(c),this.projection_frame,this.projection_frame_row, flip);
-	}
+	try {
+		if( (this.closeToBoss || this.states.troll_timer > 0 || this.active) && this.life > 0 ) {
+			var flip = this.projection.x - _player.position.x > 0;
+			this.sprite.render(g,this.projection.subtract(c),this.projection_frame,this.projection_frame_row, this.projection_flip);
+		}
+	} catch (err){}
 }
 Garmr.prototype.idle = function(){}

@@ -24,6 +24,8 @@ Dropper.prototype.update = function(){
 		bullet.damage = dataManager.damage(2);
 		bullet.blockable = false;
 		bullet.gravity = 1.0;
+		bullet.frame = 2;
+		bullet.frame_row = 0;
 		game.addObject( bullet );
 	}
 	this.cooldown -= this.delta;

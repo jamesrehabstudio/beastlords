@@ -14,8 +14,13 @@ function Spawn(x,y,d,ops){
 	ops = ops || {};
 	
 	this.difficulty = ops.difficulty || dataManager.currentTemple;
-	this.tags = ops.tags.split(",") || [];
 	this.theme = ops.theme || "default";
+	
+	if( "tags" in ops ){
+		this.tags = ops.tags.split(",");
+	} else { 
+		this.tags = new Array();
+	}
 	
 	this.enemies = [];
 	
@@ -68,8 +73,8 @@ Spawn.enemies = {
 		{"tags":[],"difficulty":[2,2],"enemies":["Minotaur"]},
 		{"tags":[],"difficulty":[2,2],"enemies":["Ammit"]},
 		{"tags":[],"difficulty":[3,3],"enemies":["Garmr"]},
-		{"tags":[],"difficulty":[4,4],"enemies":["Zoder"]},
-		{"tags":[],"difficulty":[5,5],"enemies":["Poseidon"]}
+		{"tags":[],"difficulty":[3,3],"enemies":["Zoder"]},
+		{"tags":[],"difficulty":[4,4],"enemies":["Poseidon"]}
 	],
 	"default" : [
 		//{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]},
@@ -79,15 +84,15 @@ Spawn.enemies = {
 		{"tags":["miniboss"],"difficulty":[1,2],"enemies":["Oriax"]},
 		{"tags":["miniboss"],"difficulty":[1,99],"enemies":["Knight"]},
 		{"tags":["miniboss"],"difficulty":[3,3],"enemies":["Yeti"]},
-		{"tags":["miniboss"],"difficulty":[4,4],"enemies":["Igbo"]},
-		{"tags":["miniboss"],"difficulty":[5,99],"enemies":["ChazBike"]},
+		{"tags":["miniboss"],"difficulty":[3,4],"enemies":["Igbo"]},
+		{"tags":["miniboss"],"difficulty":[4,99],"enemies":["ChazBike"]},
 		{"tags":["miniboss"],"difficulty":[3,99],"enemies":["Baller"]},
 		
 		{"tags":["major"],"difficulty":[1,3],"enemies":["Skeleton"]},
 		{"tags":["major"],"difficulty":[0,2],"enemies":["Bear"]},
 		{"tags":["major"],"difficulty":[3,4],"enemies":["Oriax"]},
 		{"tags":["major","ranged"],"difficulty":[2,99],"enemies":["Chaz"]},
-		{"tags":["major"],"difficulty":[5,99],"enemies":["Igbo"]},
+		{"tags":["major"],"difficulty":[4,99],"enemies":["Igbo"]},
 		{"tags":["major"],"difficulty":[4,99],"enemies":["Yeti"]},
 		
 		{"tags":["minor"],"difficulty":[0,99],"enemies":["Flederknife"]},
@@ -95,7 +100,7 @@ Spawn.enemies = {
 		{"tags":["minor"],"difficulty":[3,99],"enemies":["Ratgut"]},
 		{"tags":["minor"],"difficulty":[4,99],"enemies":["Skeleton"]},
 		//{"tags":["major"],"difficulty":[0,99],"enemies":["Malsum"]},
-		{"tags":["minor"],"difficulty":[5,99],"enemies":["Oriax"]},
+		{"tags":["minor"],"difficulty":[4,99],"enemies":["Oriax"]},
 		{"tags":["minor"],"difficulty":[0,2],"enemies":["Beaker"]},
 		{"tags":["minor","ledge"],"difficulty":[0,1],"enemies":["Shell"]},
 		{"tags":["minor","ledge"],"difficulty":[0,99],"enemies":["Axedog"]},

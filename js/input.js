@@ -1,7 +1,11 @@
 function Input() {
+	this.INPUT_KEYS = ["block","click","down","fire","left","jump","pause","right","select","space","up"];
 	this.CHROME_MAP = { "-1":'click', 16:"block", 74:"fire", 75:"jump", 65:'left', 68:'right', 83:'down', 87:'up', 32:'space', 13:'pause',81:'select' };
+	this.XBOX_MAP = {0:"jump",2:"fire",5:"block",6:"select",7:"pause"};
+	this.AXIS_THRESHOLD = 0.3;
 
-	this.states;
+	this.states = {};
+	this.joystates = {};
 	this.mouseCenter;
 	
 	this.init();
@@ -9,7 +13,10 @@ function Input() {
 
 Input.prototype.init = function() {
 	input_self = this;
-	this.states = {};
+	for(var i=0; i < this.INPUT_KEYS.length; i++) {
+		this.states[this.INPUT_KEYS[i]] = 0;
+		this.joystates[this.INPUT_KEYS[i]] = 0;
+	}
 	this.mouseCenter = new Point(0,0);
 	
 	window.onkeydown = function(e){ input_self.stateDown( e.keyCode ); }
@@ -33,8 +40,8 @@ Input.prototype.stateMove = function(e){
 }
 
 Input.prototype.state = function( key ) {
-	if ( this.states[key] != undefined ) {
-		return this.states[key];
+	if ( key in this.states && key in this.joystates ) {
+		return Math.max(this.states[key], this.joystates[key]);
 	}
 	return 0;
 }
@@ -59,6 +66,26 @@ Input.prototype.update = function( ) {
 	for( var i in this.states ) {
 		if ( this.states[i] > 0 ) {
 			this.states[i]++;
+		}
+	}
+	
+	//Update controller layout
+	var cont = navigator.getGamepads()[0];
+	var map = this.XBOX_MAP;
+	
+	if( cont != undefined ) {
+		this.joystates["left"] = ( cont.axes[0] < -this.AXIS_THRESHOLD ) ? this.joystates["left"]+1 : 0;
+		this.joystates["right"] = ( cont.axes[0] > this.AXIS_THRESHOLD ) ? this.joystates["right"]+1 : 0;
+		this.joystates["up"] = ( cont.axes[1] < -this.AXIS_THRESHOLD ) ? this.joystates["up"]+1 : 0;
+		this.joystates["down"] = ( cont.axes[1] > this.AXIS_THRESHOLD ) ? this.joystates["down"]+1 : 0;
+			
+		for(var i in map) if( i in cont.buttons ) {
+			var button = map[i];
+			if( cont.buttons[i].pressed ) {
+				this.joystates[button] += 1;
+			} else { 
+				this.joystates[button] = 0;
+			}
 		}
 	}
 }

@@ -922,18 +922,7 @@ Player.prototype.hasCharm = function(value){
 	}
 	return false;
 }
-Player.prototype.render = function(g,c){
-	//Spell effects
-	if( this.spellsCounters.flight > 0 ){
-		var wings_offset = new Point((this.flip?8:-8),0);
-		var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
-		if( this.grounded ) wings_frame = 0;
-		sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
-	}
-	if( this.spellsCounters.magic_armour > 0 ){
-		this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
-	}
-	
+Player.prototype.render = function(g,c){	
 	//Render shield behind the player
 	if( !this.guard.active ){
 		this.rendershield(g,c);
@@ -941,11 +930,32 @@ Player.prototype.render = function(g,c){
 	
 	//Render player
 	if( this.states.roll <= 0 ){
+		//Spell effects
+		if( this.spellsCounters.flight > 0 ){
+			var wings_offset = new Point((this.flip?8:-8),0);
+			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
+			if( this.grounded ) wings_frame = 0;
+			sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
+		}
+		if( this.spellsCounters.magic_armour > 0 ){
+			this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
+		}
+		
 		GameObject.prototype.render.apply(this,[g,c]);
 		//Render caps
 		if( this.cape.active ) {
 			this.cape.sprite.render(g, this.position.subtract(c), this.cape.frame, this.cape.frame_row, this.flip, this.filter);
 		}
+		
+		//Render current sword
+		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
+		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
+		this.attackProperites.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+			this.weapon.frame, 
+			this.weapon.frame_row, 
+			this.flip, 
+			weapon_filter
+		);
 	} else {
 		//When rolling, ignore flip and shader
 		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
@@ -959,16 +969,6 @@ Player.prototype.render = function(g,c){
 	if( this.guard.active ){
 		this.rendershield(g,c);
 	}
-	
-	//Render current sword
-	var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
-	var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
-	this.attackProperites.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
-		this.weapon.frame, 
-		this.weapon.frame_row, 
-		this.flip, 
-		weapon_filter
-	);
 	
 	//Charge effect
 	if( this.states.attack_charge > 0 ) {

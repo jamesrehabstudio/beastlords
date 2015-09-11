@@ -2,12 +2,12 @@ window._version = "0.2.0";
 
 function DataManager() {
 	this.temples = [
-		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":1,"difficulty":0,"boss":["Chort"],"miniboss":["Skeleton","Oriax"],"majormonster":["Bear","Skeleton"],"minormonster":["Beaker","Shell"],"minorfly":["Batty"],"perchmonster":["Axedog"]},
-		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1,"boss":["Marquis"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Shell"],"minorfly":["Amon","Batty"],"perchmonster":["Axedog"]},
-		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2,"boss":["Minotaur","Ammit"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Batty","Ghoul"],"perchmonster":["Axedog"]},
-		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3,"boss":["Garmr"],"miniboss":["Knight","Oriax"],"majormonster":["Bear","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Amon"],"minorfly":["Ghoul"],"perchmonster":["Axedog"]},
-		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":4,"boss":["Zoder"],"miniboss":["Knight","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty","Ghoul"],"perchmonster":["Axedog"]},
-		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":5,"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"],"perchmonster":["Axedog"]},
+		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":1,"difficulty":0},
+		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1},
+		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2},
+		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3},
+		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":4},
+		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":5},
 		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		
@@ -348,7 +348,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 		this.slices = [new MapSlice()];
 		
 		var options = {
-			"rules":(this.currentTemple == 5 ? this.rules.final : this.rules.main),
+			"rules":(this.currentTemple == 4 ? this.rules.final : this.rules.main),
 			"size":temple.size
 		}
 		

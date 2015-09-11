@@ -79,7 +79,7 @@ function EffectIce(x, y){
 }
 
 EffectIce.prototype.update = function(){
-	this.frame = Math.max((this.frame+game.deltaUnscaled*0.2)%6,2);
+	this.frame = Math.max((this.frame+game.deltaUnscaled*0.2)%7,3);
 	this.frame_row = 3;
 	this.time -= game.deltaUnscaled;
 	

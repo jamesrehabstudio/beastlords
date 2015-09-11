@@ -88,6 +88,31 @@ Bullet.prototype.update = function(){
 	}
 }
 
+PhantomBullet.prototype = new GameObject();
+PhantomBullet.prototype.constructor = GameObject;
+function PhantomBullet(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 10;
+	this.height = 10;
+	
+	this.sprite = sprites.bullets;
+	this.frame = 0;
+	this.frame_row = 0;
+	
+	this.blockable = true;
+	this.force = new Point();
+	this.team = 0;
+	
+	this.on("sleep", function(){ this.destroy(); } );
+}
+PhantomBullet.prototype.update = function(){
+	this.position.x += this.force.x * this.delta;
+	this.position.y += this.force.y * this.delta;
+}
+	
+
 Fire.prototype = new GameObject();
 Fire.prototype.constructor = GameObject;
 function Fire(x,y){
@@ -122,7 +147,7 @@ function Fire(x,y){
 	});
 }
 Fire.prototype.update = function(){
-	this.frame = (this.frame + (this.delta * 0.3)) % 2;
+	this.frame = (this.frame + (this.delta * 0.5)) % 3;
 	this.life -= this.delta;
 	if( this.life <= 0 ){
 		this.trigger("death");
