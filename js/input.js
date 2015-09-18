@@ -25,6 +25,12 @@ Input.prototype.init = function() {
 	window.onmousedown = function(e){ input_self.stateDown(-1);}
 	window.onmouseup = function(e){ input_self.stateUp(-1);}
 	
+	if( "getGamepads" in navigator ) {
+		
+	} else if( "webkitGetGamepads" in navigator ) {
+		navigator.getGamepads = navigator.webkitGetGamepads;
+	}
+	
 	window.onblur = function(e){ input_self.clearAll(); }
 }
 

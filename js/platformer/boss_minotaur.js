@@ -15,6 +15,9 @@ function Minotaur(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 3;
+	this.bossface_frame_row = 0;
+	
 	this.states = {
 		"attack" : 0,
 		"prep" : 0,

@@ -22,6 +22,9 @@ function Garmr(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 2;
+	this.bossface_frame_row = 0;
+	
 	this.states = {
 		"troll_cooldown" : Game.DELTASECOND * 16,
 		"troll_timer" : 0,

@@ -15,6 +15,9 @@ function Marquis(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 1;
+	this.bossface_frame_row = 1;
+	
 	this.states = {
 		"attack" : 0,
 		"cooldown" : 100.0,

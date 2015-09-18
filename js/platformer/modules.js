@@ -433,6 +433,10 @@ var mod_boss = {
 		var x = this.position.x;
 		var y = this.position.y;
 		this.boss_starting_position = new Point(x,y);
+		this.boss_intro = 0.0;
+		this.bossface_frame = 0;
+		this.bossface_frame_row = 0;
+		this.bossdeatheffect = false;
 		
 		var corner = new Point(256*Math.floor(x/256), 240*Math.floor(y/240));
 		this.boss_lock = new Line(
@@ -464,6 +468,7 @@ var mod_boss = {
 				this.interactive = false;
 				var dir = this.position.subtract( _player.position );
 				if( Math.abs( dir.x ) < 64 && Math.abs( dir.y ) < 64 ){
+					game.slow(0.1, Game.DELTASECOND * 3);
 					this.active = true;
 					this.trigger("activate");
 				}
@@ -487,6 +492,27 @@ var mod_boss = {
 	},
 	"update" : function(){
 		this._boss_is_active();
+		if( this._death_clock.at(Game.DELTASECOND*0.7) ){
+			game.addObject(new EffectItemPickup(this.position.x, this.position.y));
+			this.bossdeatheffect = true;
+		}
+	},
+	"postrender" : function(g,c){
+		if( this.active && this.boss_intro < 1.0){
+			this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
+			g.color = [0.0,0.0,0.0,0.5];
+			
+			var slide = Math.min(Math.sin(Math.PI*this.boss_intro)*4, 1);
+			var border = Math.min(Math.sin(Math.PI*this.boss_intro)*3, 1) * 64;
+			g.scaleFillRect(0, 0, game.resolution.x, border);
+			g.scaleFillRect(0, game.resolution.y-border, game.resolution.x, border);
+			
+			var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
+			var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
+			
+			sprites.bossface.render(g,porta,1,0,false);
+			sprites.bossface.render(g,portb,this.bossface_frame,this.bossface_frame_row,true);
+		}
 	}
 }
 

@@ -3,8 +3,8 @@ window.materials = {
 };
 
 function Material(gl,name,ops){
-	var fragmentMaterial = this.getShader(gl, ops["fs"]);
-	var vertexMaterial = this.getShader(gl, ops["vs"]);
+	var fragmentMaterial = this.getShader(gl, ops["fs"], gl.FRAGMENT_SHADER);
+	var vertexMaterial = this.getShader(gl, ops["vs"], gl.VERTEX_SHADER);
 
 	// Create the shader program
 
@@ -32,10 +32,10 @@ function Material(gl,name,ops){
 	
 	//Find exposed Uniforms and attributes
 	var props = [
-		document.getElementById(ops["fs"]).innerHTML.match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
-		document.getElementById(ops["vs"]).innerHTML.match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
-		document.getElementById(ops["fs"]).innerHTML.match(/\s*attribute\s+([^\s]+)\s+([^\s]+)/g),
-		document.getElementById(ops["vs"]).innerHTML.match(/\s*attribute\s+([^\s]+)\s+([^\s]+)/g)
+		ops["fs"].match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
+		ops["vs"].match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
+		ops["fs"].match(/\s*attribute\s+([^\s]+)\s+([^\s]+)/g),
+		ops["vs"].match(/\s*attribute\s+([^\s]+)\s+([^\s]+)/g)
 	];
 	for(var i=0; i < props.length; i++){
 		if( props[i] instanceof Array ) for(var j=0; j < props[i].length; j++) {
@@ -112,34 +112,12 @@ Material.prototype.use = function() {
 	}
 	return this;
 }
-Material.prototype.getShader = function(gl, id) {
-	var shaderScript, theSource, currentChild, shader;
-
-	shaderScript = document.getElementById(id);
-
-	if (!shaderScript) {
-		return null;
-	}
-
-	theSource = "";
-	currentChild = shaderScript.firstChild;
-
-	while(currentChild) {
-		if (currentChild.nodeType == currentChild.TEXT_NODE) {
-			theSource += currentChild.textContent;
-		}
-		currentChild = currentChild.nextSibling;
-	}
+Material.SHADER_FRAGMENT = 0;
+Material.SHADER_FRAGMENT = 1;
+Material.prototype.getShader = function(gl, source, type) {	
+	var shader = gl.createShader(type);
 	
-	if (shaderScript.type == "x-shader/x-fragment") {
-		shader = gl.createShader(gl.FRAGMENT_SHADER);
-	} else if (shaderScript.type == "x-shader/x-vertex") {
-		shader = gl.createShader(gl.VERTEX_SHADER);
-	} else {
-		// Unknown shader type
-		return null;
-	}
-	gl.shaderSource(shader, theSource);
+	gl.shaderSource(shader, source);
 
 	// Compile the shader program
 	gl.compileShader(shader);  

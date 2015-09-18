@@ -16,6 +16,9 @@ function Ammit(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 4;
+	this.bossface_frame_row = 0;
+	
 	this.states = {
 		"drink" : 0,
 		"attack" : 0,

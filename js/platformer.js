@@ -1,3 +1,6 @@
+/* Shader list */
+window.shaders = {};
+
 
 
  /* platformer/alter.js*/ 
@@ -607,6 +610,9 @@ function Ammit(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 4;
+	this.bossface_frame_row = 0;
+	
 	this.states = {
 		"drink" : 0,
 		"attack" : 0,
@@ -735,6 +741,9 @@ function Chort(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
+	
+	this.bossface_frame = 0;
+	this.bossface_frame_row = 0;
 	
 	this.death_time = Game.DELTASECOND * 3;
 	this.life = dataManager.life(26);
@@ -1086,6 +1095,9 @@ function Garmr(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 2;
+	this.bossface_frame_row = 0;
+	
 	this.states = {
 		"troll_cooldown" : Game.DELTASECOND * 16,
 		"troll_timer" : 0,
@@ -1235,6 +1247,9 @@ function Marquis(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 1;
+	this.bossface_frame_row = 1;
+	
 	this.states = {
 		"attack" : 0,
 		"cooldown" : 100.0,
@@ -1372,6 +1387,9 @@ function Minotaur(x,y){
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
+	this.bossface_frame = 3;
+	this.bossface_frame_row = 0;
+	
 	this.states = {
 		"attack" : 0,
 		"prep" : 0,
@@ -1491,6 +1509,9 @@ function Poseidon(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
+	
+	this.bossface_frame = 0;
+	this.bossface_frame_row = 1;
 	
 	this.death_time = Game.DELTASECOND * 3;
 	this.life = dataManager.life(30);
@@ -8770,6 +8791,10 @@ var mod_boss = {
 		var x = this.position.x;
 		var y = this.position.y;
 		this.boss_starting_position = new Point(x,y);
+		this.boss_intro = 0.0;
+		this.bossface_frame = 0;
+		this.bossface_frame_row = 0;
+		this.bossdeatheffect = false;
 		
 		var corner = new Point(256*Math.floor(x/256), 240*Math.floor(y/240));
 		this.boss_lock = new Line(
@@ -8801,6 +8826,7 @@ var mod_boss = {
 				this.interactive = false;
 				var dir = this.position.subtract( _player.position );
 				if( Math.abs( dir.x ) < 64 && Math.abs( dir.y ) < 64 ){
+					game.slow(0.1, Game.DELTASECOND * 3);
 					this.active = true;
 					this.trigger("activate");
 				}
@@ -8824,6 +8850,27 @@ var mod_boss = {
 	},
 	"update" : function(){
 		this._boss_is_active();
+		if( this._death_clock.at(Game.DELTASECOND*0.7) ){
+			game.addObject(new EffectItemPickup(this.position.x, this.position.y));
+			this.bossdeatheffect = true;
+		}
+	},
+	"postrender" : function(g,c){
+		if( this.active && this.boss_intro < 1.0){
+			this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
+			g.color = [0.0,0.0,0.0,0.5];
+			
+			var slide = Math.min(Math.sin(Math.PI*this.boss_intro)*4, 1);
+			var border = Math.min(Math.sin(Math.PI*this.boss_intro)*3, 1) * 64;
+			g.scaleFillRect(0, 0, game.resolution.x, border);
+			g.scaleFillRect(0, game.resolution.y-border, game.resolution.x, border);
+			
+			var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
+			var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
+			
+			sprites.bossface.render(g,porta,1,0,false);
+			sprites.bossface.render(g,portb,this.bossface_frame,this.bossface_frame_row,true);
+		}
 	}
 }
 
@@ -10593,24 +10640,26 @@ Spawn.enemies = {
  /* platformer/start.js*/ 
 
 function game_start(g){
-	new Material(g.g, "default", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
-	new Material(g.g, "hurt", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader","settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
-	new Material(g.g, "gold", {"fs":"fragment-greytocolor","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
-	new Material(g.g, "color", {"fs":"2d-fragment-shader","vs":"2d-vertex-shader"} );
-	new Material(g.g, "heat", {"fs":"fragment-heat","vs":"2d-vertex-shader"} );
-	new Material(g.g, "blur", {"fs":"2d-fragment-blur","vs":"2d-vertex-scale"} );
-	new Material(g.g, "enchanted", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader", "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
-	new Material(g.g, "item", {"fs":"2d-fragment-glow","vs":"2d-vertex-shader"} );
+	var shaders = window.shaders;
 	
-	new Material(g.g, "t1", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[0.1]}} );
-	new Material(g.g, "t2", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[-0.1]}} );
-	new Material(g.g, "t3", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[0.2]}} );
-	new Material(g.g, "t4", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[0.3]}} );
-	new Material(g.g, "t5", {"fs":"fragment-shifthue","vs":"2d-vertex-shader", "settings":{"u_shift":[0.5]}} );
+	new Material(g.g, "default", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "hurt", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"],"settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
+	new Material(g.g, "gold", {"fs":shaders["fragment-greytocolor"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
+	new Material(g.g, "color", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"]} );
+	new Material(g.g, "heat", {"fs":shaders["fragment-heat"],"vs":shaders["2d-vertex-shader"]} );
+	new Material(g.g, "blur", {"fs":shaders["2d-fragment-blur"],"vs":shaders["2d-vertex-scale"]} );
+	new Material(g.g, "enchanted", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
+	new Material(g.g, "item", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"]} );
 	
-	new Material(g.g, "backbuffer", {"fs":"2d-fragment-shader","vs":"back-vertex-shader", "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
-	new Material(g.g, "solid", {"fs":"2d-fragment-solid","vs":"2d-vertex-shader"} );
-	new Material(g.g, "lightbeam", {"fs":"2d-fragment-lightbeam","vs":"2d-vertex-shader"} );
+	new Material(g.g, "t1", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.1]}} );
+	new Material(g.g, "t2", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[-0.1]}} );
+	new Material(g.g, "t3", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.2]}} );
+	new Material(g.g, "t4", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.3]}} );
+	new Material(g.g, "t5", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.5]}} );
+	
+	new Material(g.g, "backbuffer", {"fs":shaders["2d-fragment-shader"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "solid", {"fs":shaders["2d-fragment-solid"],"vs":shaders["2d-vertex-shader"]} );
+	new Material(g.g, "lightbeam", {"fs":shaders["2d-fragment-lightbeam"],"vs":shaders["2d-vertex-shader"]} );
 	
 	g.addObject( new TitleMenu() );
 	//dataManager.randomLevel(game,0);
@@ -12027,3 +12076,68 @@ SceneTransform.prototype.render = function(g,c){
 	}
 	this.sprite.render(g,this.position.subtract(c),this.frame);
 }
+
+ /* platformer/shaders/2d-fragment-blur.shader*/ 
+
+window.shaders["2d-fragment-blur"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nuniform float blur;\r\n\r\nvarying vec2 v_texCoord;\r\nvarying vec2 v_position;\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	vec4 u = texture2D(u_image, v_texCoord + vec2(0,-blur));\r\n	vec4 d = texture2D(u_image, v_texCoord + vec2(0,blur));\r\n	vec4 l = texture2D(u_image, v_texCoord + vec2(-blur,0));\r\n	vec4 r = texture2D(u_image, v_texCoord + vec2(blur,0));\r\n	\r\n	if( v_position.y < 3.0 ) u = color;\r\n	if( v_position.y > 14.0 ) d = color;\r\n	if( v_position.x < 3.0 ) l = color;\r\n	if( v_position.x > 14.0 ) r = color;\r\n	\r\n	float activeColors = 0.0;\r\n	if( color.a > 0.1 ) activeColors++;\r\n	if( u.a > 0.1 ) activeColors++;\r\n	if( d.a > 0.1 ) activeColors++;\r\n	if( l.a > 0.1 ) activeColors++;\r\n	if( r.a > 0.1 ) activeColors++;\r\n	\r\n	color.r = (color.r + u.r + d.r + l.r + r.r) / activeColors;\r\n	color.g = (color.g + u.g + d.g + l.g + r.g) / activeColors;\r\n	color.b = (color.b + u.b + d.b + l.b + r.b) / activeColors;\r\n	color.a = (color.a + u.a + d.a + l.a + r.a) / 5.0;\r\n	\r\n	//color.a = 1.0; color.r = v_position.x/16.0; color.g = v_position.y/16.0; color.b = 0.0;\r\n	gl_FragColor = color;\r\n}";
+
+
+
+ /* platformer/shaders/2d-fragment-glow.shader*/ 
+
+window.shaders["2d-fragment-glow"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	float pixSize = 1.0 / 256.0;\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	if( color.a < 0.1 ) {\r\n		if( \r\n			texture2D(u_image, v_texCoord - vec2(pixSize,0)).a > 0.1 || \r\n			texture2D(u_image, v_texCoord + vec2(pixSize,0)).a > 0.1 || \r\n			texture2D(u_image, v_texCoord - vec2(0, pixSize)).a > 0.1 || \r\n			texture2D(u_image, v_texCoord + vec2(0, pixSize)).a > 0.1\r\n		) {\r\n			color = u_color;\r\n		}\r\n	}\r\n	gl_FragColor = color;\r\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\r\n}";
+
+
+
+ /* platformer/shaders/2d-fragment-lightbeam.shader*/ 
+
+window.shaders["2d-fragment-lightbeam"] = "precision mediump float;\r\nuniform vec4 u_color;\r\nvarying vec2 v_texCoord;\r\n\r\nvoid main() {\r\n	vec4 color = u_color;\r\n	color.a *= 1.0 - v_texCoord.y;\r\n	gl_FragColor = color;\r\n}";
+
+
+
+ /* platformer/shaders/2d-fragment-shader.shader*/ 
+
+window.shaders["2d-fragment-shader"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	gl_FragColor = u_color * texture2D(u_image, v_texCoord);\r\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\r\n}";
+
+
+
+ /* platformer/shaders/2d-fragment-solid.shader*/ 
+
+window.shaders["2d-fragment-solid"] = "precision mediump float;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	gl_FragColor = u_color;\r\n}";
+
+
+
+ /* platformer/shaders/2d-vertex-scale.shader*/ 
+
+window.shaders["2d-vertex-scale"] = "attribute vec2 a_position;\r\nattribute vec2 a_texCoord;\r\nuniform vec2 scale;\r\nuniform vec2 u_resolution;\r\nuniform vec2 u_camera;\r\n\r\nvarying vec2 v_texCoord;\r\nvarying vec2 v_position;\r\n\r\nvoid main() {\r\n	vec2 pos = a_position * scale + u_camera - u_resolution * 0.5;\r\n	//pos.y = u_resolution.y + pos.y*-1.0;\r\n	pos.y = pos.y*-1.0;\r\n	//pos.x = pos.x - u_resolution.x;\r\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\r\n	v_texCoord = a_texCoord;\r\n	v_position = a_position;\r\n}";
+
+
+
+ /* platformer/shaders/2d-vertex-shader.shader*/ 
+
+window.shaders["2d-vertex-shader"] = "attribute vec2 a_position;\r\nattribute vec2 a_texCoord;\r\nuniform vec2 u_resolution;\r\nuniform vec2 u_camera;\r\n\r\nvarying vec2 v_texCoord;\r\nvarying vec2 v_position;\r\n\r\nvoid main() {\r\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\r\n	//pos.y = u_resolution.y + pos.y*-1.0;\r\n	pos.y = pos.y*-1.0;\r\n	//pos.x = pos.x - u_resolution.x;\r\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\r\n	v_texCoord = a_texCoord;\r\n	v_position = a_position;\r\n}";
+
+
+
+ /* platformer/shaders/back-vertex-shader.shader*/ 
+
+window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\r\nattribute vec2 a_texCoord;\r\nuniform vec2 u_resolution;\r\n\r\nvarying vec2 v_texCoord;\r\n\r\nvoid main() {\r\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\r\n	//pos.x = pos.x - u_resolution.x;\r\n	gl_Position = vec4(a_position, 0, 1);\r\n	v_texCoord = a_texCoord;\r\n}";
+
+
+
+ /* platformer/shaders/fragment-greytocolor.shader*/ 
+
+window.shaders["fragment-greytocolor"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	if( abs((color.r+color.g+color.b)-color.r*3.0) < 0.04 ) {\r\n		gl_FragColor = color * u_color;\r\n	} else { \r\n		gl_FragColor = color;\r\n	}\r\n}";
+
+
+
+ /* platformer/shaders/fragment-heat.shader*/ 
+
+window.shaders["fragment-heat"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nuniform float heat;\r\nvarying vec2 v_texCoord;\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	color.r = color.r * (1.0-heat) + heat;\r\n	color.g = color.g * (1.0-heat) + heat * 0.4;\r\n	color.b = color.b * (1.0-heat);\r\n	gl_FragColor = color;\r\n}";
+
+
+
+ /* platformer/shaders/fragment-shifthue.shader*/ 
+
+window.shaders["fragment-shifthue"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform float u_shift;\r\n\r\nvec3 rgb2hsv(vec3 c)\r\n{\r\n	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);\r\n	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));\r\n	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));\r\n\r\n	float d = q.x - min(q.w, q.y);\r\n	float e = 1.0e-10;\r\n	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);\r\n}\r\n\r\nvec3 hsv2rgb(vec3 c)\r\n{\r\n	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\r\n	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\r\n	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\r\n}\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	vec3 hsv = rgb2hsv(color.rgb);\r\n	hsv.x = mod(hsv.x + u_shift, 1.0);\r\n	vec3 rgb = hsv2rgb(hsv);\r\n	gl_FragColor = vec4(rgb,color.a);\r\n}";
+

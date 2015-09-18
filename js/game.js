@@ -338,10 +338,25 @@ Game.prototype.update = function( ) {
 			if( obj.shouldRender() ) {
 				if ( obj.prerender instanceof Function ) {
 					this.prerenderTree.push( obj );
+				}else{
+					for(var i=0; i < obj.modules.length; i++){
+						if("prerender" in obj.modules[i]){
+							this.prerenderTree.push( obj );
+							break;
+						}
+					}
 				}
 				if ( obj.postrender instanceof Function ) {
 					this.postrenderTree.push( obj );
+				}else{
+					for(var i=0; i < obj.modules.length; i++){
+						if("postrender" in obj.modules[i]){
+							this.postrenderTree.push( obj );
+							break;
+						}
+					}
 				}
+				
 				this.renderTree.push( obj );
 			}
 			if ( obj.interactive ) {
@@ -372,16 +387,6 @@ Game.prototype.render = function( ) {
 	this.g.viewport(0,0,this.resolution.x,this.resolution.y);
 	this.backBuffer.use(this.g);
 	
-	/*
-	var margin = 0;
-	var screen = new Point( 160, 120 );
-	var screen = new Point( 960, 720 );
-	var view = new Line(
-		new Point( this.camera.x - (screen.x + margin), this.camera.y - (screen.y + margin) ),
-		new Point( this.camera.x + (screen.x + margin), this.camera.y + (screen.y + margin) )
-	);
-	var view = new Line(new Point(Number.MIN_VALUE,Number.MIN_VALUE), new Point(Number.MAX_VALUE,Number.MAX_VALUE));
-	*/
 	var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex; } );
 	var camera_center = new Point( this.camera.x, this.camera.y );
 	
@@ -391,7 +396,15 @@ Game.prototype.render = function( ) {
 	//Prerender
 	for ( var i in this.prerenderTree ) {
 		if ( this.prerenderTree[i] instanceof GameObject ) {
-			this.prerenderTree[i].prerender(this.g, camera_center);
+			var obj = this.prerenderTree[i];
+			if(obj.prerender instanceof Function){
+				obj.prerender(this.g, camera_center);
+			}
+			for(var i=0; i < obj.modules.length; i++){
+				if( "prerender" in obj.modules[i] ) {
+					obj.modules[i].prerender.apply(obj,[this.g, camera_center]);
+				}
+			}
 		}
 	}
 	
@@ -404,7 +417,9 @@ Game.prototype.render = function( ) {
 					obj.render( this.g, camera_center );
 					
 					for(var i=0; i < obj.modules.length; i++){
-						if( "render" in obj.modules[i] ) obj.modules[i].render.apply(obj,[this.g, camera_center]);
+						if( "render" in obj.modules[i] ) {
+							obj.modules[i].render.apply(obj,[this.g, camera_center]);
+						}
 					}
 				}		
 			}
@@ -415,8 +430,16 @@ Game.prototype.render = function( ) {
 	
 	//Postrender
 	for ( var i in this.postrenderTree ) {
-		if ( this.postrenderTree[i] instanceof GameObject ) {
-			this.postrenderTree[i].postrender(this.g, camera_center);
+		var obj = this.postrenderTree[i];
+		if ( obj instanceof GameObject ) {
+			if(obj.postrender instanceof Function){
+				obj.postrender(this.g, camera_center);
+			}
+			for(var i=0; i < obj.modules.length; i++){
+				if( "postrender" in obj.modules[i] ) {
+					obj.modules[i].postrender.apply(obj,[this.g, camera_center]);
+				}
+			}
 		}
 	}
 	
@@ -1494,7 +1517,7 @@ function Timer(time, interval){
 Timer.prototype.set = function(time, interval){
 	this.start = time;
 	this.time = time;
-	this.previous = time+1.0;
+	this.previous = time-1.0;
 	if( interval != undefined ) {
 		this.interval = interval;
 	}
