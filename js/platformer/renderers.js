@@ -6,6 +6,9 @@ var textLookup = [
 	"'","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o",
 	"p","q","r","s","t","u","v","w","x","y","z","{","}","\v","\b","@"
 ];
+var text_size = 8;
+var text_height = 12;
+
 function boxArea(g,x,y,w,h){
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x, y, w, h );
@@ -39,7 +42,10 @@ function textArea(g,s,x,y,w,h){
 		} else {
 			var index = textLookup.indexOf(s[i]);
 			if( index >= 0 ){
-				sprites.text.render(g,new Point(_x*8+x,_y*12+y),index);
+				sprites.text.render(g,new Point(
+					_x*window.text_size+x,
+					_y*window.text_height+y
+				),index);
 				_x++;
 			}
 		}

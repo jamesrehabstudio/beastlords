@@ -95,5 +95,6 @@
    </properties>
   </object>
   <object name="Statue" gid="232" x="384" y="176"/>
+  <object name="TitleCard" gid="232" x="416" y="128"/>
  </objectgroup>
 </map>

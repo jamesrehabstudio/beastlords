@@ -152,6 +152,7 @@ var mod_combat = {
 		this.stun = 0;
 		this.stun_time = 10.0;
 		this.death_time = 0;
+		this.dead = false;
 		this._hurt_strobe = 0;
 		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
 		this.damage_buffer = 0;
@@ -274,9 +275,14 @@ var mod_combat = {
 					this._death_clock.set(this.death_time);
 					this.interactive = false;
 				} else {
-					game.addObject(new EffectExplosion(this.position.x,this.position.y));
-					this.trigger("death");
+					if( !this.dead ){
+						game.addObject(new EffectExplosion(this.position.x,this.position.y));
+						this.trigger("death");
+					}
 				}
+				this.dead = true;
+			} else {
+				this.dead = false;
 			}
 		}
 		this.hasStatusEffect = function(){
@@ -378,7 +384,8 @@ var mod_combat = {
 						if( this instanceof Player ){
 							if( this.life > 30 ) this.life -= 1;
 						} else {
-							this.life -= 3; this.isDead(); 
+							this.life -= 3; 
+							this.isDead(); 
 						}
 					}
 					var effect = new EffectStatus(this.position.x+(Math.random()-.5)*this.width, this.position.y+(Math.random()-.5)*this.height);
@@ -397,7 +404,8 @@ var mod_combat = {
 			this.isDead();
 		}
 		
-		if( this.life <= 0 ) {
+		//Death clock explosion effect
+		if( this.life <= 0 && this.death_time > 0) {
 			if( this._death_clock.status(game.deltaUnscaled) ) {
 				game.addObject(new EffectExplosion(
 					this.position.x + this.width*(Math.random()-.5), 

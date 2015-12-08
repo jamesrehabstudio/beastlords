@@ -29,6 +29,7 @@ function LilGhost(x,y){
 	
 	this.on("wakeup", function(){
 		this.life = 1;
+		this.dead = false;
 	});
 	
 	this.on("hurt", function(){

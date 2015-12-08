@@ -6,7 +6,7 @@ function DataManager() {
 		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1},
 		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2},
 		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3},
-		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":4},
+		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":3},
 		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":5},
 		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
@@ -151,6 +151,7 @@ DataManager.prototype.reset = function(){
 	
 	this.currentTemple = -1;
 	this.currentTown = -1;
+	this.monsterDifficulty = 0;
 	
 	this.unlocks = [];
 	for(var i=0; i < this.treasures.length; i++ ) {
@@ -326,7 +327,9 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 	var success = false;
 	this.currentTemple = Math.min( temple, this.temples.length-1);
 	this.currentTown = -1;
+	
 	var temple = this.temples[ this.currentTemple ];
+	this.monsterDifficulty = temple.difficulty;
 	s = s || "" + Math.random();
 	window.seed = new Seed( s );
 	
@@ -1233,13 +1236,13 @@ DataManager.prototype.damage = function(level){
 		case 6: damage = 40; break;//6 strike from SUPER boss
 	}
 	
-	var multi = 1 + this.currentTemple * 0.22;
+	var multi = 1 + this.monsterDifficulty * 0.22;
 	damage = Math.floor( damage * multi );
 	return damage;
 }
 DataManager.prototype.life = function(level){
 	if( level == 0 ) return 3; //Always one shot
-	var multi = 5 + this.currentTemple * 3.125;
+	var multi = 5 + this.monsterDifficulty * 3.125;
 	return Math.floor( multi * level );
 }
 

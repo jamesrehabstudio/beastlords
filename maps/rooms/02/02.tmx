@@ -134,6 +134,8 @@
  <objectgroup name="objects" width="16" height="60">
   <properties>
    <property name="entrances" value="[[1,0],[0,3]]"/>
+   <property name="max_temple" value="2"/>
+   <property name="min_temple" value="2"/>
    <property name="rarity" value="1.0"/>
    <property name="remaining" value="1"/>
   </properties>
@@ -245,6 +247,16 @@
     <property name="rarity" value="0.3"/>
     <property name="side" value="r"/>
     <property name="size" value="1"/>
+   </properties>
+  </object>
+  <object name="DamageTrigger" gid="92" x="96" y="520">
+   <properties>
+    <property name="width" value="96"/>
+   </properties>
+  </object>
+  <object name="DamageTrigger" gid="92" x="64" y="760">
+   <properties>
+    <property name="width" value="112"/>
    </properties>
   </object>
  </objectgroup>

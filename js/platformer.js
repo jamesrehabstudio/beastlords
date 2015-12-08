@@ -2372,6 +2372,38 @@ CornerStone.prototype.update = function(){
 }
 CornerStone.prototype.idle = function(){}
 
+ /* platformer/damagetrigger.js*/ 
+
+DamageTrigger.prototype = new GameObject();
+DamageTrigger.prototype.constructor = GameObject;
+function DamageTrigger(x,y,p,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 256;
+	this.height = 18;
+	
+	this.damage = 25;
+	
+	o = o || {};
+	this.width = o.width || this.width;
+	this.height = o.height || this.height;
+	this.damage = o.damage || this.damage;
+	this.restTimer = 0.0;
+	
+	this.position.x += this.width * 0.5;
+	
+	this.on("collideObject", function(obj){
+		if( this.restTimer <= 0 && obj instanceof Player ) {
+			obj.hurt( this, Math.floor( this.damage ) );
+			this.restTimer = Game.DELTASECOND * 3;
+		}
+	});
+}
+DamageTrigger.prototype.update = function(){
+	this.restTimer -= this.delta;
+}
+
  /* platformer/deathtrigger.js*/ 
 
 DeathTrigger.prototype = new GameObject();
@@ -5224,6 +5256,7 @@ function LilGhost(x,y){
 	
 	this.on("wakeup", function(){
 		this.life = 1;
+		this.dead = false;
 	});
 	
 	this.on("hurt", function(){
@@ -8510,6 +8543,7 @@ var mod_combat = {
 		this.stun = 0;
 		this.stun_time = 10.0;
 		this.death_time = 0;
+		this.dead = false;
 		this._hurt_strobe = 0;
 		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
 		this.damage_buffer = 0;
@@ -8632,9 +8666,14 @@ var mod_combat = {
 					this._death_clock.set(this.death_time);
 					this.interactive = false;
 				} else {
-					game.addObject(new EffectExplosion(this.position.x,this.position.y));
-					this.trigger("death");
+					if( !this.dead ){
+						game.addObject(new EffectExplosion(this.position.x,this.position.y));
+						this.trigger("death");
+					}
 				}
+				this.dead = true;
+			} else {
+				this.dead = false;
 			}
 		}
 		this.hasStatusEffect = function(){
@@ -8736,7 +8775,8 @@ var mod_combat = {
 						if( this instanceof Player ){
 							if( this.life > 30 ) this.life -= 1;
 						} else {
-							this.life -= 3; this.isDead(); 
+							this.life -= 3; 
+							this.isDead(); 
 						}
 					}
 					var effect = new EffectStatus(this.position.x+(Math.random()-.5)*this.width, this.position.y+(Math.random()-.5)*this.height);
@@ -8755,7 +8795,8 @@ var mod_combat = {
 			this.isDead();
 		}
 		
-		if( this.life <= 0 ) {
+		//Death clock explosion effect
+		if( this.life <= 0 && this.death_time > 0) {
 			if( this._death_clock.status(game.deltaUnscaled) ) {
 				game.addObject(new EffectExplosion(
 					this.position.x + this.width*(Math.random()-.5), 
@@ -10274,6 +10315,9 @@ var textLookup = [
 	"'","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o",
 	"p","q","r","s","t","u","v","w","x","y","z","{","}","\v","\b","@"
 ];
+var text_size = 8;
+var text_height = 12;
+
 function boxArea(g,x,y,w,h){
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x, y, w, h );
@@ -10307,7 +10351,10 @@ function textArea(g,s,x,y,w,h){
 		} else {
 			var index = textLookup.indexOf(s[i]);
 			if( index >= 0 ){
-				sprites.text.render(g,new Point(_x*8+x,_y*12+y),index);
+				sprites.text.render(g,new Point(
+					_x*window.text_size+x,
+					_y*window.text_height+y
+				),index);
 				_x++;
 			}
 		}
@@ -10776,6 +10823,51 @@ BreakableTile.prototype.update = function(){
 }
 
 BreakableTile.unbreakable = 232;
+
+ /* platformer/titlecard.js*/ 
+
+TitleCard.prototype = new GameObject();
+TitleCard.prototype.constructor = GameObject;
+function TitleCard(x,y,p,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 128;
+	
+	this.progress = 0.0;
+	this.play = false;
+	this.text = "Place holder text";
+	
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player ) {
+			this.play = true;
+		}
+	});
+}
+
+TitleCard.prototype.idle = function(g,c){return true;}
+
+TitleCard.prototype.postrender = function(g,c){
+	if( this.play ){
+		this.progress += this.delta / (Game.DELTASECOND*3);
+		
+		var border = Math.min(Math.sin(Math.PI*this.progress)*3, 1) * 64;
+		g.color = [0.0,0.0,0.0,0.5];
+		g.scaleFillRect(0, 0, game.resolution.x, border);
+		g.scaleFillRect(0, game.resolution.y-border, game.resolution.x, border);
+		
+		textArea(g,
+			this.text,
+			game.resolution.x * 0.5 - this.text.length * window.text_size * 0.5,
+			game.resolution.y * 0.5 - window.text_size * 0.5
+		);
+		
+		if( this.progress >= 1.0 ) {
+			this.destroy();
+		}
+	}
+}
 
  /* platformer/villager.js*/ 
 

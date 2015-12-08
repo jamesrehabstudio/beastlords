@@ -74,6 +74,8 @@
  <objectgroup name="objects" width="32" height="30">
   <properties>
    <property name="entrances" value="[[0,1],[2,1]]"/>
+   <property name="max_temple" value="0"/>
+   <property name="min_temple" value="0"/>
    <property name="rarity" value="1.0"/>
    <property name="remaining" value="1"/>
    <property name="tags" value="[&quot;midboss&quot;]"/>

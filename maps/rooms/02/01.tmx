@@ -3,6 +3,9 @@
  <tileset firstgid="1" name="tiles1" tilewidth="16" tileheight="16">
   <image source="../../../img/tiles/tiles1.gif" trans="ff00ff" width="256" height="256"/>
  </tileset>
+ <tileset firstgid="257" name="tiles1" tilewidth="16" tileheight="16">
+  <image source="../../../img/tiles/tiles0.gif" trans="ff00ff" width="256" height="256"/>
+ </tileset>
  <layer name="far" width="48" height="15">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -62,6 +65,8 @@
  </layer>
  <objectgroup name="objects" width="48" height="15">
   <properties>
+   <property name="max_temple" value="2"/>
+   <property name="min_temple" value="2"/>
    <property name="rarity" value="1.0"/>
   </properties>
   <object name="Spawn" gid="199" x="256" y="80">
@@ -90,6 +95,21 @@
   <object name="MovingPlatform" gid="241" x="560" y="96">
    <properties>
     <property name="bottom" value="80"/>
+   </properties>
+  </object>
+  <object name="DamageTrigger" gid="348" x="112" y="216">
+   <properties>
+    <property name="width" value="128"/>
+   </properties>
+  </object>
+  <object name="DamageTrigger" gid="348" x="288" y="216">
+   <properties>
+    <property name="width" value="160"/>
+   </properties>
+  </object>
+  <object name="DamageTrigger" gid="348" x="496" y="216">
+   <properties>
+    <property name="width" value="160"/>
    </properties>
   </object>
  </objectgroup>

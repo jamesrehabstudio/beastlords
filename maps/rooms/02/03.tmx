@@ -43,7 +43,11 @@
  </layer>
  <objectgroup name="objects" width="64" height="15">
   <properties>
-   <property name="rarity" value="1.0"/>
+   <property name="max_temple" value="2"/>
+   <property name="min_temple" value="2"/>
+   <property name="rarity" value="0.0"/>
+   <property name="remaining" value="1"/>
+   <property name="tags" value="[&quot;optional&quot;]"/>
   </properties>
   <object name="LilGhost" gid="199" x="96" y="176"/>
   <object name="LilGhost" gid="199" x="176" y="160"/>
@@ -63,5 +67,10 @@
   <object name="Lamp" gid="135" x="632" y="80"/>
   <object name="Lamp" gid="135" x="760" y="80"/>
   <object name="Lamp" gid="135" x="888" y="80"/>
+  <object name="DamageTrigger" gid="92" x="48" y="232">
+   <properties>
+    <property name="width" value="960"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>
