@@ -904,7 +904,8 @@ function FrogBoss(x,y){
 		"stump" : 0.0,
 		"flySpawn" : 0.0,
 		"jump" : 0.0,
-		"rockSpawn" : Game.DELTASECOND * 3.0
+		"rockSpawn" : Game.DELTASECOND * 3.0,
+		"ceilingCollapse" : false
 		
 	};
 	
@@ -937,22 +938,7 @@ function FrogBoss(x,y){
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
-	this.on("collideVertical", function(dir){
-		if( this.life > 0 && dir > 3 && this.states.rockSpawn <= 0) {
-			//Shake room and cause rocks to fall
-			window.audio.play("explode1");
-			window.shakeCamera(new Point(0,8));
-			for(var i=0; i < 8; i++ ) {
-				var rock = new FallingRock( 
-					this.rockBox.start.x + this.rockBox.width() * Math.random(),
-					this.rockBox.start.y + this.rockBox.height() * Math.random()
-				);
-				rock.damage = Math.round(this.damage * 0.25);
-				game.addObject( rock );
-			}
-			
-		}
-	});
+
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
 		audio.play("kill");
@@ -973,9 +959,24 @@ FrogBoss.prototype.update = function(){
 		
 		this.states.rockSpawn -= this.delta;
 		
+		if( this.states.ceilingCollapse && this.grounded ){
+			window.audio.play("explode1");
+			window.shakeCamera(new Point(0,8));
+			for(var i=0; i < 8; i++ ) {
+				var rock = new FallingRock( 
+					this.rockBox.start.x + this.rockBox.width() * Math.random(),
+					this.rockBox.start.y + this.rockBox.height() * Math.random()
+				);
+				rock.damage = Math.round(this.damage * 0.25);
+				game.addObject( rock );
+			}
+			this.states.ceilingCollapse = false;
+		}
 		if( this.states.jump > this.times.jump && this.grounded) {
 			this.force.y = -6;
 			this.states.jump = 0;
+			this.grounded = false;
+			this.states.ceilingCollapse = true;
 		}
 		if( this.states.flySpawn > this.times.flySpawn ) {
 			this.states.flySpawn = -Game.DELTASECOND * 2;
@@ -988,6 +989,7 @@ FrogBoss.prototype.update = function(){
 					fly.itemDrop = false;
 					this.flies[i] = fly;
 					game.addObject( fly );
+					break;
 				}
 			}
 		}
@@ -6733,8 +6735,8 @@ Healer.prototype.postrender = function(g,c){
 window.language = "english";
 window._messages = {
 	"intro_text" : {
-		"english" : "The folk of the land of Cahan have been plagued for centuries by a yearly spell they call \"The Trance\". Victims are drawn to the bowels of demonic temples where they're never heard from again. After our hero lost his father to the trance, he set on a mission to rescue him. You must destroy the five demonic temples to enter the final temple that houses your father.",
-		"engrish" : "Ethnic Cahan of land, has been plagued for centuries by every year spell which they referred to as a \"Trance\". Victims, they are drawn deep into the demon of the temple that is never heard from again. Our hero, after losing his father to the trance, he was set to turn on the mission to rescue him. You must destroy the 5 devil temple to enter the housing final temple your father."
+		"english" : "A distant war has torn the land to pieces. Forced from their homes your people search for a new land to settle far away from the conflict. Though peace reigns so too does poverty. To save your new homeland you journey to the castles of the mysterious Beast Lords who want for nothing to take what you need for your people to survive.",
+		"engrish" : "Distant war has hurt the land. The people will search for their home to a new land is safe from a distance dispute. Look out for poverty. In the castle of a mysterious Beast Lords take what is necessary for what is needed to survive. You will save the new home."
 	},
 	"introduction" : {
 		"english" : "Intro",
@@ -7612,7 +7614,11 @@ Mayor.prototype.update = function(){
 	
 	if( this.open ) {
 		game.pause = true;
-		if( Mayor.introduction ) {
+		if( Mayor.disabled ) {
+			if( input.state("fire") == 1 || input.state("pause") == 1 || input.state("jump") == 1 ) {
+				this.close();
+			}
+		} else if( Mayor.introduction ) {
 			if( input.state("fire") == 1 ) {
 				this.text_progress++;
 				if( this.text_progress >= this.text.length){
@@ -7658,7 +7664,9 @@ Mayor.prototype.update = function(){
 
 Mayor.prototype.postrender = function(g,c){
 	if( this.open ) {
-		if( Mayor.introduction ) {
+		if( Mayor.disabled ) {
+			renderDialog(g, "Sorry, you cannot build your town in this demo.");
+		} else if( Mayor.introduction ) {
 			renderDialog(g, this.text[this.text_progress]);
 		} else {
 			var left = game.resolution.x / 2 - 128;
@@ -7684,6 +7692,7 @@ Mayor.prototype.postrender = function(g,c){
 
 Mayor.ongoingProjects = ["farm", "mine"];
 Mayor.introduction = true;
+Mayor.disabled = true;
 
  /* platformer/menu_item.js*/ 
 
@@ -8225,6 +8234,9 @@ function TitleMenu(){
 
 TitleMenu.prototype.update = function(){
 	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
+		//Display game object
+		game.element.style.display = "block";
+		
 		this.loading = false;
 		if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
@@ -8242,7 +8254,6 @@ TitleMenu.prototype.update = function(){
 				this.progress = 9.0;
 			} else if( this.start_options ) {
 				//Start game
-				audio.play("pause");
 				this.startGame();
 			} else {
 				this.start_options = true;
@@ -8262,7 +8273,7 @@ TitleMenu.prototype.render = function(g,c){
 		//g.fillStyle = "#FFF";
 		//g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
 	} else if( this.start ) {
-		
+		sprites.loading.render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
 		
@@ -8325,10 +8336,12 @@ TitleMenu.prototype.render = function(g,c){
 TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(){
-	this.start = true;
 	
-	dataManager.reset();
 	if(this.cursor == 1) {
+		this.start = true;
+		audio.play("pause");
+		dataManager.reset();
+		
 		var world = new WorldMap(0,0);
 		world.mode = this.cursor > 0 ? 1 : 0;
 		
@@ -8340,9 +8353,10 @@ TitleMenu.prototype.startGame = function(){
 		
 		world.trigger("activate");
 	} else { 
-		ga("send","event","start_intro");
-		dataManager.loadMap(game,_map_maps[0]);
-		audio.stop("music_intro");
+		audio.play("negative");
+		//ga("send","event","start_intro");
+		//dataManager.loadMap(game,_map_maps[0]);
+		//audio.stop("music_intro");
 	}
 }
 

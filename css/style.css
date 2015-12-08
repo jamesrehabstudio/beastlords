@@ -4,7 +4,8 @@ h1, h2, h3, h4 { font-size:14px; font-weight:normal; }
 body, html { 
     overflow-x: hidden; 
     overflow-y: auto;
-	background: black;
+	
+	background:url("/img/loading.png") black center top no-repeat;
 }
 
 h2{
@@ -27,14 +28,16 @@ div.wrap {
 }
 
 #game { 
-	background:black;
+	//background:black;
 	position:relative;
 	overflow:hidden;
 	image-rendering: pixelated; /* future */
 	image-rendering: -webkit-optimize-contrast; /* webkit */
 	image-rendering: -moz-crisp-edges; /* Firefox */
 	cursor:pointer;
+	display:none;
 }
+div.fullscreen_wrap{}
 div.fullscreen_wrap #game {
 	cursor:none;
 }

@@ -58,7 +58,11 @@ Mayor.prototype.update = function(){
 	
 	if( this.open ) {
 		game.pause = true;
-		if( Mayor.introduction ) {
+		if( Mayor.disabled ) {
+			if( input.state("fire") == 1 || input.state("pause") == 1 || input.state("jump") == 1 ) {
+				this.close();
+			}
+		} else if( Mayor.introduction ) {
 			if( input.state("fire") == 1 ) {
 				this.text_progress++;
 				if( this.text_progress >= this.text.length){
@@ -104,7 +108,9 @@ Mayor.prototype.update = function(){
 
 Mayor.prototype.postrender = function(g,c){
 	if( this.open ) {
-		if( Mayor.introduction ) {
+		if( Mayor.disabled ) {
+			renderDialog(g, "Sorry, you cannot build your town in this demo.");
+		} else if( Mayor.introduction ) {
 			renderDialog(g, this.text[this.text_progress]);
 		} else {
 			var left = game.resolution.x / 2 - 128;
@@ -130,3 +136,4 @@ Mayor.prototype.postrender = function(g,c){
 
 Mayor.ongoingProjects = ["farm", "mine"];
 Mayor.introduction = true;
+Mayor.disabled = true;

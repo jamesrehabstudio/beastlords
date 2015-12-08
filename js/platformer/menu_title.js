@@ -48,6 +48,9 @@ function TitleMenu(){
 
 TitleMenu.prototype.update = function(){
 	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
+		//Display game object
+		game.element.style.display = "block";
+		
 		this.loading = false;
 		if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
@@ -65,7 +68,6 @@ TitleMenu.prototype.update = function(){
 				this.progress = 9.0;
 			} else if( this.start_options ) {
 				//Start game
-				audio.play("pause");
 				this.startGame();
 			} else {
 				this.start_options = true;
@@ -85,7 +87,7 @@ TitleMenu.prototype.render = function(g,c){
 		//g.fillStyle = "#FFF";
 		//g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
 	} else if( this.start ) {
-		
+		sprites.loading.render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
 		
@@ -148,10 +150,12 @@ TitleMenu.prototype.render = function(g,c){
 TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(){
-	this.start = true;
 	
-	dataManager.reset();
 	if(this.cursor == 1) {
+		this.start = true;
+		audio.play("pause");
+		dataManager.reset();
+		
 		var world = new WorldMap(0,0);
 		world.mode = this.cursor > 0 ? 1 : 0;
 		
@@ -163,8 +167,9 @@ TitleMenu.prototype.startGame = function(){
 		
 		world.trigger("activate");
 	} else { 
-		ga("send","event","start_intro");
-		dataManager.loadMap(game,_map_maps[0]);
-		audio.stop("music_intro");
+		audio.play("negative");
+		//ga("send","event","start_intro");
+		//dataManager.loadMap(game,_map_maps[0]);
+		//audio.stop("music_intro");
 	}
 }
