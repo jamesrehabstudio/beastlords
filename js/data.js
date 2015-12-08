@@ -7,7 +7,7 @@ function DataManager() {
 		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2},
 		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3},
 		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":3},
-		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":5},
+		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":3},
 		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
 		
 		

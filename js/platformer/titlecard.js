@@ -11,6 +11,12 @@ function TitleCard(x,y,p,o){
 	this.play = false;
 	this.text = "Place holder text";
 	
+	//Get title text
+	try{
+		var ct = dataManager.currentTemple;
+		this.text = i18n("templenames")[ct];
+	} catch (e){}
+	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
 			this.play = true;

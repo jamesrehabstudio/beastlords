@@ -6756,6 +6756,10 @@ window._messages = {
 		"english" : "Enter the world of Beast Lords. Beware, death will end the game.",
 		"engrish" : "Play the game. Please note, death is permanent."
 	},
+	"templenames" : {
+		"english" : ["Anahilt Fortress","The Gardens of Benburb", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"],
+		"engrish" : ["Anahilt Fortress","Benburb Gardens", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"]
+	},
 	"mayor_intro" : {
 		"english" : [
 			"Hello. I'm the Mayor of our town. Life is hard here.",
@@ -10838,6 +10842,12 @@ function TitleCard(x,y,p,o){
 	this.progress = 0.0;
 	this.play = false;
 	this.text = "Place holder text";
+	
+	//Get title text
+	try{
+		var ct = dataManager.currentTemple;
+		this.text = i18n("templenames")[ct];
+	} catch (e){}
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
