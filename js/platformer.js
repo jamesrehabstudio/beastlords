@@ -3,7 +3,7 @@ window.shaders = {};
 
 
 
- /* platformer/alter.js*/ 
+ /* platformer\alter.js*/ 
 
 Alter.prototype = new GameObject();
 Alter.prototype.constructor = GameObject;
@@ -80,7 +80,7 @@ Alter.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/arena.js*/ 
+ /* platformer\arena.js*/ 
 
 Arena.prototype = new GameObject();
 Arena.prototype.constructor = GameObject;
@@ -224,7 +224,7 @@ Arena.Waves = [
 	{"type":"majormonster", "count":3}
 ];
 
- /* platformer/background.js*/ 
+ /* platformer\background.js*/ 
 
 Background.prototype = new GameObject();
 Background.prototype.constructor = GameObject;
@@ -590,7 +590,7 @@ Background.pushLight = function(p,r,c){
 	}
 }
 
- /* platformer/boss_ammit.js*/ 
+ /* platformer\boss_ammit.js*/ 
 
 Ammit.prototype = new GameObject();
 Ammit.prototype.constructor = GameObject;
@@ -723,7 +723,7 @@ Ammit.prototype.update = function(){
 	}
 }
 
- /* platformer/boss_chort.js*/ 
+ /* platformer\boss_chort.js*/ 
 
 Chort.prototype = new GameObject();
 Chort.prototype.constructor = GameObject;
@@ -867,7 +867,7 @@ Chort.prototype.update = function(){
 	}
 }
 
- /* platformer/boss_frog.js*/ 
+ /* platformer\boss_frog.js*/ 
 
 FrogBoss.prototype = new GameObject();
 FrogBoss.prototype.constructor = GameObject;
@@ -1071,7 +1071,7 @@ FrogBoss.pos = {
 	"rleg" : new Point(-32,18)
 }
 
- /* platformer/boss_garmr.js*/ 
+ /* platformer\boss_garmr.js*/ 
 
 Garmr.prototype = new GameObject();
 Garmr.prototype.constructor = GameObject;
@@ -1230,7 +1230,7 @@ Garmr.prototype.render = function(g,c){
 }
 Garmr.prototype.idle = function(){}
 
- /* platformer/boss_marquis.js*/ 
+ /* platformer\boss_marquis.js*/ 
 
 Marquis.prototype = new GameObject();
 Marquis.prototype.constructor = GameObject;
@@ -1370,7 +1370,7 @@ Marquis.prototype.update = function(){
 	}
 }
 
- /* platformer/boss_minotaur.js*/ 
+ /* platformer\boss_minotaur.js*/ 
 
 Minotaur.prototype = new GameObject();
 Minotaur.prototype.constructor = GameObject;
@@ -1493,7 +1493,7 @@ Minotaur.prototype.update = function(){
 	
 }
 
- /* platformer/boss_poseidon.js*/ 
+ /* platformer\boss_poseidon.js*/ 
 
 Poseidon.prototype = new GameObject();
 Poseidon.prototype.constructor = GameObject;
@@ -1704,7 +1704,7 @@ Poseidon.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/boss_zoder.js*/ 
+ /* platformer\boss_zoder.js*/ 
 
 Zoder.prototype = new GameObject();
 Zoder.prototype.constructor = GameObject;
@@ -1861,7 +1861,7 @@ Zoder.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this, [g,c]);
 }
 
- /* platformer/bullet.js*/ 
+ /* platformer\bullet.js*/ 
 
 Bullet.prototype = new GameObject();
 Bullet.prototype.constructor = GameObject;
@@ -2169,7 +2169,7 @@ Explosion.prototype.render = function(g,c){
 	Background.pushLight( this.position.subtract(c), 360 * progress );
 }
 
- /* platformer/chancellor.js*/ 
+ /* platformer\chancellor.js*/ 
 
 Chancellor.prototype = new GameObject();
 Chancellor.prototype.constructor = GameObject;
@@ -2297,7 +2297,7 @@ Chancellor.prototype.postrender = function(g,c){
 
 Chancellor.introduction = true;
 
- /* platformer/cornerstone.js*/ 
+ /* platformer\cornerstone.js*/ 
 
 CornerStone.prototype = new GameObject();
 CornerStone.prototype.constructor = GameObject;
@@ -2374,7 +2374,7 @@ CornerStone.prototype.update = function(){
 }
 CornerStone.prototype.idle = function(){}
 
- /* platformer/damagetrigger.js*/ 
+ /* platformer\damagetrigger.js*/ 
 
 DamageTrigger.prototype = new GameObject();
 DamageTrigger.prototype.constructor = GameObject;
@@ -2406,7 +2406,7 @@ DamageTrigger.prototype.update = function(){
 	this.restTimer -= this.delta;
 }
 
- /* platformer/deathtrigger.js*/ 
+ /* platformer\deathtrigger.js*/ 
 
 DeathTrigger.prototype = new GameObject();
 DeathTrigger.prototype.constructor = GameObject;
@@ -2438,7 +2438,7 @@ function DeathTrigger(x,y){
 }
 
 
- /* platformer/debugger.js*/ 
+ /* platformer\debugger.js*/ 
 
 Debuger.prototype = new GameObject();
 Debuger.prototype.constructor = GameObject;
@@ -2461,7 +2461,7 @@ Debuger.prototype.update = function(){
 	if ( input.state('down') > 0 ) {  this.position.y += this.speed * this.delta }
 }
 
- /* platformer/detritus.js*/ 
+ /* platformer\detritus.js*/ 
 
 Detritus.prototype = new GameObject();
 Detritus.prototype.constructor = GameObject;
@@ -2522,7 +2522,7 @@ function Statue(x, y, d, ops){
 	this.interactive = false;
 }
 
- /* platformer/door.js*/ 
+ /* platformer\door.js*/ 
 
 Door.prototype = new GameObject();
 Door.prototype.constructor = GameObject;
@@ -2588,7 +2588,7 @@ Door.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/effects.js*/ 
+ /* platformer\effects.js*/ 
 
 EffectExplosion.prototype = new GameObject();
 EffectExplosion.prototype.constructor = GameObject;
@@ -2989,7 +2989,7 @@ var EffectList = {
 	}
 };
 
- /* platformer/enemy_amon.js*/ 
+ /* platformer\enemy_amon.js*/ 
 
 Amon.prototype = new GameObject();
 Amon.prototype.constructor = GameObject;
@@ -3055,7 +3055,7 @@ Amon.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_axedog.js*/ 
+ /* platformer\enemy_axedog.js*/ 
 
 Axedog.prototype = new GameObject();
 Axedog.prototype.constructor = GameObject;
@@ -3160,7 +3160,7 @@ Axedog.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_baller.js*/ 
+ /* platformer\enemy_baller.js*/ 
 
 Baller.prototype = new GameObject();
 Baller.prototype.constructor = GameObject;
@@ -3345,7 +3345,7 @@ BallerBall.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_batty.js*/ 
+ /* platformer\enemy_batty.js*/ 
 
 Batty.prototype = new GameObject();
 Batty.prototype.constructor = GameObject;
@@ -3481,7 +3481,7 @@ Batty.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_beaker.js*/ 
+ /* platformer\enemy_beaker.js*/ 
 
 Beaker.prototype = new GameObject();
 Beaker.prototype.constructor = GameObject;
@@ -3584,7 +3584,7 @@ Beaker.prototype.update = function(){
 	if( !this.grounded ) this.frame = 2;
 }
 
- /* platformer/enemy_bear.js*/ 
+ /* platformer\enemy_bear.js*/ 
 
 Bear.prototype = new GameObject();
 Bear.prototype.constructor = GameObject;
@@ -3730,7 +3730,7 @@ Bear.prototype.render = function(g,c){
 	);
 }
 
- /* platformer/enemy_bigbone.js*/ 
+ /* platformer\enemy_bigbone.js*/ 
 
 BigBones.prototype = new GameObject();
 BigBones.prototype.constructor = GameObject;
@@ -3864,7 +3864,7 @@ BigBones.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
- /* platformer/enemy_chaz.js*/ 
+ /* platformer\enemy_chaz.js*/ 
 
 Chaz.prototype = new GameObject();
 Chaz.prototype.constructor = GameObject;
@@ -3974,7 +3974,7 @@ Chaz.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_chazbike.js*/ 
+ /* platformer\enemy_chazbike.js*/ 
 
 ChazBike.prototype = new GameObject();
 ChazBike.prototype.constructor = GameObject;
@@ -4063,7 +4063,7 @@ ChazBike.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_crusher.js*/ 
+ /* platformer\enemy_crusher.js*/ 
 
 Crusher.prototype = new GameObject();
 Crusher.prototype.constructor = GameObject;
@@ -4139,7 +4139,7 @@ Crusher.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/enemy_deckard.js*/ 
+ /* platformer\enemy_deckard.js*/ 
 
 Deckard.prototype = new GameObject();
 Deckard.prototype.constructor = GameObject;
@@ -4306,7 +4306,7 @@ Deckard.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_derring.js*/ 
+ /* platformer\enemy_derring.js*/ 
 
 Derring.prototype = new GameObject();
 Derring.prototype.constructor = GameObject;
@@ -4359,7 +4359,7 @@ Derring.prototype.update = function(){
 	this.flip = this.force.x < 0;
 }
 
- /* platformer/enemy_dropper.js*/ 
+ /* platformer\enemy_dropper.js*/ 
 
 Dropper.prototype = new GameObject();
 Dropper.prototype.constructor = GameObject;
@@ -4394,7 +4394,7 @@ Dropper.prototype.update = function(){
 	this.cooldown -= this.delta;
 }
 
- /* platformer/enemy_father.js*/ 
+ /* platformer\enemy_father.js*/ 
 
 Father.prototype = new GameObject();
 Father.prototype.constructor = GameObject;
@@ -4471,7 +4471,7 @@ Father.prototype.update = function(){
 }
 Father.prototype.idle = function(){}
 
- /* platformer/enemy_flederknife.js*/ 
+ /* platformer\enemy_flederknife.js*/ 
 
 Flederknife.prototype = new GameObject();
 Flederknife.prototype.constructor = GameObject;
@@ -4537,7 +4537,7 @@ Flederknife.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_fly.js*/ 
+ /* platformer\enemy_fly.js*/ 
 
 Fly.prototype = new GameObject();
 Fly.prototype.constructor = GameObject;
@@ -4617,7 +4617,7 @@ Fly.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.5) % 2.0;
 }
 
- /* platformer/enemy_ghoul.js*/ 
+ /* platformer\enemy_ghoul.js*/ 
 
 Ghoul.prototype = new GameObject();
 Ghoul.prototype.constructor = GameObject;
@@ -4700,7 +4700,7 @@ Ghoul.prototype.update = function(){
 	this.frame_row = 0;
 }
 
- /* platformer/enemy_hammer.js*/ 
+ /* platformer\enemy_hammer.js*/ 
 
 HammerMathers.prototype = new GameObject();
 HammerMathers.prototype.constructor = GameObject;
@@ -4792,7 +4792,7 @@ HammerMathers.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_igbo.js*/ 
+ /* platformer\enemy_igbo.js*/ 
 
 Igbo.prototype = new GameObject();
 Igbo.prototype.constructor = GameObject;
@@ -4943,7 +4943,7 @@ Igbo.prototype.render = function(g,c){
 }
 
 
- /* platformer/enemy_knight.js*/ 
+ /* platformer\enemy_knight.js*/ 
 
 Knight.prototype = new GameObject();
 Knight.prototype.constructor = GameObject;
@@ -5139,7 +5139,7 @@ Knight.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this, [g,c]);
 }
 
- /* platformer/enemy_laughing.js*/ 
+ /* platformer\enemy_laughing.js*/ 
 
 Laughing.prototype = new GameObject();
 Laughing.prototype.constructor = GameObject;
@@ -5225,7 +5225,7 @@ Laughing.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.2 ) % 3;
 }
 
- /* platformer/enemy_lilghost.js*/ 
+ /* platformer\enemy_lilghost.js*/ 
 
 LilGhost.prototype = new GameObject();
 LilGhost.prototype.constructor = GameObject;
@@ -5307,7 +5307,7 @@ LilGhost.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/enemy_malphas.js*/ 
+ /* platformer\enemy_malphas.js*/ 
 
 Malphas.prototype = new GameObject();
 Malphas.prototype.constructor = GameObject;
@@ -5425,7 +5425,7 @@ Malphas.prototype.update = function(){
 	
 }
 
- /* platformer/enemy_malsum.js*/ 
+ /* platformer\enemy_malsum.js*/ 
 
 Malsum.prototype = new GameObject();
 Malsum.prototype.constructor = GameObject;
@@ -5486,7 +5486,7 @@ Malsum.prototype.update = function(){
 	this.frame_row = 0;
 }
 
- /* platformer/enemy_oriax.js*/ 
+ /* platformer\enemy_oriax.js*/ 
 
 Oriax.prototype = new GameObject();
 Oriax.prototype.constructor = GameObject;
@@ -5598,7 +5598,7 @@ Oriax.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_ratgut.js*/ 
+ /* platformer\enemy_ratgut.js*/ 
 
 Ratgut.prototype = new GameObject();
 Ratgut.prototype.constructor = GameObject;
@@ -5715,7 +5715,7 @@ Ratgut.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_sentry.js*/ 
+ /* platformer\enemy_sentry.js*/ 
 
 Sentry.prototype = new GameObject();
 Sentry.prototype.constructor = GameObject;
@@ -5800,7 +5800,7 @@ Sentry.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_shell.js*/ 
+ /* platformer\enemy_shell.js*/ 
 
 Shell.prototype = new GameObject();
 Shell.prototype.constructor = GameObject;
@@ -5878,7 +5878,7 @@ Shell.prototype.update = function(){
 	this.strike( new Line(-8,-4,8,4) );
 }
 
- /* platformer/enemy_shooter.js*/ 
+ /* platformer\enemy_shooter.js*/ 
 
 Shooter.prototype = new GameObject();
 Shooter.prototype.constructor = GameObject;
@@ -6023,7 +6023,7 @@ Shooter.prototype.render = function(g,c){
 }
 Shooter.prototype.idle = function(){}
 
- /* platformer/enemy_skeleton.js*/ 
+ /* platformer\enemy_skeleton.js*/ 
 
 Skeleton.prototype = new GameObject();
 Skeleton.prototype.constructor = GameObject;
@@ -6167,7 +6167,7 @@ Skeleton.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
- /* platformer/enemy_snakebullet.js*/ 
+ /* platformer\enemy_snakebullet.js*/ 
 
 SnakeBullet.prototype = new GameObject();
 SnakeBullet.prototype.constructor = GameObject;
@@ -6237,7 +6237,7 @@ SnakeBullet.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_svarog.js*/ 
+ /* platformer\enemy_svarog.js*/ 
 
 Svarog.prototype = new GameObject();
 Svarog.prototype.constructor = GameObject;
@@ -6312,7 +6312,7 @@ Svarog.prototype.update = function(){
 	this.states.cooldown -= this.delta;
 }
 
- /* platformer/enemy_yakseyo.js*/ 
+ /* platformer\enemy_yakseyo.js*/ 
 
 Yakseyo.prototype = new GameObject();
 Yakseyo.prototype.constructor = GameObject;
@@ -6411,7 +6411,7 @@ Yakseyo.prototype.update = function(){
 	}
 }
 
- /* platformer/enemy_yeti.js*/ 
+ /* platformer\enemy_yeti.js*/ 
 
 Yeti.prototype = new GameObject();
 Yeti.prototype.constructor = GameObject;
@@ -6521,7 +6521,7 @@ Yeti.prototype.update = function(){
 	}
 }
 
- /* platformer/exit.js*/ 
+ /* platformer\exit.js*/ 
 
 Exit.prototype = new GameObject();
 Exit.prototype.constructor = GameObject;
@@ -6554,7 +6554,7 @@ function Exit(x,y,t,o){
 }
 Exit.prototype.idle = function(){}
 
- /* platformer/gate.js*/ 
+ /* platformer\gate.js*/ 
 
 //transform
 
@@ -6623,7 +6623,7 @@ Gate.prototype.update = function(){
 	this.frame = Math.floor(Math.min(this.progress*5,4));
 }
 
- /* platformer/healer.js*/ 
+ /* platformer\healer.js*/ 
 
 Healer.prototype = new GameObject();
 Healer.prototype.constructor = GameObject;
@@ -6730,7 +6730,7 @@ Healer.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/i18n.js*/ 
+ /* platformer\i18n.js*/ 
 
 window.language = "english";
 window._messages = {
@@ -6859,7 +6859,7 @@ function i18n(name,replace){
 	return out;
 }
 
- /* platformer/item.js*/ 
+ /* platformer\item.js*/ 
 
 Item.prototype = new GameObject();
 Item.prototype.constructor = GameObject;
@@ -7412,7 +7412,7 @@ Item.enchantWeapon = function(weapon){
 	weapon.filter = "gold";
 }
 
- /* platformer/lamp.js*/ 
+ /* platformer\lamp.js*/ 
 
 Lamp.prototype = new GameObject();
 Lamp.prototype.constructor = GameObject;
@@ -7436,7 +7436,7 @@ Lamp.prototype.render = function(g,c){
 	Background.pushLight( this.position.subtract(c), 180 );
 }
 
- /* platformer/lift.js*/ 
+ /* platformer\lift.js*/ 
 
 Lift.prototype = new GameObject();
 Lift.prototype.constructor = GameObject;
@@ -7511,7 +7511,7 @@ Lift.prototype.render = function(g,c){
 	
 }
 
- /* platformer/mapdebug.js*/ 
+ /* platformer\mapdebug.js*/ 
 
 MapDebug.prototype = new GameObject();
 MapDebug.prototype.constructor = GameObject;
@@ -7552,7 +7552,7 @@ MapDebug.prototype.render = function(g,c){
 }
 MapDebug.prototype.idle = function(){}
 
- /* platformer/mayor.js*/ 
+ /* platformer\mayor.js*/ 
 
 Mayor.prototype = new GameObject();
 Mayor.prototype.constructor = GameObject;
@@ -7694,7 +7694,7 @@ Mayor.ongoingProjects = ["farm", "mine"];
 Mayor.introduction = true;
 Mayor.disabled = true;
 
- /* platformer/menu_item.js*/ 
+ /* platformer\menu_item.js*/ 
 
 ItemMenu.prototype = new GameObject();
 ItemMenu.prototype.constructor = GameObject;
@@ -7822,7 +7822,7 @@ ItemMenu.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/menu_pause.js*/ 
+ /* platformer\menu_pause.js*/ 
 
 PauseMenu.prototype = new GameObject();
 PauseMenu.prototype.constructor = GameObject;
@@ -8182,7 +8182,7 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 	} catch (err) {}
 }
 
- /* platformer/menu_title.js*/ 
+ /* platformer\menu_title.js*/ 
 
 TitleMenu.prototype = new GameObject();
 TitleMenu.prototype.constructor = GameObject;
@@ -8360,7 +8360,7 @@ TitleMenu.prototype.startGame = function(){
 	}
 }
 
- /* platformer/millblades.js*/ 
+ /* platformer\millblades.js*/ 
 
 MillBlades.prototype = new GameObject();
 MillBlades.prototype.constructor = GameObject;
@@ -8405,7 +8405,7 @@ MillBlades.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/modules.js*/ 
+ /* platformer\modules.js*/ 
 
 var mod_rigidbody = {
 	'init' : function(){
@@ -9018,7 +9018,7 @@ EnemyStruck = function(obj,pos,damage){
 	);
 }
 
- /* platformer/movingplatform.js*/ 
+ /* platformer\movingplatform.js*/ 
 
 MovingPlatform.prototype = new GameObject();
 MovingPlatform.prototype.constructor = GameObject;
@@ -9084,7 +9084,7 @@ MovingPlatform.prototype.render = function(g,c){
 	game.tileSprite.render(g, new Point(this.position.x+0-c.x, this.position.y+8-c.y), 1, 15);
 }
 
- /* platformer/platform_generator.js*/ 
+ /* platformer\platform_generator.js*/ 
 
 PlatformGenerator.prototype = new GameObject();
 PlatformGenerator.prototype.constructor = GameObject;
@@ -9126,7 +9126,7 @@ function PlatformGenerator(x,y,t,o){
 	}
 }
 
- /* platformer/player.js*/ 
+ /* platformer\player.js*/ 
 
 Player.prototype = new GameObject();
 Player.prototype.constructor = GameObject;
@@ -10202,7 +10202,7 @@ Player.prototype.postrender = function(g,c){
 	Background.pushLight( this.position.subtract(c), 240 );
 }
 
- /* platformer/prisoner.js*/ 
+ /* platformer\prisoner.js*/ 
 
 Prisoner.prototype = new GameObject();
 Prisoner.prototype.constructor = GameObject;
@@ -10323,7 +10323,7 @@ Prisoner.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/renderers.js*/ 
+ /* platformer\renderers.js*/ 
 
 var textLookup = [
 	" ","!","\"","#","$","%","&","'","(",")","*","+",",","-",".","/",
@@ -10392,7 +10392,7 @@ function renderDialog(g,s, top){
 	textArea(g,s,left+16,top+16,width-32, height-32);
 }
 
- /* platformer/shop.js*/ 
+ /* platformer\shop.js*/ 
 
 Shop.prototype = new GameObject();
 Shop.prototype.constructor = GameObject;
@@ -10583,7 +10583,7 @@ Shop.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/Spawn.js*/ 
+ /* platformer\Spawn.js*/ 
 
 Spawn.prototype = new GameObject();
 Spawn.prototype.constructor = GameObject;
@@ -10702,7 +10702,7 @@ Spawn.enemies = {
 	]
 };
 
- /* platformer/start.js*/ 
+ /* platformer\start.js*/ 
 
 function game_start(g){
 	var shaders = window.shaders;
@@ -10730,7 +10730,7 @@ function game_start(g){
 	//dataManager.randomLevel(game,0);
 }
 
- /* platformer/tiles.js*/ 
+ /* platformer\tiles.js*/ 
 
 window.BLANK_TILE = 16;
 
@@ -10842,7 +10842,7 @@ BreakableTile.prototype.update = function(){
 
 BreakableTile.unbreakable = 232;
 
- /* platformer/titlecard.js*/ 
+ /* platformer\titlecard.js*/ 
 
 TitleCard.prototype = new GameObject();
 TitleCard.prototype.constructor = GameObject;
@@ -10893,7 +10893,7 @@ TitleCard.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer/villager.js*/ 
+ /* platformer\villager.js*/ 
 
 Villager.prototype = new GameObject();
 Villager.prototype.constructor = GameObject;
@@ -11054,7 +11054,7 @@ Villager.TextOptions = [
 {"rarity":1.0,"frames":[[0,2],[0,3]],"conditions":{"min_town":1,"nation":2},"message":["You hold your weapon well. A sign of a true warrior."]}
 ];
 
- /* platformer/waterfall.js*/ 
+ /* platformer\waterfall.js*/ 
 
 Waterfall.prototype = new GameObject();
 Waterfall.prototype.constructor = GameObject;
@@ -11077,7 +11077,7 @@ Waterfall.prototype.prerender = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
- /* platformer/WaystoneChest.js*/ 
+ /* platformer\WaystoneChest.js*/ 
 
 WaystoneChest.prototype = new GameObject();
 WaystoneChest.prototype.constructor = GameObject;
@@ -11144,7 +11144,7 @@ WaystoneChest.prototype.update = function(g,c){
 	}
 }
 
- /* platformer/well.js*/ 
+ /* platformer\well.js*/ 
 
 Well.prototype = new GameObject();
 Well.prototype.constructor = GameObject;
@@ -11218,7 +11218,7 @@ Well.prototype.render = function(g,c){
 }
 Well.prototype.idle = function(){}
 
- /* platformer/worldmap.js*/ 
+ /* platformer\worldmap.js*/ 
 
 WorldMap.prototype = new GameObject();
 WorldMap.prototype.constructor = GameObject;
@@ -11245,39 +11245,36 @@ function WorldMap(x, y){
 	new Player(0,0);
 	
 	this.camera = new Point();
-	this.player_start = new Point(16*38,16*27);
+	this.player_start = new Point(16*56,16*26);
 	this.player = new Point(this.player_start.x,this.player_start.y);
 	this.rest = 0;
 	
-	this.width = 64;
-	this.height = 46;
-	this.tiles = [
-		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,0,15,15,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,81,82,83,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,81,83,0,0,15,15,15,0,15,15,15,15,15,15,15,0,97,98,99,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,15,15,15,0,0,0,97,98,83,15,15,15,0,0,0,0,0,0,0,0,15,81,98,98,98,82,83,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,15,15,0,0,0,0,15,15,0,0,0,81,82,98,98,99,15,0,0,0,0,0,0,0,15,15,15,15,97,98,98,98,98,99,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,15,15,0,0,15,15,0,0,0,0,97,98,98,114,115,15,15,15,0,0,0,0,15,15,0,0,0,113,114,98,98,98,115,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,15,15,15,15,0,0,0,0,0,113,114,115,0,0,0,0,15,15,15,15,15,15,0,0,0,0,0,0,97,98,99,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,113,114,115,0,0,0,0,0,15,0,0,0,0,0,15,15,15,15,15,15,0,15,15,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,15,15,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,15,15,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,15,15,15,15,0,15,15,15,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,0,0,15,15,15,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,0,0,0,0,0,15,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,81,82,83,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,97,98,99,0,0,0,0,0,0,15,15,15,15,15,15,15,15,15,15,15,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,113,98,98,83,0,81,82,83,0,15,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,97,98,99,0,97,98,99,15,15,15,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,15,15,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,81,98,98,115,0,113,98,98,15,15,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,97,98,99,0,0,0,113,115,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,15,0,113,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,15,15,15,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,0,0,15,15,15,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,15,15,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,15,81,82,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,81,82,83,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,99,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,113,115,15,15,15,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,114,115,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,115,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,97,98,98,98,98,99,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,81,82,83,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,113,98,98,98,98,115,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,97,98,99,15,0,15,15,15,15,15,0,0,0,0,0,0,0,0,0,113,98,98,99,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,83,0,0,0,15,15,15,0,0,0,0,0,0,15,15,0,0,113,114,115,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,99,15,0,15,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,115,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,115,0,15,15,15,15,0,0,15,15,15,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,15,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,15,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-		[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,198,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,215,215,198,1,1,1,1,197,215,215,215,215,215,215,198,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,229,236,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,215,231,231,231,214,215,216,215,215,231,231,231,231,231,231,231,231,215,215,198,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,198,245,252,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,214,215,229,231,232,215,215,215,215,215,216,231,231,231,231,231,231,231,215,215,198,1,1,1,1,1,1,197,198,1,1,1,1,1,1,1,1,1,1,1,1,229,236,1,1,1,1,1,1,197,198,1,1,1,1,1,1,197,215,215,231,231,231,214,231,231,201,230,231,216,231,231,231,231,232,231,231,231,231,231,231,231,231,130,231,215,198,1,1,1,1,229,236,1,1,1,1,1,1,1,1,1,1,1,1,245,252,1,1,197,198,1,1,229,236,1,1,1,1,197,215,129,231,231,231,231,231,230,231,231,231,229,231,236,231,232,247,247,248,231,231,231,231,231,231,231,231,231,231,231,232,1,1,1,1,245,252,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,233,231,198,1,245,252,1,1,1,197,231,231,231,231,231,231,231,231,246,229,231,231,201,247,202,231,236,231,231,231,231,231,231,231,231,231,231,231,231,232,250,251,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,229,231,231,198,1,1,1,1,197,231,231,231,231,231,231,130,231,231,231,201,247,229,231,65,236,247,202,231,231,231,231,231,231,231,231,231,231,231,129,232,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,245,230,231,231,215,215,215,215,231,231,231,231,231,231,231,231,231,231,231,231,231,201,247,203,202,56,50,50,50,50,57,231,231,231,231,56,50,50,50,232,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,217,1,1,1,1,1,1,1,1,1,229,231,231,231,231,231,231,231,129,231,231,231,231,231,231,231,88,66,66,66,66,66,105,56,73,214,215,216,231,72,50,57,231,56,73,129,231,231,232,3,4,1,1,1,1,1,217,215,215,219,1,1,1,217,231,1,1,1,1,1,1,1,1,1,245,229,231,231,231,231,231,231,231,231,56,50,50,50,50,50,86,50,50,50,50,50,50,73,231,230,231,236,231,231,231,49,130,49,231,231,231,236,251,22,37,4,1,1,1,217,231,130,231,231,215,215,214,215,216,1,1,1,1,1,1,1,1,1,1,245,250,230,231,231,231,231,231,231,49,231,231,231,231,231,65,231,231,236,250,250,250,250,229,203,247,202,231,231,129,72,50,73,231,232,247,252,1,34,22,37,3,4,217,231,231,231,231,214,215,215,231,231,232,1,1,1,1,1,1,1,1,1,1,1,1,233,231,231,231,231,130,231,49,231,231,232,250,250,204,250,250,252,1,1,1,1,245,204,229,231,231,231,231,231,231,231,236,251,1,1,1,1,34,22,19,20,230,231,231,231,231,230,231,231,214,215,216,1,1,1,1,1,1,1,1,1,1,1,1,233,231,231,231,56,50,50,73,231,232,251,1,1,1,1,1,1,1,1,1,1,1,1,245,250,229,231,231,231,231,232,252,1,1,1,1,1,1,34,22,37,230,231,231,231,231,246,247,230,230,231,232,1,1,1,1,1,1,1,1,1,1,1,1,233,231,231,231,49,231,231,231,232,251,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,245,250,250,250,250,251,1,1,1,1,1,1,1,2,38,21,230,231,231,231,231,231,231,230,246,230,231,1,1,1,1,1,1,1,1,1,1,1,1,233,231,231,231,49,231,231,231,232,1,1,1,214,215,215,215,215,215,219,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,38,19,20,230,130,231,231,231,214,215,231,231,230,231,1,1,1,1,1,1,1,1,1,1,1,1,249,230,231,231,49,231,231,232,251,1,1,214,231,130,231,231,231,231,231,219,1,1,1,1,1,1,1,1,1,1,1,1,1,1,214,215,215,219,21,35,36,230,231,231,231,231,230,231,231,231,246,247,1,1,1,1,1,1,1,1,1,1,1,1,217,231,231,231,49,231,231,232,1,1,214,231,231,231,231,231,231,231,231,231,215,219,1,1,1,1,1,1,1,1,1,1,214,215,231,231,231,231,219,1,1,249,230,231,231,231,246,247,230,231,231,231,1,1,1,1,1,1,1,1,1,1,1,1,233,231,231,231,72,57,231,232,1,214,231,129,231,231,231,231,231,231,231,231,231,231,219,1,1,1,1,1,1,214,215,215,231,231,56,50,231,231,232,1,1,1,249,230,231,231,231,231,246,247,230,231,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,231,72,50,50,131,50,50,50,50,50,50,57,231,231,231,129,231,231,231,215,215,215,215,215,215,231,231,231,56,50,73,231,231,236,251,1,1,1,1,249,230,231,130,231,231,231,230,231,1,1,1,1,1,1,1,1,1,1,1,233,231,231,231,231,231,231,232,251,147,230,231,231,231,231,231,49,231,231,231,231,231,231,231,231,231,231,231,231,231,231,231,231,49,231,231,231,232,252,1,1,1,1,1,1,249,230,231,231,231,231,246,247,1,1,1,1,1,1,1,1,1,197,215,231,130,231,231,231,231,231,236,1,1,249,250,229,231,231,231,72,50,50,50,50,57,231,231,231,231,231,231,231,231,231,129,231,49,231,231,236,251,1,1,1,1,1,1,1,1,249,250,250,250,250,250,250,1,1,1,1,1,1,1,1,197,231,231,231,231,231,231,231,130,232,252,1,1,1,1,245,230,231,231,231,231,231,231,231,72,57,231,231,231,231,129,231,231,56,50,50,73,231,232,252,1,1,1,197,198,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,231,231,231,231,231,232,1,1,1,1,1,1,249,229,231,231,130,231,231,231,231,72,50,50,53,50,50,50,50,73,231,231,231,231,232,1,1,1,1,229,236,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,233,231,231,130,231,231,231,231,231,231,232,1,1,1,197,198,1,1,245,230,231,231,231,231,231,231,231,231,231,49,231,231,231,231,231,231,231,231,231,232,1,1,1,1,245,252,1,197,198,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,229,231,231,231,231,231,130,231,231,236,251,1,1,1,229,236,1,1,1,230,231,231,231,231,231,231,130,231,231,49,231,231,231,231,129,231,231,130,231,232,1,1,1,1,1,1,1,229,236,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,245,230,231,231,231,231,231,231,236,252,1,1,1,1,245,252,1,1,1,249,230,231,231,231,231,231,231,231,231,49,231,231,231,231,231,231,231,231,231,232,1,1,1,1,1,1,1,245,252,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,229,231,231,231,231,232,247,252,1,1,197,198,1,1,1,1,1,1,1,233,231,231,231,129,231,231,231,231,49,231,231,231,231,231,231,231,231,231,232,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,245,250,250,250,250,251,1,1,1,1,229,236,1,1,1,1,1,1,217,231,231,231,231,231,231,231,231,231,49,231,231,231,130,231,231,231,231,231,231,216,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,245,252,1,1,1,1,1,1,233,231,231,231,231,231,231,231,231,231,49,231,231,231,231,231,231,231,231,231,231,231,215,215,215,216,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,231,231,231,231,56,50,73,231,231,231,231,231,231,231,231,231,231,231,231,231,231,232,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,214,215,216,231,231,49,130,231,231,231,231,231,231,231,231,231,231,231,231,231,232,247,251,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,214,231,231,232,231,231,49,231,231,231,231,231,231,231,231,231,231,231,231,231,236,251,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,233,231,231,214,215,216,231,231,232,231,56,73,231,231,231,231,231,231,231,231,231,231,231,231,232,252,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,217,214,215,215,230,231,231,216,231,231,216,49,231,231,231,231,231,231,231,231,231,231,231,231,231,232,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,233,230,231,231,246,213,247,248,231,231,232,49,231,231,231,231,231,231,231,231,231,231,231,231,236,251,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,214,231,231,231,231,72,57,232,246,247,248,49,231,231,231,231,232,250,250,230,234,234,234,232,252,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,230,231,231,231,231,232,213,248,231,231,231,49,231,231,231,231,236,1,1,249,250,250,250,251,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,246,230,231,231,231,232,72,50,50,50,50,73,231,231,231,232,252,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,230,231,232,247,230,215,215,216,231,231,214,215,216,231,236,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,231,246,247,248,231,230,214,215,216,215,215,231,231,232,232,252,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,197,231,231,231,231,231,231,231,231,231,231,246,230,231,231,216,231,231,231,232,235,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,0,15,15,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,81,82,83,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,81,83,0,0,15,15,15,0,15,15,15,15,15,15,15,0,97,98,99,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,15,15,15,0,0,0,97,98,83,15,15,15,0,0,0,0,0,0,0,0,15,81,98,98,98,82,83,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,15,15,0,0,0,0,15,15,0,0,0,81,82,98,98,99,15,0,0,0,0,0,0,0,15,15,15,15,97,98,98,98,98,99,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,15,15,0,0,15,15,0,0,0,0,97,98,98,114,115,15,15,15,0,0,0,0,15,15,0,0,0,113,114,98,98,98,115,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,15,15,15,15,0,0,0,0,0,113,114,115,0,0,0,0,15,15,15,15,15,15,0,0,0,0,0,0,97,98,99,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,113,114,115,0,0,0,0,0,15,0,0,0,0,0,15,15,15,15,15,15,0,15,15,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,15,15,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,15,15,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,15,15,15,15,0,15,15,15,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,0,0,15,15,15,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,0,0,0,0,0,15,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,81,82,83,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,97,98,99,0,0,0,0,0,0,15,15,15,15,15,15,15,15,15,15,15,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,113,98,98,83,0,81,82,83,0,15,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,97,98,99,0,97,98,99,15,15,15,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,15,15,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,81,98,98,115,0,113,98,98,15,15,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,15,15,15,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,97,98,99,0,0,0,113,115,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,15,0,113,114,115,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,15,15,15,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,0,0,15,15,15,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,15,15,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,15,81,82,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,97,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,82,83,81,82,83,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,113,98,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,98,98,99,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,113,115,15,15,15,0,0,0,0,0,0,0,0,0,0,81,82,98,98,98,98,114,115,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,81,98,98,98,98,98,115,0,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,0,0,0,15,15,15,0,0,0,0,0,0,0,0,0,97,98,98,98,98,99,0,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,81,82,83,0,0,0,0,15,15,15,0,0,0,0,0,0,0,0,113,98,98,98,98,115,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,97,98,99,15,0,15,15,15,15,15,0,0,0,0,0,0,0,0,0,113,98,98,99,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,98,98,98,83,0,0,0,15,15,15,0,0,0,0,0,0,15,15,0,0,113,114,115,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,98,98,98,99,15,0,15,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,98,98,115,15,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,113,114,115,0,15,15,15,15,0,0,15,15,15,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,0,15,0,15,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,15,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-	];
+	this.width = 112;
+	this.height = 64;
 	
-	
+	/*
 	var block_list = [0,37,38,39,40,64,65,66,67,68,69,87,88,103,104];
 	for(var i=0;i<this.tiles[0].length;i++){
 		if(this.tiles[2][i]==0 && block_list.indexOf(this.tiles[1][i]-1) >= 0){
 			this.tiles[2][i] = this.tiles[1][i];
 		}
-	}
+	}*/
 	
 	this.temples = [];
-	for(var i=0; i<5; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":i+this.seed });
+	for(var i=0; i<6; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":i+this.seed });
 	this.temples[0].position.x = 47*16; this.temples[0].position.y = 22*16;
 	this.temples[1].position.x = 16*16; this.temples[1].position.y = 20*16;
 	this.temples[2].position.x = 31*16; this.temples[2].position.y = 14*16;
 	this.temples[3].position.x = 59*16; this.temples[3].position.y = 18*16;
 	this.temples[4].position.x = 27*16; this.temples[4].position.y = 38*16;
-	//this.temples[5].position.x = 84*16; this.temples[5].position.y = 59*16; 
+	this.temples[5].position.x = 84*16; this.temples[5].position.y = 59*16; 
 	//this.temples[6].position.x = 52*16; this.temples[6].position.y = 1*16; this.temples[6].complete = true;
 	//this.temples[7].position.x = 30*16; this.temples[7].position.y = 14*16; this.temples[7].complete = true;
 	//this.temples[8].position.x = 66*16; this.temples[8].position.y = 36*16; this.temples[8].complete = true;
 	
 	this.towns = [];
+	this.playerIcon = null;
+	
 	for(var i=0; i<1; i++) this.towns.push({ "id":i, "nation":Math.floor(Math.random()*3), "faith":Math.floor(Math.random()*3), "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3), "seed":i+this.seed });
 	this.towns[0].position.x = 36*16; this.towns[0].position.y = 27*16; this.towns[0].name = "Aghalee"; size = 1;
 	
@@ -11366,20 +11363,57 @@ function WorldMap(x, y){
 		}
 	});
 }
+WorldMap.prototype.buildtiles = function(){
+	game.tiles = [
+		new Array(window._map_world.front.data.length),
+		window._map_world.back.data,
+		window._map_world.front.data,
+	];
+	if( true ){
+		this.appendTiles(window._map_world.road0,1);
+	}
+	if( true ){
+		this.appendTiles(window._map_world.road1,1);
+	}
+	if( true ){
+		this.appendTiles(window._map_world.island0,1);
+		this.appendTiles(window._map_world.island0front,2);
+	}
+	if( true ){
+		this.appendTiles(window._map_world.island1,1);
+		this.appendTiles(window._map_world.island1front,2);
+	}
+}
+WorldMap.prototype.appendTiles = function(layer,index){	
+	for(var i=0; i < layer.data.length; i++){
+		var x = layer.xoff + Math.floor(i%layer.width);
+		var y = layer.yoff + Math.floor(i/layer.width);
+		var j = x + y * this.width;
+		if( layer.data[i] > 0 ){
+			game.tiles[index][j] = layer.data[i];
+			if (layer.data[i] == 143){
+				game.tiles[index][j] = 0;
+			}
+		}
+	}
+}
+
 WorldMap.prototype.showMap = function(){
 	game.clearAll();
 	game.addObject(this);
-	game.tiles = this.tiles;
+	this.buildtiles();
 	game.tileDimension = new Line(0,0,this.width,this.height);
 	game.bounds = new Line(0,0,this.width*16,this.height*16);
 	game.tileSprite = sprites.world;
 	
 	game.addObject(new WorldPlayer(this.player.x, this.player.y));
-	for(var i=0; i<this.temples.length; i++){
-		var wl = new WorldLocale(this.temples[i].position.x, this.temples[i].position.y,"temple");
-		wl.index = i; wl.frame = this.temples[i].complete ? 4 : 3;
-		game.addObject(wl);
+	
+	for(var i=0; i<window._map_world.objects.length; i++){
+		var objdata = window._map_world.objects[i];
+		var obj = new window[objdata[2]](objdata[0], objdata[1],"none",objdata[3]);
+		game.addObject(obj);
 	}
+	/*
 	for(var i=0; i<this.towns.length; i++){
 		var wl = new WorldLocale(this.towns[i].position.x, this.towns[i].position.y,"town");
 		wl.index = i; wl.frame = 2 + this.towns[i].size; wl.frame_row = 7;
@@ -11394,7 +11428,7 @@ WorldMap.prototype.showMap = function(){
 	
 	for(var i=0; i<50; i++){
 		game.addObject(new WorldEncounter(Math.random()*16*this.width, Math.random()*16*this.height));
-	}
+	}*/
 }
 WorldMap.prototype.encounter = function(){
 	if(!this.active) return;
@@ -11459,19 +11493,29 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 	}
 	var type = locale.type;
 	var i = locale.index;
+	var avatar = window.game.getObject(WorldPlayer);
 	
-	if( type == "temple" && !this.temples[i].complete ){
+	if( type == "boat" ){
+		objs = window.game.getObjects(WorldLocale);
+		for(var i=0; i<objs.length;i++){
+			if(objs[i].type=="boat" && objs[i].index==locale.gotoIndex){
+				avatar.position.x = objs[i].position.x;
+				avatar.position.y = objs[i].position.y;
+			}
+		}
+		this.rest = Game.DELTASECOND * 0.25;
+	} else if( type == "temple" && !this.temples[i].complete ){
 		this.active = false;
-		this.player.x = this.temples[i].position.x;
-		this.player.y = this.temples[i].position.y;
+		this.player.x = locale.position.x;
+		this.player.y = locale.position.y;
 		this.rest = Game.DELTASECOND * 0.25;
 		
 		dataManager.randomLevel(game, i, this.temples[i].seed);
 		audio.playAs("music_temple1", "music");
 	} else if(type == "town"){
 		this.active = false;
-		this.player.x = this.towns[i].position.x;
-		this.player.y = this.towns[i].position.y;
+		this.player.x = locale.position.x;
+		this.player.y = locale.position.y;
 		this.rest = Game.DELTASECOND * 0.25;
 		
 		dataManager.randomTown(game, this.towns[i]);
@@ -11614,7 +11658,7 @@ WorldPlayer.prototype.update = function(){
 
 WorldLocale.prototype = new GameObject();
 WorldLocale.prototype.constructor = GameObject;
-function WorldLocale(x,y,type){	
+function WorldLocale(x,y,type,properties){	
 	this.constructor();
 	
 	this.position.x = x;
@@ -11628,6 +11672,32 @@ function WorldLocale(x,y,type){
 	
 	this.frame = 3;
 	this.frame_row = 5;
+	
+	properties = properties || {};
+	if("boat" in properties){
+		this.type = "boat";
+		this.index = properties["boat"] * 1;
+		this.gotoIndex = properties["to"] * 1;
+		this.frame = 3;
+		this.frame_row = 7;
+	}
+	if("temple" in properties){
+		this.type = "temple";
+		this.index = properties["temple"] * 1;
+		this.frame = 3;
+		this.frame_row = 5;
+		try{
+			if( _world.temples[this.index].complete ){
+				this.frame = 4;
+			}
+		} catch (ex) {}
+	}
+	if("town" in properties){
+		this.type = "town";
+		this.index = properties["town"] * 1;
+		this.frame = 3;
+		this.frame_row = 7;
+	}
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof WorldPlayer ){
@@ -11703,7 +11773,7 @@ WorldEncounter.prototype.update = function(){
 	}
 }
 
- /* platformer/scenes/dream.js*/ 
+ /* platformer\scenes\dream.js*/ 
 
 Dream.prototype = new GameObject();
 Dream.prototype.constructor = GameObject;
@@ -11809,7 +11879,7 @@ Dream.prototype.postrender = function(g,c){
 	g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 }
 
- /* platformer/scenes/ending.js*/ 
+ /* platformer\scenes\ending.js*/ 
 
 SceneEnding.prototype = new GameObject();
 SceneEnding.prototype.constructor = GameObject;
@@ -11929,7 +11999,7 @@ SceneEnding.prototype.render = function(g,c){
 }
 SceneEnding.prototype.idle = function(){}
 
- /* platformer/scenes/intro.js*/ 
+ /* platformer\scenes\intro.js*/ 
 
 SceneIntro.prototype = new GameObject();
 SceneIntro.prototype.constructor = GameObject;
@@ -12002,7 +12072,7 @@ SceneIntro.prototype.render = function(g,c){
 }
 SceneIntro.prototype.idle = function(){}
 
- /* platformer/scenes/introend.js*/ 
+ /* platformer\scenes\introend.js*/ 
 
 SceneEndIntro.prototype = new GameObject();
 SceneEndIntro.prototype.constructor = GameObject;
@@ -12139,7 +12209,7 @@ SceneEndIntro.prototype.render = function(g,c){
 	}
 }
 
- /* platformer/scenes/transform.js*/ 
+ /* platformer\scenes\transform.js*/ 
 
 //transform
 
@@ -12193,67 +12263,67 @@ SceneTransform.prototype.render = function(g,c){
 	this.sprite.render(g,this.position.subtract(c),this.frame);
 }
 
- /* platformer/shaders/2d-fragment-blur.shader*/ 
+ /* platformer\shaders\2d-fragment-blur.shader*/ 
 
-window.shaders["2d-fragment-blur"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nuniform float blur;\r\n\r\nvarying vec2 v_texCoord;\r\nvarying vec2 v_position;\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	vec4 u = texture2D(u_image, v_texCoord + vec2(0,-blur));\r\n	vec4 d = texture2D(u_image, v_texCoord + vec2(0,blur));\r\n	vec4 l = texture2D(u_image, v_texCoord + vec2(-blur,0));\r\n	vec4 r = texture2D(u_image, v_texCoord + vec2(blur,0));\r\n	\r\n	if( v_position.y < 3.0 ) u = color;\r\n	if( v_position.y > 14.0 ) d = color;\r\n	if( v_position.x < 3.0 ) l = color;\r\n	if( v_position.x > 14.0 ) r = color;\r\n	\r\n	float activeColors = 0.0;\r\n	if( color.a > 0.1 ) activeColors++;\r\n	if( u.a > 0.1 ) activeColors++;\r\n	if( d.a > 0.1 ) activeColors++;\r\n	if( l.a > 0.1 ) activeColors++;\r\n	if( r.a > 0.1 ) activeColors++;\r\n	\r\n	color.r = (color.r + u.r + d.r + l.r + r.r) / activeColors;\r\n	color.g = (color.g + u.g + d.g + l.g + r.g) / activeColors;\r\n	color.b = (color.b + u.b + d.b + l.b + r.b) / activeColors;\r\n	color.a = (color.a + u.a + d.a + l.a + r.a) / 5.0;\r\n	\r\n	//color.a = 1.0; color.r = v_position.x/16.0; color.g = v_position.y/16.0; color.b = 0.0;\r\n	gl_FragColor = color;\r\n}";
-
-
-
- /* platformer/shaders/2d-fragment-glow.shader*/ 
-
-window.shaders["2d-fragment-glow"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	float pixSize = 1.0 / 256.0;\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	if( color.a < 0.1 ) {\r\n		if( \r\n			texture2D(u_image, v_texCoord - vec2(pixSize,0)).a > 0.1 || \r\n			texture2D(u_image, v_texCoord + vec2(pixSize,0)).a > 0.1 || \r\n			texture2D(u_image, v_texCoord - vec2(0, pixSize)).a > 0.1 || \r\n			texture2D(u_image, v_texCoord + vec2(0, pixSize)).a > 0.1\r\n		) {\r\n			color = u_color;\r\n		}\r\n	}\r\n	gl_FragColor = color;\r\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\r\n}";
+window.shaders["2d-fragment-blur"] = "precision mediump float;\nuniform sampler2D u_image;\nuniform float blur;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	vec4 u = texture2D(u_image, v_texCoord + vec2(0,-blur));\n	vec4 d = texture2D(u_image, v_texCoord + vec2(0,blur));\n	vec4 l = texture2D(u_image, v_texCoord + vec2(-blur,0));\n	vec4 r = texture2D(u_image, v_texCoord + vec2(blur,0));\n	\n	if( v_position.y < 3.0 ) u = color;\n	if( v_position.y > 14.0 ) d = color;\n	if( v_position.x < 3.0 ) l = color;\n	if( v_position.x > 14.0 ) r = color;\n	\n	float activeColors = 0.0;\n	if( color.a > 0.1 ) activeColors++;\n	if( u.a > 0.1 ) activeColors++;\n	if( d.a > 0.1 ) activeColors++;\n	if( l.a > 0.1 ) activeColors++;\n	if( r.a > 0.1 ) activeColors++;\n	\n	color.r = (color.r + u.r + d.r + l.r + r.r) / activeColors;\n	color.g = (color.g + u.g + d.g + l.g + r.g) / activeColors;\n	color.b = (color.b + u.b + d.b + l.b + r.b) / activeColors;\n	color.a = (color.a + u.a + d.a + l.a + r.a) / 5.0;\n	\n	//color.a = 1.0; color.r = v_position.x/16.0; color.g = v_position.y/16.0; color.b = 0.0;\n	gl_FragColor = color;\n}";
 
 
 
- /* platformer/shaders/2d-fragment-lightbeam.shader*/ 
+ /* platformer\shaders\2d-fragment-glow.shader*/ 
 
-window.shaders["2d-fragment-lightbeam"] = "precision mediump float;\r\nuniform vec4 u_color;\r\nvarying vec2 v_texCoord;\r\n\r\nvoid main() {\r\n	vec4 color = u_color;\r\n	color.a *= 1.0 - v_texCoord.y;\r\n	gl_FragColor = color;\r\n}";
-
-
-
- /* platformer/shaders/2d-fragment-shader.shader*/ 
-
-window.shaders["2d-fragment-shader"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	gl_FragColor = u_color * texture2D(u_image, v_texCoord);\r\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\r\n}";
+window.shaders["2d-fragment-glow"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	float pixSize = 1.0 / 256.0;\n	vec4 color = texture2D(u_image, v_texCoord);\n	if( color.a < 0.1 ) {\n		if( \n			texture2D(u_image, v_texCoord - vec2(pixSize,0)).a > 0.1 || \n			texture2D(u_image, v_texCoord + vec2(pixSize,0)).a > 0.1 || \n			texture2D(u_image, v_texCoord - vec2(0, pixSize)).a > 0.1 || \n			texture2D(u_image, v_texCoord + vec2(0, pixSize)).a > 0.1\n		) {\n			color = u_color;\n		}\n	}\n	gl_FragColor = color;\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\n}";
 
 
 
- /* platformer/shaders/2d-fragment-solid.shader*/ 
+ /* platformer\shaders\2d-fragment-lightbeam.shader*/ 
 
-window.shaders["2d-fragment-solid"] = "precision mediump float;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	gl_FragColor = u_color;\r\n}";
-
-
-
- /* platformer/shaders/2d-vertex-scale.shader*/ 
-
-window.shaders["2d-vertex-scale"] = "attribute vec2 a_position;\r\nattribute vec2 a_texCoord;\r\nuniform vec2 scale;\r\nuniform vec2 u_resolution;\r\nuniform vec2 u_camera;\r\n\r\nvarying vec2 v_texCoord;\r\nvarying vec2 v_position;\r\n\r\nvoid main() {\r\n	vec2 pos = a_position * scale + u_camera - u_resolution * 0.5;\r\n	//pos.y = u_resolution.y + pos.y*-1.0;\r\n	pos.y = pos.y*-1.0;\r\n	//pos.x = pos.x - u_resolution.x;\r\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\r\n	v_texCoord = a_texCoord;\r\n	v_position = a_position;\r\n}";
+window.shaders["2d-fragment-lightbeam"] = "precision mediump float;\nuniform vec4 u_color;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = u_color;\n	color.a *= 1.0 - v_texCoord.y;\n	gl_FragColor = color;\n}";
 
 
 
- /* platformer/shaders/2d-vertex-shader.shader*/ 
+ /* platformer\shaders\2d-fragment-shader.shader*/ 
 
-window.shaders["2d-vertex-shader"] = "attribute vec2 a_position;\r\nattribute vec2 a_texCoord;\r\nuniform vec2 u_resolution;\r\nuniform vec2 u_camera;\r\n\r\nvarying vec2 v_texCoord;\r\nvarying vec2 v_position;\r\n\r\nvoid main() {\r\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\r\n	//pos.y = u_resolution.y + pos.y*-1.0;\r\n	pos.y = pos.y*-1.0;\r\n	//pos.x = pos.x - u_resolution.x;\r\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\r\n	v_texCoord = a_texCoord;\r\n	v_position = a_position;\r\n}";
-
-
-
- /* platformer/shaders/back-vertex-shader.shader*/ 
-
-window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\r\nattribute vec2 a_texCoord;\r\nuniform vec2 u_resolution;\r\n\r\nvarying vec2 v_texCoord;\r\n\r\nvoid main() {\r\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\r\n	//pos.x = pos.x - u_resolution.x;\r\n	gl_Position = vec4(a_position, 0, 1);\r\n	v_texCoord = a_texCoord;\r\n}";
+window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	gl_FragColor = u_color * texture2D(u_image, v_texCoord);\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\n}";
 
 
 
- /* platformer/shaders/fragment-greytocolor.shader*/ 
+ /* platformer\shaders\2d-fragment-solid.shader*/ 
 
-window.shaders["fragment-greytocolor"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform vec4 u_color;\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	if( abs((color.r+color.g+color.b)-color.r*3.0) < 0.04 ) {\r\n		gl_FragColor = color * u_color;\r\n	} else { \r\n		gl_FragColor = color;\r\n	}\r\n}";
-
-
-
- /* platformer/shaders/fragment-heat.shader*/ 
-
-window.shaders["fragment-heat"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nuniform float heat;\r\nvarying vec2 v_texCoord;\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	color.r = color.r * (1.0-heat) + heat;\r\n	color.g = color.g * (1.0-heat) + heat * 0.4;\r\n	color.b = color.b * (1.0-heat);\r\n	gl_FragColor = color;\r\n}";
+window.shaders["2d-fragment-solid"] = "precision mediump float;\nuniform vec4 u_color;\n\nvoid main() {\n	gl_FragColor = u_color;\n}";
 
 
 
- /* platformer/shaders/fragment-shifthue.shader*/ 
+ /* platformer\shaders\2d-vertex-scale.shader*/ 
 
-window.shaders["fragment-shifthue"] = "precision mediump float;\r\nuniform sampler2D u_image;\r\nvarying vec2 v_texCoord;\r\nuniform float u_shift;\r\n\r\nvec3 rgb2hsv(vec3 c)\r\n{\r\n	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);\r\n	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));\r\n	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));\r\n\r\n	float d = q.x - min(q.w, q.y);\r\n	float e = 1.0e-10;\r\n	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);\r\n}\r\n\r\nvec3 hsv2rgb(vec3 c)\r\n{\r\n	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\r\n	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\r\n	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\r\n}\r\n\r\nvoid main() {\r\n	vec4 color = texture2D(u_image, v_texCoord);\r\n	vec3 hsv = rgb2hsv(color.rgb);\r\n	hsv.x = mod(hsv.x + u_shift, 1.0);\r\n	vec3 rgb = hsv2rgb(hsv);\r\n	gl_FragColor = vec4(rgb,color.a);\r\n}";
+window.shaders["2d-vertex-scale"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 scale;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position * scale + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
+
+
+
+ /* platformer\shaders\2d-vertex-shader.shader*/ 
+
+window.shaders["2d-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
+
+
+
+ /* platformer\shaders\back-vertex-shader.shader*/ 
+
+window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(a_position, 0, 1);\n	v_texCoord = a_texCoord;\n}";
+
+
+
+ /* platformer\shaders\fragment-greytocolor.shader*/ 
+
+window.shaders["fragment-greytocolor"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	if( abs((color.r+color.g+color.b)-color.r*3.0) < 0.04 ) {\n		gl_FragColor = color * u_color;\n	} else { \n		gl_FragColor = color;\n	}\n}";
+
+
+
+ /* platformer\shaders\fragment-heat.shader*/ 
+
+window.shaders["fragment-heat"] = "precision mediump float;\nuniform sampler2D u_image;\nuniform float heat;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	color.r = color.r * (1.0-heat) + heat;\n	color.g = color.g * (1.0-heat) + heat * 0.4;\n	color.b = color.b * (1.0-heat);\n	gl_FragColor = color;\n}";
+
+
+
+ /* platformer\shaders\fragment-shifthue.shader*/ 
+
+window.shaders["fragment-shifthue"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_shift;\n\nvec3 rgb2hsv(vec3 c)\n{\n	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);\n	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));\n	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));\n\n	float d = q.x - min(q.w, q.y);\n	float e = 1.0e-10;\n	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);\n}\n\nvec3 hsv2rgb(vec3 c)\n{\n	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	vec3 hsv = rgb2hsv(color.rgb);\n	hsv.x = mod(hsv.x + u_shift, 1.0);\n	vec3 rgb = hsv2rgb(hsv);\n	gl_FragColor = vec4(rgb,color.a);\n}";
 

@@ -2,7 +2,7 @@ window._version = "0.2.1";
 
 function DataManager() {
 	this.temples = [
-		{"tiles":"tiles1","size":10,"maxkeys":1,"treasures":1,"difficulty":0},
+		{"tiles":"tiles2","size":10,"maxkeys":1,"treasures":1,"difficulty":0},
 		{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1},
 		{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2},
 		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3},

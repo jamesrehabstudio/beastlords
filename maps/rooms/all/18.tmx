@@ -44,7 +44,7 @@
  <objectgroup name="objects" width="64" height="15">
   <properties>
    <property name="max_temple" value="1"/>
-   <property name="rarity" value="0.01"/>
+   <property name="rarity" value="0"/>
   </properties>
   <object name="Dropper" gid="232" x="256" y="48">
    <properties>

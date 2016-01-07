@@ -3,7 +3,7 @@
  <tileset firstgid="1" name="tiles1" tilewidth="16" tileheight="16">
   <image source="../../../img/tiles/tiles0.gif" trans="ff00ff" width="256" height="256"/>
  </tileset>
- <layer name="back" width="16" height="15">
+ <layer name="back" width="16" height="15" visible="0">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
