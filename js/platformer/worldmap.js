@@ -18,6 +18,7 @@ function WorldMap(x, y){
 	
 	this.dreams = 0;
 	this.lastDream = 0;
+	this.checkpoint = 0;
 	
 	window._world = this;
 	new Player(0,0);
@@ -29,6 +30,10 @@ function WorldMap(x, y){
 	
 	this.width = 112;
 	this.height = 64;
+	
+	this.quests = {
+		"q1" : 0
+	}
 	
 	/*
 	var block_list = [0,37,38,39,40,64,65,66,67,68,69,87,88,103,104];
@@ -147,17 +152,17 @@ WorldMap.prototype.buildtiles = function(){
 		window._map_world.back.data,
 		window._map_world.front.data,
 	];
-	if( true ){
+	if( this.checkpoint >= 2 ){
 		this.appendTiles(window._map_world.road0,1);
 	}
-	if( true ){
+	if( this.checkpoint >= 5 ){
 		this.appendTiles(window._map_world.road1,1);
 	}
-	if( true ){
+	if( this.checkpoint >= 3 ){
 		this.appendTiles(window._map_world.island0,1);
 		this.appendTiles(window._map_world.island0front,2);
 	}
-	if( true ){
+	if( this.checkpoint >= 4 ){
 		this.appendTiles(window._map_world.island1,1);
 		this.appendTiles(window._map_world.island1front,2);
 	}
@@ -304,7 +309,11 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.player.y = locale.position.y;
 		this.rest = Game.DELTASECOND * 0.25;
 		
-		dataManager.loadMap(game,_map_maps[i],{"direction":dir});
+		//Load new map
+		dataManager.loadMap(
+			locale.index,
+			mergeLists(locale.properties,{"direction":dir})
+		);
 		audio.playAs("music_town", "music");
 	}
 }
@@ -444,6 +453,7 @@ function WorldLocale(x,y,type,properties){
 	this.origin = new Point(-.5,-.5);
 	this.type = type;
 	this.index = 0;
+	this.active = true;
 	
 	this.height = this.width = 8;
 	this.sprite = sprites.world;
@@ -452,6 +462,19 @@ function WorldLocale(x,y,type,properties){
 	this.frame_row = 5;
 	
 	properties = properties || {};
+	this.properties = properties;
+	
+	if("var_checkpoint" in properties){
+		if(properties["var_checkpoint"]*1 > window._world.checkpoint){
+			this.active = false;
+			this.visible = false;
+		}
+	}
+	if("map" in properties){
+		this.type = "map";
+		this.index = properties["map"];
+		this.visible = false;
+	}
 	if("boat" in properties){
 		this.type = "boat";
 		this.index = properties["boat"] * 1;
@@ -478,9 +501,11 @@ function WorldLocale(x,y,type,properties){
 	}
 	
 	this.on("collideObject", function(obj){
-		if( obj instanceof WorldPlayer ){
-			var dir = new Point(obj.force.x, obj.force.y);
-			_world.enterLocale( this, dir );
+		if( this.active ){
+			if( obj instanceof WorldPlayer ){
+				var dir = new Point(obj.force.x, obj.force.y);
+				_world.enterLocale( this, dir );
+			}
 		}
 	});
 }

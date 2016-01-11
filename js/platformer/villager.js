@@ -95,6 +95,8 @@ Villager.prototype.postrender = function(g,c){
 }
 Villager.prototype.idle = function(){}
 Villager.getMessage = function(town){
+	return Villager.TextOptions[0];
+	
 	var total = 0.0;
 	for(var i=0; i < Villager.TextOptions.length; i++) {
 		var conditions = Villager.TextOptions[i].conditions;

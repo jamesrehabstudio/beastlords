@@ -196,6 +196,8 @@ function Game( elm ) {
 		tileVerts.push(x+ts); tileVerts.push(y+ts);
 	}
 	this._tileBuffer = new Float32Array(tileVerts);
+	
+	this.hudBuffer = this.g.createF();
 	this.backBuffer = this.g.createF();
 	
 	if( localStorage.getItem("sfxvolume") ){
@@ -303,6 +305,7 @@ Game.prototype.update = function( ) {
 	this.renderTree = [];
 	this.prerenderTree = [];
 	this.postrenderTree = [];
+	this.hudrenderTree = [];
 	//rebuild Interactive Objects
 	//this.renderTree = new BSPTree(this.bounds, 4);
 	var temp_interactive = new BSPTree(this.bounds, 4);
@@ -352,6 +355,17 @@ Game.prototype.update = function( ) {
 					for(var i=0; i < obj.modules.length; i++){
 						if("postrender" in obj.modules[i]){
 							this.postrenderTree.push( obj );
+							break;
+						}
+					}
+				}
+				
+				if ( obj.hudrender instanceof Function ) {
+					this.hudrenderTree.push( obj );
+				}else{
+					for(var i=0; i < obj.modules.length; i++){
+						if("hudrender" in obj.modules[i]){
+							this.hudrenderTree.push( obj );
 							break;
 						}
 					}
@@ -443,6 +457,23 @@ Game.prototype.render = function( ) {
 		}
 	}
 	
+	//Render Hud
+	//this.hudBuffer.use(this.g);
+	for ( var i in this.hudrenderTree ) {
+		var obj = this.hudrenderTree[i];
+		if ( obj instanceof GameObject ) {
+			if(obj.hudrender instanceof Function){
+				obj.hudrender(this.g, camera_center);
+			}
+			for(var i=0; i < obj.modules.length; i++){
+				if( "hudrender" in obj.modules[i] ) {
+					obj.modules[i].hudrender.apply(obj,[this.g, camera_center]);
+				}
+			}
+		}
+	}
+	//this.hudBuffer.reset(this.g);
+	
 	
 	//Debug, show collisions
 	if ( window.debug && this.lines instanceof BSPTree ) {
@@ -456,6 +487,7 @@ Game.prototype.render = function( ) {
 	
 	this.g.viewport(0,0,this.element.width,this.element.height);
 	this.g.renderBackbuffer(this.backBuffer.texture);
+	this.g.renderBackbuffer(this.hudBuffer.texture);
 	//this.g.renderImage(0,0,this.resolution.x,this.resolution.y, this.backBuffer.texture);
 	
 	this.g.flush();
@@ -680,6 +712,7 @@ Game.prototype.t_move = function(obj, x, y) {
 	var hitbox = obj.corners();
 	var interation_size = 1.0;
 	var ts = 16;
+	var y_pull = 0;
 	
 	var limits = [
 		Number.MAX_SAFE_INTEGER, //Furthest left
@@ -709,28 +742,40 @@ Game.prototype.t_move = function(obj, x, y) {
 		var yinc = obj.height/ Math.ceil(obj.height/ts);
 		
 		for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc )
-		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) { 
+		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
 			var corner = new Point(Math.floor(_x/ts)*ts, Math.floor(_y/ts)*ts);
 			if( dir == 0 ){
 				if( tile == 137 ) {
+					// 1 to .5
 					var peak = (corner.y) + Math.max((hitbox.left-corner.x)*0.5, 1);
 					limits[1] = Math.min(limits[1], peak-1);
+					y_pull = x * 0.5; 
 				} else if( tile == 138 ) {
+					// .5 to 0
 					var peak = (corner.y+(ts*0.5)) + Math.max((hitbox.left-corner.x)*0.5, 1);
 					limits[1] = Math.min(limits[1], peak-1);
+					y_pull = x * 0.5; 
 				} else if( tile == 139 ) {
+					// 1 to 0
 					var peak = (corner.y) + Math.max(hitbox.left-corner.x, 1);
 					limits[1] = Math.min(limits[1], peak-1);
+					y_pull = x; 
 				} else if( tile == 140 ) {
+					// 0 to 1
 					var peak = (corner.y+ts) + Math.max(corner.x-hitbox.right, 1-ts);
 					limits[1] = Math.min(limits[1], peak-1);
+					y_pull = -x;
 				} else if( tile == 141 ) {
+					//0 to 0.5
 					var peak = (corner.y+ts) + Math.max((corner.x-hitbox.right) * 0.5, 1-ts*0.5);
 					limits[1] = Math.min(limits[1], peak-1);
+					y_pull = -x * 0.5;
 				} else if( tile == 142 ) {
+					//0.5 to 1
 					var peak = (corner.y+ts) + Math.max((corner.x-(hitbox.right+ts)) * 0.5, 1-ts);
 					limits[1] = Math.min(limits[1], peak-1);
+					y_pull = -x * 0.5;
 				} else if( tile != 0 && exclusive.indexOf(tile) < 0 ) {
 					if(y>0) limits[1] = Math.min(limits[1], corner.y);
 					if(y<0) limits[3] = Math.max(limits[3], corner.y+ts);
@@ -744,6 +789,7 @@ Game.prototype.t_move = function(obj, x, y) {
 		}
 	
 		//for(var i=0; i<limits.length; i++) limits[i] -= margins[i];
+		
 		if( dir == 1) {
 			limits[0] += margins[2] - 0.1;
 			limits[2] += margins[0] + 0.1;
@@ -755,6 +801,7 @@ Game.prototype.t_move = function(obj, x, y) {
 				obj.trigger("collideHorizontal", x);
 			}
 		} else {
+			obj.position.y += y_pull;
 			limits[1] += margins[3] - 0.1;
 			limits[3] += margins[1] + 0.1;
 			if( obj.position.y > limits[1] ) {
@@ -1610,6 +1657,18 @@ Math.mod = function(x,n){
 }
 Math.lerp = function(x,y,delta){
 	return x + (y-x) * delta;
+}
+mergeLists = function(a,b){ 
+	var out = {};
+	for(var i in a){
+		out[i] = a[i];
+	}
+	for(var i in b){
+		if(!(i in out)){
+			out[i] = b[i];
+		}
+	}
+	return out;
 }
 CanvasRenderingContext2D.prototype.scaleFillRect = function(x,y,w,h){
 	this.fillRect(x*pixel_scale,y*pixel_scale,w*pixel_scale,h*pixel_scale);

@@ -7,6 +7,7 @@ function PauseMenu(){
 	
 	this.open = false;
 	this.page = 1;
+	this.pageCount = 5;
 	this.cursor = 0;
 	this.mapCursor = new Point();
 	this.stat_cursor = 0;
@@ -113,8 +114,8 @@ PauseMenu.prototype.update = function(){
 			
 			//Navigate pages
 			if( this.page != 1 || input.state("fire") <= 0 ) {
-				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % 4; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? 3 : this.page-1); audio.play("cursor"); }
+				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); audio.play("cursor"); }
 			}
 		}
 	} else {
@@ -179,7 +180,7 @@ PauseMenu.prototype.revealMap = function(secrets){
 		}
 	}
 }
-PauseMenu.prototype.render = function(g,c){
+PauseMenu.prototype.hudrender = function(g,c){
 	var xpos = (game.resolution.x - 256) * 0.5;
 	
 	/*
@@ -302,6 +303,26 @@ PauseMenu.prototype.render = function(g,c){
 				
 				spell_i++;
 			}
+		} else if ( this.page == 4 ){
+			leftx = game.resolution.x*0.5 - 224*0.5;
+			
+			boxArea(g,leftx,8,224,224);
+			textArea(g,"Quests",leftx+52,20);
+			
+			var y_pos = 0;
+			for(var q in window._world.quests){
+				try{
+					if(window._world.quests[q]){
+						var name = i18n("quest_names")[q][0];
+						var complete = window._world.quests[q] == "complete";
+						if( complete ) textArea(g,"@",leftx+16,40+y_pos);
+						textArea(g,name,leftx+32,40+y_pos);
+						y_pos += 12;
+					}
+				}catch(err){
+					//Error handling for broken quests
+				}
+			}
 		}
 	}
 }
@@ -354,4 +375,18 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 			g.scaleFillRect(1 + pos.x + offset.x, 1 + pos.y + offset.y, 4, 3 );
 		}
 	} catch (err) {}
+}
+
+PauseMenu.convertTileDataToMapData = function(data){
+	//Used to convert raw map data to something useable by the map engine
+	out = new Array(data.length);
+	for(var i=0; i < data.length; i++){
+		if(data[i]==0){
+			out[i] = null;
+		}else{
+			var d = data[i] - 1;
+			out[i] = Math.floor(d/16)+(d%16)*16;
+		}
+	}
+	return out;
 }

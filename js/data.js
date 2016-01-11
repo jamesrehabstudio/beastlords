@@ -187,7 +187,18 @@ DataManager.prototype.itemUnlock = function(name){
 	}
 }
 	
-DataManager.prototype.loadMap = function(g,map,options){
+DataManager.prototype.loadMap = function(map,options){
+	var g = window.game;
+	
+	if(!(map in window._map_maps)){
+		console.error("Cannot find map with name: "+ map);
+		return;
+	} else{
+		map = window._map_maps[map];
+	}
+	
+	var playerStartPositions = new Array();
+	
 	this.slices = [];
 	g.clearAll();
 	g.tileSprite = sprites.town;
@@ -217,38 +228,51 @@ DataManager.prototype.loadMap = function(g,map,options){
 	}
 	if("objects" in map) for(var i=0; i < map.objects.length; i++){
 		var obj = map.objects[i];
-		g.addObject( new window[obj[2]](
-			obj[0],
-			obj[1],
-			null,
-			obj[3]
-		));
+		if(obj[2] == "Player"){
+			playerStartPositions.push(obj);
+		} else {
+			g.addObject( new window[obj[2]](
+				obj[0],
+				obj[1],
+				null,
+				obj[3]
+			));
+		}
 	}
 	var mapTiles = [];
-	if( "map_tile" in map ) {
-		var map_tiles = map["map_tile"].split(",");
-		for(var j=0; j < map_tiles.length; j++ ){
-			mapTiles[j] = map_tiles[j];
-		}
+	if( "map" in map ) {
+		mapTiles = PauseMenu.convertTileDataToMapData(map["map"]);
 	}
+	
 	if( _player instanceof Player ){
-		_player.keys = new Array();
+		window._player.keys = new Array();
+		window._player.lock_overwrite = false;
+	} else {
+		window._player = new Player();
 	}
-	if( _player instanceof Player && !game.getObject(Player) ) {
-		g.addObject(_player);
-		if( "direction" in options && options.direction.x < 0 ){
-			_player.position.x = g.bounds.end.x - 64;
-			_player.position.y = 200;
-			_player.flip = true;
-		} else {
-			_player.position.x = 64;
-			_player.position.y = 200;
-			_player.flip = false;
+	
+	//Default player spawns positions
+	_player.position.x = 64;
+	_player.position.x = 200;
+	
+	//Go through all player starts and determine the correct start
+	for(var i=0;i<playerStartPositions.length;i++){
+		var obj = playerStartPositions[i];
+		if("start" in obj[3]){
+			if(
+				obj[3].start == options.start ||
+				obj[3].start == "west" && options.direction.x >= 0 ||
+				obj[3].start == "east" && options.direction.x < 0
+			){
+				window._player.position.x = obj[0];
+				window._player.position.y = obj[1];
+				break;
+			}
 		}
-		_player.lock = g.bounds;
-		_player.lock_overwrite = false;
-		_player.keys = new Array();
 	}
+	
+	g.addObject(window._player);
+	
 	var pm = new PauseMenu();
 	pm.map = mapTiles;
 	pm.mapDimension = mapDimension;

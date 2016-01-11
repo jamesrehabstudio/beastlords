@@ -6837,6 +6837,16 @@ window._messages = {
 			"smith" : "Black smith",
 			"bank" : "Bank"
 		}
+	},
+	"quest_names" : {
+		"english" : {
+			"q1" : "The lost Egg",
+			"q2" : "Quest 2"
+		},
+		"engrish" : {
+			"q1" : "The lost Egg",
+			"q2" : "Quest 2"
+		}
 	}
 	
 };
@@ -7833,6 +7843,7 @@ function PauseMenu(){
 	
 	this.open = false;
 	this.page = 1;
+	this.pageCount = 5;
 	this.cursor = 0;
 	this.mapCursor = new Point();
 	this.stat_cursor = 0;
@@ -7939,8 +7950,8 @@ PauseMenu.prototype.update = function(){
 			
 			//Navigate pages
 			if( this.page != 1 || input.state("fire") <= 0 ) {
-				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % 4; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? 3 : this.page-1); audio.play("cursor"); }
+				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); audio.play("cursor"); }
 			}
 		}
 	} else {
@@ -8005,7 +8016,7 @@ PauseMenu.prototype.revealMap = function(secrets){
 		}
 	}
 }
-PauseMenu.prototype.render = function(g,c){
+PauseMenu.prototype.hudrender = function(g,c){
 	var xpos = (game.resolution.x - 256) * 0.5;
 	
 	/*
@@ -8128,6 +8139,22 @@ PauseMenu.prototype.render = function(g,c){
 				
 				spell_i++;
 			}
+		} else if ( this.page == 4 ){
+			leftx = game.resolution.x*0.5 - 224*0.5;
+			
+			boxArea(g,leftx,8,224,224);
+			textArea(g,"Quests",leftx+52,20);
+			
+			var y_pos = 0;
+			for(var q in window._world.quests){
+				if(window._world.quests[q]){
+					var name = i18n("quest_names")[q];
+					var complete = window._world.quests[q] == "complete";
+					if( complete ) textArea(g,"@",leftx+16,40+y_pos);
+					textArea(g,name,leftx+32,40+y_pos);
+					y_pos += 12;
+				}
+			}
 		}
 	}
 }
@@ -8180,6 +8207,20 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 			g.scaleFillRect(1 + pos.x + offset.x, 1 + pos.y + offset.y, 4, 3 );
 		}
 	} catch (err) {}
+}
+
+PauseMenu.convertTileDataToMapData = function(data){
+	//Used to convert raw map data to something useable by the map engine
+	out = new Array(data.length);
+	for(var i=0; i < data.length; i++){
+		if(data[i]==0){
+			out[i] = null;
+		}else{
+			var d = data[i] - 1;
+			out[i] = Math.floor(d/16)+(d%16)*16;
+		}
+	}
+	return out;
 }
 
  /* platformer\menu_title.js*/ 
@@ -9193,11 +9234,12 @@ function Player(x, y){
 	
 	
 	this.speeds = {
-		"inertiaGrounded" : 0.9,
-		"inertiaAir" : 0.2,
-		"frictionGrounded" : 0.2,
+		"inertiaGrounded" : 0.4,
+		"inertiaAir" : 0.1,
+		"frictionGrounded" : 0.1,
 		"frictionAir" : 0.05,
-		"airGlide" : 0.0
+		"airGlide" : 0.0,
+		"breaks": 0.4
 	};
 	
 	this.weapon = {
@@ -9368,6 +9410,12 @@ function Player(x, y){
 	this.addModule( mod_camera );
 	this.addModule( mod_combat );
 	
+	
+	this.stats = {
+		"attack" : 1,
+		"defence" : 1,
+		"technique" : 1
+	}
 	this.life = 100;
 	this.lifeMax = 100;
 	this.mana = 3;
@@ -9380,7 +9428,7 @@ function Player(x, y){
 	this.team = 1;
 	this.mass = 1;
 	this.death_time = Game.DELTASECOND * 2;
-	this.invincible_time = 20;
+	this.invincible_time = Game.DELTASECOND;
 	this.autoblock = true;
 	this.rollTime = Game.DELTASECOND * 0.5;
 	
@@ -9400,11 +9448,6 @@ function Player(x, y){
 	this.nextLevel = 0;
 	this.prevLevel = 0;
 	
-	this.stats = {
-		"attack" : 1,
-		"defence" : 1,
-		"technique" : 1
-	}
 	
 	this.equip(this.equip_sword, this.equip_shield);
 	
@@ -9588,6 +9631,11 @@ Player.prototype.update = function(){
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
 				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
+				
+				//Come to a complete stop
+				if ( input.state('right') <= 0 && input.state('left') <= 0 && this.grounded ) { 
+					this.force.x -= this.force.x * Math.min(this.speeds.breaks*this.delta);
+				}
 			}
 						
 			if ( input.state("down") > 0 && !this.grounded) { 
@@ -9746,7 +9794,10 @@ Player.prototype.update = function(){
 		this.frame = 4;
 		this.frame_row = 0; 
 	} else {
-		if( this.states.duck ) {
+		if( !this.grounded ) {
+			this.frame_row = 2;
+			this.frame = this.force.y < 1.0 ? 3 : 4;
+		} else if( this.states.duck ) {
 			this.frame = 3;
 			this.frame_row = 1;
 			
@@ -9757,6 +9808,7 @@ Player.prototype.update = function(){
 			this.frame_row = 0;
 			if( this.states.attack_charge > this.attackProperites.charge_start || this.states.attack > 0 ) this.frame_row = 2;
 			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
+				//Run animation
 				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
 			} else {
 				this.frame = 0;
@@ -10126,7 +10178,7 @@ Player.prototype.rendershield = function(g,c){
 		{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
 	);
 }
-Player.prototype.postrender = function(g,c){
+Player.prototype.hudrender = function(g,c){
 	/* Render HP */
 	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
@@ -10992,6 +11044,8 @@ Villager.prototype.postrender = function(g,c){
 }
 Villager.prototype.idle = function(){}
 Villager.getMessage = function(town){
+	return Villager.TextOptions[0];
+	
 	var total = 0.0;
 	for(var i=0; i < Villager.TextOptions.length; i++) {
 		var conditions = Villager.TextOptions[i].conditions;
@@ -11240,6 +11294,7 @@ function WorldMap(x, y){
 	
 	this.dreams = 0;
 	this.lastDream = 0;
+	this.checkpoint = 0;
 	
 	window._world = this;
 	new Player(0,0);
@@ -11251,6 +11306,10 @@ function WorldMap(x, y){
 	
 	this.width = 112;
 	this.height = 64;
+	
+	this.quests = {
+		"q1" : 0
+	}
 	
 	/*
 	var block_list = [0,37,38,39,40,64,65,66,67,68,69,87,88,103,104];
@@ -11369,17 +11428,17 @@ WorldMap.prototype.buildtiles = function(){
 		window._map_world.back.data,
 		window._map_world.front.data,
 	];
-	if( true ){
+	if( this.checkpoint >= 2 ){
 		this.appendTiles(window._map_world.road0,1);
 	}
-	if( true ){
+	if( this.checkpoint >= 5 ){
 		this.appendTiles(window._map_world.road1,1);
 	}
-	if( true ){
+	if( this.checkpoint >= 3 ){
 		this.appendTiles(window._map_world.island0,1);
 		this.appendTiles(window._map_world.island0front,2);
 	}
-	if( true ){
+	if( this.checkpoint >= 4 ){
 		this.appendTiles(window._map_world.island1,1);
 		this.appendTiles(window._map_world.island1front,2);
 	}
@@ -11526,7 +11585,11 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.player.y = locale.position.y;
 		this.rest = Game.DELTASECOND * 0.25;
 		
-		dataManager.loadMap(game,_map_maps[i],{"direction":dir});
+		//Load new map
+		dataManager.loadMap(
+			locale.index,
+			mergeLists(locale.properties,{"direction":dir})
+		);
 		audio.playAs("music_town", "music");
 	}
 }
@@ -11666,6 +11729,7 @@ function WorldLocale(x,y,type,properties){
 	this.origin = new Point(-.5,-.5);
 	this.type = type;
 	this.index = 0;
+	this.active = true;
 	
 	this.height = this.width = 8;
 	this.sprite = sprites.world;
@@ -11674,6 +11738,19 @@ function WorldLocale(x,y,type,properties){
 	this.frame_row = 5;
 	
 	properties = properties || {};
+	this.properties = properties;
+	
+	if("var_checkpoint" in properties){
+		if(properties["var_checkpoint"]*1 > window._world.checkpoint){
+			this.active = false;
+			this.visible = false;
+		}
+	}
+	if("map" in properties){
+		this.type = "map";
+		this.index = properties["map"];
+		this.visible = false;
+	}
 	if("boat" in properties){
 		this.type = "boat";
 		this.index = properties["boat"] * 1;
@@ -11700,9 +11777,11 @@ function WorldLocale(x,y,type,properties){
 	}
 	
 	this.on("collideObject", function(obj){
-		if( obj instanceof WorldPlayer ){
-			var dir = new Point(obj.force.x, obj.force.y);
-			_world.enterLocale( this, dir );
+		if( this.active ){
+			if( obj instanceof WorldPlayer ){
+				var dir = new Point(obj.force.x, obj.force.y);
+				_world.enterLocale( this, dir );
+			}
 		}
 	});
 }

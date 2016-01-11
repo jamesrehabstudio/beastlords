@@ -103,6 +103,16 @@ window._messages = {
 			"smith" : "Black smith",
 			"bank" : "Bank"
 		}
+	},
+	"quest_names" : {
+		"english" : {
+			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."]
+		},
+		"engrish" : {
+			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."]
+		}
 	}
 	
 };

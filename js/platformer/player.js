@@ -63,11 +63,12 @@ function Player(x, y){
 	
 	
 	this.speeds = {
-		"inertiaGrounded" : 0.9,
-		"inertiaAir" : 0.2,
-		"frictionGrounded" : 0.2,
+		"inertiaGrounded" : 0.4,
+		"inertiaAir" : 0.1,
+		"frictionGrounded" : 0.1,
 		"frictionAir" : 0.05,
-		"airGlide" : 0.0
+		"airGlide" : 0.0,
+		"breaks": 0.4
 	};
 	
 	this.weapon = {
@@ -238,6 +239,12 @@ function Player(x, y){
 	this.addModule( mod_camera );
 	this.addModule( mod_combat );
 	
+	
+	this.stats = {
+		"attack" : 1,
+		"defence" : 1,
+		"technique" : 1
+	}
 	this.life = 100;
 	this.lifeMax = 100;
 	this.mana = 3;
@@ -250,7 +257,7 @@ function Player(x, y){
 	this.team = 1;
 	this.mass = 1;
 	this.death_time = Game.DELTASECOND * 2;
-	this.invincible_time = 20;
+	this.invincible_time = Game.DELTASECOND;
 	this.autoblock = true;
 	this.rollTime = Game.DELTASECOND * 0.5;
 	
@@ -270,11 +277,6 @@ function Player(x, y){
 	this.nextLevel = 0;
 	this.prevLevel = 0;
 	
-	this.stats = {
-		"attack" : 1,
-		"defence" : 1,
-		"technique" : 1
-	}
 	
 	this.equip(this.equip_sword, this.equip_shield);
 	
@@ -458,6 +460,11 @@ Player.prototype.update = function(){
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
 				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
+				
+				//Come to a complete stop
+				if ( input.state('right') <= 0 && input.state('left') <= 0 && this.grounded ) { 
+					this.force.x -= this.force.x * Math.min(this.speeds.breaks*this.delta);
+				}
 			}
 						
 			if ( input.state("down") > 0 && !this.grounded) { 
@@ -616,7 +623,10 @@ Player.prototype.update = function(){
 		this.frame = 4;
 		this.frame_row = 0; 
 	} else {
-		if( this.states.duck ) {
+		if( !this.grounded ) {
+			this.frame_row = 2;
+			this.frame = this.force.y < 1.0 ? 3 : 4;
+		} else if( this.states.duck ) {
 			this.frame = 3;
 			this.frame_row = 1;
 			
@@ -627,6 +637,7 @@ Player.prototype.update = function(){
 			this.frame_row = 0;
 			if( this.states.attack_charge > this.attackProperites.charge_start || this.states.attack > 0 ) this.frame_row = 2;
 			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
+				//Run animation
 				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
 			} else {
 				this.frame = 0;
@@ -996,7 +1007,7 @@ Player.prototype.rendershield = function(g,c){
 		{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
 	);
 }
-Player.prototype.postrender = function(g,c){
+Player.prototype.hudrender = function(g,c){
 	/* Render HP */
 	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
