@@ -369,6 +369,53 @@ if( !this.loaded  ) return;
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 }
 
+Sprite.prototype.renderTiles = function(gl,tiles,width,x,y){
+	if( !this.loaded ) return;
+	
+	var camera = new Point(x,y);
+	
+	//var tileVerts = new Array();
+	var material = window.materials["default"].use();
+	var uvVerts = new Array();
+	var ts = this.frame_width;
+	
+	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
+
+		var cam = new Point(Math.floor(camera.x/ts),Math.floor(camera.y/ts));
+		var tile_index = (_x+cam.x-0) + ((_y+cam.y-0) * width);
+		var tile = tiles[tile_index];
+		if( tile == 0 || tile == undefined) tile = window.BLANK_TILE;
+		var tileUV = this.uv(tile-1);
+		
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+	}
+	var campos = new Point(
+		0-Math.round(Math.mod(camera.x,ts)),
+		0-Math.round(Math.mod(camera.y,ts))
+	);
+	
+	material.set("u_resolution", game.resolution.x, game.resolution.y);
+	material.set("u_camera", campos.x, campos.y);
+	gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
+	
+	var gridBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, game._tileBuffer, gl.DYNAMIC_DRAW);
+	material.set("a_position");
+	
+	var textBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, textBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvVerts), gl.DYNAMIC_DRAW);
+	material.set("a_texCoord");
+	
+	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
+}
+
 Sprite.RectBuffer = function(p, w, h, r){
 	//creates a set of data for a generic rectangle
 	if( r == undefined ) r = 0;

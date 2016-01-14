@@ -128,12 +128,14 @@ var mod_camera = {
 		}
 	},
 	"render" : function(g,c){
-		var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
-		if( viewWidth < game.resolution.x ){
-			var excess = game.resolution.x - viewWidth;
-			g.color = [0,0,0,1];
-			g.scaleFillRect(0,0,excess*0.5, game.resolution.y);
-			g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
+		if(this.lock){
+			var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
+			if( viewWidth < game.resolution.x ){
+				var excess = game.resolution.x - viewWidth;
+				g.color = [0,0,0,1];
+				g.scaleFillRect(0,0,excess*0.5, game.resolution.y);
+				g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
+			}
 		}
 	}
 }

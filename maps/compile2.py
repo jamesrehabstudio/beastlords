@@ -4,7 +4,7 @@ import re
 import glob
 import json
 
-def cleanTiles(data,width):
+def cleanTiles(data,width,minWidth=1,startAtZero=True):
 	x_start = len(data)
 	y_start = len(data)
 	x_end = 0
@@ -24,8 +24,11 @@ def cleanTiles(data,width):
 			y_end = max(y, y_end)
 		i+=1
 		
-	newWidth = 1 + x_end - x_start
+	newWidth = max(1 + x_end - x_start, minWidth)
 	newHeight = 1 + y_end - y_start
+	
+	if startAtZero:
+		x_start = y_start = 0
 	
 	for y in range(newHeight):
 		for x in range(newWidth):
@@ -57,7 +60,6 @@ def transform(filename, roomsize):
 	tileStarts.sort()
 	
 	layers = root.findall("layer")
-	objectLayers = root.findall("objectgroup")
 	properties = {
 		"rarity" : 0
 	}
@@ -75,13 +77,20 @@ def transform(filename, roomsize):
 			height = int(layer.attrib["height"])
 			if layer.attrib["name"] == "map":
 				#truncate data, map case
-				truncatedData = cleanTiles(data_array, width)
+				#set min width for map truncations
+				mapwidth = width / roomsize[0]
+				truncatedData = cleanTiles(data_array, width, mapwidth)
 				data_array = truncatedData[0]
 				#out["mapWidth"] = truncatedData[3]
 					
 			out[layer.attrib["name"]] = processTileData(data_array,tileStarts)
 			
-			
+		
+	objectLayers = root.findall("objectgroup")
+	
+	#if filenameFromPath(filename) == "map_crypt":
+	#	import pdb; pdb.set_trace()
+	
 	for objectLayer in objectLayers:
 		#get properties from object layer
 		for object in objectLayer:
@@ -100,8 +109,8 @@ def transform(filename, roomsize):
 				if name == "Door":
 					out["key_required"] = True
 				out["objects"].append( [
-					int(object.attrib["x"])+8,
-					int(object.attrib["y"])-8,
+					int(float(object.attrib["x"]))+8,
+					int(float(object.attrib["y"]))+8,
 					name,
 					options
 				])
@@ -125,15 +134,56 @@ def transform(filename, roomsize):
 	for property in properties:
 		out[property] = properties[property]
 	return out
+	
+def transformBackground(filename):
+	tree = ET.parse(filename)
+	root = tree.getroot()
+	
+	out = {}
+	width = 48
+	height = 48
+	
+	#Split up different tilesets
+	tilesets = root.findall("tileset")
+	tileStarts = []
+	for tileset in tilesets:
+		tileStarts.append(int(tileset.attrib["firstgid"]))
+		#image = tileset.findall("image")[0]
+		image = tileset.find("image")
+		out["tileset"] = filenameFromPath(image.attrib["source"])
+		print str(out["tileset"])
+	tileStarts.sort()
+	
+	layers = root.findall("layer")
+	objectLayers = root.findall("objectgroup")
+
+	for layer in layers:
+		data = layer.find("data")
+		out[layer.attrib["name"]] = []
+		data_array = data.text.replace("\n","").split(",")				
+		out[layer.attrib["name"]] = processTileData(data_array,tileStarts)
+		
+	return out
+
+def filenameFromPath(path):
+	out = path.replace("\\","//")
+	try:
+		out = re.match("^(.+\/)*(\w+)(\.\w+)$",out).group(2)
+	except Exception, err:
+		print "Cannot find filename in " + path
+		
+	return out
 
 def main():
 	directories = [
+		"backdrops//*.tmx",
 		"rooms/**/*.tmx",
 		"rooms/**/*.room",
 	]
 	rooms = {}
 	maps = {}
 	towns = {}
+	backdrops = []
 	
 	#for file in os.listdir(os.getcwd()):
 	for directory in directories:
@@ -141,9 +191,16 @@ def main():
 		for f in filepath:
 			if f[0:10] == "rooms\\test" or re.match(".*\.exc\.(room|tmx)", f):
 				print "pass on " + str(f)
+			elif f[0:10] == "backdrops\\":
+				try:
+					name = filenameFromPath(f)
+					print "background "+ str(name)
+					backdrops.append(transformBackground(f))
+				except Exception, err:
+					print "Error processing backdrop "+ str(name)
 			elif re.match(".*\.tmx", f):
 				try:
-					name = f[0:len(f)-4]
+					name = filenameFromPath(f)
 					if f[0:10] == "rooms\\town":
 						towns[name] = transform(f, (8,15))
 					elif f[0:10] == "rooms\\maps":
@@ -154,7 +211,7 @@ def main():
 					print "Error reading: " + f + " " + str(err)
 			elif re.match(".*\.room", f):
 				try:
-					name = f[0:len(f)-5]
+					name = filenameFromPath(f)
 					rooms[name] = file(f).read()
 				except Exception, err:
 					print "Error reading: " + f + " " + str(err)
@@ -172,15 +229,21 @@ def main():
 		write += "\t" + json.dumps(towns[map]) + ",\n"
 	write += "];"
 	
+	#import pdb; pdb.set_trace();
 	write += "\n\nwindow._map_maps = {\n"
 	for map in maps:
 		mapname = "map"
 		try:
-			mapname = re.match("^.+map_(.+)$",map).groups()[0]
+			mapname = re.match("^.*map_(.+)$",map).groups()[0]
 		except Exception:
 			pass
 		write += "\t" + "\""+mapname+"\" : " + json.dumps(maps[map]) + ",\n"
 	write += "};"
+	
+	write += "\n\nwindow._map_backdrops = [\n"
+	for map in backdrops:
+		write += "\t" + json.dumps(map) + ",\n"
+	write += "];"
 				
 	outputfile = open("map.js", "w")
 	outputfile.write( write )

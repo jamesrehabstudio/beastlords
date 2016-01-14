@@ -5,7 +5,7 @@ function TitleMenu(){
 	this.sprite = sprites.title;
 	this.zIndex = 999;
 	this.visible = true;
-	this.start_options = false;
+	this.page = 0;
 	this.start = false;
 	
 	this.title_position = -960;
@@ -52,30 +52,55 @@ TitleMenu.prototype.update = function(){
 		game.element.style.display = "block";
 		
 		this.loading = false;
-		if( this.progress == 0 ) audio.playAs("music_intro","music");
+		//if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
-		if( this.start_options ) {
+		if( this.page == 0 ){
+			this.progress += this.delta / Game.DELTASECOND;
+			if( this.progress > 52 ) this.progress = 9.0;
+			if( input.state("pause") == 1 || input.state("fire") == 1 ) {
+				if(this.progress > 9 && this.progress < 24){
+					this.page = 1;
+					this.cursor = 0;
+				}else{
+					this.progress = 10.0;
+				}
+			}
+		} else if( this.page == 1 ) {
 			this.progress = 10.0;
 			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
-			if( !this.playedIntro ) this.cursor = 0;
-		} else {
-			this.progress += this.delta / Game.DELTASECOND;
-		}
-		
-		if( input.state("pause") == 1 || input.state("fire") == 1 ) {
-			if( this.progress < 9.0 || this.progress > 24.0 ) {
-				this.progress = 9.0;
-			} else if( this.start_options ) {
-				//Start game
-				this.startGame();
-			} else {
-				this.start_options = true;
+			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+				if(this.cursor == 0){
+					this.page = 2;
+					audio.play("pause");
+				} else if(this.cursor == 1){
+					this.startGame(); 
+				}
+			}
+		} else if( this.page == 2 ) {
+			this.progress = 10.0;
+			if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
+			if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
+			this.cursor = Math.max(Math.min(this.cursor,3),0);
+			
+			if(this.cursor == 1){
+				if( input.state("left") == 1 ) { MapDebug.level -= 1; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapDebug.level += 1; audio.play("cursor"); }
+				MapDebug.level = Math.max(Math.min(MapDebug.level,50),1);
+			}else if(this.cursor == 2){
+				if( input.state("left") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
+			}
+			
+			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+				if(this.cursor == 0){
+					MapDebug.mapname = prompt("Enter filename",MapDebug.mapname);
+				} else if(this.cursor == 3){
+					MapDebug.loadMap(MapDebug.mapname);
+					audio.play("pause");
+				}
 			}
 		}
-		
-		if( this.progress > 52 ) this.progress = 9.0;
-		
 	}
 }
 
@@ -120,23 +145,37 @@ TitleMenu.prototype.render = function(g,c){
 		textArea(g,"Copyright Pogames.uk 2015",8,4);
 		textArea(g,"Version "+window._version,8,228);
 		
-		if( this.progress >= 9.0 && this.progress < 24.0  ){
-			if( this.start_options ) {
-				var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
-				boxArea(g,x_pos,32,192,88);
-				textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
-				
-				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-				boxArea(g,x_pos,146,120,56);
-				textArea(g,i18n("introduction"),x_pos+24,162);
-				if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
-				
-				sprites.text.render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
-			} else { 
-				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+		if(this.page == 0){
+			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+			if( this.progress >= 9.0 && this.progress < 24.0  ){
 				boxArea(g,x_pos,168,120,40);
 				textArea(g,i18n("press_start"),x_pos+16,184);
 			}
+		} else if(this.page == 1) {
+			var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
+			boxArea(g,x_pos,32,192,88);
+			textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+			
+			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+			boxArea(g,x_pos,146,120,56);
+			//textArea(g,i18n("introduction"),x_pos+24,162);
+			textArea(g,"Debug",x_pos+24,162);
+			if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
+			
+			sprites.text.render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
+		} else if(this.page == 2){ 
+			var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
+			boxArea(g,x_pos,16,200,208);
+			textArea(g,"Map name",x_pos+32,48);
+			textArea(g,"Level",x_pos+32,80);
+			textArea(g,"Flight",x_pos+32,112);
+			textArea(g,"Play",x_pos+32,144);
+			
+			textArea(g,"@",x_pos+16,48+32*this.cursor);
+			
+			textArea(g,""+MapDebug.mapname,x_pos+32,48+12);
+			textArea(g,""+MapDebug.level,x_pos+32,80+12);
+			textArea(g,""+MapDebug.flight,x_pos+32,112+12);
 		}
 		
 		if( this.progress >= 24 ) {

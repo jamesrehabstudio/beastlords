@@ -8,14 +8,26 @@ function Lamp(x,y,t,o){
 	this.height = 16;
 	this.sprite = sprites.lamps;
 	this.zIndex = -21;
+	this.size = 180;
+	this.show = true;
 	
 	this.frame = 0;
 	this.frame_row = 0;
+	
+	o = o || {};
+	if("size" in o){
+		this.size = o.size * 1;
+	}
+	if("show" in o){
+		this.show = o.show * 1;
+	}
 }
 Lamp.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.3) % 4;
 }
 Lamp.prototype.render = function(g,c){	
-	GameObject.prototype.render.apply(this,[g,c]);
-	Background.pushLight( this.position.subtract(c), 180 );
+	if(this.show){
+		GameObject.prototype.render.apply(this,[g,c]);
+	}
+	Background.pushLight( this.position.subtract(c), this.size );
 }

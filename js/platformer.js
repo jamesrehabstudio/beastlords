@@ -377,6 +377,18 @@ Background.prototype.renderDust = function(g,c){
 	}
 }
 Background.prototype.prerender = function(gl,c){
+	var backgroundTiles = _map_backdrops[0];
+	var tileset = sprites[backgroundTiles.tileset];
+	
+	var zero = game.tileDimension.start;
+	var strength = 48.0 / Math.max(game.tileDimension.width(),game.tileDimension.height());
+	var x = ((c.x/16.0) - zero.x) * strength;
+	var y = ((c.y/16.0) - zero.y) * strength;
+	
+	if("under1" in backgroundTiles){
+		tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+	}
+	/*
 	gl.bindTexture( gl.TEXTURE_2D, game.tileSprite.gl_tex );
 	var shader = window.materials["default"].use();
 	
@@ -507,6 +519,7 @@ Background.prototype.prerender = function(gl,c){
 	
 	
 	this.animation += this.delta;
+	*/
 }
 Background.prototype.roomAtLocation = function(x,y){
 	if(y==0 && (x==0||x==1)) return -1;
@@ -6838,14 +6851,18 @@ window._messages = {
 			"bank" : "Bank"
 		}
 	},
-	"quest_names" : {
+	"quest" : {
 		"english" : {
-			"q1" : "The lost Egg",
-			"q2" : "Quest 2"
+			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		},
 		"engrish" : {
-			"q1" : "The lost Egg",
-			"q2" : "Quest 2"
+			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		}
 	}
 	
@@ -7434,16 +7451,28 @@ function Lamp(x,y,t,o){
 	this.height = 16;
 	this.sprite = sprites.lamps;
 	this.zIndex = -21;
+	this.size = 180;
+	this.show = true;
 	
 	this.frame = 0;
 	this.frame_row = 0;
+	
+	o = o || {};
+	if("size" in o){
+		this.size = o.size * 1;
+	}
+	if("show" in o){
+		this.show = o.show * 1;
+	}
 }
 Lamp.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.3) % 4;
 }
 Lamp.prototype.render = function(g,c){	
-	GameObject.prototype.render.apply(this,[g,c]);
-	Background.pushLight( this.position.subtract(c), 180 );
+	if(this.show){
+		GameObject.prototype.render.apply(this,[g,c]);
+	}
+	Background.pushLight( this.position.subtract(c), this.size );
 }
 
  /* platformer\lift.js*/ 
@@ -7561,6 +7590,155 @@ MapDebug.prototype.render = function(g,c){
 	} catch (err) {}
 }
 MapDebug.prototype.idle = function(){}
+
+ /* platformer\map_debug.js*/ 
+
+MapDebug.prototype = new GameObject();
+MapDebug.prototype.constructor = GameObject;
+function MapDebug(x,y){
+	this.constructor();
+}
+
+MapDebug.loadMap = function(url){
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function(){
+		if(xhttp.readyState == 4 && xhttp.status == 200){
+			var parser = new DOMParser();
+			var xml = parser.parseFromString(xhttp.response, "text/xml");
+			
+			MapDebug.parseMap(xml);
+		}
+	}
+	xhttp.open("GET",url,true);
+	xhttp.send();
+}
+
+MapDebug.parseTile = function(tile,tilesets){
+	tile *= 1;
+	var subtract = 1;
+	for(var i=0; i < tilesets.length; i++){
+		if(tile >= tilesets[i]){
+			subtract = tilesets[i];
+		}
+	}
+	subtract -= 1;
+	return tile - subtract;
+}
+
+MapDebug.parseMap = function(xml){
+	var tileset = "";
+	var tilesets = new Array();
+	var width = 0;
+	var height = 0;
+	var tilesout = [new Array(), new Array(), new Array()];
+	var maptiles = new Array();
+	var sprite = false;
+	
+	try{
+		//Load sprites
+		var filename = xml.getElementsByTagName("tileset")[0].getElementsByTagName("image")[0].getAttribute("source");
+		sprite = new Sprite(filename,{offset:new Point(0, 0),width:16,height:16});
+	} catch(err){
+		
+	}
+	
+	var tilesetXml = xml.getElementsByTagName("tileset");
+	for(var i=0; i < tilesetXml.length; i++){
+		var name = tilesetXml[i].getAttribute("name");
+		tilesets.push(tilesetXml[i].getAttribute("firstgid") * 1);
+		if(i==0) tileset = name;
+	}
+	
+	var tileLayers = xml.getElementsByTagName("layer");
+	for(var i=0; i < tileLayers.length; i++){
+		var t = tileLayers[i];
+		var name = t.getAttribute("name");
+		var tiles = t.getElementsByTagName("data")[0].innerHTML.split(",");
+		
+		width = t.getAttribute("width") * 1
+		height = t.getAttribute("height") * 1
+		
+		for(var j=0; j < tiles.length; j++){
+			if("front"==name){
+				tilesout[2].push(MapDebug.parseTile(tiles[j],tilesets));
+			} else if("back"==name){
+				tilesout[1].push(MapDebug.parseTile(tiles[j],tilesets));
+			} else if("far"==name){
+				tilesout[0].push(MapDebug.parseTile(tiles[j],tilesets));
+			} else if("map"==name){
+				if((j%width) < width/16 && Math.floor(j/height) < height/15){
+					maptiles.push(MapDebug.parseTile(tiles[j],tilesets));
+				}
+			}
+		}
+	}
+	
+	game.clearAll();
+	game.tiles = tilesout;
+	game.tileDimension = new Line(0,0,width,height);
+	game.bounds = new Line(0,0,width*16,height*15);
+	
+	if(sprite instanceof Sprite){
+		game.tileSprite = sprite;
+	}else if(tileset in sprites){
+		game.tileSprite = sprites[tileset];
+	} else {
+		game.tileSprite = sprites.tiles7;
+	}
+	
+	if(!window._world) {
+		var wd = new WorldMap(0,0);
+		game.addObject(wd);
+	}
+		
+
+	var pm = new PauseMenu();
+	pm.map = PauseMenu.convertTileDataToMapData(maptiles);
+	pm.mapDimension = new Line(0,0,Math.floor(width/16),Math.floor(height/15));
+	game.addObject(pm);
+	
+	var objects = xml.getElementsByTagName("object");
+	for(var i=0; i < objects.length; i++){
+		obj = objects[i];
+		var name = obj.getAttribute("name");
+		var x = 8 + obj.getAttribute("x") * 1;
+		var y = 8 + obj.getAttribute("y") * 1;
+		
+		//Build properties
+		var properties = {};
+		if(obj.children.length > 0){
+			var props = obj.getElementsByTagName("property");
+			for(var j=0; j < props.length; j++){
+				var p = props[j];
+				properties[p.getAttribute("name")] = p.getAttribute("value");
+			}
+		}
+		
+		try{
+			if(name in window){
+				var newobj = new window[name](x,y,null,properties);
+				game.addObject(newobj);
+			}
+		} catch(err){}
+	}
+	
+	if(!(_player instanceof Player)){
+		var player = new Player(64,176);
+		game.addObject(player);
+	}
+	
+	if(MapDebug.flight){
+		_player.spellsCounters.flight = 99999
+	}
+	if(MapDebug.level > 1){
+		var xp = Math.floor( Math.pow( MapDebug.level-1,1.8 ) * 50 );
+		_player.addXP(xp);
+	}
+}
+
+MapDebug.mapname = "testmap.tmx"
+MapDebug.flight = false;
+MapDebug.level = 1;
 
  /* platformer\mayor.js*/ 
 
@@ -7845,8 +8023,10 @@ function PauseMenu(){
 	this.page = 1;
 	this.pageCount = 5;
 	this.cursor = 0;
+	this.questscroll = 0;
 	this.mapCursor = new Point();
 	this.stat_cursor = 0;
+	this.activeQuestCount = 0;
 	
 	this.map = new Array();
 	this.map_reveal = new Array();
@@ -7855,6 +8035,9 @@ function PauseMenu(){
 	this.message_text = false;
 	this.message_time = 0;
 }
+
+PauseMenu.questScrollLimit = 12;
+
 PauseMenu.prototype.idle = function(){}
 PauseMenu.prototype.update = function(){	
 	if( this.open ) {
@@ -7938,6 +8121,22 @@ PauseMenu.prototype.update = function(){
 					_player.castSpell(_player.selectedSpell);
 				}
 			}
+		} else if (this.page == 4){
+			//Quests
+			if(this.activeQuestCount > 0){
+				if( input.state("down") == 1){
+					this.cursor = (this.cursor + 1) % this.activeQuestCount;
+					audio.play("cursor"); 
+				}
+				if( input.state("up") == 1){
+					this.cursor = this.cursor == 0 ? this.activeQuestCount-1 : this.cursor-1;
+					audio.play("cursor"); 
+				}
+				this.questscroll = Math.max(
+					Math.min(this.cursor, this.questscroll), 
+					this.cursor-(PauseMenu.questScrollLimit-1)
+				);
+			}
 		}
 		
 		if( _player.life > 0) {
@@ -7950,8 +8149,8 @@ PauseMenu.prototype.update = function(){
 			
 			//Navigate pages
 			if( this.page != 1 || input.state("fire") <= 0 ) {
-				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); audio.play("cursor"); }
+				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
 			}
 		}
 	} else {
@@ -8141,18 +8340,42 @@ PauseMenu.prototype.hudrender = function(g,c){
 			}
 		} else if ( this.page == 4 ){
 			leftx = game.resolution.x*0.5 - 224*0.5;
+			boxArea(g,leftx,8,224,152);
+			boxArea(g,leftx,168,224,64);
+			textArea(g,"Quests",leftx+88,20);
 			
-			boxArea(g,leftx,8,224,224);
-			textArea(g,"Quests",leftx+52,20);
+			var rangeTop = this.questscroll;
+			var rangeBot = this.questscroll + PauseMenu.questScrollLimit;
+			var y_pos = 12 * -this.questscroll;
 			
-			var y_pos = 0;
+			this.activeQuestCount = 0;
 			for(var q in window._world.quests){
-				if(window._world.quests[q]){
-					var name = i18n("quest_names")[q];
-					var complete = window._world.quests[q] == "complete";
-					if( complete ) textArea(g,"@",leftx+16,40+y_pos);
-					textArea(g,name,leftx+32,40+y_pos);
-					y_pos += 12;
+				try{
+					if(window._world.quests[q]){
+						if(this.activeQuestCount >= rangeTop && this.activeQuestCount < rangeBot){
+							var name = i18n("quest")[q][0];
+							var complete = window._world.quests[q] == "complete";
+							
+							textArea(g,name,leftx+32,40+y_pos);
+							
+							if( this.activeQuestCount == this.cursor ){
+								textArea(g,"@",leftx+16,40+y_pos);
+							}
+							
+							if( complete ) {
+								textArea(g,"@",leftx+16,40+y_pos);
+							} else {
+								if( this.activeQuestCount == this.cursor ){
+									var desc = i18n("quest")[q][window._world.quests[q]];
+									textArea(g,desc,leftx+16,16+168,224-32);
+								}
+							}
+						}
+						this.activeQuestCount++;
+						y_pos += 12;
+					}
+				}catch(err){
+					//Error handling for broken quests
 				}
 			}
 		}
@@ -8232,7 +8455,7 @@ function TitleMenu(){
 	this.sprite = sprites.title;
 	this.zIndex = 999;
 	this.visible = true;
-	this.start_options = false;
+	this.page = 0;
 	this.start = false;
 	
 	this.title_position = -960;
@@ -8279,30 +8502,55 @@ TitleMenu.prototype.update = function(){
 		game.element.style.display = "block";
 		
 		this.loading = false;
-		if( this.progress == 0 ) audio.playAs("music_intro","music");
+		//if( this.progress == 0 ) audio.playAs("music_intro","music");
 		
-		if( this.start_options ) {
+		if( this.page == 0 ){
+			this.progress += this.delta / Game.DELTASECOND;
+			if( this.progress > 52 ) this.progress = 9.0;
+			if( input.state("pause") == 1 || input.state("fire") == 1 ) {
+				if(this.progress > 9 && this.progress < 24){
+					this.page = 1;
+					this.cursor = 0;
+				}else{
+					this.progress = 10.0;
+				}
+			}
+		} else if( this.page == 1 ) {
 			this.progress = 10.0;
 			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
-			if( !this.playedIntro ) this.cursor = 0;
-		} else {
-			this.progress += this.delta / Game.DELTASECOND;
-		}
-		
-		if( input.state("pause") == 1 || input.state("fire") == 1 ) {
-			if( this.progress < 9.0 || this.progress > 24.0 ) {
-				this.progress = 9.0;
-			} else if( this.start_options ) {
-				//Start game
-				this.startGame();
-			} else {
-				this.start_options = true;
+			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+				if(this.cursor == 0){
+					this.page = 2;
+					audio.play("pause");
+				} else if(this.cursor == 1){
+					this.startGame(); 
+				}
+			}
+		} else if( this.page == 2 ) {
+			this.progress = 10.0;
+			if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
+			if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
+			this.cursor = Math.max(Math.min(this.cursor,3),0);
+			
+			if(this.cursor == 1){
+				if( input.state("left") == 1 ) { MapDebug.level -= 1; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapDebug.level += 1; audio.play("cursor"); }
+				MapDebug.level = Math.max(Math.min(MapDebug.level,50),1);
+			}else if(this.cursor == 2){
+				if( input.state("left") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
+			}
+			
+			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+				if(this.cursor == 0){
+					MapDebug.mapname = prompt("Enter filename",MapDebug.mapname);
+				} else if(this.cursor == 3){
+					MapDebug.loadMap(MapDebug.mapname);
+					audio.play("pause");
+				}
 			}
 		}
-		
-		if( this.progress > 52 ) this.progress = 9.0;
-		
 	}
 }
 
@@ -8347,23 +8595,37 @@ TitleMenu.prototype.render = function(g,c){
 		textArea(g,"Copyright Pogames.uk 2015",8,4);
 		textArea(g,"Version "+window._version,8,228);
 		
-		if( this.progress >= 9.0 && this.progress < 24.0  ){
-			if( this.start_options ) {
-				var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
-				boxArea(g,x_pos,32,192,88);
-				textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
-				
-				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-				boxArea(g,x_pos,146,120,56);
-				textArea(g,i18n("introduction"),x_pos+24,162);
-				if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
-				
-				sprites.text.render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
-			} else { 
-				var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+		if(this.page == 0){
+			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+			if( this.progress >= 9.0 && this.progress < 24.0  ){
 				boxArea(g,x_pos,168,120,40);
 				textArea(g,i18n("press_start"),x_pos+16,184);
 			}
+		} else if(this.page == 1) {
+			var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
+			boxArea(g,x_pos,32,192,88);
+			textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+			
+			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+			boxArea(g,x_pos,146,120,56);
+			//textArea(g,i18n("introduction"),x_pos+24,162);
+			textArea(g,"Debug",x_pos+24,162);
+			if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
+			
+			sprites.text.render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
+		} else if(this.page == 2){ 
+			var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
+			boxArea(g,x_pos,16,200,208);
+			textArea(g,"Map name",x_pos+32,48);
+			textArea(g,"Level",x_pos+32,80);
+			textArea(g,"Flight",x_pos+32,112);
+			textArea(g,"Play",x_pos+32,144);
+			
+			textArea(g,"@",x_pos+16,48+32*this.cursor);
+			
+			textArea(g,""+MapDebug.mapname,x_pos+32,48+12);
+			textArea(g,""+MapDebug.level,x_pos+32,80+12);
+			textArea(g,""+MapDebug.flight,x_pos+32,112+12);
 		}
 		
 		if( this.progress >= 24 ) {
@@ -8578,12 +8840,14 @@ var mod_camera = {
 		}
 	},
 	"render" : function(g,c){
-		var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
-		if( viewWidth < game.resolution.x ){
-			var excess = game.resolution.x - viewWidth;
-			g.color = [0,0,0,1];
-			g.scaleFillRect(0,0,excess*0.5, game.resolution.y);
-			g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
+		if(this.lock){
+			var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
+			if( viewWidth < game.resolution.x ){
+				var excess = game.resolution.x - viewWidth;
+				g.color = [0,0,0,1];
+				g.scaleFillRect(0,0,excess*0.5, game.resolution.y);
+				g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
+			}
 		}
 	}
 }
@@ -11036,9 +11300,13 @@ Villager.prototype.update = function(){
 		this.frame = Math.max( (this.frame + Math.abs(this.direction) * this.delta * this.speed * 0.2) % (this.base_frame+3), this.base_frame);
 	}
 }
-Villager.prototype.postrender = function(g,c){	
+Villager.prototype.hudrender = function(g,c){	
 	if( this.open > 0 ) {
-		var m = this.message[this.state].replace("%TOWNNAME%",this.town.name);
+		//Get message
+		var m = this.message[this.state];
+		
+		//m = m.replace("%TOWNNAME%",this.town.name);
+		
 		renderDialog(g, m);
 	}
 }

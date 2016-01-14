@@ -87,9 +87,13 @@ Villager.prototype.update = function(){
 		this.frame = Math.max( (this.frame + Math.abs(this.direction) * this.delta * this.speed * 0.2) % (this.base_frame+3), this.base_frame);
 	}
 }
-Villager.prototype.postrender = function(g,c){	
+Villager.prototype.hudrender = function(g,c){	
 	if( this.open > 0 ) {
-		var m = this.message[this.state].replace("%TOWNNAME%",this.town.name);
+		//Get message
+		var m = this.message[this.state];
+		
+		//m = m.replace("%TOWNNAME%",this.town.name);
+		
 		renderDialog(g, m);
 	}
 }

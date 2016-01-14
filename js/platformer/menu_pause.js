@@ -9,8 +9,10 @@ function PauseMenu(){
 	this.page = 1;
 	this.pageCount = 5;
 	this.cursor = 0;
+	this.questscroll = 0;
 	this.mapCursor = new Point();
 	this.stat_cursor = 0;
+	this.activeQuestCount = 0;
 	
 	this.map = new Array();
 	this.map_reveal = new Array();
@@ -19,6 +21,9 @@ function PauseMenu(){
 	this.message_text = false;
 	this.message_time = 0;
 }
+
+PauseMenu.questScrollLimit = 12;
+
 PauseMenu.prototype.idle = function(){}
 PauseMenu.prototype.update = function(){	
 	if( this.open ) {
@@ -102,6 +107,22 @@ PauseMenu.prototype.update = function(){
 					_player.castSpell(_player.selectedSpell);
 				}
 			}
+		} else if (this.page == 4){
+			//Quests
+			if(this.activeQuestCount > 0){
+				if( input.state("down") == 1){
+					this.cursor = (this.cursor + 1) % this.activeQuestCount;
+					audio.play("cursor"); 
+				}
+				if( input.state("up") == 1){
+					this.cursor = this.cursor == 0 ? this.activeQuestCount-1 : this.cursor-1;
+					audio.play("cursor"); 
+				}
+				this.questscroll = Math.max(
+					Math.min(this.cursor, this.questscroll), 
+					this.cursor-(PauseMenu.questScrollLimit-1)
+				);
+			}
 		}
 		
 		if( _player.life > 0) {
@@ -114,8 +135,8 @@ PauseMenu.prototype.update = function(){
 			
 			//Navigate pages
 			if( this.page != 1 || input.state("fire") <= 0 ) {
-				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); audio.play("cursor"); }
+				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
 			}
 		}
 	} else {
@@ -305,18 +326,38 @@ PauseMenu.prototype.hudrender = function(g,c){
 			}
 		} else if ( this.page == 4 ){
 			leftx = game.resolution.x*0.5 - 224*0.5;
+			boxArea(g,leftx,8,224,152);
+			boxArea(g,leftx,168,224,64);
+			textArea(g,"Quests",leftx+88,20);
 			
-			boxArea(g,leftx,8,224,224);
-			textArea(g,"Quests",leftx+52,20);
+			var rangeTop = this.questscroll;
+			var rangeBot = this.questscroll + PauseMenu.questScrollLimit;
+			var y_pos = 12 * -this.questscroll;
 			
-			var y_pos = 0;
+			this.activeQuestCount = 0;
 			for(var q in window._world.quests){
 				try{
 					if(window._world.quests[q]){
-						var name = i18n("quest_names")[q][0];
-						var complete = window._world.quests[q] == "complete";
-						if( complete ) textArea(g,"@",leftx+16,40+y_pos);
-						textArea(g,name,leftx+32,40+y_pos);
+						if(this.activeQuestCount >= rangeTop && this.activeQuestCount < rangeBot){
+							var name = i18n("quest")[q][0];
+							var complete = window._world.quests[q] == "complete";
+							
+							textArea(g,name,leftx+32,40+y_pos);
+							
+							if( this.activeQuestCount == this.cursor ){
+								textArea(g,"@",leftx+16,40+y_pos);
+							}
+							
+							if( complete ) {
+								textArea(g,"@",leftx+16,40+y_pos);
+							} else {
+								if( this.activeQuestCount == this.cursor ){
+									var desc = i18n("quest")[q][window._world.quests[q]];
+									textArea(g,desc,leftx+16,16+168,224-32);
+								}
+							}
+						}
+						this.activeQuestCount++;
 						y_pos += 12;
 					}
 				}catch(err){

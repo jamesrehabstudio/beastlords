@@ -104,14 +104,18 @@ window._messages = {
 			"bank" : "Bank"
 		}
 	},
-	"quest_names" : {
+	"quest" : {
 		"english" : {
 			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
-			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."]
+			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		},
 		"engrish" : {
 			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
-			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."]
+			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		}
 	}
 	

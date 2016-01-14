@@ -149,6 +149,18 @@ Background.prototype.renderDust = function(g,c){
 	}
 }
 Background.prototype.prerender = function(gl,c){
+	var backgroundTiles = _map_backdrops[0];
+	var tileset = sprites[backgroundTiles.tileset];
+	
+	var zero = game.tileDimension.start;
+	var strength = 48.0 / Math.max(game.tileDimension.width(),game.tileDimension.height());
+	var x = ((c.x/16.0) - zero.x) * strength;
+	var y = ((c.y/16.0) - zero.y) * strength;
+	
+	if("under1" in backgroundTiles){
+		tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+	}
+	/*
 	gl.bindTexture( gl.TEXTURE_2D, game.tileSprite.gl_tex );
 	var shader = window.materials["default"].use();
 	
@@ -279,6 +291,7 @@ Background.prototype.prerender = function(gl,c){
 	
 	
 	this.animation += this.delta;
+	*/
 }
 Background.prototype.roomAtLocation = function(x,y){
 	if(y==0 && (x==0||x==1)) return -1;

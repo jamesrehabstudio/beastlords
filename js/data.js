@@ -253,11 +253,16 @@ DataManager.prototype.loadMap = function(map,options){
 	
 	//Default player spawns positions
 	_player.position.x = 64;
-	_player.position.x = 200;
+	_player.position.y = 200;
 	
 	//Go through all player starts and determine the correct start
 	for(var i=0;i<playerStartPositions.length;i++){
 		var obj = playerStartPositions[i];
+		if(i==0){
+			//First Player will be default unless a better match is made
+			window._player.position.x = obj[0];
+			window._player.position.y = obj[1];
+		}
 		if("start" in obj[3]){
 			if(
 				obj[3].start == options.start ||
@@ -292,8 +297,6 @@ DataManager.prototype.townFromTag = function(tag){
 	return -1;
 }
 DataManager.prototype.randomTown = function(g, town){
-	var s = new Seed(town.seed);
-	
 	this.currentTemple = -1;
 	this.currentTown = town.id;
 	this.slices = [];
@@ -1725,6 +1728,10 @@ function load_sprites (){
 	sprites['tiles4'] = new Sprite(RT+"img/tiles/tiles4.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles5'] = new Sprite(RT+"img/tiles/tiles5.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles6'] = new Sprite(RT+"img/tiles/tiles6.gif", {offset:new Point(0, 0),width:16,height:16});
+	sprites['tiles7'] = new Sprite(RT+"img/tiles/tiles7.gif", {offset:new Point(0, 0),width:16,height:16});
+	
+	
+	sprites['bg7'] = new Sprite(RT+"img/tiles/bg7.gif", {offset:new Point(0, 0),width:16,height:16});
 	
 	sprites['detritus1'] = new Sprite(RT+"img/tiles/detritus1.gif", {offset:new Point(16, 24),width:32,height:32});
 	sprites['detritus3'] = new Sprite(RT+"img/tiles/detritus3.gif", {offset:new Point(16, 24),width:32,height:32});
