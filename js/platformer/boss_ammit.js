@@ -1,6 +1,6 @@
 Ammit.prototype = new GameObject();
 Ammit.prototype.constructor = GameObject;
-function Ammit(x,y){
+function Ammit(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -33,10 +33,16 @@ function Ammit(x,y){
 		"spit_time" : Game.DELTASECOND * 1
 	}
 	
-	this.life = dataManager.life(24);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(24,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
 	this.mass = 5.0;
-	this.damage = 25;
-	this.collideDamage = 25;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	

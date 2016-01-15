@@ -1,4 +1,4 @@
-window._version = "0.2.1";
+window._version = "0.2.4";
 
 function DataManager() {
 	this.temples = [
@@ -8,12 +8,6 @@ function DataManager() {
 		{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3},
 		{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":3},
 		{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":3},
-		//{"tiles":"tiles2","size":2,"maxkeys":0,"treasures":[0,0],"boss":["Poseidon"],"miniboss":["Knight","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Batty","Ratgut"],"minorfly":["Batty"]},
-		
-		
-		{"tiles":"tiles5","size":16,"maxkeys":4,"treasures":1,"boss":["Garmr"],"miniboss":["Knight","Malphas","ChazBike"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Ratgut"],"minorfly":["Batty","Svarog"],"perchmonster":["Axedog"]},
-		{"tiles":"tiles2","size":17,"maxkeys":4,"treasures":1,"boss":["Zoder"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"],"perchmonster":["Axedog"]},
-		{"tiles":"tiles2","size":18,"maxkeys":5,"treasures":1,"boss":["Poseidon"],"miniboss":["Knight","Malphas","ChazBike","Igbo"],"majormonster":["Yeti","Skeleton","Chaz"],"minormonster":["Beaker","Amon"],"minorfly":["Batty","Svarog"],"perchmonster":["Axedog"]}
 	];
 	
 	/* Set data */
@@ -356,7 +350,7 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 	this.currentTown = -1;
 	
 	var temple = this.temples[ this.currentTemple ];
-	this.monsterDifficulty = temple.difficulty;
+	Spawn.difficulty = temple.difficulty;
 	s = s || "" + Math.random();
 	window.seed = new Seed( s );
 	
@@ -541,20 +535,6 @@ DataManager.prototype.randomLevel = function(g, temple, s){
 	
 	g.buildCollisions();
 	
-	//Cut out secrets
-	/*
-	for(var i in this.secret_matrix ){
-		var pos = new Point(
-			~~i.match(/(-?\d+)/g)[0],
-			~~i.match(/(-?\d+)/g)[1]
-		);
-		var map_index = Math.floor( pos.x - mapDimension.start.x + (pos.y - mapDimension.start.y) * mapDimension.width() );
-		pm.map
-		this.cut( 256*(this.secret_matrix[i] > 0 ? pos.x-1 : pos.x), 240*pos.y);
-		pm.map[map_index] = -pm.map[map_index];
-	}
-	*/
-	
 	//Add wall meat
 	this.wallmeat();
 	
@@ -601,12 +581,6 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 			var start_x = g.tileDimension.start.x;
 			if( layer instanceof Function ) layer = layer.apply(room, [seed, width, height, room_options]);
 			
-			if( layers[j] == "far") {
-				addBackground = false;
-				rs = 15;
-				start_x = ((start_x*1.0) / room_size) * rs;
-			}
-			
 			for(var i=0; i < layer.length; i++){
 				var x = Math.floor( i % ( room_size * width ) );
 				var y = Math.floor( i / ( room_size * width ) );
@@ -615,27 +589,6 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 					Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * g.tileDimension.width() )
 				);
 				g.tiles[j][offset] = layer[i];
-			}
-		}
-	}
-	
-	//Add background
-	if( addBackground ) {
-		if( dataManager.currentTemple >= 0 && (cursor.x != 0 || cursor.y != 0) ) {
-			var bgsize = room_size - 1;
-			for(var w=0; w < width; w++ ) for(var h=0; h < height; h++ ){
-				var bg = Background.rooms[Math.floor(Math.random()*Background.rooms.length)];
-				for(var i=0; i < bg.tiles.length; i++){
-					var x = Math.floor( i % bgsize );
-					var y = Math.floor( i / bgsize );
-					var offset = Math.floor( 
-						(h * g.tileDimension.width() * 15) +
-						w * bgsize + 
-						Math.floor( (x-g.tileDimension.start.x) + Math.floor( (cursor.x) / (room_size+1) ) ) + 
-						Math.floor( ((y-g.tileDimension.start.y) + Math.floor( cursor.y / (room_size) ) ) * g.tileDimension.width() )
-					);
-					g.tiles[0][offset] = bg.tiles[i];
-				}
 			}
 		}
 	}
@@ -1194,19 +1147,6 @@ DataManager.prototype.roomsFromTags = function(tags,options){
 DataManager.prototype.revertSlice = function(i){
 	this.slices = this.slices.slice(0,i)
 }
-DataManager.prototype.cut = function(x,y){
-	var l = new Line(
-		(Math.floor(x/256)*256)+144,
-		(Math.floor(y/240)*240)+64,
-		(Math.floor(x/256)*256)+368,
-		(Math.floor(y/240)*240)+168
-	);
-	
-	for(var x=l.start.x; x < l.end.x; x += 16)
-	for(var y=l.start.y; y < l.end.y; y += 16) {
-		game.addObject( new BreakableTile(x + 8, y + 8) );
-	}
-}
 DataManager.prototype.wallmeat = function(){
 	for(var i in this.slices.peek().data ) {
 		if( seed.randomBool(0.2) ) {
@@ -1251,27 +1191,6 @@ DataManager.prototype.randomTreasure = function(roll, tags, ops){
 	}
 	return this.treasures[0];
 }
-DataManager.prototype.damage = function(level){
-	var damage = 5; //0 very little
-	
-	switch(level){
-		case 1: damage = 10; break;//1 weak, bashing into normal enemy
-		case 2: damage = 15; break;//2 strike from minor enemy
-		case 3: damage = 20; break;//3 strike from major enemy
-		case 4: damage = 25; break;//4 strike from miniboss
-		case 5: damage = 30; break;//5 strike from boss
-		case 6: damage = 40; break;//6 strike from SUPER boss
-	}
-	
-	var multi = 1 + this.monsterDifficulty * 0.22;
-	damage = Math.floor( damage * multi );
-	return damage;
-}
-DataManager.prototype.life = function(level){
-	if( level == 0 ) return 3; //Always one shot
-	var multi = 5 + this.monsterDifficulty * 3.125;
-	return Math.floor( multi * level );
-}
 
 DataManager.prettyBlocks = function(data, w){
 	for(var i=0; i < data.length; i++ ) {
@@ -1299,28 +1218,26 @@ DataManager.prettyBlocks = function(data, w){
 					data[i] = 150; //edge brick BR
 				} else {
 					//typical brick
-					if( Math.random() < 0.5 ) {
-						data[i] = 98 + Math.floor(6*Math.random());
-					} else {
-						data[i] = 114 + Math.floor(6*Math.random());
-					}
+					data[i] = 18;
+					if( Math.random() < 0.5 ) data[i] += 1;
+					if( Math.random() < 0.5 ) data[i] += 16;
 				}
 			} else if(b[1]>0 && b[3]==0 && b[5]>0 && b[7]==0){
-				data[i] = 17; //top left corner
+				data[i] = 1; //top left corner
 			} else if(b[1]>0 && b[3]>0 && b[5]==0 && b[7]==0){
-				data[i] = 24; //top right corner
+				data[i] = 8; //top right corner
 			} else if(b[1]==0 && b[3]==0 && b[5]>0 && b[7]>0){
-				data[i] = 33; //bottom left corner
+				data[i] = 49; //bottom left corner
 			} else if(b[1]==0 && b[3]>0 && b[5]==0 && b[7]>0){
-				data[i] = 40; //bottom right corner
+				data[i] = 56; //bottom right corner
 			} else if(b[1]>0 && b[3]>0 && b[5]>0 && b[7]==0) {
-				data[i] = 18 + Math.floor(6*Math.random()); //top tile	
+				data[i] = 2 + Math.floor(6*Math.random()); //top tile	
 			} else if(b[1]==0 && b[3]>0 && b[5]>0 && b[7]>0) {
-				data[i] = 34 + Math.floor(6*Math.random()); //bottom tile	
+				data[i] = 50 + Math.floor(3*Math.random()); //bottom tile	
 			} else if(b[1]>0 && b[3]==0 && b[5]>0 && b[7]>0) {
-				data[i] = 97 + (Math.random()<0.5?0:16); //left tile	
+				data[i] = 17 + (Math.random()<0.5?0:16); //left tile	
 			} else if(b[1]>0 && b[3]>0 && b[5]==0 && b[7]>0) {
-				data[i] = 104 + (Math.random()<0.5?0:16); //right tile	
+				data[i] = 24 + (Math.random()<0.5?0:16); //right tile	
 			}
 		}
 	}
@@ -1603,45 +1520,6 @@ var sprites = {};
 var audio = {};
 var RT = "";
 
-filter_hurt = function(d,i){
-	d[i] = Math.floor(d[i+1]*0.9);
-	d[i+1] = Math.floor(d[i+1]*0.3);
-	d[i+2] = 0;
-}
-filter_gold = function(d,i){
-	if( d[i+3] > 0 && Math.abs( (d[i] + d[i+1] + d[i+2]) - d[i]*3 ) < 6 ){
-		d[i+1] = Math.floor( d[i+1]*0.9 );
-		d[i+2] = Math.floor( d[i+1]*0.2 );
-	}
-}
-filter_enchanted = function(d,i,w){
-	if( d[i+3] > 10 && (d[i+0] != 248 || d[i+1] != 56 || d[i+2] != 0)) {
-		var dirs = [i+4,i-4,i-w*4,i+w*4];
-		for(var j=0; j<dirs.length; j++){
-			if(d[dirs[j]+3] < 10){
-				d[dirs[j]+0] = 248;
-				d[dirs[j]+1] = 56;
-				d[dirs[j]+2] = 0;
-				d[dirs[j]+3] = 255;
-			}
-		}
-	}
-}
-
-filter_pack_enemies = {
-	"hurt":filter_hurt,
-	"t1" : function(d,i){ d[i+0] = Math.floor(d[i+0]*1.3); d[i+1] = Math.floor(d[i+1]*0.7); d[i+2] = Math.floor(d[i+2]*0.5); },
-	"t2" : function(d,i){ var r = d[i+0]; d[i+0] = d[i+1]; d[i+1] = r; },
-	"t3" : function(d,i){ var g = d[i+1]; d[i+1] = d[i+2]; d[i+2] = g; },
-	"t4" : function(d,i){ var b = d[i+2]; d[i+2] = d[i+0]; d[i+0] = b; },
-	"t5" : function(d,i){ d[i+0]=d[i+1]=d[i+2]=Math.floor((d[i+0]+d[i+1]+d[i+2])/2.5); },
-	//"t6" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.7); d[i+1] = Math.floor(d[i+1]*0.6); d[i+2] = Math.floor(d[i+2]*1.6); },
-	//"t7" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.6); d[i+1] = Math.floor(d[i+1]*0.5); d[i+2] = Math.floor(d[i+2]*1.9); },
-	//"t8" : function(d,i){ d[i+0] = Math.floor(d[i+0]*0.8); d[i+1] = Math.floor(d[i+1]*1.3); d[i+2] = Math.floor(d[i+2]*0.5); },
-	//"t9" : function(d,i){ d[i+0]=d[i+1]=d[i+2]=Math.floor((d[i+0]+d[i+1]+d[i+2])/2.5); },
-	"special" : filter_enchanted
-}
-
 function load_sprites (){	
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['pig'] = new Sprite(RT+"img/pig.gif", {offset:new Point(0, 0),width:32,height:40});
@@ -1650,7 +1528,7 @@ function load_sprites (){
 	sprites['dreams'] = new Sprite(RT+"img/dreams.gif", {offset:new Point(0, 0),width:256,height:16});
 	sprites['transform'] = new Sprite(RT+"img/transform.gif", {offset:new Point(16, 17),width:33,height:34});
 	
-	sprites['items'] = new Sprite(RT+"img/items.gif", {offset:new Point(8, 8),width:16,height:16,"filters":{"gold":filter_gold}});
+	sprites['items'] = new Sprite(RT+"img/items.gif", {offset:new Point(8, 8),width:16,height:16});
 	sprites['waystones'] = new Sprite(RT+"img/waystones.gif", {offset:new Point(16, 24),width:32,height:48});
 	sprites['alter'] = new Sprite(RT+"img/alter.gif", {offset:new Point(32, 128),width:64,height:128});
 	sprites['arena'] = new Sprite(RT+"img/arena.gif", {offset:new Point(64, 128),width:128,height:128});
@@ -1672,52 +1550,52 @@ function load_sprites (){
 	
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['axedog'] = new Sprite(RT+"img/axedog.gif", {offset:new Point(20, 24),width:40,height:40});
-	sprites['baller'] = new Sprite(RT+"img/baller.gif", {offset:new Point(40, 60),width:80,height:96,"filters":filter_pack_enemies});
-	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48,"filters":filter_pack_enemies});
-	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24,"filters":filter_pack_enemies});
-	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32,"filters":filter_pack_enemies});
-	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56,"filters":filter_pack_enemies});
+	sprites['baller'] = new Sprite(RT+"img/baller.gif", {offset:new Point(40, 60),width:80,height:96});
+	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48});
+	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24});
+	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32});
+	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56});
 	sprites['cape1'] = new Sprite(RT+"img/cape1.gif", {offset:new Point(24, 24),width:48,height:48});
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['characters2'] = new Sprite(RT+"img/characters2.gif", {offset:new Point(24, 32),width:48,height:48});
-	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32,"filters":filter_pack_enemies});
-	sprites['chazbike'] = new Sprite(RT+"img/chazbike.gif", {offset:new Point(24, 32),width:48,height:48,"filters":filter_pack_enemies});
-	sprites['deckard'] = new Sprite(RT+"img/deckard.gif", {offset:new Point(24, 30),width:64,height:48,"filters":filter_pack_enemies});
+	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32});
+	sprites['chazbike'] = new Sprite(RT+"img/chazbike.gif", {offset:new Point(24, 32),width:48,height:48});
+	sprites['deckard'] = new Sprite(RT+"img/deckard.gif", {offset:new Point(24, 30),width:64,height:48});
 	sprites['frogmonster'] = new Sprite(RT+"img/frogmonster.gif", {offset:new Point(72, 72),width:144,height:144});
 	sprites['ghoul'] = new Sprite(RT+"img/ghoul.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['ending'] = new Sprite(RT+"img/ending.gif", {offset:new Point(48, 32),width:96,height:64});
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
-	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64,"filters":filter_pack_enemies});
-	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
+	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64});
+	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['lamps'] = new Sprite(RT+"img/lamps.gif", {offset:new Point(8, 16),width:16,height:32});
 	sprites['laughing'] = new Sprite(RT+"img/laughing.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['lilghost'] = new Sprite(RT+"img/lilghost.gif", {offset:new Point(16, 16),width:32,height:32});
-	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48,"filters":filter_pack_enemies});
+	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48});
 	sprites['flederknife'] = new Sprite(RT+"img/flederknife.gif", {offset:new Point(16, 16),width:32,height:32});
-	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32,"filters":filter_pack_enemies});
+	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48});
-	sprites['playerhuman'] = new Sprite(RT+"img/playerhuman.gif", {offset:new Point(24, 32),width:48,height:48,"filters":{"enchanted":filter_enchanted,"hurt":filter_hurt}});
-	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
+	sprites['playerhuman'] = new Sprite(RT+"img/playerhuman.gif", {offset:new Point(24, 32),width:48,height:48});
+	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['ring'] = new Sprite(RT+"img/ring.gif", {offset:new Point(120, 120),width:240,height:240});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
-	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16,"filters":filter_pack_enemies});
+	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16});
 	sprites['shields'] = new Sprite(RT+"img/shields.gif", {offset:new Point(0, 16),width:16,height:32});
 	sprites['shooter'] = new Sprite(RT+"img/shooter.gif", {offset:new Point(32, 32),width:64,height:64});
-	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
+	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['statues'] = new Sprite(RT+"img/statues.gif", {offset:new Point(32, 56),width:64,height:64});
-	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48,"filters":filter_pack_enemies});
-	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32,"filters":filter_pack_enemies});
-	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48,"filters":filter_pack_enemies});
+	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48});
+	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
+	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
 	
 	sprites['bossface'] = new Sprite(RT+"img/bossface.gif", {offset:new Point(0, 0),width:90,height:120});
 	
-	sprites['ammit'] = new Sprite(RT+"img/ammit.gif", {offset:new Point(32, 32),width:64,height:64,"filters":{"hurt":filter_hurt}});
-	sprites['garmr'] = new Sprite(RT+"img/garmr.gif", {offset:new Point(40, 24),width:80,height:64,"filters":{"hurt":filter_hurt}});
-	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:96,height:64,"filters":{"hurt":filter_hurt}});
-	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80,"filters":{"hurt":filter_hurt}});
-	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64,"filters":{"hurt":filter_hurt}});
-	sprites['poseidon'] = new Sprite(RT+"img/poseidon.gif", {offset:new Point(52, 48),width:112,height:96,"filters":{"hurt":filter_hurt}});
-	sprites['zoder'] = new Sprite(RT+"img/zoder.gif", {offset:new Point(32, 32),width:80,height:64,"filters":{"hurt":filter_hurt}});
+	sprites['ammit'] = new Sprite(RT+"img/ammit.gif", {offset:new Point(32, 32),width:64,height:64});
+	sprites['garmr'] = new Sprite(RT+"img/garmr.gif", {offset:new Point(40, 24),width:80,height:64});
+	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:96,height:64});
+	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80});
+	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64});
+	sprites['poseidon'] = new Sprite(RT+"img/poseidon.gif", {offset:new Point(52, 48),width:112,height:96});
+	sprites['zoder'] = new Sprite(RT+"img/zoder.gif", {offset:new Point(32, 32),width:80,height:64});
 	
 	sprites['prisoner'] = new Sprite(RT+"img/prisoner.gif", {offset:new Point(16, 24),width:32,height:48});
 	

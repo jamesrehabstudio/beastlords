@@ -172,7 +172,7 @@ function Game( elm ) {
 	this.height = Math.floor( this.element.height / pixel_scale );
 	this.renderOrder = [0,1,2,"o"];
 	this.layerCamera = {
-		0 : function(c){ return new Point(c.x*0.9375, c.y); }
+		//0 : function(c){ return new Point(c.x*0.9375, c.y); }
 	}
 	this.resolution = new Point(256,240);
 	

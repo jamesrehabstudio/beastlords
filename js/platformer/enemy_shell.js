@@ -1,6 +1,6 @@
 Shell.prototype = new GameObject();
 Shell.prototype.constructor = GameObject;
-function Shell(x,y){
+function Shell(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -39,12 +39,19 @@ function Shell(x,y){
 		this.destroy();
 	});
 	
-	this.life = dataManager.life(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(1,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.collisionReduction = -1.0;
 	this.friction = 0.2;
 	this.stun_time = Game.DELTASECOND * 0.75;
 	this.invincible_time = 30.0;
-	this.damage = dataManager.damage(2);
 	
 	this.mass = 1.0;
 	this.gravity = 1.0;

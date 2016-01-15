@@ -1,22 +1,31 @@
 Fly.prototype = new GameObject();
 Fly.prototype.constructor = GameObject;
-function Fly(x,y){
+function Fly(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
 	this.height = 24;
-	this.damage = dataManager.damage(2);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.team = 0;
 	this.sprite = sprites.amon;
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(1,this.difficulty);
+	this.damage = Spawn.damage(1,this.difficulty);
+	
 	this.speed = 0.25;
 	this.frame = 0;
 	this.frame_row = 1;
-	this.life = dataManager.life(1);
 	this.gravity = 0.0;
 	this.friction = 0.1;
 	this.mass = 0.7;

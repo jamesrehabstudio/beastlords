@@ -1,6 +1,6 @@
 Ratgut.prototype = new GameObject();
 Ratgut.prototype.constructor = GameObject;
-function Ratgut(x,y){
+function Ratgut(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -20,10 +20,17 @@ function Ratgut(x,y){
 		"direction" : 1
 	}
 	
-	this.life = dataManager.life(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(2,this.difficulty);
+	this.damage = Spawn.damage(6,this.difficulty);
 	this.mass = 1.2;
-	this.collideDamage = dataManager.damage(4);
-	this.damage = dataManager.damage(6);
+	this.collideDamage = Spawn.damage(4,this.difficulty);
 	this.stun_time = Game.DELTASECOND;
 	this.attackEffects.poison = [1.0,30.0];
 	

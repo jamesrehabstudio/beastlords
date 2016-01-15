@@ -32,10 +32,10 @@ function Marquis(x,y){
 		"rest" : Game.DELTASECOND * 1.0
 	};
 		
-	this.life = dataManager.life(24);
+	this.life = Spawn.life(24,this.difficulty);
 	this.mass = 4.0;
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(3);
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 3;
 	

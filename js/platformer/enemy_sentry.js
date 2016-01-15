@@ -1,6 +1,6 @@
 Sentry.prototype = new GameObject();
 Sentry.prototype.constructor = GameObject;
-function Sentry(x,y){
+function Sentry(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -26,10 +26,15 @@ function Sentry(x,y){
 		this.destroy();
 	});
 	
-	this.calculateXP();
+	o = o || {};
 	
-	this.life = dataManager.life(3);
-	this.damage = dataManager.damage(3);
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.3;
 	
 	this.states = {
@@ -42,6 +47,8 @@ function Sentry(x,y){
 		"warm" : Game.DELTASECOND * 3.5,
 		"release" : Game.DELTASECOND * 3.0
 	};
+	
+	this.calculateXP();
 }
 Sentry.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);

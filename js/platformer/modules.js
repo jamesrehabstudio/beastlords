@@ -148,6 +148,7 @@ var mod_combat = {
 		this.criticalChance = 0.0;
 		this.criticalMultiplier = 4.0;
 		this.damage = 10;
+		this.difficulty = 0;
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
 		this.team = 0;
@@ -345,7 +346,7 @@ var mod_combat = {
 		}
 		this.calculateXP = function(scale){
 			if(!this.filter && !(this instanceof Player) && !this.hasModule(mod_boss))
-				this.filter = "t"+dataManager.currentTemple;
+				this.filter = "t"+this.difficulty;
 			
 			scale = scale == undefined ? 1 : scale;
 			this.xp_award = 0;

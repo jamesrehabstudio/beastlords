@@ -1,6 +1,6 @@
 Axedog.prototype = new GameObject();
 Axedog.prototype.constructor = GameObject;
-function Axedog(x, y){
+function Axedog(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -23,9 +23,16 @@ function Axedog(x, y){
 		"rest" : Game.DELTASECOND * 0.25,
 	}
 	
-	this.life = dataManager.life(4);
-	this.lifeMax = dataManager.life(4);
-	this.damage = dataManager.life(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(4,this.difficulty);
+	this.lifeMax = Spawn.life(4,this.difficulty);
+	this.damage = Spawn.life(3,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){

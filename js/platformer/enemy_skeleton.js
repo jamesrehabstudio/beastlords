@@ -1,6 +1,6 @@
 Skeleton.prototype = new GameObject();
 Skeleton.prototype.constructor = GameObject;
-function Skeleton(x,y){
+function Skeleton(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -31,10 +31,17 @@ function Skeleton(x,y){
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
-	this.life = dataManager.life(5);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(5,this.difficulty);
 	this.mass = 0.8;
-	this.damage = dataManager.damage(3);
-	this.collideDamage = dataManager.damage(1);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.stun_time = 0;
 	
 	this.on("collideObject", function(obj){

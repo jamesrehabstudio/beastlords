@@ -1,6 +1,6 @@
 Beaker.prototype = new GameObject();
 Beaker.prototype.constructor = GameObject;
-function Beaker(x, y){
+function Beaker(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -18,10 +18,17 @@ function Beaker(x, y){
 		"jumps" : 0
 	}
 	
-	this.life = dataManager.life(3);
-	this.lifeMax = dataManager.life(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(3,this.difficulty);
+	this.lifeMax = Spawn.life(3,this.difficulty);
 	this.mass = 0.8;
-	this.collideDamage = dataManager.damage(2);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	
 	this.on("collideObject", function(obj){

@@ -1,6 +1,6 @@
 Igbo.prototype = new GameObject();
 Igbo.prototype.constructor = GameObject;
-function Igbo(x,y){
+function Igbo(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -31,9 +31,16 @@ function Igbo(x,y){
 	this.guard.w = 16;
 	this.guard.h = 46;	
 	
-	this.life = dataManager.life(8);
-	this.damage = dataManager.damage(4);
-	this.collideDamage = dataManager.damage(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(8,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.mass = 3.0;
 	this.friction = 0.3;
 	this.inviciple_time = this.stun_time;

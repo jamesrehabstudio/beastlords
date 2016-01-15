@@ -1,6 +1,6 @@
 Yakseyo.prototype = new GameObject();
 Yakseyo.prototype.constructor = GameObject;
-function Yakseyo(x,y){
+function Yakseyo(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -19,9 +19,16 @@ function Yakseyo(x,y){
 		"smoke_timer" : 0
 	};
 	
-	this.life = dataManager.life(10);
-	this.damage = dataManager.damage(4);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(10,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	this.pushable = false;
@@ -93,4 +100,6 @@ Yakseyo.prototype.update = function(){
 		this.visible = true;
 		this.height = 32;
 	}
+	
+	Background.pushLight(this.position, 100, [1.0,0.8,0.5]);
 }

@@ -1,6 +1,6 @@
 Batty.prototype = new GameObject();
 Batty.prototype.constructor = GameObject;
-function Batty(x,y){
+function Batty(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -19,10 +19,17 @@ function Batty(x,y){
 		"direction" : 0
 	}
 	
-	this.life = dataManager.life(0);
-	this.lifeMax = dataManager.life(0);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
+	this.lifeMax = Spawn.life(0,this.difficulty);
 	this.mass = 0.8;
-	this.collideDamage = this.damage = dataManager.damage(2);
+	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
 	this.fuse = dataManager.currentTemple >= 4;

@@ -34,10 +34,10 @@ function Garmr(x,y){
 		"fireballCount" : new Timer(0, Game.DELTASECOND * 0.1)
 	}
 	
-	this.life = dataManager.life(0);
+	this.life = Spawn.life(0,this.difficulty);
 	this.mass = 5.0;
-	this.damage = dataManager.damage(4);
-	this.collideDamage = dataManager.damage(1);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	

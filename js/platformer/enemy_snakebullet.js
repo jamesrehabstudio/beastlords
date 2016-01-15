@@ -1,6 +1,6 @@
 SnakeBullet.prototype = new GameObject();
 SnakeBullet.prototype.constructor = GameObject;
-function SnakeBullet(x,y,d){
+function SnakeBullet(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -32,11 +32,20 @@ function SnakeBullet(x,y,d){
 	this.on("death", function(obj,pos,damage){
 		this.destroy();
 	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	
+	this.life = Spawn.life(0,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.flip = d < 0;
 	this.force.x = d * 8;
-	this.life = dataManager.life(0);
-	this.collideDamage = dataManager.damage(1);
-	this.damage = dataManager.damage(2);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.pushable = false;
 	this.mass = 0.0;
 	this.gravity = 0.1;

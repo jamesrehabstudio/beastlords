@@ -1,6 +1,6 @@
 Baller.prototype = new GameObject();
 Baller.prototype.constructor = GameObject;
-function Baller(x, y){
+function Baller(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -26,10 +26,17 @@ function Baller(x, y){
 		"retrieve" : Game.DELTASECOND * 3.0,
 	}
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
 	this.death_time = Game.DELTASECOND * 3.0;
-	this.life = dataManager.life(28);
-	this.lifeMax = dataManager.life(28);
-	this.damage = dataManager.life(5);
+	this.life = Spawn.life(28,this.difficulty);
+	this.lifeMax = Spawn.life(28,this.difficulty);
+	this.damage = Spawn.life(5,this.difficulty);
 	this.mass = 4.0;
 	
 	this.on("struck", EnemyStruck);

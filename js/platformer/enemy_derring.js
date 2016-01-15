@@ -1,6 +1,6 @@
 Derring.prototype = new GameObject();
 Derring.prototype.constructor = GameObject;
-function Derring(x,y){
+function Derring(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -31,7 +31,14 @@ function Derring(x,y){
 		this.destroy();
 	});
 	
-	this.life = dataManager.life(0);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
 	this.collisionReduction = -1.0;
 	this.friction = 0.0;
 	this.stun_time = 30.0;

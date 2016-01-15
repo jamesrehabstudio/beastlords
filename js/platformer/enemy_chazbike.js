@@ -1,6 +1,6 @@
 ChazBike.prototype = new GameObject();
 ChazBike.prototype.constructor = GameObject;
-function ChazBike(x,y){
+function ChazBike(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -39,10 +39,15 @@ function ChazBike(x,y){
 		this.destroy();
 	});
 	
-	this.calculateXP();
+	o = o || {};
 	
-	this.life = dataManager.life(6);
-	this.collideDamage = dataManager.damage(3);
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.mass = 5.3;
 	this.friction = 0.01;
 	this.death_time = Game.DELTASECOND * 2;
@@ -54,6 +59,8 @@ function ChazBike(x,y){
 		"backwards" : 0,
 		"direction" : 1
 	};
+	
+	this.calculateXP();
 	
 }
 ChazBike.prototype.update = function(){

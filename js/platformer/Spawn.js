@@ -7,24 +7,39 @@ function Spawn(x,y,d,ops){
 	this.visible = false;
 	this.width = 16;
 	this.height = 16;
+	this.difficulty = Spawn.difficulty;
 	
-	this.on("open",function(obj){
+	this.on("activate",function(obj){
+		this.spawn();
 	});
 	
 	ops = ops || {};
+	var autospawn = 1;
 	
-	this.difficulty = ops.difficulty || dataManager.currentTemple;
-	this.theme = ops.theme || "default";
-	
+	if("theme" in ops){
+		this.theme = ops.theme;
+	}
+	if("difficulty" in ops){
+		this.difficulty = ops.difficulty * 1;
+	}
+	if("autospawn" in ops){
+		autospawn = ops.autospawn * 1;
+	}
 	if( "tags" in ops ){
 		this.tags = ops.tags.split(",");
 	} else { 
 		this.tags = new Array();
 	}
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
 	
 	this.enemies = [];
 	
-	this.spawn();
+	if(autospawn){
+		//Spawn on creation
+		this.spawn();
+	}
 }
 
 Spawn.prototype.spawn = function(){
@@ -53,7 +68,9 @@ Spawn.prototype.spawn = function(){
 			try {
 				var object = new window[ name ]( 
 					this.position.x + j * 24,
-					this.position.y 
+					this.position.y,
+					null,
+					{"difficulty":this.difficulty}
 				);
 				game.addObject( object );
 				this.enemies.push( object );
@@ -110,7 +127,46 @@ Spawn.enemies = {
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing","Laughing","Laughing"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
-		
-		
+	],
+	"undead" : [
+		{"tags":[],"difficulty":[0,99],"enemies":["Skeleton"]},
+		{"tags":[],"difficulty":[0,99],"enemies":["Ghoul"]},
+		{"tags":[],"difficulty":[0,99],"enemies":["Ratgut"]},
+		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
+		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Svarog"]}
 	]
 };
+
+Spawn.damage = function(level,difficulty){
+	var damage = 5; //0 very little
+	
+	if(difficulty == undefined){
+		difficulty = Spawn.difficulty;
+	}
+	
+	switch(level){
+		case 1: damage = 10; break;//1 weak, bashing into normal enemy
+		case 2: damage = 15; break;//2 strike from minor enemy
+		case 3: damage = 20; break;//3 strike from major enemy
+		case 4: damage = 25; break;//4 strike from miniboss
+		case 5: damage = 30; break;//5 strike from boss
+		case 6: damage = 40; break;//6 strike from SUPER boss
+	}
+	
+	var multi = 1 + difficulty * 0.22;
+	damage = Math.floor( damage * multi );
+	return damage;
+}
+
+Spawn.life = function(level, difficulty){
+	
+	if(difficulty == undefined){
+		difficulty = Spawn.difficulty;
+	}
+	
+	if( level == 0 ) return 3; //Always one shot
+	var multi = 5 + difficulty * 3.125;
+	return Math.floor( multi * level );
+}
+
+Spawn.difficulty = 0;

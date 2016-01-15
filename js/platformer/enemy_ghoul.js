@@ -1,6 +1,6 @@
 Ghoul.prototype = new GameObject();
 Ghoul.prototype.constructor = GameObject;
-function Ghoul(x,y){
+function Ghoul(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -18,9 +18,16 @@ function Ghoul(x,y){
 		"upwards" : 0
 	}
 	
-	this.life = dataManager.life(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(2,this.difficulty);
 	this.mass = 0.2;
-	this.collideDamage = dataManager.damage(2);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = 0;
 	this.attackEffects.weaken = [1.0,20];

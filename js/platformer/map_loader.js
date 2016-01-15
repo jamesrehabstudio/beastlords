@@ -1,24 +1,27 @@
-MapDebug.prototype = new GameObject();
-MapDebug.prototype.constructor = GameObject;
-function MapDebug(x,y){
+MapLoader.prototype = new GameObject();
+MapLoader.prototype.constructor = GameObject;
+function MapLoader(x,y){
 	this.constructor();
 }
 
-MapDebug.loadMap = function(url){
+MapLoader.loadMap = function(url){
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function(){
-		if(xhttp.readyState == 4 && xhttp.status == 200){
-			var parser = new DOMParser();
-			var xml = parser.parseFromString(xhttp.response, "text/xml");
-			
-			MapDebug.parseMap(xml);
+		if(xhttp.readyState == 4){
+			//AJAX load
+			try{
+				var parser = new DOMParser();
+				var xml = parser.parseFromString(xhttp.response, "text/xml");
+				
+				MapLoader.parseMap(xml);
+			} catch(err){}
 		}
 	}
 	xhttp.open("GET",url,true);
 	xhttp.send();
 }
 
-MapDebug.parseTile = function(tile,tilesets){
+MapLoader.parseTile = function(tile,tilesets){
 	tile *= 1;
 	var subtract = 1;
 	for(var i=0; i < tilesets.length; i++){
@@ -30,7 +33,7 @@ MapDebug.parseTile = function(tile,tilesets){
 	return tile - subtract;
 }
 
-MapDebug.parseMap = function(xml){
+MapLoader.parseMap = function(xml){
 	var tileset = "";
 	var tilesets = new Array();
 	var width = 0;
@@ -65,14 +68,14 @@ MapDebug.parseMap = function(xml){
 		
 		for(var j=0; j < tiles.length; j++){
 			if("front"==name){
-				tilesout[2].push(MapDebug.parseTile(tiles[j],tilesets));
+				tilesout[2].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("back"==name){
-				tilesout[1].push(MapDebug.parseTile(tiles[j],tilesets));
+				tilesout[1].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("far"==name){
-				tilesout[0].push(MapDebug.parseTile(tiles[j],tilesets));
+				tilesout[0].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("map"==name){
 				if((j%width) < width/16 && Math.floor(j/height) < height/15){
-					maptiles.push(MapDebug.parseTile(tiles[j],tilesets));
+					maptiles.push(MapLoader.parseTile(tiles[j],tilesets));
 				}
 			}
 		}
@@ -102,12 +105,22 @@ MapDebug.parseMap = function(xml){
 	pm.mapDimension = new Line(0,0,Math.floor(width/16),Math.floor(height/15));
 	game.addObject(pm);
 	
+	var bg = new Background();
+	game.addObject(bg);
+	
 	var objects = xml.getElementsByTagName("object");
 	for(var i=0; i < objects.length; i++){
 		obj = objects[i];
 		var name = obj.getAttribute("name");
-		var x = 8 + obj.getAttribute("x") * 1;
-		var y = 8 + obj.getAttribute("y") * 1;
+		var x = obj.getAttribute("x") * 1;
+		var y = obj.getAttribute("y") * 1;
+		
+		var rect = !obj.getAttribute("gid");
+		if(rect){
+			x += 8; y += 8;
+		}else{
+			x += 8; y -= 8;
+		}
 		
 		//Build properties
 		var properties = {};
@@ -132,15 +145,15 @@ MapDebug.parseMap = function(xml){
 		game.addObject(player);
 	}
 	
-	if(MapDebug.flight){
+	if(MapLoader.flight){
 		_player.spellsCounters.flight = 99999
 	}
-	if(MapDebug.level > 1){
-		var xp = Math.floor( Math.pow( MapDebug.level-1,1.8 ) * 50 );
+	if(MapLoader.level > 1){
+		var xp = Math.floor( Math.pow( MapLoader.level-1,1.8 ) * 50 );
 		_player.addXP(xp);
 	}
 }
 
-MapDebug.mapname = "testmap.tmx"
-MapDebug.flight = false;
-MapDebug.level = 1;
+MapLoader.mapname = "testmap.tmx"
+MapLoader.flight = false;
+MapLoader.level = 1;

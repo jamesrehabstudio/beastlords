@@ -25,10 +25,10 @@ function Minotaur(x,y){
 		"dizzy" : 0
 	}
 	
-	this.life = dataManager.life(30);
+	this.life = Spawn.life(30,this.difficulty);
 	this.mass = 5.0;
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(5);
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(5,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.collisionReduction = -1.0;
 	this.death_time = Game.DELTASECOND * 3;

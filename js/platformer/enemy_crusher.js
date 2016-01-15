@@ -1,6 +1,6 @@
 Crusher.prototype = new GameObject();
 Crusher.prototype.constructor = GameObject;
-function Crusher(x,y){
+function Crusher(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -20,8 +20,15 @@ function Crusher(x,y){
 		"active" : true
 	}
 	
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	

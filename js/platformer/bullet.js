@@ -131,15 +131,19 @@ function Fire(x,y){
 	this.frame = 0;
 	this.frame_row = 3;
 	this.life = Game.DELTASECOND * 8;
+	this.mass = 0;
+	this.friction = 1.0;
 	
 	this.on("struck", function(obj, pos, damage){
 		if( damage > 0 ) this.life = 0;
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		this.life = 0;
-		if( obj.hurt instanceof Function ) 
+		
+		if( obj.hurt instanceof Function ) {
+			this.life = 0;
 			obj.hurt( this, this.damage );
+		}
 	});
 	this.on("death", function(){
 		game.addObject(new EffectSmoke(this.position.x, this.position.y));

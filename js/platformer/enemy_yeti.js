@@ -1,6 +1,6 @@
 Yeti.prototype = new GameObject();
 Yeti.prototype.constructor = GameObject;
-function Yeti(x,y){
+function Yeti(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -20,10 +20,17 @@ function Yeti(x,y){
 		"attack_release" : false
 	};
 	
-	this.life = dataManager.life(6);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
 	this.mass = 2.2;
-	this.collideDamage = dataManager.damage(2);
-	this.damage = dataManager.damage(4);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
 	this.stun_time = 0;
 	
 	this.attack_release = Game.DELTASECOND * 1.2;

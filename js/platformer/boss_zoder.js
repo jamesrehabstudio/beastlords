@@ -30,9 +30,9 @@ function Zoder(x,y){
 	this.attack_rest = 7.0;
 	this.thrust_power = 6;
 	
-	this.life = dataManager.life(24);
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(3);
+	this.life = Spawn.life(24,this.difficulty);
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.mass = 5.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 3;

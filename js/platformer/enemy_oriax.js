@@ -1,6 +1,6 @@
 Oriax.prototype = new GameObject();
 Oriax.prototype.constructor = GameObject;
-function Oriax(x,y){
+function Oriax(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -32,8 +32,15 @@ function Oriax(x,y){
 		this.destroy();
 	});
 	
-	this.life =  dataManager.life(8);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(8,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.0;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 1;

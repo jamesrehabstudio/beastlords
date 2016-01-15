@@ -19,10 +19,10 @@ function Chort(x,y){
 	this.bossface_frame_row = 0;
 	
 	this.death_time = Game.DELTASECOND * 3;
-	this.life = dataManager.life(26);
+	this.life = Spawn.life(26,this.difficulty);
 	this.collideDamage = 5;
-	this.damage = dataManager.damage(4);
-	this.landDamage = dataManager.damage(6);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.landDamage = Spawn.damage(6,this.difficulty);
 	
 	this.mass = 6.0;
 	this.gravity = 0.4;

@@ -1,6 +1,6 @@
 HammerMathers.prototype = new GameObject();
 HammerMathers.prototype.constructor = GameObject;
-function HammerMathers(x, y){
+function HammerMathers(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -9,6 +9,7 @@ function HammerMathers(x, y){
 	this.sprite = sprites.hammermather;
 	this.speed = 10;
 	this.jump = 8;
+	this.attackTime = Game.DELTASECOND * 2.5;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -22,10 +23,18 @@ function HammerMathers(x, y){
 		"jumps" : 0
 	}
 	
-	this.life = dataManager.life(2);
-	this.lifeMax = dataManager.life(2);
-	this.damage = dataManager.life(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(2,this.difficulty);
+	this.lifeMax = Spawn.life(2,this.difficulty);
+	this.damage = Spawn.life(2,this.difficulty);
 	this.mass = 1.2;
+	
 	
 	this.on("collideVertical", function(x){
 		if( x < 0 ) this.force.x = 0;
@@ -53,7 +62,7 @@ HammerMathers.prototype.update = function(){
 			this.criticalChance = 1.0;
 			this.strike( new Line(0,-16,32,-4) );
 			if( this.grounded ) {
-				this.states.cooldown = Game.DELTASECOND;
+				this.states.cooldown = this.attackTime;
 			}
 		} else {
 			this.criticalChance = 0.0;

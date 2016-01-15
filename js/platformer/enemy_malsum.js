@@ -1,6 +1,6 @@
 Malsum.prototype = new GameObject();
 Malsum.prototype.constructor = GameObject;
-function Malsum(x,y){
+function Malsum(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -14,14 +14,21 @@ function Malsum(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.life = dataManager.life(4);
 	
 	this.states = {
 		"direction" : -1,
 	}
 	
-	this.damage = dataManager.damage(1);
-	this.collideDamage = dataManager.damage(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(4,this.difficulty);
+	this.damage = Spawn.damage(1,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	

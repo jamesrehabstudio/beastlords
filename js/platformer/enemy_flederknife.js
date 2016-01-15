@@ -1,6 +1,6 @@
 Flederknife.prototype = new GameObject();
 Flederknife.prototype.constructor = GameObject;
-function Flederknife(x, y){
+function Flederknife(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -16,9 +16,16 @@ function Flederknife(x, y){
 		"direction" : 1.0,
 	};
 	
-	this.life = dataManager.life(3);
-	this.lifeMax = dataManager.life(3);
-	this.damage = dataManager.life(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(3,this.difficulty);
+	this.lifeMax = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.life(2,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("struck", EnemyStruck);

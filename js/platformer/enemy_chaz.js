@@ -1,6 +1,6 @@
 Chaz.prototype = new GameObject();
 Chaz.prototype.constructor = GameObject;
-function Chaz(x,y){
+function Chaz(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -34,9 +34,16 @@ function Chaz(x,y){
 	SpecialEnemy(this);
 	this.calculateXP();
 	
-	this.life = dataManager.life(7);
-	this.collideDamage = dataManager.damage(1);
-	this.damage = dataManager.damage(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(7,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.3;
 	
 	this.states = {

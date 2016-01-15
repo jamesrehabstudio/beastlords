@@ -1,23 +1,30 @@
 Laughing.prototype = new GameObject();
 Laughing.prototype.constructor = GameObject;
-function Laughing(x,y){
+function Laughing(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.collideDamage = dataManager.damage(2);
-	this.damage = dataManager.damage(2);
 	this.team = 0;
 	this.sprite = sprites.laughing;
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
+	
 	this.speed = 0.225;
 	this.frame = 0;
 	this.frame_row = 0;
-	this.life = dataManager.life(0);
 	this.gravity = 0.0;
 	this.friction = 0.08;
 	

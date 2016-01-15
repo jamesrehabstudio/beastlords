@@ -15,13 +15,13 @@ function FrogBoss(x,y){
 	this.speed = 1.125;
 	this.frame = 0;
 	this.frame_row = 0;
-	this.life = dataManager.life(35);
+	this.life = Spawn.life(35,this.difficulty);
 	this.gravity = 0.5;
 	this.friction = 0.2;
 	this.mass = 20.0;
 	this.death_time = Game.DELTASECOND * 3;
 	
-	this.damage = dataManager.damage(5);
+	this.damage = Spawn.damage(5,this.difficulty);
 	
 	this.times = {
 		"stump" : Game.DELTASECOND * 1.1,

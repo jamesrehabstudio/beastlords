@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="784" height="165" tilewidth="16" tileheight="16" nextobjectid="90">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="784" height="165" tilewidth="16" tileheight="16" nextobjectid="98">
  <properties>
   <property name="tileset" value="tiles7"/>
  </properties>
@@ -574,12 +574,12 @@
     <property name="name" value="key_0"/>
    </properties>
   </object>
-  <object id="31" name="Door" gid="232" x="6160" y="664" width="16" height="16">
+  <object id="31" name="Door" gid="232" x="6160" y="648" width="16" height="16">
    <properties>
     <property name="name" value="key_0"/>
    </properties>
   </object>
-  <object id="32" name="Door" gid="232" x="6368" y="664" width="16" height="16">
+  <object id="32" name="Door" gid="232" x="6368" y="648" width="16" height="16">
    <properties>
     <property name="name" value="key_0"/>
    </properties>
@@ -641,5 +641,40 @@
   <object id="87" name="BreakableTile" gid="232" x="4480" y="832" width="16" height="16"/>
   <object id="88" name="BreakableTile" gid="232" x="4496" y="784" width="16" height="16"/>
   <object id="89" name="BreakableTile" gid="232" x="4496" y="832" width="16" height="16"/>
+  <object id="90" name="Trigger" gid="232" x="736" y="384" width="16" height="16">
+   <properties>
+    <property name="darkness" value="(c.x-11*16)/180"/>
+    <property name="height" value="96"/>
+   </properties>
+  </object>
+  <object id="92" name="Trigger" gid="232" x="1552" y="384" width="16" height="16">
+   <properties>
+    <property name="darkness" value="1"/>
+    <property name="height" value="96"/>
+   </properties>
+  </object>
+  <object id="94" name="Trigger" gid="232" x="9472" y="1840" width="16" height="16">
+   <properties>
+    <property name="darkness" value="1"/>
+    <property name="height" value="96"/>
+   </properties>
+  </object>
+  <object id="95" name="Trigger" gid="232" x="11504" y="864" width="16" height="16">
+   <properties>
+    <property name="darkness" value="(700*16-c.x)/(100*16)"/>
+    <property name="height" value="96"/>
+   </properties>
+  </object>
+  <object id="96" name="Trigger" gid="232" x="9632" y="1456" width="16" height="16">
+   <properties>
+    <property name="darkness" value="(700*16-c.x)/(100*16)"/>
+    <property name="height" value="480"/>
+   </properties>
+  </object>
+  <object id="97" name="Test" gid="232" x="3280" y="560" width="32" height="16">
+   <properties>
+    <property name="name" value="key_0"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

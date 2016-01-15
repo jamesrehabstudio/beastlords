@@ -1,6 +1,6 @@
 Knight.prototype = new GameObject();
 Knight.prototype.constructor = GameObject;
-function Knight(x,y){
+function Knight(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -29,9 +29,16 @@ function Knight(x,y){
 	this.attack_rest = 7.0;
 	this.thrust_power = 6;
 	
-	this.life = dataManager.life(7);
-	this.damage = dataManager.damage(3);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(7,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 3.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
@@ -43,9 +50,9 @@ function Knight(x,y){
 	this.fr_offset = 0;
 	this.cooldown_time = Game.DELTASECOND * 2.4;
 	
-	if( this.level == 2 ){
-		this.life = dataManager.life(8);
-		this.damage = dataManager.damage(4);
+	if( this.difficulty >= 2 ){
+		this.life = Spawn.life(8,this.difficulty);
+		this.damage = Spawn.damage(4,this.difficulty);
 		this.fr_offset = 3;
 		this.cooldown_time = Game.DELTASECOND * 2.0;
 		this.attack_warm = 22.0;
@@ -56,9 +63,9 @@ function Knight(x,y){
 		this.death_time = Game.DELTASECOND * 2;
 		this.xp_award = 39;
 		this.money_award = 12;
-	} else if ( this.level >= 3 ) {
-		this.life = dataManager.life(10);
-		this.damage = dataManager.damage(5);
+	} else if ( this.difficulty >= 4 ) {
+		this.life = Spawn.life(10,this.difficulty);
+		this.damage = Spawn.damage(5,this.difficulty);
 		this.fr_offset = 6;
 		this.cooldown_time = Game.DELTASECOND * 1.8;
 		this.attack_warm = 20.0;

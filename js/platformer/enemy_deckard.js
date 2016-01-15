@@ -1,6 +1,6 @@
 Deckard.prototype = new GameObject();
 Deckard.prototype.constructor = GameObject;
-function Deckard(x,y){
+function Deckard(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -24,11 +24,18 @@ function Deckard(x,y){
 	this.attack_time = Game.DELTASECOND * 0.6;
 	this.jump_start_y = 0;
 	
-	this.life = dataManager.life(6);
-	this.lifeMax = dataManager.life(6);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
+	this.lifeMax = Spawn.life(6,this.difficulty);
 	this.mass = 4;
-	this.damage = dataManager.damage(3);
-	this.collideDamage = dataManager.damage(1);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 2;
 	

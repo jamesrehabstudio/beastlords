@@ -2,7 +2,7 @@ window.BLANK_TILE = 16;
 
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
-function CollapseTile(x,y){
+function CollapseTile(x,y,n,o){
 	this.constructor();
 	this.position.x = x-8;
 	this.position.y = y-8;
@@ -12,10 +12,23 @@ function CollapseTile(x,y){
 	this.frame = 6;
 	this.frame_row = 11;
 	this.visible = false;
+	this.totalTime = 20;
 	
 	this.center = new Point(this.position.x, this.position.y);
 	
-	this.timer = 20
+	//Set up
+	o = o || {};
+	if("timer" in o){
+		this.totalTime = Game.DELTASECOND * o.timer;
+	}
+	
+	var existingTile = game.getTile(this.position.x,this.position.y);
+	if(existingTile > 0){
+		this.frame = Math.floor((existingTile-1) % 16);
+		this.frame_row = Math.floor((existingTile-1) / 16);
+	}
+	
+	this.timer = this.totalTime;
 	this.active = false;
 	
 	this.on("collideObject",function(obj){
@@ -30,7 +43,7 @@ function CollapseTile(x,y){
 		this.position.x = this.center.x;
 		this.position.y = this.center.y;
 		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, window.BLANK_TILE);
-		this.timer = 20;
+		this.timer = this.totalTime;
 	});
 }
 CollapseTile.prototype.update = function(){
@@ -67,14 +80,24 @@ function BreakableTile(x, y, d, ops){
 	this.life = 1;
 	this.item = false;
 	this.death_time = Game.DELTASECOND * 0.15;
+	this.strikeable = 1;
 	
 	ops = ops || {};
+	if( "strikeable" in ops ) {
+		this.strikeable = ops["strikeable"] * 1;
+	}
 	if( "item" in ops ) {
 		this.item = new Item(x,y,ops.item);
 	}
+	if("trigger" in ops) {
+		this._tid = ops["trigger"];
+	}
 	
+	this.on("activate", function(obj,pos,damage){
+		this.life = 0;
+	});
 	this.on("struck", function(obj,pos,damage){
-		if( obj instanceof Player){
+		if( this.strikeable && obj instanceof Player){
 			//break tile
 			this.life = 0;
 		}
@@ -99,7 +122,7 @@ BreakableTile.prototype.update = function(){
 				this.position.x + 24, this.position.y + 24
 			));
 			for(var i=0; i<hits.length; i++) if( hits[i] instanceof BreakableTile && hits[i].life > 0 ) {
-				hits[i].trigger("struck", _player, this.position, 1);
+				hits[i].trigger("activate", this);
 			}
 		}
 		this.destroy();

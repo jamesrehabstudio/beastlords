@@ -19,10 +19,10 @@ function Poseidon(x,y){
 	this.bossface_frame_row = 1;
 	
 	this.death_time = Game.DELTASECOND * 3;
-	this.life = dataManager.life(30);
+	this.life = Spawn.life(30,this.difficulty);
 	this.collideDamage = 5;
-	this.damage = dataManager.damage(4);
-	this.landDamage = dataManager.damage(6);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.landDamage = Spawn.damage(6,this.difficulty);
 	this.stun_time = 0;
 	this.interactive = false;
 	

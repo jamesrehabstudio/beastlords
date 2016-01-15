@@ -1,6 +1,6 @@
 BigBones.prototype = new GameObject();
 BigBones.prototype.constructor = GameObject;
-function BigBones(x,y,d,ops){
+function BigBones(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -31,15 +31,24 @@ function BigBones(x,y,d,ops){
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
-	this.life = dataManager.life(9);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	if( "active" in o ) {
+		this.active = o.active.toLowerCase() == "true";
+	}
+	if( "flip" in o ) {
+		this.flip = o.flip.toLowerCase() == "true";
+	}
+	
+	this.life = Spawn.life(9,this.difficulty);
 	this.mass = 2.0;
-	this.damage = dataManager.damage(3);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.stun_time = Game.DELTASECOND * 0.25;
 	
-	//Set options
-	ops = ops || {};
-	if( "active" in ops ) this.active = ops.active.toLowerCase() == "true";
-	if( "flip" in ops ) this.flip = ops.flip.toLowerCase() == "true";
 	
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;

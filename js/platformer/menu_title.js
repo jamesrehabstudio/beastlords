@@ -84,19 +84,19 @@ TitleMenu.prototype.update = function(){
 			this.cursor = Math.max(Math.min(this.cursor,3),0);
 			
 			if(this.cursor == 1){
-				if( input.state("left") == 1 ) { MapDebug.level -= 1; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapDebug.level += 1; audio.play("cursor"); }
-				MapDebug.level = Math.max(Math.min(MapDebug.level,50),1);
+				if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
+				MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
 			}else if(this.cursor == 2){
-				if( input.state("left") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
+				if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
 			}
 			
 			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
 				if(this.cursor == 0){
-					MapDebug.mapname = prompt("Enter filename",MapDebug.mapname);
+					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
 				} else if(this.cursor == 3){
-					MapDebug.loadMap(MapDebug.mapname);
+					MapLoader.loadMap(MapLoader.mapname);
 					audio.play("pause");
 				}
 			}
@@ -173,9 +173,9 @@ TitleMenu.prototype.render = function(g,c){
 			
 			textArea(g,"@",x_pos+16,48+32*this.cursor);
 			
-			textArea(g,""+MapDebug.mapname,x_pos+32,48+12);
-			textArea(g,""+MapDebug.level,x_pos+32,80+12);
-			textArea(g,""+MapDebug.flight,x_pos+32,112+12);
+			textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
+			textArea(g,""+MapLoader.level,x_pos+32,80+12);
+			textArea(g,""+MapLoader.flight,x_pos+32,112+12);
 		}
 		
 		if( this.progress >= 24 ) {

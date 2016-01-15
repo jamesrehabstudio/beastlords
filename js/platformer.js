@@ -244,6 +244,12 @@ function Background(x,y){
 	this.walls = true;
 	this.zIndex = -999;
 	
+	this.ambience = [0.3,0.3,0.5];
+	this.ambienceStrength = 0.0;
+	this.darknessFunction = function(c){
+		return (c.y-720) / 720;
+	}
+	
 	this.time = 0;
 	
 	this.lightbeamLoop = 16;
@@ -284,47 +290,44 @@ Background.prototype.postrender = function(gl,c){
 		}
 	}
 	
-	if( c.y > 720 ) {
-		//Render onto different layer
-		var depth = Math.min((c.y - 720) / 720, 1);
-		
-		this.lightBuffer.use(gl);
-		gl.clear(gl.COLOR_BUFFER_BIT);
-		gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA );
-		
-		//fill basic colour
-		gl.color = [
-			Math.lerp(1.0,0.3,depth),
-			Math.lerp(1.0,0.3,depth),
-			Math.lerp(1.0,0.5,depth),
-			1.0
-		];
-		gl.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
-		
-		//render lights
-		while( Background.lights.length > 0 ) {
-			var light = Background.lights.pop();
-			var position = light[0];
-			var radius = light[1];
-			sprites.halo.renderSize(
-				gl, 
-				position.x - (radius*0.5), 
-				position.y - (radius*0.5), 
-				radius, 
-				radius,
-				0,
-				0
-			);
-		}
-		
-		//Done, switch back to back buffer
-		game.backBuffer.use(gl);
-		
-		
-		gl.blendFunc( gl.ZERO, gl.SRC_COLOR );
-		gl.renderBackbuffer(this.lightBuffer.texture);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+	//Render ambience
+	this.lightBuffer.use(gl);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA );
+	
+	//Calculate strength
+	this.ambienceStrength = Math.min(Math.max(this.darknessFunction(c),0),1);
+	gl.color = [
+		Math.lerp(1.0,this.ambience[0],this.ambienceStrength),
+		Math.lerp(1.0,this.ambience[1],this.ambienceStrength),
+		Math.lerp(1.0,this.ambience[2],this.ambienceStrength),
+		1.0
+	];
+	gl.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
+	
+	//render lights
+	while( Background.lights.length > 0 ) {
+		var light = Background.lights.pop();
+		var position = light[0];
+		var radius = light[1];
+		sprites.halo.renderSize(
+			gl, 
+			position.x - (radius*0.5), 
+			position.y - (radius*0.5), 
+			radius, 
+			radius,
+			0,
+			0
+		);
 	}
+	
+	//Done, switch back to back buffer
+	game.backBuffer.use(gl);
+	
+	gl.blendFunc( gl.ZERO, gl.SRC_COLOR );
+	gl.renderBackbuffer(this.lightBuffer.texture);
+	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+
 	Background.lights = new Array();
 }
 
@@ -380,169 +383,25 @@ Background.prototype.prerender = function(gl,c){
 	var backgroundTiles = _map_backdrops[0];
 	var tileset = sprites[backgroundTiles.tileset];
 	
+	
 	var zero = game.tileDimension.start;
-	var strength = 48.0 / Math.max(game.tileDimension.width(),game.tileDimension.height());
-	var x = ((c.x/16.0) - zero.x) * strength;
-	var y = ((c.y/16.0) - zero.y) * strength;
+	var strength = 1.0;
+	if(
+		game.tileDimension.width()*16 - game.resolution.x > 
+		game.tileDimension.height()*16 - game.resolution.y
+	){
+		var largest = game.tileDimension.width()*16 - game.resolution.x
+		strength = (48*16 - game.resolution.x) / largest;
+	}else{
+		var largest = game.tileDimension.width()*16 - game.resolution.x
+		strength = (48*16 - game.resolution.y) / largest;
+	}
+	
+	var x = ((c.x) - zero.x*16) * strength;
+	var y = ((c.y) - zero.y*16) * strength;
 	
 	if("under1" in backgroundTiles){
 		tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
-	}
-	/*
-	gl.bindTexture( gl.TEXTURE_2D, game.tileSprite.gl_tex );
-	var shader = window.materials["default"].use();
-	
-	
-	if( c.y < game.resolution.y / Background.wallEffect ) {
-		//Clouds
-		//cloud length = 128
-		this.sprite.renderSize(gl,0,0,game.resolution.x,176,203);
-		
-		var cloudVerts = new Array();
-		var sky_offset = this.animation / 20.0;
-		var draws = Math.ceil(game.resolution.x / 128.0) + 1;
-		for(var i = 0; i < draws; i++){
-			var offsetx = Math.floor((i * 128)-(sky_offset%128));
-			var buffer = gl.createBuffer();
-			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-			gl.bufferData( gl.ARRAY_BUFFER, Background.cloudBuffer, gl.DYNAMIC_DRAW);
-			//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-			shader.set("a_position");
-			
-			var tbuffer = gl.createBuffer();
-			gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-			gl.bufferData( gl.ARRAY_BUFFER, Background.cloudTexture, gl.DYNAMIC_DRAW);
-			//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);			
-			shader.set("a_texCoord");
-			
-			//gl.uniform2f(res, game.resolution.x, game.resolution.y);
-			//gl.uniform2f(cam, offsetx, 144);
-			shader.set("u_resolution", game.resolution.x, game.resolution.y);
-			shader.set("u_camera", offsetx, 144);
-			
-			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
-		}
-		
-		for(var l=0; l < 3; l++) {
-			var tiles = [];
-			var textr = [];
-			var ts = 16;
-			for(var i=0; i < game.resolution.x+ts; i+=ts){
-				tiles.push(i); tiles.push(0); 
-				tiles.push(i+ts); tiles.push(0); 
-				tiles.push(i); tiles.push(32); 
-				tiles.push(i); tiles.push(32); 
-				tiles.push(i+ts); tiles.push(0); 
-				tiles.push(i+ts); tiles.push(32);
-				
-				var txoff = (2-l)*0.0625
-				textr.push(txoff+0.5); textr.push(0.75);
-				textr.push(txoff+0.5625); textr.push(0.75);
-				textr.push(txoff+0.5); textr.push(0.875);
-				textr.push(txoff+0.5); textr.push(0.875);
-				textr.push(txoff+0.5625); textr.push(0.75);
-				textr.push(txoff+0.5625); textr.push(0.875);
-			}
-			var buffer = gl.createBuffer();
-			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-			gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tiles), gl.DYNAMIC_DRAW);
-			//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-			shader.set("a_position");
-			
-			var tbuffer = gl.createBuffer();
-			gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-			gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(textr), gl.DYNAMIC_DRAW);
-			//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
-			shader.set("a_texCoord");
-			
-			var offcam = new Point(
-				(c.x<0?-ts:0) + (Math.floor((0.2*(l+0.1))*-c.x)%ts),
-				Math.floor(168+l*8+l*(c.y*-0.003))
-			);
-			
-			//gl.uniform2f(res, game.resolution.x, game.resolution.y);
-			//gl.uniform2f(cam, offcam.x, offcam.y);
-			shader.set("u_resolution", game.resolution.x, game.resolution.y);
-			shader.set("u_camera", offcam.x, offcam.y);
-			
-			gl.drawArrays(gl.TRIANGLE_STRIP, 0, tiles.length/2);
-		}
-	}
-	
-	//if( c.y > 32 && this.walls ) {
-	if( c.y > -64 ) {
-		//Background wall
-		var tiles = new Array();
-		var textr = new Array();
-		var ts = 32;
-		var starty = 0;
-		for(var x=-ts; x < game.resolution.x+ts; x+=ts) 
-		for(var y=-ts; y < game.resolution.y+ts; y+=ts){
-			tiles.push(x); tiles.push(y); 
-			tiles.push(x+ts); tiles.push(y); 
-			tiles.push(x); tiles.push(y+ts); 
-			tiles.push(x); tiles.push(y+ts); 
-			tiles.push(x+ts); tiles.push(y); 
-			tiles.push(x+ts); tiles.push(y+ts);
-			
-			textr.push(0.5); textr.push(0.375);
-			textr.push(0.625); textr.push(0.375);
-			textr.push(0.5); textr.push(0.5);
-			textr.push(0.5); textr.push(0.5);
-			textr.push(0.625); textr.push(0.375);
-			textr.push(0.625); textr.push(0.5);
-		}
-		var buffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tiles), gl.DYNAMIC_DRAW);
-		shader.set("a_position");
-		
-		var tbuffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(textr), gl.DYNAMIC_DRAW);
-		shader.set("a_texCoord");
-		
-		var y_offset = (c.y * -Background.wallEffect) % ts
-		if( c.y < game.resolution.y / Background.wallEffect ) {
-			y_offset = game.resolution.y - c.y * Background.wallEffect;
-		}
-		var offcam = new Point(
-			Math.round((c.x * -Background.wallEffect) % ts),
-			Math.round(y_offset)
-		);
-		
-		shader.set("u_resolution", game.resolution.x, game.resolution.y);
-		shader.set("u_camera", offcam.x, offcam.y);
-		
-		gl.drawArrays(gl.TRIANGLES, 0, tiles.length/2);
-	} 
-	
-	
-	this.animation += this.delta;
-	*/
-}
-Background.prototype.roomAtLocation = function(x,y){
-	if(y==0 && (x==0||x==1)) return -1;
-	
-	try {
-	var code = x+"_"+y;
-		if( code in this.saved_rooms ) {
-			return this.saved_rooms[code];
-		} else if( code in dataManager.slices.peek().data ) {
-			var tags = ["normal"];
-			var total = 0;
-			for(var i=0; i<this.backgrounds.length; i++) if(this.backgrounds[i].tags.intersection(tags).length>0) total += this.backgrounds[i].rarity;
-			var roll = Math.random() * total;
-			for(var i=0; i<this.backgrounds.length; i++) if(this.backgrounds[i].tags.intersection(tags).length>0) {
-				if( roll < this.backgrounds[i].rarity ) {
-					this.saved_rooms[code] = i;
-					return i;
-				}
-				roll -= this.backgrounds[i].rarity;
-			}
-		}
-	} catch (err) {
-		return -1;
 	}
 }
 Background.prototype.idle = function(){}
@@ -570,29 +429,6 @@ Background.cloudBuffer = new Float32Array([
 Background.cloudTexture = new Float32Array([
 	0.5, 0.875, 1.0, 0.875, 0.5, 1.0, 0.5, 1.0, 1.0, 0.875, 1.0, 1.0
 ]);
-Background.wallEffect = 0.5;
-Background.rooms = [
-	{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,9,10,10,10,10,10,11,26,26,26,26,26,12,13,14,25,0,0,0,0,0,27,12,13,14,26,26,28,29,30,25,0,0,0,0,0,27,28,29,30,26,26,44,45,46,25,0,0,0,0,0,27,44,45,46,26,26,60,61,62,25,0,0,0,0,0,27,60,61,62,26,26,76,77,78,25,0,0,0,0,0,27,76,77,78,26,26,26,26,26,41,42,42,42,42,42,43,26,26,26,26,26,12,13,14,9,10,10,10,10,10,11,12,13,14,26,26,28,29,30,25,0,0,0,0,0,27,28,29,30,26,26,44,45,46,25,0,0,0,0,0,27,44,45,46,26,26,60,61,62,25,0,0,0,0,0,27,60,61,62,26,26,76,77,78,41,42,42,42,42,42,43,76,77,78,26,93,94,93,94,93,94,93,94,93,94,93,94,93,94,93,109,110,109,110,109,110,109,110,109,110,109,110,109,110,109]},
-	{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,9,10,10,11,9,10,10,10,11,9,10,10,11,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,25,0,0,27,25,0,0,0,27,25,0,0,27,26,26,41,42,42,43,41,42,42,42,43,41,42,42,43,26,93,94,93,94,93,94,93,94,93,94,93,94,93,94,93,109,110,109,110,109,110,109,110,109,110,109,110,109,110,109]},
-	{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,12,13,14,26,26,12,13,14,26,26,12,13,14,26,26,28,29,30,26,26,28,29,30,26,26,28,29,30,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,44,45,46,26,26,60,61,62,26,26,60,61,62,26,26,60,61,62,26,26,76,77,78,26,26,76,77,78,26,26,76,77,78,26,93,94,93,94,93,94,93,94,93,94,93,94,93,94,93,109,110,109,110,109,110,109,110,109,110,109,110,109,110,109]},
-	{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,59,26,26,26,26,26,26,59,26,26,26,59,26,26,26,9,10,11,26,26,26,26,26,26,26,26,26,26,59,26,25,0,27,26,26,26,26,26,26,26,26,26,26,26,9,74,0,73,11,59,26,26,26,26,26,9,10,11,26,25,0,0,0,27,26,9,10,11,26,26,25,0,27,26,25,0,0,0,27,26,25,0,27,26,9,74,0,73,11,25,0,0,0,27,9,74,0,73,11,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,25,0,0,0,27,41,42,42,42,43,41,42,42,42,43,41,42,42,42,43,93,94,93,94,93,94,93,94,93,94,93,94,93,94,93,109,110,109,110,109,110,109,110,109,110,109,110,109,110,109]}
-];
-Background.areaFree = function(pos,g){
-	//check base
-	var y = 2;
-	var ts = 16;
-	for(var x=-2; x < 2; x++){
-		if( g.getTile(pos.x + ts * x, pos.y + ts * y, g.tileCollideLayer) <= 0 ){
-			return false;
-		}
-	}
-	for(var x=-2; x < 2; x++) for(var y=-2; y < 2; y++){
-		if( g.getTile(pos.x + ts * x, pos.y + ts * y, g.tileCollideLayer) > 0 ){
-			return false;
-		}
-	}
-	return true;
-}
 Background.lights = new Array();
 Background.pushLight = function(p,r,c){
 	if( Background.lights.length < 20 ) {
@@ -607,7 +443,7 @@ Background.pushLight = function(p,r,c){
 
 Ammit.prototype = new GameObject();
 Ammit.prototype.constructor = GameObject;
-function Ammit(x,y){
+function Ammit(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -640,10 +476,16 @@ function Ammit(x,y){
 		"spit_time" : Game.DELTASECOND * 1
 	}
 	
-	this.life = dataManager.life(24);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(24,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
 	this.mass = 5.0;
-	this.damage = 25;
-	this.collideDamage = 25;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -759,10 +601,10 @@ function Chort(x,y){
 	this.bossface_frame_row = 0;
 	
 	this.death_time = Game.DELTASECOND * 3;
-	this.life = dataManager.life(26);
+	this.life = Spawn.life(26,this.difficulty);
 	this.collideDamage = 5;
-	this.damage = dataManager.damage(4);
-	this.landDamage = dataManager.damage(6);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.landDamage = Spawn.damage(6,this.difficulty);
 	
 	this.mass = 6.0;
 	this.gravity = 0.4;
@@ -899,13 +741,13 @@ function FrogBoss(x,y){
 	this.speed = 1.125;
 	this.frame = 0;
 	this.frame_row = 0;
-	this.life = dataManager.life(35);
+	this.life = Spawn.life(35,this.difficulty);
 	this.gravity = 0.5;
 	this.friction = 0.2;
 	this.mass = 20.0;
 	this.death_time = Game.DELTASECOND * 3;
 	
-	this.damage = dataManager.damage(5);
+	this.damage = Spawn.damage(5,this.difficulty);
 	
 	this.times = {
 		"stump" : Game.DELTASECOND * 1.1,
@@ -1122,10 +964,10 @@ function Garmr(x,y){
 		"fireballCount" : new Timer(0, Game.DELTASECOND * 0.1)
 	}
 	
-	this.life = dataManager.life(0);
+	this.life = Spawn.life(0,this.difficulty);
 	this.mass = 5.0;
-	this.damage = dataManager.damage(4);
-	this.collideDamage = dataManager.damage(1);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -1279,10 +1121,10 @@ function Marquis(x,y){
 		"rest" : Game.DELTASECOND * 1.0
 	};
 		
-	this.life = dataManager.life(24);
+	this.life = Spawn.life(24,this.difficulty);
 	this.mass = 4.0;
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(3);
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -1412,10 +1254,10 @@ function Minotaur(x,y){
 		"dizzy" : 0
 	}
 	
-	this.life = dataManager.life(30);
+	this.life = Spawn.life(30,this.difficulty);
 	this.mass = 5.0;
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(5);
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(5,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.collisionReduction = -1.0;
 	this.death_time = Game.DELTASECOND * 3;
@@ -1529,10 +1371,10 @@ function Poseidon(x,y){
 	this.bossface_frame_row = 1;
 	
 	this.death_time = Game.DELTASECOND * 3;
-	this.life = dataManager.life(30);
+	this.life = Spawn.life(30,this.difficulty);
 	this.collideDamage = 5;
-	this.damage = dataManager.damage(4);
-	this.landDamage = dataManager.damage(6);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.landDamage = Spawn.damage(6,this.difficulty);
 	this.stun_time = 0;
 	this.interactive = false;
 	
@@ -1751,9 +1593,9 @@ function Zoder(x,y){
 	this.attack_rest = 7.0;
 	this.thrust_power = 6;
 	
-	this.life = dataManager.life(24);
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(3);
+	this.life = Spawn.life(24,this.difficulty);
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.mass = 5.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 3;
@@ -2009,15 +1851,19 @@ function Fire(x,y){
 	this.frame = 0;
 	this.frame_row = 3;
 	this.life = Game.DELTASECOND * 8;
+	this.mass = 0;
+	this.friction = 1.0;
 	
 	this.on("struck", function(obj, pos, damage){
 		if( damage > 0 ) this.life = 0;
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
-		this.life = 0;
-		if( obj.hurt instanceof Function ) 
+		
+		if( obj.hurt instanceof Function ) {
+			this.life = 0;
 			obj.hurt( this, this.damage );
+		}
 	});
 	this.on("death", function(){
 		game.addObject(new EffectSmoke(this.position.x, this.position.y));
@@ -2548,8 +2394,10 @@ function Door(x,y,d,ops){
 	this.name = "";
 	this.sprite = sprites.doors;
 	
+	this.lock = -1;
 	this.isOpen = false;
 	this.openAnimation = 0;
+	this._tid = false;
 	
 	this.door_blocks = [
 		new Point(x,y+16),
@@ -2558,14 +2406,23 @@ function Door(x,y,d,ops){
 		new Point(x,y-32),
 	];
 	
-	for(var i=0; i < this.door_blocks.length; i++){
-		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, window.BLANK_TILE);
-	}
+	this.close();
+	
+	this.on("activate", function(obj){
+		if(this.isOpen){
+			audio.play("open");
+			this.close();
+		}else {
+			audio.play("open");
+			this.open();
+		}
+	});
 	
 	this.on("collideObject", function(obj){
-		if( !this.isOpen && obj instanceof Player ){
+		if( this.lock >= 0 && !this.isOpen && obj instanceof Player ){
 			for( var i=0; i < obj.keys.length; i++ ) {
 				if( this.name == obj.keys[i].name ) {
+					audio.play("open");
 					this.open();
 				}
 			}
@@ -2573,11 +2430,28 @@ function Door(x,y,d,ops){
 	});
 	
 	ops = ops || {};
-	if("name" in ops) this.name = ops.name;
+	
+	if("name" in ops) {
+		this.name = ops.name;
+		this.lock = this.name.match(/\d+/) - 0;
+		this.frame = this.lock % 4;
+		this.frame_row = Math.floor( this.lock / 4 );
+	}
+	if("trigger" in ops) {
+		this._tid = ops["trigger"];
+	}
+	if("open" in ops && ops["open"] > 0) {
+		this.open();
+	}
+}
+Door.prototype.close = function(){
+	for(var i=0; i < this.door_blocks.length; i++){
+		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, window.BLANK_TILE);
+	}
+	this.zIndex = 0;
+	this.isOpen = false;
 }
 Door.prototype.open = function(){
-	audio.play("open");
-	
 	for(var i=0; i < this.door_blocks.length; i++){
 		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
 	}
@@ -2585,19 +2459,23 @@ Door.prototype.open = function(){
 	this.isOpen = true;
 }
 Door.prototype.update = function(){
-	var r = this.name.match(/\d+/) - 0;
-	this.frame = r % 4;
-	this.frame_row = Math.floor( r / 4 );
 	
 	if( this.isOpen ) {
 		this.openAnimation = Math.min(this.openAnimation + this.delta * 0.5, 3);
+	} else {
+		this.openAnimation = Math.max(this.openAnimation - this.delta * 0.5, 0);
 	}
 }
 Door.prototype.render = function(g,c){
 	this.sprite.render(g, this.position.subtract(c), this.openAnimation, 3);
 	
-	if( !this.isOpen ) {
-		this.sprite.render(g, this.position.subtract(c).add(new Point(10,36)), this.frame, this.frame_row);
+	if( !this.isOpen && this.lock >= 0) {
+		//Render lock
+		this.sprite.render(g, 
+			this.position.subtract(c).add(new Point(10,36)), 
+			this.frame, 
+			this.frame_row
+		);
 	}
 }
 
@@ -3006,7 +2884,7 @@ var EffectList = {
 
 Amon.prototype = new GameObject();
 Amon.prototype.constructor = GameObject;
-function Amon(x,y){
+function Amon(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3033,7 +2911,14 @@ function Amon(x,y){
 		this.destroy();
 	});
 	
-	this.life = dataManager.life(0);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;
 	this.friction = 0.0;
@@ -3042,7 +2927,7 @@ function Amon(x,y){
 	this.force.x = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.force.y = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.backupForce = new Point(this.force.x, this.force.y);
-	this.damage = dataManager.damage(2);
+	this.damage = Spawn.damage(2,this.difficulty);
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
@@ -3072,7 +2957,7 @@ Amon.prototype.update = function(){
 
 Axedog.prototype = new GameObject();
 Axedog.prototype.constructor = GameObject;
-function Axedog(x, y){
+function Axedog(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3095,9 +2980,16 @@ function Axedog(x, y){
 		"rest" : Game.DELTASECOND * 0.25,
 	}
 	
-	this.life = dataManager.life(4);
-	this.lifeMax = dataManager.life(4);
-	this.damage = dataManager.life(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(4,this.difficulty);
+	this.lifeMax = Spawn.life(4,this.difficulty);
+	this.damage = Spawn.life(3,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){
@@ -3177,7 +3069,7 @@ Axedog.prototype.update = function(){
 
 Baller.prototype = new GameObject();
 Baller.prototype.constructor = GameObject;
-function Baller(x, y){
+function Baller(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3203,10 +3095,17 @@ function Baller(x, y){
 		"retrieve" : Game.DELTASECOND * 3.0,
 	}
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
 	this.death_time = Game.DELTASECOND * 3.0;
-	this.life = dataManager.life(28);
-	this.lifeMax = dataManager.life(28);
-	this.damage = dataManager.life(5);
+	this.life = Spawn.life(28,this.difficulty);
+	this.lifeMax = Spawn.life(28,this.difficulty);
+	this.damage = Spawn.life(5,this.difficulty);
 	this.mass = 4.0;
 	
 	this.on("struck", EnemyStruck);
@@ -3362,7 +3261,7 @@ BallerBall.prototype.update = function(){
 
 Batty.prototype = new GameObject();
 Batty.prototype.constructor = GameObject;
-function Batty(x,y){
+function Batty(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3381,10 +3280,17 @@ function Batty(x,y){
 		"direction" : 0
 	}
 	
-	this.life = dataManager.life(0);
-	this.lifeMax = dataManager.life(0);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
+	this.lifeMax = Spawn.life(0,this.difficulty);
 	this.mass = 0.8;
-	this.collideDamage = this.damage = dataManager.damage(2);
+	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
 	this.fuse = dataManager.currentTemple >= 4;
@@ -3498,7 +3404,7 @@ Batty.prototype.update = function(){
 
 Beaker.prototype = new GameObject();
 Beaker.prototype.constructor = GameObject;
-function Beaker(x, y){
+function Beaker(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3516,10 +3422,17 @@ function Beaker(x, y){
 		"jumps" : 0
 	}
 	
-	this.life = dataManager.life(3);
-	this.lifeMax = dataManager.life(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(3,this.difficulty);
+	this.lifeMax = Spawn.life(3,this.difficulty);
 	this.mass = 0.8;
-	this.collideDamage = dataManager.damage(2);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	
 	this.on("collideObject", function(obj){
@@ -3601,7 +3514,7 @@ Beaker.prototype.update = function(){
 
 Bear.prototype = new GameObject();
 Bear.prototype.constructor = GameObject;
-function Bear(x,y){
+function Bear(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3625,9 +3538,16 @@ function Bear(x,y){
 	this.attack_time = 23.0;
 	this.attack_rest = 0.0;
 	
-	this.life = dataManager.life(6);
-	this.damage = dataManager.damage(3);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	
@@ -3747,7 +3667,7 @@ Bear.prototype.render = function(g,c){
 
 BigBones.prototype = new GameObject();
 BigBones.prototype.constructor = GameObject;
-function BigBones(x,y,d,ops){
+function BigBones(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3778,15 +3698,24 @@ function BigBones(x,y,d,ops){
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
-	this.life = dataManager.life(9);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	if( "active" in o ) {
+		this.active = o.active.toLowerCase() == "true";
+	}
+	if( "flip" in o ) {
+		this.flip = o.flip.toLowerCase() == "true";
+	}
+	
+	this.life = Spawn.life(9,this.difficulty);
 	this.mass = 2.0;
-	this.damage = dataManager.damage(3);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.stun_time = Game.DELTASECOND * 0.25;
 	
-	//Set options
-	ops = ops || {};
-	if( "active" in ops ) this.active = ops.active.toLowerCase() == "true";
-	if( "flip" in ops ) this.flip = ops.flip.toLowerCase() == "true";
 	
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
@@ -3881,7 +3810,7 @@ BigBones.prototype.render = function(g,c){
 
 Chaz.prototype = new GameObject();
 Chaz.prototype.constructor = GameObject;
-function Chaz(x,y){
+function Chaz(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -3915,9 +3844,16 @@ function Chaz(x,y){
 	SpecialEnemy(this);
 	this.calculateXP();
 	
-	this.life = dataManager.life(7);
-	this.collideDamage = dataManager.damage(1);
-	this.damage = dataManager.damage(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(7,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.3;
 	
 	this.states = {
@@ -3991,7 +3927,7 @@ Chaz.prototype.update = function(){
 
 ChazBike.prototype = new GameObject();
 ChazBike.prototype.constructor = GameObject;
-function ChazBike(x,y){
+function ChazBike(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4030,10 +3966,15 @@ function ChazBike(x,y){
 		this.destroy();
 	});
 	
-	this.calculateXP();
+	o = o || {};
 	
-	this.life = dataManager.life(6);
-	this.collideDamage = dataManager.damage(3);
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.mass = 5.3;
 	this.friction = 0.01;
 	this.death_time = Game.DELTASECOND * 2;
@@ -4045,6 +3986,8 @@ function ChazBike(x,y){
 		"backwards" : 0,
 		"direction" : 1
 	};
+	
+	this.calculateXP();
 	
 }
 ChazBike.prototype.update = function(){
@@ -4080,7 +4023,7 @@ ChazBike.prototype.update = function(){
 
 Crusher.prototype = new GameObject();
 Crusher.prototype.constructor = GameObject;
-function Crusher(x,y){
+function Crusher(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4100,8 +4043,15 @@ function Crusher(x,y){
 		"active" : true
 	}
 	
-	this.damage = dataManager.damage(5);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.damage = Spawn.damage(5,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	
@@ -4156,7 +4106,7 @@ Crusher.prototype.render = function(g,c){
 
 Deckard.prototype = new GameObject();
 Deckard.prototype.constructor = GameObject;
-function Deckard(x,y){
+function Deckard(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4180,11 +4130,18 @@ function Deckard(x,y){
 	this.attack_time = Game.DELTASECOND * 0.6;
 	this.jump_start_y = 0;
 	
-	this.life = dataManager.life(6);
-	this.lifeMax = dataManager.life(6);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
+	this.lifeMax = Spawn.life(6,this.difficulty);
 	this.mass = 4;
-	this.damage = dataManager.damage(3);
-	this.collideDamage = dataManager.damage(1);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 2;
 	
@@ -4323,7 +4280,7 @@ Deckard.prototype.update = function(){
 
 Derring.prototype = new GameObject();
 Derring.prototype.constructor = GameObject;
-function Derring(x,y){
+function Derring(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4354,7 +4311,14 @@ function Derring(x,y){
 		this.destroy();
 	});
 	
-	this.life = dataManager.life(0);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
 	this.collisionReduction = -1.0;
 	this.friction = 0.0;
 	this.stun_time = 30.0;
@@ -4397,7 +4361,7 @@ Dropper.prototype.update = function(){
 	if( this.cooldown < 0 ) {
 		this.cooldown = Game.DELTASECOND;
 		var bullet = new Bullet(this.position.x + 8, this.position.y + 16, 0);
-		bullet.damage = dataManager.damage(2);
+		bullet.damage = Spawn.damage(2,this.difficulty);
 		bullet.blockable = false;
 		bullet.gravity = 1.0;
 		bullet.frame = 2;
@@ -4488,7 +4452,7 @@ Father.prototype.idle = function(){}
 
 Flederknife.prototype = new GameObject();
 Flederknife.prototype.constructor = GameObject;
-function Flederknife(x, y){
+function Flederknife(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4504,9 +4468,16 @@ function Flederknife(x, y){
 		"direction" : 1.0,
 	};
 	
-	this.life = dataManager.life(3);
-	this.lifeMax = dataManager.life(3);
-	this.damage = dataManager.life(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(3,this.difficulty);
+	this.lifeMax = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.life(2,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("struck", EnemyStruck);
@@ -4554,23 +4525,32 @@ Flederknife.prototype.update = function(){
 
 Fly.prototype = new GameObject();
 Fly.prototype.constructor = GameObject;
-function Fly(x,y){
+function Fly(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
 	this.height = 24;
-	this.damage = dataManager.damage(2);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.team = 0;
 	this.sprite = sprites.amon;
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(1,this.difficulty);
+	this.damage = Spawn.damage(1,this.difficulty);
+	
 	this.speed = 0.25;
 	this.frame = 0;
 	this.frame_row = 1;
-	this.life = dataManager.life(1);
 	this.gravity = 0.0;
 	this.friction = 0.1;
 	this.mass = 0.7;
@@ -4634,7 +4614,7 @@ Fly.prototype.update = function(){
 
 Ghoul.prototype = new GameObject();
 Ghoul.prototype.constructor = GameObject;
-function Ghoul(x,y){
+function Ghoul(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4652,9 +4632,16 @@ function Ghoul(x,y){
 		"upwards" : 0
 	}
 	
-	this.life = dataManager.life(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(2,this.difficulty);
 	this.mass = 0.2;
-	this.collideDamage = dataManager.damage(2);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = 0;
 	this.attackEffects.weaken = [1.0,20];
@@ -4717,7 +4704,7 @@ Ghoul.prototype.update = function(){
 
 HammerMathers.prototype = new GameObject();
 HammerMathers.prototype.constructor = GameObject;
-function HammerMathers(x, y){
+function HammerMathers(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4726,6 +4713,7 @@ function HammerMathers(x, y){
 	this.sprite = sprites.hammermather;
 	this.speed = 10;
 	this.jump = 8;
+	this.attackTime = Game.DELTASECOND * 2.5;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -4739,10 +4727,18 @@ function HammerMathers(x, y){
 		"jumps" : 0
 	}
 	
-	this.life = dataManager.life(2);
-	this.lifeMax = dataManager.life(2);
-	this.damage = dataManager.life(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(2,this.difficulty);
+	this.lifeMax = Spawn.life(2,this.difficulty);
+	this.damage = Spawn.life(2,this.difficulty);
 	this.mass = 1.2;
+	
 	
 	this.on("collideVertical", function(x){
 		if( x < 0 ) this.force.x = 0;
@@ -4770,7 +4766,7 @@ HammerMathers.prototype.update = function(){
 			this.criticalChance = 1.0;
 			this.strike( new Line(0,-16,32,-4) );
 			if( this.grounded ) {
-				this.states.cooldown = Game.DELTASECOND;
+				this.states.cooldown = this.attackTime;
 			}
 		} else {
 			this.criticalChance = 0.0;
@@ -4809,7 +4805,7 @@ HammerMathers.prototype.update = function(){
 
 Igbo.prototype = new GameObject();
 Igbo.prototype.constructor = GameObject;
-function Igbo(x,y){
+function Igbo(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4840,9 +4836,16 @@ function Igbo(x,y){
 	this.guard.w = 16;
 	this.guard.h = 46;	
 	
-	this.life = dataManager.life(8);
-	this.damage = dataManager.damage(4);
-	this.collideDamage = dataManager.damage(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(8,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.mass = 3.0;
 	this.friction = 0.3;
 	this.inviciple_time = this.stun_time;
@@ -4960,7 +4963,7 @@ Igbo.prototype.render = function(g,c){
 
 Knight.prototype = new GameObject();
 Knight.prototype.constructor = GameObject;
-function Knight(x,y){
+function Knight(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -4989,9 +4992,16 @@ function Knight(x,y){
 	this.attack_rest = 7.0;
 	this.thrust_power = 6;
 	
-	this.life = dataManager.life(7);
-	this.damage = dataManager.damage(3);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(7,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 3.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
@@ -5003,9 +5013,9 @@ function Knight(x,y){
 	this.fr_offset = 0;
 	this.cooldown_time = Game.DELTASECOND * 2.4;
 	
-	if( this.level == 2 ){
-		this.life = dataManager.life(8);
-		this.damage = dataManager.damage(4);
+	if( this.difficulty >= 2 ){
+		this.life = Spawn.life(8,this.difficulty);
+		this.damage = Spawn.damage(4,this.difficulty);
 		this.fr_offset = 3;
 		this.cooldown_time = Game.DELTASECOND * 2.0;
 		this.attack_warm = 22.0;
@@ -5016,9 +5026,9 @@ function Knight(x,y){
 		this.death_time = Game.DELTASECOND * 2;
 		this.xp_award = 39;
 		this.money_award = 12;
-	} else if ( this.level >= 3 ) {
-		this.life = dataManager.life(10);
-		this.damage = dataManager.damage(5);
+	} else if ( this.difficulty >= 4 ) {
+		this.life = Spawn.life(10,this.difficulty);
+		this.damage = Spawn.damage(5,this.difficulty);
 		this.fr_offset = 6;
 		this.cooldown_time = Game.DELTASECOND * 1.8;
 		this.attack_warm = 20.0;
@@ -5156,24 +5166,31 @@ Knight.prototype.render = function(g,c){
 
 Laughing.prototype = new GameObject();
 Laughing.prototype.constructor = GameObject;
-function Laughing(x,y){
+function Laughing(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.collideDamage = dataManager.damage(2);
-	this.damage = dataManager.damage(2);
 	this.team = 0;
 	this.sprite = sprites.laughing;
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
+	
 	this.speed = 0.225;
 	this.frame = 0;
 	this.frame_row = 0;
-	this.life = dataManager.life(0);
 	this.gravity = 0.0;
 	this.friction = 0.08;
 	
@@ -5242,24 +5259,31 @@ Laughing.prototype.update = function(){
 
 LilGhost.prototype = new GameObject();
 LilGhost.prototype.constructor = GameObject;
-function LilGhost(x,y){
+function LilGhost(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.damage = dataManager.damage(2);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.team = 0;
 	this.sprite = sprites.lilghost;
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
 	this.start = new Point(x,y);
 	this.speed = 0.25;
 	this.frame = 0;
 	this.frame_row = 0;
-	this.life = 1;
 	this.gravity = 0.0;
 	this.friction = 0.1;
 	this.mass = 0.3;
@@ -5324,7 +5348,7 @@ LilGhost.prototype.render = function(g,c){
 
 Malphas.prototype = new GameObject();
 Malphas.prototype.constructor = GameObject;
-function Malphas(x,y){
+function Malphas(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -5337,7 +5361,6 @@ function Malphas(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.life = dataManager.life(6);
 	
 	this.states = {
 		"active" : false,
@@ -5349,8 +5372,17 @@ function Malphas(x,y){
 	}
 	this.attack_time = Game.DELTASECOND * 0.6;
 	
-	this.damage = dataManager.damage(4);
-	this.collideDamage = dataManager.damage(1);
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	
@@ -5442,7 +5474,7 @@ Malphas.prototype.update = function(){
 
 Malsum.prototype = new GameObject();
 Malsum.prototype.constructor = GameObject;
-function Malsum(x,y){
+function Malsum(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -5456,14 +5488,21 @@ function Malsum(x,y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.life = dataManager.life(4);
 	
 	this.states = {
 		"direction" : -1,
 	}
 	
-	this.damage = dataManager.damage(1);
-	this.collideDamage = dataManager.damage(3);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(4,this.difficulty);
+	this.damage = Spawn.damage(1,this.difficulty);
+	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	
@@ -5503,7 +5542,7 @@ Malsum.prototype.update = function(){
 
 Oriax.prototype = new GameObject();
 Oriax.prototype.constructor = GameObject;
-function Oriax(x,y){
+function Oriax(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -5535,8 +5574,15 @@ function Oriax(x,y){
 		this.destroy();
 	});
 	
-	this.life =  dataManager.life(8);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(8,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.0;
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 1;
@@ -5615,7 +5661,7 @@ Oriax.prototype.update = function(){
 
 Ratgut.prototype = new GameObject();
 Ratgut.prototype.constructor = GameObject;
-function Ratgut(x,y){
+function Ratgut(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -5635,10 +5681,17 @@ function Ratgut(x,y){
 		"direction" : 1
 	}
 	
-	this.life = dataManager.life(2);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(2,this.difficulty);
+	this.damage = Spawn.damage(6,this.difficulty);
 	this.mass = 1.2;
-	this.collideDamage = dataManager.damage(4);
-	this.damage = dataManager.damage(6);
+	this.collideDamage = Spawn.damage(4,this.difficulty);
 	this.stun_time = Game.DELTASECOND;
 	this.attackEffects.poison = [1.0,30.0];
 	
@@ -5732,7 +5785,7 @@ Ratgut.prototype.update = function(){
 
 Sentry.prototype = new GameObject();
 Sentry.prototype.constructor = GameObject;
-function Sentry(x,y){
+function Sentry(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -5758,10 +5811,15 @@ function Sentry(x,y){
 		this.destroy();
 	});
 	
-	this.calculateXP();
+	o = o || {};
 	
-	this.life = dataManager.life(3);
-	this.damage = dataManager.damage(3);
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.3;
 	
 	this.states = {
@@ -5774,6 +5832,8 @@ function Sentry(x,y){
 		"warm" : Game.DELTASECOND * 3.5,
 		"release" : Game.DELTASECOND * 3.0
 	};
+	
+	this.calculateXP();
 }
 Sentry.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
@@ -5817,7 +5877,7 @@ Sentry.prototype.update = function(){
 
 Shell.prototype = new GameObject();
 Shell.prototype.constructor = GameObject;
-function Shell(x,y){
+function Shell(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -5856,12 +5916,19 @@ function Shell(x,y){
 		this.destroy();
 	});
 	
-	this.life = dataManager.life(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(1,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.collisionReduction = -1.0;
 	this.friction = 0.2;
 	this.stun_time = Game.DELTASECOND * 0.75;
 	this.invincible_time = 30.0;
-	this.damage = dataManager.damage(2);
 	
 	this.mass = 1.0;
 	this.gravity = 1.0;
@@ -5895,14 +5962,12 @@ Shell.prototype.update = function(){
 
 Shooter.prototype = new GameObject();
 Shooter.prototype.constructor = GameObject;
-function Shooter(x,y){
+function Shooter(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 32;
 	this.height = 48;
-	this.collideDamage = dataManager.damage(2);
-	this.damage = dataManager.damage(2);
 	this.team = 0;
 	this.start_x = x;
 	this.sprite = sprites.shooter;
@@ -5910,10 +5975,18 @@ function Shooter(x,y){
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(0,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.speed = 1.125;
 	this.frame = 0;
 	this.frame_row = 0;
-	this.life = 1;
 	this.gravity = 0.5;
 	this.friction = 0.2;
 	
@@ -6040,7 +6113,7 @@ Shooter.prototype.idle = function(){}
 
 Skeleton.prototype = new GameObject();
 Skeleton.prototype.constructor = GameObject;
-function Skeleton(x,y){
+function Skeleton(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -6071,10 +6144,17 @@ function Skeleton(x,y){
 	this.attack_warm = 30.0;
 	this.attack_time = 10.0;
 	
-	this.life = dataManager.life(5);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(5,this.difficulty);
 	this.mass = 0.8;
-	this.damage = dataManager.damage(3);
-	this.collideDamage = dataManager.damage(1);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.stun_time = 0;
 	
 	this.on("collideObject", function(obj){
@@ -6184,7 +6264,7 @@ Skeleton.prototype.render = function(g,c){
 
 SnakeBullet.prototype = new GameObject();
 SnakeBullet.prototype.constructor = GameObject;
-function SnakeBullet(x,y,d){
+function SnakeBullet(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -6216,11 +6296,20 @@ function SnakeBullet(x,y,d){
 	this.on("death", function(obj,pos,damage){
 		this.destroy();
 	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	
+	this.life = Spawn.life(0,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.flip = d < 0;
 	this.force.x = d * 8;
-	this.life = dataManager.life(0);
-	this.collideDamage = dataManager.damage(1);
-	this.damage = dataManager.damage(2);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.pushable = false;
 	this.mass = 0.0;
 	this.gravity = 0.1;
@@ -6254,7 +6343,7 @@ SnakeBullet.prototype.update = function(){
 
 Svarog.prototype = new GameObject();
 Svarog.prototype.constructor = GameObject;
-function Svarog(x,y){
+function Svarog(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -6289,13 +6378,20 @@ function Svarog(x,y){
 		this.force.x = dir.x > 0 ? -this.speed : this.speed; 
 	});
 	
-	this.life = dataManager.life(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(1,this.difficulty);
 	this.collisionReduction = -1.0;
 	this.friction = 0.0;
 	this.stun_time = 30.0;
 	this.invincible_time = 30.0;
-	this.collideDamage = dataManager.damage(1);
-	this.damage = dataManager.damage(2);
+	this.damage = Spawn.damage(2,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	
 	this.states = {
 		"cooldown" : 0
@@ -6329,7 +6425,7 @@ Svarog.prototype.update = function(){
 
 Yakseyo.prototype = new GameObject();
 Yakseyo.prototype.constructor = GameObject;
-function Yakseyo(x,y){
+function Yakseyo(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -6348,9 +6444,16 @@ function Yakseyo(x,y){
 		"smoke_timer" : 0
 	};
 	
-	this.life = dataManager.life(10);
-	this.damage = dataManager.damage(4);
-	this.collideDamage = dataManager.damage(1);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(10,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	this.pushable = false;
@@ -6422,13 +6525,15 @@ Yakseyo.prototype.update = function(){
 		this.visible = true;
 		this.height = 32;
 	}
+	
+	Background.pushLight(this.position, 100, [1.0,0.8,0.5]);
 }
 
  /* platformer\enemy_yeti.js*/ 
 
 Yeti.prototype = new GameObject();
 Yeti.prototype.constructor = GameObject;
-function Yeti(x,y){
+function Yeti(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -6448,10 +6553,17 @@ function Yeti(x,y){
 		"attack_release" : false
 	};
 	
-	this.life = dataManager.life(6);
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = Spawn.life(6,this.difficulty);
 	this.mass = 2.2;
-	this.collideDamage = dataManager.damage(2);
-	this.damage = dataManager.damage(4);
+	this.collideDamage = Spawn.damage(2,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
 	this.stun_time = 0;
 	
 	this.attack_release = Game.DELTASECOND * 1.2;
@@ -7439,6 +7551,72 @@ Item.enchantWeapon = function(weapon){
 	weapon.filter = "gold";
 }
 
+Item.treasures = [
+	{"tags":["goods","chest"],"name":"life","unlocked":1,"rarity":0.5,"pathSize":1,"doors":0.0,"pergame":9999,"price":20},
+	{"tags":["goods","chest"],"name":"mana_small","unlocked":1,"rarity":0.3,"pathSize":1,"doors":0.0,"pergame":9999,"price":30},
+	{"tags":["chest","shop"],"name":"xp_big","unlocked":1,"rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":40},
+	{"tags":["treasure","chest"],"name":"money_bag","unlocked":1,"rarity":0.4,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
+	{"tags":["treasure","shop"],"name":"life_up","unlocked":1,"rarity":0.01,"pathSize":4,"doors":0.5,"pergame":9999,"price":500},
+	{"tags":["stone","chest"],"name":"waystone","unlocked":1,"rarity":0.2,"pathSize":2,"doors":0.0,"pergame":9999,"price":20},
+	
+	{"tags":["treasure","chest","weapon"],"name":"short_sword","unlocked":1,"rarity":0.2,"pathSize":2,"doors":0.0,"pergame":10,"price":20},
+	{"tags":["treasure","chest","weapon"],"name":"long_sword","unlocked":1,"rarity":0.3,"pathSize":3,"doors":0.0,"pergame":10,"price":30},
+	{"tags":["treasure","chest","weapon"],"name":"spear","unlocked":1,"rarity":0.2,"pathSize":3,"doors":0.5,"pergame":10,"price":30},
+	{"tags":["treasure","chest","weapon"],"name":"warhammer","unlocked":0,"rarity":0.15,"pathSize":3,"doors":0.5,"pergame":10,"price":40},
+	
+	{"tags":["treasure","chest"],"name":"small_shield","unlocked":1,"rarity":0.2,"doors":0.5,"pergame":0,"price":30},
+	{"tags":["treasure","chest"],"name":"large_shield","unlocked":0,"rarity":0.14,"doors":0.5,"pergame":10,"price":35},
+	{"tags":["treasure","chest"],"name":"kite_shield","unlocked":0,"rarity":0.12,"doors":0.5,"pergame":10,"price":40},
+	{"tags":["treasure","chest"],"name":"broad_shield","unlocked":0,"rarity":0.1,"doors":0.5,"pergame":10,"price":40},
+	{"tags":["treasure","chest"],"name":"knight_shield","unlocked":0,"rarity":0.08,"doors":0.5,"pergame":10,"price":40},
+	{"tags":["treasure","chest"],"name":"spiked_shield","unlocked":0,"rarity":0.07,"doors":0.5,"pergame":10,"price":50},
+	{"tags":["treasure","chest"],"name":"heavy_shield","unlocked":0,"rarity":0.06,"doors":0.5,"pergame":10,"price":40},
+	{"tags":["treasure","chest"],"name":"tower_shield","unlocked":0,"rarity":0.05,"doors":0.5,"pergame":10,"price":50},
+	
+	{"tags":["treasure","shop"],"name":"seed_oriax","unlocked":1,"rarity":0.1,"pathSize":6,"doors":0.3,"pergame":1,"price":100},
+	{"tags":["treasure","shop"],"name":"seed_bear","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"seed_malphas","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"seed_cryptid","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"seed_knight","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"seed_minotaur","unlocked":0,"rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+	{"tags":["treasure","shop"],"name":"seed_plaguerat","unlocked":0,"rarity":0.05,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure","shop"],"name":"seed_marquis","unlocked":1,"rarity":0.06,"pathSize":3,"doors":0.1,"pergame":1,"price":90},
+	{"tags":["alter","treasure","shop"],"name":"seed_batty","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+	{"tags":["alter","treasure","shop"],"name":"seed_chort","unlocked":0,"rarity":0.03,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+	{"tags":["alter","treasure","shop"],"name":"seed_poseidon","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":200},
+	{"tags":["alter","treasure","shop"],"name":"seed_tails","unlocked":0,"rarity":0.1,"pathSize":7,"doors":0.1,"pergame":1,"price":100},
+	{"tags":["alter","treasure","shop"],"name":"seed_mair","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
+	{"tags":["alter","treasure","shop"],"name":"seed_igbo","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":100},
+	
+	{"tags":["alter","treasure","shop"],"name":"pedila","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+	{"tags":["treasure","shop"],"name":"haft","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+	{"tags":["treasure","shop"],"name":"zacchaeus_stick","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+	{"tags":["treasure","shop"],"name":"fangs","unlocked":0,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+	{"tags":["chest","treasure","shop"],"name":"passion_fruit","unlocked":1,"rarity":0.1,"pathSize":2,"doors":0.0,"pergame":9999,"price":100},
+	{"tags":["treasure","shop"],"name":"shield_metal","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
+	//{"tags":["treasure","shop"],"name":"magic_gem","unlocked":1,"rarity":0.05,"pathSize":6,"doors":0.1,"pergame":1,"price":100},
+	{"tags":["treasure","shop"],"name":"snake_head","unlocked":1,"rarity":0.04,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure","shop"],"name":"broken_banana","unlocked":0,"rarity":0.05,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure","shop"],"name":"blood_letter","unlocked":1,"rarity":0.05,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure","shop"],"name":"red_cape","unlocked":0,"rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"chort_nose","unlocked":1,"rarity":0.08,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"plague_mask","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"spiked_shield","unlocked":1,"rarity":0.04,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure","shop"],"name":"black_heart","unlocked":0,"rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["shop"],"name":"treasure_map","unlocked":0,"rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":50},
+	{"tags":["treasure","shop"],"name":"life_fruit","unlocked":0,"rarity":0.2,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure","shop"],"name":"mana_fruit","unlocked":0,"rarity":0.2,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	
+	{"tags":["chest","alter"],"name":"charm_sword","unlocked":0,"rarity":0.03,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["chest","alter"],"name":"charm_mana","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure","shop"],"name":"charm_alchemist","unlocked":1,"rarity":0.1,"pathSize":5,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["chest","treasure","shop"],"name":"charm_musa","unlocked":0,"rarity":0.04,"pathSize":6,"doors":0.3,"pergame":1,"price":120},
+	{"tags":["treasure"],"name":"charm_wise","unlocked":0,"rarity":0.04,"pathSize":3,"doors":0.3,"pergame":1,"price":80},
+	{"tags":["chest","shop"],"name":"charm_methuselah","unlocked":1,"rarity":0.06,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["treasure"],"name":"charm_barter","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":80},
+	{"tags":["chest","shop"],"name":"charm_elephant","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70}
+];
+
  /* platformer\lamp.js*/ 
 
 Lamp.prototype = new GameObject();
@@ -7591,29 +7769,32 @@ MapDebug.prototype.render = function(g,c){
 }
 MapDebug.prototype.idle = function(){}
 
- /* platformer\map_debug.js*/ 
+ /* platformer\map_loader.js*/ 
 
-MapDebug.prototype = new GameObject();
-MapDebug.prototype.constructor = GameObject;
-function MapDebug(x,y){
+MapLoader.prototype = new GameObject();
+MapLoader.prototype.constructor = GameObject;
+function MapLoader(x,y){
 	this.constructor();
 }
 
-MapDebug.loadMap = function(url){
+MapLoader.loadMap = function(url){
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function(){
-		if(xhttp.readyState == 4 && xhttp.status == 200){
-			var parser = new DOMParser();
-			var xml = parser.parseFromString(xhttp.response, "text/xml");
-			
-			MapDebug.parseMap(xml);
+		if(xhttp.readyState == 4){
+			//AJAX load
+			try{
+				var parser = new DOMParser();
+				var xml = parser.parseFromString(xhttp.response, "text/xml");
+				
+				MapLoader.parseMap(xml);
+			} catch(err){}
 		}
 	}
 	xhttp.open("GET",url,true);
 	xhttp.send();
 }
 
-MapDebug.parseTile = function(tile,tilesets){
+MapLoader.parseTile = function(tile,tilesets){
 	tile *= 1;
 	var subtract = 1;
 	for(var i=0; i < tilesets.length; i++){
@@ -7625,7 +7806,7 @@ MapDebug.parseTile = function(tile,tilesets){
 	return tile - subtract;
 }
 
-MapDebug.parseMap = function(xml){
+MapLoader.parseMap = function(xml){
 	var tileset = "";
 	var tilesets = new Array();
 	var width = 0;
@@ -7660,14 +7841,14 @@ MapDebug.parseMap = function(xml){
 		
 		for(var j=0; j < tiles.length; j++){
 			if("front"==name){
-				tilesout[2].push(MapDebug.parseTile(tiles[j],tilesets));
+				tilesout[2].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("back"==name){
-				tilesout[1].push(MapDebug.parseTile(tiles[j],tilesets));
+				tilesout[1].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("far"==name){
-				tilesout[0].push(MapDebug.parseTile(tiles[j],tilesets));
+				tilesout[0].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("map"==name){
 				if((j%width) < width/16 && Math.floor(j/height) < height/15){
-					maptiles.push(MapDebug.parseTile(tiles[j],tilesets));
+					maptiles.push(MapLoader.parseTile(tiles[j],tilesets));
 				}
 			}
 		}
@@ -7697,12 +7878,22 @@ MapDebug.parseMap = function(xml){
 	pm.mapDimension = new Line(0,0,Math.floor(width/16),Math.floor(height/15));
 	game.addObject(pm);
 	
+	var bg = new Background();
+	game.addObject(bg);
+	
 	var objects = xml.getElementsByTagName("object");
 	for(var i=0; i < objects.length; i++){
 		obj = objects[i];
 		var name = obj.getAttribute("name");
-		var x = 8 + obj.getAttribute("x") * 1;
-		var y = 8 + obj.getAttribute("y") * 1;
+		var x = obj.getAttribute("x") * 1;
+		var y = obj.getAttribute("y") * 1;
+		
+		var rect = !obj.getAttribute("gid");
+		if(rect){
+			x += 8; y += 8;
+		}else{
+			x += 8; y -= 8;
+		}
 		
 		//Build properties
 		var properties = {};
@@ -7727,18 +7918,18 @@ MapDebug.parseMap = function(xml){
 		game.addObject(player);
 	}
 	
-	if(MapDebug.flight){
+	if(MapLoader.flight){
 		_player.spellsCounters.flight = 99999
 	}
-	if(MapDebug.level > 1){
-		var xp = Math.floor( Math.pow( MapDebug.level-1,1.8 ) * 50 );
+	if(MapLoader.level > 1){
+		var xp = Math.floor( Math.pow( MapLoader.level-1,1.8 ) * 50 );
 		_player.addXP(xp);
 	}
 }
 
-MapDebug.mapname = "testmap.tmx"
-MapDebug.flight = false;
-MapDebug.level = 1;
+MapLoader.mapname = "testmap.tmx"
+MapLoader.flight = false;
+MapLoader.level = 1;
 
  /* platformer\mayor.js*/ 
 
@@ -8534,19 +8725,19 @@ TitleMenu.prototype.update = function(){
 			this.cursor = Math.max(Math.min(this.cursor,3),0);
 			
 			if(this.cursor == 1){
-				if( input.state("left") == 1 ) { MapDebug.level -= 1; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapDebug.level += 1; audio.play("cursor"); }
-				MapDebug.level = Math.max(Math.min(MapDebug.level,50),1);
+				if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
+				MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
 			}else if(this.cursor == 2){
-				if( input.state("left") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapDebug.flight = !MapDebug.flight; audio.play("cursor"); }
+				if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+				if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
 			}
 			
 			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
 				if(this.cursor == 0){
-					MapDebug.mapname = prompt("Enter filename",MapDebug.mapname);
+					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
 				} else if(this.cursor == 3){
-					MapDebug.loadMap(MapDebug.mapname);
+					MapLoader.loadMap(MapLoader.mapname);
 					audio.play("pause");
 				}
 			}
@@ -8623,9 +8814,9 @@ TitleMenu.prototype.render = function(g,c){
 			
 			textArea(g,"@",x_pos+16,48+32*this.cursor);
 			
-			textArea(g,""+MapDebug.mapname,x_pos+32,48+12);
-			textArea(g,""+MapDebug.level,x_pos+32,80+12);
-			textArea(g,""+MapDebug.flight,x_pos+32,112+12);
+			textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
+			textArea(g,""+MapLoader.level,x_pos+32,80+12);
+			textArea(g,""+MapLoader.flight,x_pos+32,112+12);
 		}
 		
 		if( this.progress >= 24 ) {
@@ -8860,6 +9051,7 @@ var mod_combat = {
 		this.criticalChance = 0.0;
 		this.criticalMultiplier = 4.0;
 		this.damage = 10;
+		this.difficulty = 0;
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
 		this.team = 0;
@@ -9057,7 +9249,7 @@ var mod_combat = {
 		}
 		this.calculateXP = function(scale){
 			if(!this.filter && !(this instanceof Player) && !this.hasModule(mod_boss))
-				this.filter = "t"+dataManager.currentTemple;
+				this.filter = "t"+this.difficulty;
 			
 			scale = scale == undefined ? 1 : scale;
 			this.xp_award = 0;
@@ -10910,24 +11102,39 @@ function Spawn(x,y,d,ops){
 	this.visible = false;
 	this.width = 16;
 	this.height = 16;
+	this.difficulty = Spawn.difficulty;
 	
-	this.on("open",function(obj){
+	this.on("activate",function(obj){
+		this.spawn();
 	});
 	
 	ops = ops || {};
+	var autospawn = 1;
 	
-	this.difficulty = ops.difficulty || dataManager.currentTemple;
-	this.theme = ops.theme || "default";
-	
+	if("theme" in ops){
+		this.theme = ops.theme;
+	}
+	if("difficulty" in ops){
+		this.difficulty = ops.difficulty * 1;
+	}
+	if("autospawn" in ops){
+		autospawn = ops.autospawn * 1;
+	}
 	if( "tags" in ops ){
 		this.tags = ops.tags.split(",");
 	} else { 
 		this.tags = new Array();
 	}
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
 	
 	this.enemies = [];
 	
-	this.spawn();
+	if(autospawn){
+		//Spawn on creation
+		this.spawn();
+	}
 }
 
 Spawn.prototype.spawn = function(){
@@ -10956,7 +11163,9 @@ Spawn.prototype.spawn = function(){
 			try {
 				var object = new window[ name ]( 
 					this.position.x + j * 24,
-					this.position.y 
+					this.position.y,
+					null,
+					{"difficulty":this.difficulty}
 				);
 				game.addObject( object );
 				this.enemies.push( object );
@@ -11013,10 +11222,49 @@ Spawn.enemies = {
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing","Laughing","Laughing"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
-		
-		
+	],
+	"undead" : [
+		{"tags":[],"difficulty":[0,99],"enemies":["Skeleton"]},
+		{"tags":[],"difficulty":[0,99],"enemies":["Ghoul"]},
+		{"tags":[],"difficulty":[0,99],"enemies":["Ratgut"]},
+		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
+		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Svarog"]}
 	]
 };
+
+Spawn.damage = function(level,difficulty){
+	var damage = 5; //0 very little
+	
+	if(difficulty == undefined){
+		difficulty = Spawn.difficulty;
+	}
+	
+	switch(level){
+		case 1: damage = 10; break;//1 weak, bashing into normal enemy
+		case 2: damage = 15; break;//2 strike from minor enemy
+		case 3: damage = 20; break;//3 strike from major enemy
+		case 4: damage = 25; break;//4 strike from miniboss
+		case 5: damage = 30; break;//5 strike from boss
+		case 6: damage = 40; break;//6 strike from SUPER boss
+	}
+	
+	var multi = 1 + difficulty * 0.22;
+	damage = Math.floor( damage * multi );
+	return damage;
+}
+
+Spawn.life = function(level, difficulty){
+	
+	if(difficulty == undefined){
+		difficulty = Spawn.difficulty;
+	}
+	
+	if( level == 0 ) return 3; //Always one shot
+	var multi = 5 + difficulty * 3.125;
+	return Math.floor( multi * level );
+}
+
+Spawn.difficulty = 0;
 
  /* platformer\start.js*/ 
 
@@ -11052,7 +11300,7 @@ window.BLANK_TILE = 16;
 
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
-function CollapseTile(x,y){
+function CollapseTile(x,y,n,o){
 	this.constructor();
 	this.position.x = x-8;
 	this.position.y = y-8;
@@ -11062,10 +11310,23 @@ function CollapseTile(x,y){
 	this.frame = 6;
 	this.frame_row = 11;
 	this.visible = false;
+	this.totalTime = 20;
 	
 	this.center = new Point(this.position.x, this.position.y);
 	
-	this.timer = 20
+	//Set up
+	o = o || {};
+	if("timer" in o){
+		this.totalTime = Game.DELTASECOND * o.timer;
+	}
+	
+	var existingTile = game.getTile(this.position.x,this.position.y);
+	if(existingTile > 0){
+		this.frame = Math.floor((existingTile-1) % 16);
+		this.frame_row = Math.floor((existingTile-1) / 16);
+	}
+	
+	this.timer = this.totalTime;
 	this.active = false;
 	
 	this.on("collideObject",function(obj){
@@ -11080,7 +11341,7 @@ function CollapseTile(x,y){
 		this.position.x = this.center.x;
 		this.position.y = this.center.y;
 		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, window.BLANK_TILE);
-		this.timer = 20;
+		this.timer = this.totalTime;
 	});
 }
 CollapseTile.prototype.update = function(){
@@ -11117,14 +11378,24 @@ function BreakableTile(x, y, d, ops){
 	this.life = 1;
 	this.item = false;
 	this.death_time = Game.DELTASECOND * 0.15;
+	this.strikeable = 1;
 	
 	ops = ops || {};
+	if( "strikeable" in ops ) {
+		this.strikeable = ops["strikeable"] * 1;
+	}
 	if( "item" in ops ) {
 		this.item = new Item(x,y,ops.item);
 	}
+	if("trigger" in ops) {
+		this._tid = ops["trigger"];
+	}
 	
+	this.on("activate", function(obj,pos,damage){
+		this.life = 0;
+	});
 	this.on("struck", function(obj,pos,damage){
-		if( obj instanceof Player){
+		if( this.strikeable && obj instanceof Player){
 			//break tile
 			this.life = 0;
 		}
@@ -11149,7 +11420,7 @@ BreakableTile.prototype.update = function(){
 				this.position.x + 24, this.position.y + 24
 			));
 			for(var i=0; i<hits.length; i++) if( hits[i] instanceof BreakableTile && hits[i].life > 0 ) {
-				hits[i].trigger("struck", _player, this.position, 1);
+				hits[i].trigger("activate", this);
 			}
 		}
 		this.destroy();
@@ -11207,6 +11478,77 @@ TitleCard.prototype.postrender = function(g,c){
 			this.destroy();
 		}
 	}
+}
+
+ /* platformer\trigger.js*/ 
+
+Trigger.prototype = new GameObject();
+Trigger.prototype.constructor = GameObject;
+function Trigger(x,y,n,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.origin.x = this.origin.y = 0;
+	
+	this.width = this.height = 32;
+	this.targets = new Array();
+	this.darknessFunction = null;
+	this.triggerCount = 0;
+	this.retrigger = 1;
+	
+	o = o || {};
+	if("width" in o){
+		this.width = o.width * 1;
+	}
+	if("height" in o){
+		this.height = o.height * 1;
+	}
+	if("target" in o){
+		this.targets = o.target.split(",");
+	}
+	if("darkness" in o){
+		this.darknessFunction = new Function("c","return " + o.darkness)
+	}
+	if("retrigger" in o){
+		this.retrigger = o.retrigger * 1;
+	}
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			if(this.retrigger || this.triggerCount == 0){
+				this.triggerCount++;
+				
+				if(this.darknessFunction instanceof Function){
+					var b = game.getObject(Background);
+					if(b instanceof Background){
+						b.darknessFunction = this.darknessFunction;
+					}
+				}
+				
+				//trigger connected objects
+				if(this.targets.length > 0){
+					for(var i=0; i < this.targets.length; i++){
+						var objects = Trigger.getTargets(this.targets[i]);
+						for(var j=0; j < objects.length; j++){
+							objects[j].trigger("activate", this);
+						}
+					}
+				}
+			}
+		}
+	});
+}
+Trigger.getTargets = function(name){
+	var out = new Array();
+	if(game instanceof Game){
+		for(var i=0; i < game.objects.length; i++){
+			var obj = game.objects[i];
+			if("_tid" in obj && obj._tid == name){
+				out.push(obj);
+			}
+		}
+	}
+	return out;
 }
 
  /* platformer\villager.js*/ 
