@@ -108,9 +108,16 @@ def transform(filename, roomsize):
 				
 				if name == "Door":
 					out["key_required"] = True
+					
+				#find offset for object
+				offset = (8,8)
+				if("gid" in object.attrib):
+					offset = (8,-8)
+					
+				#add object to data
 				out["objects"].append( [
-					int(float(object.attrib["x"]))+8,
-					int(float(object.attrib["y"]))+8,
+					int(float(object.attrib["x"]))+offset[0],
+					int(float(object.attrib["y"]))+offset[1],
 					name,
 					options
 				])

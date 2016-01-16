@@ -21,6 +21,9 @@ function CollapseTile(x,y,n,o){
 	if("timer" in o){
 		this.totalTime = Game.DELTASECOND * o.timer;
 	}
+	if("broken" in o){
+		
+	}
 	
 	var existingTile = game.getTile(this.position.x,this.position.y);
 	if(existingTile > 0){
@@ -77,55 +80,118 @@ function BreakableTile(x, y, d, ops){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.life = 1;
+	this.broken = 0;
 	this.item = false;
 	this.death_time = Game.DELTASECOND * 0.15;
 	this.strikeable = 1;
+	this.undertile = game.getTile(this.position.x, this.position.y);
+	this.chain = 1;
+	this.life = 1;
+	
+	this.chaintype = "break";
+	this.chaintime = Game.DELTASECOND * 0.15;
+	this.chaintimer = this.chaintime;
+	this.chainActive = false;
+	
+	var startBroken = 0;
 	
 	ops = ops || {};
 	if( "strikeable" in ops ) {
 		this.strikeable = ops["strikeable"] * 1;
 	}
-	if( "item" in ops ) {
-		this.item = new Item(x,y,ops.item);
-	}
 	if("trigger" in ops) {
 		this._tid = ops["trigger"];
 	}
+	if("broken" in ops) {
+		startBroken = ops["broken"] * 1;
+	}
+	if("chain" in ops){
+		this.chain = ops["chain"] * 1;
+	}
 	
 	this.on("activate", function(obj,pos,damage){
-		this.life = 0;
+		if(this.broken){
+			this.unbreak(true);
+		}else{
+			this.break(true);
+		}
+	});
+	this.on("break", function(){
+		this.break(true);
+	});
+	this.on("unbreak", function(){
+		this.unbreak(true);
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.strikeable && obj instanceof Player){
-			//break tile
-			this.life = 0;
+			if(!this.broken){
+				this.break(true);
+			}
 		}
 	});
-}
-BreakableTile.prototype.update = function(){
-	if( this.life <= 0 ) this.death_time -= this.delta;
 	
-	if( this.death_time <= 0 ) {
-		var tile = game.getTile(this.position.x, this.position.y );
-		if( tile != 0 && tile != BreakableTile.unbreakable ) {
+	//Set first state
+	if(startBroken){
+		this.break(false);
+	}
+}
+BreakableTile.prototype.unbreak = function(explode){
+	if(this.broken){
+		if(explode){
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
-			game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 0 );
-			if( this.item instanceof Item){
-				this.item.position.x = this.position.x;
-				this.item.position.y = this.position.y;
-				game.addObject( this.item );
-			}
-			//Set off neighbours
-			var hits = game.overlaps(new Line(
-				this.position.x - 8, this.position.y - 8,
-				this.position.x + 24, this.position.y + 24
-			));
-			for(var i=0; i<hits.length; i++) if( hits[i] instanceof BreakableTile && hits[i].life > 0 ) {
-				hits[i].trigger("activate", this);
+			if(this.chain) {
+				this.chainActive = true;
+				this.chaintype = "unbreak";
 			}
 		}
-		this.destroy();
+		game.setTile(
+			this.position.x, 
+			this.position.y, 
+			game.tileCollideLayer, 
+			this.undertile
+		);
+		this.broken = 0;
+	}
+}
+BreakableTile.prototype.break = function(explode){
+	if(!this.broken && this.undertile != BreakableTile.unbreakable){
+		if(explode){
+			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
+			if(this.chain) {
+				this.chainActive = true;
+				this.chaintype = "break";
+			}
+		}
+		game.setTile(
+			this.position.x, 
+			this.position.y, 
+			game.tileCollideLayer, 
+			0
+		);
+		this.broken = 1;
+	}
+}
+
+BreakableTile.prototype.neighbours = function(type){
+	
+	var hits = game.overlaps(new Line(
+		this.position.x - 8, this.position.y - 8,
+		this.position.x + 24, this.position.y + 24
+	));
+	for(var i=0; i< hits.length; i++) {
+		if( hits[i] instanceof BreakableTile && hits[i] != this ) {
+			hits[i].trigger(type, this);
+		}
+	}
+}
+BreakableTile.prototype.update = function(){
+	if(this.chainActive){
+		if(this.chaintimer <= 0){
+			this.chainActive = false;
+			this.chaintimer = this.chaintime;
+			this.neighbours(this.chaintype);
+		}
+		this.chaintimer -= this.delta;
 	}
 }
 

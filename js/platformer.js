@@ -7002,7 +7002,7 @@ function i18n(name,replace){
 
 Item.prototype = new GameObject();
 Item.prototype.constructor = GameObject;
-function Item(x,y,name, ops){
+function Item(x,y,d, ops){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -7021,11 +7021,17 @@ function Item(x,y,name, ops){
 	this.enchantChance = 0.8;
 	
 	ops = ops || {};	
-	if( name != undefined ) {
-		this.setName( name );
+	
+	if( "enchantChance" in ops ) {
+		this.enchantChance = ops["this.enchantChance"];
 	}
-	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
-	if( "name" in ops ) this.setName( ops.name );
+	if( "name" in ops ) {
+		if(ops["name"] == "random"){
+			this.setName(dataManager.randomTreasure(Math.random()).name);
+		} else {
+			this.setName( ops.name );
+		}
+	}
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
@@ -7386,38 +7392,44 @@ Item.prototype.render = function(g,c){
 }
 
 Item.drop = function(obj,money,sleep){
-	var money_only = obj.hasModule(mod_boss);
-	if(Math.random() > (_player.life / _player.lifeMax) && !money_only){
-		var item = new Item( obj.position.x, obj.position.y, "life_small" );
-		if( sleep != undefined ) item.sleep = sleep;
+	money = money || Math.ceil(1+Math.random()*3);
+	
+	if(Math.random() > 0.95){
+		money += 20 + Math.floor(Math.random()*10);
+	}
+	
+	if("money_bonus" in _player){
+		money = Math.round(money * _player.money_bonus);
+	}
+
+	while(money > 0){
+		var coin;
+		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
+		if(money > 40){
+			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_3"} );
+			money -= 10;
+		} else if( money > 10 ) {
+			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_2"} );
+			money -= 5;
+		} else {
+			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_1"} );
+			money -= 1;
+		}
+		coin.force.y -= 5.0;
+		if( sleep ) coin.sleep = sleep;
+		game.addObject(coin);
+	}
+	
+	if (Math.random() < _player.waystone_bonus) {
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
+		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
-	} else {
-		var bonus = _player.money_bonus || 1.0;
-		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
-		money = money == undefined ? (1+Math.random()*3) : money;
-		money = Math.floor( money * bonus );
-		while(money > 0){
-			var coin;
-			var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
-			if(money > 40){
-				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_3" );
-				money -= 10;
-			} else if( money > 10 ) {
-				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_2" );
-				money -= 5;
-			} else {
-				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_1" );
-				money -= 1;
-			}
-			coin.force.y -= 5.0;
-			if( sleep != undefined ) coin.sleep = sleep;
-			game.addObject(coin);
-		}
-		if (Math.random() < _player.waystone_bonus && !money_only) {
-			var item = new Item( obj.position.x, obj.position.y, "waystone" );
-			if( sleep != undefined ) item.sleep = sleep;
-			game.addObject( item );
-		}
+	}
+	
+	if (Math.random() > 0.9) {
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life"} );
+		if( sleep ) item.sleep = sleep;
+		game.addObject( item );
 	}
 }
 
@@ -9638,13 +9650,12 @@ function Player(x, y){
 	this.checkpoint = new Point(x,y);
 	
 	this.keys = [];
-	//this.equipment = [new Item(0,0,"short_sword"), new Item(0,0,"small_shield")];
 	this.spells = [];
 	this.charm = false;
 	this.knockedout = false;
 	
-	this.equip_sword = new Item(0,0,"short_sword",{"enchantChance":0});
-	this.equip_shield = new Item(0,0,"small_shield",{"enchantChance":0});
+	this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
+	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 	
 	
 	window._player = this;
@@ -11103,6 +11114,7 @@ function Spawn(x,y,d,ops){
 	this.width = 16;
 	this.height = 16;
 	this.difficulty = Spawn.difficulty;
+	this.specific = null;
 	
 	this.on("activate",function(obj){
 		this.spawn();
@@ -11111,6 +11123,9 @@ function Spawn(x,y,d,ops){
 	ops = ops || {};
 	var autospawn = 1;
 	
+	if("enemies" in ops){
+		this.specific = ops["enemies"].split(",");
+	}
 	if("theme" in ops){
 		this.theme = ops.theme;
 	}
@@ -11139,42 +11154,49 @@ function Spawn(x,y,d,ops){
 
 Spawn.prototype.spawn = function(){
 	try{
-		if(!(this.theme in Spawn.enemies )) {
-			this.theme = "default";
-		}
-		
-		var list = Spawn.enemies[this.theme];
-		var indices = new Array();
-		this.enemies = new Array();
-		
-		for(var i=0; i < list.length; i++){
-			if( 
-				list[i].difficulty[0] <= this.difficulty && 
-				list[i].difficulty[1] >= this.difficulty && 
-				this.tags.intersection(list[i].tags).length == this.tags.length
-			){
-				indices.push( i );
+		if(this.specific instanceof Array){
+			this.create(this.specific);
+		}else {
+			if(!(this.theme in Spawn.enemies )) {
+				this.theme = "default";
 			}
-		}
-		var selected = list[indices[ Math.floor( Math.random() * indices.length ) ]];
-		
-		for(var j=0; j < selected.enemies.length; j++){
-			var name = selected.enemies[j];
-			try {
-				var object = new window[ name ]( 
-					this.position.x + j * 24,
-					this.position.y,
-					null,
-					{"difficulty":this.difficulty}
-				);
-				game.addObject( object );
-				this.enemies.push( object );
-			} catch (e) {
-				console.error( "cannot create object: " + name );
+			
+			var list = Spawn.enemies[this.theme];
+			var indices = new Array();
+			this.enemies = new Array();
+			
+			for(var i=0; i < list.length; i++){
+				if( 
+					list[i].difficulty[0] <= this.difficulty && 
+					list[i].difficulty[1] >= this.difficulty && 
+					this.tags.intersection(list[i].tags).length == this.tags.length
+				){
+					indices.push( i );
+				}
 			}
+			var selected = list[indices[ Math.floor( Math.random() * indices.length ) ]];
+			
+			this.create(selected.enemies);
 		}
 	} catch( err ) {
 		console.error( "No valid enemy matching tags: " + this.tags );
+	}
+}
+Spawn.prototype.create = function(enemies){
+	for(var j=0; j < enemies.length; j++){
+		var name = enemies[j];
+		try {
+			var object = new window[ name ]( 
+				this.position.x + j * 24,
+				this.position.y,
+				null,
+				{"difficulty":this.difficulty}
+			);
+			game.addObject( object );
+			this.enemies.push( object );
+		} catch (e) {
+			console.error( "cannot create object: " + name );
+		}
 	}
 }
 
@@ -11224,11 +11246,12 @@ Spawn.enemies = {
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
 	],
 	"undead" : [
-		{"tags":[],"difficulty":[0,99],"enemies":["Skeleton"]},
-		{"tags":[],"difficulty":[0,99],"enemies":["Ghoul"]},
-		{"tags":[],"difficulty":[0,99],"enemies":["Ratgut"]},
+		{"tags":["minor"],"difficulty":[0,99],"enemies":["Ghoul"]},
+		{"tags":["minor"],"difficulty":[0,99],"enemies":["Ratgut"]},
 		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
-		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Svarog"]}
+		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Svarog"]},
+		{"tags":["major"],"difficulty":[0,99],"enemies":["Skeleton"]},
+		{"tags":["miniboss"],"difficulty":[0,99],"enemies":["BigBones"]}
 	]
 };
 
@@ -11319,6 +11342,9 @@ function CollapseTile(x,y,n,o){
 	if("timer" in o){
 		this.totalTime = Game.DELTASECOND * o.timer;
 	}
+	if("broken" in o){
+		
+	}
 	
 	var existingTile = game.getTile(this.position.x,this.position.y);
 	if(existingTile > 0){
@@ -11375,55 +11401,118 @@ function BreakableTile(x, y, d, ops){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.life = 1;
+	this.broken = 0;
 	this.item = false;
 	this.death_time = Game.DELTASECOND * 0.15;
 	this.strikeable = 1;
+	this.undertile = game.getTile(this.position.x, this.position.y);
+	this.chain = 1;
+	this.life = 1;
+	
+	this.chaintype = "break";
+	this.chaintime = Game.DELTASECOND * 0.15;
+	this.chaintimer = this.chaintime;
+	this.chainActive = false;
+	
+	var startBroken = 0;
 	
 	ops = ops || {};
 	if( "strikeable" in ops ) {
 		this.strikeable = ops["strikeable"] * 1;
 	}
-	if( "item" in ops ) {
-		this.item = new Item(x,y,ops.item);
-	}
 	if("trigger" in ops) {
 		this._tid = ops["trigger"];
 	}
+	if("broken" in ops) {
+		startBroken = ops["broken"] * 1;
+	}
+	if("chain" in ops){
+		this.chain = ops["chain"] * 1;
+	}
 	
 	this.on("activate", function(obj,pos,damage){
-		this.life = 0;
+		if(this.broken){
+			this.unbreak(true);
+		}else{
+			this.break(true);
+		}
+	});
+	this.on("break", function(){
+		this.break(true);
+	});
+	this.on("unbreak", function(){
+		this.unbreak(true);
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.strikeable && obj instanceof Player){
-			//break tile
-			this.life = 0;
+			if(!this.broken){
+				this.break(true);
+			}
 		}
 	});
-}
-BreakableTile.prototype.update = function(){
-	if( this.life <= 0 ) this.death_time -= this.delta;
 	
-	if( this.death_time <= 0 ) {
-		var tile = game.getTile(this.position.x, this.position.y );
-		if( tile != 0 && tile != BreakableTile.unbreakable ) {
+	//Set first state
+	if(startBroken){
+		this.break(false);
+	}
+}
+BreakableTile.prototype.unbreak = function(explode){
+	if(this.broken){
+		if(explode){
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
-			game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 0 );
-			if( this.item instanceof Item){
-				this.item.position.x = this.position.x;
-				this.item.position.y = this.position.y;
-				game.addObject( this.item );
-			}
-			//Set off neighbours
-			var hits = game.overlaps(new Line(
-				this.position.x - 8, this.position.y - 8,
-				this.position.x + 24, this.position.y + 24
-			));
-			for(var i=0; i<hits.length; i++) if( hits[i] instanceof BreakableTile && hits[i].life > 0 ) {
-				hits[i].trigger("activate", this);
+			if(this.chain) {
+				this.chainActive = true;
+				this.chaintype = "unbreak";
 			}
 		}
-		this.destroy();
+		game.setTile(
+			this.position.x, 
+			this.position.y, 
+			game.tileCollideLayer, 
+			this.undertile
+		);
+		this.broken = 0;
+	}
+}
+BreakableTile.prototype.break = function(explode){
+	if(!this.broken && this.undertile != BreakableTile.unbreakable){
+		if(explode){
+			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
+			if(this.chain) {
+				this.chainActive = true;
+				this.chaintype = "break";
+			}
+		}
+		game.setTile(
+			this.position.x, 
+			this.position.y, 
+			game.tileCollideLayer, 
+			0
+		);
+		this.broken = 1;
+	}
+}
+
+BreakableTile.prototype.neighbours = function(type){
+	
+	var hits = game.overlaps(new Line(
+		this.position.x - 8, this.position.y - 8,
+		this.position.x + 24, this.position.y + 24
+	));
+	for(var i=0; i< hits.length; i++) {
+		if( hits[i] instanceof BreakableTile && hits[i] != this ) {
+			hits[i].trigger(type, this);
+		}
+	}
+}
+BreakableTile.prototype.update = function(){
+	if(this.chainActive){
+		if(this.chaintimer <= 0){
+			this.chainActive = false;
+			this.chaintimer = this.chaintime;
+			this.neighbours(this.chaintype);
+		}
+		this.chaintimer -= this.delta;
 	}
 }
 
@@ -11493,8 +11582,14 @@ function Trigger(x,y,n,o){
 	this.width = this.height = 32;
 	this.targets = new Array();
 	this.darknessFunction = null;
+	this.darknessColour = null;
+	this.dustCount = null;
 	this.triggerCount = 0;
 	this.retrigger = 1;
+	
+	this.countdown = 0;
+	this.timer = 0;
+	this.time = 0;
 	
 	o = o || {};
 	if("width" in o){
@@ -11509,35 +11604,85 @@ function Trigger(x,y,n,o){
 	if("darkness" in o){
 		this.darknessFunction = new Function("c","return " + o.darkness)
 	}
+	if("darknesscolor" in o){
+		try{
+			var colour = o["darknesscolor"].split(",");
+			this.darknessColour = [
+				colour[0] * 1,
+				colour[1] * 1,
+				colour[2] * 1,
+			]
+		} catch(err){}
+	}
+	if("dustcount" in o){
+		this.dustCount = o["dustcount"] * 1;
+	}
 	if("retrigger" in o){
 		this.retrigger = o.retrigger * 1;
 	}
+	if("timer" in o){
+		this.time = o["timer"] * Game.DELTASECOND;
+		this.timer = this.time;
+	}
 	
-	this.on("collideObject", function(obj){
-		if(obj instanceof Player){
-			if(this.retrigger || this.triggerCount == 0){
-				this.triggerCount++;
-				
-				if(this.darknessFunction instanceof Function){
-					var b = game.getObject(Background);
-					if(b instanceof Background){
+	this.on("activate", function(obj){
+		if(this.retrigger || this.triggerCount == 0){
+			this.triggerCount++;
+			
+			if(
+				this.darknessFunction instanceof Function ||
+				this.darknessColour instanceof Array ||
+				this.dustCount != undefined
+			){
+				var b = game.getObject(Background);
+				if(b instanceof Background){
+					
+					if(this.darknessFunction instanceof Function)
 						b.darknessFunction = this.darknessFunction;
-					}
+					
+					if(this.darknessColour instanceof Array)
+						b.ambience = this.darknessColour;
+					
+					if(this.dustCount != undefined)
+						b.dustAmount = this.dustCount;
 				}
-				
-				//trigger connected objects
-				if(this.targets.length > 0){
-					for(var i=0; i < this.targets.length; i++){
-						var objects = Trigger.getTargets(this.targets[i]);
-						for(var j=0; j < objects.length; j++){
-							objects[j].trigger("activate", this);
-						}
+			}
+			
+			//trigger connected objects
+			if(this.targets.length > 0){
+				for(var i=0; i < this.targets.length; i++){
+					var objects = Trigger.getTargets(this.targets[i]);
+					for(var j=0; j < objects.length; j++){
+						objects[j].trigger("activate", this);
 					}
 				}
 			}
 		}
 	});
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			if(this.time <= 0){
+				this.trigger("activate");
+			}else{
+				this.countdown = true;
+			}
+		}
+	});
 }
+
+Trigger.prototype.update = function(){
+	if(this.countdown){
+		if(this.timer <= 0){
+			this.timer = this.time;
+			this.countdown = false;
+			this.trigger("activate");
+		}
+		this.timer -= this.delta;
+	}
+}
+Trigger.prototype.idle = function(){}
+
 Trigger.getTargets = function(name){
 	var out = new Array();
 	if(game instanceof Game){

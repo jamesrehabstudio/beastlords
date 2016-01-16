@@ -8,6 +8,7 @@ function Spawn(x,y,d,ops){
 	this.width = 16;
 	this.height = 16;
 	this.difficulty = Spawn.difficulty;
+	this.specific = null;
 	
 	this.on("activate",function(obj){
 		this.spawn();
@@ -16,6 +17,9 @@ function Spawn(x,y,d,ops){
 	ops = ops || {};
 	var autospawn = 1;
 	
+	if("enemies" in ops){
+		this.specific = ops["enemies"].split(",");
+	}
 	if("theme" in ops){
 		this.theme = ops.theme;
 	}
@@ -44,42 +48,49 @@ function Spawn(x,y,d,ops){
 
 Spawn.prototype.spawn = function(){
 	try{
-		if(!(this.theme in Spawn.enemies )) {
-			this.theme = "default";
-		}
-		
-		var list = Spawn.enemies[this.theme];
-		var indices = new Array();
-		this.enemies = new Array();
-		
-		for(var i=0; i < list.length; i++){
-			if( 
-				list[i].difficulty[0] <= this.difficulty && 
-				list[i].difficulty[1] >= this.difficulty && 
-				this.tags.intersection(list[i].tags).length == this.tags.length
-			){
-				indices.push( i );
+		if(this.specific instanceof Array){
+			this.create(this.specific);
+		}else {
+			if(!(this.theme in Spawn.enemies )) {
+				this.theme = "default";
 			}
-		}
-		var selected = list[indices[ Math.floor( Math.random() * indices.length ) ]];
-		
-		for(var j=0; j < selected.enemies.length; j++){
-			var name = selected.enemies[j];
-			try {
-				var object = new window[ name ]( 
-					this.position.x + j * 24,
-					this.position.y,
-					null,
-					{"difficulty":this.difficulty}
-				);
-				game.addObject( object );
-				this.enemies.push( object );
-			} catch (e) {
-				console.error( "cannot create object: " + name );
+			
+			var list = Spawn.enemies[this.theme];
+			var indices = new Array();
+			this.enemies = new Array();
+			
+			for(var i=0; i < list.length; i++){
+				if( 
+					list[i].difficulty[0] <= this.difficulty && 
+					list[i].difficulty[1] >= this.difficulty && 
+					this.tags.intersection(list[i].tags).length == this.tags.length
+				){
+					indices.push( i );
+				}
 			}
+			var selected = list[indices[ Math.floor( Math.random() * indices.length ) ]];
+			
+			this.create(selected.enemies);
 		}
 	} catch( err ) {
 		console.error( "No valid enemy matching tags: " + this.tags );
+	}
+}
+Spawn.prototype.create = function(enemies){
+	for(var j=0; j < enemies.length; j++){
+		var name = enemies[j];
+		try {
+			var object = new window[ name ]( 
+				this.position.x + j * 24,
+				this.position.y,
+				null,
+				{"difficulty":this.difficulty}
+			);
+			game.addObject( object );
+			this.enemies.push( object );
+		} catch (e) {
+			console.error( "cannot create object: " + name );
+		}
 	}
 }
 
@@ -129,11 +140,12 @@ Spawn.enemies = {
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
 	],
 	"undead" : [
-		{"tags":[],"difficulty":[0,99],"enemies":["Skeleton"]},
-		{"tags":[],"difficulty":[0,99],"enemies":["Ghoul"]},
-		{"tags":[],"difficulty":[0,99],"enemies":["Ratgut"]},
+		{"tags":["minor"],"difficulty":[0,99],"enemies":["Ghoul"]},
+		{"tags":["minor"],"difficulty":[0,99],"enemies":["Ratgut"]},
 		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
-		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Svarog"]}
+		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Svarog"]},
+		{"tags":["major"],"difficulty":[0,99],"enemies":["Skeleton"]},
+		{"tags":["miniboss"],"difficulty":[0,99],"enemies":["BigBones"]}
 	]
 };
 

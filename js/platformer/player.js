@@ -11,13 +11,12 @@ function Player(x, y){
 	this.checkpoint = new Point(x,y);
 	
 	this.keys = [];
-	//this.equipment = [new Item(0,0,"short_sword"), new Item(0,0,"small_shield")];
 	this.spells = [];
 	this.charm = false;
 	this.knockedout = false;
 	
-	this.equip_sword = new Item(0,0,"short_sword",{"enchantChance":0});
-	this.equip_shield = new Item(0,0,"small_shield",{"enchantChance":0});
+	this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
+	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 	
 	
 	window._player = this;

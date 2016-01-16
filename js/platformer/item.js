@@ -1,6 +1,6 @@
 Item.prototype = new GameObject();
 Item.prototype.constructor = GameObject;
-function Item(x,y,name, ops){
+function Item(x,y,d, ops){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -19,11 +19,17 @@ function Item(x,y,name, ops){
 	this.enchantChance = 0.8;
 	
 	ops = ops || {};	
-	if( name != undefined ) {
-		this.setName( name );
+	
+	if( "enchantChance" in ops ) {
+		this.enchantChance = ops["this.enchantChance"];
 	}
-	if( "enchantChance" in ops ) this.enchantChance = ops["this.enchantChance"];
-	if( "name" in ops ) this.setName( ops.name );
+	if( "name" in ops ) {
+		if(ops["name"] == "random"){
+			this.setName(dataManager.randomTreasure(Math.random()).name);
+		} else {
+			this.setName( ops.name );
+		}
+	}
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
@@ -384,38 +390,44 @@ Item.prototype.render = function(g,c){
 }
 
 Item.drop = function(obj,money,sleep){
-	var money_only = obj.hasModule(mod_boss);
-	if(Math.random() > (_player.life / _player.lifeMax) && !money_only){
-		var item = new Item( obj.position.x, obj.position.y, "life_small" );
-		if( sleep != undefined ) item.sleep = sleep;
+	money = money || Math.ceil(1+Math.random()*3);
+	
+	if(Math.random() > 0.95){
+		money += 20 + Math.floor(Math.random()*10);
+	}
+	
+	if("money_bonus" in _player){
+		money = Math.round(money * _player.money_bonus);
+	}
+
+	while(money > 0){
+		var coin;
+		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
+		if(money > 40){
+			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_3"} );
+			money -= 10;
+		} else if( money > 10 ) {
+			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_2"} );
+			money -= 5;
+		} else {
+			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_1"} );
+			money -= 1;
+		}
+		coin.force.y -= 5.0;
+		if( sleep ) coin.sleep = sleep;
+		game.addObject(coin);
+	}
+	
+	if (Math.random() < _player.waystone_bonus) {
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
+		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
-	} else {
-		var bonus = _player.money_bonus || 1.0;
-		//money = money == undefined ? (Math.max(dataManager.currentTemple*2,0)+(2+Math.random()*4)) : money;
-		money = money == undefined ? (1+Math.random()*3) : money;
-		money = Math.floor( money * bonus );
-		while(money > 0){
-			var coin;
-			var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
-			if(money > 40){
-				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_3" );
-				money -= 10;
-			} else if( money > 10 ) {
-				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_2" );
-				money -= 5;
-			} else {
-				coin = new Item( obj.position.x+off.x, obj.position.y+off.y, "coin_1" );
-				money -= 1;
-			}
-			coin.force.y -= 5.0;
-			if( sleep != undefined ) coin.sleep = sleep;
-			game.addObject(coin);
-		}
-		if (Math.random() < _player.waystone_bonus && !money_only) {
-			var item = new Item( obj.position.x, obj.position.y, "waystone" );
-			if( sleep != undefined ) item.sleep = sleep;
-			game.addObject( item );
-		}
+	}
+	
+	if (Math.random() > 0.9) {
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life"} );
+		if( sleep ) item.sleep = sleep;
+		game.addObject( item );
 	}
 }
 

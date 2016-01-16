@@ -225,12 +225,16 @@ DataManager.prototype.loadMap = function(map,options){
 		if(obj[2] == "Player"){
 			playerStartPositions.push(obj);
 		} else {
-			g.addObject( new window[obj[2]](
-				obj[0],
-				obj[1],
-				null,
-				obj[3]
-			));
+			try{
+				g.addObject( new window[obj[2]](
+					obj[0],
+					obj[1],
+					null,
+					obj[3]
+				));
+			} catch(err){
+				console.error("Unable to add object: "+ obj[2]);
+			}
 		}
 	}
 	var mapTiles = [];
@@ -649,8 +653,7 @@ DataManager.prototype.createRoom = function(g,room,cursor,room_options){
 				}
 			} else if ( objectName == "Door" ){
 				//Special rules for doors
-				new_obj = new Door(cursor.x + obj[0], cursor.y + obj[1]);
-				if("door" in props) new_obj.name = props["door"];
+				new_obj = new Door(cursor.x + obj[0], cursor.y + obj[1], false, {"name":props["door"]});
 			} else {
 				//Generic object
 				try { 
