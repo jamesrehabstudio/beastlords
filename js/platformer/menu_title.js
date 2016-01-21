@@ -96,7 +96,7 @@ TitleMenu.prototype.update = function(){
 				if(this.cursor == 0){
 					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
 				} else if(this.cursor == 3){
-					MapLoader.loadMap(MapLoader.mapname);
+					MapLoader.loadMapTmx(MapLoader.mapname);
 					audio.play("pause");
 				}
 			}

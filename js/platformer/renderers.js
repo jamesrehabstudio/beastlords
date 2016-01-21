@@ -59,8 +59,99 @@ function renderDialog(g,s, top){
 	if( top == undefined ) top = 48;
 	
 	var width = 224;
-	var height = 64;
+	var height = 76;
 	var left = game.resolution.x * 0.5 - width * 0.5;
 	boxArea(g,left,top,width,height);
 	textArea(g,s,left+16,top+16,width-32, height-32);
+}
+
+DialogManger = {
+	"width":25,
+	"maxlines":4,
+	"text" : "",
+	"show" : false,
+	"progress" : 0.0,
+	"speed" : 0.85,
+	"line" : 0,
+	"audio" : "text01",
+	"parsedtext" : new Array(),
+	"set" : function(text){
+		if(DialogManger.text != text){
+			DialogManger.text = text;
+			DialogManger.parsedtext = DialogManger.parse(text);
+			DialogManger.show = true;
+			DialogManger.progress = 0.0;
+			DialogManger.line = 0;
+		}else{
+			
+		}
+	},
+	"clear" : function(){
+		DialogManger.text = false;
+		DialogManger.show = false;
+		DialogManger.progress = 0.0;
+		DialogManger.line = 0;
+	},
+	"render" : function(g){
+		var charcount = 0;
+		var pt = DialogManger.parsedtext;
+		var filled = true;
+		var lineno = DialogManger.line;
+		var max = DialogManger.maxlines;
+		var xoff = Math.floor(game.resolution.x* 0.5 - DialogManger.width*4 );
+		var yoff = 48;
+		
+		boxArea(g,xoff-12,yoff-12,DialogManger.width*8+24,max*12+24);
+		
+		for(var i=lineno; i < lineno+max && i < pt.length; i++){
+			var line = pt[i];
+			var y = yoff + (i-lineno) * 12;
+			for(var j=0; j < line.length; j++){
+				var x = xoff + j * 8;
+				var index = textLookup.indexOf(line[j]);
+				if(charcount < DialogManger.progress){
+					sprites.text.render(g,new Point(x,y),index);
+				} else {
+					filled = false;
+				}
+				charcount++;
+			}
+		}
+		
+		if(input.state("fire") == 1 ){
+			if(filled){
+				if(lineno+max >= pt.length ){
+					//End dialog
+					DialogManger.show = false;
+				} else {
+					//Next lines
+					DialogManger.line += max;
+					DialogManger.progress = 0.0;
+				}
+			} else {
+				DialogManger.progress = Number.MAX_SAFE_INTEGER;
+			}
+		} else {
+			var prev = DialogManger.progress;
+			DialogManger.progress += game.deltaUnscaled * DialogManger.speed;
+			if(!filled && Math.floor(prev) != Math.floor(DialogManger.progress)){
+				audio.play(DialogManger.audio);
+			}
+		}		
+	},
+	"parse" : function(s){
+		var out = new Array();
+		var last_start = 0;
+		var last_space = 0;
+		for(var i=0; i < s.length; i++ ){
+			if( s[i] == " " ) last_space = i;
+			if( i - last_start >= DialogManger.width ) {
+				//Slice here
+				out.push(s.slice(last_start,last_space));
+				i = last_start = last_space + 1;
+			}
+		}
+		out.push(s.slice(last_start));
+		return out;
+	}
 }

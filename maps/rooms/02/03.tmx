@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" width="64" height="15" tilewidth="16" tileheight="16">
- <tileset firstgid="1" name="tiles0" tilewidth="16" tileheight="16">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="64" height="15" tilewidth="16" tileheight="16" nextobjectid="20">
+ <tileset firstgid="1" name="tiles0" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="../../../img/tiles/tiles0.gif" trans="ff00ff" width="256" height="256"/>
  </tileset>
  <layer name="back" width="64" height="15">
@@ -41,7 +41,7 @@
 17,34,23,2,3,4,5,6,2,3,4,5,6,7,2,3,4,5,6,7,7,2,3,4,5,6,7,2,3,4,5,6,7,2,3,4,5,6,7,2,3,4,5,6,2,3,4,5,6,7,3,4,5,6,7,2,3,4,5,6,7,22,35,24
 </data>
  </layer>
- <objectgroup name="objects" width="64" height="15">
+ <objectgroup name="objects">
   <properties>
    <property name="max_temple" value="2"/>
    <property name="min_temple" value="2"/>
@@ -49,25 +49,25 @@
    <property name="remaining" value="1"/>
    <property name="tags" value="[&quot;optional&quot;]"/>
   </properties>
-  <object name="LilGhost" gid="199" x="96" y="176"/>
-  <object name="LilGhost" gid="199" x="176" y="160"/>
-  <object name="LilGhost" gid="199" x="256" y="144"/>
-  <object name="LilGhost" gid="199" x="336" y="160"/>
-  <object name="LilGhost" gid="199" x="416" y="176"/>
-  <object name="LilGhost" gid="199" x="496" y="160"/>
-  <object name="LilGhost" gid="199" x="576" y="144"/>
-  <object name="LilGhost" gid="199" x="656" y="160"/>
-  <object name="LilGhost" gid="199" x="736" y="144"/>
-  <object name="LilGhost" gid="199" x="816" y="160"/>
-  <object name="LilGhost" gid="199" x="896" y="176"/>
-  <object name="Lamp" gid="135" x="120" y="80"/>
-  <object name="Lamp" gid="135" x="248" y="80"/>
-  <object name="Lamp" gid="135" x="376" y="80"/>
-  <object name="Lamp" gid="135" x="504" y="80"/>
-  <object name="Lamp" gid="135" x="632" y="80"/>
-  <object name="Lamp" gid="135" x="760" y="80"/>
-  <object name="Lamp" gid="135" x="888" y="80"/>
-  <object name="DamageTrigger" gid="92" x="48" y="232">
+  <object id="1" name="LilGhost" gid="199" x="96" y="176" width="16" height="16"/>
+  <object id="2" name="LilGhost" gid="199" x="176" y="160" width="16" height="16"/>
+  <object id="3" name="LilGhost" gid="199" x="256" y="144" width="16" height="16"/>
+  <object id="4" name="LilGhost" gid="199" x="336" y="160" width="16" height="16"/>
+  <object id="5" name="LilGhost" gid="199" x="416" y="176" width="16" height="16"/>
+  <object id="6" name="LilGhost" gid="199" x="496" y="160" width="16" height="16"/>
+  <object id="7" name="LilGhost" gid="199" x="576" y="144" width="16" height="16"/>
+  <object id="8" name="LilGhost" gid="199" x="656" y="160" width="16" height="16"/>
+  <object id="9" name="LilGhost" gid="199" x="736" y="144" width="16" height="16"/>
+  <object id="10" name="LilGhost" gid="199" x="816" y="160" width="16" height="16"/>
+  <object id="11" name="LilGhost" gid="199" x="896" y="176" width="16" height="16"/>
+  <object id="12" name="Lamp" gid="135" x="120" y="80" width="16" height="16"/>
+  <object id="13" name="Lamp" gid="135" x="248" y="80" width="16" height="16"/>
+  <object id="14" name="Lamp" gid="135" x="376" y="80" width="16" height="16"/>
+  <object id="15" name="Lamp" gid="135" x="504" y="80" width="16" height="16"/>
+  <object id="16" name="Lamp" gid="135" x="632" y="80" width="16" height="16"/>
+  <object id="17" name="Lamp" gid="135" x="760" y="80" width="16" height="16"/>
+  <object id="18" name="Lamp" gid="135" x="888" y="80" width="16" height="16"/>
+  <object id="19" name="DamageTrigger" gid="92" x="48" y="224" width="928" height="16">
    <properties>
     <property name="width" value="960"/>
    </properties>

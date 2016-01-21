@@ -15,6 +15,7 @@ function Background(x,y){
 	this.animation = 0;
 	this.walls = true;
 	this.zIndex = -999;
+	this.sealevel = 240;
 	
 	this.ambience = [0.3,0.3,0.5];
 	this.ambienceStrength = 0.0;
@@ -152,9 +153,8 @@ Background.prototype.renderDust = function(g,c){
 	}
 }
 Background.prototype.prerender = function(gl,c){
-	var backgroundTiles = _map_backdrops[0];
+	var backgroundTiles = _map_backdrops[1];
 	var tileset = sprites[backgroundTiles.tileset];
-	
 	
 	var zero = game.tileDimension.start;
 	var strength = 1.0;
@@ -169,11 +169,30 @@ Background.prototype.prerender = function(gl,c){
 		strength = (48*16 - game.resolution.y) / largest;
 	}
 	
-	var x = ((c.x) - zero.x*16) * strength;
-	var y = ((c.y) - zero.y*16) * strength;
 	
-	if("under1" in backgroundTiles){
-		tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+	if(c.y < this.sealevel){
+		var x = ((c.x) - zero.x*16) * strength;
+		var y = (c.y * strength) + (48*16 - game.resolution.y);
+		
+		if("upper3" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["upper3"],48,0,0);
+		}
+		if("upper2" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["upper2"],48,x*0.6666666666,y*0.66666666);
+		}
+		if("upper1" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["upper1"],48,x,y);
+		}
+	}
+	if(c.y > this.sealevel){
+		
+		
+		var x = ((c.x) - zero.x*16) * strength;
+		var y = ((c.y) - zero.y*16) * strength;
+		
+		if("under1" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+		}
 	}
 }
 Background.prototype.idle = function(){}

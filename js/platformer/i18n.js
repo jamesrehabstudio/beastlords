@@ -106,19 +106,30 @@ window._messages = {
 	},
 	"quest" : {
 		"english" : {
-			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
-			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
-			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
-			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
+			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		},
 		"engrish" : {
-			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
-			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
-			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
-			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
+			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		}
+	},
+	"miner0_0" : {
+		"english" : "This is no good. We were sent up here to mine. But we found this big old relief in the way. We don't exactly wanna break it. Could you ask the professor for us? He'll know what to do."
+	},
+	"miner0_1" : {
+		"english" : "Talk to the professor in NEARBYTOWN. He'll help us move this relief"
+	},
+	"miner0_3" : {
+		"english" : "You talked to him? He wants you to get a magic wand? Maybe the professor is losing his marbles. I dunno..."
+	},
+	"miner0_4" : {
+		"english" : "I can't believe that actually worked. Here was me thinkin' we had the week off"
 	}
-	
 };
 function i18n(name,replace){
 	replace = replace || {};

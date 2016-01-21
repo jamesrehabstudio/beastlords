@@ -4,7 +4,111 @@ function MapLoader(x,y){
 	this.constructor();
 }
 
-MapLoader.loadMap = function(url){
+MapLoader.loadMap = function(map,options){
+	var g = window.game;
+	
+	//Get map from mapname
+	if(!(map in window._map_maps)){
+		console.error("Cannot find map with name: "+ map);
+		return;
+	} else{
+		map = window._map_maps[map];
+	}
+	
+	var playerStartPositions = new Array();
+	
+	this.slices = [];
+	g.clearAll();
+	g.tileSprite = sprites.town;
+	options = options || {};
+	
+	if( "tileset" in map ) g.tileSprite = sprites[map.tileset];
+	if( "tileset" in options ) g.tileSprite = sprites[options.tileset];
+	
+	g.bounds = new Line(0,0,map.width*256,map.height*240);
+	var mapDimension = new Line(0,0,map.width,map.height);
+	g.tileDimension = new Line(
+		g.bounds.start.x/16,
+		g.bounds.start.y/16,
+		g.bounds.end.x/16,
+		g.bounds.end.y/16
+	);
+	g.tiles = [
+		new Array( ~~g.tileDimension.area() ),
+		new Array( ~~g.tileDimension.area() ),
+		new Array( ~~g.tileDimension.area() )
+	];
+	g.buildCollisions();
+	for(var i=0; i < map.front.length; i++){
+		if("front" in map) g.tiles[2][i] = map.front[i];
+		if("back" in map) g.tiles[1][i] = map.back[i];
+		if("far" in map) g.tiles[0][i] = map.far[i];
+	}
+	if("objects" in map) for(var i=0; i < map.objects.length; i++){
+		var obj = map.objects[i];
+		if(obj[3] == "Player"){
+			playerStartPositions.push(obj);
+		} else {
+			try{
+				g.addObject( new window[obj[3]](
+					obj[0],
+					obj[1],
+					obj[2],
+					obj[4]
+				));
+			} catch(err){
+				console.error("Unable to add object: "+ obj[2]);
+			}
+		}
+	}
+	var mapTiles = [];
+	if( "map" in map ) {
+		mapTiles = PauseMenu.convertTileDataToMapData(map["map"]);
+	}
+	
+	if( _player instanceof Player ){
+		window._player.keys = new Array();
+		window._player.lock_overwrite = false;
+	} else {
+		window._player = new Player();
+	}
+	
+	//Default player spawns positions
+	_player.position.x = 64;
+	_player.position.y = 200;
+	
+	//Go through all player starts and determine the correct start
+	for(var i=0;i<playerStartPositions.length;i++){
+		var obj = playerStartPositions[i];
+		if(i==0){
+			//First Player will be default unless a better match is made
+			window._player.position.x = obj[0];
+			window._player.position.y = obj[1];
+		}
+		if("start" in obj[4]){
+			if(
+				obj[4].start == options.start ||
+				obj[4].start == "west" && options.direction.x >= 0 ||
+				obj[4].start == "east" && options.direction.x < 0
+			){
+				window._player.position.x = obj[0];
+				window._player.position.y = obj[1];
+				break;
+			}
+		}
+	}
+	
+	g.addObject(window._player);
+	
+	var pm = new PauseMenu();
+	pm.map = mapTiles;
+	pm.mapDimension = mapDimension;
+	
+	g.addObject(pm);
+	g.addObject(new Background());
+}
+
+MapLoader.loadMapTmx = function(url){
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function(){
 		if(xhttp.readyState == 4){
@@ -114,12 +218,23 @@ MapLoader.parseMap = function(xml){
 		var name = obj.getAttribute("name");
 		var x = obj.getAttribute("x") * 1;
 		var y = obj.getAttribute("y") * 1;
+		var w = 16;
+		var h = 16;
+		
+		if(obj.getAttribute("width")){
+			w = obj.getAttribute("width") * 1;
+		}
+		if(obj.getAttribute("height")){
+			h = obj.getAttribute("height") * 1;
+		}
 		
 		var rect = !obj.getAttribute("gid");
 		if(rect){
-			x += 8; y += 8;
+			x += Math.floor(w/2); 
+			y += Math.floor(h/2);
 		}else{
-			x += 8; y -= 8;
+			x += Math.floor(w/2); 
+			y -= Math.floor(h/2);
 		}
 		
 		//Build properties
@@ -134,7 +249,7 @@ MapLoader.parseMap = function(xml){
 		
 		try{
 			if(name in window){
-				var newobj = new window[name](x,y,null,properties);
+				var newobj = new window[name](x,y,[w,h],properties);
 				game.addObject(newobj);
 			}
 		} catch(err){}

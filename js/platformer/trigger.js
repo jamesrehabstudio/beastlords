@@ -1,16 +1,22 @@
 Trigger.prototype = new GameObject();
 Trigger.prototype.constructor = GameObject;
-function Trigger(x,y,n,o){
+function Trigger(x,y,d,o){
 	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
+	
+	if(d instanceof Array){
+		this.width = d[0];
+		this.height = d[1];
+	}
+	
+	this.position.x = x - (this.width/2);
+	this.position.y = y - (this.height/2);
 	this.origin.x = this.origin.y = 0;
 	
-	this.width = this.height = 32;
 	this.targets = new Array();
 	this.darknessFunction = null;
 	this.darknessColour = null;
 	this.dustCount = null;
+	this.sealevel = null;
 	this.triggerCount = 0;
 	this.retrigger = 1;
 	
@@ -19,12 +25,7 @@ function Trigger(x,y,n,o){
 	this.time = 0;
 	
 	o = o || {};
-	if("width" in o){
-		this.width = o.width * 1;
-	}
-	if("height" in o){
-		this.height = o.height * 1;
-	}
+	
 	if("target" in o){
 		this.targets = o.target.split(",");
 	}
@@ -44,6 +45,9 @@ function Trigger(x,y,n,o){
 	if("dustcount" in o){
 		this.dustCount = o["dustcount"] * 1;
 	}
+	if("sealevel" in o){
+		this.sealevel = o["sealevel"] * 1;
+	}
 	if("retrigger" in o){
 		this.retrigger = o.retrigger * 1;
 	}
@@ -59,7 +63,8 @@ function Trigger(x,y,n,o){
 			if(
 				this.darknessFunction instanceof Function ||
 				this.darknessColour instanceof Array ||
-				this.dustCount != undefined
+				this.dustCount != undefined ||
+				this.sealevel != undefined
 			){
 				var b = game.getObject(Background);
 				if(b instanceof Background){
@@ -72,6 +77,9 @@ function Trigger(x,y,n,o){
 					
 					if(this.dustCount != undefined)
 						b.dustAmount = this.dustCount;
+					
+					if(this.sealevel != undefined)
+						b.sealevel = this.sealevel;
 				}
 			}
 			

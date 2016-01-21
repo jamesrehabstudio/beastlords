@@ -1,21 +1,23 @@
 DamageTrigger.prototype = new GameObject();
 DamageTrigger.prototype.constructor = GameObject;
-function DamageTrigger(x,y,p,o){
+function DamageTrigger(x,y,d,o){
 	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 256;
-	this.height = 18;
+	if(d instanceof Array){
+		this.width = d[0];
+		this.height = d[1];
+	}
+	this.position.x = x - (this.width / 2);
+	this.position.y = y - (this.height / 2);
+	this.origin.x = 0;
+	this.origin.y = 0;
 	
+	this.restTimer = 0.0;
 	this.damage = 25;
 	
 	o = o || {};
-	this.width = o.width || this.width;
-	this.height = o.height || this.height;
-	this.damage = o.damage || this.damage;
-	this.restTimer = 0.0;
-	
-	this.position.x += this.width * 0.5;
+	if("damage" in o){
+		this.damage = o.damage || this.damage;
+	}
 	
 	this.on("collideObject", function(obj){
 		if( this.restTimer <= 0 && obj instanceof Player ) {

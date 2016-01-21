@@ -379,7 +379,6 @@ Game.prototype.update = function( ) {
 		}		
 	}
 	
-	if ( input != undefined ) { input.update(); }
 	window.__time++;
 	window.__wind = 0.2 * Math.abs( Math.sin( window.__time * 0.003 ) * Math.sin( window.__time * 0.007 ) );
 
@@ -394,6 +393,8 @@ Game.prototype.update = function( ) {
 	*/
 	
 	this.render();
+	
+	if ( input != undefined ) { input.update(); }
 }
 
 Game.prototype.render = function( ) {
@@ -801,7 +802,12 @@ Game.prototype.t_move = function(obj, x, y) {
 				obj.trigger("collideHorizontal", x);
 			}
 		} else {
-			obj.position.y += y_pull;
+			if(y_pull > 0){
+				obj.position.y += 16;
+			}
+			if(y_pull < 0){
+				limits[1] -= 1;
+			}
 			limits[1] += margins[3] - 0.1;
 			limits[3] += margins[1] + 0.1;
 			if( obj.position.y > limits[1] ) {
@@ -1676,4 +1682,15 @@ CanvasRenderingContext2D.prototype.scaleFillRect = function(x,y,w,h){
 HTMLAudioElement.prototype.playF = function(){
 	this.currentTime = 0;
 	this.play();
+}
+function ajax(filepath, callback, caller){
+	var xhttp = new XMLHttpRequest();
+	caller = caller || window;
+	xhttp.onreadystatechange = function(){
+		if(xhttp.readyState == 4){
+			callback.apply(caller, [xhttp.response]);
+		}
+	}
+	xhttp.open("GET",filepath,true);
+	xhttp.send();
 }

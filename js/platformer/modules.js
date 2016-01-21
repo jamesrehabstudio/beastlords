@@ -162,6 +162,7 @@ var mod_combat = {
 		this.buffer_damage = false;
 		this._damage_buffer_timer = 0;
 		this.xp_award = 0;
+		this.showDamage = true;
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -247,7 +248,7 @@ var mod_combat = {
 						hits[i].trigger("block",this, offset.center(), damage);
 						if( hits[i].guard.invincible <= 0 ) {
 							if( damage > hits[i].guard.life ) {
-								damage = Math.max( damage - hits[i].guard.life, 0);
+								damage = Math.ceil(Math.max( damage - hits[i].guard.life, 0));
 								hits[i].guard.life = 0;
 								hits[i].trigger("guardbreak", this, offset.center(), damage);
 								hits[i].hurt(this, damage);
@@ -326,6 +327,10 @@ var mod_combat = {
 				}
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
+				
+				if(damage > 0 && this.showDamage){
+					game.addObject(new EffectNumber(this.position.x, this.position.y, damage));
+				}
 				
 				if( this.buffer_damage ) 
 					this.damage_buffer += damage;

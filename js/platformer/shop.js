@@ -100,7 +100,7 @@ Shop.prototype.restock = function(data){
 		treasure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
-		this.items[i] = new Item(x, this.position.y-80, treasure.name);
+		this.items[i] = new Item(x, this.position.y-80, false, {"name":treasure.name});
 		this.prices[i] = treasure.price;
 	
 		if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);

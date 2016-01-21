@@ -110,19 +110,33 @@ def transform(filename, roomsize):
 					out["key_required"] = True
 					
 				#find offset for object
-				offset = (8,8)
+				w = h = 16
+				
+				if("width" in object.attrib):
+					w = int(object.attrib["width"])
+				if("height" in object.attrib):
+					h = int(object.attrib["height"])
+					
+				x = int(float(object.attrib["x"]))
+				y = int(float(object.attrib["y"]))
+				
 				if("gid" in object.attrib):
-					offset = (8,-8)
+					x = x + int(w / 2)
+					y = y - int(h / 2)
+				else:
+					x = x + int(w / 2)
+					y = y + int(h / 2)
 					
 				#add object to data
-				out["objects"].append( [
-					int(float(object.attrib["x"]))+offset[0],
-					int(float(object.attrib["y"]))+offset[1],
+				out["objects"].append([
+					x,
+					y,
+					[w,h],
 					name,
 					options
-				])
+				]);
 			except Exception as err:
-				pass
+				print filename + " = " + str(err)
 		
 		try:
 			for property in objectLayer.find("properties"):

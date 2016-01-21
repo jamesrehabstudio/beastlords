@@ -243,6 +243,7 @@ function Background(x,y){
 	this.animation = 0;
 	this.walls = true;
 	this.zIndex = -999;
+	this.sealevel = 240;
 	
 	this.ambience = [0.3,0.3,0.5];
 	this.ambienceStrength = 0.0;
@@ -380,9 +381,8 @@ Background.prototype.renderDust = function(g,c){
 	}
 }
 Background.prototype.prerender = function(gl,c){
-	var backgroundTiles = _map_backdrops[0];
+	var backgroundTiles = _map_backdrops[1];
 	var tileset = sprites[backgroundTiles.tileset];
-	
 	
 	var zero = game.tileDimension.start;
 	var strength = 1.0;
@@ -397,11 +397,30 @@ Background.prototype.prerender = function(gl,c){
 		strength = (48*16 - game.resolution.y) / largest;
 	}
 	
-	var x = ((c.x) - zero.x*16) * strength;
-	var y = ((c.y) - zero.y*16) * strength;
 	
-	if("under1" in backgroundTiles){
-		tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+	if(c.y < this.sealevel){
+		var x = ((c.x) - zero.x*16) * strength;
+		var y = (c.y * strength) + (48*16 - game.resolution.y);
+		
+		if("upper3" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["upper3"],48,0,0);
+		}
+		if("upper2" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["upper2"],48,x*0.6666666666,y*0.66666666);
+		}
+		if("upper1" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["upper1"],48,x,y);
+		}
+	}
+	if(c.y > this.sealevel){
+		
+		
+		var x = ((c.x) - zero.x*16) * strength;
+		var y = ((c.y) - zero.y*16) * strength;
+		
+		if("under1" in backgroundTiles){
+			tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+		}
 	}
 }
 Background.prototype.idle = function(){}
@@ -2237,22 +2256,24 @@ CornerStone.prototype.idle = function(){}
 
 DamageTrigger.prototype = new GameObject();
 DamageTrigger.prototype.constructor = GameObject;
-function DamageTrigger(x,y,p,o){
+function DamageTrigger(x,y,d,o){
 	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 256;
-	this.height = 18;
+	if(d instanceof Array){
+		this.width = d[0];
+		this.height = d[1];
+	}
+	this.position.x = x - (this.width / 2);
+	this.position.y = y - (this.height / 2);
+	this.origin.x = 0;
+	this.origin.y = 0;
 	
+	this.restTimer = 0.0;
 	this.damage = 25;
 	
 	o = o || {};
-	this.width = o.width || this.width;
-	this.height = o.height || this.height;
-	this.damage = o.damage || this.damage;
-	this.restTimer = 0.0;
-	
-	this.position.x += this.width * 0.5;
+	if("damage" in o){
+		this.damage = o.damage || this.damage;
+	}
 	
 	this.on("collideObject", function(obj){
 		if( this.restTimer <= 0 && obj instanceof Player ) {
@@ -2665,6 +2686,43 @@ EffectBlood.prototype.render = function(g,c){
 	}
 }
 
+EffectNumber.prototype = new GameObject();
+EffectNumber.prototype.constructor = GameObject;
+function EffectNumber(x, y, value){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 8;
+	this.height = 8;
+	this.zIndex = 2;
+	this.sprite = sprites.numbers;
+	this.value = Math.floor(value);
+	this.progress = 0.0;
+	
+	this.on("sleep",function(){ this.destroy(); } );
+}
+
+EffectNumber.prototype.render = function(g,c){
+	var v = "" + this.value;
+	var x_off = v.length * 3;
+	for(var i=0; i < v.length; i++){
+		var offset = Math.min(this.progress-(i*2),Math.PI);
+		var bounce = Math.sin(offset) * 8;
+		if(offset > 0){
+			this.frame = v[i] * 1;
+			this.frame_row = 1;
+			this.sprite.render(g,this.position.subtract(c).add(new Point(i*6-x_off,-bounce)),this.frame,this.frame_row);
+		}
+	}
+	
+	if(this.progress > Game.DELTASECOND * 1.5){
+		this.destroy();
+	}
+	
+	this.progress += this.delta;
+}
+
 EffectCritical.prototype = new GameObject();
 EffectCritical.prototype.constructor = GameObject;
 function EffectCritical(x, y){	
@@ -2962,7 +3020,7 @@ function Axedog(x, y, d, o){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
-	this.height = 32;
+	this.height = 24;
 	this.sprite = sprites.axedog;
 	this.speed = 0.25;
 	
@@ -3046,22 +3104,22 @@ Axedog.prototype.update = function(){
 	
 	/* Animation */
 	if( this.stun > 0 ) {
-		this.frame = 2;
+		this.frame = 3;
 		this.frame_row = 2;
 	} else if( this.states.attack > 0 ) {
 		if( this.states.attack < this.attacks.rest ) {
-			this.frame = 0;
-			this.frame_row = 1;
+			this.frame = 2;
+			this.frame_row = 2;
 		} else if (this.states.attack < this.attacks.release ){
 			this.frame = 1;
 			this.frame_row = 2;
 		} else {
-			this.frame = 3;
-			this.frame_row = 1;
+			this.frame = 0;
+			this.frame_row = 2;
 		}
 	} else {
 		this.frame_row = 1;
-		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 3;
+		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 	}
 }
 
@@ -5665,8 +5723,8 @@ function Ratgut(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 32;
+	this.width = 24;
+	this.height = 24;
 	this.sprite = sprites.ratgut;
 	this.speed = 0.3;
 	
@@ -5689,7 +5747,7 @@ function Ratgut(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(2,this.difficulty);
-	this.damage = Spawn.damage(6,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.2;
 	this.collideDamage = Spawn.damage(4,this.difficulty);
 	this.stun_time = Game.DELTASECOND;
@@ -5728,6 +5786,9 @@ Ratgut.prototype.update = function(){
 		if( this.states.attack > 0 ) {
 			//Do nothing
 			this.states.attack -= this.delta;
+			if(!this.grounded){
+				this.strike( new Line(0,-16,16,16) );
+			}
 		} else if( this.states.cooldown <= 0 ){
 			//Charge at player
 			this.flip = dir.x > 0;
@@ -5740,7 +5801,6 @@ Ratgut.prototype.update = function(){
 				this.force.y = -3;
 				this.states.cooldown = Game.DELTASECOND * 5;
 			}
-			this.strike( new Line(-8,-16,8,16) );
 		} else {
 			//wander
 			if( this.states.runaway > 0 ) {
@@ -5768,14 +5828,18 @@ Ratgut.prototype.update = function(){
 	this.gravity = this.states.attack > 0 ? 0.2 : 1.0;
 	this.criticleChance = this.grounded ? 0.0 : 1.0;
 	
-	if( this.states.attack > 0 ){
+	if( this.stun > 0 ){
 		this.frame_row = 2;
-		this.frame = this.grounded ? 2 : 1;
+		this.frame = 1;
+	} else if( this.states.attack > 0 ){
+		this.frame_row = 2;
+		this.frame = this.grounded ? 1 : 0;
 	} else {
-		if( Math.abs( this.force.x ) < 0.1 ){
-			this.frame = this.frame_row = 0;
+		if( Math.abs( this.force.x ) < 0.3 ){
+			this.frame = (this.frame + this.delta * 0.2) % 4;
+			this.frame_row = 0;
 		} else {
-			this.frame = (this.frame + (this.delta * 0.2  * Math.abs(this.force.x))) % 3;
+			this.frame = (this.frame + (this.delta * 0.2 * Math.abs(this.force.x))) % 4;
 			this.frame_row = 1;
 		}
 	}
@@ -6965,19 +7029,30 @@ window._messages = {
 	},
 	"quest" : {
 		"english" : {
-			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
-			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
-			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
-			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
+			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		},
 		"engrish" : {
-			"q1" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
-			"q2" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
-			"q3" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
-			"q4" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
+			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
+			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		}
+	},
+	"miner0_0" : {
+		"english" : "This is no good. We were sent up here to mine. But we found this big old relief in the way. We don't exactly wanna break it. Could you ask the professor for us? He'll know what to do."
+	},
+	"miner0_1" : {
+		"english" : "Talk to the professor in NEARBYTOWN. He'll help us move this relief"
+	},
+	"miner0_3" : {
+		"english" : "You talked to him? He wants you to get a magic wand? Maybe the professor is losing his marbles. I dunno..."
+	},
+	"miner0_4" : {
+		"english" : "I can't believe that actually worked. Here was me thinkin' we had the week off"
 	}
-	
 };
 function i18n(name,replace){
 	replace = replace || {};
@@ -7427,7 +7502,7 @@ Item.drop = function(obj,money,sleep){
 	}
 	
 	if (Math.random() > 0.9) {
-		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life"} );
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
 		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
@@ -7789,7 +7864,111 @@ function MapLoader(x,y){
 	this.constructor();
 }
 
-MapLoader.loadMap = function(url){
+MapLoader.loadMap = function(map,options){
+	var g = window.game;
+	
+	//Get map from mapname
+	if(!(map in window._map_maps)){
+		console.error("Cannot find map with name: "+ map);
+		return;
+	} else{
+		map = window._map_maps[map];
+	}
+	
+	var playerStartPositions = new Array();
+	
+	this.slices = [];
+	g.clearAll();
+	g.tileSprite = sprites.town;
+	options = options || {};
+	
+	if( "tileset" in map ) g.tileSprite = sprites[map.tileset];
+	if( "tileset" in options ) g.tileSprite = sprites[options.tileset];
+	
+	g.bounds = new Line(0,0,map.width*256,map.height*240);
+	var mapDimension = new Line(0,0,map.width,map.height);
+	g.tileDimension = new Line(
+		g.bounds.start.x/16,
+		g.bounds.start.y/16,
+		g.bounds.end.x/16,
+		g.bounds.end.y/16
+	);
+	g.tiles = [
+		new Array( ~~g.tileDimension.area() ),
+		new Array( ~~g.tileDimension.area() ),
+		new Array( ~~g.tileDimension.area() )
+	];
+	g.buildCollisions();
+	for(var i=0; i < map.front.length; i++){
+		if("front" in map) g.tiles[2][i] = map.front[i];
+		if("back" in map) g.tiles[1][i] = map.back[i];
+		if("far" in map) g.tiles[0][i] = map.far[i];
+	}
+	if("objects" in map) for(var i=0; i < map.objects.length; i++){
+		var obj = map.objects[i];
+		if(obj[3] == "Player"){
+			playerStartPositions.push(obj);
+		} else {
+			try{
+				g.addObject( new window[obj[3]](
+					obj[0],
+					obj[1],
+					obj[2],
+					obj[4]
+				));
+			} catch(err){
+				console.error("Unable to add object: "+ obj[2]);
+			}
+		}
+	}
+	var mapTiles = [];
+	if( "map" in map ) {
+		mapTiles = PauseMenu.convertTileDataToMapData(map["map"]);
+	}
+	
+	if( _player instanceof Player ){
+		window._player.keys = new Array();
+		window._player.lock_overwrite = false;
+	} else {
+		window._player = new Player();
+	}
+	
+	//Default player spawns positions
+	_player.position.x = 64;
+	_player.position.y = 200;
+	
+	//Go through all player starts and determine the correct start
+	for(var i=0;i<playerStartPositions.length;i++){
+		var obj = playerStartPositions[i];
+		if(i==0){
+			//First Player will be default unless a better match is made
+			window._player.position.x = obj[0];
+			window._player.position.y = obj[1];
+		}
+		if("start" in obj[4]){
+			if(
+				obj[4].start == options.start ||
+				obj[4].start == "west" && options.direction.x >= 0 ||
+				obj[4].start == "east" && options.direction.x < 0
+			){
+				window._player.position.x = obj[0];
+				window._player.position.y = obj[1];
+				break;
+			}
+		}
+	}
+	
+	g.addObject(window._player);
+	
+	var pm = new PauseMenu();
+	pm.map = mapTiles;
+	pm.mapDimension = mapDimension;
+	
+	g.addObject(pm);
+	g.addObject(new Background());
+}
+
+MapLoader.loadMapTmx = function(url){
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function(){
 		if(xhttp.readyState == 4){
@@ -7899,12 +8078,23 @@ MapLoader.parseMap = function(xml){
 		var name = obj.getAttribute("name");
 		var x = obj.getAttribute("x") * 1;
 		var y = obj.getAttribute("y") * 1;
+		var w = 16;
+		var h = 16;
+		
+		if(obj.getAttribute("width")){
+			w = obj.getAttribute("width") * 1;
+		}
+		if(obj.getAttribute("height")){
+			h = obj.getAttribute("height") * 1;
+		}
 		
 		var rect = !obj.getAttribute("gid");
 		if(rect){
-			x += 8; y += 8;
+			x += Math.floor(w/2); 
+			y += Math.floor(h/2);
 		}else{
-			x += 8; y -= 8;
+			x += Math.floor(w/2); 
+			y -= Math.floor(h/2);
 		}
 		
 		//Build properties
@@ -7919,7 +8109,7 @@ MapLoader.parseMap = function(xml){
 		
 		try{
 			if(name in window){
-				var newobj = new window[name](x,y,null,properties);
+				var newobj = new window[name](x,y,[w,h],properties);
 				game.addObject(newobj);
 			}
 		} catch(err){}
@@ -8749,7 +8939,7 @@ TitleMenu.prototype.update = function(){
 				if(this.cursor == 0){
 					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
 				} else if(this.cursor == 3){
-					MapLoader.loadMap(MapLoader.mapname);
+					MapLoader.loadMapTmx(MapLoader.mapname);
 					audio.play("pause");
 				}
 			}
@@ -9077,6 +9267,7 @@ var mod_combat = {
 		this.buffer_damage = false;
 		this._damage_buffer_timer = 0;
 		this.xp_award = 0;
+		this.showDamage = true;
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -9162,7 +9353,7 @@ var mod_combat = {
 						hits[i].trigger("block",this, offset.center(), damage);
 						if( hits[i].guard.invincible <= 0 ) {
 							if( damage > hits[i].guard.life ) {
-								damage = Math.max( damage - hits[i].guard.life, 0);
+								damage = Math.ceil(Math.max( damage - hits[i].guard.life, 0));
 								hits[i].guard.life = 0;
 								hits[i].trigger("guardbreak", this, offset.center(), damage);
 								hits[i].hurt(this, damage);
@@ -9241,6 +9432,10 @@ var mod_combat = {
 				}
 				//Apply damage reduction as percentile
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
+				
+				if(damage > 0 && this.showDamage){
+					game.addObject(new EffectNumber(this.position.x, this.position.y, damage));
+				}
 				
 				if( this.buffer_damage ) 
 					this.damage_buffer += damage;
@@ -9592,6 +9787,246 @@ MovingPlatform.prototype.render = function(g,c){
 	game.tileSprite.render(g, new Point(this.position.x-16-c.x, this.position.y+8-c.y), 0, 15);
 	game.tileSprite.render(g, new Point(this.position.x+0-c.x, this.position.y+8-c.y), 1, 15);
 }
+
+ /* platformer\npc.js*/ 
+
+NPC.prototype = new GameObject();
+NPC.prototype.constructor = GameObject;
+function NPC(x,y,t,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 32;
+	this.start_x = x;
+	this.sprite = sprites.characters;
+	
+	this.addModule(mod_talk);
+	
+	this.showmessage = false;
+	
+	this.script = new Array();
+	this.scriptPos = 0;
+	this.scriptReg = 0;
+	this.scriptRun = false;
+	this.scriptWait = 0.0;
+	
+	o = o || {};
+	if("script" in o){
+		this.getScript(o["script"]);
+	}
+	
+	this.on("open", function(){
+		this.scriptRun = true;
+	});
+	
+}
+
+NPC.prototype.update = function(){
+	if(this.scriptRun){
+		while(this.runScript()){}
+	}
+}
+NPC.prototype.hudrender = function(g,c){
+	if(this.showmessage){
+		DialogManger.render(g);
+	}
+}
+NPC.prototype.runScript = function(filename){
+	this.message = false;
+	
+	if(this.scriptPos >= this.script.length){
+		//At the end of script, stop running it
+		this.scriptRun = false;
+		this.scriptPos = 0;
+		this.close();
+		return false;
+	}
+	
+	var line = this.script[this.scriptPos];
+	var command = line[0];
+	
+	if(command == "end"){
+		this.scriptRun = false;
+		this.scriptPos = 0;
+		this.close();
+		return false;
+	} else if(command == "calc"){
+		this.scriptReg = NPC.resolveCalculation(line.slice(1));
+		this.scriptPos++;
+		return true;
+	}else if(command == "ifnotgoto"){
+		if(this.scriptReg){
+			this.scriptPos++;
+		}else{
+			this.scriptPos = NPC.resolveVariable(line[1]);
+		}
+		return true;
+	}else if(command == "set"){
+		NPC.variables[line[1]] = NPC.resolveCalculation(line[2]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "say"){
+		DialogManger.set(i18n(NPC.resolveVariable(line[1])));
+		this.showmessage = DialogManger.show;
+		if(!this.showmessage){
+			DialogManger.clear();
+			this.scriptPos++;
+		}
+		return false;
+	}else if(command == "quest"){
+		window._world.quests[line[1]] = NPC.resolveCalculation(line[2]);
+		try{
+			//Send quest message
+			var qmessage = i18n("quest")[line[1]][window._world.quests[line[1]]];
+			var pm = game.getObject(PauseMenu);
+			pm.message(qmessage);
+			audio.play("quest");
+		} catch (err){}
+		this.scriptPos++;
+		return true;
+	}
+	
+	//Command not found, go to next command
+	this.scriptPos++;
+	
+	return false;
+}
+
+NPC.resolveCalculation = function(calc){
+	var operands = new Array();
+	if(calc instanceof Array){
+		for(var i=0; i < calc.length; i++){
+			if(NPC.operators.indexOf(calc[i]) >= 0 ){
+				var b = NPC.resolveVariable(operands.pop());
+				var a = NPC.resolveVariable(operands.pop());
+				if(calc[i] == "/"){
+					operands.push(a/b);
+				}else if (calc[i] == "*"){
+					operands.push(a*b);
+				}else if (calc[i] == "+"){
+					operands.push(a+b);
+				}else if (calc[i] == "-"){
+					operands.push(a-b);
+				}else if (calc[i] == "=="){
+					operands.push(a==b);
+				}
+			}else{
+				operands.push(calc[i]);
+			}
+		}
+	} else {
+		operands.push(calc);
+	}
+	return NPC.resolveVariable(operands.pop());
+}
+NPC.resolveVariable = function(varname){
+	if(typeof varname == "number"){
+		//number
+		return varname;
+	} else if(typeof varname =="boolean"){
+		//boolean
+		return varname;
+	}else if(varname.trim().match(/^-?\d*\.?\d*$/)){
+		//number as string
+		return varname * 1;
+	} else if(varname[0]=='"' && varname[varname.length-1]=='"'){
+		//string
+		return varname.slice(1,varname.length-1);
+	} else if(varname.indexOf(".") >= 0){
+		//special
+		var prefix = varname.slice(0,varname.indexOf("."));
+		var suffix = varname.slice(varname.indexOf(".")+1);
+		if(prefix == "quest"){
+			return window._world.quests[suffix];
+		}
+	}
+	else{
+		//variable
+		if(!(varname in NPC.variables)){
+			NPC.variables[varname] = 0;
+		}
+		return NPC.variables[varname];
+	}
+}
+NPC.prototype.getScript = function(filename){
+	ajax("/scripts/"+filename+".script",function(data){
+		this.script = NPC.compileScript(data);
+	},this);
+}
+NPC.compileScript = function(data){
+	var lines = data.split("\n");
+	var out = new Array();
+	NPC.compileBlock(lines, out, 0, 0);
+	return out;
+}
+NPC.compileBlock = function(lines, out, tabs, line){
+	
+	for(line; line < lines.length; line++){
+		try{
+			var tokens = NPC.unpackTokens(lines[line]);
+			if(tokens instanceof Array){
+				var tabcount = 0;
+				while(lines[line][tabcount]=="\t"){
+					tabcount++;
+				}
+				
+				if(tabcount < tabs){
+					//End of block
+					return line;
+				}else{
+					tokens[0] = tokens[0].trim();
+					
+					if(tokens[0] == "if"){
+						out.push(NPC.compileCalc(tokens.slice(1)));
+						var current = out.length;
+						out.push(["ifnotgoto", -1]);
+						var end = NPC.compileBlock(lines, out, tabs+1, line+1);
+						out[current][1] = out.length;
+						line = end-1;
+					}else{
+						out.push(tokens);
+					}
+				}
+			}
+		} catch (err){
+			console.error("Compile error at line "+line+": "+err);
+			console.log(lines[line]);
+		}
+	}
+	return line;
+}
+NPC.compileCalc = function(tokens){
+	var o = ["calc"];
+	var operators = new Array();
+	
+	for(var i=0; i < tokens.length; i++){
+		if(NPC.operators.indexOf(tokens[i]) >= 0 ){
+			while(operators.length > 0 && NPC.operators.indexOf(tokens[i]) > NPC.operators.indexOf(operators.peek())){
+				o.push(operators.pop());
+			}
+			operators.push(tokens[i]);
+		} else{
+			o.push(tokens[i]);
+		}
+	}
+	while(operators.length>0){
+		o.push(operators.pop());
+	}
+	return o;
+}
+NPC.unpackTokens = function(line){
+	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+=-]+)/g);
+	for(var i = 0; i < out.length; i++){
+		out[i] = out[i].trim();
+		if(out[i].match(/^-?\d*\.?\d*$/)){
+			out[i] = out[i] * 1;
+		}
+	}
+	return out;
+}
+NPC.operators = ["/","*","+","-","=="];
+NPC.variables = {};
 
  /* platformer\platform_generator.js*/ 
 
@@ -10842,6 +11277,1277 @@ Prisoner.prototype.postrender = function(g,c){
 	}
 }
 
+ /* platformer\randomtemple.js*/ 
+
+function RandomTemple(templeid) {
+	this.templeId = Math.max(Math.min(templeid,RandomTemple.temples.length),0);
+	this.slices = new Array();
+	this.settings = RandomTemple.temples[this.templeId];
+	
+	this.tiles = new Array();
+	this.mapTiles = new Array();
+	this.tileDimension = new Line();
+	this.mapDimension = new Line();
+	this.objects = new Array();
+	this.persistantObjects = new Array();
+	this.seed = null;
+	this.playerStart = new Point(64,176);
+}
+
+RandomTemple.temples = [
+	{"tiles":"tiles2","size":10,"maxkeys":1,"treasures":1,"difficulty":0},
+	{"tiles":"tiles3","size":11,"maxkeys":2,"treasures":1,"difficulty":1},
+	{"tiles":"tiles2","size":12,"maxkeys":2,"treasures":1,"difficulty":2},
+	{"tiles":"tiles5","size":10,"maxkeys":3,"treasures":1,"difficulty":3},
+	{"tiles":"tiles4","size":11,"maxkeys":1,"treasures":1,"difficulty":3},
+	{"tiles":"tilesintro","size":12,"maxkeys":3,"treasures":2,"difficulty":3},
+];
+
+RandomTemple.rules = {
+	"start": function(){ return [[this.roomFromTags(["entry"]),1,0]]; 
+	},
+	"final" : function(level,options,cursor){ 
+		if(level==options.size) return this.roomsFromTags(["entry_final"]);
+		if(level==0) return this.roomsFromTags(["exit_w","exit_e"]);
+		if(level==1) return this.roomsFromTags(["boss"]);
+		if(level==2) return this.roomsFromTags(["walk"]);
+		if(level==3) return this.roomsFromTags(["door"]);
+		var shop_id = this.roomFromTags(["shop"]);
+		if(this.seed.randomBool(1.1-(level/options.size)) && this.slices.peek().filter({"room":shop_id}).length <= 0 ) return [shop_id];
+		if(this.seed.randomBool(0.1) && this.keysRemaining()>0) return this.roomsFromTags(["door"]);
+		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
+	},
+	"main" : function(level,options,cursor){ 
+		if(level==options.size) return this.roomsFromTags(["entry"]);
+		if(level==0) return this.roomsFromTags(["exit_w","exit_e"]);
+		if(level==1) return this.roomsFromTags(["boss"]);
+		if(level==2) return this.roomsFromTags(["door"]);
+		var shop_id = this.roomFromTags(["shop"]);
+		if(this.seed.randomBool(1.1-(level/options.size)) && this.slices.peek().filter({"room":shop_id}).length <= 0 ) return [shop_id];
+		if(this.seed.randomBool(0.1) && this.keysRemaining()>0) return this.roomsFromTags(["door"]);
+		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
+	},
+	"item" : function(level,options,cursor){
+		//if(level==options.size) return this.roomsFromTags(["entry"]);
+		if(level==0) return this.roomsFromTags(["item_w","item_e"]);
+		if(level==1) return this.roomsFromTags(["miniboss"]);
+		if("optional" in options && this.seed.randomBool(0.4)) return this.roomsFromTags(["optional"]);
+		if(this.seed.randomBool(0.1) && this.keysRemaining()>0) return this.roomsFromTags(["door"]);
+		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
+	},
+	"prison" : function(level,options){
+		if(level==0) return this.roomsFromTags(["prison_w","prison_e"], options);
+		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
+	}
+};
+
+RandomTemple.prototype.generate = function(s){
+	var success = false;
+	
+	s = s || "" + Math.random();
+	this.seed = new Seed( s );
+	
+	while( !success ) {
+		//Refresh room counts
+		for(var i=0; i < window._map_rooms.length; i++){
+			if( !("remaining" in window._map_rooms[i]) ) {
+				window._map_rooms.remaining = 9999;
+			}
+		}
+		
+		this.key_counter = 0;
+		this.shop_counter = 0;
+		this.branch_counter = 0;	
+		this.objects = new Array();
+		this.items = new Array();
+		
+		this.slices = [new MapSlice()];
+		
+		var options = {
+			"rules":(this.templeId == 4 ? RandomTemple.rules.final : RandomTemple.rules.main),
+			"size":this.settings.size
+		}
+		
+		success = this.addRoom(options,this.settings.size, new Point(3,0));
+		//success = this.addRoom(options,1,1, new Point(0,0));
+		
+		
+		if( this.slices.peek().entrancesCount() > 0) {
+			//Add a branch for a map
+			var map_size = Math.floor(1+this.seed.random()*3);			
+			this.addBranch({"rules":RandomTemple.rules.item,"item":"map","doors":0.0,"size":map_size}, map_size, this.slices.peek().getEntrances());
+			this.addBranch({"rules":RandomTemple.rules.prison}, Math.floor(1+this.seed.random()*3), this.slices.peek().getEntrances());
+			
+			var size = this.seed.randomInt(2,6);
+			for(var i=0; i<this.settings.treasures; i++){
+				this.addBranch({"rules":RandomTemple.rules.item,"optional":true,"doors":0.5,"size":size}, size, this.slices.peek().getEntrances());
+			}
+			
+			console.log("Added secret? " + this.addSecret({"item":"life_up"}) );
+			console.log("Add well? " + this.addWell(this.slices.peek().filter({"height":1,"width":1,"rarity":0.001})) );
+			
+		} else {
+			console.error("Seriously? No junctions? Try that again.");
+			success = false;
+		}
+		
+	}
+	
+	//Everything is okay, build the level
+	var width = 256;
+	var height = 240;
+	
+	
+	this.temple_instance = false;
+	/*
+	if( "instance" in _world.temples[this.templeId] ) {
+		//Get existing temple instance
+		this.temple_instance = _world.temples[this.templeId].instance;
+	}*/
+	
+	//Establish the level size and build tile matrix
+	this.mapDimension = this.slices.peek().size();
+	this.tileDimension = this.mapDimension.scale(16,15);
+	
+	this.tiles = [
+		new Array( ~~this.tileDimension.area() ),
+		new Array( ~~this.tileDimension.area() ),
+		new Array( ~~this.tileDimension.area() )
+	];
+	this.mapTiles = new Array( Math.floor( this.mapDimension.area() ) );
+	
+	var slice = this.slices.peek();
+	for(var i in slice.data){
+		try{
+			var room_options = {};
+			var pos = MapSlice.idToLoc(i);
+			var map_index = Math.floor( pos.x - this.mapDimension.start.x + (pos.y - this.mapDimension.start.y) * this.mapDimension.width() );
+			var secret = slice.data[i].secret ? -1 : 1;
+			
+			//if( mapTiles[ map_index ] == undefined )
+			//	mapTiles[ map_index ] = secret;
+			
+			var room_slice = slice.data[i];
+			var room;
+			
+			if ( room_slice.room >= 0 ) { 
+				room = _map_rooms[ room_slice.room ];
+			} else { 
+				room = null;
+			}
+			
+			room_options["id"] = i;
+			room_options["entrances"] = new Array();
+			for(var ent in room_slice.entrances ){
+				if( room_slice.entrances[ent] ){
+					room_options["entrances"].push( MapSlice.idToLoc(ent) );
+				}
+			}
+			
+			if( room ) {
+				var cursor = new Point(pos.x * width, pos.y * height );
+				this.createRoom(room,cursor,room_options);
+				
+				//If this room uses a specific map tile
+				/*
+				if( "map" in room ) {
+					var map_tiles = room["map_tile"].split(",");
+					for(var j=0; j < map_tiles.length; j++ ){
+						mapTiles[ map_index + j ] = map_tiles[j] * secret;
+					}
+				}
+				*/
+				var mapWidth = slice.data[i].width;
+				var mapHeight = slice.data[i].height;
+				for(var mapx=0; mapx < mapWidth; mapx++)
+				for(var mapy=0; mapy < mapHeight; mapy++){
+					var map_index = Math.floor( 
+						(mapx + pos.x) - this.mapDimension.start.x + 
+						((mapy + pos.y) - this.mapDimension.start.y) * this.mapDimension.width() 
+					);
+					var start_id = MapSlice.locToId(new Point(mapx, mapy));
+					var end_id = MapSlice.locToId(new Point(mapx+1, mapy));
+					//determine the map tile
+					var tileY = 0
+					if( mapy > 0) tileY += 8;
+					if( mapy >= mapHeight-1) tileY += 4;
+					if( mapx > 0) {
+						tileY += 2;
+					} else if (start_id in room_slice.entrances && room_slice.entrances[start_id]){
+						tileY += 16;
+					}
+					if( mapx < mapWidth-1) {
+						tileY += 1;
+					} else if ( end_id in room_slice.entrances && room_slice.entrances[end_id] ) {
+						tileY += 32;
+					}
+					//var tile = tileY * 16;
+					
+					this.mapTiles[ map_index ] = tileY;
+					
+					if( mapHeight==1 ){
+						var pre_map = {
+							20 : {36:[6,5],52:[6,21],38:[6,7]},
+							52 : {36:[38,5],52:[38,21],38:[38,7]},
+							21 : {36:[7,5],52:[7,21],38:[7,7]}
+						};
+						
+						var nxt_map = {
+							36 : {20:[5,6],21:[5,7],52:[5,38]},
+							52 : {20:[21,6],21:[21,7],52:[21,38]},
+							38 : {20:[7,6],21:[7,7],52:[7,38]}
+						};
+						//If rooms are on same level connect them
+						var tilePrev = this.mapTiles[map_index-1];
+						var tileNext = this.mapTiles[map_index+1];
+						
+						if( tileY in pre_map && tilePrev in pre_map[tileY] ) {
+							//Attach to the left room
+							this.mapTiles[map_index] = pre_map[tileY][tilePrev][0];
+							this.mapTiles[map_index-1] = pre_map[tileY][tilePrev][1];
+						}
+						if( tileY in nxt_map && tileNext in nxt_map[tileY] ) {
+							//Attach to the right room
+							this.mapTiles[map_index] = nxt_map[tileY][tileNext][0];
+							this.mapTiles[map_index+1] = nxt_map[tileY][tileNext][1];
+						}
+					}
+				}
+			}
+		} catch (err){
+			console.error("Cannot create room at: " +i+"... "+err);
+		}
+	}
+}
+
+RandomTemple.prototype.use = function(g){
+	var temple_instance = false;
+	Spawn.difficulty = this.settings.difficulty;
+	g.clearAll();
+	
+	g.tiles = this.tiles;
+	g.tileDimension = this.tileDimension;
+	g.bounds = g.tileDimension.scale(16,16);
+	
+	for(var i=0; i < this.objects.length; i++){
+		try{
+			var obj = this.objects[i];
+			g.addObject( new window[obj[3]](
+					obj[0], obj[1],
+					obj[2], obj[4]
+				)
+			);
+			g.addObject(obj);
+		}catch(err){
+			console.error("Cannot create object: "+err)
+		}
+	}
+	
+	if( temple_instance ) {
+		//pm.map_reveal = this.temple_instance.map;
+		_player.keys = temple_instance.keys;
+		for(var i=0; i<temple_instance.items.length; i++) {
+			g.addObject(this.temple_instance.items[i]);
+		}
+		for(var i=0; i<temple_instance.shops.length; i++) {
+			g.addObject(this.temple_instance.shops[i]);
+		}
+	}else{
+		for(var i=0; i < this.persistantObjects.length; i++){
+			try{
+				var obj = this.persistantObjects[i];
+				g.addObject( new window[obj[3]](
+						obj[0], obj[1],
+						obj[2], obj[4]
+					)
+				);
+				g.addObject(obj);
+			}catch(err){
+				console.error("Cannot create object: "+err)
+			}
+		}
+	}
+	
+	if(_player instanceof Player){
+		_player.position.x = this.playerStart.x;
+		_player.position.y = this.playerStart.y;
+	} else {
+		new Player(this.playerStart.x, this.playerStart.y);
+	}
+	
+	var pm = new PauseMenu();
+	pm.mapDimension = this.mapDimension;
+	pm.map = this.mapTiles;
+	
+	g.addObject(_player);
+	g.addObject(pm);
+	g.addObject(new Background());
+}
+
+RandomTemple.prototype.createRoom = function(room,cursor,room_options){
+	var layers = ["far","back","front"];
+	var persistant = ["Item","Shop","Alter","Arena"];
+	
+	var width = ("width" in room) ? room.width : 1;
+	var height = ("height" in room) ? room.height : 1;
+	
+	var ts = 16;
+	room_options = room_options || {};
+	var room_size = room_options.room_size || 16;
+	var addBackground = true;
+	
+	if( "background" in room_options ) addBackground = room_options.background;
+	
+	
+	//Render tiles
+	for(var j=0; j < layers.length; j++ ) {
+		if( layers[j] in room ) {
+			var layer = room[layers[j]];
+			var rs = room_size;
+			var start_x = this.tileDimension.start.x;
+			if( layer instanceof Function ) layer = layer.apply(room, [this.seed, width, height, room_options]);
+			
+			for(var i=0; i < layer.length; i++){
+				var x = Math.floor( i % ( room_size * width ) );
+				var y = Math.floor( i / ( room_size * width ) );
+				var offset = Math.floor( 
+					Math.floor( (x-start_x) + Math.floor( cursor.x / ts ) ) + 
+					Math.floor( ((y-this.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * this.tileDimension.width() )
+				);
+				this.tiles[j][offset] = layer[i];
+			}
+		}
+	}
+	
+	//Add objects
+	if("objects" in room ) for(var j=0; j < room.objects.length; j++){
+		try{
+			var obj = room.objects[j];
+			var x = cursor.x + obj[0];
+			var y = cursor.y + obj[1];
+			var dim = new Point(obj[2][0],obj[2][1]);
+			var objectName = obj[3];
+			var properties = {};
+			var addObject = true;
+			
+			//copy properties
+			for(var p in obj[4]){
+				properties[p] = obj[4][p];
+			}
+			
+			var props = {};
+			try{
+				var id = room_options.id;
+				props = this.slices.peek().data[id].properties;
+			} catch (err) {}
+			
+			if( "min_temple" in properties && this.templeId < properties["min_temple"]-0 ) addObject = false;
+			if( "max_temple" in properties && this.templeId > properties["max_temple"]-0 ) addObject = false;
+			if( "rarity" in properties && this.seed.random() > properties["rarity"]-0 ) addObject = false;		
+			
+			if( addObject ){
+				var newobj = [
+					x,
+					y,
+					dim,
+					objectName,
+					properties
+				];
+				if(persistant.indexOf(objectName) >= 0){
+					//These objects do no spawn on second visit
+					if(objectName == "Item"){
+						if( "item" in props && props.item != undefined ) {
+							properties["name"] = props.item;
+						}else{
+							var treasure = this.randomTreasure(Math.random(),["treasure"]);
+							properties["name"] = treasure.name;
+						}
+					}
+					this.persistantObjects.push(newobj);
+				} else if( objectName == "Player" ) {
+					//Special rules for player
+					this.playerStart.x = x;
+					this.playerStart.y = y;
+				} else {
+					if ( objectName == "Door" && "door" in props){
+						properties["name"] = props["door"];
+					}
+					this.objects.push(newobj);
+				}
+			}
+		} catch (err){
+			console.error("Cannot create object. " + err);
+			console.log(obj);
+		}
+	}
+}
+
+RandomTemple.prototype.randomKey = function(oddsOfReuse){
+	var max_keys = this.settings.maxkeys;
+	var out = 0;
+	
+	if( this.slices.peek().keys > 0 && (this.seed.randomBool(oddsOfReuse) || this.slices.peek().keys < max_keys) ) {
+		out = Math.floor( this.seed.random() * this.slices.peek().keys );
+	} else {
+		out = this.slices.peek().keys;
+		this.slices.peek().keys++;
+	}
+	return out;
+}
+RandomTemple.prototype.randomExistingKey = function(){
+	var keys = this.existingKeys();
+	var key = keys[ Math.floor( keys.length * this.seed.random()) ];
+	return key.match(/\d+$/)[0] - 0;
+}
+
+RandomTemple.prototype.existingKeys = function(){
+	var out = [];
+	for(var i in this.properties_matrix){
+		if( "item" in this.properties_matrix[i] && this.properties_matrix[i].item != undefined ){
+			if( this.properties_matrix[i]["item"].match(/^key_\d+$/) ) {
+				out.push( this.properties_matrix[i]["item"] );
+			}
+		}
+	}
+	return out;
+}
+RandomTemple.prototype.existingKeysIndex = function(){
+	var keys = this.existingKeys();
+	var out = new Array();
+	for(var i=0; i < keys.length; i++ ){
+		try{
+			out.push( keys[0].match(/\d+$/)[0] - 0 );
+		} catch (err) {}
+	}
+	return out;
+}
+
+RandomTemple.prototype.keysRemaining = function(){
+	return this.settings.maxkeys - this.key_counter;
+}
+RandomTemple.prototype.getJunctionRoomIndex = function(tags){
+	var out = [];
+	var dir = ["n","e","s","w"];
+	for( var i=0; i < _map_junctions.length; i++ ) {
+		var intersect = tags.intersection(_map_junctions[i].type);
+		if(intersect.length == tags.length && intersect.length == _map_junctions[i].type.length ){
+			out.push(i);
+		}
+	}
+	return out[0];
+}
+RandomTemple.prototype.addBranch = function(options, level, entrances){
+	
+	entrances = this.seed.shuffle(entrances);
+	
+	for( var i=0; i < entrances.length; i++ ) {
+		var entrance = entrances[i];
+		var pos = MapSlice.idToLoc(entrance);
+		
+		//Create new slice
+		var bid = this.slices.length;
+		this.slices.push( this.slices.peek().clone() );
+		
+		if( this.addRoom(options, level, entrance) ){
+			this.slices.peek().useEntrance(entrance);
+			console.log("Branch added");
+			return true;
+		} else {
+			this.revertSlice(bid);
+		}
+	}
+	return false;
+}
+
+RandomTemple.prototype.addSecret = function(options){
+	var locations = this.seed.shuffle(this.slices.peek().roomIds());
+	
+	var directions = [1,-1];
+	var banlist = [0,1,2];
+	
+	for(var i=0; i < locations.length; i++){
+		if( banlist.indexOf( this.slices.peek().data[locations[i]].room ) < 0 ){
+			this.seed.shuffle(directions);
+			
+			for(var j=0; j<directions.length; j++){
+				var tag = directions[j] > 0 ? "secret_w" : "secret_e";
+				var room_id = this.roomFromTags([tag]);
+				var room = _map_rooms[ room_id ];
+				
+				var pos = MapSlice.idToLoc(locations[i]);
+				pos.x += directions[j];
+				var id = MapSlice.locToId(pos);
+			
+				if( this.slices.peek().isFree(pos, 1, directions[j]) ){
+					options = options || {};
+					this.slices.peek().add(id,room_id,options);
+					this.slices.peek().setSecret(id,true);
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+RandomTemple.prototype.addRoom = function(options, level, cursor){
+	//List of rooms to try
+	var r = options.rules.apply(this,[level,options,cursor]);
+	
+	//Scramble order
+	this.seed.shuffle(r);
+	
+	var success = false;
+	
+	for(var j = 0; j < r.length; j++ ) {
+		//Go through rooms until one fits
+		var room_id = r[j];
+		//var isJunction = room_data[0] == "j";
+		//if( isJunction ) room = {"width":1, "entrances":[0,0]}
+		var room = _map_rooms[ room_id ];
+		
+		var temp_properties = {};
+		if( "item" in options ) {
+			temp_properties["item"] = options["item"];
+		}
+		
+		var entrances = room.entrances || [ [0,0],[room.width,0]];
+		
+	
+		//if( this.isFree( room, new_direction, cursor ) ) {
+		for(var ent=0; ent < entrances.length; ent++ ){
+			var entrance = new Point(entrances[ent][0], entrances[ent][1]);
+			var cursorEnter = cursor.subtract(entrance);
+			if( this.isFree( room, cursorEnter ) ) {
+				success = true;
+				var bid = false;
+				
+				this.slices.peek().add(cursorEnter,room,temp_properties);
+				this.slices.peek().useEntrance(cursorEnter,entrance);
+				
+				if("secret" in options) this.slices.peek().setSecret(cursor,options.secret);
+				
+					var max_keys = this.settings.maxkeys;
+				if( "key_required" in room ){
+					var randomKey = this.slices.peek().randomKey(this.seed.random(), max_keys);
+					var newKey = randomKey[0];
+					var newPathToKey = randomKey[1];
+					var key_name = "key_" + newKey;
+					this.slices.peek().setProperty(cursorEnter,"door",key_name);
+					
+					if( newPathToKey ) {
+						//Needs to add the key with a new branch.
+						var branch_size = "size" in options ? Math.floor(options.size/2) : 4;
+						bid = this.slices.length;
+						console.log("Created new branch at " + bid);
+						success = this.addBranch({
+								"rules":RandomTemple.rules.item,
+								"item":key_name,
+								"key":newKey,
+								"difficulty":2,
+								"size":branch_size
+							}, 
+							branch_size, 
+							this.slices.peek().getEntrances()
+						);
+					}
+				}
+				/*
+				if( "door" in temp_properties ){
+					if( this.existingKeysIndex().indexOf(temp_properties.door) < 0 ) {
+						var key_name = "key_" + this.key_counter;
+						var branch_size = "size" in options ? Math.floor(options.size/2) : 4;
+						this.key_counter++;
+						bid = this.slices.length;
+						success = this.addBranch({
+								"rules":this.rules.item,
+								"item":key_name,
+								"difficulty":2,
+								"size":branch_size
+							}, 
+							branch_size, 
+							this.slices.peek().getJunctions()
+						);
+						//console.log("Room: " + room_id + " _ " + success + " " + current_junctions );
+					}
+				}
+				if( "shop" in temp_properties ){
+					this.shop_counter++;
+				}
+				*/
+				//More rooms to go?
+				if( level > 0 ){
+					
+					if( "tags" in room && room.tags.indexOf("optional") >= 0) {
+						delete options["optional"];
+					}
+					
+					//var next_cursor = new Point(cursor.x + room.width * new_direction, cursor.y);
+					var exits = entrances;
+					if( "exits" in room ) exits = room.exits( entrance );
+					for(var cur=0; cur < exits.length; cur++){
+						var nextEntrance = new Point(exits[cur][0], exits[cur][1]);
+						var next_cursor = cursorEnter.add(nextEntrance);
+						if( this.addRoom(options, level-1, next_cursor) ) {
+							this.slices.peek().useEntrance(cursorEnter,nextEntrance);
+							break;
+						} else if ( cur >= exits.length -1 ) {
+							success = false;
+						}
+					}
+					//success = success && this.addRoom(options, level-1, new_direction, next_cursor);
+					
+					
+					if( !success ) {
+						//clear this room
+						if(bid){
+							//A branch was created, destroy it.
+							this.revertSlice(bid);
+						}
+						this.slices.peek().remove(cursorEnter, room);
+						return false;
+					} else {
+						return true;
+					}
+				} else {
+					if( "key" in options ) {
+						this.slices.peek().keys.push( options.key );
+					}
+					
+				/*
+					var loopSuccess = false;
+					var junx = this.slices.peek().getJunctions();
+					for(var i=0; i < junx.length; i++){
+						if( "item" in options && options.item.match(/key_\d+/) ){
+							var dest = MapSlice.idToLoc(junx[i]);
+							if( dest.y != cursor.y ) {
+								var key = options.item.match(/\d+/)[0] - 0;
+								var ops = {"door" : key};
+								this.slices.push( this.slices.peek().clone() );
+								loopSuccess = this.attemptLoop(ops,0,new_direction,new Point(cursor.x+new_direction,cursor.y),dest);
+								if(loopSuccess) 
+									break;
+								else
+									this.slices.pop();
+							}
+						}
+					}
+					if( loopSuccess ) {
+						this.slices.peek().set(cursor, dataManager.roomFromTags(["item"]));
+					}
+				*/
+					return true;
+				}
+			}
+		}
+		
+		//All pieces fit, end
+		//if( success ) return true; 
+	}
+	return false;
+}
+
+RandomTemple.prototype.attemptLoop = function(options,level,direction,cursor,destination,connection){
+	var distance = Math.abs(direction.x - cursor.x);
+	for(var attempt=1; attempt < distance; attempt++){
+		var lowest = new Point(Math.min(direction.x, cursor.x), Math.min(direction.y, cursor.y));
+		if( direction.y == cursor.y ) {
+			var width = Math.abs(direction.x - cursor.x);
+			if( this.slices.peek().isFree({"width":distance, "height":1}, lowest) ){
+				//fill it up with rooms
+				return true;
+			}
+			return false;
+		} else { 
+			var leftmost = cursor.x > direction.x;
+			if( this.slices.peek().isFree({"width":distance, "height":1}, new Point(cursor.x-distance,cursor.y)) ){
+				
+			}
+		}
+	}
+	return false;
+}
+RandomTemple.prototype.attemptLoopOld = function(options,level,direction,cursor,destination,connection){
+	if( level > 30 ) {
+		console.error("Couldn't reach destination in "+level+" steps.");
+		return false;
+	} else if( cursor.x == destination.x && cursor.y == destination.y ) {
+		var id = ~~cursor.x +"_"+ ~~cursor.y;
+		var d = "x";
+		if( connection ) {
+			if( connection > 0 ) d="n";
+			if( connection < 0 ) d="s";
+		} else {
+			if( direction > 0 ) d="w";
+			if( direction < 0 ) d="e";
+		}
+		this.slices.peek().setJunction(cursor,d);
+		console.log("Reached Destination!!!");
+		return true;
+	} else if( connection ) {
+		if( this.isFree(null,direction,cursor) ){
+			var id = ~~cursor.x +"_"+ ~~cursor.y;
+			this.slices.peek().add(cursor,"j");
+			
+			var d = cursor.x < destination.x ? 1 : -1;
+			if(cursor.y == destination.y ){
+				this.slices.peek().setJunction(cursor,(d<0?"w":"e"));
+				this.slices.peek().setJunction(cursor,(connection>0?"n":"s"));
+				
+				var c = new Point(cursor.x+d, cursor.y);
+				if(!this.attemptLoop(options,level+1,d,c,destination) ){
+					//Clean up
+					this.slices.peek().remove(cursor);
+					return false;
+				}
+			} else {
+				this.slices.peek().setJunction(id, ["n","s"]);
+				var v = cursor.y < destination.y ? 1 : -1;
+				var c = new Point(cursor.x, cursor.y + v );
+				if( !this.attemptLoop(options,level+1,d,c,destination, v) ){
+					this.slices.peek().remove(cursor);
+					return false;
+				}
+			}
+		} else {
+			return false;
+		}
+	} else if(level > 0 && cursor.y != destination.y && this.seed.randomBool(0.8) ){
+		//Match height
+		if( this.isFree(null,direction,cursor) ){
+			var d = cursor.x < destination.x ? 1 : -1;
+			var id = ~~cursor.x +"_"+ ~~cursor.y;
+			
+			this.slices.peek().add(id,"j");
+			this.slices.peek().setJunction(id,(direction>0?"w":"e"));
+			this.slices.peek().setJunction(id,(cursor.y>destination.y?"n":"s"));
+			
+			var v = cursor.y < destination.y ? 1 : -1;
+			var c = new Point(cursor.x, cursor.y + v );
+			if(!this.attemptLoop(options,level+1,d,c,destination, v)){
+				this.slices.peek().remove(id);
+				return false;
+			}
+		} else {
+			return false;
+		}		
+	} else {
+		var room_id = this.randomRoom();
+		var room = _map_rooms[ room_id ];
+		var ops = options;
+		if( "door" in options && Math.abs(cursor.x-destination.x) < 3 && cursor.y == destination.y){
+			room_id = RandomTemple.roomFromTags(["door"]);
+			var room = _map_rooms[ room_id ];
+		}
+		while(cursor.y==destination.y && Math.abs(cursor.x-destination.x) < room.width){
+			room_id = this.randomRoom();
+			room = _map_rooms[ room_id ];
+		}
+		if( this.isFree(room,direction,cursor) ) {
+			var c = new Point(cursor.x+room.width*direction, cursor.y);
+			var p = {};
+			if("tags" in room && room.tags.indexOf("door") >= 0 ) {
+				p = {"door":options.door};
+				ops = {};
+			}
+			this.slices.peek().add(cursor, room, p, direction);
+			if(!this.attemptLoop(ops,level+1,direction,c,destination)){
+				this.slices.peek().remove(id, room);
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+	return true;
+}
+
+RandomTemple.prototype.addWell = function(){
+	//junctions.sort(function(a,b){ MapSlice.idToLoc(a).y - MapSlice.idToLoc(a).y });
+	
+	//var junctions = dataManager.slices.peek().getEntrances();
+	var rooms = this.slices.peek().filter({"width":1,"height":1,"rarity":0.001});
+	
+	var size = 6 + Math.floor(this.seed.random() * 5);
+	var item = this.randomTreasure(this.seed.random(), [], {"remaining":-999,"locked":true});
+	var options = {
+		"secret":true,
+		"rules":RandomTemple.rules.item,
+		"difficulty":2,
+		"size":size,
+		"item" : item.name
+	}
+	
+	for(var i=0; i < rooms.length; i++){
+		//var cursor = MapSlice.idToLoc(junctions[i]);
+		var cursor = MapSlice.idToLoc(rooms[i]);
+		if(
+			this.slices.peek().isFree(cursor.add(new Point(0,1))) &&
+			this.slices.peek().isFree(cursor.add(new Point(0,2)))
+		){
+			rid = this.slices.length;
+			this.slices.push( this.slices.peek().clone() );
+			
+			this.slices.peek().add(cursor,this.roomFromTags(["well"]));
+			
+			if( this.addBranch(options, options.size, [cursor.add(new Point(0,2))]) ){
+				return true;
+			} else {
+				this.revertSlice(rid);
+			}
+		}
+	}
+	return false;
+}
+	
+RandomTemple.prototype.isFree = function(room, cursor){
+	room = room || {};
+	var width = ("width" in room) ? room.width : 1;
+	var height = ("height" in room) ? room.height : 1;
+	
+	for( x=0; x < width; x++) for( y=0; y < height; y++){
+		var pos = new Point( cursor.x + x, cursor.y +y );
+		var id = MapSlice.locToId(pos);
+		if( id in this.slices.peek().data ) return false;
+	}
+	return true;
+}
+
+RandomTemple.prototype.roomConditions = function(room, options){
+	var room_id = window._map_rooms.indexOf( room );
+	
+	if( this.slices.peek().filter({"room":room_id}).length >= room.remaining ) return false;
+	if( "min_temple" in room && room["min_temple"]-0 > this.templeId ) return false;
+	if( "min_temple" in room && room["min_temple"]-0 > this.templeId ) return false;
+	if( "max_temple" in room && room["max_temple"]-0 < this.templeId ) return false;
+	if( "valid_temples" in room && room["valid_temples"].split(",").indexOf( ""+this.templeId ) < 0 ) return false;
+	if( options instanceof Object ){
+		if( "min_difficulty" in room && ( !("difficulty" in options) || (room["min_difficulty"]-0 > options["difficulty"]-0) ) ) return false;
+		if( "max_difficulty" in room && "difficulty" in options && room["max_difficulty"]-0 < options["difficulty"]-0 ) return false;
+		if("tags" in options && (!("tags" in room) || (options.tags.intersection(room.tags).length < 1)) ) return false;
+	} else {
+		if( "min_difficulty" in room ) return false;
+	}
+	return true;
+}
+RandomTemple.prototype.randomRoom = function(options){
+	var total = 0.0;
+	for(var i=0; i<_map_rooms.length; i++) if( this.roomConditions(_map_rooms[i],options) ) total += _map_rooms[i].rarity;
+	var roll = this.seed.random() * total;
+	for(var i=0; i<_map_rooms.length; i++) {
+		if( this.roomConditions(_map_rooms[i],options) ) {
+			if( roll < _map_rooms[i].rarity ) return i;
+			roll -= _map_rooms[i].rarity;
+		}
+	}
+	return 1;
+}
+RandomTemple.prototype.roomFromTags = function(tags,options){
+	var rooms = this.roomsFromTags(tags,options);
+	if( rooms.length > 0 )
+		return rooms[Math.floor( this.seed.random() * rooms.length )];
+	return this.randomRoom();
+}
+RandomTemple.prototype.roomsFromTags = function(tags,options){
+	var out = [];
+	for(var j=0; j < _map_rooms.length; j++ ){
+		if( "tags" in _map_rooms[j] && this.roomConditions(_map_rooms[j],options) ){
+			for(var i=0; i < tags.length; i++ ){
+				if( tags[i] == _map_rooms[j].tags || _map_rooms[j].tags.indexOf(tags[i]) >= 0 ){
+					out.push(j);
+					break;
+				}
+			}
+		}
+	}
+	return out;
+}
+RandomTemple.prototype.revertSlice = function(i){
+	this.slices = this.slices.slice(0,i)
+}
+RandomTemple.prototype.wallmeat = function(){
+	for(var i in this.slices.peek().data ) {
+		if( this.seed.randomBool(0.2) ) {
+			p = MapSlice.idToLoc(i);
+			var tiles = new Array();
+			for(var y=144; y < 240; y+=16) for(var x=0; x < 256; x+=16) {
+				if( ( game.getTile(p.x+x,p.y+y) != BreakableTile.unbreakable && game.getTile(p.x+x,p.y+y) != 0 ) && ( game.getTile(p.x+x+16,p.y+y) == 0 || game.getTile(p.x+x-16,p.y+y) == 0) ){
+					tiles.push( new Point(p.x+x+8,p.y+y+8) );
+				}
+			}
+			
+			if( tiles.length > 0 ) {
+				var tile = tiles[ Math.floor( tiles.length * this.seed.random() ) ];
+				var breakable = new BreakableTile( tile.x,  tile.y );
+				var item_name = "coin_3";
+				if( this.seed.randomBool(0.85) ){
+					var item_name = "life_small";
+				}
+				breakable.item = new Item( tile.x,  tile.y, item_name);
+				game.addObject( breakable );
+			}
+		}
+	}
+}
+RandomTemple.prototype.randomTreasure = function(roll, tags, ops){
+	tags = tags || [];
+	ops = ops || {};
+	ops.remaining = ops.remaining || 0;
+	
+	var shortlist = [];
+	var total = 0.0;
+	for(var i=0; i < Item.treasures.length; i++) 
+		if((!ops.locked && Item.treasures[i].remaining > ops.remaining) || (ops.locked && Item.treasures[i].unlocked <= 0))
+			if(Item.treasures[i].tags.intersection(tags).length == tags.length) {
+				total += Item.treasures[i].rarity;
+				shortlist.push(Item.treasures[i]);
+			}
+	roll *= total;
+	for(var i=0; i<shortlist.length; i++) {
+		if( roll < shortlist[i].rarity ) return shortlist[i];
+		roll -= shortlist[i].rarity;
+	}
+	return Item.treasures[0];
+}
+
+RandomTemple.prettyBlocks = function(data, w){
+	for(var i=0; i < data.length; i++ ) {
+		var b = [
+			data[i-(w+1)], data[i-w], data[i-(w-1)], 
+			data[i-1], data[i], data[i+1], 
+			data[i+(w-1)], data[i+w], data[i+(w+1)]
+		];
+		var tile = b[4];
+		
+		if(i%w==0){ b[0] = b[3] = b[6] = 0; }
+		if(i%w==w-1){ b[2] = b[5] = b[8] = 0; }
+		if(i-w<0){ b[0] = b[1] = b[2] = 1; }
+		if(i+w>=data.length){ b[6] = b[7] = b[8] = 1; }
+		
+		if(tile > 0 && (tile < 137 || tile > 142) ){
+			if(b[1]>0 && b[3]>0 &&b[5]>0 && b[7]>0 ){
+				if( b[0]==0 ){
+					data[i] = 133; //edge brick TL
+				} else if( b[2] == 0 ){
+					data[i] = 134; //edge brick TR
+				} else if( b[6] == 0 ) {
+					data[i] = 149; //edge brick BL
+				} else if( b[8] == 0 ){
+					data[i] = 150; //edge brick BR
+				} else {
+					//typical brick
+					data[i] = 18;
+					if( Math.random() < 0.5 ) data[i] += 1;
+					if( Math.random() < 0.5 ) data[i] += 16;
+				}
+			} else if(b[1]>0 && b[3]==0 && b[5]>0 && b[7]==0){
+				data[i] = 1; //top left corner
+			} else if(b[1]>0 && b[3]>0 && b[5]==0 && b[7]==0){
+				data[i] = 8; //top right corner
+			} else if(b[1]==0 && b[3]==0 && b[5]>0 && b[7]>0){
+				data[i] = 49; //bottom left corner
+			} else if(b[1]==0 && b[3]>0 && b[5]==0 && b[7]>0){
+				data[i] = 56; //bottom right corner
+			} else if(b[1]>0 && b[3]>0 && b[5]>0 && b[7]==0) {
+				data[i] = 2 + Math.floor(6*Math.random()); //top tile	
+			} else if(b[1]==0 && b[3]>0 && b[5]>0 && b[7]>0) {
+				data[i] = 50 + Math.floor(3*Math.random()); //bottom tile	
+			} else if(b[1]>0 && b[3]==0 && b[5]>0 && b[7]>0) {
+				data[i] = 17 + (Math.random()<0.5?0:16); //left tile	
+			} else if(b[1]>0 && b[3]>0 && b[5]==0 && b[7]>0) {
+				data[i] = 24 + (Math.random()<0.5?0:16); //right tile	
+			}
+		}
+	}
+	return data;
+}
+
+function MapSlice() {
+	this.keys = [];
+	this.keyCount = 0;
+	this.data = {};
+}
+MapSlice.prototype.add = function(loc,room,p, secret){
+	p = p || {};
+	loc = MapSlice.locToId(loc);
+	
+	if(loc == undefined || !loc.match(/-?\d+_-?\d/)){
+		console.error("Error id provided!");
+		return;
+	}
+	
+	var room_id;
+	var pos = MapSlice.idToLoc(loc);
+	if( room instanceof Object){
+		room_id = _map_rooms.indexOf(room);
+	} else {
+		if( room == -1 ) {
+			room_id = -1;
+			room = null;
+		} else {
+			room_id = room;
+			room = _map_rooms[room_id];
+		}
+	}
+	secret = secret || false;
+	this.data[loc] = {
+		"width" : 1,
+		"height" : 1,
+		"room" : room_id,
+		"entrances" : {},
+		"properties" : p,
+		"secret" : secret
+	}
+	
+	if( room instanceof Object ){ 
+		var width = ("width" in room) ? room["width"] : 1;
+		var height = ("height" in room) ? room["height"] : 1;
+		this.data[loc]["width"] = width;
+		this.data[loc]["height"] = height;
+		var entrances = ("entrances" in room) ? room.entrances : [[0,0],[width,0]];
+		
+		for(var i=0; i < entrances.length; i++){
+			ent = MapSlice.locToId(new Point(entrances[i][0],entrances[i][1]));
+			this.data[loc].entrances[ent] = false;
+		}
+		
+		for(var x=0; x< width; x++) for(var y=0; y< height; y++){
+			if( x!=0 || y!=0 ) {
+				var new_id = MapSlice.locToId(new Point(pos.x+x, pos.y+y));
+				this.add(new_id, -1, p);
+				this.data[new_id].width = width;
+				this.data[new_id].height = height;
+			}
+		}
+	}
+}
+MapSlice.prototype.get = function(loc){
+	loc = MapSlice.locToId(loc);
+	return this.data[loc];
+}
+MapSlice.prototype.setProperty = function(id,name,value){
+	//Set property for room
+	id = MapSlice.locToId(id);
+	if(id in this.data){
+		this.data[id].properties[name] = value;
+	}
+}
+MapSlice.prototype.remove = function(loc, room){
+	loc = MapSlice.locToId(loc);
+	room = room || {};
+	var width = ("width" in room) ? room.width : 1;
+	var height = ("height" in room) ? room.width : 1;
+	
+	var pos = MapSlice.idToLoc(loc);
+	for(var x=0; x<width; x++) for(var y=0; y<height; y++){
+		id = MapSlice.locToId(new Point(pos.x+x,pos.y+y));
+		if( id in this.data ){
+			delete this.data[id];
+		}
+	}
+}
+MapSlice.prototype.useEntrance = function(loc,e){
+	if( e == undefined ) {
+		loc = MapSlice.idToLoc(loc);
+		for(var id in this.data){
+			for(var ent in this.data[id].entrances){
+				var pos = MapSlice.idToLoc(id).add( MapSlice.idToLoc(ent) );
+				if( pos.x == loc.x && pos.y == loc.y ){
+					this.data[id].entrances[ent] = true;
+					console.log("Entrance found!");
+				}
+			}
+		}
+	} else { 
+		loc = MapSlice.locToId(loc);
+		if( loc in this.data ){
+			var d = this.data[loc];
+			var ent = MapSlice.locToId(e);
+			if(ent in d.entrances) {
+				d.entrances[ent] = true;
+			} else {
+				console.error("Tried to use ("+ent+") in room: "+loc);
+			}
+		}
+	}
+}
+MapSlice.prototype.getRoomsWithEntrances = function(){
+	out = [];
+	for(var id in this.data){
+		var d = this.data[id];
+		for(var ent in d.entrances){
+			if( !d.entrances[ent] ) {
+				//var offset = MapSlice.idToLoc(ent);
+				out.push( id );
+			}
+		}
+	}
+	return out;
+}
+MapSlice.prototype.getEntrances = function(){
+	out = [];
+	for(var id in this.data){
+		var d = this.data[id];
+		if( d.room >= 0 ) {
+			var loc = MapSlice.idToLoc(id);
+			for(var ent in d.entrances){
+				if( !d.entrances[ent] ) {
+					var offset = MapSlice.idToLoc(ent);
+					out.push( loc.add(offset) );
+				}
+			}
+		}
+	}
+	return out;
+}
+MapSlice.prototype.getSecret = function(loc){ 
+	if( loc in this.data ) return this.data[loc].secret;
+	return false;
+}
+MapSlice.prototype.setSecret = function(loc,s){ 
+	loc = MapSlice.locToId(loc);
+	if( loc in this.data ) {
+		this.data[loc].secret = s;
+		if( this.data[loc].room >= 0 ) {
+			try{
+				var room = _map_rooms[ this.data[loc].room ];
+				var pos = MapSlice.idToLoc(loc);
+				for(var i=1; i < room.width; i++ ) {
+					this.setSecret(pos.add(new Point(i,0)),s);
+				}
+			} catch (err){}
+		}
+	}
+}
+MapSlice.prototype.entrancesCount = function(){
+	return this.getEntrances().length;
+}
+MapSlice.prototype.isFree = function(loc,width,direction){
+	loc = MapSlice.locToId(loc);
+	return !(loc in this.data && this.data[loc] != undefined );
+}
+MapSlice.prototype.roomIds = function(){
+	return Object.keys(this.data);
+}
+MapSlice.prototype.size = function(){
+	var out = new Line(0,0,0,0);
+	for(var i in this.data) {
+		var pos = MapSlice.idToLoc(i);
+		if(pos.x < out.start.x) out.start.x = pos.x;
+		if(pos.x+1 > out.end.x) out.end.x = pos.x+1;
+		if(pos.y < out.start.y) out.start.y = pos.y;
+		if(pos.y+1 > out.end.y) out.end.y = pos.y+1;
+	}
+	return out;
+}
+MapSlice.prototype.filter = function(f){
+	var out = new Array();
+	for(var i in this.data ){
+		var room = _map_rooms[ this.data[i].room ];
+		var addit = true;
+
+		if( room != undefined ) {
+			if("room" in f && this.data[i].room != f.room) addit = false;
+			if("width" in f && room.width != f.width) addit = false;
+			if("height" in f && room.height != f.height) addit = false;
+			if("rarity" in f && room.rarity < f.rarity) addit = false;
+			if("raritylt" in f && room.rarity > f.raritylt) addit = false;
+		} else {
+			if("room" in f ) addit = false;
+			if("raritylt" in f ) addit = false;
+			if("rarity" in f ) addit = false;
+			if("isRoom" in f ) addit = false;
+			if("width" in f) addit = false;
+		}
+		if("rooms" in f ){
+			if( room == undefined ) addit = false;
+		}
+		if(addit) out.push(i);
+	}
+	return out;
+}
+MapSlice.prototype.randomKey = function(roll, max_keys){
+	var out = [0, true];
+	
+	if( this.keys.length > 0 && this.keys.length >= max_keys ) {
+		out[0] = this.keys[ Math.floor( roll * this.keys.length ) ];
+		out[1] = false;
+	} else {
+		out[0] = this.keyCount;
+		this.keyCount++;
+	}
+	return out;
+}
+MapSlice.prototype.clone = function(){
+	out = new MapSlice();
+	out.keyCount = this.keyCount;
+	for(var i=0; i < this.keys.length; i++){
+		out.keys.push(this.keys[i]);
+	}
+	for(var i in this.data){
+		out.add(i,this.data[i].room,this.data[i].properties);
+		out.data[i].secret = this.data[i].secret;
+		out.data[i].entrances = {};
+		for(var j in this.data[i].entrances){
+			out.data[i].entrances[j] = this.data[i].entrances[j];
+		}
+	}
+	return out;
+}
+MapSlice.idToLoc = function(id){
+	try{
+		if( id instanceof Point ) return id;
+		return new Point(
+			~~id.match(/(-?\d+)/g)[0],
+			~~id.match(/(-?\d+)/g)[1]
+		);
+	} catch (err) {
+		console.error("Erroneous id provided: " + id);
+		return new Point();
+	}
+}
+MapSlice.locToId = function(loc){
+	if( loc instanceof Point ){
+		return ~~loc.x +"_"+ ~~loc.y;
+	}
+	return loc;
+}
+
+function Seed(s){
+	this.seed = "" + s;
+	var seedAsNumber = "0.";
+	for(var i=0; i < this.seed.length; i++ ) seedAsNumber += "" + Math.abs( this.seed[i].charCodeAt(0) );
+	this.prev = seedAsNumber - 0.0;
+	this.constant1 = Math.PI * 1551651.0;
+	this.constant2 = Math.E * 21657.0;
+	this.random();
+}
+Seed.prototype.random = function(){
+	this.prev = (this.prev * 1.0 * this.constant1 + this.constant2) % 1.0;
+	return this.prev;
+}
+Seed.prototype.randomBool = function(odds){
+	odds = odds == undefined ? 0.5 : odds;
+	return this.random() < odds;
+}
+Seed.prototype.randomInt = function(s,m){
+	return s + Math.floor(this.random() * ((m+1) - s));
+}
+Seed.prototype.shuffle = function(arr){
+	var currentIndex = arr.length;
+	
+	while(currentIndex > 0){
+		var randomIndex = Math.floor(this.random()*currentIndex);
+		currentIndex--;
+		
+		var temp = arr[currentIndex];
+		arr[currentIndex] = arr[randomIndex];
+		arr[randomIndex] = temp;
+	}
+	
+	return arr;
+}
+
  /* platformer\renderers.js*/ 
 
 var textLookup = [
@@ -10905,10 +12611,101 @@ function renderDialog(g,s, top){
 	if( top == undefined ) top = 48;
 	
 	var width = 224;
-	var height = 64;
+	var height = 76;
 	var left = game.resolution.x * 0.5 - width * 0.5;
 	boxArea(g,left,top,width,height);
 	textArea(g,s,left+16,top+16,width-32, height-32);
+}
+
+DialogManger = {
+	"width":25,
+	"maxlines":4,
+	"text" : "",
+	"show" : false,
+	"progress" : 0.0,
+	"speed" : 0.85,
+	"line" : 0,
+	"audio" : "text01",
+	"parsedtext" : new Array(),
+	"set" : function(text){
+		if(DialogManger.text != text){
+			DialogManger.text = text;
+			DialogManger.parsedtext = DialogManger.parse(text);
+			DialogManger.show = true;
+			DialogManger.progress = 0.0;
+			DialogManger.line = 0;
+		}else{
+			
+		}
+	},
+	"clear" : function(){
+		DialogManger.text = false;
+		DialogManger.show = false;
+		DialogManger.progress = 0.0;
+		DialogManger.line = 0;
+	},
+	"render" : function(g){
+		var charcount = 0;
+		var pt = DialogManger.parsedtext;
+		var filled = true;
+		var lineno = DialogManger.line;
+		var max = DialogManger.maxlines;
+		var xoff = Math.floor(game.resolution.x* 0.5 - DialogManger.width*4 );
+		var yoff = 48;
+		
+		boxArea(g,xoff-12,yoff-12,DialogManger.width*8+24,max*12+24);
+		
+		for(var i=lineno; i < lineno+max && i < pt.length; i++){
+			var line = pt[i];
+			var y = yoff + (i-lineno) * 12;
+			for(var j=0; j < line.length; j++){
+				var x = xoff + j * 8;
+				var index = textLookup.indexOf(line[j]);
+				if(charcount < DialogManger.progress){
+					sprites.text.render(g,new Point(x,y),index);
+				} else {
+					filled = false;
+				}
+				charcount++;
+			}
+		}
+		
+		if(input.state("fire") == 1 ){
+			if(filled){
+				if(lineno+max >= pt.length ){
+					//End dialog
+					DialogManger.show = false;
+				} else {
+					//Next lines
+					DialogManger.line += max;
+					DialogManger.progress = 0.0;
+				}
+			} else {
+				DialogManger.progress = Number.MAX_SAFE_INTEGER;
+			}
+		} else {
+			var prev = DialogManger.progress;
+			DialogManger.progress += game.deltaUnscaled * DialogManger.speed;
+			if(!filled && Math.floor(prev) != Math.floor(DialogManger.progress)){
+				audio.play(DialogManger.audio);
+			}
+		}		
+	},
+	"parse" : function(s){
+		var out = new Array();
+		var last_start = 0;
+		var last_space = 0;
+		for(var i=0; i < s.length; i++ ){
+			if( s[i] == " " ) last_space = i;
+			if( i - last_start >= DialogManger.width ) {
+				//Slice here
+				out.push(s.slice(last_start,last_space));
+				i = last_start = last_space + 1;
+			}
+		}
+		out.push(s.slice(last_start));
+		return out;
+	}
 }
 
  /* platformer\shop.js*/ 
@@ -11015,7 +12812,7 @@ Shop.prototype.restock = function(data){
 		treasure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
-		this.items[i] = new Item(x, this.position.y-80, treasure.name);
+		this.items[i] = new Item(x, this.position.y-80, false, {"name":treasure.name});
 		this.prices[i] = treasure.price;
 	
 		if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
@@ -11413,6 +13210,7 @@ function BreakableTile(x, y, d, ops){
 	this.chaintime = Game.DELTASECOND * 0.15;
 	this.chaintimer = this.chaintime;
 	this.chainActive = false;
+	this.chainSize = 10;
 	
 	var startBroken = 0;
 	
@@ -11457,7 +13255,7 @@ function BreakableTile(x, y, d, ops){
 	}
 }
 BreakableTile.prototype.unbreak = function(explode){
-	if(this.broken){
+	if(this.broken && this.undertile != 0){
 		if(explode){
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
 			if(this.chain) {
@@ -11475,7 +13273,7 @@ BreakableTile.prototype.unbreak = function(explode){
 	}
 }
 BreakableTile.prototype.break = function(explode){
-	if(!this.broken && this.undertile != BreakableTile.unbreakable){
+	if(!this.broken && this.undertile != BreakableTile.unbreakable && this.undertile != 0){
 		if(explode){
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
 			if(this.chain) {
@@ -11496,8 +13294,8 @@ BreakableTile.prototype.break = function(explode){
 BreakableTile.prototype.neighbours = function(type){
 	
 	var hits = game.overlaps(new Line(
-		this.position.x - 8, this.position.y - 8,
-		this.position.x + 24, this.position.y + 24
+		this.position.x - this.chainSize, this.position.y - this.chainSize,
+		this.position.x + this.chainSize, this.position.y + this.chainSize
 	));
 	for(var i=0; i< hits.length; i++) {
 		if( hits[i] instanceof BreakableTile && hits[i] != this ) {
@@ -11573,17 +13371,23 @@ TitleCard.prototype.postrender = function(g,c){
 
 Trigger.prototype = new GameObject();
 Trigger.prototype.constructor = GameObject;
-function Trigger(x,y,n,o){
+function Trigger(x,y,d,o){
 	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
+	
+	if(d instanceof Array){
+		this.width = d[0];
+		this.height = d[1];
+	}
+	
+	this.position.x = x - (this.width/2);
+	this.position.y = y - (this.height/2);
 	this.origin.x = this.origin.y = 0;
 	
-	this.width = this.height = 32;
 	this.targets = new Array();
 	this.darknessFunction = null;
 	this.darknessColour = null;
 	this.dustCount = null;
+	this.sealevel = null;
 	this.triggerCount = 0;
 	this.retrigger = 1;
 	
@@ -11592,12 +13396,7 @@ function Trigger(x,y,n,o){
 	this.time = 0;
 	
 	o = o || {};
-	if("width" in o){
-		this.width = o.width * 1;
-	}
-	if("height" in o){
-		this.height = o.height * 1;
-	}
+	
 	if("target" in o){
 		this.targets = o.target.split(",");
 	}
@@ -11617,6 +13416,9 @@ function Trigger(x,y,n,o){
 	if("dustcount" in o){
 		this.dustCount = o["dustcount"] * 1;
 	}
+	if("sealevel" in o){
+		this.sealevel = o["sealevel"] * 1;
+	}
 	if("retrigger" in o){
 		this.retrigger = o.retrigger * 1;
 	}
@@ -11632,7 +13434,8 @@ function Trigger(x,y,n,o){
 			if(
 				this.darknessFunction instanceof Function ||
 				this.darknessColour instanceof Array ||
-				this.dustCount != undefined
+				this.dustCount != undefined ||
+				this.sealevel != undefined
 			){
 				var b = game.getObject(Background);
 				if(b instanceof Background){
@@ -11645,6 +13448,9 @@ function Trigger(x,y,n,o){
 					
 					if(this.dustCount != undefined)
 						b.dustAmount = this.dustCount;
+					
+					if(this.sealevel != undefined)
+						b.sealevel = this.sealevel;
 				}
 			}
 			
@@ -11709,9 +13515,6 @@ function Villager(x,y,t,o){
 	this.start_x = x;
 	this.sprite = sprites.characters;
 	this.town = t || _world.towns[1];
-	this.builder = false;
-	
-	o = o || {};
 	
 	this.state = 0;
 	this.speed = 0.5 + Math.random() * 0.9;
@@ -11724,21 +13527,17 @@ function Villager(x,y,t,o){
 	var m = Villager.getMessage(this.town);
 	
 	this.message = m.message;
+	
+	o = o || {};
 	try{
 		this.builder = "builder" in o;
 		if( "path" in o ){
 			this.path = 1 * o.path;
 		}
-		if( "message" in o ){
-			this.message = i18n(o.message);
-			if(!(this.message instanceof Array)){
-				this.message = [this.message];
-			}
+		if( "script" in o ){
+			
 		}
-		if( this.builder ) {
-			this.sprite = sprites.characters2;
-			this.path = 2;
-		}
+		
 	} catch(err){}
 
 	this.base_frame = 0;
@@ -11834,6 +13633,19 @@ Villager.getMessage = function(town){
 		}
 	}
 	return Villager.TextOptions[0];
+}
+Villager.script = {
+	"q0_0" : function(world){
+		var talk = i18n("villagerq0_0");
+		var quest = quests.q0;
+		if(quest == "complete") return talk[3];
+		if(quest == 0){
+			world.q0 = 1;
+			return talk[0];
+		}
+		return talk [quest];
+	}
+	
 }
 Villager.TextOptions = [
 {"rarity":1.0,"frames":[],"conditions":{"capital":true,"faith":1,"nation":1,"min_size":0,"max_size":5},"message":["Hello."]},
@@ -11936,7 +13748,7 @@ WaystoneChest.prototype.update = function(g,c){
 				if( Math.random() > 0.2 ) {
 					treasure = dataManager.randomTreasure(Math.random(), ["chest"]);
 					treasure.remaining--;
-					var item = new Item(this.position.x, this.position.y, treasure.name);
+					var item = new Item(this.position.x, this.position.y, false, {"name":treasure.name});
 					item.sleep = Game.DELTASECOND;
 					game.addObject(item);
 				} else {
@@ -12063,6 +13875,7 @@ function WorldMap(x, y){
 	this.height = 64;
 	
 	this.quests = {
+		"q0" : 0,
 		"q1" : 0
 	}
 	
@@ -12325,6 +14138,10 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.rest = Game.DELTASECOND * 0.25;
 		
 		dataManager.randomLevel(game, i, this.temples[i].seed);
+		var rt = new RandomTemple(i);
+		rt.generate(this.temples[i].seed);
+		rt.use(window.game);
+		
 		audio.playAs("music_temple1", "music");
 	} else if(type == "town"){
 		this.active = false;
@@ -12341,7 +14158,7 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.rest = Game.DELTASECOND * 0.25;
 		
 		//Load new map
-		dataManager.loadMap(
+		MapLoader.loadMap(
 			locale.index,
 			mergeLists(locale.properties,{"direction":dir})
 		);

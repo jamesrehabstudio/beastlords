@@ -9,9 +9,6 @@ function Villager(x,y,t,o){
 	this.start_x = x;
 	this.sprite = sprites.characters;
 	this.town = t || _world.towns[1];
-	this.builder = false;
-	
-	o = o || {};
 	
 	this.state = 0;
 	this.speed = 0.5 + Math.random() * 0.9;
@@ -24,21 +21,17 @@ function Villager(x,y,t,o){
 	var m = Villager.getMessage(this.town);
 	
 	this.message = m.message;
+	
+	o = o || {};
 	try{
 		this.builder = "builder" in o;
 		if( "path" in o ){
 			this.path = 1 * o.path;
 		}
-		if( "message" in o ){
-			this.message = i18n(o.message);
-			if(!(this.message instanceof Array)){
-				this.message = [this.message];
-			}
+		if( "script" in o ){
+			
 		}
-		if( this.builder ) {
-			this.sprite = sprites.characters2;
-			this.path = 2;
-		}
+		
 	} catch(err){}
 
 	this.base_frame = 0;
@@ -134,6 +127,19 @@ Villager.getMessage = function(town){
 		}
 	}
 	return Villager.TextOptions[0];
+}
+Villager.script = {
+	"q0_0" : function(world){
+		var talk = i18n("villagerq0_0");
+		var quest = quests.q0;
+		if(quest == "complete") return talk[3];
+		if(quest == 0){
+			world.q0 = 1;
+			return talk[0];
+		}
+		return talk [quest];
+	}
+	
 }
 Villager.TextOptions = [
 {"rarity":1.0,"frames":[],"conditions":{"capital":true,"faith":1,"nation":1,"min_size":0,"max_size":5},"message":["Hello."]},

@@ -182,6 +182,43 @@ EffectBlood.prototype.render = function(g,c){
 	}
 }
 
+EffectNumber.prototype = new GameObject();
+EffectNumber.prototype.constructor = GameObject;
+function EffectNumber(x, y, value){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 8;
+	this.height = 8;
+	this.zIndex = 2;
+	this.sprite = sprites.numbers;
+	this.value = Math.floor(value);
+	this.progress = 0.0;
+	
+	this.on("sleep",function(){ this.destroy(); } );
+}
+
+EffectNumber.prototype.render = function(g,c){
+	var v = "" + this.value;
+	var x_off = v.length * 3;
+	for(var i=0; i < v.length; i++){
+		var offset = Math.min(this.progress-(i*2),Math.PI);
+		var bounce = Math.sin(offset) * 8;
+		if(offset > 0){
+			this.frame = v[i] * 1;
+			this.frame_row = 1;
+			this.sprite.render(g,this.position.subtract(c).add(new Point(i*6-x_off,-bounce)),this.frame,this.frame_row);
+		}
+	}
+	
+	if(this.progress > Game.DELTASECOND * 1.5){
+		this.destroy();
+	}
+	
+	this.progress += this.delta;
+}
+
 EffectCritical.prototype = new GameObject();
 EffectCritical.prototype.constructor = GameObject;
 function EffectCritical(x, y){	

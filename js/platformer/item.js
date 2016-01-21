@@ -425,7 +425,7 @@ Item.drop = function(obj,money,sleep){
 	}
 	
 	if (Math.random() > 0.9) {
-		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life"} );
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
 		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}

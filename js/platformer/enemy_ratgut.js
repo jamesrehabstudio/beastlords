@@ -4,8 +4,8 @@ function Ratgut(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 32;
+	this.width = 24;
+	this.height = 24;
 	this.sprite = sprites.ratgut;
 	this.speed = 0.3;
 	
@@ -28,7 +28,7 @@ function Ratgut(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(2,this.difficulty);
-	this.damage = Spawn.damage(6,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.2;
 	this.collideDamage = Spawn.damage(4,this.difficulty);
 	this.stun_time = Game.DELTASECOND;
@@ -67,6 +67,9 @@ Ratgut.prototype.update = function(){
 		if( this.states.attack > 0 ) {
 			//Do nothing
 			this.states.attack -= this.delta;
+			if(!this.grounded){
+				this.strike( new Line(0,-16,16,16) );
+			}
 		} else if( this.states.cooldown <= 0 ){
 			//Charge at player
 			this.flip = dir.x > 0;
@@ -79,7 +82,6 @@ Ratgut.prototype.update = function(){
 				this.force.y = -3;
 				this.states.cooldown = Game.DELTASECOND * 5;
 			}
-			this.strike( new Line(-8,-16,8,16) );
 		} else {
 			//wander
 			if( this.states.runaway > 0 ) {
@@ -107,14 +109,18 @@ Ratgut.prototype.update = function(){
 	this.gravity = this.states.attack > 0 ? 0.2 : 1.0;
 	this.criticleChance = this.grounded ? 0.0 : 1.0;
 	
-	if( this.states.attack > 0 ){
+	if( this.stun > 0 ){
 		this.frame_row = 2;
-		this.frame = this.grounded ? 2 : 1;
+		this.frame = 1;
+	} else if( this.states.attack > 0 ){
+		this.frame_row = 2;
+		this.frame = this.grounded ? 1 : 0;
 	} else {
-		if( Math.abs( this.force.x ) < 0.1 ){
-			this.frame = this.frame_row = 0;
+		if( Math.abs( this.force.x ) < 0.3 ){
+			this.frame = (this.frame + this.delta * 0.2) % 4;
+			this.frame_row = 0;
 		} else {
-			this.frame = (this.frame + (this.delta * 0.2  * Math.abs(this.force.x))) % 3;
+			this.frame = (this.frame + (this.delta * 0.2 * Math.abs(this.force.x))) % 4;
 			this.frame_row = 1;
 		}
 	}

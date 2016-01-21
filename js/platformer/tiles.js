@@ -92,6 +92,7 @@ function BreakableTile(x, y, d, ops){
 	this.chaintime = Game.DELTASECOND * 0.15;
 	this.chaintimer = this.chaintime;
 	this.chainActive = false;
+	this.chainSize = 10;
 	
 	var startBroken = 0;
 	
@@ -136,7 +137,7 @@ function BreakableTile(x, y, d, ops){
 	}
 }
 BreakableTile.prototype.unbreak = function(explode){
-	if(this.broken){
+	if(this.broken && this.undertile != 0){
 		if(explode){
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
 			if(this.chain) {
@@ -154,7 +155,7 @@ BreakableTile.prototype.unbreak = function(explode){
 	}
 }
 BreakableTile.prototype.break = function(explode){
-	if(!this.broken && this.undertile != BreakableTile.unbreakable){
+	if(!this.broken && this.undertile != BreakableTile.unbreakable && this.undertile != 0){
 		if(explode){
 			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
 			if(this.chain) {
@@ -175,8 +176,8 @@ BreakableTile.prototype.break = function(explode){
 BreakableTile.prototype.neighbours = function(type){
 	
 	var hits = game.overlaps(new Line(
-		this.position.x - 8, this.position.y - 8,
-		this.position.x + 24, this.position.y + 24
+		this.position.x - this.chainSize, this.position.y - this.chainSize,
+		this.position.x + this.chainSize, this.position.y + this.chainSize
 	));
 	for(var i=0; i< hits.length; i++) {
 		if( hits[i] instanceof BreakableTile && hits[i] != this ) {

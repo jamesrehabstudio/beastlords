@@ -32,6 +32,7 @@ function WorldMap(x, y){
 	this.height = 64;
 	
 	this.quests = {
+		"q0" : 0,
 		"q1" : 0
 	}
 	
@@ -294,6 +295,10 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.rest = Game.DELTASECOND * 0.25;
 		
 		dataManager.randomLevel(game, i, this.temples[i].seed);
+		var rt = new RandomTemple(i);
+		rt.generate(this.temples[i].seed);
+		rt.use(window.game);
+		
 		audio.playAs("music_temple1", "music");
 	} else if(type == "town"){
 		this.active = false;
@@ -310,7 +315,7 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.rest = Game.DELTASECOND * 0.25;
 		
 		//Load new map
-		dataManager.loadMap(
+		MapLoader.loadMap(
 			locale.index,
 			mergeLists(locale.properties,{"direction":dir})
 		);
