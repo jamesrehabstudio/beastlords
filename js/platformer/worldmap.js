@@ -1,3 +1,55 @@
+Quests = {
+	"set" : function(id,value){
+		if(typeof value == "string" && value.toLowerCase() == "complete"){
+			value = Quests.COMPLETED;
+		}
+		if(id in Quests){
+			Quests[id] = value;
+			try{
+				//Send quest message
+				var qmessage = "";
+				
+				if(value == Quests.COMPLETED){
+					qmessage = i18n("questcomplete");
+				}else{
+					qmessage = i18n("quest")[id][value];
+				}
+				
+				var pm = game.getObject(PauseMenu);
+				pm.message(qmessage);
+				audio.play("quest");
+			} catch (err){}
+		}
+	},
+	"list": function(){
+		var i = 0;
+		var out = new Array();
+		while("q"+i in Quests){
+			var id = "q"+i;
+			var q = Quests[id];
+			if(q > 0){
+				var text = i18n("quest")[id];
+				out.push({
+					"name" : text[0],
+					"description" : (q < text.length ? text[q] : ""),
+					"complete" : q >= Quests.COMPLETED,
+					"progress" : q
+				});
+			}
+			i++;
+		}
+		out.sort(function(a,b){
+			if(a.complete) return 1;
+			if(b.complete) return -1;
+			return a.progress - b.progress;
+		});
+		return out;
+	},
+	"COMPLETED" : 9999,
+	"q0" : 0,
+	"q1" : 0
+}
+
 WorldMap.prototype = new GameObject();
 WorldMap.prototype.constructor = GameObject;
 function WorldMap(x, y){	
@@ -35,14 +87,6 @@ function WorldMap(x, y){
 		"q0" : 0,
 		"q1" : 0
 	}
-	
-	/*
-	var block_list = [0,37,38,39,40,64,65,66,67,68,69,87,88,103,104];
-	for(var i=0;i<this.tiles[0].length;i++){
-		if(this.tiles[2][i]==0 && block_list.indexOf(this.tiles[1][i]-1) >= 0){
-			this.tiles[2][i] = this.tiles[1][i];
-		}
-	}*/
 	
 	this.temples = [];
 	for(var i=0; i<6; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":i+this.seed });

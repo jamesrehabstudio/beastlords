@@ -12,7 +12,7 @@ function PauseMenu(){
 	this.questscroll = 0;
 	this.mapCursor = new Point();
 	this.stat_cursor = 0;
-	this.activeQuestCount = 0;
+	this.questlist = new Array();
 	
 	this.map = new Array();
 	this.map_reveal = new Array();
@@ -87,35 +87,30 @@ PauseMenu.prototype.update = function(){
 				if( input.state("fire") == 1 ) _player.levelUp(this.stat_cursor);
 			}
 		} else if ( this.page == 3 ) {
-			var unlocked = Object.keys( _player.spellsUnlocked );
-			if( unlocked.length > 0 ) {
-				//Select a spell, if one hasn't already been selected
-				if( !(_player.selectedSpell in _player.spellsUnlocked ) ) _player.selectedSpell = unlocked[0];
-				
-				//Control Menu
-				if( input.state("up") == 1 ) {
-					var pos = Math.max( unlocked.indexOf( _player.selectedSpell ) - 1, 0 );
-					_player.selectedSpell = unlocked[pos];
-					audio.play("cursor"); 
-				}
-				if( input.state("down") == 1 ) { 
-					var pos = Math.min( unlocked.indexOf( _player.selectedSpell ) + 1, unlocked.length-1 );
-					_player.selectedSpell = unlocked[pos];
-					audio.play("cursor"); 
-				}
-				if( input.state("fire") == 1 ) { 
-					_player.castSpell(_player.selectedSpell);
-				}
+			//Unique Items
+			if( input.state("up") == 1 ) { 
+				this.cursor = (this.cursor > 0) ? this.cursor - 1 : _player.uniqueItems.length-1; 
+				audio.play("cursor"); 
+			}
+			if( input.state("down") == 1 ) { 
+				this.cursor = (this.cursor + 1) % _player.uniqueItems.length; 
+				audio.play("cursor"); 
+			}
+			if( input.state("fire") == 1 ) { 
+				_player.unique_item = _player.uniqueItems[this.cursor];
+				this.open = false;
+				game.pause = false;
+				audio.play("spell");
 			}
 		} else if (this.page == 4){
 			//Quests
-			if(this.activeQuestCount > 0){
+			if(this.questlist.length > 0){
 				if( input.state("down") == 1){
-					this.cursor = (this.cursor + 1) % this.activeQuestCount;
+					this.cursor = (this.cursor + 1) % this.questlist.length;
 					audio.play("cursor"); 
 				}
 				if( input.state("up") == 1){
-					this.cursor = this.cursor == 0 ? this.activeQuestCount-1 : this.cursor-1;
+					this.cursor = this.cursor == 0 ? this.questlist.length-1 : this.cursor-1;
 					audio.play("cursor"); 
 				}
 				this.questscroll = Math.max(
@@ -148,8 +143,9 @@ PauseMenu.prototype.update = function(){
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
 			this.page = 1;
+			this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
-			if( input.state("select") == 1 ) this.page = 3;
+			if( input.state("select") == 1 ) this.page = 4;
 			audio.play("pause");
 		}
 	}
@@ -303,28 +299,24 @@ PauseMenu.prototype.hudrender = function(g,c){
 				attr_i++;
 			}
 		} else if ( this.page == 3 ) {
-			//Spells
-			leftx = game.resolution.x*0.5 - 152*0.5;
+			//Unique Items
+			leftx = game.resolution.x*0.5 - 224*0.5;
 			
-			boxArea(g,leftx,8,152,224);
-			textArea(g,"Spells",leftx+52,20);
+			boxArea(g,leftx,8,224,224);
+			textArea(g,"Special Items",leftx+56,20);
 			
-			var spell_i = 0;
-			for(spell in _player.spellsUnlocked) {
-				var y = spell_i * 16;
-				textArea(g,_player.spellsUnlocked[spell] ,leftx+20,36+y);
-				if(_player.selectedSpell == spell ) textArea(g,"@",leftx+10,36+y);
-				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
-					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / _player.spellEffectLength), 8);
-					var y_offset = 8 - remaining;
-					g.color = [0.1,0.7,0.98,1.0];
-					g.scaleFillRect(leftx+132, 36+y+y_offset, 8, remaining );
-					sprites.text.render(g,new Point(leftx+132,36+y), 5, 6);
+			for(var i=0; i < _player.uniqueItems.length; i++){
+				var y_pos = 46 + 20 * i;
+				var item = _player.uniqueItems[i];
+				var name = item.message;
+				if(this.cursor == i){
+					textArea(g,"@",leftx+16,y_pos);
 				}
-				
-				spell_i++;
+				item.sprite.render(g,new Point(leftx+40,y_pos+4),item.frame,item.frame_row);
+				textArea(g,name,leftx+52,y_pos);
 			}
 		} else if ( this.page == 4 ){
+			//Quests
 			leftx = game.resolution.x*0.5 - 224*0.5;
 			boxArea(g,leftx,8,224,152);
 			boxArea(g,leftx,168,224,64);
@@ -334,36 +326,25 @@ PauseMenu.prototype.hudrender = function(g,c){
 			var rangeBot = this.questscroll + PauseMenu.questScrollLimit;
 			var y_pos = 12 * -this.questscroll;
 			
-			this.activeQuestCount = 0;
-			for(var q in window._world.quests){
-				try{
-					if(window._world.quests[q]){
-						if(this.activeQuestCount >= rangeTop && this.activeQuestCount < rangeBot){
-							var name = i18n("quest")[q][0];
-							var complete = window._world.quests[q] == "complete";
-							
-							textArea(g,name,leftx+32,40+y_pos);
-							
-							if( this.activeQuestCount == this.cursor ){
-								textArea(g,"@",leftx+16,40+y_pos);
-							}
-							
-							if( complete ) {
-								textArea(g,"@",leftx+16,40+y_pos);
-							} else {
-								if( this.activeQuestCount == this.cursor ){
-									var desc = i18n("quest")[q][window._world.quests[q]];
-									textArea(g,desc,leftx+16,16+168,224-32);
-								}
-							}
-						}
-						this.activeQuestCount++;
-						y_pos += 12;
-					}
-				}catch(err){
-					//Error handling for broken quests
+			for(var i=0; i < this.questlist.length; i++){
+				q = this.questlist[i];
+				
+				textArea(g,q.name,leftx+32,40+y_pos);
+				
+				if( i == this.cursor ){
+					textArea(g,"@",leftx+16,40+y_pos);
 				}
+				
+				if( q.complete ) {
+					textArea(g,"@",leftx+16,40+y_pos);
+				} else {
+					if( i == this.cursor ){
+						textArea(g,q.description,leftx+16,16+168,224-32);
+					}
+				}
+				y_pos += 12;
 			}
+			
 		}
 	}
 }

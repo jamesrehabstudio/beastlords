@@ -634,7 +634,7 @@
   </object>
   <object id="21" name="WorldLocale" gid="118" x="1664" y="608" width="16" height="16">
    <properties>
-    <property name="map" value="town01"/>
+    <property name="map" value="town02"/>
    </properties>
   </object>
  </objectgroup>

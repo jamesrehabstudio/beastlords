@@ -8,5 +8,5 @@ if quest.q0 == 2
 	say "miner0_2"
 if quest.q0 == 3
 	say "miner0_2"
-if quest.q0 == complete
+if quest.q0 > 3
 	say "miner0_3"

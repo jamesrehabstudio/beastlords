@@ -12,12 +12,14 @@ function Player(x, y){
 	
 	this.keys = [];
 	this.spells = [];
+	this.uniqueItems = [];
 	this.charm = false;
 	this.knockedout = false;
+	this.pause = false;
 	
 	this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
-	
+	this.unique_item = false;
 	
 	window._player = this;
 	this.sprite = sprites.player;
@@ -407,7 +409,19 @@ function Player(x, y){
 
 Player.prototype.update = function(){
 	var speed = 1.25;
-	if( this.spellsCounters.haste > 0 ) speed = 1.4;
+	if( this.spellsCounters.haste > 0 ) speed = 1.6;
+	
+	if(this.pause) {
+		this.force.x = 0;
+		this.force.y = 0;
+		return;
+	}
+	
+	if(this.unique_item instanceof Item){
+		if(!this.unique_item.use(this)){
+			this.unique_item = false;
+		}
+	}
 	
 	//Reset states
 	this.states.guard = false;
@@ -763,6 +777,17 @@ Player.prototype.castSpell = function(name){
 	if( name in this.spells && name in this.spellsUnlocked ) {
 		this.spells[name].apply(this);
 	}
+}
+Player.prototype.addUniqueItem = function(item){
+	if(!(item instanceof Item)){
+		return;
+	}
+	for(var i=0; i < this.uniqueItems.length; i++){
+		if(item.name == this.uniqueItems.name){
+			return;
+		}
+	}
+	this.uniqueItems.push(item);
 }
 Player.prototype.equipCharm = function(c){
 	if( this.charm instanceof Item ){

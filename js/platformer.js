@@ -7027,15 +7027,19 @@ window._messages = {
 			"bank" : "Bank"
 		}
 	},
+	"questcomplete" : {
+		"english" : "Quest complete!",
+		"engrish" : "Quest complete!"
+	},
 	"quest" : {
 		"english" : {
-			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q0" : ["The blocked caves", "Talk to the professor in NEARBYTOWN.", "Speak with the professor's brother hidden in the woods south of NEARBYTOWN.","Use the wand to open the cave entrence"],
 			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
 			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
 			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		},
 		"engrish" : {
-			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q0" : ["The blocked caves", "Talk to the professor in NEARBYTOWN.", "Speak with the professor's brother hidden in the woods south of NEARBYTOWN.","Use the wand to open the cave entrence"],
 			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
 			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
 			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
@@ -7047,11 +7051,35 @@ window._messages = {
 	"miner0_1" : {
 		"english" : "Talk to the professor in NEARBYTOWN. He'll help us move this relief"
 	},
-	"miner0_3" : {
+	"miner0_2" : {
 		"english" : "You talked to him? He wants you to get a magic wand? Maybe the professor is losing his marbles. I dunno..."
 	},
-	"miner0_4" : {
+	"miner0_3" : {
 		"english" : "I can't believe that actually worked. Here was me thinkin' we had the week off"
+	},
+	"professor0_0" :{
+		"english" : "You're a strange looking one. You have a nice day, now."
+	},
+	"professor0_1" :{
+		"english" : "There's a large relief blocking the cave's entrence?! How amazing! That's a ancient door. Rather than have those brutes ruin it with their picks, find my brother in the south of the forest. He hides himself away, but he'll have the wand needed to open this cave."
+	},
+	"professor0_2" :{
+		"english" : "Have you spoken with my brother? He lives south of here, on the other side of the forest."
+	},
+	"professor0_3" :{
+		"english" : "You got the wand! It's certainly a marvel to see. It must be thousands of years old. Use it on the relief at the cave's entrence."
+	},
+	"professor0_4" :{
+		"english" : "Hard to believe after so many years, these ancient gadgets still work."
+	},
+	"professor1_0" :{
+		"english" : "Get out of here you wild thing!"
+	},
+	"professor1_1" :{
+		"english" : "I'm sorry, I thought you were some wild creature looking for food. My brother sent you? He should know better than that. If it's the wand you're after here it is. But take good care of it. It's priceless."
+	},
+	"professor1_2" :{
+		"english" : "Next time your see my brother, tell him not to send anymore people to me. I just want to be left alone."
 	}
 };
 function i18n(name,replace){
@@ -7198,6 +7226,8 @@ function Item(x,y,d, ops){
 			if( this.name == "charm_methuselah") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			
+			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			
 			dataManager.itemGet(this.name);
 			
@@ -7416,6 +7446,25 @@ Item.prototype.setName = function(n){
 	if( this.name == "treasure_map") { this.frame = 0; this.frame_row = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
 	if( this.name == "life_fruit") { this.frame = 1; this.frame_row = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame = 2; this.frame_row = 6; this.message = "Mana fruit\nMana up.";}
+	
+	if( this.name == "unique_wand"){
+		this.frame = 2;
+		this.frame_row = 6;
+		this.message = "Ancient Wand";
+		this.progress = 0.0;
+		this.use = function(player){
+			this.progress += game.deltaUnscaled;
+			if(this.progress < Game.DELTASECOND * 2){
+				game.pause = true;
+				return true;
+			}else{
+				this.progress = 0.0;
+				Trigger.activate("caverock");
+				game.pause = false;
+				return false;
+			}
+		}
+	}
 }
 Item.prototype.getMessage = function(){
 	if( "message" in this ) {
@@ -8419,7 +8468,7 @@ function PauseMenu(){
 	this.questscroll = 0;
 	this.mapCursor = new Point();
 	this.stat_cursor = 0;
-	this.activeQuestCount = 0;
+	this.questlist = new Array();
 	
 	this.map = new Array();
 	this.map_reveal = new Array();
@@ -8494,35 +8543,30 @@ PauseMenu.prototype.update = function(){
 				if( input.state("fire") == 1 ) _player.levelUp(this.stat_cursor);
 			}
 		} else if ( this.page == 3 ) {
-			var unlocked = Object.keys( _player.spellsUnlocked );
-			if( unlocked.length > 0 ) {
-				//Select a spell, if one hasn't already been selected
-				if( !(_player.selectedSpell in _player.spellsUnlocked ) ) _player.selectedSpell = unlocked[0];
-				
-				//Control Menu
-				if( input.state("up") == 1 ) {
-					var pos = Math.max( unlocked.indexOf( _player.selectedSpell ) - 1, 0 );
-					_player.selectedSpell = unlocked[pos];
-					audio.play("cursor"); 
-				}
-				if( input.state("down") == 1 ) { 
-					var pos = Math.min( unlocked.indexOf( _player.selectedSpell ) + 1, unlocked.length-1 );
-					_player.selectedSpell = unlocked[pos];
-					audio.play("cursor"); 
-				}
-				if( input.state("fire") == 1 ) { 
-					_player.castSpell(_player.selectedSpell);
-				}
+			//Unique Items
+			if( input.state("up") == 1 ) { 
+				this.cursor = (this.cursor > 0) ? this.cursor - 1 : _player.uniqueItems.length-1; 
+				audio.play("cursor"); 
+			}
+			if( input.state("down") == 1 ) { 
+				this.cursor = (this.cursor + 1) % _player.uniqueItems.length; 
+				audio.play("cursor"); 
+			}
+			if( input.state("fire") == 1 ) { 
+				_player.unique_item = _player.uniqueItems[this.cursor];
+				this.open = false;
+				game.pause = false;
+				audio.play("spell");
 			}
 		} else if (this.page == 4){
 			//Quests
-			if(this.activeQuestCount > 0){
+			if(this.questlist.length > 0){
 				if( input.state("down") == 1){
-					this.cursor = (this.cursor + 1) % this.activeQuestCount;
+					this.cursor = (this.cursor + 1) % this.questlist.length;
 					audio.play("cursor"); 
 				}
 				if( input.state("up") == 1){
-					this.cursor = this.cursor == 0 ? this.activeQuestCount-1 : this.cursor-1;
+					this.cursor = this.cursor == 0 ? this.questlist.length-1 : this.cursor-1;
 					audio.play("cursor"); 
 				}
 				this.questscroll = Math.max(
@@ -8555,8 +8599,9 @@ PauseMenu.prototype.update = function(){
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
 			this.page = 1;
+			this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
-			if( input.state("select") == 1 ) this.page = 3;
+			if( input.state("select") == 1 ) this.page = 4;
 			audio.play("pause");
 		}
 	}
@@ -8710,28 +8755,24 @@ PauseMenu.prototype.hudrender = function(g,c){
 				attr_i++;
 			}
 		} else if ( this.page == 3 ) {
-			//Spells
-			leftx = game.resolution.x*0.5 - 152*0.5;
+			//Unique Items
+			leftx = game.resolution.x*0.5 - 224*0.5;
 			
-			boxArea(g,leftx,8,152,224);
-			textArea(g,"Spells",leftx+52,20);
+			boxArea(g,leftx,8,224,224);
+			textArea(g,"Special Items",leftx+56,20);
 			
-			var spell_i = 0;
-			for(spell in _player.spellsUnlocked) {
-				var y = spell_i * 16;
-				textArea(g,_player.spellsUnlocked[spell] ,leftx+20,36+y);
-				if(_player.selectedSpell == spell ) textArea(g,"@",leftx+10,36+y);
-				if( spell in _player.spellsCounters && _player.spellsCounters[spell] > 0 ) {
-					var remaining = Math.min( Math.floor((8*_player.spellsCounters[spell]) / _player.spellEffectLength), 8);
-					var y_offset = 8 - remaining;
-					g.color = [0.1,0.7,0.98,1.0];
-					g.scaleFillRect(leftx+132, 36+y+y_offset, 8, remaining );
-					sprites.text.render(g,new Point(leftx+132,36+y), 5, 6);
+			for(var i=0; i < _player.uniqueItems.length; i++){
+				var y_pos = 46 + 20 * i;
+				var item = _player.uniqueItems[i];
+				var name = item.message;
+				if(this.cursor == i){
+					textArea(g,"@",leftx+16,y_pos);
 				}
-				
-				spell_i++;
+				item.sprite.render(g,new Point(leftx+40,y_pos+4),item.frame,item.frame_row);
+				textArea(g,name,leftx+52,y_pos);
 			}
 		} else if ( this.page == 4 ){
+			//Quests
 			leftx = game.resolution.x*0.5 - 224*0.5;
 			boxArea(g,leftx,8,224,152);
 			boxArea(g,leftx,168,224,64);
@@ -8741,36 +8782,25 @@ PauseMenu.prototype.hudrender = function(g,c){
 			var rangeBot = this.questscroll + PauseMenu.questScrollLimit;
 			var y_pos = 12 * -this.questscroll;
 			
-			this.activeQuestCount = 0;
-			for(var q in window._world.quests){
-				try{
-					if(window._world.quests[q]){
-						if(this.activeQuestCount >= rangeTop && this.activeQuestCount < rangeBot){
-							var name = i18n("quest")[q][0];
-							var complete = window._world.quests[q] == "complete";
-							
-							textArea(g,name,leftx+32,40+y_pos);
-							
-							if( this.activeQuestCount == this.cursor ){
-								textArea(g,"@",leftx+16,40+y_pos);
-							}
-							
-							if( complete ) {
-								textArea(g,"@",leftx+16,40+y_pos);
-							} else {
-								if( this.activeQuestCount == this.cursor ){
-									var desc = i18n("quest")[q][window._world.quests[q]];
-									textArea(g,desc,leftx+16,16+168,224-32);
-								}
-							}
-						}
-						this.activeQuestCount++;
-						y_pos += 12;
-					}
-				}catch(err){
-					//Error handling for broken quests
+			for(var i=0; i < this.questlist.length; i++){
+				q = this.questlist[i];
+				
+				textArea(g,q.name,leftx+32,40+y_pos);
+				
+				if( i == this.cursor ){
+					textArea(g,"@",leftx+16,40+y_pos);
 				}
+				
+				if( q.complete ) {
+					textArea(g,"@",leftx+16,40+y_pos);
+				} else {
+					if( i == this.cursor ){
+						textArea(g,q.description,leftx+16,16+168,224-32);
+					}
+				}
+				y_pos += 12;
 			}
+			
 		}
 	}
 }
@@ -9189,9 +9219,14 @@ var mod_camera = {
 		game.camera.y = this.position.y - 120;
 		
 		var self = this;
-		window.shakeCamera = function(p,y){
-			if(!(p instanceof Point)) p = new Point(p,y);
-			self.camerShake = p;
+		window.shakeCamera = function(duration,strength){
+			if(duration instanceof Point){
+				self.camerShake = duration;
+			} else {
+				strength = strength || 4;
+				self.camerShake = new Point(duration,strength);
+			}
+			
 		};
 	},
 	'update' : function(){
@@ -9199,9 +9234,6 @@ var mod_camera = {
 		game.camera.x = this.position.x - (game.resolution.x / 2);
 		game.camera.y = this.position.y - (game.resolution.y / 2);
 		//game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
-		
-		game.camera.x += this.camerShake.x;
-		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));
 		
 		//Set up locks
 		if( this.lock_overwrite instanceof Line ) {
@@ -9230,6 +9262,12 @@ var mod_camera = {
 			}
 			game.camera.x = Math.min( Math.max( game.camera.x, this._lock_current.start.x ), this._lock_current.end.x - screen.x );
 			game.camera.y = Math.min( Math.max( game.camera.y, this._lock_current.start.y ), this._lock_current.end.y - screen.y );
+		}
+		
+		if(this.camerShake.x > 0){
+			game.camera.x += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
+			game.camera.y += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
+			this.camerShake.x -= game.deltaUnscaled;
 		}
 	},
 	"render" : function(g,c){
@@ -9804,6 +9842,7 @@ function NPC(x,y,t,o){
 	this.addModule(mod_talk);
 	
 	this.showmessage = false;
+	this.lockplayer = true;
 	
 	this.script = new Array();
 	this.scriptPos = 0;
@@ -9815,9 +9854,17 @@ function NPC(x,y,t,o){
 	if("script" in o){
 		this.getScript(o["script"]);
 	}
+	if("lockplayer" in o){
+		this.lockplayer = o["lockplayer"] * 1;
+	}
 	
 	this.on("open", function(){
 		this.scriptRun = true;
+		if(this.lockplayer){window._player.pause = true;}
+	});
+	
+	this.on("close", function(){
+		if(this.lockplayer){window._player.pause = false;}
 	});
 	
 }
@@ -9866,6 +9913,28 @@ NPC.prototype.runScript = function(filename){
 		NPC.variables[line[1]] = NPC.resolveCalculation(line[2]);
 		this.scriptPos++;
 		return true;
+	}else if(command == "wait"){
+		if(this.scriptWait > 0){
+			this.scriptWait -= this.delta;
+			if(this.scriptWait <= 0){
+				this.scriptPos++;
+			}
+		}else{
+			this.scriptWait = NPC.resolveCalculation(line[1]) * Game.DELTASECOND;
+		}
+		return false;
+	}else if(command == "additem"){
+		if(window._player instanceof Player){
+			var name = NPC.resolveCalculation(line[1]);
+			var item = new Item(0,0,0,{"name":name});
+			item.trigger("collideObject",_player);
+		}
+		this.scriptPos++;
+		return true;	
+	} else if(command == "trigger"){
+		Trigger.activate(i18n(NPC.resolveCalculation(line[1])));
+		this.scriptPos++;
+		return true;
 	}else if(command == "say"){
 		DialogManger.set(i18n(NPC.resolveVariable(line[1])));
 		this.showmessage = DialogManger.show;
@@ -9874,15 +9943,14 @@ NPC.prototype.runScript = function(filename){
 			this.scriptPos++;
 		}
 		return false;
+	}else if(command == "move"){
+		var x = NPC.resolveCalculation(line[1]);
+		var y = NPC.resolveCalculation(line[2]);
+		var speed = NPC.resolveCalculation(line[3]);
+		this.scriptPos++;
+		return false;
 	}else if(command == "quest"){
-		window._world.quests[line[1]] = NPC.resolveCalculation(line[2]);
-		try{
-			//Send quest message
-			var qmessage = i18n("quest")[line[1]][window._world.quests[line[1]]];
-			var pm = game.getObject(PauseMenu);
-			pm.message(qmessage);
-			audio.play("quest");
-		} catch (err){}
+		Quests.set(line[1],NPC.resolveCalculation(line[2]));
 		this.scriptPos++;
 		return true;
 	}
@@ -9910,6 +9978,10 @@ NPC.resolveCalculation = function(calc){
 					operands.push(a-b);
 				}else if (calc[i] == "=="){
 					operands.push(a==b);
+				}else if (calc[i] == ">"){
+					operands.push(a>b);
+				}else if (calc[i] == "<"){
+					operands.push(a<b);
 				}
 			}else{
 				operands.push(calc[i]);
@@ -9938,7 +10010,7 @@ NPC.resolveVariable = function(varname){
 		var prefix = varname.slice(0,varname.indexOf("."));
 		var suffix = varname.slice(varname.indexOf(".")+1);
 		if(prefix == "quest"){
-			return window._world.quests[suffix];
+			return Quests[suffix];
 		}
 	}
 	else{
@@ -10016,7 +10088,7 @@ NPC.compileCalc = function(tokens){
 	return o;
 }
 NPC.unpackTokens = function(line){
-	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+=-]+)/g);
+	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+><=-]+)/g);
 	for(var i = 0; i < out.length; i++){
 		out[i] = out[i].trim();
 		if(out[i].match(/^-?\d*\.?\d*$/)){
@@ -10025,7 +10097,7 @@ NPC.unpackTokens = function(line){
 	}
 	return out;
 }
-NPC.operators = ["/","*","+","-","=="];
+NPC.operators = ["/","*","+","-","==",">","<"];
 NPC.variables = {};
 
  /* platformer\platform_generator.js*/ 
@@ -10086,12 +10158,14 @@ function Player(x, y){
 	
 	this.keys = [];
 	this.spells = [];
+	this.uniqueItems = [];
 	this.charm = false;
 	this.knockedout = false;
+	this.pause = false;
 	
 	this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
-	
+	this.unique_item = false;
 	
 	window._player = this;
 	this.sprite = sprites.player;
@@ -10481,7 +10555,19 @@ function Player(x, y){
 
 Player.prototype.update = function(){
 	var speed = 1.25;
-	if( this.spellsCounters.haste > 0 ) speed = 1.4;
+	if( this.spellsCounters.haste > 0 ) speed = 1.6;
+	
+	if(this.pause) {
+		this.force.x = 0;
+		this.force.y = 0;
+		return;
+	}
+	
+	if(this.unique_item instanceof Item){
+		if(!this.unique_item.use(this)){
+			this.unique_item = false;
+		}
+	}
 	
 	//Reset states
 	this.states.guard = false;
@@ -10837,6 +10923,17 @@ Player.prototype.castSpell = function(name){
 	if( name in this.spells && name in this.spellsUnlocked ) {
 		this.spells[name].apply(this);
 	}
+}
+Player.prototype.addUniqueItem = function(item){
+	if(!(item instanceof Item)){
+		return;
+	}
+	for(var i=0; i < this.uniqueItems.length; i++){
+		if(item.name == this.uniqueItems.name){
+			return;
+		}
+	}
+	this.uniqueItems.push(item);
 }
 Player.prototype.equipCharm = function(c){
 	if( this.charm instanceof Item ){
@@ -13501,6 +13598,12 @@ Trigger.getTargets = function(name){
 	}
 	return out;
 }
+Trigger.activate = function(targets){
+	var objects = Trigger.getTargets(targets);
+	for(var j=0; j < objects.length; j++){
+		objects[j].trigger("activate", this);
+	}	
+}
 
  /* platformer\villager.js*/ 
 
@@ -13841,6 +13944,58 @@ Well.prototype.idle = function(){}
 
  /* platformer\worldmap.js*/ 
 
+Quests = {
+	"set" : function(id,value){
+		if(typeof value == "string" && value.toLowerCase() == "complete"){
+			value = Quests.COMPLETED;
+		}
+		if(id in Quests){
+			Quests[id] = value;
+			try{
+				//Send quest message
+				var qmessage = "";
+				
+				if(value == Quests.COMPLETED){
+					qmessage = i18n("questcomplete");
+				}else{
+					qmessage = i18n("quest")[id][value];
+				}
+				
+				var pm = game.getObject(PauseMenu);
+				pm.message(qmessage);
+				audio.play("quest");
+			} catch (err){}
+		}
+	},
+	"list": function(){
+		var i = 0;
+		var out = new Array();
+		while("q"+i in Quests){
+			var id = "q"+i;
+			var q = Quests[id];
+			if(q > 0){
+				var text = i18n("quest")[id];
+				out.push({
+					"name" : text[0],
+					"description" : (q < text.length ? text[q] : ""),
+					"complete" : q >= Quests.COMPLETED,
+					"progress" : q
+				});
+			}
+			i++;
+		}
+		out.sort(function(a,b){
+			if(a.complete) return 1;
+			if(b.complete) return -1;
+			return a.progress - b.progress;
+		});
+		return out;
+	},
+	"COMPLETED" : 9999,
+	"q0" : 0,
+	"q1" : 0
+}
+
 WorldMap.prototype = new GameObject();
 WorldMap.prototype.constructor = GameObject;
 function WorldMap(x, y){	
@@ -13878,14 +14033,6 @@ function WorldMap(x, y){
 		"q0" : 0,
 		"q1" : 0
 	}
-	
-	/*
-	var block_list = [0,37,38,39,40,64,65,66,67,68,69,87,88,103,104];
-	for(var i=0;i<this.tiles[0].length;i++){
-		if(this.tiles[2][i]==0 && block_list.indexOf(this.tiles[1][i]-1) >= 0){
-			this.tiles[2][i] = this.tiles[1][i];
-		}
-	}*/
 	
 	this.temples = [];
 	for(var i=0; i<6; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":i+this.seed });
@@ -14421,6 +14568,93 @@ WorldEncounter.prototype.update = function(){
 				this.active = true;
 			}
 		}
+	}
+}
+
+ /* platformer\scenes\caverock.js*/ 
+
+SceneCaveRock.prototype = new GameObject();
+SceneCaveRock.prototype.constructor = GameObject;
+function SceneCaveRock(x,y,dim,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	
+	this.start = new Point(x,y);
+	this.end = new Point(x,y+16*5);
+	
+	this.sprite = sprites.cornerstones;
+	
+	this._tid = "caverock";
+	this.active = false;
+	this.isOpen = false;
+	this.progress = 0.0;
+	this.speed = 1 / (Game.DELTASECOND * 4);
+	
+	this.tiles = new Array();
+	for(var i=0; i < dim[0]; i+=16) for(var j=0; j < dim[1]; j+=16) {
+		this.tiles.push(new Point(
+			(x + 8 + i) - (dim[0]*0.5),
+			(y + 8 + j) - (dim[1]*0.5)
+		));
+	}
+	
+	if(Quests.q0 == Quests.COMPLETED){
+		this.open();
+	}else{
+		this.close();
+	}
+	
+	this.on("activate", function(){
+		if(!this.isOpen){
+			this.active = true;
+		}
+	});
+	
+	this.frame = 0;
+	this.frame_row = 0;
+}
+
+SceneCaveRock.prototype.update = function(){
+	if(this.active){
+		this.position = Point.lerp(this.start,this.end,this.progress);
+		
+		if(this.progress < 1){
+			window.shakeCamera(10,4);
+			audio.playLock("cracking",0.2);
+		} else {
+			this.active = false;
+			this.open();
+			Quests.set("q0",Quests.COMPLETED);
+		}
+		
+		this.progress = Math.min(this.progress + this.delta * this.speed, 1.0);
+	}
+}
+SceneCaveRock.prototype.open = function(){
+	this.isOpen = true;
+	this.position.x = this.end.x;
+	this.position.y = this.end.y;
+	for(var i=0; i < this.tiles.length; i++){
+		game.setTile(
+			this.tiles[i].x,
+			this.tiles[i].y,
+			game.tileCollideLayer,
+			0
+		);
+	}
+}
+SceneCaveRock.prototype.close = function(){
+	this.isOpen = false;
+	this.position.x = this.start.x;
+	this.position.y = this.start.y;
+	for(var i=0; i < this.tiles.length; i++){
+		game.setTile(
+			this.tiles[i].x,
+			this.tiles[i].y,
+			game.tileCollideLayer,
+			BLANK_TILE
+		);
 	}
 }
 

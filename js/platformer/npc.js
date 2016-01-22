@@ -12,6 +12,7 @@ function NPC(x,y,t,o){
 	this.addModule(mod_talk);
 	
 	this.showmessage = false;
+	this.lockplayer = true;
 	
 	this.script = new Array();
 	this.scriptPos = 0;
@@ -23,9 +24,17 @@ function NPC(x,y,t,o){
 	if("script" in o){
 		this.getScript(o["script"]);
 	}
+	if("lockplayer" in o){
+		this.lockplayer = o["lockplayer"] * 1;
+	}
 	
 	this.on("open", function(){
 		this.scriptRun = true;
+		if(this.lockplayer){window._player.pause = true;}
+	});
+	
+	this.on("close", function(){
+		if(this.lockplayer){window._player.pause = false;}
 	});
 	
 }
@@ -74,6 +83,28 @@ NPC.prototype.runScript = function(filename){
 		NPC.variables[line[1]] = NPC.resolveCalculation(line[2]);
 		this.scriptPos++;
 		return true;
+	}else if(command == "wait"){
+		if(this.scriptWait > 0){
+			this.scriptWait -= this.delta;
+			if(this.scriptWait <= 0){
+				this.scriptPos++;
+			}
+		}else{
+			this.scriptWait = NPC.resolveCalculation(line[1]) * Game.DELTASECOND;
+		}
+		return false;
+	}else if(command == "additem"){
+		if(window._player instanceof Player){
+			var name = NPC.resolveCalculation(line[1]);
+			var item = new Item(0,0,0,{"name":name});
+			item.trigger("collideObject",_player);
+		}
+		this.scriptPos++;
+		return true;	
+	} else if(command == "trigger"){
+		Trigger.activate(i18n(NPC.resolveCalculation(line[1])));
+		this.scriptPos++;
+		return true;
 	}else if(command == "say"){
 		DialogManger.set(i18n(NPC.resolveVariable(line[1])));
 		this.showmessage = DialogManger.show;
@@ -82,15 +113,14 @@ NPC.prototype.runScript = function(filename){
 			this.scriptPos++;
 		}
 		return false;
+	}else if(command == "move"){
+		var x = NPC.resolveCalculation(line[1]);
+		var y = NPC.resolveCalculation(line[2]);
+		var speed = NPC.resolveCalculation(line[3]);
+		this.scriptPos++;
+		return false;
 	}else if(command == "quest"){
-		window._world.quests[line[1]] = NPC.resolveCalculation(line[2]);
-		try{
-			//Send quest message
-			var qmessage = i18n("quest")[line[1]][window._world.quests[line[1]]];
-			var pm = game.getObject(PauseMenu);
-			pm.message(qmessage);
-			audio.play("quest");
-		} catch (err){}
+		Quests.set(line[1],NPC.resolveCalculation(line[2]));
 		this.scriptPos++;
 		return true;
 	}
@@ -118,6 +148,10 @@ NPC.resolveCalculation = function(calc){
 					operands.push(a-b);
 				}else if (calc[i] == "=="){
 					operands.push(a==b);
+				}else if (calc[i] == ">"){
+					operands.push(a>b);
+				}else if (calc[i] == "<"){
+					operands.push(a<b);
 				}
 			}else{
 				operands.push(calc[i]);
@@ -146,7 +180,7 @@ NPC.resolveVariable = function(varname){
 		var prefix = varname.slice(0,varname.indexOf("."));
 		var suffix = varname.slice(varname.indexOf(".")+1);
 		if(prefix == "quest"){
-			return window._world.quests[suffix];
+			return Quests[suffix];
 		}
 	}
 	else{
@@ -224,7 +258,7 @@ NPC.compileCalc = function(tokens){
 	return o;
 }
 NPC.unpackTokens = function(line){
-	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+=-]+)/g);
+	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+><=-]+)/g);
 	for(var i = 0; i < out.length; i++){
 		out[i] = out[i].trim();
 		if(out[i].match(/^-?\d*\.?\d*$/)){
@@ -233,5 +267,5 @@ NPC.unpackTokens = function(line){
 	}
 	return out;
 }
-NPC.operators = ["/","*","+","-","=="];
+NPC.operators = ["/","*","+","-","==",">","<"];
 NPC.variables = {};

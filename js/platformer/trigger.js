@@ -130,3 +130,9 @@ Trigger.getTargets = function(name){
 	}
 	return out;
 }
+Trigger.activate = function(targets){
+	var objects = Trigger.getTargets(targets);
+	for(var j=0; j < objects.length; j++){
+		objects[j].trigger("activate", this);
+	}	
+}

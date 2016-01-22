@@ -122,6 +122,8 @@ function Item(x,y,d, ops){
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			
+			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
+			
 			dataManager.itemGet(this.name);
 			
 			if( "equip" in obj ){
@@ -339,6 +341,25 @@ Item.prototype.setName = function(n){
 	if( this.name == "treasure_map") { this.frame = 0; this.frame_row = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
 	if( this.name == "life_fruit") { this.frame = 1; this.frame_row = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame = 2; this.frame_row = 6; this.message = "Mana fruit\nMana up.";}
+	
+	if( this.name == "unique_wand"){
+		this.frame = 2;
+		this.frame_row = 6;
+		this.message = "Ancient Wand";
+		this.progress = 0.0;
+		this.use = function(player){
+			this.progress += game.deltaUnscaled;
+			if(this.progress < Game.DELTASECOND * 2){
+				game.pause = true;
+				return true;
+			}else{
+				this.progress = 0.0;
+				Trigger.activate("caverock");
+				game.pause = false;
+				return false;
+			}
+		}
+	}
 }
 Item.prototype.getMessage = function(){
 	if( "message" in this ) {

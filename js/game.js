@@ -803,11 +803,12 @@ Game.prototype.t_move = function(obj, x, y) {
 			}
 		} else {
 			if(y_pull > 0){
-				obj.position.y += 16;
+				obj.position.y += y_pull+1;
 			}
 			if(y_pull < 0){
-				limits[1] -= 1;
+				obj.position.y += y_pull;
 			}
+			
 			limits[1] += margins[3] - 0.1;
 			limits[3] += margins[1] + 0.1;
 			if( obj.position.y > limits[1] ) {

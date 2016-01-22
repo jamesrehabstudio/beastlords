@@ -104,15 +104,19 @@ window._messages = {
 			"bank" : "Bank"
 		}
 	},
+	"questcomplete" : {
+		"english" : "Quest complete!",
+		"engrish" : "Quest complete!"
+	},
 	"quest" : {
 		"english" : {
-			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q0" : ["The blocked caves", "Talk to the professor in NEARBYTOWN.", "Speak with the professor's brother hidden in the woods south of NEARBYTOWN.","Use the wand to open the cave entrence"],
 			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
 			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
 			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		},
 		"engrish" : {
-			"q0" : ["The lost Egg", "Find Chuckie's egg in the Chiltan Mountains.", "Return the egg to Chuckie."],
+			"q0" : ["The blocked caves", "Talk to the professor in NEARBYTOWN.", "Speak with the professor's brother hidden in the woods south of NEARBYTOWN.","Use the wand to open the cave entrence"],
 			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
 			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
 			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
@@ -124,11 +128,35 @@ window._messages = {
 	"miner0_1" : {
 		"english" : "Talk to the professor in NEARBYTOWN. He'll help us move this relief"
 	},
-	"miner0_3" : {
+	"miner0_2" : {
 		"english" : "You talked to him? He wants you to get a magic wand? Maybe the professor is losing his marbles. I dunno..."
 	},
-	"miner0_4" : {
+	"miner0_3" : {
 		"english" : "I can't believe that actually worked. Here was me thinkin' we had the week off"
+	},
+	"professor0_0" :{
+		"english" : "You're a strange looking one. You have a nice day, now."
+	},
+	"professor0_1" :{
+		"english" : "There's a large relief blocking the cave's entrence?! How amazing! That's a ancient door. Rather than have those brutes ruin it with their picks, find my brother in the south of the forest. He hides himself away, but he'll have the wand needed to open this cave."
+	},
+	"professor0_2" :{
+		"english" : "Have you spoken with my brother? He lives south of here, on the other side of the forest."
+	},
+	"professor0_3" :{
+		"english" : "You got the wand! It's certainly a marvel to see. It must be thousands of years old. Use it on the relief at the cave's entrence."
+	},
+	"professor0_4" :{
+		"english" : "Hard to believe after so many years, these ancient gadgets still work."
+	},
+	"professor1_0" :{
+		"english" : "Get out of here you wild thing!"
+	},
+	"professor1_1" :{
+		"english" : "I'm sorry, I thought you were some wild creature looking for food. My brother sent you? He should know better than that. If it's the wand you're after here it is. But take good care of it. It's priceless."
+	},
+	"professor1_2" :{
+		"english" : "Next time your see my brother, tell him not to send anymore people to me. I just want to be left alone."
 	}
 };
 function i18n(name,replace){

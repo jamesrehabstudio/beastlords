@@ -84,9 +84,14 @@ var mod_camera = {
 		game.camera.y = this.position.y - 120;
 		
 		var self = this;
-		window.shakeCamera = function(p,y){
-			if(!(p instanceof Point)) p = new Point(p,y);
-			self.camerShake = p;
+		window.shakeCamera = function(duration,strength){
+			if(duration instanceof Point){
+				self.camerShake = duration;
+			} else {
+				strength = strength || 4;
+				self.camerShake = new Point(duration,strength);
+			}
+			
 		};
 	},
 	'update' : function(){
@@ -94,9 +99,6 @@ var mod_camera = {
 		game.camera.x = this.position.x - (game.resolution.x / 2);
 		game.camera.y = this.position.y - (game.resolution.y / 2);
 		//game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
-		
-		game.camera.x += this.camerShake.x;
-		this.camerShake = this.camerShake.scale(1-(0.07*game.deltaUnscaled));
 		
 		//Set up locks
 		if( this.lock_overwrite instanceof Line ) {
@@ -125,6 +127,12 @@ var mod_camera = {
 			}
 			game.camera.x = Math.min( Math.max( game.camera.x, this._lock_current.start.x ), this._lock_current.end.x - screen.x );
 			game.camera.y = Math.min( Math.max( game.camera.y, this._lock_current.start.y ), this._lock_current.end.y - screen.y );
+		}
+		
+		if(this.camerShake.x > 0){
+			game.camera.x += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
+			game.camera.y += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
+			this.camerShake.x -= game.deltaUnscaled;
 		}
 	},
 	"render" : function(g,c){
