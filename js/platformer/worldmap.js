@@ -350,7 +350,8 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.player.y = locale.position.y;
 		this.rest = Game.DELTASECOND * 0.25;
 		
-		dataManager.randomTown(game, this.towns[i]);
+		HomeVillage.create(game);
+		
 		audio.playAs("music_town", "music");
 	} else if(type == "map"){
 		this.active = false;

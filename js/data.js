@@ -188,6 +188,7 @@ function load_sprites (){
 	sprites['skele'] = new Sprite(RT+"img/skele.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['statues'] = new Sprite(RT+"img/statues.gif", {offset:new Point(32, 56),width:64,height:64});
 	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48});
+	sprites['switch'] = new Sprite(RT+"img/switch.gif", {offset:new Point(0, 4),width:16,height:40});
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
 	
@@ -277,6 +278,7 @@ window.audio = new AudioPlayer({
 	"slash" : {"url":RT+"sounds/slash.wav"},
 	"spell" : {"url":RT+"sounds/spell.wav"},
 	"swing" : {"url":RT+"sounds/swing.wav"},
+	"switch" : {"url":RT+"sounds/switch.wav"},
 	"text01" : {"url":RT+"sounds/text01.wav"},
 	"unpause" : {"url":RT+"sounds/unpause.wav"},
 });

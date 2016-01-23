@@ -136,3 +136,60 @@ Trigger.activate = function(targets){
 		objects[j].trigger("activate", this);
 	}	
 }
+
+Switch.prototype = Trigger.prototype;
+Switch.prototype.constructor = GameObject;
+function Switch(x,y,d,o){
+	o = o || {};
+	if(!("retrigger" in o)){
+		//Set retrigger to 0 by default
+		o["retrigger"] == 0;
+	}
+	Trigger.apply(this,[x,y,d,o]);
+	
+	//Clear the on touch trigger
+	this.clearEvents("collideObject");
+	
+	this.sprite = sprites["switch"];
+	this.playerover = false;
+	this.frame = 0;
+	this.frame_row = 0;
+	this.zIndex = -1;
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			this.playerover = true;
+			if(this.triggerCount==0 && this.retrigger && input.state("up") == 1){
+				this.trigger("open");
+			}
+		}
+	});
+	this.on("open", function(){
+		if(this.time <= 0){
+			this.trigger("activate");
+		}else{
+			this.countdown = true;
+		}
+		audio.play("switch");
+		this.frame = 1;
+	});
+	
+	this.render = function(g,c){
+		if(this.triggerCount==0 && this.retrigger){
+			Background.pushLight(this.position.add(new Point(this.width*0.5,this.height*0.5)).subtract(c),96);
+		}
+		GameObject.prototype.render.apply(this,[g,c]);
+	}
+	
+	this.postrender = function(g,c){
+		if(this.triggerCount==0 && this.retrigger){
+			if(this.playerover){
+				var pos = _player.position.subtract(c);
+				pos.y -= 24;
+				sprites.text.render(g,pos,4,6);
+				this.playerover = false;
+			}
+		}
+	}
+}
+	
