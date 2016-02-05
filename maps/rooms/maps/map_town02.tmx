@@ -53,7 +53,7 @@
     <property name="script" value="professor1"/>
    </properties>
   </object>
-  <object id="2" name="Exit" gid="113" x="0" y="208" width="16" height="176"/>
+  <object id="2" name="Exit" gid="113" x="0" y="208" width="16" height="208"/>
  </objectgroup>
  <layer name="map" width="48" height="15">
   <data encoding="csv">

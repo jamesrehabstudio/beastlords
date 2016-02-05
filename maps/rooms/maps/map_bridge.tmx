@@ -60,12 +60,12 @@
     <property name="path" value="2"/>
    </properties>
   </object>
-  <object id="3" name="Exit" gid="115" x="752" y="128" width="16" height="16">
+  <object id="3" name="Exit" gid="115" x="752" y="208" width="16" height="208">
    <properties>
     <property name="direction" value="e"/>
    </properties>
   </object>
-  <object id="4" name="Exit" gid="115" x="0" y="128" width="16" height="16">
+  <object id="4" name="Exit" gid="115" x="0" y="208" width="16" height="208">
    <properties>
     <property name="direction" value="w"/>
    </properties>

@@ -3020,7 +3020,7 @@ function Axedog(x, y, d, o){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
-	this.height = 24;
+	this.height = 30;
 	this.sprite = sprites.axedog;
 	this.speed = 0.25;
 	
@@ -6714,17 +6714,18 @@ Yeti.prototype.update = function(){
 
 Exit.prototype = new GameObject();
 Exit.prototype.constructor = GameObject;
-function Exit(x,y,t,o){
+function Exit(x,y,d,o){
 	this.constructor();
 	this.sprite = sprites.cornerstones;
 	this.position.x = x - 8;
 	this.position.y = y + 8;
-	this.width = 16;
-	this.height = 240;
+	this.width = d[0] * 1;
+	this.height = d[1] * 1;
 	
 	var options = o || {};
 	this.visible = false;
 	this.offset = new Point();
+	this.location = false;
 	
 	if("direction" in options){
 		if( options.direction == "e" ) this.offset.x += 16;
@@ -6732,12 +6733,27 @@ function Exit(x,y,t,o){
 		if( options.direction == "s" ) this.offset.y += 16;
 		if( options.direction == "n" ) this.offset.y -= 16;
 	}
+	if("location" in options){
+		this.location = options["location"];
+	}
 	
 	this.on("collideObject",function(obj){
 		if( obj instanceof Player ) {
-			window._world.player.x += this.offset.x;
-			window._world.player.y += this.offset.y;
-			window._world.trigger("activate");
+			if(this.location){
+				window._world.trigger("activate");
+				var locales = game.getObjects(WorldLocale);
+				var player = game.getObject(WorldPlayer);
+				for(var i=0; i < locales.length; i++){
+					if(locales[i].map_id == this.location){
+						player.position.x = locales[i].position.x;
+						player.position.y = locales[i].position.y;
+					}
+				}
+			} else {
+				window._world.player.x += this.offset.x;
+				window._world.player.y += this.offset.y;
+				window._world.trigger("activate");
+			}
 		}
 	});
 }
@@ -6971,7 +6987,7 @@ HomeVillage.create = function(g){
 	
 	var pm = new PauseMenu();
 	pm.mapDimension = g.tileDimension.scale(1/16.0,1/15.0);
-	var mapWidth = floor(pm.mapDimension.width());
+	var mapWidth = Math.floor(pm.mapDimension.width());
 	pm.map = new Array(mapWidth);
 	for(var i=0; i < mapWidth; i++){
 		var tile = i==0?5:(i==mapWidth-1?6:7);
@@ -7063,6 +7079,10 @@ window._messages = {
 	"templenames" : {
 		"english" : ["Anahilt Fortress","The Gardens of Benburb", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"],
 		"engrish" : ["Anahilt Fortress","Benburb Gardens", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"]
+	},
+	"speeds" : {
+		"english" : ["Very slow","Slow","Normal","Fast","Very Fast"],
+		"engrish" : ["Very slow","Slow","Normal","Fast","Very Fast"]
 	},
 	"mayor_intro" : {
 		"english" : [
@@ -7243,7 +7263,7 @@ function Item(x,y,d, ops){
 	}
 	if( "name" in ops ) {
 		if(ops["name"] == "random"){
-			this.setName(dataManager.randomTreasure(Math.random()).name);
+			this.setName(Item.randomTreasure(Math.random()).name);
 		} else {
 			this.setName( ops.name );
 		}
@@ -7669,6 +7689,26 @@ Item.drop = function(obj,money,sleep){
 		game.addObject( item );
 	}
 }
+Item.randomTreasure = function(roll, tags, ops){
+	tags = tags || [];
+	ops = ops || {};
+	ops.remaining = ops.remaining || 0;
+	
+	var shortlist = [];
+	var total = 0.0;
+	for(var i=0; i<Item.treasures.length; i++) 
+		if((!ops.locked && Item.treasures[i].remaining > ops.remaining) || (ops.locked && Item.treasures[i].unlocked <= 0))
+			if(Item.treasures[i].tags.intersection(tags).length == tags.length) {
+				total += Item.treasures[i].rarity;
+				shortlist.push(Item.treasures[i]);
+			}
+	roll *= total;
+	for(var i=0; i<shortlist.length; i++) {
+		if( roll < shortlist[i].rarity ) return shortlist[i];
+		roll -= shortlist[i].rarity;
+	}
+	return Item.treasures[0];
+}
 
 Item.weaponDescription = function(){
 	var out = "";
@@ -7994,11 +8034,14 @@ MapDebug.prototype.update = function(){
 	if( input.state("fire") == 1) this.slice--;
 	if( input.state("jump") == 1) this.slice++;
 }
-MapDebug.prototype.render = function(g,c){
+MapDebug.prototype.hudrender = function(g,c){
 	try {
 		var size = new Point(8,8);
+		//this.slice = Math.min(Math.max(this.slice,0),RandomTemple.test.slices.length-1);
+		this.slice = Math.min(Math.max(this.slice,0),MapSlice.testslice.length-1);
 		
-		var slice = dataManager.slices[this.slice].data;
+		//var slice = RandomTemple.test.slices[this.slice].data;
+		var slice = MapSlice.testslice[this.slice].data;
 		for(var i in slice ){
 			if( slice[i].room != -1 ) {
 				var pos = MapSlice.idToLoc(i);
@@ -8842,9 +8885,9 @@ PauseMenu.prototype.hudrender = function(g,c){
 			
 		} else if ( this.page == 2 ) {
 			//Stats page
-			leftx = game.resolution.x*0.5 - 120*0.5;
+			leftx = game.resolution.x*0.5 - 224*0.5;
 			
-			boxArea(g,leftx,8,120,224);
+			boxArea(g,leftx,8,224,224);
 			
 			textArea(g,"Attributes",leftx+20,20);
 			
@@ -8867,6 +8910,16 @@ PauseMenu.prototype.hudrender = function(g,c){
 				}
 				attr_i++;
 			}
+			
+			textArea(g,"Damage",leftx+120,60);
+			textArea(g,"Defence",leftx+120,60+28);
+			textArea(g,"Stanima",leftx+120,60+56);
+			textArea(g,"Speed",leftx+120,60+84);
+			
+			textArea(g,""+_player.damage,leftx+120,72);
+			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
+			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
+			textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			leftx = game.resolution.x*0.5 - 224*0.5;
@@ -8980,6 +9033,20 @@ PauseMenu.convertTileDataToMapData = function(data){
 		}
 	}
 	return out;
+}
+PauseMenu.attackspeedToName = function(speed){
+	var n = i18n("speeds");
+	if(speed > 20){
+		return n[0];
+	} else if (speed > 16){
+		return n[1];
+	} else if (speed > 12){
+		return n[2];
+	} else if (speed > 8){
+		return n[3];
+	} else {
+		return n[4];
+	}
 }
 
  /* platformer\menu_title.js*/ 
@@ -10135,7 +10202,7 @@ NPC.resolveVariable = function(varname){
 	}
 }
 NPC.prototype.getScript = function(filename){
-	ajax("/scripts/"+filename+".script",function(data){
+	ajax("scripts/"+filename+".script",function(data){
 		this.script = NPC.compileScript(data);
 	},this);
 }
@@ -10305,7 +10372,7 @@ function Player(x, y){
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125)
 	};
 	
-	this.attackProperites = {
+	this.attackProperties = {
 		"charge_start" : 0.2 * Game.DELTASECOND,
 		"charge_end" : 0.5 * Game.DELTASECOND,
 		"warm" : 8.5,
@@ -10425,8 +10492,8 @@ function Player(x, y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(obj, damage){
-		var dir = this.position.subtract(obj.position).normalize(damage);
-		window.shakeCamera(dir);
+		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
+		window.shakeCamera(Game.DELTASECOND*0.5,str);
 		if(this.stun_time > 0 ){
 			this.states.attack = 0;
 			game.slow(0,5.0);
@@ -10505,6 +10572,7 @@ function Player(x, y){
 		"defence" : 1,
 		"technique" : 1
 	}
+	
 	this.life = 100;
 	this.lifeMax = 100;
 	this.mana = 3;
@@ -10748,14 +10816,14 @@ Player.prototype.update = function(){
 				this.attack(); 
 			} else if ( input.state('fire') > 0 ) { 
 				this.states.attack_charge += this.delta; 
-				if( this.states.attack_charge >= this.attackProperites.charge_start){
+				if( this.states.attack_charge >= this.attackProperties.charge_start){
 					strafe = true;
 				}
 			} else { 
 				this.states.charge_multiplier = false;
 				
 				//Release charge if it has built up
-				if( this.states.attack_charge > this.attackProperites.charge_end ){
+				if( this.states.attack_charge > this.attackProperties.charge_end ){
 					this.states.charge_multiplier = true;
 					this.attack();
 					strafe = true;
@@ -10833,10 +10901,10 @@ Player.prototype.update = function(){
 		
 		
 		if ( this.states.downStab ) {
-			this.strike(new Line( 0, 8, 4, 8+Math.max( 12, this.attackProperites.range)));
+			this.strike(new Line( 0, 8, 4, 8+Math.max( 12, this.attackProperties.range)));
 		}
 		
-		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
+		if ( this.states.attack > this.attackProperties.rest && this.states.attack <= this.attackProperties.strike ){
 			//Play sound effect for attack
 			if( !this.states.startSwing ) {
 				audio.play("swing");
@@ -10859,7 +10927,7 @@ Player.prototype.update = function(){
 			//Create box to detect enemies
 			var temp_damage = this.damage;
 			var type = this.equip_sword.phantom ? "hurt" : "struck";
-			var weapon_top = (this.states.duck ? 4 : -4) - this.weapon.width*.5;
+			var weapon_top = (this.states.duck ? 4 : -6) - this.weapon.width*.5;
 			if( this.spellsCounters.magic_strength > 0 ) {
 				temp_damage = Math.floor(temp_damage*1.25);
 			}
@@ -10868,7 +10936,7 @@ Player.prototype.update = function(){
 			}
 			this.strike(new Line(
 				new Point( 12, weapon_top ),
-				new Point( 12+this.attackProperites.range , weapon_top+this.weapon.width )
+				new Point( 12+this.attackProperties.range , weapon_top+this.weapon.width )
 			), type, temp_damage );
 		} else {
 			this.states.startSwing = false;
@@ -10903,11 +10971,11 @@ Player.prototype.update = function(){
 			this.frame_row = 1;
 			
 			if( this.states.attack > 0 ) this.frame = 2;
-			if( this.states.attack > this.attackProperites.rest ) this.frame = 1;
-			if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
+			if( this.states.attack > this.attackProperties.rest ) this.frame = 1;
+			if( this.states.attack > this.attackProperties.strike ) this.frame = 0;		
 		} else {
 			this.frame_row = 0;
-			if( this.states.attack_charge > this.attackProperites.charge_start || this.states.attack > 0 ) this.frame_row = 2;
+			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame_row = 2;
 			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				//Run animation
 				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
@@ -10916,10 +10984,10 @@ Player.prototype.update = function(){
 			}
 		}
 		
-		if( this.states.attack_charge > this.attackProperites.charge_start ) this.frame = 0;
+		if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame = 0;
 		if( this.states.attack > 0 ) this.frame = 2;
-		if( this.states.attack > this.attackProperites.rest ) this.frame = 1;
-		if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
+		if( this.states.attack > this.attackProperties.rest ) this.frame = 1;
+		if( this.states.attack > this.attackProperties.strike ) this.frame = 0;		
 	}
 	
 	//Animation Sword
@@ -11029,7 +11097,7 @@ Player.prototype.attack = function(){
 			this.weapon.combo = 2;
 		}
 		this.weapon.width = this.weapon.combo == 2 ? 18 : 4;
-		this.states.attack = this.attackProperites.warm;
+		this.states.attack = this.attackProperties.warm;
 	}
 }
 Player.prototype.castSpell = function(name){
@@ -11064,11 +11132,11 @@ Player.prototype.equipCharm = function(c){
 Player.prototype.equip = function(sword, shield){
 	try {	
 		if( sword.isWeapon && "stats" in sword ){
-			this.attackProperites.warm =  sword.stats.warm;
-			this.attackProperites.strike = sword.stats.strike;
-			this.attackProperites.rest = sword.stats.rest;
-			this.attackProperites.range = sword.stats.range;
-			this.attackProperites.sprite = sword.stats.sprite;
+			this.attackProperties.warm =  sword.stats.warm;
+			this.attackProperties.strike = sword.stats.strike;
+			this.attackProperties.rest = sword.stats.rest;
+			this.attackProperties.range = sword.stats.range;
+			this.attackProperties.sprite = sword.stats.sprite;
 			if( sword.twoHanded ) shield = null;
 		} else {
 			throw "No valid weapon";
@@ -11077,9 +11145,9 @@ Player.prototype.equip = function(sword, shield){
 		//Shields
 		if( shield != null ) {
 			if( "stats" in shield){
-				this.attackProperites.warm *= shield.stats.speed;
-				this.attackProperites.strike *= shield.stats.speed;
-				this.attackProperites.rest *= shield.stats.speed;
+				this.attackProperties.warm *= shield.stats.speed;
+				this.attackProperties.strike *= shield.stats.speed;
+				this.attackProperties.rest *= shield.stats.speed;
 				this.shieldProperties.duck = -5.0 + (15 - (shield.stats.height/2));
 				this.shieldProperties.stand = -5.0;
 				this.guard.lifeMax = shield.stats.guardlife;
@@ -11137,14 +11205,14 @@ Player.prototype.equip = function(sword, shield){
 		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
 		
-		this.guard.lifeMax += 3 * def;
+		this.guard.lifeMax += 3 * def + tech;
 		this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
-		this.attackProperites.rest = Math.max( this.attackProperites.rest - tech*1.6, 0);
-		this.attackProperites.strike = Math.max( this.attackProperites.strike - tech*1.6, 3.5);
-		this.attackProperites.warm = Math.max( this.attackProperites.warm - tech*2.0, this.attackProperites.strike);		
+		this.attackProperties.rest = Math.max( this.attackProperties.rest - tech*1.4, 0);
+		this.attackProperties.strike = Math.max( this.attackProperties.strike - tech*1.4, 3.5);
+		this.attackProperties.warm = Math.max( this.attackProperties.warm - tech*1.8, this.attackProperties.strike);		
 		
 	} catch(e) {
 		this.equip( this.equip_sword, this.equip_shield );
@@ -11202,7 +11270,7 @@ Player.prototype.addXP = function(value){
 		ga("send","event", "levelup","level:" + this.level);
 		
 		if(Math.random() < 0.1){
-			var treasure = dataManager.randomTreasure(Math.random(),[],{"locked":true});
+			var treasure = Item.randomTreasure(Math.random(),[],{"locked":true});
 			dataManager.itemUnlock(treasure.name);
 		}
 		
@@ -11244,7 +11312,7 @@ Player.prototype.render = function(g,c){
 		//Render current sword
 		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
 		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
-		this.attackProperites.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+		this.attackProperties.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
 			this.weapon.frame, 
 			this.weapon.frame_row, 
 			this.flip, 
@@ -11502,7 +11570,12 @@ function RandomTemple(templeid) {
 	this.persistantObjects = new Array();
 	this.seed = null;
 	this.playerStart = new Point(64,176);
+	
+	RandomTemple.test = this;
 }
+
+RandomTemple.test = null;
+RandomTemple.currentTemple = 0;
 
 RandomTemple.temples = [
 	{"tiles":"tiles2","size":10,"maxkeys":1,"treasures":1,"difficulty":0},
@@ -11548,13 +11621,19 @@ RandomTemple.rules = {
 	"prison" : function(level,options){
 		if(level==0) return this.roomsFromTags(["prison_w","prison_e"], options);
 		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
+	},
+	"loop" : function(level,options){
+		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
 	}
 };
 
 RandomTemple.prototype.generate = function(s){
 	var success = false;
 	
+	RandomTemple.currentTemple = this.templeId;
+	
 	s = s || "" + Math.random();
+	//s = "00.7882414807099849";
 	this.seed = new Seed( s );
 	
 	while( !success ) {
@@ -11603,9 +11682,16 @@ RandomTemple.prototype.generate = function(s){
 		
 	}
 	
+	this.build(this.slices.peek());
+}
+
+RandomTemple.prototype.build = function(slice){
+	
 	//Everything is okay, build the level
 	var width = 256;
 	var height = 240;
+	this.objects = new Array();
+	this.items = new Array();
 	
 	
 	this.temple_instance = false;
@@ -11616,7 +11702,7 @@ RandomTemple.prototype.generate = function(s){
 	}*/
 	
 	//Establish the level size and build tile matrix
-	this.mapDimension = this.slices.peek().size();
+	this.mapDimension = slice.size();
 	this.tileDimension = this.mapDimension.scale(16,15);
 	
 	this.tiles = [
@@ -11626,7 +11712,6 @@ RandomTemple.prototype.generate = function(s){
 	];
 	this.mapTiles = new Array( Math.floor( this.mapDimension.area() ) );
 	
-	var slice = this.slices.peek();
 	for(var i in slice.data){
 		try{
 			var room_options = {};
@@ -11638,6 +11723,7 @@ RandomTemple.prototype.generate = function(s){
 			//	mapTiles[ map_index ] = secret;
 			
 			var room_slice = slice.data[i];
+			/*
 			var room;
 			
 			if ( room_slice.room >= 0 ) { 
@@ -11653,79 +11739,41 @@ RandomTemple.prototype.generate = function(s){
 					room_options["entrances"].push( MapSlice.idToLoc(ent) );
 				}
 			}
+			*/
 			
-			if( room ) {
+			if( room_slice ) {
 				var cursor = new Point(pos.x * width, pos.y * height );
-				this.createRoom(room,cursor,room_options);
-				
-				//If this room uses a specific map tile
-				/*
-				if( "map" in room ) {
-					var map_tiles = room["map_tile"].split(",");
-					for(var j=0; j < map_tiles.length; j++ ){
-						mapTiles[ map_index + j ] = map_tiles[j] * secret;
-					}
-				}
-				*/
-				var mapWidth = slice.data[i].width;
-				var mapHeight = slice.data[i].height;
-				for(var mapx=0; mapx < mapWidth; mapx++)
-				for(var mapy=0; mapy < mapHeight; mapy++){
-					var map_index = Math.floor( 
-						(mapx + pos.x) - this.mapDimension.start.x + 
-						((mapy + pos.y) - this.mapDimension.start.y) * this.mapDimension.width() 
-					);
-					var start_id = MapSlice.locToId(new Point(mapx, mapy));
-					var end_id = MapSlice.locToId(new Point(mapx+1, mapy));
-					//determine the map tile
-					var tileY = 0
-					if( mapy > 0) tileY += 8;
-					if( mapy >= mapHeight-1) tileY += 4;
-					if( mapx > 0) {
-						tileY += 2;
-					} else if (start_id in room_slice.entrances && room_slice.entrances[start_id]){
-						tileY += 16;
-					}
-					if( mapx < mapWidth-1) {
-						tileY += 1;
-					} else if ( end_id in room_slice.entrances && room_slice.entrances[end_id] ) {
-						tileY += 32;
-					}
-					//var tile = tileY * 16;
-					
-					this.mapTiles[ map_index ] = tileY;
-					
-					if( mapHeight==1 ){
-						var pre_map = {
-							20 : {36:[6,5],52:[6,21],38:[6,7]},
-							52 : {36:[38,5],52:[38,21],38:[38,7]},
-							21 : {36:[7,5],52:[7,21],38:[7,7]}
-						};
-						
-						var nxt_map = {
-							36 : {20:[5,6],21:[5,7],52:[5,38]},
-							52 : {20:[21,6],21:[21,7],52:[21,38]},
-							38 : {20:[7,6],21:[7,7],52:[7,38]}
-						};
-						//If rooms are on same level connect them
-						var tilePrev = this.mapTiles[map_index-1];
-						var tileNext = this.mapTiles[map_index+1];
-						
-						if( tileY in pre_map && tilePrev in pre_map[tileY] ) {
-							//Attach to the left room
-							this.mapTiles[map_index] = pre_map[tileY][tilePrev][0];
-							this.mapTiles[map_index-1] = pre_map[tileY][tilePrev][1];
-						}
-						if( tileY in nxt_map && tileNext in nxt_map[tileY] ) {
-							//Attach to the right room
-							this.mapTiles[map_index] = nxt_map[tileY][tileNext][0];
-							this.mapTiles[map_index+1] = nxt_map[tileY][tileNext][1];
-						}
-					}
-				}
+				this.createRoom(room_slice,cursor,room_options);
 			}
 		} catch (err){
 			console.error("Cannot create room at: " +i+"... "+err);
+		}
+	}
+	
+	//Process map tiles, merge straigh lines
+	var entrances = this.slices.peek().getUsedEntrances();
+	for(var i=0; i < entrances.length; i++){
+		var x = entrances[i].x;
+		var y = entrances[i].y;
+		var mapIndex = (x - this.mapDimension.start.x) + (y - this.mapDimension.start.y) * this.mapDimension.width();
+		var tileA = this.mapTiles[mapIndex-1];
+		var tileB = this.mapTiles[mapIndex];
+		
+		if(
+			(tileA%16==4 || tileA%16==6) &&
+			(tileB%16==4 || tileB%16==5)
+		){
+			//Merge rooms
+			this.mapTiles[mapIndex-1] = tileA + 1;
+			this.mapTiles[mapIndex] = tileB + 2;
+		} else {
+			//Add doorway
+			if(tileA%2 < 1){
+				this.mapTiles[mapIndex-1] |= 32;
+			}
+			if(tileB%4 < 2){
+				this.mapTiles[mapIndex] |= 16;
+			}
 		}
 	}
 }
@@ -11792,41 +11840,75 @@ RandomTemple.prototype.use = function(g){
 	g.addObject(_player);
 	g.addObject(pm);
 	g.addObject(new Background());
+	
+	g.tileSprite = sprites.tiles7;
 }
 
-RandomTemple.prototype.createRoom = function(room,cursor,room_options){
+RandomTemple.prototype.createRoom = function(room_slice,cursor,room_options){
 	var layers = ["far","back","front"];
 	var persistant = ["Item","Shop","Alter","Arena"];
 	
-	var width = ("width" in room) ? room.width : 1;
-	var height = ("height" in room) ? room.height : 1;
+	if ( room_slice.room >= 0 ) { 
+		var room = _map_rooms[ room_slice.room ];
+	} else { 
+		return;
+	}
+	
+	var room_options = {};
+	//room_options["id"] = i;
+	room_options["entrances"] = new Array();
+	for(var ent in room_slice.entrances ){
+		if( room_slice.entrances[ent] ){
+			room_options["entrances"].push( MapSlice.idToLoc(ent) );
+		}
+	}
+	
+	var width = ("width" in room_slice) ? room_slice.width : 1;
+	var height = ("height" in room_slice) ? room_slice.height : 1;
 	
 	var ts = 16;
 	room_options = room_options || {};
 	var room_size = room_options.room_size || 16;
-	var addBackground = true;
-	
-	if( "background" in room_options ) addBackground = room_options.background;
-	
 	
 	//Render tiles
+	var tileCursor = cursor.scale(1/ts);
 	for(var j=0; j < layers.length; j++ ) {
 		if( layers[j] in room ) {
 			var layer = room[layers[j]];
 			var rs = room_size;
-			var start_x = this.tileDimension.start.x;
 			if( layer instanceof Function ) layer = layer.apply(room, [this.seed, width, height, room_options]);
 			
 			for(var i=0; i < layer.length; i++){
 				var x = Math.floor( i % ( room_size * width ) );
 				var y = Math.floor( i / ( room_size * width ) );
 				var offset = Math.floor( 
-					Math.floor( (x-start_x) + Math.floor( cursor.x / ts ) ) + 
-					Math.floor( ((y-this.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * this.tileDimension.width() )
+					Math.floor( (x-this.tileDimension.start.x) + tileCursor.x ) + 
+					Math.floor( ((y-this.tileDimension.start.y) + tileCursor.y ) * this.tileDimension.width() )
 				);
 				this.tiles[j][offset] = layer[i];
 			}
 		}
+	}
+	
+	//Map
+	var mapCursor = new Point(Math.floor(cursor.x/256),Math.floor(cursor.y/240));
+	for(var w=0; w < width; w++) for(var h=0; h < height; h++){
+		var index = Math.floor(
+			(mapCursor.x+(w-this.mapDimension.start.x)) + 
+			(mapCursor.y+(h-this.mapDimension.start.y)) * this.mapDimension.width()
+		);
+		var tileY = 0;
+		if("map" in room){
+			var mIndex = w + h * width;
+			tileY = PauseMenu.convertTileDataToMapData(room["map"])[mIndex];
+		}else{
+			if( h > 0) tileY += 8;
+			if( h >= height-1) tileY += 4;
+			if( w > 0) tileY += 2;
+			if( w < width-1) tileY += 1;
+			
+		}
+		this.mapTiles[index] = tileY;
 	}
 	
 	//Add objects
@@ -11848,7 +11930,7 @@ RandomTemple.prototype.createRoom = function(room,cursor,room_options){
 			var props = {};
 			try{
 				var id = room_options.id;
-				props = this.slices.peek().data[id].properties;
+				props = room_slice.properties;
 			} catch (err) {}
 			
 			if( "min_temple" in properties && this.templeId < properties["min_temple"]-0 ) addObject = false;
@@ -11949,14 +12031,14 @@ RandomTemple.prototype.getJunctionRoomIndex = function(tags){
 RandomTemple.prototype.addBranch = function(options, level, entrances){
 	
 	entrances = this.seed.shuffle(entrances);
+	var bid = this.slices.length;
 	
 	for( var i=0; i < entrances.length; i++ ) {
 		var entrance = entrances[i];
 		var pos = MapSlice.idToLoc(entrance);
 		
 		//Create new slice
-		var bid = this.slices.length;
-		this.slices.push( this.slices.peek().clone() );
+		this.slices.push( this.slices.peek().clone() ); 
 		
 		if( this.addRoom(options, level, entrance) ){
 			this.slices.peek().useEntrance(entrance);
@@ -12021,13 +12103,23 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 			temp_properties["item"] = options["item"];
 		}
 		
-		var entrances = room.entrances || [ [0,0],[room.width,0]];
+		var entrances = [ [0,0],[room.width,0]];
+		if("entrances" in room){
+			if(room["entrances"] instanceof Function){
+				var rw = room.width;
+				var rh = room.height || 1;
+				entrances = room["entrances"](rw,rh);
+			} else {
+				entrances = room["entrances"];
+			}
+		}
 		
 	
 		//if( this.isFree( room, new_direction, cursor ) ) {
 		for(var ent=0; ent < entrances.length; ent++ ){
 			var entrance = new Point(entrances[ent][0], entrances[ent][1]);
 			var cursorEnter = cursor.subtract(entrance);
+			
 			if( this.isFree( room, cursorEnter ) ) {
 				success = true;
 				var bid = false;
@@ -12086,6 +12178,7 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 				}
 				*/
 				//More rooms to go?
+				
 				if( level > 0 ){
 					
 					if( "tags" in room && room.tags.indexOf("optional") >= 0) {
@@ -12098,6 +12191,20 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 					for(var cur=0; cur < exits.length; cur++){
 						var nextEntrance = new Point(exits[cur][0], exits[cur][1]);
 						var next_cursor = cursorEnter.add(nextEntrance);
+						
+						if("destination_x" in options){
+							if(options["destination_x"] == next_cursor.x){
+								//Reached its destination
+								if("meet_y" in options){
+									var lheight = Math.abs(next_cursor.y-options["meet_y"])+1;
+									var ltop = new Point(next_cursor.x, Math.min(next_cursor.y,options["meet_y"]));
+									return this.isFree({"height":lheight},ltop);
+								} else {
+									return true;
+								}
+							}
+						}
+						
 						if( this.addRoom(options, level-1, next_cursor) ) {
 							this.slices.peek().useEntrance(cursorEnter,nextEntrance);
 							break;
@@ -12110,7 +12217,7 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 					
 					if( !success ) {
 						//clear this room
-						if(bid){
+						if(typeof bid == "number"){
 							//A branch was created, destroy it.
 							this.revertSlice(bid);
 						}
@@ -12120,32 +12227,14 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 						return true;
 					}
 				} else {
-					if( "key" in options ) {
+					if("destination_x" in options){
+						return false;
+					}
+					if( "key" in options ) {	
+						//Determine side of room not in use
+						this.attemptLoop(cursor,entrance,cursorEnter,temp_properties);
 						this.slices.peek().keys.push( options.key );
 					}
-					
-				/*
-					var loopSuccess = false;
-					var junx = this.slices.peek().getJunctions();
-					for(var i=0; i < junx.length; i++){
-						if( "item" in options && options.item.match(/key_\d+/) ){
-							var dest = MapSlice.idToLoc(junx[i]);
-							if( dest.y != cursor.y ) {
-								var key = options.item.match(/\d+/)[0] - 0;
-								var ops = {"door" : key};
-								this.slices.push( this.slices.peek().clone() );
-								loopSuccess = this.attemptLoop(ops,0,new_direction,new Point(cursor.x+new_direction,cursor.y),dest);
-								if(loopSuccess) 
-									break;
-								else
-									this.slices.pop();
-							}
-						}
-					}
-					if( loopSuccess ) {
-						this.slices.peek().set(cursor, dataManager.roomFromTags(["item"]));
-					}
-				*/
 					return true;
 				}
 			}
@@ -12157,119 +12246,41 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 	return false;
 }
 
-RandomTemple.prototype.attemptLoop = function(options,level,direction,cursor,destination,connection){
-	var distance = Math.abs(direction.x - cursor.x);
-	for(var attempt=1; attempt < distance; attempt++){
-		var lowest = new Point(Math.min(direction.x, cursor.x), Math.min(direction.y, cursor.y));
-		if( direction.y == cursor.y ) {
-			var width = Math.abs(direction.x - cursor.x);
-			if( this.slices.peek().isFree({"width":distance, "height":1}, lowest) ){
-				//fill it up with rooms
-				return true;
-			}
-			return false;
-		} else { 
-			var leftmost = cursor.x > direction.x;
-			if( this.slices.peek().isFree({"width":distance, "height":1}, new Point(cursor.x-distance,cursor.y)) ){
-				
-			}
-		}
+RandomTemple.prototype.attemptLoop = function(cursor,entrance,cursorEnter,properties){
+	//Determine side of room not in use
+	var lift = entrance.x > 0 ? new Point(-2,0) : new Point(1,0);
+	
+	if( this.addBranch({
+			"rules":RandomTemple.rules.loop,
+			"destination_x" : cursor.add(lift).x,
+			"meet_y" : cursor.add(lift).y,
+			"size": 10
+		},10, this.slices.peek().getEntrances()
+	) ){
+		
+		var q = MapSlice.idToLoc(this.slices.peek().getLast());
+		var p = this.slices.peek().getEntrances(this.slices.peek().getLast())[0];
+		pheight = q.y - cursor.y;
+		
+		if(pheight < 0) lift.y = lift.y + pheight;
+		
+		var froom = this.roomFromTags(["item"]);
+		var lroom = window._map_rooms[3];
+		this.slices.peek().add(cursorEnter,froom,properties);
+		this.slices.peek().add(cursor.add(lift),lroom,{"height":Math.abs(pheight)+1});
+		
+		//this.slices.peek().useEntrance(cursor.add(exit).add(new Point(lift.x,0)));
+		//this.slices.peek().useEntrance(cursor.add(exit).add(new Point(lift.x,Math.abs(pheight))));
+		//if(p instanceof Point) p.y += 1;
+		
+		var exit = entrance.x > 0 ? new Point(0,0) : new Point(1,0);
+		var ops = new Point(0,pheight);
+		this.slices.peek().useEntrance(cursor.add(exit));
+		this.slices.peek().useEntrance(cursor.add(exit).add(ops));
+		console.log("Loop added");
+		return true;
 	}
 	return false;
-}
-RandomTemple.prototype.attemptLoopOld = function(options,level,direction,cursor,destination,connection){
-	if( level > 30 ) {
-		console.error("Couldn't reach destination in "+level+" steps.");
-		return false;
-	} else if( cursor.x == destination.x && cursor.y == destination.y ) {
-		var id = ~~cursor.x +"_"+ ~~cursor.y;
-		var d = "x";
-		if( connection ) {
-			if( connection > 0 ) d="n";
-			if( connection < 0 ) d="s";
-		} else {
-			if( direction > 0 ) d="w";
-			if( direction < 0 ) d="e";
-		}
-		this.slices.peek().setJunction(cursor,d);
-		console.log("Reached Destination!!!");
-		return true;
-	} else if( connection ) {
-		if( this.isFree(null,direction,cursor) ){
-			var id = ~~cursor.x +"_"+ ~~cursor.y;
-			this.slices.peek().add(cursor,"j");
-			
-			var d = cursor.x < destination.x ? 1 : -1;
-			if(cursor.y == destination.y ){
-				this.slices.peek().setJunction(cursor,(d<0?"w":"e"));
-				this.slices.peek().setJunction(cursor,(connection>0?"n":"s"));
-				
-				var c = new Point(cursor.x+d, cursor.y);
-				if(!this.attemptLoop(options,level+1,d,c,destination) ){
-					//Clean up
-					this.slices.peek().remove(cursor);
-					return false;
-				}
-			} else {
-				this.slices.peek().setJunction(id, ["n","s"]);
-				var v = cursor.y < destination.y ? 1 : -1;
-				var c = new Point(cursor.x, cursor.y + v );
-				if( !this.attemptLoop(options,level+1,d,c,destination, v) ){
-					this.slices.peek().remove(cursor);
-					return false;
-				}
-			}
-		} else {
-			return false;
-		}
-	} else if(level > 0 && cursor.y != destination.y && this.seed.randomBool(0.8) ){
-		//Match height
-		if( this.isFree(null,direction,cursor) ){
-			var d = cursor.x < destination.x ? 1 : -1;
-			var id = ~~cursor.x +"_"+ ~~cursor.y;
-			
-			this.slices.peek().add(id,"j");
-			this.slices.peek().setJunction(id,(direction>0?"w":"e"));
-			this.slices.peek().setJunction(id,(cursor.y>destination.y?"n":"s"));
-			
-			var v = cursor.y < destination.y ? 1 : -1;
-			var c = new Point(cursor.x, cursor.y + v );
-			if(!this.attemptLoop(options,level+1,d,c,destination, v)){
-				this.slices.peek().remove(id);
-				return false;
-			}
-		} else {
-			return false;
-		}		
-	} else {
-		var room_id = this.randomRoom();
-		var room = _map_rooms[ room_id ];
-		var ops = options;
-		if( "door" in options && Math.abs(cursor.x-destination.x) < 3 && cursor.y == destination.y){
-			room_id = RandomTemple.roomFromTags(["door"]);
-			var room = _map_rooms[ room_id ];
-		}
-		while(cursor.y==destination.y && Math.abs(cursor.x-destination.x) < room.width){
-			room_id = this.randomRoom();
-			room = _map_rooms[ room_id ];
-		}
-		if( this.isFree(room,direction,cursor) ) {
-			var c = new Point(cursor.x+room.width*direction, cursor.y);
-			var p = {};
-			if("tags" in room && room.tags.indexOf("door") >= 0 ) {
-				p = {"door":options.door};
-				ops = {};
-			}
-			this.slices.peek().add(cursor, room, p, direction);
-			if(!this.attemptLoop(ops,level+1,direction,c,destination)){
-				this.slices.peek().remove(id, room);
-				return false;
-			}
-		} else {
-			return false;
-		}
-	}
-	return true;
 }
 
 RandomTemple.prototype.addWell = function(){
@@ -12476,6 +12487,7 @@ function MapSlice() {
 	this.keys = [];
 	this.keyCount = 0;
 	this.data = {};
+	this.orderCount = 0;
 }
 MapSlice.prototype.add = function(loc,room,p, secret){
 	p = p || {};
@@ -12500,21 +12512,32 @@ MapSlice.prototype.add = function(loc,room,p, secret){
 		}
 	}
 	secret = secret || false;
+	this.orderCount++;
 	this.data[loc] = {
 		"width" : 1,
 		"height" : 1,
 		"room" : room_id,
 		"entrances" : {},
 		"properties" : p,
-		"secret" : secret
+		"secret" : secret,
+		"order" : this.orderCount
 	}
 	
 	if( room instanceof Object ){ 
 		var width = ("width" in room) ? room["width"] : 1;
 		var height = ("height" in room) ? room["height"] : 1;
+		if("width" in p) width = p["width"];
+		if("height" in p) height = p["height"];
 		this.data[loc]["width"] = width;
 		this.data[loc]["height"] = height;
-		var entrances = ("entrances" in room) ? room.entrances : [[0,0],[width,0]];
+		var entrances = [[0,0],[width,0]];
+		if("entrances" in room){
+			if(room["entrances"] instanceof Function){
+				entrances = room["entrances"](width,height,p);
+			}else {
+				entrances = room["entrances"];
+			}
+		}
 		
 		for(var i=0; i < entrances.length; i++){
 			ent = MapSlice.locToId(new Point(entrances[i][0],entrances[i][1]));
@@ -12531,6 +12554,20 @@ MapSlice.prototype.add = function(loc,room,p, secret){
 		}
 	}
 }
+
+MapSlice.prototype.getLast = function(){
+	var out = null;
+	var largest = -1;
+	for(var id in this.data){
+		if(this.data[id].room >= 0){
+			if(this.data[id].order > largest){
+				out = id;
+				largest = this.data[id].order;
+			}
+		}
+	}
+	return out;
+}
 MapSlice.prototype.get = function(loc){
 	loc = MapSlice.locToId(loc);
 	return this.data[loc];
@@ -12544,15 +12581,17 @@ MapSlice.prototype.setProperty = function(id,name,value){
 }
 MapSlice.prototype.remove = function(loc, room){
 	loc = MapSlice.locToId(loc);
-	room = room || {};
-	var width = ("width" in room) ? room.width : 1;
-	var height = ("height" in room) ? room.width : 1;
-	
-	var pos = MapSlice.idToLoc(loc);
-	for(var x=0; x<width; x++) for(var y=0; y<height; y++){
-		id = MapSlice.locToId(new Point(pos.x+x,pos.y+y));
-		if( id in this.data ){
-			delete this.data[id];
+	pos = MapSlice.idToLoc(loc);
+	var d = this.data[loc];
+	if(d.room != -1){
+		var width = d.width;
+		var height = d.height;
+		
+		for(var x=0; x<width; x++) for(var y=0; y<height; y++){
+			id = MapSlice.locToId(new Point(pos.x+x,pos.y+y));
+			if( id in this.data ){
+				delete this.data[id];
+			}
 		}
 	}
 }
@@ -12564,7 +12603,6 @@ MapSlice.prototype.useEntrance = function(loc,e){
 				var pos = MapSlice.idToLoc(id).add( MapSlice.idToLoc(ent) );
 				if( pos.x == loc.x && pos.y == loc.y ){
 					this.data[id].entrances[ent] = true;
-					console.log("Entrance found!");
 				}
 			}
 		}
@@ -12581,6 +12619,33 @@ MapSlice.prototype.useEntrance = function(loc,e){
 		}
 	}
 }
+MapSlice.prototype.getUsedEntrances = function(inid){
+	out = [];
+	
+	var ids = new Array();
+	if(inid != undefined){
+		ids = [inid];
+	}else{
+		ids = Object.keys(this.data);
+	}
+	
+	for(var i=0; i < ids.length; i++){
+		var id = ids[i];
+		if(id in this.data){
+			var d = this.data[id];
+			if( d.room >= 0 ) {
+				var loc = MapSlice.idToLoc(id);
+				for(var ent in d.entrances){
+					if( d.entrances[ent] ) {
+						var offset = MapSlice.idToLoc(ent);
+						out.push( loc.add(offset) );
+					}
+				}
+			}
+		}
+	}
+	return out;
+}
 MapSlice.prototype.getRoomsWithEntrances = function(){
 	out = [];
 	for(var id in this.data){
@@ -12594,16 +12659,27 @@ MapSlice.prototype.getRoomsWithEntrances = function(){
 	}
 	return out;
 }
-MapSlice.prototype.getEntrances = function(){
+MapSlice.prototype.getEntrances = function(inid){
 	out = [];
-	for(var id in this.data){
-		var d = this.data[id];
-		if( d.room >= 0 ) {
-			var loc = MapSlice.idToLoc(id);
-			for(var ent in d.entrances){
-				if( !d.entrances[ent] ) {
-					var offset = MapSlice.idToLoc(ent);
-					out.push( loc.add(offset) );
+	
+	var ids = new Array();
+	if(inid != undefined){
+		ids = [inid];
+	}else{
+		ids = Object.keys(this.data);
+	}
+	
+	for(var i=0; i < ids.length; i++){
+		var id = ids[i];
+		if(id in this.data){
+			var d = this.data[id];
+			if( d.room >= 0 ) {
+				var loc = MapSlice.idToLoc(id);
+				for(var ent in d.entrances){
+					if( !d.entrances[ent] ) {
+						var offset = MapSlice.idToLoc(ent);
+						out.push( loc.add(offset) );
+					}
 				}
 			}
 		}
@@ -12691,19 +12767,30 @@ MapSlice.prototype.randomKey = function(roll, max_keys){
 MapSlice.prototype.clone = function(){
 	out = new MapSlice();
 	out.keyCount = this.keyCount;
+	out.orderCount = this.orderCount;
+	
 	for(var i=0; i < this.keys.length; i++){
 		out.keys.push(this.keys[i]);
 	}
-	for(var i in this.data){
-		out.add(i,this.data[i].room,this.data[i].properties);
-		out.data[i].secret = this.data[i].secret;
-		out.data[i].entrances = {};
-		for(var j in this.data[i].entrances){
-			out.data[i].entrances[j] = this.data[i].entrances[j];
+	for(var loc in this.data){
+		out.data[loc] = {
+			"width" : this.data[loc].width,
+			"height" : this.data[loc].height,
+			"room" : this.data[loc].room,
+			"entrances" : {},
+			"properties" : this.data[loc].properties,
+			"secret" : this.data[loc].secret,
+			"order" : this.data[loc].order
+		}
+		
+		for(var j in this.data[loc].entrances){
+			out.data[loc].entrances[j] = this.data[loc].entrances[j];
 		}
 	}
+	MapSlice.testslice.push(out);
 	return out;
 }
+MapSlice.testslice = new Array();
 MapSlice.idToLoc = function(id){
 	try{
 		if( id instanceof Point ) return id;
@@ -13009,7 +13096,7 @@ Shop.prototype.purchase = function(){
 	}
 	return false;
 }
-Shop.prototype.restock = function(data){
+Shop.prototype.restock = function(){
 	this.items = new Array(3);
 	this.prices = new Array(3);
 	
@@ -13018,7 +13105,7 @@ Shop.prototype.restock = function(data){
 		if(i==1) tags = ["goods"];
 		if(i==2) tags = ["stone"];
 		
-		var treasure = data.randomTreasure(Math.random(),tags);
+		var treasure = Item.randomTreasure(Math.random(),tags);
 		treasure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
@@ -13031,7 +13118,7 @@ Shop.prototype.restock = function(data){
 		game.addObject(this.items[i]);
 	}
 }
-Shop.prototype.restockTown = function(data){
+Shop.prototype.restockTown = function(){
 	this.items = new Array(3);
 	this.prices = new Array(3);
 	var s = new Seed(_world.towns[dataManager.currentTown].seed);
@@ -13039,7 +13126,7 @@ Shop.prototype.restockTown = function(data){
 	for(var i=0; i < this.items.length; i++) {
 		tags = ["weapon"];
 		
-		var treasure = data.randomTreasure(s.random(),tags);
+		var treasure = Item.randomTreasure(s.random(),tags);
 		var x = this.position.x + (i*32) + -40;
 		
 		/*
@@ -13543,7 +13630,7 @@ function TitleCard(x,y,p,o){
 	
 	//Get title text
 	try{
-		var ct = dataManager.currentTemple;
+		var ct = RandomTemple.currentTemple;
 		this.text = i18n("templenames")[ct];
 	} catch (e){}
 	
@@ -13600,6 +13687,8 @@ function Trigger(x,y,d,o){
 	this.sealevel = null;
 	this.triggerCount = 0;
 	this.retrigger = 1;
+	this.retriggertime = Game.DELTASECOND;
+	this.retriggertimeCooldown = 0;
 	
 	this.countdown = 0;
 	this.timer = 0;
@@ -13632,6 +13721,9 @@ function Trigger(x,y,d,o){
 	if("retrigger" in o){
 		this.retrigger = o.retrigger * 1;
 	}
+	if("retriggertime" in o){
+		this.retriggertime = o.retriggertime * Game.DELTASECOND;
+	}
 	if("timer" in o){
 		this.time = o["timer"] * Game.DELTASECOND;
 		this.timer = this.time;
@@ -13640,36 +13732,37 @@ function Trigger(x,y,d,o){
 	this.on("activate", function(obj){
 		if(this.retrigger || this.triggerCount == 0){
 			this.triggerCount++;
-			
-			if(
-				this.darknessFunction instanceof Function ||
-				this.darknessColour instanceof Array ||
-				this.dustCount != undefined ||
-				this.sealevel != undefined
-			){
-				var b = game.getObject(Background);
-				if(b instanceof Background){
-					
-					if(this.darknessFunction instanceof Function)
-						b.darknessFunction = this.darknessFunction;
-					
-					if(this.darknessColour instanceof Array)
-						b.ambience = this.darknessColour;
-					
-					if(this.dustCount != undefined)
-						b.dustAmount = this.dustCount;
-					
-					if(this.sealevel != undefined)
-						b.sealevel = this.sealevel;
+			if(this.retriggertimeCooldown <= 0){
+				if(
+					this.darknessFunction instanceof Function ||
+					this.darknessColour instanceof Array ||
+					this.dustCount != undefined ||
+					this.sealevel != undefined
+				){
+					var b = game.getObject(Background);
+					if(b instanceof Background){
+						
+						if(this.darknessFunction instanceof Function)
+							b.darknessFunction = this.darknessFunction;
+						
+						if(this.darknessColour instanceof Array)
+							b.ambience = this.darknessColour;
+						
+						if(this.dustCount != undefined)
+							b.dustAmount = this.dustCount;
+						
+						if(this.sealevel != undefined)
+							b.sealevel = this.sealevel;
+					}
 				}
-			}
-			
-			//trigger connected objects
-			if(this.targets.length > 0){
-				for(var i=0; i < this.targets.length; i++){
-					var objects = Trigger.getTargets(this.targets[i]);
-					for(var j=0; j < objects.length; j++){
-						objects[j].trigger("activate", this);
+				
+				//trigger connected objects
+				if(this.targets.length > 0){
+					for(var i=0; i < this.targets.length; i++){
+						var objects = Trigger.getTargets(this.targets[i]);
+						for(var j=0; j < objects.length; j++){
+							objects[j].trigger("activate", this);
+						}
 					}
 				}
 			}
@@ -13696,6 +13789,7 @@ Trigger.prototype.update = function(){
 		}
 		this.timer -= this.delta;
 	}
+	this.retriggertimeCooldown -= this.delta;
 }
 Trigger.prototype.idle = function(){}
 
@@ -14019,7 +14113,7 @@ WaystoneChest.prototype.update = function(g,c){
 				Item.drop(this,15,Game.DELTASECOND);
 			} else {
 				if( Math.random() > 0.2 ) {
-					treasure = dataManager.randomTreasure(Math.random(), ["chest"]);
+					treasure = Item.randomTreasure(Math.random(), ["chest"]);
 					treasure.remaining--;
 					var item = new Item(this.position.x, this.position.y, false, {"name":treasure.name});
 					item.sleep = Game.DELTASECOND;
@@ -14454,7 +14548,6 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.player.y = locale.position.y;
 		this.rest = Game.DELTASECOND * 0.25;
 		
-		dataManager.randomLevel(game, i, this.temples[i].seed);
 		var rt = new RandomTemple(i);
 		rt.generate(this.temples[i].seed);
 		rt.use(window.game);
@@ -14626,6 +14719,7 @@ function WorldLocale(x,y,type,properties){
 	
 	this.frame = 3;
 	this.frame_row = 5;
+	this.map_id = false;
 	
 	properties = properties || {};
 	this.properties = properties;
@@ -14664,6 +14758,9 @@ function WorldLocale(x,y,type,properties){
 		this.index = properties["town"] * 1;
 		this.frame = 3;
 		this.frame_row = 7;
+	}
+	if("id" in properties){
+		this.map_id = properties["id"];
 	}
 	
 	this.on("collideObject", function(obj){

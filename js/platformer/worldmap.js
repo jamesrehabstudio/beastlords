@@ -338,7 +338,6 @@ WorldMap.prototype.enterLocale = function(locale, dir){
 		this.player.y = locale.position.y;
 		this.rest = Game.DELTASECOND * 0.25;
 		
-		dataManager.randomLevel(game, i, this.temples[i].seed);
 		var rt = new RandomTemple(i);
 		rt.generate(this.temples[i].seed);
 		rt.use(window.game);
@@ -510,6 +509,7 @@ function WorldLocale(x,y,type,properties){
 	
 	this.frame = 3;
 	this.frame_row = 5;
+	this.map_id = false;
 	
 	properties = properties || {};
 	this.properties = properties;
@@ -548,6 +548,9 @@ function WorldLocale(x,y,type,properties){
 		this.index = properties["town"] * 1;
 		this.frame = 3;
 		this.frame_row = 7;
+	}
+	if("id" in properties){
+		this.map_id = properties["id"];
 	}
 	
 	this.on("collideObject", function(obj){

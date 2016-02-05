@@ -273,9 +273,9 @@ PauseMenu.prototype.hudrender = function(g,c){
 			
 		} else if ( this.page == 2 ) {
 			//Stats page
-			leftx = game.resolution.x*0.5 - 120*0.5;
+			leftx = game.resolution.x*0.5 - 224*0.5;
 			
-			boxArea(g,leftx,8,120,224);
+			boxArea(g,leftx,8,224,224);
 			
 			textArea(g,"Attributes",leftx+20,20);
 			
@@ -298,6 +298,16 @@ PauseMenu.prototype.hudrender = function(g,c){
 				}
 				attr_i++;
 			}
+			
+			textArea(g,"Damage",leftx+120,60);
+			textArea(g,"Defence",leftx+120,60+28);
+			textArea(g,"Stanima",leftx+120,60+56);
+			textArea(g,"Speed",leftx+120,60+84);
+			
+			textArea(g,""+_player.damage,leftx+120,72);
+			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
+			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
+			textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			leftx = game.resolution.x*0.5 - 224*0.5;
@@ -411,4 +421,18 @@ PauseMenu.convertTileDataToMapData = function(data){
 		}
 	}
 	return out;
+}
+PauseMenu.attackspeedToName = function(speed){
+	var n = i18n("speeds");
+	if(speed > 20){
+		return n[0];
+	} else if (speed > 16){
+		return n[1];
+	} else if (speed > 12){
+		return n[2];
+	} else if (speed > 8){
+		return n[3];
+	} else {
+		return n[4];
+	}
 }

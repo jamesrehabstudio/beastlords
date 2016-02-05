@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" width="8" height="15" tilewidth="16" tileheight="16">
- <tileset firstgid="1" name="town" tilewidth="16" tileheight="16">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="8" height="15" tilewidth="16" tileheight="16" nextobjectid="3">
+ <tileset firstgid="1" name="town" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="../../../img/tiles/town.gif" trans="ff00ff" width="256" height="256"/>
  </tileset>
  <layer name="back" width="8" height="15">
@@ -41,12 +41,12 @@
 193,194,195,196,193,194,195,196
 </data>
  </layer>
- <objectgroup name="objects" width="8" height="15">
+ <objectgroup name="objects">
   <properties>
    <property name="map_tile" value="12"/>
    <property name="tags" value="[&quot;exit_w&quot;]"/>
   </properties>
-  <object name="Exit" gid="114" x="0" y="128"/>
-  <object name="Player" gid="115" x="48" y="192"/>
+  <object id="1" name="Exit" gid="114" x="0" y="208" width="16" height="208"/>
+  <object id="2" name="Player" gid="115" x="48" y="192" width="16" height="16"/>
  </objectgroup>
 </map>

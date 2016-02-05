@@ -19,6 +19,8 @@ function Trigger(x,y,d,o){
 	this.sealevel = null;
 	this.triggerCount = 0;
 	this.retrigger = 1;
+	this.retriggertime = Game.DELTASECOND;
+	this.retriggertimeCooldown = 0;
 	
 	this.countdown = 0;
 	this.timer = 0;
@@ -51,6 +53,9 @@ function Trigger(x,y,d,o){
 	if("retrigger" in o){
 		this.retrigger = o.retrigger * 1;
 	}
+	if("retriggertime" in o){
+		this.retriggertime = o.retriggertime * Game.DELTASECOND;
+	}
 	if("timer" in o){
 		this.time = o["timer"] * Game.DELTASECOND;
 		this.timer = this.time;
@@ -59,36 +64,37 @@ function Trigger(x,y,d,o){
 	this.on("activate", function(obj){
 		if(this.retrigger || this.triggerCount == 0){
 			this.triggerCount++;
-			
-			if(
-				this.darknessFunction instanceof Function ||
-				this.darknessColour instanceof Array ||
-				this.dustCount != undefined ||
-				this.sealevel != undefined
-			){
-				var b = game.getObject(Background);
-				if(b instanceof Background){
-					
-					if(this.darknessFunction instanceof Function)
-						b.darknessFunction = this.darknessFunction;
-					
-					if(this.darknessColour instanceof Array)
-						b.ambience = this.darknessColour;
-					
-					if(this.dustCount != undefined)
-						b.dustAmount = this.dustCount;
-					
-					if(this.sealevel != undefined)
-						b.sealevel = this.sealevel;
+			if(this.retriggertimeCooldown <= 0){
+				if(
+					this.darknessFunction instanceof Function ||
+					this.darknessColour instanceof Array ||
+					this.dustCount != undefined ||
+					this.sealevel != undefined
+				){
+					var b = game.getObject(Background);
+					if(b instanceof Background){
+						
+						if(this.darknessFunction instanceof Function)
+							b.darknessFunction = this.darknessFunction;
+						
+						if(this.darknessColour instanceof Array)
+							b.ambience = this.darknessColour;
+						
+						if(this.dustCount != undefined)
+							b.dustAmount = this.dustCount;
+						
+						if(this.sealevel != undefined)
+							b.sealevel = this.sealevel;
+					}
 				}
-			}
-			
-			//trigger connected objects
-			if(this.targets.length > 0){
-				for(var i=0; i < this.targets.length; i++){
-					var objects = Trigger.getTargets(this.targets[i]);
-					for(var j=0; j < objects.length; j++){
-						objects[j].trigger("activate", this);
+				
+				//trigger connected objects
+				if(this.targets.length > 0){
+					for(var i=0; i < this.targets.length; i++){
+						var objects = Trigger.getTargets(this.targets[i]);
+						for(var j=0; j < objects.length; j++){
+							objects[j].trigger("activate", this);
+						}
 					}
 				}
 			}
@@ -115,6 +121,7 @@ Trigger.prototype.update = function(){
 		}
 		this.timer -= this.delta;
 	}
+	this.retriggertimeCooldown -= this.delta;
 }
 Trigger.prototype.idle = function(){}
 

@@ -25,7 +25,7 @@ function Item(x,y,d, ops){
 	}
 	if( "name" in ops ) {
 		if(ops["name"] == "random"){
-			this.setName(dataManager.randomTreasure(Math.random()).name);
+			this.setName(Item.randomTreasure(Math.random()).name);
 		} else {
 			this.setName( ops.name );
 		}
@@ -450,6 +450,26 @@ Item.drop = function(obj,money,sleep){
 		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
+}
+Item.randomTreasure = function(roll, tags, ops){
+	tags = tags || [];
+	ops = ops || {};
+	ops.remaining = ops.remaining || 0;
+	
+	var shortlist = [];
+	var total = 0.0;
+	for(var i=0; i<Item.treasures.length; i++) 
+		if((!ops.locked && Item.treasures[i].remaining > ops.remaining) || (ops.locked && Item.treasures[i].unlocked <= 0))
+			if(Item.treasures[i].tags.intersection(tags).length == tags.length) {
+				total += Item.treasures[i].rarity;
+				shortlist.push(Item.treasures[i]);
+			}
+	roll *= total;
+	for(var i=0; i<shortlist.length; i++) {
+		if( roll < shortlist[i].rarity ) return shortlist[i];
+		roll -= shortlist[i].rarity;
+	}
+	return Item.treasures[0];
 }
 
 Item.weaponDescription = function(){

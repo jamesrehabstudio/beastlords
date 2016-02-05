@@ -192,7 +192,7 @@ NPC.resolveVariable = function(varname){
 	}
 }
 NPC.prototype.getScript = function(filename){
-	ajax("/scripts/"+filename+".script",function(data){
+	ajax("scripts/"+filename+".script",function(data){
 		this.script = NPC.compileScript(data);
 	},this);
 }

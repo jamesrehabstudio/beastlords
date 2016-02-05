@@ -1,4 +1,4 @@
-window._version = "0.2.6";
+window._version = "0.2.7";
 
 function DataManager() {	
 	localStorage.setItem("version", window._version);
@@ -153,7 +153,7 @@ function load_sprites (){
 	sprites['magic_effects'] = new Sprite(RT+"img/magic_effects.gif", {offset:new Point(16, 32),width:32,height:48});
 	
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(16, 16),width:32,height:32});
-	sprites['axedog'] = new Sprite(RT+"img/axedog.gif", {offset:new Point(20, 28),width:40,height:40});
+	sprites['axedog'] = new Sprite(RT+"img/axedog.gif", {offset:new Point(20, 26),width:40,height:40});
 	sprites['baller'] = new Sprite(RT+"img/baller.gif", {offset:new Point(40, 60),width:80,height:96});
 	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48});
 	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24});

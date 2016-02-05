@@ -5,7 +5,7 @@ function Axedog(x, y, d, o){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
-	this.height = 24;
+	this.height = 30;
 	this.sprite = sprites.axedog;
 	this.speed = 0.25;
 	

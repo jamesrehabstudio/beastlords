@@ -13,11 +13,14 @@ MapDebug.prototype.update = function(){
 	if( input.state("fire") == 1) this.slice--;
 	if( input.state("jump") == 1) this.slice++;
 }
-MapDebug.prototype.render = function(g,c){
+MapDebug.prototype.hudrender = function(g,c){
 	try {
 		var size = new Point(8,8);
+		//this.slice = Math.min(Math.max(this.slice,0),RandomTemple.test.slices.length-1);
+		this.slice = Math.min(Math.max(this.slice,0),MapSlice.testslice.length-1);
 		
-		var slice = dataManager.slices[this.slice].data;
+		//var slice = RandomTemple.test.slices[this.slice].data;
+		var slice = MapSlice.testslice[this.slice].data;
 		for(var i in slice ){
 			if( slice[i].room != -1 ) {
 				var pos = MapSlice.idToLoc(i);

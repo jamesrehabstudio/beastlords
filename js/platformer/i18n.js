@@ -28,6 +28,10 @@ window._messages = {
 		"english" : ["Anahilt Fortress","The Gardens of Benburb", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"],
 		"engrish" : ["Anahilt Fortress","Benburb Gardens", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"]
 	},
+	"speeds" : {
+		"english" : ["Very slow","Slow","Normal","Fast","Very Fast"],
+		"engrish" : ["Very slow","Slow","Normal","Fast","Very Fast"]
+	},
 	"mayor_intro" : {
 		"english" : [
 			"Hello. I'm the Mayor of our town. Life is hard here.",

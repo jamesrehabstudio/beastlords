@@ -87,7 +87,7 @@ Shop.prototype.purchase = function(){
 	}
 	return false;
 }
-Shop.prototype.restock = function(data){
+Shop.prototype.restock = function(){
 	this.items = new Array(3);
 	this.prices = new Array(3);
 	
@@ -96,7 +96,7 @@ Shop.prototype.restock = function(data){
 		if(i==1) tags = ["goods"];
 		if(i==2) tags = ["stone"];
 		
-		var treasure = data.randomTreasure(Math.random(),tags);
+		var treasure = Item.randomTreasure(Math.random(),tags);
 		treasure.remaining--;
 		var x = this.position.x + (i*32) + -40;
 		
@@ -109,7 +109,7 @@ Shop.prototype.restock = function(data){
 		game.addObject(this.items[i]);
 	}
 }
-Shop.prototype.restockTown = function(data){
+Shop.prototype.restockTown = function(){
 	this.items = new Array(3);
 	this.prices = new Array(3);
 	var s = new Seed(_world.towns[dataManager.currentTown].seed);
@@ -117,7 +117,7 @@ Shop.prototype.restockTown = function(data){
 	for(var i=0; i < this.items.length; i++) {
 		tags = ["weapon"];
 		
-		var treasure = data.randomTreasure(s.random(),tags);
+		var treasure = Item.randomTreasure(s.random(),tags);
 		var x = this.position.x + (i*32) + -40;
 		
 		/*

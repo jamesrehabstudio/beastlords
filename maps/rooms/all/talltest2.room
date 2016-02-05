@@ -28,6 +28,6 @@
 				out[index] = 0;
 			}
 		}
-		return DataManager.prettyBlocks(out,width);
+		return RandomTemple.prettyBlocks(out,width);
 	}
 }

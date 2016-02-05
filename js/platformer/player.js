@@ -46,7 +46,7 @@ function Player(x, y){
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125)
 	};
 	
-	this.attackProperites = {
+	this.attackProperties = {
 		"charge_start" : 0.2 * Game.DELTASECOND,
 		"charge_end" : 0.5 * Game.DELTASECOND,
 		"warm" : 8.5,
@@ -166,8 +166,8 @@ function Player(x, y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(obj, damage){
-		var dir = this.position.subtract(obj.position).normalize(damage);
-		window.shakeCamera(dir);
+		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
+		window.shakeCamera(Game.DELTASECOND*0.5,str);
 		if(this.stun_time > 0 ){
 			this.states.attack = 0;
 			game.slow(0,5.0);
@@ -246,6 +246,7 @@ function Player(x, y){
 		"defence" : 1,
 		"technique" : 1
 	}
+	
 	this.life = 100;
 	this.lifeMax = 100;
 	this.mana = 3;
@@ -489,14 +490,14 @@ Player.prototype.update = function(){
 				this.attack(); 
 			} else if ( input.state('fire') > 0 ) { 
 				this.states.attack_charge += this.delta; 
-				if( this.states.attack_charge >= this.attackProperites.charge_start){
+				if( this.states.attack_charge >= this.attackProperties.charge_start){
 					strafe = true;
 				}
 			} else { 
 				this.states.charge_multiplier = false;
 				
 				//Release charge if it has built up
-				if( this.states.attack_charge > this.attackProperites.charge_end ){
+				if( this.states.attack_charge > this.attackProperties.charge_end ){
 					this.states.charge_multiplier = true;
 					this.attack();
 					strafe = true;
@@ -574,10 +575,10 @@ Player.prototype.update = function(){
 		
 		
 		if ( this.states.downStab ) {
-			this.strike(new Line( 0, 8, 4, 8+Math.max( 12, this.attackProperites.range)));
+			this.strike(new Line( 0, 8, 4, 8+Math.max( 12, this.attackProperties.range)));
 		}
 		
-		if ( this.states.attack > this.attackProperites.rest && this.states.attack <= this.attackProperites.strike ){
+		if ( this.states.attack > this.attackProperties.rest && this.states.attack <= this.attackProperties.strike ){
 			//Play sound effect for attack
 			if( !this.states.startSwing ) {
 				audio.play("swing");
@@ -600,7 +601,7 @@ Player.prototype.update = function(){
 			//Create box to detect enemies
 			var temp_damage = this.damage;
 			var type = this.equip_sword.phantom ? "hurt" : "struck";
-			var weapon_top = (this.states.duck ? 4 : -4) - this.weapon.width*.5;
+			var weapon_top = (this.states.duck ? 4 : -6) - this.weapon.width*.5;
 			if( this.spellsCounters.magic_strength > 0 ) {
 				temp_damage = Math.floor(temp_damage*1.25);
 			}
@@ -609,7 +610,7 @@ Player.prototype.update = function(){
 			}
 			this.strike(new Line(
 				new Point( 12, weapon_top ),
-				new Point( 12+this.attackProperites.range , weapon_top+this.weapon.width )
+				new Point( 12+this.attackProperties.range , weapon_top+this.weapon.width )
 			), type, temp_damage );
 		} else {
 			this.states.startSwing = false;
@@ -644,11 +645,11 @@ Player.prototype.update = function(){
 			this.frame_row = 1;
 			
 			if( this.states.attack > 0 ) this.frame = 2;
-			if( this.states.attack > this.attackProperites.rest ) this.frame = 1;
-			if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
+			if( this.states.attack > this.attackProperties.rest ) this.frame = 1;
+			if( this.states.attack > this.attackProperties.strike ) this.frame = 0;		
 		} else {
 			this.frame_row = 0;
-			if( this.states.attack_charge > this.attackProperites.charge_start || this.states.attack > 0 ) this.frame_row = 2;
+			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame_row = 2;
 			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				//Run animation
 				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
@@ -657,10 +658,10 @@ Player.prototype.update = function(){
 			}
 		}
 		
-		if( this.states.attack_charge > this.attackProperites.charge_start ) this.frame = 0;
+		if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame = 0;
 		if( this.states.attack > 0 ) this.frame = 2;
-		if( this.states.attack > this.attackProperites.rest ) this.frame = 1;
-		if( this.states.attack > this.attackProperites.strike ) this.frame = 0;		
+		if( this.states.attack > this.attackProperties.rest ) this.frame = 1;
+		if( this.states.attack > this.attackProperties.strike ) this.frame = 0;		
 	}
 	
 	//Animation Sword
@@ -770,7 +771,7 @@ Player.prototype.attack = function(){
 			this.weapon.combo = 2;
 		}
 		this.weapon.width = this.weapon.combo == 2 ? 18 : 4;
-		this.states.attack = this.attackProperites.warm;
+		this.states.attack = this.attackProperties.warm;
 	}
 }
 Player.prototype.castSpell = function(name){
@@ -805,11 +806,11 @@ Player.prototype.equipCharm = function(c){
 Player.prototype.equip = function(sword, shield){
 	try {	
 		if( sword.isWeapon && "stats" in sword ){
-			this.attackProperites.warm =  sword.stats.warm;
-			this.attackProperites.strike = sword.stats.strike;
-			this.attackProperites.rest = sword.stats.rest;
-			this.attackProperites.range = sword.stats.range;
-			this.attackProperites.sprite = sword.stats.sprite;
+			this.attackProperties.warm =  sword.stats.warm;
+			this.attackProperties.strike = sword.stats.strike;
+			this.attackProperties.rest = sword.stats.rest;
+			this.attackProperties.range = sword.stats.range;
+			this.attackProperties.sprite = sword.stats.sprite;
 			if( sword.twoHanded ) shield = null;
 		} else {
 			throw "No valid weapon";
@@ -818,9 +819,9 @@ Player.prototype.equip = function(sword, shield){
 		//Shields
 		if( shield != null ) {
 			if( "stats" in shield){
-				this.attackProperites.warm *= shield.stats.speed;
-				this.attackProperites.strike *= shield.stats.speed;
-				this.attackProperites.rest *= shield.stats.speed;
+				this.attackProperties.warm *= shield.stats.speed;
+				this.attackProperties.strike *= shield.stats.speed;
+				this.attackProperties.rest *= shield.stats.speed;
 				this.shieldProperties.duck = -5.0 + (15 - (shield.stats.height/2));
 				this.shieldProperties.stand = -5.0;
 				this.guard.lifeMax = shield.stats.guardlife;
@@ -878,14 +879,14 @@ Player.prototype.equip = function(sword, shield){
 		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
 		
-		this.guard.lifeMax += 3 * def;
+		this.guard.lifeMax += 3 * def + tech;
 		this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
-		this.attackProperites.rest = Math.max( this.attackProperites.rest - tech*1.6, 0);
-		this.attackProperites.strike = Math.max( this.attackProperites.strike - tech*1.6, 3.5);
-		this.attackProperites.warm = Math.max( this.attackProperites.warm - tech*2.0, this.attackProperites.strike);		
+		this.attackProperties.rest = Math.max( this.attackProperties.rest - tech*1.4, 0);
+		this.attackProperties.strike = Math.max( this.attackProperties.strike - tech*1.4, 3.5);
+		this.attackProperties.warm = Math.max( this.attackProperties.warm - tech*1.8, this.attackProperties.strike);		
 		
 	} catch(e) {
 		this.equip( this.equip_sword, this.equip_shield );
@@ -943,7 +944,7 @@ Player.prototype.addXP = function(value){
 		ga("send","event", "levelup","level:" + this.level);
 		
 		if(Math.random() < 0.1){
-			var treasure = dataManager.randomTreasure(Math.random(),[],{"locked":true});
+			var treasure = Item.randomTreasure(Math.random(),[],{"locked":true});
 			dataManager.itemUnlock(treasure.name);
 		}
 		
@@ -985,7 +986,7 @@ Player.prototype.render = function(g,c){
 		//Render current sword
 		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
 		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
-		this.attackProperites.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+		this.attackProperties.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
 			this.weapon.frame, 
 			this.weapon.frame_row, 
 			this.flip, 

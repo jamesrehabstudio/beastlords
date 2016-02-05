@@ -13,7 +13,7 @@ function TitleCard(x,y,p,o){
 	
 	//Get title text
 	try{
-		var ct = dataManager.currentTemple;
+		var ct = RandomTemple.currentTemple;
 		this.text = i18n("templenames")[ct];
 	} catch (e){}
 	

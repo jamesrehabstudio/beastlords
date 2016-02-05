@@ -2,12 +2,14 @@
 	"rarity": 1.0,
 	"width" : 1,
 	"height" : 2,
-	"entrances" : [
-		[0,0],
-		[1,0],
-		[0,1],
-		[1,1]
-	],
+	"entrances" : function(w,h,o){
+		var out = [];
+		for(var y=0; y<h;y++){
+			out.push([0,y]);
+			out.push([1,y]);
+		}
+		return out;
+	},
 	"exits" : function(entrance){
 		if( entrance.y > 0 ) {
 			return [[0,0],[1,0]];
@@ -34,7 +36,6 @@
 			}
 		}
 		
-		console.log(entrances.length);
 		for(var i=0; i < entrances.length; i++) {
 			var start = new Point(Math.min(entrances[i].x*8,width), entrances[i].y*15+9);
 			for(var x=0; x < 8; x++) for(var y=0; y < 4; y++) {
@@ -49,6 +50,6 @@
 		
 		out[215] = out[216] = out[455] = out[456] = 0;
 		
-		return DataManager.prettyBlocks(out,width);
+		return RandomTemple.prettyBlocks(out,width);
 	}
 }

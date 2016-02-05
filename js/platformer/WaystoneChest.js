@@ -44,7 +44,7 @@ WaystoneChest.prototype.update = function(g,c){
 				Item.drop(this,15,Game.DELTASECOND);
 			} else {
 				if( Math.random() > 0.2 ) {
-					treasure = dataManager.randomTreasure(Math.random(), ["chest"]);
+					treasure = Item.randomTreasure(Math.random(), ["chest"]);
 					treasure.remaining--;
 					var item = new Item(this.position.x, this.position.y, false, {"name":treasure.name});
 					item.sleep = Game.DELTASECOND;

@@ -11,7 +11,12 @@ function RandomTemple(templeid) {
 	this.persistantObjects = new Array();
 	this.seed = null;
 	this.playerStart = new Point(64,176);
+	
+	RandomTemple.test = this;
 }
+
+RandomTemple.test = null;
+RandomTemple.currentTemple = 0;
 
 RandomTemple.temples = [
 	{"tiles":"tiles2","size":10,"maxkeys":1,"treasures":1,"difficulty":0},
@@ -57,13 +62,19 @@ RandomTemple.rules = {
 	"prison" : function(level,options){
 		if(level==0) return this.roomsFromTags(["prison_w","prison_e"], options);
 		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
+	},
+	"loop" : function(level,options){
+		return [this.randomRoom(),this.randomRoom(),this.randomRoom(),this.randomRoom()];
 	}
 };
 
 RandomTemple.prototype.generate = function(s){
 	var success = false;
 	
+	RandomTemple.currentTemple = this.templeId;
+	
 	s = s || "" + Math.random();
+	//s = "00.7882414807099849";
 	this.seed = new Seed( s );
 	
 	while( !success ) {
@@ -112,9 +123,16 @@ RandomTemple.prototype.generate = function(s){
 		
 	}
 	
+	this.build(this.slices.peek());
+}
+
+RandomTemple.prototype.build = function(slice){
+	
 	//Everything is okay, build the level
 	var width = 256;
 	var height = 240;
+	this.objects = new Array();
+	this.items = new Array();
 	
 	
 	this.temple_instance = false;
@@ -125,7 +143,7 @@ RandomTemple.prototype.generate = function(s){
 	}*/
 	
 	//Establish the level size and build tile matrix
-	this.mapDimension = this.slices.peek().size();
+	this.mapDimension = slice.size();
 	this.tileDimension = this.mapDimension.scale(16,15);
 	
 	this.tiles = [
@@ -135,7 +153,6 @@ RandomTemple.prototype.generate = function(s){
 	];
 	this.mapTiles = new Array( Math.floor( this.mapDimension.area() ) );
 	
-	var slice = this.slices.peek();
 	for(var i in slice.data){
 		try{
 			var room_options = {};
@@ -147,6 +164,7 @@ RandomTemple.prototype.generate = function(s){
 			//	mapTiles[ map_index ] = secret;
 			
 			var room_slice = slice.data[i];
+			/*
 			var room;
 			
 			if ( room_slice.room >= 0 ) { 
@@ -162,79 +180,41 @@ RandomTemple.prototype.generate = function(s){
 					room_options["entrances"].push( MapSlice.idToLoc(ent) );
 				}
 			}
+			*/
 			
-			if( room ) {
+			if( room_slice ) {
 				var cursor = new Point(pos.x * width, pos.y * height );
-				this.createRoom(room,cursor,room_options);
-				
-				//If this room uses a specific map tile
-				/*
-				if( "map" in room ) {
-					var map_tiles = room["map_tile"].split(",");
-					for(var j=0; j < map_tiles.length; j++ ){
-						mapTiles[ map_index + j ] = map_tiles[j] * secret;
-					}
-				}
-				*/
-				var mapWidth = slice.data[i].width;
-				var mapHeight = slice.data[i].height;
-				for(var mapx=0; mapx < mapWidth; mapx++)
-				for(var mapy=0; mapy < mapHeight; mapy++){
-					var map_index = Math.floor( 
-						(mapx + pos.x) - this.mapDimension.start.x + 
-						((mapy + pos.y) - this.mapDimension.start.y) * this.mapDimension.width() 
-					);
-					var start_id = MapSlice.locToId(new Point(mapx, mapy));
-					var end_id = MapSlice.locToId(new Point(mapx+1, mapy));
-					//determine the map tile
-					var tileY = 0
-					if( mapy > 0) tileY += 8;
-					if( mapy >= mapHeight-1) tileY += 4;
-					if( mapx > 0) {
-						tileY += 2;
-					} else if (start_id in room_slice.entrances && room_slice.entrances[start_id]){
-						tileY += 16;
-					}
-					if( mapx < mapWidth-1) {
-						tileY += 1;
-					} else if ( end_id in room_slice.entrances && room_slice.entrances[end_id] ) {
-						tileY += 32;
-					}
-					//var tile = tileY * 16;
-					
-					this.mapTiles[ map_index ] = tileY;
-					
-					if( mapHeight==1 ){
-						var pre_map = {
-							20 : {36:[6,5],52:[6,21],38:[6,7]},
-							52 : {36:[38,5],52:[38,21],38:[38,7]},
-							21 : {36:[7,5],52:[7,21],38:[7,7]}
-						};
-						
-						var nxt_map = {
-							36 : {20:[5,6],21:[5,7],52:[5,38]},
-							52 : {20:[21,6],21:[21,7],52:[21,38]},
-							38 : {20:[7,6],21:[7,7],52:[7,38]}
-						};
-						//If rooms are on same level connect them
-						var tilePrev = this.mapTiles[map_index-1];
-						var tileNext = this.mapTiles[map_index+1];
-						
-						if( tileY in pre_map && tilePrev in pre_map[tileY] ) {
-							//Attach to the left room
-							this.mapTiles[map_index] = pre_map[tileY][tilePrev][0];
-							this.mapTiles[map_index-1] = pre_map[tileY][tilePrev][1];
-						}
-						if( tileY in nxt_map && tileNext in nxt_map[tileY] ) {
-							//Attach to the right room
-							this.mapTiles[map_index] = nxt_map[tileY][tileNext][0];
-							this.mapTiles[map_index+1] = nxt_map[tileY][tileNext][1];
-						}
-					}
-				}
+				this.createRoom(room_slice,cursor,room_options);
 			}
 		} catch (err){
 			console.error("Cannot create room at: " +i+"... "+err);
+		}
+	}
+	
+	//Process map tiles, merge straigh lines
+	var entrances = this.slices.peek().getUsedEntrances();
+	for(var i=0; i < entrances.length; i++){
+		var x = entrances[i].x;
+		var y = entrances[i].y;
+		var mapIndex = (x - this.mapDimension.start.x) + (y - this.mapDimension.start.y) * this.mapDimension.width();
+		var tileA = this.mapTiles[mapIndex-1];
+		var tileB = this.mapTiles[mapIndex];
+		
+		if(
+			(tileA%16==4 || tileA%16==6) &&
+			(tileB%16==4 || tileB%16==5)
+		){
+			//Merge rooms
+			this.mapTiles[mapIndex-1] = tileA + 1;
+			this.mapTiles[mapIndex] = tileB + 2;
+		} else {
+			//Add doorway
+			if(tileA%2 < 1){
+				this.mapTiles[mapIndex-1] |= 32;
+			}
+			if(tileB%4 < 2){
+				this.mapTiles[mapIndex] |= 16;
+			}
 		}
 	}
 }
@@ -301,41 +281,75 @@ RandomTemple.prototype.use = function(g){
 	g.addObject(_player);
 	g.addObject(pm);
 	g.addObject(new Background());
+	
+	g.tileSprite = sprites.tiles7;
 }
 
-RandomTemple.prototype.createRoom = function(room,cursor,room_options){
+RandomTemple.prototype.createRoom = function(room_slice,cursor,room_options){
 	var layers = ["far","back","front"];
 	var persistant = ["Item","Shop","Alter","Arena"];
 	
-	var width = ("width" in room) ? room.width : 1;
-	var height = ("height" in room) ? room.height : 1;
+	if ( room_slice.room >= 0 ) { 
+		var room = _map_rooms[ room_slice.room ];
+	} else { 
+		return;
+	}
+	
+	var room_options = {};
+	//room_options["id"] = i;
+	room_options["entrances"] = new Array();
+	for(var ent in room_slice.entrances ){
+		if( room_slice.entrances[ent] ){
+			room_options["entrances"].push( MapSlice.idToLoc(ent) );
+		}
+	}
+	
+	var width = ("width" in room_slice) ? room_slice.width : 1;
+	var height = ("height" in room_slice) ? room_slice.height : 1;
 	
 	var ts = 16;
 	room_options = room_options || {};
 	var room_size = room_options.room_size || 16;
-	var addBackground = true;
-	
-	if( "background" in room_options ) addBackground = room_options.background;
-	
 	
 	//Render tiles
+	var tileCursor = cursor.scale(1/ts);
 	for(var j=0; j < layers.length; j++ ) {
 		if( layers[j] in room ) {
 			var layer = room[layers[j]];
 			var rs = room_size;
-			var start_x = this.tileDimension.start.x;
 			if( layer instanceof Function ) layer = layer.apply(room, [this.seed, width, height, room_options]);
 			
 			for(var i=0; i < layer.length; i++){
 				var x = Math.floor( i % ( room_size * width ) );
 				var y = Math.floor( i / ( room_size * width ) );
 				var offset = Math.floor( 
-					Math.floor( (x-start_x) + Math.floor( cursor.x / ts ) ) + 
-					Math.floor( ((y-this.tileDimension.start.y) + Math.floor( cursor.y / ts ) ) * this.tileDimension.width() )
+					Math.floor( (x-this.tileDimension.start.x) + tileCursor.x ) + 
+					Math.floor( ((y-this.tileDimension.start.y) + tileCursor.y ) * this.tileDimension.width() )
 				);
 				this.tiles[j][offset] = layer[i];
 			}
 		}
+	}
+	
+	//Map
+	var mapCursor = new Point(Math.floor(cursor.x/256),Math.floor(cursor.y/240));
+	for(var w=0; w < width; w++) for(var h=0; h < height; h++){
+		var index = Math.floor(
+			(mapCursor.x+(w-this.mapDimension.start.x)) + 
+			(mapCursor.y+(h-this.mapDimension.start.y)) * this.mapDimension.width()
+		);
+		var tileY = 0;
+		if("map" in room){
+			var mIndex = w + h * width;
+			tileY = PauseMenu.convertTileDataToMapData(room["map"])[mIndex];
+		}else{
+			if( h > 0) tileY += 8;
+			if( h >= height-1) tileY += 4;
+			if( w > 0) tileY += 2;
+			if( w < width-1) tileY += 1;
+			
+		}
+		this.mapTiles[index] = tileY;
 	}
 	
 	//Add objects
@@ -357,7 +371,7 @@ RandomTemple.prototype.createRoom = function(room,cursor,room_options){
 			var props = {};
 			try{
 				var id = room_options.id;
-				props = this.slices.peek().data[id].properties;
+				props = room_slice.properties;
 			} catch (err) {}
 			
 			if( "min_temple" in properties && this.templeId < properties["min_temple"]-0 ) addObject = false;
@@ -458,14 +472,14 @@ RandomTemple.prototype.getJunctionRoomIndex = function(tags){
 RandomTemple.prototype.addBranch = function(options, level, entrances){
 	
 	entrances = this.seed.shuffle(entrances);
+	var bid = this.slices.length;
 	
 	for( var i=0; i < entrances.length; i++ ) {
 		var entrance = entrances[i];
 		var pos = MapSlice.idToLoc(entrance);
 		
 		//Create new slice
-		var bid = this.slices.length;
-		this.slices.push( this.slices.peek().clone() );
+		this.slices.push( this.slices.peek().clone() ); 
 		
 		if( this.addRoom(options, level, entrance) ){
 			this.slices.peek().useEntrance(entrance);
@@ -530,13 +544,23 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 			temp_properties["item"] = options["item"];
 		}
 		
-		var entrances = room.entrances || [ [0,0],[room.width,0]];
+		var entrances = [ [0,0],[room.width,0]];
+		if("entrances" in room){
+			if(room["entrances"] instanceof Function){
+				var rw = room.width;
+				var rh = room.height || 1;
+				entrances = room["entrances"](rw,rh);
+			} else {
+				entrances = room["entrances"];
+			}
+		}
 		
 	
 		//if( this.isFree( room, new_direction, cursor ) ) {
 		for(var ent=0; ent < entrances.length; ent++ ){
 			var entrance = new Point(entrances[ent][0], entrances[ent][1]);
 			var cursorEnter = cursor.subtract(entrance);
+			
 			if( this.isFree( room, cursorEnter ) ) {
 				success = true;
 				var bid = false;
@@ -595,6 +619,7 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 				}
 				*/
 				//More rooms to go?
+				
 				if( level > 0 ){
 					
 					if( "tags" in room && room.tags.indexOf("optional") >= 0) {
@@ -607,6 +632,20 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 					for(var cur=0; cur < exits.length; cur++){
 						var nextEntrance = new Point(exits[cur][0], exits[cur][1]);
 						var next_cursor = cursorEnter.add(nextEntrance);
+						
+						if("destination_x" in options){
+							if(options["destination_x"] == next_cursor.x){
+								//Reached its destination
+								if("meet_y" in options){
+									var lheight = Math.abs(next_cursor.y-options["meet_y"])+1;
+									var ltop = new Point(next_cursor.x, Math.min(next_cursor.y,options["meet_y"]));
+									return this.isFree({"height":lheight},ltop);
+								} else {
+									return true;
+								}
+							}
+						}
+						
 						if( this.addRoom(options, level-1, next_cursor) ) {
 							this.slices.peek().useEntrance(cursorEnter,nextEntrance);
 							break;
@@ -619,7 +658,7 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 					
 					if( !success ) {
 						//clear this room
-						if(bid){
+						if(typeof bid == "number"){
 							//A branch was created, destroy it.
 							this.revertSlice(bid);
 						}
@@ -629,32 +668,14 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 						return true;
 					}
 				} else {
-					if( "key" in options ) {
+					if("destination_x" in options){
+						return false;
+					}
+					if( "key" in options ) {	
+						//Determine side of room not in use
+						this.attemptLoop(cursor,entrance,cursorEnter,temp_properties);
 						this.slices.peek().keys.push( options.key );
 					}
-					
-				/*
-					var loopSuccess = false;
-					var junx = this.slices.peek().getJunctions();
-					for(var i=0; i < junx.length; i++){
-						if( "item" in options && options.item.match(/key_\d+/) ){
-							var dest = MapSlice.idToLoc(junx[i]);
-							if( dest.y != cursor.y ) {
-								var key = options.item.match(/\d+/)[0] - 0;
-								var ops = {"door" : key};
-								this.slices.push( this.slices.peek().clone() );
-								loopSuccess = this.attemptLoop(ops,0,new_direction,new Point(cursor.x+new_direction,cursor.y),dest);
-								if(loopSuccess) 
-									break;
-								else
-									this.slices.pop();
-							}
-						}
-					}
-					if( loopSuccess ) {
-						this.slices.peek().set(cursor, dataManager.roomFromTags(["item"]));
-					}
-				*/
 					return true;
 				}
 			}
@@ -666,119 +687,41 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 	return false;
 }
 
-RandomTemple.prototype.attemptLoop = function(options,level,direction,cursor,destination,connection){
-	var distance = Math.abs(direction.x - cursor.x);
-	for(var attempt=1; attempt < distance; attempt++){
-		var lowest = new Point(Math.min(direction.x, cursor.x), Math.min(direction.y, cursor.y));
-		if( direction.y == cursor.y ) {
-			var width = Math.abs(direction.x - cursor.x);
-			if( this.slices.peek().isFree({"width":distance, "height":1}, lowest) ){
-				//fill it up with rooms
-				return true;
-			}
-			return false;
-		} else { 
-			var leftmost = cursor.x > direction.x;
-			if( this.slices.peek().isFree({"width":distance, "height":1}, new Point(cursor.x-distance,cursor.y)) ){
-				
-			}
-		}
+RandomTemple.prototype.attemptLoop = function(cursor,entrance,cursorEnter,properties){
+	//Determine side of room not in use
+	var lift = entrance.x > 0 ? new Point(-2,0) : new Point(1,0);
+	
+	if( this.addBranch({
+			"rules":RandomTemple.rules.loop,
+			"destination_x" : cursor.add(lift).x,
+			"meet_y" : cursor.add(lift).y,
+			"size": 10
+		},10, this.slices.peek().getEntrances()
+	) ){
+		
+		var q = MapSlice.idToLoc(this.slices.peek().getLast());
+		var p = this.slices.peek().getEntrances(this.slices.peek().getLast())[0];
+		pheight = q.y - cursor.y;
+		
+		if(pheight < 0) lift.y = lift.y + pheight;
+		
+		var froom = this.roomFromTags(["item"]);
+		var lroom = window._map_rooms[3];
+		this.slices.peek().add(cursorEnter,froom,properties);
+		this.slices.peek().add(cursor.add(lift),lroom,{"height":Math.abs(pheight)+1});
+		
+		//this.slices.peek().useEntrance(cursor.add(exit).add(new Point(lift.x,0)));
+		//this.slices.peek().useEntrance(cursor.add(exit).add(new Point(lift.x,Math.abs(pheight))));
+		//if(p instanceof Point) p.y += 1;
+		
+		var exit = entrance.x > 0 ? new Point(0,0) : new Point(1,0);
+		var ops = new Point(0,pheight);
+		this.slices.peek().useEntrance(cursor.add(exit));
+		this.slices.peek().useEntrance(cursor.add(exit).add(ops));
+		console.log("Loop added");
+		return true;
 	}
 	return false;
-}
-RandomTemple.prototype.attemptLoopOld = function(options,level,direction,cursor,destination,connection){
-	if( level > 30 ) {
-		console.error("Couldn't reach destination in "+level+" steps.");
-		return false;
-	} else if( cursor.x == destination.x && cursor.y == destination.y ) {
-		var id = ~~cursor.x +"_"+ ~~cursor.y;
-		var d = "x";
-		if( connection ) {
-			if( connection > 0 ) d="n";
-			if( connection < 0 ) d="s";
-		} else {
-			if( direction > 0 ) d="w";
-			if( direction < 0 ) d="e";
-		}
-		this.slices.peek().setJunction(cursor,d);
-		console.log("Reached Destination!!!");
-		return true;
-	} else if( connection ) {
-		if( this.isFree(null,direction,cursor) ){
-			var id = ~~cursor.x +"_"+ ~~cursor.y;
-			this.slices.peek().add(cursor,"j");
-			
-			var d = cursor.x < destination.x ? 1 : -1;
-			if(cursor.y == destination.y ){
-				this.slices.peek().setJunction(cursor,(d<0?"w":"e"));
-				this.slices.peek().setJunction(cursor,(connection>0?"n":"s"));
-				
-				var c = new Point(cursor.x+d, cursor.y);
-				if(!this.attemptLoop(options,level+1,d,c,destination) ){
-					//Clean up
-					this.slices.peek().remove(cursor);
-					return false;
-				}
-			} else {
-				this.slices.peek().setJunction(id, ["n","s"]);
-				var v = cursor.y < destination.y ? 1 : -1;
-				var c = new Point(cursor.x, cursor.y + v );
-				if( !this.attemptLoop(options,level+1,d,c,destination, v) ){
-					this.slices.peek().remove(cursor);
-					return false;
-				}
-			}
-		} else {
-			return false;
-		}
-	} else if(level > 0 && cursor.y != destination.y && this.seed.randomBool(0.8) ){
-		//Match height
-		if( this.isFree(null,direction,cursor) ){
-			var d = cursor.x < destination.x ? 1 : -1;
-			var id = ~~cursor.x +"_"+ ~~cursor.y;
-			
-			this.slices.peek().add(id,"j");
-			this.slices.peek().setJunction(id,(direction>0?"w":"e"));
-			this.slices.peek().setJunction(id,(cursor.y>destination.y?"n":"s"));
-			
-			var v = cursor.y < destination.y ? 1 : -1;
-			var c = new Point(cursor.x, cursor.y + v );
-			if(!this.attemptLoop(options,level+1,d,c,destination, v)){
-				this.slices.peek().remove(id);
-				return false;
-			}
-		} else {
-			return false;
-		}		
-	} else {
-		var room_id = this.randomRoom();
-		var room = _map_rooms[ room_id ];
-		var ops = options;
-		if( "door" in options && Math.abs(cursor.x-destination.x) < 3 && cursor.y == destination.y){
-			room_id = RandomTemple.roomFromTags(["door"]);
-			var room = _map_rooms[ room_id ];
-		}
-		while(cursor.y==destination.y && Math.abs(cursor.x-destination.x) < room.width){
-			room_id = this.randomRoom();
-			room = _map_rooms[ room_id ];
-		}
-		if( this.isFree(room,direction,cursor) ) {
-			var c = new Point(cursor.x+room.width*direction, cursor.y);
-			var p = {};
-			if("tags" in room && room.tags.indexOf("door") >= 0 ) {
-				p = {"door":options.door};
-				ops = {};
-			}
-			this.slices.peek().add(cursor, room, p, direction);
-			if(!this.attemptLoop(ops,level+1,direction,c,destination)){
-				this.slices.peek().remove(id, room);
-				return false;
-			}
-		} else {
-			return false;
-		}
-	}
-	return true;
 }
 
 RandomTemple.prototype.addWell = function(){
@@ -985,6 +928,7 @@ function MapSlice() {
 	this.keys = [];
 	this.keyCount = 0;
 	this.data = {};
+	this.orderCount = 0;
 }
 MapSlice.prototype.add = function(loc,room,p, secret){
 	p = p || {};
@@ -1009,21 +953,32 @@ MapSlice.prototype.add = function(loc,room,p, secret){
 		}
 	}
 	secret = secret || false;
+	this.orderCount++;
 	this.data[loc] = {
 		"width" : 1,
 		"height" : 1,
 		"room" : room_id,
 		"entrances" : {},
 		"properties" : p,
-		"secret" : secret
+		"secret" : secret,
+		"order" : this.orderCount
 	}
 	
 	if( room instanceof Object ){ 
 		var width = ("width" in room) ? room["width"] : 1;
 		var height = ("height" in room) ? room["height"] : 1;
+		if("width" in p) width = p["width"];
+		if("height" in p) height = p["height"];
 		this.data[loc]["width"] = width;
 		this.data[loc]["height"] = height;
-		var entrances = ("entrances" in room) ? room.entrances : [[0,0],[width,0]];
+		var entrances = [[0,0],[width,0]];
+		if("entrances" in room){
+			if(room["entrances"] instanceof Function){
+				entrances = room["entrances"](width,height,p);
+			}else {
+				entrances = room["entrances"];
+			}
+		}
 		
 		for(var i=0; i < entrances.length; i++){
 			ent = MapSlice.locToId(new Point(entrances[i][0],entrances[i][1]));
@@ -1040,6 +995,20 @@ MapSlice.prototype.add = function(loc,room,p, secret){
 		}
 	}
 }
+
+MapSlice.prototype.getLast = function(){
+	var out = null;
+	var largest = -1;
+	for(var id in this.data){
+		if(this.data[id].room >= 0){
+			if(this.data[id].order > largest){
+				out = id;
+				largest = this.data[id].order;
+			}
+		}
+	}
+	return out;
+}
 MapSlice.prototype.get = function(loc){
 	loc = MapSlice.locToId(loc);
 	return this.data[loc];
@@ -1053,15 +1022,17 @@ MapSlice.prototype.setProperty = function(id,name,value){
 }
 MapSlice.prototype.remove = function(loc, room){
 	loc = MapSlice.locToId(loc);
-	room = room || {};
-	var width = ("width" in room) ? room.width : 1;
-	var height = ("height" in room) ? room.width : 1;
-	
-	var pos = MapSlice.idToLoc(loc);
-	for(var x=0; x<width; x++) for(var y=0; y<height; y++){
-		id = MapSlice.locToId(new Point(pos.x+x,pos.y+y));
-		if( id in this.data ){
-			delete this.data[id];
+	pos = MapSlice.idToLoc(loc);
+	var d = this.data[loc];
+	if(d.room != -1){
+		var width = d.width;
+		var height = d.height;
+		
+		for(var x=0; x<width; x++) for(var y=0; y<height; y++){
+			id = MapSlice.locToId(new Point(pos.x+x,pos.y+y));
+			if( id in this.data ){
+				delete this.data[id];
+			}
 		}
 	}
 }
@@ -1073,7 +1044,6 @@ MapSlice.prototype.useEntrance = function(loc,e){
 				var pos = MapSlice.idToLoc(id).add( MapSlice.idToLoc(ent) );
 				if( pos.x == loc.x && pos.y == loc.y ){
 					this.data[id].entrances[ent] = true;
-					console.log("Entrance found!");
 				}
 			}
 		}
@@ -1090,6 +1060,33 @@ MapSlice.prototype.useEntrance = function(loc,e){
 		}
 	}
 }
+MapSlice.prototype.getUsedEntrances = function(inid){
+	out = [];
+	
+	var ids = new Array();
+	if(inid != undefined){
+		ids = [inid];
+	}else{
+		ids = Object.keys(this.data);
+	}
+	
+	for(var i=0; i < ids.length; i++){
+		var id = ids[i];
+		if(id in this.data){
+			var d = this.data[id];
+			if( d.room >= 0 ) {
+				var loc = MapSlice.idToLoc(id);
+				for(var ent in d.entrances){
+					if( d.entrances[ent] ) {
+						var offset = MapSlice.idToLoc(ent);
+						out.push( loc.add(offset) );
+					}
+				}
+			}
+		}
+	}
+	return out;
+}
 MapSlice.prototype.getRoomsWithEntrances = function(){
 	out = [];
 	for(var id in this.data){
@@ -1103,16 +1100,27 @@ MapSlice.prototype.getRoomsWithEntrances = function(){
 	}
 	return out;
 }
-MapSlice.prototype.getEntrances = function(){
+MapSlice.prototype.getEntrances = function(inid){
 	out = [];
-	for(var id in this.data){
-		var d = this.data[id];
-		if( d.room >= 0 ) {
-			var loc = MapSlice.idToLoc(id);
-			for(var ent in d.entrances){
-				if( !d.entrances[ent] ) {
-					var offset = MapSlice.idToLoc(ent);
-					out.push( loc.add(offset) );
+	
+	var ids = new Array();
+	if(inid != undefined){
+		ids = [inid];
+	}else{
+		ids = Object.keys(this.data);
+	}
+	
+	for(var i=0; i < ids.length; i++){
+		var id = ids[i];
+		if(id in this.data){
+			var d = this.data[id];
+			if( d.room >= 0 ) {
+				var loc = MapSlice.idToLoc(id);
+				for(var ent in d.entrances){
+					if( !d.entrances[ent] ) {
+						var offset = MapSlice.idToLoc(ent);
+						out.push( loc.add(offset) );
+					}
 				}
 			}
 		}
@@ -1200,19 +1208,30 @@ MapSlice.prototype.randomKey = function(roll, max_keys){
 MapSlice.prototype.clone = function(){
 	out = new MapSlice();
 	out.keyCount = this.keyCount;
+	out.orderCount = this.orderCount;
+	
 	for(var i=0; i < this.keys.length; i++){
 		out.keys.push(this.keys[i]);
 	}
-	for(var i in this.data){
-		out.add(i,this.data[i].room,this.data[i].properties);
-		out.data[i].secret = this.data[i].secret;
-		out.data[i].entrances = {};
-		for(var j in this.data[i].entrances){
-			out.data[i].entrances[j] = this.data[i].entrances[j];
+	for(var loc in this.data){
+		out.data[loc] = {
+			"width" : this.data[loc].width,
+			"height" : this.data[loc].height,
+			"room" : this.data[loc].room,
+			"entrances" : {},
+			"properties" : this.data[loc].properties,
+			"secret" : this.data[loc].secret,
+			"order" : this.data[loc].order
+		}
+		
+		for(var j in this.data[loc].entrances){
+			out.data[loc].entrances[j] = this.data[loc].entrances[j];
 		}
 	}
+	MapSlice.testslice.push(out);
 	return out;
 }
+MapSlice.testslice = new Array();
 MapSlice.idToLoc = function(id){
 	try{
 		if( id instanceof Point ) return id;

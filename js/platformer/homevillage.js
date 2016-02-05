@@ -48,7 +48,7 @@ HomeVillage.create = function(g){
 	
 	var pm = new PauseMenu();
 	pm.mapDimension = g.tileDimension.scale(1/16.0,1/15.0);
-	var mapWidth = floor(pm.mapDimension.width());
+	var mapWidth = Math.floor(pm.mapDimension.width());
 	pm.map = new Array(mapWidth);
 	for(var i=0; i < mapWidth; i++){
 		var tile = i==0?5:(i==mapWidth-1?6:7);
