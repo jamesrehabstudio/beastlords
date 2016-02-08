@@ -62,8 +62,8 @@ ItemMenu.prototype.update = function(){
 ItemMenu.prototype.itemPosition = function(name){
 	var columnWidth = 6;
 	var index = 0;
-	for(var i=0; i < dataManager.treasures.length; i++) 
-		if( dataManager.treasures[i].name == name )
+	for(var i=0; i < Item.treasures.length; i++) 
+		if( Item.treasures[i].name == name )
 			index = i;
 		
 	var colmpos = (index % columnWidth);
@@ -82,17 +82,17 @@ ItemMenu.prototype.postrender = function(g,c){
 	
 	var columnWidth = 6;
 	var scrollHeight = Math.max( 
-		Math.ceil( (dataManager.treasures.length+1) / columnWidth ) * 40 - (240-24), 0 
+		Math.ceil( (Item.treasures.length+1) / columnWidth ) * 40 - (240-24), 0 
 	);
 	
 	this.scroll.y = Math.min(Math.max(this.scroll.y,0), scrollHeight);
 	
 	textArea(g,"Unlocked Items", xpos+72+this.scroll.x,8-this.scroll.y);
 	
-	for(var i=0; i < dataManager.treasures.length; i++) {
-		var name = dataManager.treasures[i].name;
+	for(var i=0; i < Item.treasures.length; i++) {
+		var name = Item.treasures[i].name;
 		
-		switch(dataManager.treasures[i].unlocked * 1) {
+		switch(Item.treasures[i].unlocked * 1) {
 			case 1 : g.color = [0.8,0.6,0.9,1.0]; break;
 			case 2 : g.color = [1.0,1.0,1.0,1.0]; break;
 			default : g.color = [0.2,0.1,0.6,1.0]; break;
@@ -104,7 +104,7 @@ ItemMenu.prototype.postrender = function(g,c){
 		var pos = new Point(xpos+x+12,y+12);
 		g.scaleFillRect(xpos+x,y-this.scroll.y,24,24);
 		
-		if( dataManager.treasures[i].unlocked > 0 && this.unlocks.indexOf(name) < 0  ){
+		if( Item.treasures[i].unlocked > 0 && this.unlocks.indexOf(name) < 0  ){
 			Item.prototype.setName.apply(this, [ name ] );
 			this.sprite.render(g,pos.subtract(this.scroll),this.frame, this.frame_row);
 		} else {

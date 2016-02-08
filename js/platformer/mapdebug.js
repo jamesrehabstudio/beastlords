@@ -16,11 +16,10 @@ MapDebug.prototype.update = function(){
 MapDebug.prototype.hudrender = function(g,c){
 	try {
 		var size = new Point(8,8);
-		//this.slice = Math.min(Math.max(this.slice,0),RandomTemple.test.slices.length-1);
-		this.slice = Math.min(Math.max(this.slice,0),MapSlice.testslice.length-1);
+		this.slice = Math.min(Math.max(this.slice,0),RandomTemple.testslice.length-1);
 		
-		//var slice = RandomTemple.test.slices[this.slice].data;
-		var slice = MapSlice.testslice[this.slice].data;
+		var slice = RandomTemple.testslice[this.slice].data;
+		var entrances = RandomTemple.testslice[this.slice].getEntrances();
 		for(var i in slice ){
 			if( slice[i].room != -1 ) {
 				var pos = MapSlice.idToLoc(i);
@@ -35,6 +34,22 @@ MapDebug.prototype.hudrender = function(g,c){
 					sprites.map.render(g,mpos,0,tileY);
 				}
 			}
+		}
+		/*
+		for(var i in slice ){
+			if( slice[i].room == -1 ) {
+				//Render room parts
+				var pos = MapSlice.idToLoc(i);
+				var mpos = pos.scale(8).subtract(this.offset);
+				sprites.map.render(g,mpos,4,4);
+			}
+		}
+		*/
+		
+		for(var i=0; i<entrances.length;i++){
+			var mpos = entrances[i].scale(8).subtract(this.offset).add(new Point(-2,3));
+			g.color = [0,1.0,0,1.0];
+			g.scaleFillRect(mpos.x,mpos.y,4,4);
 		}
 	} catch (err) {}
 }

@@ -8037,11 +8037,10 @@ MapDebug.prototype.update = function(){
 MapDebug.prototype.hudrender = function(g,c){
 	try {
 		var size = new Point(8,8);
-		//this.slice = Math.min(Math.max(this.slice,0),RandomTemple.test.slices.length-1);
-		this.slice = Math.min(Math.max(this.slice,0),MapSlice.testslice.length-1);
+		this.slice = Math.min(Math.max(this.slice,0),RandomTemple.testslice.length-1);
 		
-		//var slice = RandomTemple.test.slices[this.slice].data;
-		var slice = MapSlice.testslice[this.slice].data;
+		var slice = RandomTemple.testslice[this.slice].data;
+		var entrances = RandomTemple.testslice[this.slice].getEntrances();
 		for(var i in slice ){
 			if( slice[i].room != -1 ) {
 				var pos = MapSlice.idToLoc(i);
@@ -8056,6 +8055,22 @@ MapDebug.prototype.hudrender = function(g,c){
 					sprites.map.render(g,mpos,0,tileY);
 				}
 			}
+		}
+		/*
+		for(var i in slice ){
+			if( slice[i].room == -1 ) {
+				//Render room parts
+				var pos = MapSlice.idToLoc(i);
+				var mpos = pos.scale(8).subtract(this.offset);
+				sprites.map.render(g,mpos,4,4);
+			}
+		}
+		*/
+		
+		for(var i=0; i<entrances.length;i++){
+			var mpos = entrances[i].scale(8).subtract(this.offset).add(new Point(-2,3));
+			g.color = [0,1.0,0,1.0];
+			g.scaleFillRect(mpos.x,mpos.y,4,4);
 		}
 	} catch (err) {}
 }
@@ -8546,8 +8561,8 @@ ItemMenu.prototype.update = function(){
 ItemMenu.prototype.itemPosition = function(name){
 	var columnWidth = 6;
 	var index = 0;
-	for(var i=0; i < dataManager.treasures.length; i++) 
-		if( dataManager.treasures[i].name == name )
+	for(var i=0; i < Item.treasures.length; i++) 
+		if( Item.treasures[i].name == name )
 			index = i;
 		
 	var colmpos = (index % columnWidth);
@@ -8566,17 +8581,17 @@ ItemMenu.prototype.postrender = function(g,c){
 	
 	var columnWidth = 6;
 	var scrollHeight = Math.max( 
-		Math.ceil( (dataManager.treasures.length+1) / columnWidth ) * 40 - (240-24), 0 
+		Math.ceil( (Item.treasures.length+1) / columnWidth ) * 40 - (240-24), 0 
 	);
 	
 	this.scroll.y = Math.min(Math.max(this.scroll.y,0), scrollHeight);
 	
 	textArea(g,"Unlocked Items", xpos+72+this.scroll.x,8-this.scroll.y);
 	
-	for(var i=0; i < dataManager.treasures.length; i++) {
-		var name = dataManager.treasures[i].name;
+	for(var i=0; i < Item.treasures.length; i++) {
+		var name = Item.treasures[i].name;
 		
-		switch(dataManager.treasures[i].unlocked * 1) {
+		switch(Item.treasures[i].unlocked * 1) {
 			case 1 : g.color = [0.8,0.6,0.9,1.0]; break;
 			case 2 : g.color = [1.0,1.0,1.0,1.0]; break;
 			default : g.color = [0.2,0.1,0.6,1.0]; break;
@@ -8588,7 +8603,7 @@ ItemMenu.prototype.postrender = function(g,c){
 		var pos = new Point(xpos+x+12,y+12);
 		g.scaleFillRect(xpos+x,y-this.scroll.y,24,24);
 		
-		if( dataManager.treasures[i].unlocked > 0 && this.unlocks.indexOf(name) < 0  ){
+		if( Item.treasures[i].unlocked > 0 && this.unlocks.indexOf(name) < 0  ){
 			Item.prototype.setName.apply(this, [ name ] );
 			this.sprite.render(g,pos.subtract(this.scroll),this.frame, this.frame_row);
 		} else {
@@ -11633,7 +11648,7 @@ RandomTemple.prototype.generate = function(s){
 	RandomTemple.currentTemple = this.templeId;
 	
 	s = s || "" + Math.random();
-	//s = "00.7882414807099849";
+	//s = "00.5598861731123179";
 	this.seed = new Seed( s );
 	
 	while( !success ) {
@@ -12082,10 +12097,11 @@ RandomTemple.prototype.addSecret = function(options){
 	return false;
 }
 
+RandomTemple.testslice = new Array();
 RandomTemple.prototype.addRoom = function(options, level, cursor){
 	//List of rooms to try
 	var r = options.rules.apply(this,[level,options,cursor]);
-	
+	RandomTemple.testslice.push(this.slices.peek().clone());
 	//Scramble order
 	this.seed.shuffle(r);
 	
@@ -12094,8 +12110,6 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 	for(var j = 0; j < r.length; j++ ) {
 		//Go through rooms until one fits
 		var room_id = r[j];
-		//var isJunction = room_data[0] == "j";
-		//if( isJunction ) room = {"width":1, "entrances":[0,0]}
 		var room = _map_rooms[ room_id ];
 		
 		var temp_properties = {};
@@ -12129,7 +12143,7 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 				
 				if("secret" in options) this.slices.peek().setSecret(cursor,options.secret);
 				
-					var max_keys = this.settings.maxkeys;
+				var max_keys = this.settings.maxkeys;
 				if( "key_required" in room ){
 					var randomKey = this.slices.peek().randomKey(this.seed.random(), max_keys);
 					var newKey = randomKey[0];
@@ -12154,87 +12168,68 @@ RandomTemple.prototype.addRoom = function(options, level, cursor){
 						);
 					}
 				}
-				/*
-				if( "door" in temp_properties ){
-					if( this.existingKeysIndex().indexOf(temp_properties.door) < 0 ) {
-						var key_name = "key_" + this.key_counter;
-						var branch_size = "size" in options ? Math.floor(options.size/2) : 4;
-						this.key_counter++;
-						bid = this.slices.length;
-						success = this.addBranch({
-								"rules":this.rules.item,
-								"item":key_name,
-								"difficulty":2,
-								"size":branch_size
-							}, 
-							branch_size, 
-							this.slices.peek().getJunctions()
-						);
-						//console.log("Room: " + room_id + " _ " + success + " " + current_junctions );
-					}
-				}
-				if( "shop" in temp_properties ){
-					this.shop_counter++;
-				}
-				*/
 				//More rooms to go?
 				
-				if( level > 0 ){
-					
-					if( "tags" in room && room.tags.indexOf("optional") >= 0) {
-						delete options["optional"];
-					}
-					
-					//var next_cursor = new Point(cursor.x + room.width * new_direction, cursor.y);
-					var exits = entrances;
-					if( "exits" in room ) exits = room.exits( entrance );
-					for(var cur=0; cur < exits.length; cur++){
-						var nextEntrance = new Point(exits[cur][0], exits[cur][1]);
-						var next_cursor = cursorEnter.add(nextEntrance);
+				if(success){
+					if( level > 0 ){
 						
-						if("destination_x" in options){
-							if(options["destination_x"] == next_cursor.x){
-								//Reached its destination
-								if("meet_y" in options){
-									var lheight = Math.abs(next_cursor.y-options["meet_y"])+1;
-									var ltop = new Point(next_cursor.x, Math.min(next_cursor.y,options["meet_y"]));
-									return this.isFree({"height":lheight},ltop);
-								} else {
-									return true;
+						if( "tags" in room && room.tags.indexOf("optional") >= 0) {
+							delete options["optional"];
+						}
+						
+						//var next_cursor = new Point(cursor.x + room.width * new_direction, cursor.y);
+		
+						var exits = entrances;
+						if( "exits" in room ) exits = room.exits( entrance );
+						for(var cur=0; cur < exits.length; cur++){
+							var nextEntrance = new Point(exits[cur][0], exits[cur][1]);
+							var next_cursor = cursorEnter.add(nextEntrance);
+							
+							if("destination_x" in options){
+								if(options["destination_x"] == next_cursor.x){
+									//Reached its destination
+									if("meet_y" in options){
+										var lheight = Math.abs(next_cursor.y-options["meet_y"])+1;
+										var ltop = new Point(next_cursor.x, Math.min(next_cursor.y,options["meet_y"]));
+										return this.isFree({"height":lheight},ltop);
+									} else {
+										return true;
+									}
 								}
 							}
+							
+							if( this.addRoom(options, level-1, next_cursor) ) {
+								this.slices.peek().useEntrance(cursorEnter,nextEntrance);
+								break;
+							} else if ( cur >= exits.length -1 ) {
+								//Failed on last exit
+								success = false;
+							}
 						}
-						
-						if( this.addRoom(options, level-1, next_cursor) ) {
-							this.slices.peek().useEntrance(cursorEnter,nextEntrance);
-							break;
-						} else if ( cur >= exits.length -1 ) {
-							success = false;
-						}
-					}
-					//success = success && this.addRoom(options, level-1, new_direction, next_cursor);
-					
-					
-					if( !success ) {
-						//clear this room
-						if(typeof bid == "number"){
-							//A branch was created, destroy it.
-							this.revertSlice(bid);
-						}
-						this.slices.peek().remove(cursorEnter, room);
-						return false;
+
 					} else {
-						return true;
+						if("destination_x" in options){
+							success = false;
+						} else {
+							if( "key" in options ) {	
+								//Determine side of room not in use
+								this.attemptLoop(cursor,entrance,cursorEnter,temp_properties);
+								this.slices.peek().keys.push( options.key );
+							}
+							return true;
+						}
 					}
+				}
+				
+				if( !success ) {
+					//clear this room
+					if(typeof bid == "number"){
+						//A branch was created, destroy it.
+						this.revertSlice(bid);
+					}
+					this.slices.peek().remove(cursorEnter, room);
+					return false;
 				} else {
-					if("destination_x" in options){
-						return false;
-					}
-					if( "key" in options ) {	
-						//Determine side of room not in use
-						this.attemptLoop(cursor,entrance,cursorEnter,temp_properties);
-						this.slices.peek().keys.push( options.key );
-					}
 					return true;
 				}
 			}
@@ -12262,6 +12257,7 @@ RandomTemple.prototype.attemptLoop = function(cursor,entrance,cursorEnter,proper
 		var p = this.slices.peek().getEntrances(this.slices.peek().getLast())[0];
 		pheight = q.y - cursor.y;
 		
+		//is cursor lower than connector?
 		if(pheight < 0) lift.y = lift.y + pheight;
 		
 		var froom = this.roomFromTags(["item"]);
@@ -12275,8 +12271,17 @@ RandomTemple.prototype.attemptLoop = function(cursor,entrance,cursorEnter,proper
 		
 		var exit = entrance.x > 0 ? new Point(0,0) : new Point(1,0);
 		var ops = new Point(0,pheight);
-		this.slices.peek().useEntrance(cursor.add(exit));
-		this.slices.peek().useEntrance(cursor.add(exit).add(ops));
+		
+		var exit = new Point(
+			(q.x <= cursor.x ? cursor.add(lift).x : (cursor.add(lift).x + 1)),
+			p.y
+		);
+		
+		//Both sides of item room
+		this.slices.peek().useEntrance(cursorEnter);
+		this.slices.peek().useEntrance(cursorEnter.add(new Point(1,0)));
+		
+		this.slices.peek().useEntrance(exit);
 		console.log("Loop added");
 		return true;
 	}
@@ -12787,10 +12792,8 @@ MapSlice.prototype.clone = function(){
 			out.data[loc].entrances[j] = this.data[loc].entrances[j];
 		}
 	}
-	MapSlice.testslice.push(out);
 	return out;
 }
-MapSlice.testslice = new Array();
 MapSlice.idToLoc = function(id){
 	try{
 		if( id instanceof Point ) return id;
