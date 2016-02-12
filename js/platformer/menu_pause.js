@@ -14,6 +14,8 @@ function PauseMenu(){
 	this.stat_cursor = 0;
 	this.questlist = new Array();
 	
+	this.icons = false;
+	
 	this.map = new Array();
 	this.map_reveal = new Array();
 	this.mapDimension = null;
@@ -359,12 +361,31 @@ PauseMenu.prototype.hudrender = function(g,c){
 	}
 }
 
+PauseMenu.prototype.fetchDoors = function(g,cursor,offset,limits){
+	this.icons = new Array();
+	var doors = game.getObjects(Door);
+	var shops = game.getObjects(Shop);
+	for(var i=0; i < doors.length; i++){
+		if(doors[i].name.match(/(\d+)/)){
+			var id = doors[i].name.match(/(\d+)/)[0] - 0;
+			var x = Math.floor(doors[i].position.x/256) 
+			var y = Math.floor(doors[i].position.y/240)
+			this.icons.push({"x":x,"y":y,"f":8,"fr":id});
+		}
+	}
+	for(var i=0; i < shops.length; i++){
+		var x = Math.floor(shops[i].position.x/256) 
+		var y = Math.floor(shops[i].position.y/240)
+		this.icons.push({"x":x,"y":y,"f":8,"fr":9});
+	}
+}
 PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 	try {
 		var size = new Point(8,8);
-		//var offset = new Point(32,24);
-		var doors = game.getObjects(Door);
-		var shop = game.getObject(Shop);
+		
+		if(!this.icons){
+			this.fetchDoors();
+		}
 		
 		for(var i=0; i < this.map.length; i++ ){
 			if( this.map[i] != undefined && this.map_reveal[i] > 0 )  {
@@ -383,15 +404,11 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 					if( this.map_reveal[i] < 2 ) xtile += 4;
 					sprites.map.render(g,pos.add(offset),xtile,ytile);
 					
-					if( this.map_reveal[i] >= 2 ) {					
-						for(var j=0; j < doors.length; j++ ){
-							if( tile.x == Math.floor(doors[j].position.x/256) && tile.y == Math.floor(doors[j].position.y/240) ){
-								var door_id = doors[j].name.match(/(\d+)/)[0] - 0;
-								sprites.map.render(g,pos.add(offset),8,door_id);
+					if( this.map_reveal[i] >= 2 ) {
+						for(var j=0; j < this.icons.length; j++ ){
+							if( tile.x == this.icons[j].x && tile.y == this.icons[j].y ){
+								sprites.map.render(g,pos.add(offset),this.icons[j].f,this.icons[j].fr);
 							}
-						}
-						if( shop != null && tile.x == Math.floor(shop.position.x/256) && tile.y == Math.floor(shop.position.y/240) ){
-							sprites.text.render(g,pos.add(offset),4,0);
 						}
 					}
 				}
@@ -406,7 +423,9 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 			g.color = [1.0,0.0,0.0,1.0];
 			g.scaleFillRect(1 + pos.x + offset.x, 1 + pos.y + offset.y, 4, 3 );
 		}
-	} catch (err) {}
+	} catch (err) {
+		var r = 0;
+	}
 }
 
 PauseMenu.convertTileDataToMapData = function(data){

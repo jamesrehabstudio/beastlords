@@ -14,6 +14,9 @@ function Flederknife(x, y, d, o){
 	
 	this.states = {
 		"direction" : 1.0,
+		"jump" : 0,
+		"down" : 0,
+		"jump_tick" : 1
 	};
 	
 	o = o || {};
@@ -33,13 +36,34 @@ function Flederknife(x, y, d, o){
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_combat)){
+			this.force.x = 0;
+			this.states.direction *= -1.0;
+		}
+	});
 	this.on("collideHorizontal", function(dir){
 		this.force.x = 0;
 		this.states.direction *= -1.0;
+		
+		if(this.difficulty > 0){
+			this.states.duck = Math.round(Math.random());
+		}
+		if(this.difficulty > 1){
+			this.states.jump_tick--;
+		}
 	});
 	this.on("wakeup", function(){
 		var dir = this.position.subtract( _player.position );
 		this.states.direction = dir.x > 0 ? -1.0 : 1.0;
+		this.states.jump_tick = 1;
+		
+		if(this.difficulty > 0){
+			this.states.duck = Math.round(Math.random());
+		}
+		if(this.difficulty > 1){
+			this.states.jump_tick = Math.floor(Math.random()*3);
+		}
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
@@ -56,15 +80,47 @@ Flederknife.prototype.update = function(){
 		this.flip = this.states.direction < 0;
 		
 		this.force.x += this.delta * this.speed * this.states.direction;
-		this.strike( new Line(0, -2, 12, 2) );
+		
+		if(this.states.jump && this.grounded){
+			this.states.jump = 0;
+			this.states.direction = dir.x > 0 ? -1.0 : 1.0;
+			this.force.y -= this.delta * 3;
+		} 
+
+		if(this.grounded){
+			if(this.states.duck){
+				this.strike( new Line(0, 6, 12, 2) );
+			} else {
+				this.strike( new Line(0, -6, 12, 2) );
+			}
+		}
+		
+		if(this.states.jump_tick <= 0 && this.grounded && Math.abs(dir.x) < 80){
+			//Jump behind the player
+			this.states.jump = 1;
+			this.grounded = false;
+			this.states.direction = dir.x > 0 ? -1.0 : 1.0;
+			this.force.y = -12;
+			this.force.x = this.states.direction * 10;
+			this.states.jump_tick = 2 + Math.floor(Math.random()*3);
+		}
+		
+		
 	}
 	
 	/* Animation */
 	if( this.stun > 0 ) {
-		this.frame = 0;
+		this.frame = 3;
+		this.frame_row = 2;
+	} else if( this.states.jump ){
+		this.frame = (this.frame + this.delta * 0.4) % 3;
 		this.frame_row = 2;
 	} else {
 		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
-		this.frame_row = 1;
+		if(this.states.duck){
+			this.frame_row = 0;
+		} else {
+			this.frame_row = 1;
+		}
 	}
 }

@@ -108,6 +108,7 @@ Spawn.enemies = {
 		//{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]},
 		
 		{"tags":["miniboss"],"difficulty":[0,0],"enemies":["Skeleton"]},
+		{"tags":["miniboss"],"difficulty":[2,3],"enemies":["ChickenChain"]},
 		{"tags":["miniboss"],"difficulty":[0,0],"enemies":["Bear"]},
 		{"tags":["miniboss"],"difficulty":[1,2],"enemies":["Oriax"]},
 		{"tags":["miniboss"],"difficulty":[1,99],"enemies":["Knight"]},
@@ -119,11 +120,13 @@ Spawn.enemies = {
 		{"tags":["major"],"difficulty":[1,3],"enemies":["Skeleton"]},
 		{"tags":["major"],"difficulty":[0,2],"enemies":["Bear"]},
 		{"tags":["major"],"difficulty":[3,4],"enemies":["Oriax"]},
-		{"tags":["major","ranged"],"difficulty":[2,99],"enemies":["Chaz"]},
+		{"tags":["major","ranged"],"difficulty":[0,99],"enemies":["Chaz"]},
 		{"tags":["major"],"difficulty":[4,99],"enemies":["Igbo"]},
 		{"tags":["major"],"difficulty":[4,99],"enemies":["Yeti"]},
+		{"tags":["major","ranged"],"difficulty":[4,99],"enemies":["ChickenChain"]},
 		
 		{"tags":["minor"],"difficulty":[0,99],"enemies":["Flederknife"]},
+		{"tags":["minor"],"difficulty":[2,99],"enemies":["Flederknife","Flederknife"]},
 		{"tags":["minor"],"difficulty":[1,99],"enemies":["HammerMathers"]},
 		{"tags":["minor"],"difficulty":[3,99],"enemies":["Ratgut"]},
 		{"tags":["minor"],"difficulty":[4,99],"enemies":["Skeleton"]},
@@ -134,8 +137,8 @@ Spawn.enemies = {
 		{"tags":["minor","ledge"],"difficulty":[0,99],"enemies":["Axedog"]},
 		{"tags":["minor","flying"],"difficulty":[0,99],"enemies":["Batty"]},
 		{"tags":["minor","flying"],"difficulty":[0,3],"enemies":["Amon"]},
-		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing"]},
-		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Laughing","Laughing","Laughing","Laughing","Laughing","Laughing"]},
+		{"tags":["minor","flying"],"difficulty":[2,4],"enemies":["Laughing","Laughing","Laughing","Laughing"]},
+		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Laughing","Laughing","Laughing","Laughing","Laughing","Laughing"]},
 		{"tags":["minor","flying"],"difficulty":[2,99],"enemies":["Ghoul"]},
 		{"tags":["minor","flying"],"difficulty":[3,99],"enemies":["Svarog"]}
 	],

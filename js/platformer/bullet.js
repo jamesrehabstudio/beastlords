@@ -36,8 +36,10 @@ function Bullet(x,y,d){
 				obj.hurt( this, this.damage );
 			} else {
 				if( "_shield" in obj && game.overlaps(this.bounds()).indexOf(obj._shield) > -1 ){
+					this.trigger("blocked",obj);
 					obj.trigger("block",this,this.position,this.damage);
 				} else {
+					this.trigger("hurt_other",obj);
 					obj.hurt( this, this.damage );
 				}
 				

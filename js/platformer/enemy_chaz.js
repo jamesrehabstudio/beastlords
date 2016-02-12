@@ -5,7 +5,7 @@ function Chaz(x,y,d,o){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 20;
-	this.height = 32;
+	this.height = 30;
 	this.start_x = x;
 	
 	this.speed = 0.1;

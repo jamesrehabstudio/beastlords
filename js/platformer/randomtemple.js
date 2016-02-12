@@ -74,7 +74,7 @@ RandomTemple.prototype.generate = function(s){
 	RandomTemple.currentTemple = this.templeId;
 	
 	s = s || "" + Math.random();
-	//s = "00.5598861731123179";
+	s = "00.10545453918166459";
 	this.seed = new Seed( s );
 	
 	while( !success ) {
@@ -358,7 +358,8 @@ RandomTemple.prototype.createRoom = function(room_slice,cursor,room_options){
 			var obj = room.objects[j];
 			var x = cursor.x + obj[0];
 			var y = cursor.y + obj[1];
-			var dim = new Point(obj[2][0],obj[2][1]);
+			//var dim = new Point(obj[2][0],obj[2][1]);
+			var dim = obj[2];
 			var objectName = obj[3];
 			var properties = {};
 			var addObject = true;

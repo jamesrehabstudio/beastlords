@@ -102,6 +102,13 @@ Background.prototype.postrender = function(gl,c){
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 
 	Background.lights = new Array();
+	
+	//Render flash
+	if(Background.flash instanceof Array){
+		gl.color = Background.flash;
+		gl.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+		Background.flash = false;
+	}
 }
 
 Background.prototype.renderLightbeam = function(g,p,r,a){
@@ -220,6 +227,7 @@ Background.cloudBuffer = new Float32Array([
 Background.cloudTexture = new Float32Array([
 	0.5, 0.875, 1.0, 0.875, 0.5, 1.0, 0.5, 1.0, 1.0, 0.875, 1.0, 1.0
 ]);
+Background.flash = false;
 Background.lights = new Array();
 Background.pushLight = function(p,r,c){
 	if( Background.lights.length < 20 ) {

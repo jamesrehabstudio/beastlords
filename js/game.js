@@ -670,7 +670,7 @@ Game.prototype.t_unstick = function( obj ) {
 		"left" : 0,
 		"right" : 0
 	}
-	var exclusive = [137,138,139,140,141,142,143,144,159,160];
+	var exclusive = [65,66,67,81,82,83,137,138,139,140,141,142,143,144,159,160];
 	var ts = 16;
 	var xinc = obj.width/ Math.ceil(obj.width/ts);
 	var yinc = obj.height/ Math.ceil(obj.height/ts);
@@ -709,8 +709,8 @@ Game.prototype.t_move = function(obj, x, y) {
 	
 	if( this.t_unstick(obj) ) return;
 	
-	var exclusive = [137,138,139,140,141,142,143,144,159,160];
-	var hitbox = obj.corners();
+	var exclusive = [65,66,67,81,82,83,137,138,139,140,141,142,143,144,159,160];
+	var start_hitbox = obj.corners();
 	var interation_size = 1.0;
 	var ts = 16;
 	var y_pull = 0;
@@ -722,10 +722,10 @@ Game.prototype.t_move = function(obj, x, y) {
 		-Number.MAX_SAFE_INTEGER //Furthest up
 	];
 	var margins = [
-		obj.position.x - hitbox.left,
-		obj.position.y - hitbox.top,
-		obj.position.x - hitbox.right,
-		obj.position.y - hitbox.bottom
+		obj.position.x - start_hitbox.left,
+		obj.position.y - start_hitbox.top,
+		obj.position.x - start_hitbox.right,
+		obj.position.y - start_hitbox.bottom
 	];
 	var dirs = [0,1];
 	
@@ -747,7 +747,12 @@ Game.prototype.t_move = function(obj, x, y) {
 			var tile = this.getTile(_x,_y);
 			var corner = new Point(Math.floor(_x/ts)*ts, Math.floor(_y/ts)*ts);
 			if( dir == 0 ){
-				if( tile == 137 ) {
+				if( tile > 64 && tile <= 67 ){
+					//one way blocks
+					if(y > 0 && start_hitbox.bottom<=corner.y){
+						limits[1] = Math.min(limits[1], corner.y);
+					}
+				} else if( tile == 137 ) {
 					// 1 to .5
 					var peak = (corner.y) + Math.max((hitbox.left-corner.x)*0.5, 1);
 					limits[1] = Math.min(limits[1], peak-1);

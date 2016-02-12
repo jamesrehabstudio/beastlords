@@ -262,7 +262,7 @@ var mod_combat = {
 								hits[i].hurt(this, damage);
 							} else {
 								hits[i].guard.life -= damage;
-								hits[i].guard.invincible = Game.DELTASECOND * 0.6;
+								hits[i].guard.invincible = Game.DELTASECOND * 0.3;
 							}
 						}
 					} else {
@@ -462,30 +462,24 @@ var mod_boss = {
 		this.bossface_frame_row = 0;
 		this.bossdeatheffect = false;
 		
-		var corner = new Point(256*Math.floor(x/256), 240*Math.floor(y/240));
+		var corner = new Point(256*Math.floor((x-16)/256), 240*Math.floor(y/240));
 		this.boss_lock = new Line(
 			corner.x,
 			corner.y,
-			256 + corner.x,
+			512 + corner.x,
 			240 + corner.y
 		);
-		this.boss_doors = [
-			new Point(corner.x-8,corner.y+168),
-			new Point(corner.x-8,corner.y+184),
-			new Point(corner.x-8,corner.y+200),
-			
-			new Point(corner.x+256,corner.y+168),
-			new Point(corner.x+256,corner.y+184),
-			new Point(corner.x+256,corner.y+200)
-		];
 		
 		this.reset_boss = function(){
-			this.position.x = this.boss_starting_position.x;
-			this.position.y = this.boss_starting_position.y;
-			this.active = false;
-			for(var i=0; i < this.boss_doors.length; i++ )
-				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
-			_player.lock_overwrite = false;
+			if(this.active){
+				this.position.x = this.boss_starting_position.x;
+				this.position.y = this.boss_starting_position.y;
+				this.active = false;
+				this.boss_intro = 0.0;
+				
+				_player.lock_overwrite = false;
+				Trigger.activate("boss_door");
+			}
 		}
 		this._boss_is_active = function(){
 			if( !this.active ) {
@@ -503,14 +497,18 @@ var mod_boss = {
 			this.reset_boss();
 		});
 		this.on("activate", function() {
-			for(var i=0; i < this.boss_doors.length; i++ ) 
-				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, window.BLANK_TILE);
+			Trigger.activate("boss_door");
+			
+			//for(var i=0; i < this.boss_doors.length; i++ ) 
+			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, window.BLANK_TILE);
 			_player.lock_overwrite = this.boss_lock;
 			this.interactive = true;
 		});
 		this.on("death", function() {
-			for(var i=0; i < this.boss_doors.length; i++ )
-				game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
+			Trigger.activate("boss_door");
+			
+			//for(var i=0; i < this.boss_doors.length; i++ )
+			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
 			_player.lock_overwrite = false;
 		});
 	},
@@ -521,7 +519,7 @@ var mod_boss = {
 			this.bossdeatheffect = true;
 		}
 	},
-	"postrender" : function(g,c){
+	"hudrender" : function(g,c){
 		if( this.active && this.boss_intro < 1.0){
 			this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
 			g.color = [0.0,0.0,0.0,0.5];

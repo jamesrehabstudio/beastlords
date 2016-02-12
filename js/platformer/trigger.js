@@ -65,6 +65,7 @@ function Trigger(x,y,d,o){
 		if(this.retrigger || this.triggerCount == 0){
 			this.triggerCount++;
 			if(this.retriggertimeCooldown <= 0){
+				this.retriggertimeCooldown = this.retriggertime;
 				if(
 					this.darknessFunction instanceof Function ||
 					this.darknessColour instanceof Array ||

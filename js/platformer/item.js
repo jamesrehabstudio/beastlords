@@ -37,7 +37,7 @@ function Item(x,y,d, ops){
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 100; }
 			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 20; }
-			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 3; audio.play("gulp"); }
+			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { obj.money += Math.floor(30*(1+dataManager.currentTemple*0.33)); audio.play("pickup1"); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			
@@ -121,6 +121,13 @@ function Item(x,y,d, ops){
 			if( this.name == "charm_methuselah") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			
+			if( this.name == "spell_fire") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_flash") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_heal") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_purify") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_bifurcate") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_teleport") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			
@@ -342,6 +349,13 @@ Item.prototype.setName = function(n){
 	if( this.name == "life_fruit") { this.frame = 1; this.frame_row = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame = 2; this.frame_row = 6; this.message = "Mana fruit\nMana up.";}
 	
+	if( this.name == "spell_fire") { this.frame = 0; this.frame_row = 10; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
+	if( this.name == "spell_flash") { this.frame = 1; this.frame_row = 10; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
+	if( this.name == "spell_heal") { this.frame = 2; this.frame_row = 10; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
+	if( this.name == "spell_purify") { this.frame = 3; this.frame_row = 10; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
+	if( this.name == "spell_bifurcate") { this.frame = 4; this.frame_row = 10; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
+	if( this.name == "spell_teleport") { this.frame = 5; this.frame_row = 10; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
+	
 	if( this.name == "unique_wand"){
 		this.frame = 2;
 		this.frame_row = 6;
@@ -447,6 +461,12 @@ Item.drop = function(obj,money,sleep){
 	
 	if (Math.random() > 0.9) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
+		if( sleep ) item.sleep = sleep;
+		game.addObject( item );
+	}
+	
+	if (Math.random() > 0.967) {
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
 		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
@@ -638,6 +658,13 @@ Item.treasures = [
 	{"tags":["alter","treasure","shop"],"name":"seed_tails","unlocked":0,"rarity":0.1,"pathSize":7,"doors":0.1,"pergame":1,"price":100},
 	{"tags":["alter","treasure","shop"],"name":"seed_mair","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":150},
 	{"tags":["alter","treasure","shop"],"name":"seed_igbo","unlocked":0,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":100},
+	
+	{"tags":["alter","treasure","shop","spell"],"name":"spell_fire","unlocked":1,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":300},
+	{"tags":["alter","treasure","shop","spell"],"name":"spell_flash","unlocked":1,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":300},
+	{"tags":["alter","treasure","shop","spell"],"name":"spell_heal","unlocked":1,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":300},
+	{"tags":["alter","treasure","shop","spell"],"name":"spell_purify","unlocked":1,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":300},
+	{"tags":["alter","treasure","shop","spell"],"name":"spell_bifurcate","unlocked":1,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":300},
+	{"tags":["alter","treasure","shop","spell"],"name":"spell_teleport","unlocked":1,"rarity":0.01,"pathSize":7,"doors":0.1,"pergame":1,"price":300},
 	
 	{"tags":["alter","treasure","shop"],"name":"pedila","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},
 	{"tags":["treasure","shop"],"name":"haft","unlocked":1,"rarity":0.1,"pathSize":4,"doors":0.1,"pergame":1,"price":70},

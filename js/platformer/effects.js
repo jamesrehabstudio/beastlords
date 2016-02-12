@@ -232,10 +232,9 @@ function EffectCritical(x, y){
 	this.sprite = sprites.bullets;
 	
 	this.progress = 0;
-	this.flash = true;
 	
 	this.on("sleep",function(){ this.destroy(); } );
-	
+	Background.flash = [1,1,1,1];
 }
 
 EffectCritical.prototype.update = function(){
@@ -252,12 +251,6 @@ EffectCritical.prototype.render = function(g,c){
 		var angle = (i/points) * Math.PI * 2;
 		var p = new Point(radius*Math.sin(angle),radius*Math.cos(angle));
 		this.sprite.render(g,p.add(this.position).subtract(c),2,2);
-	}
-	
-	if( this.flash ) {
-		g.color = [1.0,1.0,1.0,1.0];
-		g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
-		this.flash = false;
 	}
 }
 

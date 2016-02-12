@@ -106,8 +106,8 @@ def transform(filename, roomsize):
 						else:
 							options[property.attrib["name"]] = property.attrib["value"]
 				
-				if name == "Door":
-					out["key_required"] = True
+				#if name == "Door":
+				#	out["key_required"] = True
 					
 				#find offset for object
 				w = h = 16

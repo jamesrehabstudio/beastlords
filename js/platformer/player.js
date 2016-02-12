@@ -14,6 +14,7 @@ function Player(x, y){
 	this.spells = [];
 	this.uniqueItems = [];
 	this.charm = false;
+	this.spell = false;
 	this.knockedout = false;
 	this.pause = false;
 	
@@ -172,7 +173,7 @@ function Player(x, y){
 			this.states.attack = 0;
 			game.slow(0,5.0);
 		}
-		
+		Background.flash = [0.6,0,0,1];
 		audio.play("playerhurt");
 	})
 	this.on("struckTarget", function(obj, pos, damage){
@@ -249,8 +250,8 @@ function Player(x, y){
 	
 	this.life = 100;
 	this.lifeMax = 100;
-	this.mana = 3;
-	this.manaMax = 3;
+	this.mana = 24;
+	this.manaMax = 24;
 	this.money = 0;
 	this.waystones = 0;
 	this.heal = 0;
@@ -430,8 +431,8 @@ Player.prototype.update = function(){
 	
 	this.buffer_damage = this.hasCharm("charm_elephant");
 	if( this.manaHeal > 0 ){
-		this.mana = Math.min(this.mana += 2, this.manaMax);
-		this.manaHeal-= 2;
+		this.mana = Math.min(this.mana += 1, this.manaMax);
+		this.manaHeal-= 1;
 		if( this.mana >= this.manaMax ) this.manaHeal = 0;
 	}
 	if( this.hasCharm("charm_methuselah") ){
@@ -469,7 +470,17 @@ Player.prototype.update = function(){
 				));
 			}
 		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+			//Player is in move/idle state
+			
 			this.states.guard = ( input.state('block') > 0 || this.autoblock );
+			
+			if( input.state('spell') == 1 ){
+				if( this.spell instanceof Item && this.spell.cast instanceof Function) {
+					//Cast spell
+					var cost = this.spell.cast(this);
+					this.mana = Math.max(this.mana - cost, 0);
+				}
+			}
 			
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
@@ -746,6 +757,19 @@ Player.prototype.duck = function(){
 	}
 }
 Player.prototype.jump = function(){ 
+	if(this.states.duck){
+		//Fall through floor
+		var standingTile = game.getTile(
+			this.position.x,
+			this.position.y + 2 + _player.height * .5
+		);
+		if(standingTile > 64 && standingTile <= 67){
+			this.grounded = false; 
+			this.position.y += 2;
+			return;
+		}
+	}
+	
 	var force = this.jump_strength;
 	
 	if( this.spellsCounters.flight > 0 ) force = 2;
@@ -789,6 +813,20 @@ Player.prototype.addUniqueItem = function(item){
 		}
 	}
 	this.uniqueItems.push(item);
+}
+
+Player.prototype.equipSpell = function(s){
+	if( this.spell instanceof Item ){
+		//Drop Item
+		this.spell.sleep = Game.DELTASECOND;
+		this.spell.position.x = this.position.x;
+		this.spell.position.y = this.position.y;
+		if(!this.spell.hasModule(mod_rigidbody)) this.spell.addModule(mod_rigidbody);
+		game.addObject(this.spell);
+		this.spell.trigger("unequip");
+	}
+	this.spell = s;
+	s.trigger("equip");
 }
 Player.prototype.equipCharm = function(c){
 	if( this.charm instanceof Item ){
@@ -1098,10 +1136,17 @@ Player.prototype.hudrender = function(g,c){
 		);
 	}
 	
-	//Charm
+	var item_pos = 20 + this.lifeMax * 0.25;
+	//item hud
 	if(this.charm instanceof Item ){
 		this.charm.position.x = this.charm.position.y = 0;
-		this.charm.render(g,new Point(-(this.lifeMax*0.25 + 20),-15));
+		this.charm.render(g,new Point(-item_pos,-15));
+		item_pos += 20;
+	}
+	if(this.spell instanceof Item){
+		this.spell.position.x = this.spell.position.y = 0;
+		this.spell.render(g,new Point(-item_pos,-15));
+		item_pos += 20;
 	}
 	
 	//Create light
