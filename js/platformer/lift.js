@@ -2,13 +2,13 @@ Lift.prototype = new GameObject();
 Lift.prototype.constructor = GameObject;
 function Lift(x,y,d,ops){
 	this.constructor();
-	this.start_x = x + 8;
+	this.start_x = x;
 	this.position.x = this.start_x;
 	this.position.y = y;
 	this.width = 28;
 	this.height = 32;
 	this.speed = 3.0;
-	this.sprite = game.tileSprite;
+	this.sprite = sprites.elevator;
 	
 	this.onboard = false;
 	
@@ -19,7 +19,6 @@ function Lift(x,y,d,ops){
 		if( obj instanceof Player ) {
 			this.onboard = true;
 			obj.position.y = this.position.y;
-			obj.checkpoint = this.position;
 			obj.trigger( "collideVertical", 1);
 			this.position.x = this.start_x;
 		} else if ( obj instanceof Lift && this.awake ) {
@@ -59,14 +58,9 @@ Lift.prototype.update = function(){
 		}
 	}
 	
-	this.onboard = false;
-}
-Lift.prototype.render = function(g,c){
-	for(var x=0; x < 2; x++ ) for(var y=0; y < 3; y++ ) {
-		this.sprite.render(g,
-			new Point( x*16 + -16 + this.position.x - c.x, y*16 + -24 + this.position.y - c.y ),
-			x, y+13
-		);
-	}
+	this.frame = (this.frame+this.delta*Math.abs(this.force.y))%3;
+	if(Math.abs(this.force.y) < 0.2) this.frame = 0;
+	this.frame_row = 0;
 	
+	this.onboard = false;
 }

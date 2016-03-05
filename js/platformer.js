@@ -466,6 +466,99 @@ Background.pushLight = function(p,r,c){
 	}
 }
 
+ /* platformer\block.js*/ 
+
+SinkingBlock.prototype = new GameObject();
+SinkingBlock.prototype.constructor = GameObject;
+function SinkingBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.originalPosition = new Point(this.position.x,this.position.y);
+	this.width = d[0];
+	this.height = d[1];
+	this.speed = 0.25;
+	this.sink = false;
+	this.resetOnSleep = 1;
+	
+	this.addModule(window.mod_block);
+	
+	ops = ops || {};
+	
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	if("speed" in ops){
+		this.speed = ops["speed"] * 1;
+	}
+	if("empty" in ops && ops["empty"]){
+		this.height = 0;
+	}
+	if("resetonsleep" in ops){
+		this.resetOnSleep = ops["resetonsleep"] * 1;
+	}
+	
+	this.on("blockLand", function(obj){
+		if(obj instanceof Player){
+			this.sink = true;
+		}
+	});
+	if(this.resetOnSleep){
+		this.on("sleep", function(){
+			this.position.x = this.originalPosition.x;
+			this.position.y = this.originalPosition.y;
+			this.sink = false;
+		});
+	}
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+SinkingBlock.prototype.update = function(){
+	if(this.sink){
+		this.position.y += this.speed * this.delta;
+	}
+}
+
+SinkingBlock.prototype.render = function(g,c){
+	var i = 0;
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = this.tiles[i];
+			
+			var pos = new Point(
+				this.position.x + x * 16,
+				this.position.y + y * 16
+			);
+			
+			if(tile > 0){
+				game.tileSprite.render(g,pos.subtract(c),tile-1);
+			}
+			i++;
+		}
+	}
+}
+
  /* platformer\boss_ammit.js*/ 
 
 Ammit.prototype = new GameObject();
@@ -2185,6 +2278,52 @@ Chancellor.prototype.postrender = function(g,c){
 
 Chancellor.introduction = true;
 
+ /* platformer\checkpoint.js*/ 
+
+Checkpoint.prototype = new GameObject();
+Checkpoint.prototype.constructor = GameObject;
+function Checkpoint(x,y,d,ops){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 64;
+	this.sprite = sprites.checkpoint;
+	this.activated = false;
+	
+	this.on("collideObject",function(obj){
+		if(!this.activated && obj instanceof Player){
+			var allpoints = game.getObjects(Checkpoint);
+			for(var i=0; i < allpoints.length; i++){
+				allpoints[i].activated = false;
+			}
+			this.activated = true;
+			obj.checkpoint.x = this.position.x;
+			obj.checkpoint.y = this.position.y;
+			obj.heal = obj.lifeMax;
+			obj.manaHeal = obj.manaMax;
+			audio.play("item1");
+			game.slow(0,Game.DELTASECOND*0.3333);
+		}
+	});
+}
+
+Checkpoint.prototype.render = function(g,c){
+	if(this.activated){
+		this.frame = (this.frame + this.delta * 0.2) % 4;
+		this.frame_row = 1;
+		Background.pushLight(
+			this.position.subtract(c),
+			Math.random()*5+120,
+			[1.0,0.8,0.6,1.0]
+		);
+	}else {
+		this.frame = 0;
+		this.frame_row = 0;
+	}
+	GameObject.prototype.render.apply(this,[g,c]);
+}
+
  /* platformer\cornerstone.js*/ 
 
 CornerStone.prototype = new GameObject();
@@ -2279,16 +2418,25 @@ function DamageTrigger(x,y,d,o){
 	
 	this.restTimer = 0.0;
 	this.damage = 25;
+	this.alwaysHurt = 0;
 	
 	o = o || {};
 	if("damage" in o){
-		this.damage = o.damage || this.damage;
+		this.damage = o.damage * 1;
+	}
+	if("alwayshurt" in o){
+		this.alwaysHurt = o["alwayshurt"] * 1;
 	}
 	
 	this.on("collideObject", function(obj){
-		if( this.restTimer <= 0 && obj instanceof Player ) {
-			obj.hurt( this, Math.floor( this.damage ) );
-			this.restTimer = Game.DELTASECOND * 3;
+		if( obj instanceof Player ) {
+			if( this.restTimer <= 0 || this.alwaysHurt ){
+				if(this.alwaysHurt){
+					obj.invincible = -1;
+				}
+				obj.hurt( this, Math.floor( this.damage ) );
+				this.restTimer = Game.DELTASECOND * 2;
+			}
 		}
 	});
 }
@@ -2506,6 +2654,240 @@ Door.prototype.render = function(g,c){
 			this.position.subtract(c).add(new Point(10,36)), 
 			this.frame, 
 			this.frame_row
+		);
+	}
+}
+
+ /* platformer\drain.js*/ 
+
+Drain.prototype = new GameObject();
+Drain.prototype.constructor = GameObject;
+function Drain(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 1;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y + d[1]*0.5;
+	this.width = d[0];
+	this.height = d[1];
+	this.speed = 0.25;
+	this.emptyOnStart = 0;
+	this.resetOnSleep = 0;
+	
+	this.fullheight = this.height;
+	this.onboard = new Array();
+	
+	this.active = 0;
+	this.filling = 0;
+	this.noFill = 0;
+	this.noDrain = 0;
+	
+	this.on("activate",function(obj){
+		if(this.height < 1){
+			if(!this.noFill){
+				this.filling = 1;
+				this.active = 1;
+			}
+		} else {
+			if(!this.noDrain){
+				this.filling = 0;
+				this.active = 1;
+			}
+		}
+	});
+	
+	this.on("reset",function(obj){
+		if(this.emptyOnStart){
+			this.height = 0;
+		} else {
+			this.height = this.fullheight;
+		}
+		this.active = 0;
+		this.updateTiles();
+	});
+	
+	
+	this.on("collideObject", function(obj){
+		if(this.active){
+			if( obj.hasModule(mod_rigidbody) ) {
+				var base = _player.position.y - _player.corners().bottom;
+				obj.position.y = this.position.y - this.height + base;
+				obj.trigger( "collideVertical", 1);
+				this.onboard.push(obj);
+			}
+		}
+	});
+	
+	ops = ops || {};
+	
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	if("speed" in ops){
+		this.speed = ops["speed"] * 1;
+	}
+	if("empty" in ops){
+		this.emptyOnStart = ops["empty"] * 1;
+		if(this.emptyOnStart){
+			this.height = 0;
+			this.updateTiles();
+		}
+	}
+	if("nofill" in ops){
+		this.noFill = ops["nofill"] * 1;
+	}
+	if("nodrain" in ops){
+		this.noDrain = ops["nodrain"] * 1;
+	}
+	if("resetonsleep" in ops){
+		this.resetOnSleep = ops["resetonsleep"] * 1;
+	}
+	
+	if(this.resetOnSleep){
+		this.on("sleep", function(){
+			this.trigger("reset");
+		});
+	}
+}
+
+Drain.prototype.update = function(){
+	if(this.active){
+		var movement = 0;
+		if(this.filling){
+			movement = this.delta * this.speed;
+			this.height += movement;
+			if(this.height > this.fullheight){
+				this.filling = 0;
+				this.height = this.fullheight;
+				this.active = 0;
+			}
+		}else{
+			movement = this.delta * -this.speed;
+			this.height += movement;
+			if(this.height < 0){
+				this.height = 0;
+				this.active = 0;
+			}
+		}
+		for(var i=0; i < this.onboard.length; i++){
+			this.onboard[i].position.y -= movement;
+		}
+		this.updateTiles();
+	}
+	this.onboard = new Array();
+}
+
+Drain.prototype.render = function(g,c){
+	if(this.active){
+		for(var x=0; x < this.width; x+=16){
+			var pos = new Point(
+				x + Math.round(this.position.x/16)*16,
+				this.position.y - this.height
+			);
+			var _t = 0;
+			if(x>0) _t += 1;
+			if(x+16>=this.width) _t += 1;
+			var tile = Drain.TILES[_t]-1;
+			var tilex = tile%32;
+			var tiley = Math.floor(tile/32);
+			game.tileSprite.render(g,pos.subtract(c),tilex,tiley);
+			
+			//Render bottom row of tiles to hide edge
+			var tile = game.getTile(this.position.x+x,this.position.y+8,game.tileCollideLayer) - 1;
+			game.tileSprite.render(g,this.position.add(new Point(x,0)).subtract(c),tile);
+		}
+	}
+}
+
+Drain.prototype.updateTiles = function(){
+	for(var x=0; x < this.width; x+=16){
+	for(var y=0; y < this.fullheight; y+=16){
+		var pos = new Point(
+			this.position.x + x,
+			(this.position.y - this.fullheight) + y
+		);
+		if(y >= this.fullheight - this.height){
+			var _t = 0;
+			if(x>0) _t += 1;
+			if(x+16>=this.width) _t += 1;
+			if(y>0) _t += 3;
+			if(y+16>=this.fullheight) _t += 3;
+			var tile = Drain.TILES[_t];
+			game.setTile(pos.x,pos.y,game.tileCollideLayer,tile);
+		} else {
+			game.setTile(pos.x,pos.y,game.tileCollideLayer,0);
+		}
+	}}
+}
+Drain.TILES = [321,322,322,353,354,355,385,386,387];
+
+Drainage.prototype = new GameObject();
+Drainage.prototype.constructor = GameObject;
+function Drainage(x,y,d,o){
+	this.constructor();
+	if(d instanceof Array){
+		this.width = d[0];
+		this.height = d[1];
+	}
+	this.position.x = x - (this.width / 2);
+	this.position.y = y - (this.height / 2);
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.zIndex = -1;
+	
+	this.flowHeight = this.height;
+	this.flowSpeed = 7.0;
+	this.flowTime = Game.DELTAYEAR;
+	this.flowTimeFull = Game.DELTAYEAR;
+	this.active = true;
+	
+	o = o || {};
+	if("start" in o){
+		this.active = o.start * 1;
+		this.flowHeight = this.active ? this.flowSpeed : 0;
+	}
+	if("trigger" in o){
+		this._tid = o.trigger;
+	}
+	if("flowtime" in o){
+		this.flowTimeFull = o.trigger * 1;
+		this.flowTime = this.flowTimeFull;
+	}
+	
+	this.on("activate", function(obj){
+		this.active = !this.active;
+	});
+	this.on("collideObject", function(obj){
+		if(this.active){
+			if( obj.hasModule(mod_rigidbody) ) {
+				var dir = obj.position.subtract(this.position);
+				if(!obj.grounded && dir.y < this.flowHeight){
+					obj.force.y = Math.max(obj.force.y, 1.0);
+					obj.force.x *= 0.85 * this.delta;
+				}
+			}
+			if( obj.hasModule(mod_block) ){
+				var top = obj.corners().top;
+				this.flowHeight = Math.min(this.flowHeight, top - this.position.y);
+			}
+		}
+	});
+}
+Drainage.prototype.render = function(g,c){
+	if(this.active){
+		this.flowHeight = Math.min(this.height, this.flowHeight + this.flowSpeed * this.delta);
+		this.flowTime -= this.delta;
+		if(this.flowTime <= 0){
+			this.active = false;
+			this.flowTime = this.flowTimeFull;
+		}
+	
+		g.color = [0.1,0.6,0.0,1.0];
+		g.scaleFillRect(
+			this.position.x - c.x,
+			this.position.y - c.y,
+			this.width,
+			this.flowHeight
 		);
 	}
 }
@@ -4677,9 +5059,10 @@ function Flederknife(x, y, d, o){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
-	this.height = 32;
+	this.height = 30;
 	this.sprite = sprites.flederknife;
 	this.speed = 0.3;
+	this.turndelay = 0.0;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -4709,9 +5092,10 @@ function Flederknife(x, y, d, o){
 		audio.play("hurt");
 	});
 	this.on("collideObject", function(obj){
-		if(obj.hasModule(mod_combat)){
+		if(obj.hasModule(mod_combat) && this.turndelay <= 0){
 			this.force.x = 0;
 			this.states.direction *= -1.0;
+			this.turndelay = Game.DELTASECOND;
 		}
 	});
 	this.on("collideHorizontal", function(dir){
@@ -4744,6 +5128,7 @@ function Flederknife(x, y, d, o){
 		this.destroy();
 	});
 	
+	this.faceTarget();
 	this.calculateXP();
 }
 Flederknife.prototype.update = function(){
@@ -4755,7 +5140,7 @@ Flederknife.prototype.update = function(){
 		
 		if(this.states.jump && this.grounded){
 			this.states.jump = 0;
-			this.states.direction = dir.x > 0 ? -1.0 : 1.0;
+			this.faceTarget();
 			this.force.y -= this.delta * 3;
 		} 
 
@@ -4776,8 +5161,7 @@ Flederknife.prototype.update = function(){
 			this.force.x = this.states.direction * 10;
 			this.states.jump_tick = 2 + Math.floor(Math.random()*3);
 		}
-		
-		
+		this.turndelay -= this.delta; 
 	}
 	
 	/* Animation */
@@ -4795,6 +5179,11 @@ Flederknife.prototype.update = function(){
 			this.frame_row = 1;
 		}
 	}
+}
+
+Flederknife.prototype.faceTarget = function(){
+	var dir = _player.position.subtract(this.position);
+	this.states.direction = dir.x < 0 ? -1.0 : 1.0;
 }
 
  /* platformer\enemy_fly.js*/ 
@@ -4884,6 +5273,82 @@ Fly.prototype.update = function(){
 	}
 	
 	this.frame = (this.frame + this.delta * 0.5) % 2.0;
+}
+
+ /* platformer\enemy_flyingslime.js*/ 
+
+FlyingSlime.prototype = new GameObject();
+FlyingSlime.prototype.constructor = GameObject;
+function FlyingSlime(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.startPosition = new Point(x,y);
+	this.width = 32;
+	this.height = 32;
+	
+	this.speed = 0.4;
+	this.sprite = sprites.flyingslime;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.on("hurt", function(obj,damage){
+		audio.play("hurt");
+	});
+	this.on("struck", EnemyStruck);
+	this.on("death", function(obj,pos,damage){
+		Item.drop(this);
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life = 9999;
+	this.damage = Spawn.damage(2,this.difficulty);
+	this.loopTime = 0.0;
+	this.loopTimeFull = Game.DELTASECOND;
+	
+	this.mass = 1.0;
+	this.gravity = 0.0;
+	this.friction = 0.8;
+	this.pushable = true;
+}
+FlyingSlime.prototype.update = function(){
+	this.frame = 0;
+	this.frame_row = 0;
+	this.grounded = false;
+	
+	var variation = this.position.subtract(this.startPosition);
+	this.force.y = 0;
+	if(Math.abs(variation.x) > 4){
+		if(variation.x > 0){
+			this.force.x -= this.speed * this.delta;
+		} else {
+			this.force.x += this.speed * this.delta;
+		}
+	}
+	
+	this.loopTime += this.delta;
+	this.position.y = this.startPosition.y - Math.sin((this.loopTime/this.loopTimeFull)*Math.PI) * 16;
+	
+	if(this.loopTime >= this.loopTimeFull){
+		this.loopTime = 0;
+		var bullet = new Bullet(this.position.x, this.position.y + 16, 0);
+		bullet.damage = Spawn.damage(2,this.difficulty);
+		bullet.blockable = false;
+		bullet.gravity = 1.0;
+		bullet.frame = 2;
+		bullet.frame_row = 0;
+		game.addObject( bullet );
+	}
 }
 
  /* platformer\enemy_ghoul.js*/ 
@@ -6542,6 +7007,309 @@ Skeleton.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 }
 
+ /* platformer\enemy_slime.js*/ 
+
+Slime.prototype = new GameObject();
+Slime.prototype.constructor = GameObject;
+function Slime(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.collideDamage = 0;
+	this.team = 0;
+	
+	this.addModule(mod_rigidbody);
+	this.addModule(mod_combat);
+	this.sprite = sprites.slime;
+	this.speed = 0.3;
+	this.visible = false;
+	this.interactive = false;
+	this.pushable = false;
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.times = {
+		"cooldown" : Game.DELTASECOND * 0.25 + Game.DELTASECOND * Math.random(),
+		"cooldownTime" : Game.DELTASECOND * 2.0,
+		"transition" : 0.0,
+		"melt" : 0,
+		"move" : 0
+	};
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt",function(obj,damage){
+		this.times.cooldown = 0.0;
+		audio.play("hurt");
+	});
+	this.on("hurtOther",function(obj,damage){
+		this.times.cooldown = 0.0;
+	});
+	this.on("blockOther",function(obj,damage){
+		this.times.cooldown = 0.0;
+	});
+	this.on("death", function(obj,pos,damage){
+		Item.drop(this);
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	this.life = Spawn.life(0, this.difficulty);
+	this.damage = Spawn.damage(1,this.difficulty);
+	this.calculateXP();
+}
+Slime.prototype.update = function(){
+	if(this.times.move){
+		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.1) % 5;
+		this.frame_row = 0;
+		if(this.flip){
+			this.force.x -= this.speed * this.delta;
+		} else{
+			this.force.x += this.speed * this.delta;
+		}
+		
+		if(this.interactive){
+			this.strike(new Line(new Point(0,0), new Point(12,4)));
+		}
+		
+		
+		var forwardTile = game.getTile(this.position.add(new Point(this.flip?-16:16,0)));
+		var underTile = game.getTile(this.position.add(new Point(0,16)));
+		if(forwardTile > 0){
+			this.flip = !this.flip;
+		}
+		this.times.cooldown -= this.delta;
+		if(this.times.cooldown <= 0){
+			//Stop moving and reappear
+			this.times.move = 0;
+			this.force.x = 0;
+			this.times.transition = 0.0;
+			//If it's interactive, it means it's currently alive
+			this.times.melt = this.interactive;
+			this.interactive = false;
+		}
+	} else {
+		if(this.times.melt){
+			//
+			this.times.transition += this.delta * 0.1;
+			this.frame = Math.floor(this.times.transition * 5);
+			this.frame_row = 1;
+			if(this.times.transition >= 1){
+				this.visible = false;
+				this.times.move = 1;
+				this.times.cooldown = this.times.cooldownTime * 0.5;
+				this.flip = Math.random() > 0.5;
+			}
+		} else {
+			//reform
+			this.visible = true;
+			this.times.transition += this.delta * 0.1;
+			this.frame = 5 - Math.floor(this.times.transition * 5);
+			this.frame_row = 1;
+			if(this.times.transition >= 1){
+				this.interactive = true;
+				this.times.move = 1;
+				this.times.cooldown = this.times.cooldownTime;
+			}
+		}
+	}
+}
+Slime.prototype.faceTarget = function(){
+	var dir = _player.position.subtract(this.position);
+	this.flip = dir.x < 0;
+}
+
+ /* platformer\enemy_slimerilla.js*/ 
+
+Slimerilla.prototype = new GameObject();
+Slimerilla.prototype.constructor = GameObject;
+function Slimerilla(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 32;
+	this.collideDamage = 0;
+	this.team = 0;
+	
+	this.addModule(mod_rigidbody);
+	this.addModule(mod_combat);
+	this.sprite = sprites.slimerilla;
+	this.speed = 0.3;
+	this.visible = false;
+	this.pushable = false;
+	this.startactive = false;
+	this.gravity = 0.5;
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	if("startactive" in o){
+		this.startactive = o["startactive"] * 1;
+	}
+	
+	this.times = {
+		"attackWarm" : Game.DELTASECOND * 2,
+		"attackRelease" : Game.DELTASECOND,
+		"attackRest" : Game.DELTASECOND * 0.7777,
+		"attack" : 0.0,
+		"cooldown" : 0.0,
+		"timeBetweenAttacks" : Game.DELTASECOND * 1.5,
+		"reappear" : 0,
+		"reappearTime" : 0.0,
+		"turnTimer" : 0.0
+	};
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt",function(obj,damage){
+		audio.play("hurt");
+		this.times.attack = 0.0;
+		this.times.cooldown = 0.0;
+		
+		var dir = obj.position.subtract(this.position);
+		this.force.y = -7;
+		this.force.x = (dir.x>0?-1.0:1.0) * 7;
+	});
+	this.on("death", function(obj,pos,damage){
+		Item.drop(this);
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		this.destroy();
+	});
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player && !this.visible){
+			this.times.reappearTime = Game.DELTASECOND * 1;
+			this.times.reappear = 1;
+		}
+	});
+	
+	if(this.startactive){
+		this.visible = true;
+		this.pushable = true;
+		this.faceTarget();
+	}
+	
+	this.life = Spawn.life(8, this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.calculateXP();
+}
+Slimerilla.prototype.update = function(){
+	if(this.visible){
+		var dir = _player.position.subtract(this);
+		if(this.invincible > 0){
+			//Do nothing
+			this.frame = 0
+			this.frame_row = 0;
+		} else if(this.times.attack > 0){
+			if(this.times.attack < this.times.attackRest ){
+				this.frame = 0
+				this.frame_row = 0;
+			} else if(this.times.attack < this.times.attackRelease ){
+				this.strike(new Line(new Point(0,-24),new Point(48,24)));
+				this.frame = 1
+				this.frame_row = 1;
+			} else {
+				this.force.x = 0;
+				this.frame = 0
+				this.frame_row = 1;
+			}
+			this.times.attack -= this.delta;
+		} else {
+			//move towards player
+			if(this.flip){
+				this.force.x -= this.speed * this.delta;
+			} else {
+				this.force.x += this.speed * this.delta;
+			}
+			if(Math.abs(dir.x) < 48 && this.times.cooldown <= 0 ){
+				this.times.attack = this.times.attackWarm;
+				this.times.cooldown = this.times.timeBetweenAttacks;
+				this.faceTarget();
+			}
+			if(this.times.turnTimer <= 0){
+				this.faceTarget();
+				this.times.turnTimer = Game.DELTASECOND * 2;
+			}
+			this.times.turnTimer -= this.delta;
+			this.times.cooldown -= this.delta;
+		}
+		
+	} else {
+		if(this.times.reappear){
+			this.times.reappearTime -= this.delta;
+			if(this.times.reappearTime <= 0){
+				this.visible = true;
+				this.pushable = true;
+				this.faceTarget();
+			}
+		}
+	}
+}
+Slimerilla.prototype.faceTarget = function(){
+	var dir = _player.position.subtract(this.position);
+	this.flip = dir.x < 0;
+}
+
+ /* platformer\enemy_slugplatform.js*/ 
+
+SlugPlatform.prototype = new GameObject();
+SlugPlatform.prototype.constructor = GameObject;
+function SlugPlatform(x,y,d,o){
+	this.constructor();
+	
+	var bottom = y + d[1] * 0.5;
+	
+	this.position.x = x;
+	this.position.y = bottom - 40;
+	this.width = 48;
+	this.height = 16;
+	this.origin = new Point(0.5,0.0);
+	
+	this.speed = 1.5;
+	this.sprite = sprites.slugplatform;
+	
+	this.addModule( mod_block );
+
+	o = o || {};
+	if("speed" in o){
+		this.speed = o["speed"] * 1;
+	}
+}
+SlugPlatform.prototype.update = function(){
+	this.frame = this.frame_row = 0;
+	
+	
+	var forwardTile = 0;
+	if(this.flip){
+		var checkPos = this.position.add(new Point(-32, 32));
+		forwardTile = game.getTile(checkPos);
+		this.position.x -= this.speed * this.delta;
+	} else {
+		var checkPos = this.position.add(new Point(32, 32));
+		forwardTile = game.getTile(checkPos);
+		this.position.x += this.speed * this.delta;
+	}
+	
+	if(forwardTile > 0){
+		//Turn
+		this.flip = !this.flip;
+	}
+	
+	game.collideObject(this);
+}
+
+SlugPlatform.prototype.idle = function(){}
+
  /* platformer\enemy_snakebullet.js*/ 
 
 SnakeBullet.prototype = new GameObject();
@@ -7494,7 +8262,7 @@ function Item(x,y,d, ops){
 			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 20; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
-			if( this.name == "money_bag" ) { obj.money += Math.floor(30*(1+dataManager.currentTemple*0.33)); audio.play("pickup1"); }
+			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			
 			if( this.isWeapon ) {
@@ -7567,7 +8335,7 @@ function Item(x,y,d, ops){
 			if( this.name == "black_heart") { obj.stats.attack+=1; obj.stats.defence+=2; obj.stats.technique+=1; obj.lifeMax -= 20; obj.life = Math.min(obj.lifeMax,obj.life); this.pickupEffect(); }
 			if( this.name == "treasure_map") { game.getObject(PauseMenu).revealMap(2); audio.play("pickup1"); }
 			if( this.name == "life_fruit") { obj.lifeMax += 20; obj.heal = 9999; audio.play("gulp"); }
-			if( this.name == "mana_fruit") { obj.manaMax += 2; obj.manaHeal = 999; audio.play("gulp"); }
+			if( this.name == "mana_fruit") { obj.manaMax += 12; obj.manaHeal = 999; audio.play("gulp"); }
 			
 			if( this.name == "charm_sword") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_mana") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
@@ -7616,7 +8384,7 @@ Item.prototype.setName = function(n){
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
+		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword1 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -7628,7 +8396,7 @@ Item.prototype.setName = function(n){
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":18, "sprite":sprites.sword2 };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":sprites.sword2 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -7640,7 +8408,7 @@ Item.prototype.setName = function(n){
 		this.frame = 3; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword2 };
+		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":sprites.sword2 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -7652,7 +8420,7 @@ Item.prototype.setName = function(n){
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":27, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":sprites.sword3 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -7891,23 +8659,7 @@ Item.drop = function(obj,money,sleep){
 		money = Math.round(money * _player.money_bonus);
 	}
 
-	while(money > 0){
-		var coin;
-		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
-		if(money > 40){
-			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_3"} );
-			money -= 10;
-		} else if( money > 10 ) {
-			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_2"} );
-			money -= 5;
-		} else {
-			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_1"} );
-			money -= 1;
-		}
-		coin.force.y -= 5.0;
-		if( sleep ) coin.sleep = sleep;
-		game.addObject(coin);
-	}
+	Item.dropMoney(obj.position, money, sleep);
 	
 	if (Math.random() < _player.waystone_bonus) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
@@ -7925,6 +8677,28 @@ Item.drop = function(obj,money,sleep){
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
 		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
+	}
+}
+Item.dropMoney = function(position, money, sleep){
+	if(sleep == undefined){
+		sleep = 0;
+	}
+	while(money > 0){
+		var coin;
+		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
+		if(money > 40){
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_3"} );
+			money -= 10;
+		} else if( money > 10 ) {
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_2"} );
+			money -= 5;
+		} else {
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_1"} );
+			money -= 1;
+		}
+		coin.force.y -= 5.0;
+		if( sleep ) coin.sleep = sleep;
+		game.addObject(coin);
 	}
 }
 Item.randomTreasure = function(roll, tags, ops){
@@ -8193,13 +8967,13 @@ Lift.prototype = new GameObject();
 Lift.prototype.constructor = GameObject;
 function Lift(x,y,d,ops){
 	this.constructor();
-	this.start_x = x + 8;
+	this.start_x = x;
 	this.position.x = this.start_x;
 	this.position.y = y;
 	this.width = 28;
 	this.height = 32;
 	this.speed = 3.0;
-	this.sprite = game.tileSprite;
+	this.sprite = sprites.elevator;
 	
 	this.onboard = false;
 	
@@ -8210,7 +8984,6 @@ function Lift(x,y,d,ops){
 		if( obj instanceof Player ) {
 			this.onboard = true;
 			obj.position.y = this.position.y;
-			obj.checkpoint = this.position;
 			obj.trigger( "collideVertical", 1);
 			this.position.x = this.start_x;
 		} else if ( obj instanceof Lift && this.awake ) {
@@ -8250,16 +9023,11 @@ Lift.prototype.update = function(){
 		}
 	}
 	
-	this.onboard = false;
-}
-Lift.prototype.render = function(g,c){
-	for(var x=0; x < 2; x++ ) for(var y=0; y < 3; y++ ) {
-		this.sprite.render(g,
-			new Point( x*16 + -16 + this.position.x - c.x, y*16 + -24 + this.position.y - c.y ),
-			x, y+13
-		);
-	}
+	this.frame = (this.frame+this.delta*Math.abs(this.force.y))%3;
+	if(Math.abs(this.force.y) < 0.2) this.frame = 0;
+	this.frame_row = 0;
 	
+	this.onboard = false;
 }
 
  /* platformer\mapdebug.js*/ 
@@ -8469,7 +9237,6 @@ MapLoader.parseMap = function(xml){
 	var height = 0;
 	var tilesout = [new Array(), new Array(), new Array()];
 	var maptiles = new Array();
-	var sprite = false;
 	
 	try{
 		//Load sprites
@@ -8483,7 +9250,7 @@ MapLoader.parseMap = function(xml){
 	for(var i=0; i < tilesetXml.length; i++){
 		var name = tilesetXml[i].getAttribute("name");
 		tilesets.push(tilesetXml[i].getAttribute("firstgid") * 1);
-		if(i==0) tileset = name;
+		if(i==0 || name in window.tiles) tileset = name;
 	}
 	
 	var tileLayers = xml.getElementsByTagName("layer");
@@ -8503,7 +9270,7 @@ MapLoader.parseMap = function(xml){
 			} else if("far"==name){
 				tilesout[0].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("map"==name){
-				if((j%width) < width/16 && Math.floor(j/height) < height/15){
+				if((j%width) < width/16 && Math.floor(j/width) < height/15){
 					maptiles.push(MapLoader.parseTile(tiles[j],tilesets));
 				}
 			}
@@ -8513,14 +9280,20 @@ MapLoader.parseMap = function(xml){
 	game.clearAll();
 	game.tiles = tilesout;
 	game.tileDimension = new Line(0,0,width,height);
-	game.bounds = new Line(0,0,width*16,height*15);
+	game.bounds = new Line(0,0,width*16,height*16);
 	
-	if(sprite instanceof Sprite){
-		game.tileSprite = sprite;
-	}else if(tileset in sprites){
-		game.tileSprite = sprites[tileset];
+	if(tileset in window.tiles){
+		window.tiles[tileset].use(window.game);
+	} else if(sprite instanceof Sprite){
+		var temp;
+		if(sprite.width > 256){
+			temp = new Tileset(sprite,tileRules.big);
+		} else {
+			temp = new Tileset(sprite,tileRules.small);
+		}
+		temp.use(window.game);
 	} else {
-		game.tileSprite = sprites.tiles7;
+		window.tiles.tiles7.use(window.game);
 	}
 	
 	if(!window._world) {
@@ -9031,29 +9804,33 @@ PauseMenu.prototype.update = function(){
 			( Math.floor(_player.position.y / 240) - this.mapDimension.start.y ) * this.mapDimension.width()
 		);
 		this.map_reveal[map_index] = 2;
+		var map_tile = this.map[map_index];
 		
-		var lock;
-		switch( Math.abs(this.map[map_index]) % 16 ){
-			case 0: lock = new Line(0,0,256,480); break;
-			case 1: lock = new Line(0,0,512,480); break;
-			case 2: lock = new Line(-256,0,256,480); break;
-			case 3: lock = new Line(-256,0,512,480); break;
-			case 4: lock = new Line(0,0,256,240); break;
-			case 5: lock = new Line(0,0,512,240); break;
-			case 6: lock = new Line(-256,0,256,240); break;
-			case 7: lock = new Line(-256,0,512,240); break;
-			case 8: lock = new Line(0,-240,256,480); break;
-			case 9: lock = new Line(0,-240,512,480); break;
-			case 10: lock = new Line(-256,-240,256,480); break;
-			case 11: lock = new Line(-256,-240,512,480); break;
-			case 12: lock = new Line(0,-240,256,240); break;
-			case 13: lock = new Line(0,-240,512,240); break;
-			case 14: lock = new Line(-256,-240,256,240); break;
-			case 15: lock = new Line(-256,-240,512,240); break;
-			default: lock = new Line(-256,-240,256,480); break;
+		if(map_tile){
+			//If map tile is valid, change camera locks
+			var lock;
+			switch( Math.abs(this.map[map_index]) % 16 ){
+				case 0: lock = new Line(0,0,256,480); break;
+				case 1: lock = new Line(0,0,512,480); break;
+				case 2: lock = new Line(-256,0,256,480); break;
+				case 3: lock = new Line(-256,0,512,480); break;
+				case 4: lock = new Line(0,0,256,240); break;
+				case 5: lock = new Line(0,0,512,240); break;
+				case 6: lock = new Line(-256,0,256,240); break;
+				case 7: lock = new Line(-256,0,512,240); break;
+				case 8: lock = new Line(0,-240,256,480); break;
+				case 9: lock = new Line(0,-240,512,480); break;
+				case 10: lock = new Line(-256,-240,256,480); break;
+				case 11: lock = new Line(-256,-240,512,480); break;
+				case 12: lock = new Line(0,-240,256,240); break;
+				case 13: lock = new Line(0,-240,512,240); break;
+				case 14: lock = new Line(-256,-240,256,240); break;
+				case 15: lock = new Line(-256,-240,512,240); break;
+				default: lock = new Line(-256,-240,256,480); break;
+			}
+			lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
+			_player.lock = lock;
 		}
-		lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
-		_player.lock = lock;
 	}
 	
 	this.message_time -= game.deltaUnscaled;
@@ -9173,15 +9950,21 @@ PauseMenu.prototype.hudrender = function(g,c){
 				attr_i++;
 			}
 			
+			var regenTime = Math.round(
+				((60*Game.DELTASECOND) / _player.speeds.manaRegen)*10
+			)/10;
+			
 			textArea(g,"Damage",leftx+120,60);
 			textArea(g,"Defence",leftx+120,60+28);
 			textArea(g,"Stanima",leftx+120,60+56);
 			textArea(g,"Speed",leftx+120,60+84);
+			textArea(g,"MP Regen",leftx+120,60+112);
 			
 			textArea(g,""+_player.damage,leftx+120,72);
 			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
 			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
 			textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
+			textArea(g,regenTime+"p/m",leftx+120,72+112);
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			leftx = game.resolution.x*0.5 - 224*0.5;
@@ -9376,6 +10159,10 @@ function TitleMenu(){
 		"introduction_help",
 		"start_help"
 	];
+	
+	if(localStorage.getItem("debug_map")){
+		MapLoader.mapname = localStorage.getItem("debug_map")
+	}
 }
 
 TitleMenu.prototype.update = function(){
@@ -9427,6 +10214,7 @@ TitleMenu.prototype.update = function(){
 			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
 				if(this.cursor == 0){
 					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
+					localStorage.setItem("debug_map", MapLoader.mapname);
 				} else if(this.cursor == 3){
 					MapLoader.loadMapTmx(MapLoader.mapname);
 					audio.play("pause");
@@ -9613,7 +10401,6 @@ var mod_rigidbody = {
 			if( dir > 0 ) {
 				this.grounded = true;
 				this._groundedTimer = 2;
-				if( this.force.y > 5.0 ) this.trigger("land");
 			}
 			this.force.y *= -this.bounce;
 		});
@@ -9646,6 +10433,7 @@ var mod_rigidbody = {
 		});
 	},
 	'update' : function(){
+		var inair = !this.grounded;
 		this.force.y += this.gravity * this.delta;
 		//Max speed 
 		this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
@@ -9655,7 +10443,7 @@ var mod_rigidbody = {
 		if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
 		
 		//Add just enough force to lock them to the ground
-		if(this.grounded ) this.force.y += 0.1;
+		if(this.grounded ) this.force.y += 1.0;
 		
 		//The timer prevents landing errors
 		this._groundedTimer -= this.grounded ? 1 : 10;
@@ -9664,7 +10452,63 @@ var mod_rigidbody = {
 		
 		var friction_x = 1.0 - this.friction * this.delta;
 		this.force.x *= friction_x;
+		
+		if( inair && this.grounded ) {
+			this.trigger("land");
+		}
 	},
+}
+
+var mod_block = {
+	'init' : function(){
+		this.blockCollide = true;
+		this.blockKillStuck = true;
+		this.blockTopOnly = false;
+		this.blockOnboard = new Array();
+		this.blockPrevious = new Point(this.position.x, this.position.y);
+		
+		this.on("collideObject", function(obj){
+			if(this.blockCollide){
+				if( obj.hasModule(mod_rigidbody) && this.blockOnboard.indexOf(obj) < 0 ) {
+					var c = obj.corners();
+					var d = this.corners();
+					var fallspeed = Math.max(obj.force.y / obj.delta,4);
+					if(!this.blockTopOnly && c.bottom > d.bottom && (c.right-1>d.left&&c.left+1<d.right)){
+						//Below
+						var dif = obj.position.y - c.top;
+						obj.position.y = d.bottom + dif;
+						obj.trigger( "collideVertical", -1);
+					} else if(!this.blockTopOnly && c.left < d.left && c.bottom-fallspeed > d.top){
+						//left
+						var dif = c.right - obj.position.x;
+						obj.position.x = d.left - dif;
+						obj.trigger( "collideHorizontal", 1);
+					} else if(!this.blockTopOnly && c.right > d.right && c.bottom-fallspeed > d.top){
+						//right
+						var dif = obj.position.x - c.left;
+						obj.position.x = d.right + dif;
+						obj.trigger( "collideHorizontal", -1);
+					} else if(obj.force.y >= 0){
+						//top
+						var dif = c.bottom - obj.position.y;
+						obj.position.y = d.top - dif;
+						obj.trigger( "collideVertical", 1);
+						this.trigger("blockLand",obj);
+						this.blockOnboard.push(obj);
+					}
+				}
+			}
+		});
+	},
+	'update' : function(){
+		var change = this.position.subtract(this.blockPrevious);
+		for(var i=0; i < this.blockOnboard.length; i++){
+			var obj = this.blockOnboard[i];
+			obj.position = obj.position.add(change);
+		}
+		this.blockOnboard = new Array();
+		this.blockPrevious = new Point(this.position.x,this.position.y);
+	}
 }
 
 var mod_camera = {
@@ -9729,7 +10573,7 @@ var mod_camera = {
 			this.camerShake.x -= game.deltaUnscaled;
 		}
 	},
-	"render" : function(g,c){
+	"postrender" : function(g,c){
 		if(this.lock){
 			var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
 			if( viewWidth < game.resolution.x ){
@@ -9846,15 +10690,18 @@ var mod_combat = {
 						hits[i].hurt(this, damage);
 						out.push(hits[i]);
 					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
-						//block?
-						hits[i].trigger("block",this, offset.center(), damage);
+						//blocked
+						hits[i].trigger("block", this, offset.center(), damage);
+						this.trigger("blockOther", hits[i], offset.center(), damage);
 						if( hits[i].guard.invincible <= 0 ) {
 							if( damage > hits[i].guard.life ) {
+								//Break guard
 								damage = Math.ceil(Math.max( damage - hits[i].guard.life, 0));
 								hits[i].guard.life = 0;
 								hits[i].trigger("guardbreak", this, offset.center(), damage);
 								hits[i].hurt(this, damage);
 							} else {
+								//Blocked successfully
 								hits[i].guard.life -= damage;
 								hits[i].guard.invincible = Game.DELTASECOND * 0.3;
 							}
@@ -10630,7 +11477,7 @@ function Player(x, y){
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
-	this.jump_strength = 7.7;
+	this.jump_strength = 8.0;
 	
 	this.states = {
 		"duck" : false,
@@ -10647,7 +11494,8 @@ function Player(x, y){
 		"rollDirection" : 1.0,
 		"effectTimer" : 0.0,
 		"downStab" : false,
-		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125)
+		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
+		"manaRegenTime" : 0.0
 	};
 	
 	this.attackProperties = {
@@ -10668,12 +11516,16 @@ function Player(x, y){
 	
 	
 	this.speeds = {
+		"baseSpeed" : 1.25,
 		"inertiaGrounded" : 0.4,
-		"inertiaAir" : 0.1,
+		"inertiaAir" : 0.2,
 		"frictionGrounded" : 0.1,
 		"frictionAir" : 0.05,
+		"jump" : 9.0,
+		"airBoost" : 1.0,
 		"airGlide" : 0.0,
-		"breaks": 0.4
+		"breaks": 0.4,
+		"manaRegen" : Game.DELTASECOND * 60
 	};
 	
 	this.weapon = {
@@ -10780,7 +11632,7 @@ function Player(x, y){
 		audio.play("playerhurt");
 	})
 	this.on("struckTarget", function(obj, pos, damage){
-		if( this.states.downStab && obj.hasModule(mod_combat) && this.force.y > 0 ) {
+		if( this.states.downStab && obj.hasModule(mod_combat)){
 			this.states.downStab = false;
 			this.force.y = -2;
 			this.jump();
@@ -10797,7 +11649,7 @@ function Player(x, y){
 		
 		if( !this.grounded && !this.states.downStab ) {
 			//Add extra float
-			this.force.y -= this.jump_strength * this.speeds.airGlide;
+			this.force.y -= this.speeds.jump * this.speeds.airGlide;
 		}
 		
 		//Charge kill explosion!
@@ -10848,7 +11700,8 @@ function Player(x, y){
 	this.stats = {
 		"attack" : 1,
 		"defence" : 1,
-		"technique" : 1
+		"technique" : 1,
+		"magic" : 1
 	}
 	
 	this.life = 100;
@@ -11013,8 +11866,8 @@ function Player(x, y){
 }
 
 Player.prototype.update = function(){
-	var speed = 1.25;
-	if( this.spellsCounters.haste > 0 ) speed = 1.6;
+	var speed = this.speeds.baseSpeed;
+	if( this.spellsCounters.haste > 0 ) speed *= 1.6;
 	
 	if(this.pause) {
 		this.force.x = 0;
@@ -11033,8 +11886,14 @@ Player.prototype.update = function(){
 	this.states.downStab = false;
 	
 	this.buffer_damage = this.hasCharm("charm_elephant");
+	
+	this.states.manaRegenTime = Math.min(this.states.manaRegenTime-this.delta, this.speeds.manaRegen);
+	if(this.states.manaRegenTime <= 0){
+		this.mana = Math.min(this.mana + 1,this.manaMax );
+		this.states.manaRegenTime = this.speeds.manaRegen;
+	}
 	if( this.manaHeal > 0 ){
-		this.mana = Math.min(this.mana += 1, this.manaMax);
+		this.mana = Math.min(this.mana + 1, this.manaMax);
 		this.manaHeal-= 1;
 		if( this.mana >= this.manaMax ) this.manaHeal = 0;
 	}
@@ -11171,7 +12030,7 @@ Player.prototype.update = function(){
 			if ( input.state('jump') > 0 && !this.grounded ) { 
 				
 				if( this.force.y > 0 ) {
-					this.force.y -= 0.4 * this.speeds.airGlide * this.delta;
+					this.force.y -= this.speeds.airBoost * this.speeds.airGlide * this.delta;
 				}
 			
 				if( this.jump_boost ) {
@@ -11189,7 +12048,7 @@ Player.prototype.update = function(){
 		
 		
 		if ( this.states.downStab ) {
-			this.strike(new Line( 0, 8, 4, 8+Math.max( 12, this.attackProperties.range)));
+			this.strike(new Line( -4, 8, 4, 8+Math.max( 12, this.attackProperties.range)));
 		}
 		
 		if ( this.states.attack > this.attackProperties.rest && this.states.attack <= this.attackProperties.strike ){
@@ -11366,18 +12225,18 @@ Player.prototype.jump = function(){
 			this.position.x,
 			this.position.y + 2 + _player.height * .5
 		);
-		if(standingTile > 64 && standingTile <= 67){
+		if(standingTile in game.tileRules.special && game.tileRules.special[standingTile] == Tileset.onewayup){
 			this.grounded = false; 
 			this.position.y += 2;
 			return;
 		}
 	}
 	
-	var force = this.jump_strength;
+	var force = this.speeds.jump;
 	
 	if( this.spellsCounters.flight > 0 ) force = 2;
 	
-	this.force.y -= force; 
+	this.force.y = -force; 
 	this.grounded = false; 
 	this.jump_boost = true; 
 	this.stand(); 
@@ -11389,7 +12248,7 @@ Player.prototype.attack = function(){
 			this.force.x = 0;
 			if( this.states.attack > Game.DELTASECOND * -0.3 ) {
 				//Next combo level
-				this.weapon.combo = (this.weapon.combo + 1) % 3;
+				this.weapon.combo = (this.weapon.combo + 1) % 2;
 			} else {
 				//Reset combo
 				this.weapon.combo = 0;
@@ -11505,20 +12364,24 @@ Player.prototype.equip = function(sword, shield){
 		var att_bonus = 0;
 		var def_bonus = 0;
 		var tec_bonus = 0;
+		var mag_bonus = 0;
 		if( this.equip_sword instanceof Item ){
 			att_bonus += (this.equip_sword.bonus_att || 0);
 			def_bonus += (this.equip_sword.bonus_def || 0);
 			tec_bonus += (this.equip_sword.bonus_tec || 0);
+			mag_bonus += (this.equip_sword.bonus_tec || 0);
 		}
 		if( this.equip_shield instanceof Item ){
 			att_bonus += (this.equip_shield.bonus_att || 0);
 			def_bonus += (this.equip_shield.bonus_def || 0);
 			tec_bonus += (this.equip_shield.bonus_tec || 0);
+			mag_bonus += (this.equip_shield.bonus_tec || 0);
 		}
 		
 		var att = Math.max( Math.min( att_bonus + this.stats.attack - 1, 19), 0 );
 		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
+		var magic = Math.max( Math.min( mag_bonus + this.stats.magic - 1, 19), 0 );
 		
 		this.guard.lifeMax += 3 * def + tech;
 		this.guard.restore = 0.4 + tech * 0.05;
@@ -11527,7 +12390,8 @@ Player.prototype.equip = function(sword, shield){
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
 		this.attackProperties.rest = Math.max( this.attackProperties.rest - tech*1.4, 0);
 		this.attackProperties.strike = Math.max( this.attackProperties.strike - tech*1.4, 3.5);
-		this.attackProperties.warm = Math.max( this.attackProperties.warm - tech*1.8, this.attackProperties.strike);		
+		this.attackProperties.warm = Math.max( this.attackProperties.warm - tech*1.8, this.attackProperties.strike);
+		this.speeds.manaRegen = Game.DELTASECOND * (10 - magic * (9/19));
 		
 	} catch(e) {
 		this.equip( this.equip_sword, this.equip_shield );
@@ -11623,16 +12487,6 @@ Player.prototype.render = function(g,c){
 		if( this.cape.active ) {
 			this.cape.sprite.render(g, this.position.subtract(c), this.cape.frame, this.cape.frame_row, this.flip, this.filter);
 		}
-		
-		//Render current sword
-		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
-		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
-		this.attackProperties.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
-			this.weapon.frame, 
-			this.weapon.frame_row, 
-			this.flip, 
-			weapon_filter
-		);
 	} else {
 		//When rolling, ignore flip and shader
 		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
@@ -11647,10 +12501,36 @@ Player.prototype.render = function(g,c){
 		this.rendershield(g,c);
 	}
 	
+	//Render current sword
+	if(this.states.roll <= 0){
+		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
+		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
+		this.attackProperties.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+			this.weapon.frame, 
+			this.weapon.frame_row, 
+			this.flip, 
+			weapon_filter
+		);
+	}
+	
 	//Charge effect
 	if( this.states.attack_charge > 0 ) {
 		var effectPos = new Point(this.position.x, this.position.y - 16);
 		EffectList.charge(g, effectPos.subtract(c), this.states.attack_charge);
+	}
+	
+	//Strike effect
+	if( this.states.attack < this.attackProperties.strike && this.states.attack > this.attackProperties.rest ){
+		//var spos = new Point(this.attackProperties.range,0);
+		var spos = new Point(24,-2);
+		var slength = 5;
+		if(this.attackProperties.range > 20 ) slength = 6;
+		if(this.attackProperties.range > 28 ) slength = 7;
+		var progress = (this.states.attack - this.attackProperties.rest) / (this.attackProperties.strike - this.attackProperties.rest);
+		var sframe = Math.trunc(2 - (progress*3));
+		if(this.flip) spos.x *= -1;
+		if(this.states.duck) spos.y = 4;
+		sprites.bullets.render(g,this.position.add(spos).subtract(c),sframe,slength,this.flip);
 	}
 }
 
@@ -11659,7 +12539,7 @@ Player.prototype.render = function(g,c){
 Player.prototype.rendershield = function(g,c){
 	//Render shield
 	
-	if( this.states.roll > 0 ) return;
+	if( this.states.roll > 0 || this.states.downStab ) return;
 	
 	var frame = this.guard.active ? 0 : 1;
 	
@@ -11687,16 +12567,18 @@ Player.prototype.hudrender = function(g,c){
 	g.closePath();
 	
 	/* Render Buffered Damage */
-	g.beginPath();
-	g.color = [0.65,0.0625,0.0,1.0];
-	var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer) / 4, 8)
-	g.scaleFillRect(
-		Math.max(this.life/4,0)+8,
-		8,
-		-Math.min(this.damage_buffer,this.life)/4,
-		8
-	);
-	g.closePath();
+	if(this.life > 0){
+		g.beginPath();
+		g.color = [0.65,0.0625,0.0,1.0];
+		var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer) / 4, 8)
+		g.scaleFillRect(
+			Math.max(this.life/4,0)+8,
+			8,
+			-Math.min(this.damage_buffer,this.life)/4,
+			8
+		);
+		g.closePath();
+	}
 	
 	/* Render Mana */
 	g.beginPath();
@@ -13520,6 +14402,8 @@ function Spawn(x,y,d,ops){
 	this.height = 16;
 	this.difficulty = Spawn.difficulty;
 	this.specific = null;
+	this.autodestroy = 0;
+	this.enemies = new Array();
 	
 	this.on("activate",function(obj){
 		this.spawn();
@@ -13537,8 +14421,18 @@ function Spawn(x,y,d,ops){
 	if("difficulty" in ops){
 		this.difficulty = ops.difficulty * 1;
 	}
+	if("autodestroy" in ops){
+		this.autodestroy = ops.autodestroy * 1;
+	}
 	if("autospawn" in ops){
 		autospawn = ops.autospawn * 1;
+	}
+	if("respawn" in ops){
+		this.on("wakeup",function(){
+			if(!this.isAlive()){
+				this.spawn();
+			}
+		});
 	}
 	if( "tags" in ops ){
 		this.tags = ops.tags.split(",");
@@ -13549,7 +14443,7 @@ function Spawn(x,y,d,ops){
 		this._tid = ops.trigger;
 	}
 	
-	this.enemies = [];
+	
 	
 	if(autospawn){
 		//Spawn on creation
@@ -13587,6 +14481,17 @@ Spawn.prototype.spawn = function(){
 		console.error( "No valid enemy matching tags: " + this.tags );
 	}
 }
+Spawn.prototype.isAlive = function(enemies){
+	var alive = false;
+	for(i=0; i < this.enemies.length; i++){
+		if(game.objects.indexOf(this.enemies[i]) >= 0){
+			if(this.enemies[i].life > 0){
+				alive = true;
+			}
+		}
+	}
+	return alive;
+}
 Spawn.prototype.create = function(enemies){
 	for(var j=0; j < enemies.length; j++){
 		var name = enemies[j];
@@ -13597,6 +14502,9 @@ Spawn.prototype.create = function(enemies){
 				null,
 				{"difficulty":this.difficulty}
 			);
+			if(this.autodestroy){
+				object.on("sleep", function(){this.destroy();});
+			}
 			game.addObject( object );
 			this.enemies.push( object );
 		} catch (e) {
@@ -14007,16 +14915,13 @@ BreakableTile.prototype = new GameObject();
 BreakableTile.prototype.constructor = GameObject;
 function BreakableTile(x, y, d, ops){	
 	this.constructor();
-	
+	this.center = new Point(x,y);
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 16;
 	this.broken = 0;
-	this.item = false;
+	this.spawn = false;
 	this.death_time = Game.DELTASECOND * 0.15;
 	this.strikeable = 1;
-	this.undertile = game.getTile(this.position.x, this.position.y);
 	this.chain = 1;
 	this.life = 1;
 	
@@ -14025,21 +14930,51 @@ function BreakableTile(x, y, d, ops){
 	this.chaintimer = this.chaintime;
 	this.chainActive = false;
 	this.chainSize = 10;
+	this.target = false;
+	this.resetOnSleep = 0;
 	
-	var startBroken = 0;
+	this.startBroken = 0;
+	
+	if(d[0] > 16 || d[1] > 16){
+		this.origin = new Point(0.0, 0.0);
+		this.width = Math.round(d[0]/16)*16;
+		this.height = Math.round(d[1]/16)*16;
+		this.position.x -= this.width * 0.5;
+		this.position.y -= this.height * 0.5;
+		
+		this.undertile = new Array();
+		for(var x=0; x < this.width; x+= 16){
+			for(var y=0; y < this.height; y+= 16){
+				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y);
+				this.undertile.push(tile);
+			}
+		}
+	} else {
+		this.width = this.height = 16;
+		this.undertile = game.getTile(this.position.x, this.position.y);
+	}
 	
 	ops = ops || {};
 	if( "strikeable" in ops ) {
 		this.strikeable = ops["strikeable"] * 1;
 	}
+	if("spawn" in ops) {
+		this.spawn = ops["spawn"].split(",");
+	}
 	if("trigger" in ops) {
 		this._tid = ops["trigger"];
 	}
+	if("target" in ops) {
+		this.target = ops["target"].split(",");
+	}
 	if("broken" in ops) {
-		startBroken = ops["broken"] * 1;
+		this.startBroken = ops["broken"] * 1;
 	}
 	if("chain" in ops){
 		this.chain = ops["chain"] * 1;
+	}
+	if("resetonsleep" in ops){
+		this.resetOnSleep = ops["resetonsleep"];
 	}
 	
 	this.on("activate", function(obj,pos,damage){
@@ -14058,58 +14993,121 @@ function BreakableTile(x, y, d, ops){
 	this.on("struck", function(obj,pos,damage){
 		if( this.strikeable && obj instanceof Player){
 			if(!this.broken){
+				if(obj.states.downStab){
+					obj.force.y = -2;
+					obj.jump();
+				}
+				if(this.target instanceof Array){
+					Trigger.activate(this.target);
+				}
 				this.break(true);
 			}
 		}
 	});
 	
 	//Set first state
-	if(startBroken){
+	if(this.startBroken){
 		this.break(false);
+	}
+	if(this.resetOnSleep){
+		this.on("sleep", function(){
+			if(this.startBroken){
+				this.break(false);
+			}else{
+				this.unbreak(false);
+			}
+		});
 	}
 }
 BreakableTile.prototype.unbreak = function(explode){
 	if(this.broken && this.undertile != 0){
 		if(explode){
-			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
+			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
 			if(this.chain) {
 				this.chainActive = true;
 				this.chaintype = "unbreak";
 			}
 		}
-		game.setTile(
-			this.position.x, 
-			this.position.y, 
-			game.tileCollideLayer, 
-			this.undertile
-		);
+		if(this.undertile instanceof Array){
+			var i = 0;
+			for(var x=0; x < this.width; x+= 16){
+				for(var y=0; y < this.height; y+= 16){
+					game.setTile(
+						4 + this.position.x + x, 
+						4 + this.position.y + y, 
+						game.tileCollideLayer, 
+						this.undertile[i]
+					);
+					i++;
+				}
+			}
+		} else {
+			game.setTile(
+				this.position.x, 
+				this.position.y, 
+				game.tileCollideLayer, 
+				this.undertile
+			);
+		}
 		this.broken = 0;
 	}
 }
 BreakableTile.prototype.break = function(explode){
 	if(!this.broken && this.undertile != BreakableTile.unbreakable && this.undertile != 0){
 		if(explode){
-			game.addObject(new EffectExplosion(this.position.x, this.position.y,"crash"));
+			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
 			if(this.chain) {
 				this.chainActive = true;
 				this.chaintype = "break";
 			}
 		}
-		game.setTile(
-			this.position.x, 
-			this.position.y, 
-			game.tileCollideLayer, 
-			0
-		);
+		if(this.undertile instanceof Array){
+			for(var x=0; x < this.width; x+= 16){
+				for(var y=0; y < this.height; y+= 16){
+					game.setTile(
+						4 + this.position.x + x, 
+						4 + this.position.y + y, 
+						game.tileCollideLayer, 
+						0
+					);
+				}
+			}
+		} else {
+			game.setTile(
+				this.position.x, 
+				this.position.y, 
+				game.tileCollideLayer, 
+				0
+			);
+		}
+		this.spawnObject();
 		this.broken = 1;
 	}
 }
 
+BreakableTile.prototype.spawnObject = function(){
+	if(this.spawn instanceof Array){
+		for(var i=0; i < this.spawn.length; i++){
+			try{
+				var item = this.spawn[i].match(/^item_(.*)$/);
+				if(item){
+					game.addObject(new Item(this.center.x, this.center.y,0,{"name":item[1]}));
+				} else {
+					game.addObject(new window[this.spawn[i]](this.center.x, this.center.y,[this.width,this.height],{}));
+				}
+			} catch(err){
+				console.error("Cannot spawn: "+this.spawn[i]);
+			}
+		}
+	}
+}
 BreakableTile.prototype.neighbours = function(type){
 	
 	var hits = game.overlaps(new Line(
-		this.position.x - this.chainSize, this.position.y - this.chainSize,
-		this.position.x + this.chainSize, this.position.y + this.chainSize
+		this.center.x - (this.width*0.5 + this.chainSize), 
+		this.center.y - (this.height*0.5 + this.chainSize),
+		this.center.x + (this.width*0.5 + this.chainSize), 
+		this.center.y + (this.height*0.5 + this.chainSize)
 	));
 	for(var i=0; i< hits.length; i++) {
 		if( hits[i] instanceof BreakableTile && hits[i] != this ) {
@@ -14886,9 +15884,8 @@ function WorldMap(x, y){
 			var keys = _player.keys;
 			_player.life = _player.lifeMax;
 			_player.mana = _player.manaMax;
-			_player.position.x = 128;
-			_player.position.y = 200;
-			_player._death_clock = Number.MAX_VALUE;
+			_player.position.x = _player.checkpoint.x;
+			_player.position.y = _player.checkpoint.y;
 			_player.interactive = true;
 			_player.lock_overwrite = false;
 			game.addObject(_player);

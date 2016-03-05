@@ -148,6 +148,7 @@ function Game( elm ) {
 	this.tileDimension = null;
 	this.tiles = null;
 	this.tileSprite = sprites.tiles2;
+	this.tileRules = tiles.tilesgoo;
 	this.tileCollideLayer = 2;
 	
 	//Per frame datastructures
@@ -439,7 +440,11 @@ Game.prototype.render = function( ) {
 				}		
 			}
 		} else {
-			this.renderTiles( this.renderOrder[o] );
+			//Render Tile Layer
+			if(this.tiles){
+				var layer = this.tiles[this.renderOrder[o]];
+				this.tileRules.render(this.g,this.camera,layer,this.tileDimension.width());
+			}
 		}
 	}
 	
@@ -493,91 +498,6 @@ Game.prototype.render = function( ) {
 	
 	this.g.flush();
 }
-Game.prototype.renderTiles = function(layer){
-	if( !this.tileSprite.loaded || this.tiles == null ) return;
-	
-	var camera = this.camera;
-	if( layer in this.layerCamera ) camera = this.layerCamera[layer](this.camera);
-	
-	//var tileVerts = new Array();
-	var material = window.materials["default"].use();
-	var uvVerts = new Array();
-	var ts = 16;
-	var gl = this.g;
-	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
-		/*
-		var x = _x*ts;
-		var y = _y*ts;
-		tileVerts.push(x); tileVerts.push(y);
-		tileVerts.push(x+ts); tileVerts.push(y);
-		tileVerts.push(x); tileVerts.push(y+ts);
-		tileVerts.push(x); tileVerts.push(y+ts);
-		tileVerts.push(x+ts); tileVerts.push(y);
-		tileVerts.push(x+ts); tileVerts.push(y+ts);
-		*/
-		var cam = new Point(Math.floor(camera.x/ts),Math.floor(camera.y/ts));
-		var tile_index = (_x+cam.x-game.tileDimension.start.x) + ((_y+cam.y-game.tileDimension.start.y) * game.tileDimension.width());
-		var tile = this.tiles[layer][tile_index];
-		if( tile == 0 || tile == undefined) tile = window.BLANK_TILE;
-		var tileUV = this.tileSprite.uv(tile-1);
-		
-		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
-		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
-		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
-		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
-		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
-		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
-	}
-	var campos = new Point(
-		0-Math.round(Math.mod(camera.x,ts)),
-		0-Math.round(Math.mod(camera.y,ts))
-	);
-	
-	material.set("u_resolution", game.resolution.x, game.resolution.y);
-	material.set("u_camera", campos.x, campos.y);
-	gl.bindTexture(gl.TEXTURE_2D, this.tileSprite.gl_tex);
-	
-	var gridBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, this._tileBuffer, gl.DYNAMIC_DRAW);
-	material.set("a_position");
-	
-	var textBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, textBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvVerts), gl.DYNAMIC_DRAW);
-	material.set("a_texCoord");
-	
-	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
-}
-Game.prototype.renderTile = function(layer){
-	this.renderTiles(layer); return;
-	//Render tiles
-	if( this.tiles != null ){
-		var ts = 16;
-		var camera_offset = new Point(
-			(this.camera.x < 0 ? (ts+((this.camera.x%ts==0?-16:0)+this.camera.x%ts)) : (this.camera.x%ts) ),
-			(this.camera.y%ts)
-		);
-		for(var x=0; x <= (1+this.width)/ts; x++)
-		for(var y=0; y <= (1+this.height)/ts; y++){
-			var _x = x + Math.floor(this.camera.x / ts) - this.tileDimension.start.x;
-			var tile_index = Math.floor(
-				_x + (y + Math.trunc(this.camera.y / ts) - this.tileDimension.start.y) * this.tileDimension.width()
-			);
-			if(_x >= 0 && _x < this.tileDimension.width() ){
-				
-				var tile_render_index = this.tiles[layer][tile_index] - 1;
-				if( tile_render_index >= 0 ) {
-					var offset = new Point( 
-						(x*ts)-camera_offset.x,
-						(y*ts)-camera_offset.y
-					);
-					this.tileSprite.render(this.g,offset,tile_render_index);
-				}
-			}
-		}
-	}
-}
 //debug = 1;
 Game.prototype.overlap = function( obj ) {
 	//Returns a list of objects the provided object is currently on top of
@@ -596,70 +516,6 @@ Game.prototype.overlap = function( obj ) {
 	
 	return out;
 }
-Game.prototype.i_move = function(obj,x, y ){
-	var bounds = obj.bounds();
-	var area = new Line( 
-		new Point(bounds.start.x - x - obj.width, bounds.start.y - y - obj.height),
-		new Point(bounds.end.x + x + obj.width, bounds.end.y + y + obj.height) 
-	);
-	
-	var collisions = this.lines.get( area );
-	
-	var hitbox = obj.hitbox();
-	this.unstick(obj, hitbox, collisions);
-	
-	if( obj.interactive ) {
-		//Collide with other objects
-		var objs = this.interactive.get( area );
-		
-		for(var o=0; o < objs.length; o++ ){
-			if( objs[o] != obj ) {
-				if( obj.intersects( objs[o] ) ){
-					obj.trigger("collideObject", objs[o]);
-					objs[o].trigger("collideObject", obj);
-				}
-			}
-		}
-	}
-		
-	
-	var interations = Math.ceil( Point.magnitude(x,y) );
-	var interation_size = 1.0 / interations;
-	
-	for( var j = 0; j < interations; j++ ) {
-		//Move X
-		if( x != 0 ) {
-			obj.transpose(x * interation_size ,0);
-			hitbox.transpose(x * interation_size, 0);
-			
-			for( var i = 0; i < collisions.length; i++ ) {
-				var c = collisions[i];
-				if ( c.polyInstersects(hitbox) ){
-					obj.transpose(-x * interation_size, 0);
-					hitbox.transpose(-x * interation_size, 0);
-					obj.trigger("collideHorizontal", x);
-					x = 0;
-				}
-			}
-		}
-		
-		//Move Y
-		if( y != 0 ) {
-			obj.transpose(0, y * interation_size);
-			hitbox.transpose(0, y * interation_size);
-			
-			for( var i = 0; i < collisions.length; i++ ) {
-				var c = collisions[i];
-				if ( c.polyInstersects(hitbox) ){
-					obj.transpose(0, -y * interation_size);
-					hitbox.transpose(0, -y * interation_size);
-					obj.trigger("collideVertical", y);
-					y = 0;
-				}
-			}
-		}
-	}
-}
 
 Game.prototype.t_unstick = function( obj ) {
 	var hitbox = obj.corners();
@@ -670,7 +526,6 @@ Game.prototype.t_unstick = function( obj ) {
 		"left" : 0,
 		"right" : 0
 	}
-	var exclusive = [65,66,67,81,82,83,137,138,139,140,141,142,143,144,159,160];
 	var ts = 16;
 	var xinc = obj.width/ Math.ceil(obj.width/ts);
 	var yinc = obj.height/ Math.ceil(obj.height/ts);
@@ -679,7 +534,7 @@ Game.prototype.t_unstick = function( obj ) {
 	for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc ) {
 		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
-			if( tile != 0 && exclusive.indexOf(tile) < 0 ) {
+			if( tile != 0 && !(tile in this.tileRules.special) ) {
 				//You're stuck, do something about it!
 				isStuck = true;
 			} else {
@@ -706,6 +561,84 @@ Game.prototype.t_unstick = function( obj ) {
 	return isStuck;
 }
 Game.prototype.t_move = function(obj, x, y) {
+	
+	if( this.t_unstick(obj) ) return;
+	
+	var start_hitbox = obj.corners();
+	var interation_size = 1.0;
+	var ts = 16;
+	var y_pull = 0;
+	
+	var limits = [
+		Number.MAX_SAFE_INTEGER, //Furthest left
+		Number.MAX_SAFE_INTEGER, //Furthest down
+		-Number.MAX_SAFE_INTEGER, //Furthest right
+		-Number.MAX_SAFE_INTEGER //Furthest up
+	];
+	var margins = [
+		obj.position.x - start_hitbox.left,
+		obj.position.y - start_hitbox.top,
+		obj.position.x - start_hitbox.right,
+		obj.position.y - start_hitbox.bottom
+	];
+	var dirs = [0,1];
+	
+	//for(var dir=0; dir < dirs.length; dir++ ){
+	for(var dir=1; dir >= 0; dir-- ){
+		
+		if( dir == 0 ) 
+			obj.transpose(0, y * interation_size);
+		else
+			obj.transpose(x * interation_size, 0);
+		
+		var hitbox = obj.corners();
+		
+		var xinc = obj.width/ Math.ceil(obj.width/ts);
+		var yinc = obj.height/ Math.ceil(obj.height/ts);
+		
+		for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc )
+		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
+			var tile = this.getTile(_x,_y);
+			var corner = new Point(Math.floor(_x/ts)*ts, Math.floor(_y/ts)*ts);
+			var v = dir==0?y:x;
+			limits = this.tileRules.collide(tile,dir,v,corner,hitbox,limits,start_hitbox);
+		}
+	
+		//for(var i=0; i<limits.length; i++) limits[i] -= margins[i];
+		
+		if( dir == 1) {
+			limits[0] += margins[2] - 0.1;
+			limits[2] += margins[0] + 0.1;
+			if( obj.position.x > limits[0] ) {
+				obj.position.x = limits[0];
+				obj.trigger("collideHorizontal", x);
+			} else if ( obj.position.x < limits[2] ) {
+				obj.position.x = limits[2];
+				obj.trigger("collideHorizontal", x);
+			}
+		} else {
+			limits[1] += margins[3] - 0.1;
+			limits[3] += margins[1] + 0.1;
+			
+			if(obj.grounded && obj.position.y+6 > limits[1] ){
+				//Stick to bottom
+				obj.position.y= limits[1];
+			}
+			
+			if( obj.position.y > limits[1] ) {
+				obj.position.y= limits[1];
+				obj.trigger("collideVertical", y);
+			} else if ( obj.position.y < limits[3] ) {
+				obj.position.y = limits[3];
+				obj.trigger("collideVertical", y);
+			}
+		}
+	
+	}
+	
+	this.collideObject(obj);
+}
+Game.prototype.t_move_old = function(obj, x, y) {
 	
 	if( this.t_unstick(obj) ) return;
 	
@@ -1351,16 +1284,15 @@ GameObject.prototype.intersects = function(a) {
 GameObject.prototype.update = function(){ }
 GameObject.prototype.idle = function(){
 	var current = this.awake;
-	var _cam = this.position.subtract(game.camera);
-	var margin_x = this.width + 32;
-	var margin_y = this.height + 32;
-	var screen = new Point( game.width*.5, game.height*.5);
+	var corners = this.corners();
+	var margin = 32;
+	
 	this.awake = (
-		_cam.x > -margin_x && 
-		_cam.y > -margin_y && 
-		_cam.x-game.resolution.x < margin_x &&
-		_cam.y-game.resolution.y < margin_y
-	); 
+		corners.right + margin > game.camera.x &&
+		corners.left - margin < game.camera.x + game.resolution.x &&
+		corners.bottom + margin > game.camera.y &&
+		corners.top - margin < game.camera.y + game.resolution.y
+	);
 	
 	if( current != this.awake ){
 		this.trigger( (this.awake ? "wakeup" : "sleep") );
@@ -1567,6 +1499,99 @@ BSPTree.prototype.nearest = function(position, conditions){
 	}
 	return out;
 }
+
+function Tileset(sprite,rules,animation){
+	this.sprite = sprite;
+	this.blank = 1024;
+	this.special = rules;
+	this.animation = animation;
+}
+Tileset.prototype.use = function(g){
+	g.tileSprite = this.sprite;
+	g.tileRules = this;
+	BLANK_TILE = this.blank;
+}
+Tileset.prototype.collide = function(t,axis,v,pos,hitbox,limits,start_hitbox){
+	if(t <= 0){
+		return limits;
+	}else{
+		if(t in this.special){
+			return this.special[t](axis,v,pos,hitbox,limits,start_hitbox);
+		} else{
+			return Tileset.block(axis,v,pos,hitbox,limits,start_hitbox);
+		}
+	}
+}
+Tileset.prototype.render = function(g,c,tiles,width){
+	this.sprite.renderTiles(g,tiles,width,c.x,c.y,this.animation);
+}
+Tileset.ts = 16;
+Tileset.block = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		if(v>0) limits[1] = Math.min(limits[1], pos.y);
+		if(v<0) limits[3] = Math.max(limits[3], pos.y + Tileset.ts);
+	} else {
+		if(v>0) limits[0] = Math.min(limits[0], pos.x);
+		if(v<0) limits[2] = Math.max(limits[2], pos.x + Tileset.ts);
+	}
+	return limits;
+}
+Tileset.slope_1tohalf = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = (pos.y) + Math.max((hitbox.left-pos.x)*0.5, 1);
+		limits[1] = Math.min(limits[1], peak-1);
+	}
+	return limits;
+}
+Tileset.onewayup = function(axis,v,pos,hitbox,limits,start_hitbox){
+	//one way blocks
+	if(axis == 0){
+		if(v > 0 && start_hitbox.bottom <= pos.y){
+			limits[1] = Math.min(limits[1], pos.y);
+		}
+	}
+	return limits;
+}
+Tileset.slope_halfto0 = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = (pos.y+(Tileset.ts*0.5)) + Math.max((hitbox.left-pos.x)*0.5, 1);
+		limits[1] = Math.min(limits[1], peak-1);
+	}
+	return limits;
+}
+Tileset.slope_1to0 = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = (pos.y) + Math.max(hitbox.left-pos.x, 1);
+		limits[1] = Math.min(limits[1], peak-1);
+	}
+	return limits;
+}
+Tileset.slope_0to1 = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = (pos.y+Tileset.ts) + Math.max(pos.x-hitbox.right, 1-Tileset.ts);
+		limits[1] = Math.min(limits[1], peak-1);
+	}
+	return limits;
+}
+Tileset.slope_0tohalf = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = (pos.y+Tileset.ts) + Math.max((pos.x-hitbox.right) * 0.5, 1-Tileset.ts*0.5);
+		limits[1] = Math.min(limits[1], peak-1);
+	}
+	return limits;
+}
+Tileset.slope_halfto1 = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = (pos.y+Tileset.ts) + Math.max((pos.x-(hitbox.right+Tileset.ts)) * 0.5, 1-Tileset.ts);
+		limits[1] = Math.min(limits[1], peak-1);
+	}
+	return limits;
+}
+Tileset.ignore = function(axis,v,pos,hitbox,limits){
+	return limits;
+}
+
+
 
 function Timer(time, interval){
 	this.time = this.start = this.previous = this.interval = 0;

@@ -44,6 +44,10 @@ function TitleMenu(){
 		"introduction_help",
 		"start_help"
 	];
+	
+	if(localStorage.getItem("debug_map")){
+		MapLoader.mapname = localStorage.getItem("debug_map")
+	}
 }
 
 TitleMenu.prototype.update = function(){
@@ -95,6 +99,7 @@ TitleMenu.prototype.update = function(){
 			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
 				if(this.cursor == 0){
 					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
+					localStorage.setItem("debug_map", MapLoader.mapname);
 				} else if(this.cursor == 3){
 					MapLoader.loadMapTmx(MapLoader.mapname);
 					audio.play("pause");

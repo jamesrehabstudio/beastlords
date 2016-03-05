@@ -159,29 +159,33 @@ PauseMenu.prototype.update = function(){
 			( Math.floor(_player.position.y / 240) - this.mapDimension.start.y ) * this.mapDimension.width()
 		);
 		this.map_reveal[map_index] = 2;
+		var map_tile = this.map[map_index];
 		
-		var lock;
-		switch( Math.abs(this.map[map_index]) % 16 ){
-			case 0: lock = new Line(0,0,256,480); break;
-			case 1: lock = new Line(0,0,512,480); break;
-			case 2: lock = new Line(-256,0,256,480); break;
-			case 3: lock = new Line(-256,0,512,480); break;
-			case 4: lock = new Line(0,0,256,240); break;
-			case 5: lock = new Line(0,0,512,240); break;
-			case 6: lock = new Line(-256,0,256,240); break;
-			case 7: lock = new Line(-256,0,512,240); break;
-			case 8: lock = new Line(0,-240,256,480); break;
-			case 9: lock = new Line(0,-240,512,480); break;
-			case 10: lock = new Line(-256,-240,256,480); break;
-			case 11: lock = new Line(-256,-240,512,480); break;
-			case 12: lock = new Line(0,-240,256,240); break;
-			case 13: lock = new Line(0,-240,512,240); break;
-			case 14: lock = new Line(-256,-240,256,240); break;
-			case 15: lock = new Line(-256,-240,512,240); break;
-			default: lock = new Line(-256,-240,256,480); break;
+		if(map_tile){
+			//If map tile is valid, change camera locks
+			var lock;
+			switch( Math.abs(this.map[map_index]) % 16 ){
+				case 0: lock = new Line(0,0,256,480); break;
+				case 1: lock = new Line(0,0,512,480); break;
+				case 2: lock = new Line(-256,0,256,480); break;
+				case 3: lock = new Line(-256,0,512,480); break;
+				case 4: lock = new Line(0,0,256,240); break;
+				case 5: lock = new Line(0,0,512,240); break;
+				case 6: lock = new Line(-256,0,256,240); break;
+				case 7: lock = new Line(-256,0,512,240); break;
+				case 8: lock = new Line(0,-240,256,480); break;
+				case 9: lock = new Line(0,-240,512,480); break;
+				case 10: lock = new Line(-256,-240,256,480); break;
+				case 11: lock = new Line(-256,-240,512,480); break;
+				case 12: lock = new Line(0,-240,256,240); break;
+				case 13: lock = new Line(0,-240,512,240); break;
+				case 14: lock = new Line(-256,-240,256,240); break;
+				case 15: lock = new Line(-256,-240,512,240); break;
+				default: lock = new Line(-256,-240,256,480); break;
+			}
+			lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
+			_player.lock = lock;
 		}
-		lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
-		_player.lock = lock;
 	}
 	
 	this.message_time -= game.deltaUnscaled;
@@ -301,15 +305,21 @@ PauseMenu.prototype.hudrender = function(g,c){
 				attr_i++;
 			}
 			
+			var regenTime = Math.round(
+				((60*Game.DELTASECOND) / _player.speeds.manaRegen)*10
+			)/10;
+			
 			textArea(g,"Damage",leftx+120,60);
 			textArea(g,"Defence",leftx+120,60+28);
 			textArea(g,"Stanima",leftx+120,60+56);
 			textArea(g,"Speed",leftx+120,60+84);
+			textArea(g,"MP Regen",leftx+120,60+112);
 			
 			textArea(g,""+_player.damage,leftx+120,72);
 			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
 			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
 			textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
+			textArea(g,regenTime+"p/m",leftx+120,72+112);
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			leftx = game.resolution.x*0.5 - 224*0.5;

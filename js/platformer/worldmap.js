@@ -158,9 +158,8 @@ function WorldMap(x, y){
 			var keys = _player.keys;
 			_player.life = _player.lifeMax;
 			_player.mana = _player.manaMax;
-			_player.position.x = 128;
-			_player.position.y = 200;
-			_player._death_clock = Number.MAX_VALUE;
+			_player.position.x = _player.checkpoint.x;
+			_player.position.y = _player.checkpoint.y;
 			_player.interactive = true;
 			_player.lock_overwrite = false;
 			game.addObject(_player);

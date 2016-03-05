@@ -144,7 +144,6 @@ MapLoader.parseMap = function(xml){
 	var height = 0;
 	var tilesout = [new Array(), new Array(), new Array()];
 	var maptiles = new Array();
-	var sprite = false;
 	
 	try{
 		//Load sprites
@@ -158,7 +157,7 @@ MapLoader.parseMap = function(xml){
 	for(var i=0; i < tilesetXml.length; i++){
 		var name = tilesetXml[i].getAttribute("name");
 		tilesets.push(tilesetXml[i].getAttribute("firstgid") * 1);
-		if(i==0) tileset = name;
+		if(i==0 || name in window.tiles) tileset = name;
 	}
 	
 	var tileLayers = xml.getElementsByTagName("layer");
@@ -178,7 +177,7 @@ MapLoader.parseMap = function(xml){
 			} else if("far"==name){
 				tilesout[0].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("map"==name){
-				if((j%width) < width/16 && Math.floor(j/height) < height/15){
+				if((j%width) < width/16 && Math.floor(j/width) < height/15){
 					maptiles.push(MapLoader.parseTile(tiles[j],tilesets));
 				}
 			}
@@ -188,14 +187,20 @@ MapLoader.parseMap = function(xml){
 	game.clearAll();
 	game.tiles = tilesout;
 	game.tileDimension = new Line(0,0,width,height);
-	game.bounds = new Line(0,0,width*16,height*15);
+	game.bounds = new Line(0,0,width*16,height*16);
 	
-	if(sprite instanceof Sprite){
-		game.tileSprite = sprite;
-	}else if(tileset in sprites){
-		game.tileSprite = sprites[tileset];
+	if(tileset in window.tiles){
+		window.tiles[tileset].use(window.game);
+	} else if(sprite instanceof Sprite){
+		var temp;
+		if(sprite.width > 256){
+			temp = new Tileset(sprite,tileRules.big);
+		} else {
+			temp = new Tileset(sprite,tileRules.small);
+		}
+		temp.use(window.game);
 	} else {
-		game.tileSprite = sprites.tiles7;
+		window.tiles.tiles7.use(window.game);
 	}
 	
 	if(!window._world) {

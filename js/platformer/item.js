@@ -38,7 +38,7 @@ function Item(x,y,d, ops){
 			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 20; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
-			if( this.name == "money_bag" ) { obj.money += Math.floor(30*(1+dataManager.currentTemple*0.33)); audio.play("pickup1"); }
+			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
 			
 			if( this.isWeapon ) {
@@ -111,7 +111,7 @@ function Item(x,y,d, ops){
 			if( this.name == "black_heart") { obj.stats.attack+=1; obj.stats.defence+=2; obj.stats.technique+=1; obj.lifeMax -= 20; obj.life = Math.min(obj.lifeMax,obj.life); this.pickupEffect(); }
 			if( this.name == "treasure_map") { game.getObject(PauseMenu).revealMap(2); audio.play("pickup1"); }
 			if( this.name == "life_fruit") { obj.lifeMax += 20; obj.heal = 9999; audio.play("gulp"); }
-			if( this.name == "mana_fruit") { obj.manaMax += 2; obj.manaHeal = 999; audio.play("gulp"); }
+			if( this.name == "mana_fruit") { obj.manaMax += 12; obj.manaHeal = 999; audio.play("gulp"); }
 			
 			if( this.name == "charm_sword") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_mana") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
@@ -160,7 +160,7 @@ Item.prototype.setName = function(n){
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":12, "sprite":sprites.sword1 };
+		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword1 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -172,7 +172,7 @@ Item.prototype.setName = function(n){
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":18, "sprite":sprites.sword2 };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":sprites.sword2 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -184,7 +184,7 @@ Item.prototype.setName = function(n){
 		this.frame = 3; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword2 };
+		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":sprites.sword2 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -196,7 +196,7 @@ Item.prototype.setName = function(n){
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":27, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":sprites.sword3 };
 		this.message = Item.weaponDescription;
 		if( dataManager.currentTemple >= 0 ) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -435,23 +435,7 @@ Item.drop = function(obj,money,sleep){
 		money = Math.round(money * _player.money_bonus);
 	}
 
-	while(money > 0){
-		var coin;
-		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
-		if(money > 40){
-			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_3"} );
-			money -= 10;
-		} else if( money > 10 ) {
-			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_2"} );
-			money -= 5;
-		} else {
-			coin = new Item( obj.position.x+off.x, obj.position.y+off.y, false, {"name":"coin_1"} );
-			money -= 1;
-		}
-		coin.force.y -= 5.0;
-		if( sleep ) coin.sleep = sleep;
-		game.addObject(coin);
-	}
+	Item.dropMoney(obj.position, money, sleep);
 	
 	if (Math.random() < _player.waystone_bonus) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
@@ -469,6 +453,28 @@ Item.drop = function(obj,money,sleep){
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
 		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
+	}
+}
+Item.dropMoney = function(position, money, sleep){
+	if(sleep == undefined){
+		sleep = 0;
+	}
+	while(money > 0){
+		var coin;
+		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
+		if(money > 40){
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_3"} );
+			money -= 10;
+		} else if( money > 10 ) {
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_2"} );
+			money -= 5;
+		} else {
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_1"} );
+			money -= 1;
+		}
+		coin.force.y -= 5.0;
+		if( sleep ) coin.sleep = sleep;
+		game.addObject(coin);
 	}
 }
 Item.randomTreasure = function(roll, tags, ops){

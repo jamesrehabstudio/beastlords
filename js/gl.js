@@ -369,7 +369,7 @@ if( !this.loaded  ) return;
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 }
 
-Sprite.prototype.renderTiles = function(gl,tiles,width,x,y){
+Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	if( !this.loaded ) return;
 	
 	var camera = new Point(x,y);
@@ -385,6 +385,15 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y){
 		var tile_index = (_x+cam.x-0) + ((_y+cam.y-0) * width);
 		var tile = tiles[tile_index];
 		if( tile == 0 || tile == undefined) tile = window.BLANK_TILE;
+		
+		if(animation != undefined){
+			if(tile in animation){
+				var anim = animation[tile];
+				var f = Math.floor((anim.speed * game.time.getTime() / 1000) % anim.frames.length);
+				tile = anim.frames[f];
+			}
+		}
+	
 		var tileUV = this.uv(tile-1);
 		
 		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);

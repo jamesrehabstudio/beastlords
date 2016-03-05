@@ -1,7 +1,7 @@
 function Input() {
 	this.INPUT_KEYS = ["block","click","down","fire","left","jump","pause","right","select","space","up","spell"];
 	this.CHROME_MAP = { "-1":'click', 16:"block", 74:"fire", 75:"jump", 65:'left', 68:'right', 83:'down', 69:'spell', 87:'up', 32:'space', 13:'pause',81:'select' };
-	this.XBOX_MAP = {0:"jump",2:"fire",1:"spell",5:"block",6:"select",7:"pause"};
+	this.XBOX_MAP = {14:"left",15:"right",12:"up",13:"down",0:"jump",2:"fire",3:"spell",5:"block",8:"select",9:"pause"};
 	this.AXIS_THRESHOLD = 0.3;
 
 	this.states = {};
@@ -80,11 +80,12 @@ Input.prototype.update = function( ) {
 	var map = this.XBOX_MAP;
 	
 	if( cont != undefined ) {
+		/*
 		this.joystates["left"] = ( cont.axes[0] < -this.AXIS_THRESHOLD ) ? this.joystates["left"]+1 : 0;
 		this.joystates["right"] = ( cont.axes[0] > this.AXIS_THRESHOLD ) ? this.joystates["right"]+1 : 0;
 		this.joystates["up"] = ( cont.axes[1] < -this.AXIS_THRESHOLD ) ? this.joystates["up"]+1 : 0;
 		this.joystates["down"] = ( cont.axes[1] > this.AXIS_THRESHOLD ) ? this.joystates["down"]+1 : 0;
-			
+		*/
 		for(var i in map) if( i in cont.buttons ) {
 			var button = map[i];
 			if( cont.buttons[i].pressed ) {
