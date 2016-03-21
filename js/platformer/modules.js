@@ -51,28 +51,32 @@ var mod_rigidbody = {
 		});
 	},
 	'update' : function(){
-		var inair = !this.grounded;
-		this.force.y += this.gravity * this.delta;
-		//Max speed 
-		this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
-		this.force.y = Math.max( Math.min ( this.force.y, 50), -50 );
-		
-		if(Math.abs( this.force.x ) < 0.01 ) this.force.x = 0;
-		if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
-		
-		//Add just enough force to lock them to the ground
-		if(this.grounded ) this.force.y += 1.0;
-		
-		//The timer prevents landing errors
-		this._groundedTimer -= this.grounded ? 1 : 10;
-		this.grounded = this._groundedTimer > 0;
-		game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
-		
-		var friction_x = 1.0 - this.friction * this.delta;
-		this.force.x *= friction_x;
-		
-		if( inair && this.grounded ) {
-			this.trigger("land");
+		if(this.delta <= 0){
+			//Character paused, do nothing
+		} else {
+			var inair = !this.grounded;
+			this.force.y += this.gravity * this.delta;
+			//Max speed 
+			this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
+			this.force.y = Math.max( Math.min ( this.force.y, 50), -50 );
+			
+			if(Math.abs( this.force.x ) < 0.01 ) this.force.x = 0;
+			if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
+			
+			//Add just enough force to lock them to the ground
+			if(this.grounded ) this.force.y += 1.0;
+			
+			//The timer prevents landing errors
+			this._groundedTimer -= this.grounded ? 1 : 10;
+			this.grounded = this._groundedTimer > 0;
+			game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
+			
+			var friction_x = 1.0 - this.friction * this.delta;
+			this.force.x *= friction_x;
+			
+			if( inair && this.grounded ) {
+				this.trigger("land");
+			}
 		}
 	},
 }
@@ -217,7 +221,7 @@ var mod_combat = {
 		this.damageReduction = 0.0;
 		this.team = 0;
 		this.stun = 0;
-		this.stun_time = 10.0;
+		this.stun_time = Game.DELTASECOND;
 		this.death_time = 0;
 		this.dead = false;
 		this._hurt_strobe = 0;
@@ -404,13 +408,8 @@ var mod_combat = {
 				else
 					this.life -= damage;
 				
-				if(this.hasModule(mod_rigidbody)){
-					var dir = this.position.subtract( obj.position ).normalize();
-					var scale = ("knockbackScale" in obj) ? obj.knockbackScale : 1.0;
-					this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) ) * scale;
-				}
 				this.invincible = this.invincible_time;
-				this.stun = this.stun_time;
+				//this.stun = this.stun_time;
 				this.trigger("hurt",obj,damage);
 				this.isDead();
 				obj.trigger("hurt_other",this,damage);

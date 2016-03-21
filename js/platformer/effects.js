@@ -216,7 +216,7 @@ EffectNumber.prototype.render = function(g,c){
 		this.destroy();
 	}
 	
-	this.progress += this.delta;
+	this.progress += game.deltaUnscaled;
 }
 
 EffectCritical.prototype = new GameObject();

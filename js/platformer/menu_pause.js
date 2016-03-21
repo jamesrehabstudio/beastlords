@@ -315,7 +315,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,"Speed",leftx+120,60+84);
 			textArea(g,"MP Regen",leftx+120,60+112);
 			
-			textArea(g,""+_player.damage,leftx+120,72);
+			textArea(g,""+_player.equip_weapon.baseDamage(_player),leftx+120,72);
 			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
 			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
 			textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);

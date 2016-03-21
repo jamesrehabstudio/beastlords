@@ -43,6 +43,8 @@ function Axedog(x, y, d, o){
 	
 	this.on("hurt", function(){
 		audio.play("hurt");
+		this.states.cooldown = Game.DELTASECOND * 0.5;
+		this.states.attack = 0.0;
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);

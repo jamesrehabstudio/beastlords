@@ -31,3 +31,19 @@ Lamp.prototype.render = function(g,c){
 	}
 	Background.pushLight( this.position.subtract(c), this.size );
 }
+Lamp.prototype.idle = function(){
+	var current = this.awake;
+	var corners = this.corners();
+	var margin = this.size * 0.5 + 32;
+	
+	this.awake = (
+		corners.right + margin > game.camera.x &&
+		corners.left - margin < game.camera.x + game.resolution.x &&
+		corners.bottom + margin > game.camera.y &&
+		corners.top - margin < game.camera.y + game.resolution.y
+	);
+	
+	if( current != this.awake ){
+		this.trigger( (this.awake ? "wakeup" : "sleep") );
+	}
+}

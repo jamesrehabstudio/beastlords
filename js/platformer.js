@@ -3112,7 +3112,7 @@ EffectNumber.prototype.render = function(g,c){
 		this.destroy();
 	}
 	
-	this.progress += this.delta;
+	this.progress += game.deltaUnscaled;
 }
 
 EffectCritical.prototype = new GameObject();
@@ -3443,6 +3443,8 @@ function Axedog(x, y, d, o){
 	
 	this.on("hurt", function(){
 		audio.play("hurt");
+		this.states.cooldown = Game.DELTASECOND * 0.5;
+		this.states.attack = 0.0;
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
@@ -7126,6 +7128,142 @@ Slime.prototype.faceTarget = function(){
 	this.flip = dir.x < 0;
 }
 
+ /* platformer\enemy_slimegrenadier.js*/ 
+
+SlimeGrenadier.prototype = new GameObject();
+SlimeGrenadier.prototype.constructor = GameObject;
+function SlimeGrenadier(x,y,d,o){
+	this.constructor();
+	
+	var bottom = y + d[1] * 0.5;
+	
+	this.position.x = x;
+	this.position.y = bottom - 40;
+	this.startPosition = new Point(this.position.x,this.position.y);
+	this.width = 24;
+	this.height = 48;
+	
+	this.speed = 1.5;
+	this.sprite = sprites.slimegrenadier;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	o = o || {};
+	if("speed" in o){
+		this.speed = o["speed"] * 1;
+	}
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.stun_time = Game.DELTASECOND;
+	this.life = Spawn.life(6, this.difficulty);
+	this.damage = Spawn.damage(3, this.difficulty);
+	this.mass = 3.0;
+	
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt",function(obj,damage){
+		audio.play("hurt");
+	});
+	this.on("death", function(obj,pos,damage){
+		Item.drop(this);
+		_player.addXP(this.xp_award);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	this.times = {
+		"cooldown" : 0.0,
+		"cooldownTime" : Game.DELTASECOND * 3,
+		"attack" : new Timer(0),
+		"attackRelease" : Game.DELTASECOND * 0.2,
+		"attackWarm" : Game.DELTASECOND * 0.5
+	};
+}
+SlimeGrenadier.prototype.update = function(){
+	if(this.stun <= 0){
+		var dir = _player.position.subtract(this.position);
+		
+		if(this.times.attack.time > 0){
+			//Throw attack
+			var progress = 1.0 - (this.times.attack.time / this.times.attack.start);
+			this.frame = Math.floor(progress * 5);
+			this.frame_row = 1;
+			
+			if(this.times.attack.at(this.times.attackRelease)){
+				//Throw bomb
+				var nade = new Gernade(this.position.x, this.position.y);
+				nade.damage = this.damage;
+				nade.force.x = Math.min(Math.abs(dir.x)*0.04,30);
+				nade.force.y = -5;
+				nade.team = this.team;
+				if(this.flip){
+					nade.force.x *= -1.0;
+				}
+				game.addObject(nade);
+			}
+			this.times.attack.tick(this.delta);
+		} else {
+			//idle
+			
+			this.frame = (this.frame + this.delta * 0.2) % 4;
+			this.frame_row = 0;
+			this.flip = dir.x < 0;
+			
+			if(this.times.cooldown <= 0 ){
+				this.times.cooldown = this.times.cooldownTime;
+				this.times.attack.set(this.times.attackWarm);
+			}
+			this.times.cooldown -= this.delta;
+		}
+	} else {
+		//stun
+		this.frame = 0
+		this.frame_row = 0;
+	}
+}
+
+Gernade.prototype = new GameObject();
+Gernade.prototype.constructor = GameObject;
+function Gernade(x,y,d,o){
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = sprites.bullets;
+	
+	this.frame = 5;
+	this.frame_row = 0;
+	
+	this.addModule( mod_rigidbody );
+	
+	this.damage = 10;
+	this.friction = 0.03;
+	this.gravity = 0.5;
+	this.bounce = 0.9;
+	this.collisionReduction = -0.9;
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_combat) && this.team != obj.team){
+			obj.hurt(this,this.damage);
+			this.destroy();
+		}
+	});
+	
+	this.times = {
+		"fuse" : Game.DELTASECOND * 2
+	};
+}
+Gernade.prototype.update = function(x,y,d,o){
+	if(this.times.fuse <= 0){
+		this.destroy();
+	}
+	this.times.fuse -= this.delta;
+}
+
+
  /* platformer\enemy_slimerilla.js*/ 
 
 Slimerilla.prototype = new GameObject();
@@ -7271,12 +7409,17 @@ function SlugPlatform(x,y,d,o){
 	
 	this.position.x = x;
 	this.position.y = bottom - 40;
+	this.startPosition = new Point(this.position.x,this.position.y);
 	this.width = 48;
 	this.height = 16;
 	this.origin = new Point(0.5,0.0);
+	this.active = true;
+	this.loop = true;
+	this.leftStart = false;
 	
 	this.speed = 1.5;
 	this.sprite = sprites.slugplatform;
+	this.waitforplayer = 0;
 	
 	this.addModule( mod_block );
 
@@ -7284,27 +7427,58 @@ function SlugPlatform(x,y,d,o){
 	if("speed" in o){
 		this.speed = o["speed"] * 1;
 	}
+	if("waitforplayer" in o){
+		this.waitforplayer = o["waitforplayer"] * 1;
+	}
+	if("loop" in o){
+		this.loop = o["loop"] * 1;
+	}
+	
+	if(this.waitforplayer){
+		this.active = false;
+		this.on("blockLand",function(obj){
+			if(obj instanceof Player){
+				this.active = true;
+			}
+		});
+	}
 }
 SlugPlatform.prototype.update = function(){
-	this.frame = this.frame_row = 0;
 	
-	
-	var forwardTile = 0;
-	if(this.flip){
-		var checkPos = this.position.add(new Point(-32, 32));
-		forwardTile = game.getTile(checkPos);
-		this.position.x -= this.speed * this.delta;
-	} else {
-		var checkPos = this.position.add(new Point(32, 32));
-		forwardTile = game.getTile(checkPos);
-		this.position.x += this.speed * this.delta;
+	if(this.active){
+		this.frame = this.frame_row = 0;
+		
+		var forwardTile = 0;
+		if(this.flip){
+			var checkPos = this.position.add(new Point(-32, 32));
+			forwardTile = game.getTile(checkPos);
+			this.position.x -= this.speed * this.delta;
+		} else {
+			var checkPos = this.position.add(new Point(32, 32));
+			forwardTile = game.getTile(checkPos);
+			this.position.x += this.speed * this.delta;
+		}
+		
+		if(forwardTile > 0){
+			//Turn
+			this.flip = !this.flip;
+		}
+		
+		if(!this.loop){
+			if(!this.leftStart){
+				if(Math.abs(this.position.x-this.startPosition.x) > 16){
+					this.leftStart = true;
+				}
+			} else {
+				if(Math.abs(this.position.x-this.startPosition.x) < 8){
+					this.position.x = this.startPosition.x;
+					this.active = false;
+					this.flip = false;
+					this.leftStart = false;
+				}
+			}
+		}
 	}
-	
-	if(forwardTile > 0){
-		//Turn
-		this.flip = !this.flip;
-	}
-	
 	game.collideObject(this);
 }
 
@@ -7695,6 +7869,244 @@ Yeti.prototype.update = function(){
 		this.frame_row = 0;
 	}
 }
+
+ /* platformer\equipment.js*/ 
+
+function Weapon(){
+	this.combo = 0;
+	this.time = 0.0;
+	this.timeRest = 0.0;
+	this.timeMiss = 0.0;
+	this.queue = 0;
+	this.stats = WeaponStats["short_sword"];
+	this.combohit = 0;
+	this.playerState = "standing";
+	this.currentAttack = null;
+}
+Weapon.prototype.update = function(player){
+	if(this.time > 0){
+		var newState = Weapon.playerState(player);
+		
+		if(this.playerState != newState){
+			//cancel attack
+			this.playerState = newState;
+			this.queue = -9999;
+		} else {	
+			this.time -= player.delta;
+			//player.force.x *= 
+			if(this.time <= 0){
+				//End attack, reset
+				if(this.queue > this.combo){
+					//Chain into next attack
+					this.attack(player);
+				}else{
+					this.combo = 0;
+					this.queue = 0;
+					this.time = 0;
+				}
+				
+			}
+		}
+	}
+}
+
+Weapon.prototype.attack = function(player){
+	this.playerState = Weapon.playerState(player);
+	this.currentAttack = this.stats[this.playerState];
+	var phase = this.currentAttack[this.combo];
+	
+	if(this.time > 0){
+		//Attempt to queue the next attack
+		if(this.combo+1 in this.currentAttack && (this.combohit || this.currentAttack["alwaysqueue"])){
+			this.queue = this.combo + 1;
+		}
+	} else {
+		//Start a next attack
+		this.combo = this.queue;
+		if(this.combo in this.currentAttack){
+			var newPhase = this.currentAttack[this.combo];
+			this.timeRest = newPhase["rest"];
+			this.timeMiss = newPhase["miss"];
+			this.time = newPhase["time"] + newPhase["miss"];
+			this.combohit = 0;
+			
+			audio.play("swing");
+			
+			var holdingForward = (input.state("left") > 0 && player.flip) || (input.state("right") > 0 && !player.flip);
+			var holdingBackward = (input.state("left") > 0 && !player.flip) || (input.state("right") > 0 && player.flip);
+			
+			if("force" in newPhase && holdingForward){
+				player.force.y = newPhase["force"].y;
+				if(player.flip){
+					player.force.x = -newPhase["force"].x;
+				} else {
+					player.force.x = newPhase["force"].x;
+				}
+			}
+		} else {
+			this.cancel();
+		}
+	}
+}
+Weapon.prototype.cancel = function(){
+	this.time = 0;
+	this.combo = 0;
+	this.queue = 0;
+	this.combohit = 0;
+}
+
+Weapon.prototype.hit = function(player,obj,damage){
+	var phase = this.currentAttack[this.combo];
+	
+	this.combohit = 1;
+	this.time -= this.timeMiss;
+	this.time += this.timeRest;
+	
+	if("pause" in phase){
+		game.slow(0.0, phase["pause"]);
+	}
+	if("shake" in phase){
+		window.shakeCamera(Game.DELTASECOND*0.25, phase["shake"]);
+	}
+	
+	if("stun" in phase){
+		obj.stun = phase["stun"];
+	}
+	
+	if("knockback" in phase && obj.hasModule(mod_rigidbody)){
+		var dir = obj.position.subtract( player.position ).normalize();
+		var scale = 1.0 / Math.max(obj.mass, 1.0);
+		obj.force.x += dir.x * phase["knockback"] * scale;
+	}
+}
+
+Weapon.prototype.strike = function(player){
+	//var rest = this.combohit ? this.timeRest : this.timeMiss;
+	if(!this.combohit && this.time > this.timeMiss){
+		var phase = this.currentAttack[this.combo];
+		var damage = this.damage(player);
+		var rect = phase["strike"];
+		player.strike(rect,"struck",damage);
+	}
+}
+Weapon.prototype.animate = function(player){
+	if(this.time > 0 && this.currentAttack){
+		var phase = this.currentAttack[this.combo];
+		var animation = phase["animation"];
+		var animTime = this.time - (this.combohit ? this.timeRest : this.timeMiss);
+		var progress = Math.max(1 - (animTime / phase["time"]), 0);
+		
+		base_f = 0;
+		base_fr = 4;
+		base_len = 4;
+		
+		switch(animation){
+			case 0: base_f=0; base_fr=4; base_len=4; break; //open
+			case 1: base_f=0; base_fr=5; base_len=4; break; //continue
+			case 2: base_f=4; base_fr=4; base_len=4; break; //long
+			case 3: base_f=4; base_fr=5; base_len=4; break; //jumping
+			case 4: base_f=4; base_fr=2; base_len=3; break; //ducking
+		}
+		
+		if(animTime > 0){
+			player.frame = base_f + Math.floor(progress * base_len);
+			player.frame_row = base_fr;
+		} else {
+			player.frame = base_f + base_len - 1;
+			player.frame_row = base_fr;
+		}
+	}
+}
+Weapon.prototype.baseDamage = function(player){
+	return Math.round(5 + player.stats.attack * this.stats["damage"]);
+}
+
+Weapon.prototype.damage = function(player){
+	//var state = Weapon.playerState(player);
+	//var attack = this.stats[state];
+	var phase = this.currentAttack[this.combo];
+	
+	return Math.round(this.baseDamage(player) * phase["damage"]);
+}
+
+Weapon.playerState = function(player){
+	var state = "standing";
+	if(!player.grounded){ 
+		state = "jumping";
+	} else if(player.states.duck){
+		state = "ducking";
+	}
+	return state;
+}
+
+
+WeaponStats = {
+	"short_sword" : {
+		"damage" : 3.0,
+		"standing" : {		
+			"alwaysqueue" : 0,
+			0 : {
+				"strike" : new Line(new Point(0,-8), new Point(22,-4)),
+				"damage":1.0,
+				"time" : 0.333*Game.DELTASECOND,
+				"rest":0.1*Game.DELTASECOND,
+				"miss":0.3*Game.DELTASECOND,
+				"animation" : 0,
+				"force" : new Point(3.0, 0.0),
+				"pause" : 0.1*Game.DELTASECOND,
+				"stun" : Game.DELTASECOND
+			},
+			1 : {
+				"strike" : new Line(new Point(0,-8), new Point(22,-4)),
+				"damage":1.2,
+				"time" : 0.333*Game.DELTASECOND,
+				"rest":0.1*Game.DELTASECOND,
+				"miss":0.3*Game.DELTASECOND,
+				"animation" : 1,
+				"force" : new Point(3.0, 0.0),
+				"pause" : 0.333*Game.DELTASECOND,
+				"stun" : Game.DELTASECOND
+			},
+			2 : {
+				"strike" : new Line(new Point(0,-8), new Point(22,-4)),
+				"damage":1.5,
+				"time" : 0.333*Game.DELTASECOND,
+				"rest":0.25*Game.DELTASECOND,
+				"miss":0.333*Game.DELTASECOND,
+				"animation" : 2,
+				"force" : new Point(3.0, 0.0),
+				"pause" : 0.333*Game.DELTASECOND,
+				"knockback" : 5,
+				"stun" : 0.25 * Game.DELTASECOND
+			}
+		},
+		"ducking" : {
+			"alwaysqueue" : 0,
+			0 : {
+				"strike" : new Line(new Point(0,8), new Point(22,12)),
+				"damage":0.8,
+				"time" : 0.333*Game.DELTASECOND,
+				"rest":0.2*Game.DELTASECOND,
+				"miss":0.2*Game.DELTASECOND,
+				"animation" : 4,
+				"force" : new Point(0.0, 0.0),
+				"stun" : 0.5 * Game.DELTASECOND
+			}
+		},
+		"jumping" : {
+			"alwaysqueue" : 0,
+			0 : {
+				"strike" : new Line(new Point(0,-8), new Point(22,12)),
+				"damage":0.8,
+				"time" : 0.333*Game.DELTASECOND,
+				"rest":0.2*Game.DELTASECOND,
+				"miss":0.3*Game.DELTASECOND,
+				"animation" : 3,
+				"stun" : 0.5 * Game.DELTASECOND
+			}
+		}
+	}
+};
 
  /* platformer\exit.js*/ 
 
@@ -8960,6 +9372,22 @@ Lamp.prototype.render = function(g,c){
 	}
 	Background.pushLight( this.position.subtract(c), this.size );
 }
+Lamp.prototype.idle = function(){
+	var current = this.awake;
+	var corners = this.corners();
+	var margin = this.size * 0.5 + 32;
+	
+	this.awake = (
+		corners.right + margin > game.camera.x &&
+		corners.left - margin < game.camera.x + game.resolution.x &&
+		corners.bottom + margin > game.camera.y &&
+		corners.top - margin < game.camera.y + game.resolution.y
+	);
+	
+	if( current != this.awake ){
+		this.trigger( (this.awake ? "wakeup" : "sleep") );
+	}
+}
 
  /* platformer\lift.js*/ 
 
@@ -9960,7 +10388,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,"Speed",leftx+120,60+84);
 			textArea(g,"MP Regen",leftx+120,60+112);
 			
-			textArea(g,""+_player.damage,leftx+120,72);
+			textArea(g,""+_player.equip_weapon.baseDamage(_player),leftx+120,72);
 			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
 			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
 			textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
@@ -10433,28 +10861,32 @@ var mod_rigidbody = {
 		});
 	},
 	'update' : function(){
-		var inair = !this.grounded;
-		this.force.y += this.gravity * this.delta;
-		//Max speed 
-		this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
-		this.force.y = Math.max( Math.min ( this.force.y, 50), -50 );
-		
-		if(Math.abs( this.force.x ) < 0.01 ) this.force.x = 0;
-		if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
-		
-		//Add just enough force to lock them to the ground
-		if(this.grounded ) this.force.y += 1.0;
-		
-		//The timer prevents landing errors
-		this._groundedTimer -= this.grounded ? 1 : 10;
-		this.grounded = this._groundedTimer > 0;
-		game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
-		
-		var friction_x = 1.0 - this.friction * this.delta;
-		this.force.x *= friction_x;
-		
-		if( inair && this.grounded ) {
-			this.trigger("land");
+		if(this.delta <= 0){
+			//Character paused, do nothing
+		} else {
+			var inair = !this.grounded;
+			this.force.y += this.gravity * this.delta;
+			//Max speed 
+			this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
+			this.force.y = Math.max( Math.min ( this.force.y, 50), -50 );
+			
+			if(Math.abs( this.force.x ) < 0.01 ) this.force.x = 0;
+			if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
+			
+			//Add just enough force to lock them to the ground
+			if(this.grounded ) this.force.y += 1.0;
+			
+			//The timer prevents landing errors
+			this._groundedTimer -= this.grounded ? 1 : 10;
+			this.grounded = this._groundedTimer > 0;
+			game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
+			
+			var friction_x = 1.0 - this.friction * this.delta;
+			this.force.x *= friction_x;
+			
+			if( inair && this.grounded ) {
+				this.trigger("land");
+			}
 		}
 	},
 }
@@ -10599,7 +11031,7 @@ var mod_combat = {
 		this.damageReduction = 0.0;
 		this.team = 0;
 		this.stun = 0;
-		this.stun_time = 10.0;
+		this.stun_time = Game.DELTASECOND;
 		this.death_time = 0;
 		this.dead = false;
 		this._hurt_strobe = 0;
@@ -10786,13 +11218,8 @@ var mod_combat = {
 				else
 					this.life -= damage;
 				
-				if(this.hasModule(mod_rigidbody)){
-					var dir = this.position.subtract( obj.position ).normalize();
-					var scale = ("knockbackScale" in obj) ? obj.knockbackScale : 1.0;
-					this.force.x += dir.x * ( 3/Math.max(this.mass,0.3) ) * scale;
-				}
 				this.invincible = this.invincible_time;
-				this.stun = this.stun_time;
+				//this.stun = this.stun_time;
 				this.trigger("hurt",obj,damage);
 				this.isDead();
 				obj.trigger("hurt_other",this,damage);
@@ -11472,6 +11899,8 @@ function Player(x, y){
 	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 	this.unique_item = false;
 	
+	this.equip_weapon = new Weapon();
+	
 	window._player = this;
 	this.sprite = sprites.player;
 	
@@ -11623,9 +12052,19 @@ function Player(x, y){
 	});
 	this.on("hurt", function(obj, damage){
 		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
+		var dir = this.position.subtract(obj.position);
 		window.shakeCamera(Game.DELTASECOND*0.5,str);
+		this.equip_weapon.cancel(this);
+		
+		var knockback = this.grounded ? 7 : 3;
+		if(dir.x < 0){
+			this.force.x = -knockback;
+		}else{
+			this.force.x = knockback;
+		}
 		if(this.stun_time > 0 ){
 			this.states.attack = 0;
+			this.stun = this.stun_time;
 			game.slow(0,5.0);
 		}
 		Background.flash = [0.6,0,0,1];
@@ -11641,6 +12080,7 @@ function Player(x, y){
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
+		this.equip_weapon.hit(this,obj,damage);
 		
 		if( "life" in obj && obj.life <= 0 ) {
 			//Glow after a kill
@@ -11715,6 +12155,7 @@ function Player(x, y){
 	this.damage = 5;
 	this.team = 1;
 	this.mass = 1;
+	this.stun_time = Game.DELTASECOND * 0.33333333;
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = Game.DELTASECOND;
 	this.autoblock = true;
@@ -11931,7 +12372,19 @@ Player.prototype.update = function(){
 					{"frame":1, "speed":0.4,"time":Game.DELTASECOND*0.4}
 				));
 			}
-		}else if( !this.knockedout && this.states.attack <= 0 && this.stun <= 0 && this.delta > 0) {
+		} else if( this.equip_weapon.time > 0 ){
+			//Player in attack animation
+			this.equip_weapon.update(this);
+			
+			if ( input.state('fire') == 1 ) { 
+				//Let the player queue more attacks
+				this.equip_weapon.attack(this); 
+			}
+			
+			this.equip_weapon.strike(this);
+			
+			//Determine range and damage
+		} else if( !this.knockedout && this.stun <= 0 && this.delta > 0) {
 			//Player is in move/idle state
 			
 			this.states.guard = ( input.state('block') > 0 || this.autoblock );
@@ -11960,13 +12413,16 @@ Player.prototype.update = function(){
 				this.states.guard = false;
 				
 			} else if ( input.state('fire') == 1 ) { 
-				this.attack(); 
+				this.equip_weapon.attack(this); 
 			} else if ( input.state('fire') > 0 ) { 
+			/*
 				this.states.attack_charge += this.delta; 
 				if( this.states.attack_charge >= this.attackProperties.charge_start){
 					strafe = true;
 				}
+			*/
 			} else { 
+			/*
 				this.states.charge_multiplier = false;
 				
 				//Release charge if it has built up
@@ -11979,6 +12435,7 @@ Player.prototype.update = function(){
 					}
 				}
 				this.states.attack_charge = 0; 
+			*/
 			}
 			
 			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { 
@@ -12050,46 +12507,7 @@ Player.prototype.update = function(){
 		if ( this.states.downStab ) {
 			this.strike(new Line( -4, 8, 4, 8+Math.max( 12, this.attackProperties.range)));
 		}
-		
-		if ( this.states.attack > this.attackProperties.rest && this.states.attack <= this.attackProperties.strike ){
-			//Play sound effect for attack
-			if( !this.states.startSwing ) {
-				audio.play("swing");
-				if( !this.grounded ) {
-					this.force.y *= Math.max(1.0 - this.speeds.airGlide, 0);
-				}
-				if( this.spellsCounters.magic_sword > 0 || this.hasCharm("charm_sword") ){
-					var offset_y = this.states.duck ? 6 : -8;
-					var bullet = new Bullet(this.position.x, this.position.y + offset_y, this.flip ? -1 : 1);
-					bullet.team = this.team;
-					bullet.speed = this.speed * 2;
-					bullet.knockbackScale = 0.0;
-					bullet.frame = 1;
-					bullet.damage = Math.max( Math.floor( this.damage * 0.25 ), 1 );
-					game.addObject(bullet);
-				}
-			}
-			this.states.startSwing = true;
-			
-			//Create box to detect enemies
-			var temp_damage = this.damage;
-			var type = this.equip_sword.phantom ? "hurt" : "struck";
-			var weapon_top = (this.states.duck ? 4 : -6) - this.weapon.width*.5;
-			if( this.spellsCounters.magic_strength > 0 ) {
-				temp_damage = Math.floor(temp_damage*1.25);
-			}
-			if( this.states.charge_multiplier ) {
-				temp_damage *= 2.0;
-			}
-			this.strike(new Line(
-				new Point( 12, weapon_top ),
-				new Point( 12+this.attackProperties.range , weapon_top+this.weapon.width )
-			), type, temp_damage );
-		} else {
-			this.states.startSwing = false;
-		}
 	}
-	
 	//Shield
 	this.states.guard_down = this.states.duck;
 	this.guard.active = this.states.guard;
@@ -12100,56 +12518,67 @@ Player.prototype.update = function(){
 		this.frame_row = 4;
 		this.frame = (this.frame + this.delta * 0.2 ) % 3;
 	} else if ( this.stun > 0 || this.life < 0 ) {
+		//Stunned
 		this.stand();
-		this.frame = 3;
+		this.frame = 4;
 		this.frame_row = 0;
 	} else if( this.states.roll > 0 ) {
 		this.frame_row = 3;
 		this.frame = 5 * (1 - this.states.roll / this.rollTime);
 	} else if( this.states.downStab ){
-		this.frame = 4;
+		this.frame = 5;
 		this.frame_row = 0; 
 	} else {
-		if( !this.grounded ) {
-			this.frame_row = 2;
-			this.frame = this.force.y < 1.0 ? 3 : 4;
+		if(this.equip_weapon.time > 0){
+			//Attack
+			this.equip_weapon.animate(this);
+		} else if( !this.grounded ) {
+			//In air
+			this.frame_row = 3;
+			if(this.force.y < 0.5){
+				this.frame = 0;
+			} else if(this.force.y > 2.0){
+				this.frame = 2;
+			} else {
+				this.frame = 1;
+			}
 		} else if( this.states.duck ) {
-			this.frame = 3;
-			this.frame_row = 1;
+			//Duck
+			this.frame = Math.min(this.frame + this.delta * 0.4,2);
+			this.frame_row = 2;
 			
-			if( this.states.attack > 0 ) this.frame = 2;
-			if( this.states.attack > this.attackProperties.rest ) this.frame = 1;
-			if( this.states.attack > this.attackProperties.strike ) this.frame = 0;		
+			if( this.states.attack > 0 ) this.frame = 4;
+			if( this.states.attack > this.attackProperties.rest ) this.frame = 6;
+			if( this.states.attack > this.attackProperties.strike ) this.frame = 5;		
 		} else {
-			this.frame_row = 0;
 			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame_row = 2;
 			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				//Run animation
-				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 3;
+				this.frame_row = 1;
+				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 5;
 			} else {
-				this.frame = 0;
+				//Idle
+				this.frame_row = 0;
+				this.frame = (this.frame + this.delta * 0.1) % 4;
 			}
 		}
 		
-		if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame = 0;
-		if( this.states.attack > 0 ) this.frame = 2;
-		if( this.states.attack > this.attackProperties.rest ) this.frame = 1;
-		if( this.states.attack > this.attackProperties.strike ) this.frame = 0;		
+		//if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame = 0;
 	}
 	
 	//Animation Sword
-	if(this.states.attack > 0){
+	if(this.equip_weapon.time > 0){
 		this.weapon.frame = this.frame;
-		this.weapon.frame_row = 1 + this.weapon.combo;
+		this.weapon.frame_row = this.frame_row;
 	} else if (this.states.downStab) {
-		this.weapon.frame = 3;
+		this.weapon.frame = 5;
 		this.weapon.frame_row = 0;
 	} else if( this.states.attack_charge > 0 ){ 
 		this.weapon.frame = 0;
 		this.weapon.frame_row = 2;
 	} else { 
-		this.weapon.frame = this.frame % 3;
-		this.weapon.frame_row = 0;
+		this.weapon.frame = this.frame;
+		this.weapon.frame_row = this.frame_row;
 	}
 	
 	//Animation Cape
@@ -12216,6 +12645,7 @@ Player.prototype.duck = function(){
 		this.position.y += 3.0;
 		this.states.duck = true;
 		if( this.grounded )	this.force.x = 0;
+		this.frame = 0;
 	}
 }
 Player.prototype.jump = function(){ 
