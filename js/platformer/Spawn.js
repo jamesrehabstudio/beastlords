@@ -11,9 +11,11 @@ function Spawn(x,y,d,ops){
 	this.specific = null;
 	this.autodestroy = 0;
 	this.enemies = new Array();
+	this.active = false;
 	
 	this.on("activate",function(obj){
 		this.spawn();
+		this.active = true;
 	});
 	
 	ops = ops || {};
@@ -33,10 +35,11 @@ function Spawn(x,y,d,ops){
 	}
 	if("autospawn" in ops){
 		autospawn = ops.autospawn * 1;
+		this.active = autospawn;
 	}
 	if("respawn" in ops){
 		this.on("wakeup",function(){
-			if(!this.isAlive()){
+			if(this.active && !this.isAlive()){
 				this.spawn();
 			}
 		});
@@ -120,6 +123,42 @@ Spawn.prototype.create = function(enemies){
 	}
 }
 
+Spawn.addToList = function(pos,list, type, max, ops){
+	var slot = -1;
+	max = max == undefined ? 5 : max;
+	
+	for(var i=0; i < max; i++){
+		if(i >= list.length ){
+			slot = i;
+			break;
+		} else if(list[i] instanceof type){
+			if(game.objects.indexOf(list[i]) < 0 || list[i].life <= 0){
+				slot = i;
+				break;
+			}
+		}
+	}
+	
+	if(slot >= 0){
+		var obj = new type(pos.x, pos.y, false, ops);
+		//obj.on("sleep", function(){ this.destroy();});
+		obj.xp_award = 0;
+		game.addObject(obj);
+		list[slot] = obj;
+	}
+}
+Spawn.countList = function(list){
+	var count = 0;
+	for(var i=0; i < list.length; i++){
+		if(list[i] instanceof GameObject){
+			if(game.objects.indexOf(list[i]) >= 0 && list[i].life > 0){
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
 Spawn.enemies = {
 	"boss" : [
 		{"tags":[],"difficulty":[0,0],"enemies":["Chort"]},
@@ -186,15 +225,15 @@ Spawn.damage = function(level,difficulty){
 	}
 	
 	switch(level){
-		case 1: damage = 10; break;//1 weak, bashing into normal enemy
-		case 2: damage = 15; break;//2 strike from minor enemy
-		case 3: damage = 20; break;//3 strike from major enemy
-		case 4: damage = 25; break;//4 strike from miniboss
-		case 5: damage = 30; break;//5 strike from boss
-		case 6: damage = 40; break;//6 strike from SUPER boss
+		case 1: damage = 2.5; break;//1 weak, bashing into normal enemy
+		case 2: damage = 4.0; break;//2 strike from minor enemy
+		case 3: damage = 5.0; break;//3 strike from major enemy
+		case 4: damage = 6.0; break;//4 strike from miniboss
+		case 5: damage = 7.5; break;//5 strike from boss
+		case 6: damage = 10.0; break;//6 strike from SUPER boss
 	}
 	
-	var multi = 1 + difficulty * 0.22;
+	var multi = 1 + difficulty * 0.25;
 	damage = Math.floor( damage * multi );
 	return damage;
 }

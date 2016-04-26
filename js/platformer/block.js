@@ -30,6 +30,9 @@ function SinkingBlock(x,y,d,ops){
 		this.resetOnSleep = ops["resetonsleep"] * 1;
 	}
 	
+	this.on("activate", function(obj){
+		this.destroy();
+	});
 	this.on("blockLand", function(obj){
 		if(obj instanceof Player){
 			this.sink = true;

@@ -4,8 +4,8 @@ function Knight(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 32;
+	this.width = 20;
+	this.height = 40;
 	this.sprite = sprites.knight;
 	this.speed = 0.4;
 	this.active = false;
@@ -17,17 +17,22 @@ function Knight(x,y,d,o){
 	this.states = {
 		"attack" : 0,
 		"cooldown" : Game.DELTASECOND * 3.0,
-		"combo_cooldown" : 0.0,
+		"combo" : 0,
 		"attack_down" : false,
 		"guard" : 2, //0 none, 1 bottom, 2 top
-		"guardUpdate" : 0.0,
-		"backup" : 0
+		"guard_freeze" : 0.0,
+		"retreat" : 0
 	}
 	
 	this.attack_warm = 24.0;
-	this.attack_time = 10.5;
+	this.attack_release = 10.5;
 	this.attack_rest = 7.0;
-	this.thrust_power = 6;
+	this.thrust_power = 8;
+	
+	this.guard.x = 8;
+	this.guard.y = 8;
+	this.guard.w = 16;
+	this.guard.h = 16;
 	
 	o = o || {};
 	
@@ -36,9 +41,8 @@ function Knight(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(7,this.difficulty);
+	this.life = Spawn.life(12,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
-	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.mass = 3.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
@@ -46,42 +50,6 @@ function Knight(x,y,d,o){
 	this.xp_award = 18;
 	this.money_award = 8;
 	
-	this.level = 1 + Math.floor( dataManager.currentTemple / 3 );
-	this.fr_offset = 0;
-	this.cooldown_time = Game.DELTASECOND * 2.4;
-	
-	if( this.difficulty >= 2 ){
-		this.life = Spawn.life(8,this.difficulty);
-		this.damage = Spawn.damage(4,this.difficulty);
-		this.fr_offset = 3;
-		this.cooldown_time = Game.DELTASECOND * 2.0;
-		this.attack_warm = 22.0;
-		this.attack_time = 6.5;
-		this.attack_rest = 3.0;
-		this.speed = 0.42;
-		this.thrust_power = 8;
-		this.death_time = Game.DELTASECOND * 2;
-		this.xp_award = 39;
-		this.money_award = 12;
-	} else if ( this.difficulty >= 4 ) {
-		this.life = Spawn.life(10,this.difficulty);
-		this.damage = Spawn.damage(5,this.difficulty);
-		this.fr_offset = 6;
-		this.cooldown_time = Game.DELTASECOND * 1.8;
-		this.attack_warm = 20.0;
-		this.attack_time = 6.5;
-		this.attack_rest = 3.0;
-		this.speed = 0.45;
-		this.thrust_power = 10;
-		this.death_time = Game.DELTASECOND * 3;
-		this.xp_award = 57;
-		this.money_award = 24;
-	}
-	
-	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
-	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		
@@ -91,13 +59,16 @@ function Knight(x,y,d,o){
 		//this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
 	});
+	this.on("blockOther", function(obj, position, damage){
+		audio.playLock("clang",0.5);
+		this.states.guard_freeze = Game.DELTASECOND;
+		this.states.combo = 0;
+	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
-		if( Math.random() > 0.2 ) {
-			this.states.guardUpdate = Game.DELTASECOND * 2.0;
-			this.states.guard = _player.states.duck ? 1 : 2;
-		}
+		this.states.retreat = Game.DELTASECOND * 0.5;
+		this.states.guard_freeze = 0.0;
 	});
 	this.on("death", function(){
 		Item.drop(this,this.money_award);
@@ -106,95 +77,108 @@ function Knight(x,y,d,o){
 		this.destroy();
 	});
 	
-	SpecialEnemy(this);
 	this.calculateXP();
 }
 Knight.prototype.update = function(){	
-	//this.sprite = sprites.knight;
-	if ( this.stun <= 0 && this.life > 0 ) {
-		var dir = this.position.subtract( _player.position );
-		this.active = this.active || Math.abs( dir.x ) < 120;
+	if(this.life > 0){
+		var dir = this.position.subtract(_player.position);
+		var home_x = this.position.x - this.start_x;
 		
-		if( this.active /*&& this.states.attack <= 0*/ ) {
-			var direction = 1;
-			if( Math.abs(_player.position.x - this.start_x ) < 128 ){
-				//Player in the attack area, advance at player
-				direction = dir.x > 0 ? -1.0 : 1.0;
-				direction *= (Math.abs(dir.x) > 20 ? 1.0 : -1.0);
-			} else {
-				direction = this.position.x - this.start_x > 0 ? -1.0 : 1.0;
-			} 
-			
-			//if( this.position.x - this.start_x > 64 ) this.states.backup = -1;
-			//if( this.position.x - this.start_x < -64 ) this.states.backup = 1;
-			
-			this.force.x += direction * this.delta * this.speed;
-			this.flip = dir.x > 0;
-			this.states.cooldown -= this.delta;
-		}
-	
-		if( this.states.cooldown < 0 && Math.abs(dir.x) < 40 ){
-			if( Math.random() > 0.6 ) {
-				//Pick a random area to attack
-				this.states.attack_down = Math.random() > 0.5;
-			} else {
-				//Aim for the player's weak side
-				this.states.attack_down = !_player.states.duck;
+		if(this.states.attack > 0 || this.states.combo > 0){
+			if(this.states.attack <= 0){
+				
+				if(this.states.combo > 0){
+					this.states.attack = this.attack_warm;
+					this.force.x = this.thrust_power * (this.flip?-1:1);
+					this.states.attack_down = Math.random() > 0.5;
+					this.states.combo--;
+				}
 			}
 			
-			this.states.attack = this.attack_warm;
-			this.states.cooldown = this.cooldown_time;
-		}
-		
-		if( this.states.guardUpdate < 0 && this.states.attack < 0 ){
-			this.states.guard = _player.states.duck ? 1 : 2;
-			this.states.guardUpdate = Game.DELTASECOND * 0.3;
-		}
-		if( this.states.attack <= 0 ) this.states.attack_counter = 0;
-			
-		if ( this.states.attack <= this.attack_time && this.states.attack > this.attack_rest ){
-			if( this.states.attack_counter == 0 ){
-				audio.play("swing");
-				this.states.attack_counter = 1;
-				this.force.x += (dir.x > 0 ? -1 : 1) * this.thrust_power;
+			if(this.states.attack <= this.attack_release && this.states.attack > this.attack_rest){
+				if(this.states.attack_down){
+					this.strike(new Line(0,16,32,20));
+				} else {
+					this.strike(new Line(0,0,32,4));
+				}
+				this.frame = 2;
+			} else if(this.states.attack > this.attack_release){
+				var p = (this.states.attack - this.attack_release) / (this.attack_warm - this.attack_release)
+				this.frame = p > 0.5 ? 0 : 1;
+			} else {
+				this.frame = 3;
 			}
-			this.strike(new Line(
-				new Point( 10, (this.states.attack_down ? 8 : -8) ),
-				new Point( 29, (this.states.attack_down ? 8 : -8)+4 )
-			) );
-		}
-	}
-	/* guard */
-	this.guard.active = this.states.guard > 0;
-	this.guard.y = this.states.guard == 1 ? 6 : -5;
-	this.guard.x = 12;
-	
-	/* counters */
-	this.states.attack -= this.delta;
-	this.states.guardUpdate -= this.delta;
-	
-	/* Animation */
-	if( this.states.attack > 0 ) {
-		this.frame = 0;
-		if ( this.states.attack <= this.attack_time && this.states.attack > this.attack_rest ) this.frame = 1;
-		this.frame_row = this.fr_offset + (this.states.attack_down == 1 ? 2 : 1);
-	} else {
-		if( Math.abs( this.force.x ) > 0.1 ) {
-			this.frame = Math.max( (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 3, 0 );
-		} else {
+			
+			this.states.attack -= this.delta;
+			this.frame_row = 1;
+			this.guard.active = false;
+		} else if(this.stun > 0 || this.states.guard_freeze > 0){
+			//hurt, do nothing
+			this.guard.active = false;
 			this.frame = 0;
+			this.frame_row = 2;
+			this.states.guard_freeze -= this.delta;
+		} else {
+			this.flip = dir.x > 0;
+			if(this.states.cooldown <= 0 && Math.abs(dir.x) < 64){
+				this.states.combo = 3;
+				this.states.cooldown = Game.DELTASECOND * 2;
+			}
+			this.states.cooldown -= this.delta;
+			
+			this.guard.active = true;
+			if(this.states.guard == 1){
+				//bottom
+				this.guard.x = 8;
+				this.guard.y = 12;
+			} 
+			if(this.states.guard == 2){
+				this.guard.x = 8;
+				this.guard.y = -8;
+			}
+			
+			if(this.states.retreat > 0){
+				//run away from player
+				this.force.x += this.speed * this.delta * (this.flip?2:-2);
+				this.states.retreat -= this.delta;
+			} else if(Math.abs(home_x) > 128){
+				//Too far, go home
+				this.force.x += this.speed * this.delta * (home_x>0?-1:1);
+			} else if(Math.abs(_player.position.x - this.start_x) < 128){
+				//Player close, proach him
+				this.force.x += this.speed * this.delta * (this.flip?-1:1);
+			} else if(Math.abs(home_x) > 8){
+				//Player is coy, go home
+				this.force.x += this.speed * this.delta * (home_x>0?-1:1);
+			}
+			
+			this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 4;
+			this.frame_row = 0;
 		}
-		this.frame_row = this.fr_offset;
 	}
 }
 Knight.prototype.render = function(g,c){
-	//Shield
-	if( this.states.guard > 0 ) {
-		this.sprite.render( g, 
-			new Point(this.position.x - c.x, this.position.y - c.y), 
-			(this.states.guard > 1 ? 3 : 4 ), this.fr_offset, this.flip
-		);
+	//Shield no guard
+	if(!this.guard.active){
+		//render shield
+		this.sprite.render(g,this.position.subtract(c),3, 2, this.flip, this.filter);
 	}
-	//Body
+	//Render body
 	GameObject.prototype.render.apply(this, [g,c]);
+	
+	//Shield guard
+	if(this.guard.active){
+		//render shield
+		var shield_f = this.guard.y > 0 ? 1 : 2;
+		this.sprite.render(g,this.position.subtract(c),shield_f, 2, this.flip, this.filter);
+	}
+	
+	//Render sword
+	var sword_f = 4;
+	var sword_fr = 0;
+	if(this.states.attack > 0){
+		sword_f = this.frame;
+		sword_fr = this.states.attack_down ? 4 : 3;
+	}
+	this.sprite.render(g,this.position.subtract(c),sword_f, sword_fr, this.flip, this.filter);
 }

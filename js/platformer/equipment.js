@@ -8,10 +8,28 @@ function Weapon(){
 	this.combohit = 0;
 	this.playerState = "standing";
 	this.currentAttack = null;
+	this.chargeTime = new Timer();
+	this.charge = false;
 }
 Weapon.prototype.update = function(player){
 	if(this.time > 0){
 		var newState = Weapon.playerState(player);
+		
+		//Build up charge
+		if(input.state("fire") > 0){
+			this.chargeTime.tick(player.delta);
+			this.time = Math.max(this.time, player.delta+1);
+			
+			if(this.chargeTime.at(Game.DELTASECOND)){
+				this.charge = true;
+			}
+		} else{
+			if(this.chargeTime.time > Game.DELTASECOND){
+				this.time = this.combo = this.queue = 0;
+				this.attack(player);
+			}
+			this.chargeTime.set(0.0);
+		}
 		
 		if(this.playerState != newState){
 			//cancel attack
@@ -20,28 +38,24 @@ Weapon.prototype.update = function(player){
 		} else {	
 			this.time -= player.delta;
 			//player.force.x *= 
-			if(this.time <= 0){
-				//End attack, reset
-				if(this.queue > this.combo){
-					//Chain into next attack
-					this.attack(player);
-				}else{
-					this.combo = 0;
-					this.queue = 0;
-					this.time = 0;
-				}
-				
+			//if(this.time <= 0){
+			if(this.time+this.timeRest <= this.timeMiss && this.queue > this.combo){
+				//Chain into next attack
+				this.charge = false;
+				this.attack(player, true);
+			}else if(this.time <= 0){
+				this.cancel();
 			}
 		}
 	}
 }
 
-Weapon.prototype.attack = function(player){
+Weapon.prototype.attack = function(player, forceNextAttack){
 	this.playerState = Weapon.playerState(player);
 	this.currentAttack = this.stats[this.playerState];
 	var phase = this.currentAttack[this.combo];
 	
-	if(this.time > 0){
+	if(this.time > 0 && !forceNextAttack){
 		//Attempt to queue the next attack
 		if(this.combo+1 in this.currentAttack && (this.combohit || this.currentAttack["alwaysqueue"])){
 			this.queue = this.combo + 1;
@@ -79,14 +93,20 @@ Weapon.prototype.cancel = function(){
 	this.combo = 0;
 	this.queue = 0;
 	this.combohit = 0;
+	this.chargeTime.set(0.0);
+	this.charge = false;
 }
 
 Weapon.prototype.hit = function(player,obj,damage){
+	if(this.playerState == "downstab"){
+		this.cancel();
+		return;
+	}
 	var phase = this.currentAttack[this.combo];
 	
 	this.combohit = 1;
-	this.time -= this.timeMiss;
-	this.time += this.timeRest;
+	//this.time -= this.timeMiss;
+	//this.time += this.timeRest;
 	
 	if("pause" in phase){
 		game.slow(0.0, phase["pause"]);
@@ -106,6 +126,12 @@ Weapon.prototype.hit = function(player,obj,damage){
 	}
 }
 
+Weapon.prototype.downstab = function(player){
+	this.playerState = "downstab";
+	var damage = this.baseDamage(player) * 0.6;
+	var type = "struck";
+	player.strike(new Line( -4, 8, 4, 20), type, damage);
+}
 Weapon.prototype.strike = function(player){
 	//var rest = this.combohit ? this.timeRest : this.timeMiss;
 	if(!this.combohit && this.time > this.timeMiss){
@@ -116,31 +142,36 @@ Weapon.prototype.strike = function(player){
 	}
 }
 Weapon.prototype.animate = function(player){
-	if(this.time > 0 && this.currentAttack){
-		var phase = this.currentAttack[this.combo];
-		var animation = phase["animation"];
-		var animTime = this.time - (this.combohit ? this.timeRest : this.timeMiss);
-		var progress = Math.max(1 - (animTime / phase["time"]), 0);
-		
-		base_f = 0;
-		base_fr = 4;
-		base_len = 4;
-		
-		switch(animation){
-			case 0: base_f=0; base_fr=4; base_len=4; break; //open
-			case 1: base_f=0; base_fr=5; base_len=4; break; //continue
-			case 2: base_f=4; base_fr=4; base_len=4; break; //long
-			case 3: base_f=4; base_fr=5; base_len=4; break; //jumping
-			case 4: base_f=4; base_fr=2; base_len=3; break; //ducking
+	try{
+		if(this.time > 0 && this.currentAttack){
+			var phase = this.currentAttack[this.combo];
+			var animation = phase["animation"];
+			//var animTime = this.time - (this.combohit ? this.timeRest : this.timeMiss);
+			var animTime = this.time - this.timeMiss;
+			var progress = Math.max(1 - (animTime / phase["time"]), 0);
+			
+			base_f = 0;
+			base_fr = 4;
+			base_len = 4;
+			
+			switch(animation){
+				case 0: base_f=0; base_fr=4; base_len=4; break; //open
+				case 1: base_f=0; base_fr=5; base_len=4; break; //continue
+				case 2: base_f=4; base_fr=4; base_len=4; break; //long
+				case 3: base_f=4; base_fr=5; base_len=4; break; //jumping
+				case 4: base_f=4; base_fr=2; base_len=3; break; //ducking
+			}
+			
+			if(animTime > 0){
+				player.frame = base_f + Math.floor(progress * base_len);
+				player.frame_row = base_fr;
+			} else {
+				player.frame = base_f + base_len - 1;
+				player.frame_row = base_fr;
+			}
 		}
+	} catch (e){
 		
-		if(animTime > 0){
-			player.frame = base_f + Math.floor(progress * base_len);
-			player.frame_row = base_fr;
-		} else {
-			player.frame = base_f + base_len - 1;
-			player.frame_row = base_fr;
-		}
 	}
 }
 Weapon.prototype.baseDamage = function(player){
@@ -151,8 +182,11 @@ Weapon.prototype.damage = function(player){
 	//var state = Weapon.playerState(player);
 	//var attack = this.stats[state];
 	var phase = this.currentAttack[this.combo];
+	var multi = 1.0;
 	
-	return Math.round(this.baseDamage(player) * phase["damage"]);
+	if(this.charge) multi *= 2;
+	
+	return Math.round(multi * this.baseDamage(player) * phase["damage"]);
 }
 
 Weapon.playerState = function(player){
@@ -180,7 +214,7 @@ WeaponStats = {
 				"animation" : 0,
 				"force" : new Point(3.0, 0.0),
 				"pause" : 0.1*Game.DELTASECOND,
-				"stun" : Game.DELTASECOND
+				"stun" : 0.5*Game.DELTASECOND
 			},
 			1 : {
 				"strike" : new Line(new Point(0,-8), new Point(22,-4)),
@@ -191,7 +225,7 @@ WeaponStats = {
 				"animation" : 1,
 				"force" : new Point(3.0, 0.0),
 				"pause" : 0.333*Game.DELTASECOND,
-				"stun" : Game.DELTASECOND
+				"stun" : 0.5*Game.DELTASECOND
 			},
 			2 : {
 				"strike" : new Line(new Point(0,-8), new Point(22,-4)),

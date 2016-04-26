@@ -51,7 +51,7 @@ function SlimeGrenadier(x,y,d,o){
 	};
 }
 SlimeGrenadier.prototype.update = function(){
-	if(this.stun <= 0){
+	if(this.life > 0){
 		var dir = _player.position.subtract(this.position);
 		
 		if(this.times.attack.time > 0){
@@ -73,6 +73,10 @@ SlimeGrenadier.prototype.update = function(){
 				game.addObject(nade);
 			}
 			this.times.attack.tick(this.delta);
+		} else if(this.stun > 0) {
+			//stun
+			this.frame = 4;
+			this.frame_row = 0;
 		} else {
 			//idle
 			
@@ -86,11 +90,7 @@ SlimeGrenadier.prototype.update = function(){
 			}
 			this.times.cooldown -= this.delta;
 		}
-	} else {
-		//stun
-		this.frame = 0
-		this.frame_row = 0;
-	}
+	} 
 }
 
 Gernade.prototype = new GameObject();
@@ -118,6 +118,9 @@ function Gernade(x,y,d,o){
 			obj.hurt(this,this.damage);
 			this.destroy();
 		}
+	});
+	this.on("sleep",function(){
+		this.destroy();
 	});
 	
 	this.times = {

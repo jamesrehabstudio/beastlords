@@ -1594,14 +1594,18 @@ Tileset.ignore = function(axis,v,pos,hitbox,limits){
 
 
 function Timer(time, interval){
+	this.countdown = false;
 	this.time = this.start = this.previous = this.interval = 0;
-	this.set( time, interval );
+	if(time != undefined){
+		this.set( time, interval );
+	}
 }
 
 Timer.prototype.set = function(time, interval){
 	this.start = time;
 	this.time = time;
-	this.previous = time-1.0;
+	this.countdown = time > 0;
+	this.previous = time + (this.countdown?-1.0:1.0);
 	if( interval != undefined ) {
 		this.interval = interval;
 	}
@@ -1614,7 +1618,11 @@ Timer.prototype.set = function(time, interval){
 Timer.prototype.tick = function(delta){
 	if( delta > 0 ) {
 		this.previous = this.time;
-		this.time -= delta;
+		if(this.countdown){
+			this.time -= delta;
+		} else {
+			this.time += delta;
+		}
 	}
 }
 Timer.prototype.status = function(delta){
@@ -1639,7 +1647,11 @@ Timer.prototype.status = function(delta){
 }
 
 Timer.prototype.at = function(position){
-	return position >= this.time && position < this.previous;
+	if(this.countdown){
+		return position >= this.time && position < this.previous;
+	} else {
+		return position <= this.time && position > this.previous;
+	}
 }
 Timer.prototype.progress = function(delta){
 	if( this.interval instanceof Array ) {

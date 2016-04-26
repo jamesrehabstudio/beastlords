@@ -211,6 +211,7 @@ var mod_camera = {
 var mod_combat = {
 	"init" : function() {
 		this.life = 100;
+		this.hurtable = true;
 		this.invincible = 0;
 		this.invincible_time = 10.0;
 		this.criticalChance = 0.0;
@@ -222,6 +223,7 @@ var mod_combat = {
 		this.team = 0;
 		this.stun = 0;
 		this.stun_time = Game.DELTASECOND;
+		this.combat_stuncount = 0;
 		this.death_time = 0;
 		this.dead = false;
 		this._hurt_strobe = 0;
@@ -305,16 +307,20 @@ var mod_combat = {
 			
 			var hits = game.overlaps(offset);
 			for( var i=0; i < hits.length; i++ ) {
-				if( hits[i].interactive && hits[i] != this && hits[i].life != null ) {
+				if( hits[i].interactive && hits[i] != this && "life" in hits[i]) {
 					this.trigger("struckTarget", hits[i], offset.center(), damage);
 					
-					if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
+					if(hits[i].hurtable != undefined && !hits[i].hurtable){
+						audio.playLock("tink",0.3);
+						this.trigger("blockOther", hits[i], offset.center(), 0);
+					} else if( trigger == "hurt" && hits[i].hurt instanceof Function ) {
 						hits[i].hurt(this, damage);
 						out.push(hits[i]);
 					} else if( "_shield" in hits[i] && hits.indexOf( hits[i]._shield ) > -1 ) {
 						//blocked
 						hits[i].trigger("block", this, offset.center(), damage);
 						this.trigger("blockOther", hits[i], offset.center(), damage);
+						/*
 						if( hits[i].guard.invincible <= 0 ) {
 							if( damage > hits[i].guard.life ) {
 								//Break guard
@@ -327,7 +333,7 @@ var mod_combat = {
 								hits[i].guard.life -= damage;
 								hits[i].guard.invincible = Game.DELTASECOND * 0.3;
 							}
-						}
+						}*/
 					} else {
 						hits[i].trigger(trigger, this, offset.center(), damage);
 						out.push(hits[i]);
@@ -388,8 +394,12 @@ var mod_combat = {
 			}
 			
 			if( this.invincible <= 0 ) {
-				//Determine if its a critical shot
+				//Increment number of hits
+				this.combat_stuncount++;
+				this.trigger("stun", obj, damage, this.combat_stuncount);
+				
 				if( Math.random() < this.criticalChance ) {
+					//Determine if its a critical shot
 					damage *= this.criticalMultiplier;
 					audio.play("critical");
 					game.slow(0.1, Game.DELTASECOND * 0.5 );
@@ -443,6 +453,9 @@ var mod_combat = {
 			this.filter = this._hurt_strobe < 1 ? "hurt" : this._base_filter;
 		} else {
 			this.filter = this._base_filter;
+		}
+		if(this.stun <= 0){
+			this.combat_stuncount = 0;
 		}
 		
 		this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
@@ -543,7 +556,7 @@ var mod_boss = {
 			if( !this.active ) {
 				this.interactive = false;
 				var dir = this.position.subtract( _player.position );
-				if( Math.abs( dir.x ) < 64 && Math.abs( dir.y ) < 64 ){
+				if( Math.abs( dir.x ) < 120 && Math.abs( dir.y ) < 64 ){
 					game.slow(0.1, Game.DELTASECOND * 3);
 					this.active = true;
 					this.trigger("activate");
@@ -559,7 +572,7 @@ var mod_boss = {
 			
 			//for(var i=0; i < this.boss_doors.length; i++ ) 
 			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, window.BLANK_TILE);
-			_player.lock_overwrite = this.boss_lock;
+			//_player.lock_overwrite = this.boss_lock;
 			this.interactive = true;
 		});
 		this.on("death", function() {

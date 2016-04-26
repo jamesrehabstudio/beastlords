@@ -33,22 +33,18 @@ function Slimerilla(x,y,d,o){
 		"attackRelease" : Game.DELTASECOND,
 		"attackRest" : Game.DELTASECOND * 0.7777,
 		"attack" : 0.0,
-		"cooldown" : 0.0,
+		"cooldown" : Game.DELTASECOND,
 		"timeBetweenAttacks" : Game.DELTASECOND * 1.5,
 		"reappear" : 0,
 		"reappearTime" : 0.0,
-		"turnTimer" : 0.0
+		"turnTimer" : 0.0,
+		"jumpback" : false
 	};
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt",function(obj,damage){
 		audio.play("hurt");
-		this.times.attack = 0.0;
-		this.times.cooldown = 0.0;
-		
-		var dir = obj.position.subtract(this.position);
-		this.force.y = -7;
-		this.force.x = (dir.x>0?-1.0:1.0) * 7;
+		this.times.jumpback = true;
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
@@ -70,17 +66,14 @@ function Slimerilla(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(8, this.difficulty);
-	this.damage = Spawn.damage(3,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
 	this.calculateXP();
 }
 Slimerilla.prototype.update = function(){
 	if(this.visible){
 		var dir = _player.position.subtract(this);
-		if(this.invincible > 0){
-			//Do nothing
-			this.frame = 0
-			this.frame_row = 0;
-		} else if(this.times.attack > 0){
+		if(this.times.attack > 0){
+			//once warming up for an attack, there's no stoping him!
 			if(this.times.attack < this.times.attackRest ){
 				this.frame = 0
 				this.frame_row = 0;
@@ -94,6 +87,15 @@ Slimerilla.prototype.update = function(){
 				this.frame_row = 1;
 			}
 			this.times.attack -= this.delta;
+		} else if(this.stun > 0){
+			//Do nothing
+			this.frame = 0;
+			this.frame_row = 0;
+		} else if(this.times.jumpback){
+			//jump away from player
+			this.force.y = -6;
+			this.force.x = (dir.x>0?-1.0:1.0) * 10;
+			this.times.jumpback = false;
 		} else {
 			//move towards player
 			if(this.flip){

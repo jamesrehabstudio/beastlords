@@ -150,8 +150,6 @@ function Player(x, y){
 		this.force.x = 12 * (dir.x > 0 ? 1.0 : -1.0);
 		
 		this.guard.life = this.guard.lifeMax;
-		
-		game.slow(0.1, Game.DELTASECOND);
 	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
@@ -190,6 +188,9 @@ function Player(x, y){
 			this.stun = this.stun_time;
 			game.slow(0,5.0);
 		}
+		if(this.life > 0 && damage >= this.life){
+			audio.play("deathwarning");
+		}
 		Background.flash = [0.6,0,0,1];
 		audio.play("playerhurt");
 	})
@@ -216,23 +217,28 @@ function Player(x, y){
 		}
 		
 		//Charge kill explosion!
-		if( this.states.charge_multiplier && obj.mass < 2.0 && obj.life <= 0 ) {
-			var dir = obj.position.subtract(this.position);
-			game.slow(0.1, Game.DELTASECOND * 0.5);
-			audio.playLock("explode3", 0.5);
-			game.addObject( new ExplodingEnemy( 
-				obj.position.x,
-				obj.position.y,
-				dir.add(new Point(0, -2)),
-				{
-					"damage" : this.damage * 4,
-					"sprite" : obj.sprite,
-					"flip" : obj.flip,
-					"frame" : obj.frame,
-					"frame_row" : obj.frame_row
-				}
-			));
+		if( this.equip_weapon.charge ){
+			//A little shake
+			window.shakeCamera(Game.DELTASECOND*0.1,5);
 			
+			if( obj.mass < 2.0 && obj.life <= 0 ) {
+				//Send the enemy flying
+				var dir = obj.position.subtract(this.position);
+				game.slow(0.1, Game.DELTASECOND * 0.5);
+				audio.playLock("explode3", 0.5);
+				game.addObject( new ExplodingEnemy( 
+					obj.position.x,
+					obj.position.y,
+					dir.add(new Point(0, -2)),
+					{
+						"damage" : this.damage * 4,
+						"sprite" : obj.sprite,
+						"flip" : obj.flip,
+						"frame" : obj.frame,
+						"frame_row" : obj.frame_row
+					}
+				));
+			}
 		}
 	});
 	this.on("added", function(){
@@ -267,8 +273,8 @@ function Player(x, y){
 		"magic" : 1
 	}
 	
-	this.life = 100;
-	this.lifeMax = 100;
+	this.life = 24;
+	this.lifeMax = 24;
 	this.mana = 24;
 	this.manaMax = 24;
 	this.money = 0;
@@ -478,8 +484,6 @@ Player.prototype.update = function(){
 			this.heal = 0;
 			this.life = this.lifeMax;
 		}
-	} else {
-		if( this.life < this.lifeMax * .2 && this.delta > 0 ) audio.playLock("danger",1.00);
 	}
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
@@ -628,7 +632,7 @@ Player.prototype.update = function(){
 		
 		
 		if ( this.states.downStab ) {
-			this.strike(new Line( -4, 8, 4, 8+Math.max( 12, this.attackProperties.range)));
+			this.equip_weapon.downstab(this);
 		}
 	}
 	//Shield
@@ -638,8 +642,8 @@ Player.prototype.update = function(){
 	
 	//Animation
 	if ( this.knockedout ){
-		this.frame_row = 4;
-		this.frame = (this.frame + this.delta * 0.2 ) % 3;
+		this.frame_row = 1;
+		this.frame = 5;
 	} else if ( this.stun > 0 || this.life < 0 ) {
 		//Stunned
 		this.stand();
@@ -1067,9 +1071,10 @@ Player.prototype.render = function(g,c){
 	}
 	
 	//Charge effect
-	if( this.states.attack_charge > 0 ) {
+	var chargeProgress = this.equip_weapon.chargeTime.time - Game.DELTASECOND*0.5;
+	if( chargeProgress > 0 ) {
 		var effectPos = new Point(this.position.x, this.position.y - 16);
-		EffectList.charge(g, effectPos.subtract(c), this.states.attack_charge);
+		EffectList.charge(g, effectPos.subtract(c), chargeProgress);
 	}
 	
 	//Strike effect
@@ -1110,24 +1115,24 @@ Player.prototype.hudrender = function(g,c){
 	/* Render HP */
 	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(7,7,(this.lifeMax/4)+2,10);
+	g.scaleFillRect(7,7,(this.lifeMax)+2,10);
 	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,8,this.lifeMax/4,8);
+	g.scaleFillRect(8,8,this.lifeMax,8);
 	g.closePath();
 	g.beginPath();
 	g.color = [1.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,8,Math.max(this.life/4,0),8);
+	g.scaleFillRect(8,8,Math.max(this.life,0),8);
 	g.closePath();
 	
 	/* Render Buffered Damage */
 	if(this.life > 0){
 		g.beginPath();
 		g.color = [0.65,0.0625,0.0,1.0];
-		var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer) / 4, 8)
+		var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer), 8)
 		g.scaleFillRect(
 			Math.max(this.life/4,0)+8,
 			8,
-			-Math.min(this.damage_buffer,this.life)/4,
+			-Math.min(this.damage_buffer,this.life),
 			8
 		);
 		g.closePath();
@@ -1136,26 +1141,26 @@ Player.prototype.hudrender = function(g,c){
 	/* Render Mana */
 	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(7,19,25+2,4);
+	g.scaleFillRect(7,19,this.manaMax+2,4);
 	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,20,25,2);
+	g.scaleFillRect(8,20,this.manaMax,2);
 	g.closePath();
 	g.beginPath();
 	g.fillStyle = "#3CBCFC";
 	g.color = [0.23,0.73,0.98,1.0];
-	g.scaleFillRect(8,20,Math.floor(25*(this.mana/this.manaMax)),2);
+	g.scaleFillRect(8,20,this.mana,2);
 	g.closePath();
 	
 	/* Render XP */
 	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(7,25,25+2,4);
+	g.scaleFillRect(7,25,24+2,4);
 	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,26,25,2);
+	g.scaleFillRect(8,26,24,2);
 	g.closePath();
 	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*25 ),2);
+	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
 	g.closePath();
 	
 	textArea(g,"$"+this.money,8, 216 );

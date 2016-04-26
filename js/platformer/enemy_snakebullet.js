@@ -6,26 +6,18 @@ function SnakeBullet(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 12;
-	this.origin.y = 0.7;
 	
-	this.speed = 0.2;
-	this.sprite = sprites.oriax;
+	this.speed = 0.3;
+	this.sprite = sprites.snake;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
 	this.on("struck", EnemyStruck);
-	this.on("collideObject", function(obj){
-		if( this.states.landed && obj instanceof Oriax ){
-			this.trigger("death");
-		}
-	});
-	this.on("collideVertical", function(dir){
-		if( !this.states.landed ){
-			this.states.landed = true;
-			this.flip = !this.flip;
-		}
-	});
+	
+	this.on("sleep",function(){
+		this.destroy();
+	})
 	this.on("hurt_other",function(obj, damage){
 		this.trigger("death");
 	});
@@ -43,34 +35,26 @@ function SnakeBullet(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
-	this.flip = d < 0;
-	this.force.x = d * 8;
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.pushable = false;
-	this.mass = 0.0;
-	this.gravity = 0.1;
-	
-	this.states = {
-		"landed" : false,
-		"life" : 200
-	}
+	this.mass = 0.3;
+	this.gravity = 0.5;
+	this.timeCounter = Game.DELTASECOND * 3;
 }
-SnakeBullet.prototype.update = function(){
-	this.frame = Math.max( (this.frame + this.delta * 0.2) % 4, 2);
-	this.frame_row = 2;
-	this.friction = this.grounded ? 0.2 : 0.05;
+SnakeBullet.prototype.update = function(){	
+	this.timeCounter -= this.delta;
 	
-	this.states.life -= this.delta;
-	
-	if( this.stun < 0 && this.states.landed && this.states.dieOnTouch ) {
-		this.gravity = 1.0;
-		var direction = (this.flip ? -1 : 1);
-		this.force.x += this.speed * this.delta * direction;
+	if(this.grounded){
+		this.force.x += this.speed * (this.flip ? -1 : 1) * this.delta;
+		this.strike(new Line(new Point(0,-3),new Point(12,3)));
+		this.frame = (this.frame + this.delta * 0.2) % 4;
+		this.frame_row = 0;
+	} else {
+		this.frame = (this.frame + this.delta * 0.3) % 4;
+		this.frame_row = 1;
 	}
 	
-	this.strike( new Line(-8,-4,8,4) );
-	
-	if( this.states.life < 0 ){
-		this.trigger("death");
+	if(this.timeCounter <= 0){
+		this.destroy();
 	}
 }

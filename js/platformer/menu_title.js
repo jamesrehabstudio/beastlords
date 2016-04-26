@@ -147,7 +147,7 @@ TitleMenu.prototype.render = function(g,c){
 		this.sprite.render(g,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),0,1);
 		this.sprite.render(g,new Point(xpos,Math.lerp( this.title_position, 0, pan)),0,0);
 		
-		textArea(g,"Copyright Pogames.uk 2015",8,4);
+		textArea(g,"Copyright Pogames.uk 2016",8,4);
 		textArea(g,"Version "+window._version,8,228);
 		
 		if(this.page == 0){

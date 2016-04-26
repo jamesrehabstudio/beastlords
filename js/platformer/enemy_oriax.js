@@ -4,10 +4,9 @@ function Oriax(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 32;
+	this.width = 32;
+	this.height = 48;
 	
-	this.speed = 0.1;
 	this.sprite = sprites.oriax;
 	
 	this.addModule( mod_rigidbody );
@@ -26,10 +25,17 @@ function Oriax(x,y,d,o){
 		this.states.backup = !this.states.backup;
 	});
 	this.on("death", function(obj,pos,damage){
+		this.spawnSnakes(2);
 		_player.addXP(this.xp_award);
 		Item.drop(this);
 		audio.play("kill");
 		this.destroy();
+	});
+	this.on("stun", function(obj,damage,count){
+		if(count == 3){
+			//spawn two snakes to scare player
+			this.spawnSnakes(2);
+		}
 	});
 	
 	o = o || {};
@@ -39,78 +45,96 @@ function Oriax(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life =  Spawn.life(8,this.difficulty);
+	this.life =  Spawn.life(12,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
-	this.mass = 1.0;
-	this.stun_time = 0;
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.mass = 3.0;
 	this.death_time = Game.DELTASECOND * 1;
 	
-	SpecialEnemy(this);
+	//SpecialEnemy(this);
 	this.calculateXP();
 	
 	this.states = {
 		"cooldown" : 50,
-		"attack" : 0,
-		"thrown" : false,
-		"backup" : false,
+		"attack" : new Timer(0),
 		"attack_lower" : false
 	};
 	this.attack = {
-		"warm" : 45,
-		"release" : 25
+		"warm" : 30,
+		"release" : 10
 	};
 }
 Oriax.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
-	if( this.stun < 0 && this.life > 0 ) {
-		if( this.states.attack < 0 ){
-			var direction = (this.flip ? -1 : 1) * (this.states.backup ? -1 : 1);
-			this.force.x += this.speed * this.delta * direction;
-		}
-		this.flip = dir.x > 0;
-		if( Math.abs(dir.x) < 32 ) this.states.backup = true;
-		if( Math.abs(dir.x) > 104 ) this.states.backup = false;
-		
-		if( this.states.cooldown < 0 ){
-			this.states.attack = this.attack.warm;
-			this.states.cooldown = 60;
-			this.states.attack_lower = Math.random() > 0.5;
-		}
-		
-		if( this.states.attack > 0 ){
-			if( this.states.attack < this.attack.release && !this.states.thrown ){
-				this.states.thrown = true;
-				var missle;
-				if( this.states.attack_lower ) {
-					missle = new SnakeBullet(this.position.x, this.position.y+8, (this.flip?-1:1) );
+	if( this.life > 0 ) {
+		if(this.states.attack.time > 0){
+			if( this.states.attack.at(this.attack.release)){
+				//Fire
+				if(this.states.attack_lower){
+					var snakebullet = new SnakeBullet(this.position.x, this.position.y + 16);
+					snakebullet.damage = this.damage;
+					snakebullet.flip = this.flip;
+					game.addObject(snakebullet);
 				} else {
-					missle = new SnakeBullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
+					var bullet = new Bullet(this.position.x, this.position.y,(this.flip?-1:1));
+					bullet.frames = [5,6,7];
+					bullet.frame_row = 1;
+					bullet.blockable = 1;
+					bullet.damage = this.damage;
+					game.addObject(bullet);
 				}
-				game.addObject( missle ); 
-				this.criticalChance = 1.0;
+				this.states.cooldown = Game.DELTASECOND * 1.5;
 			}
+			this.states.attack.tick(this.delta);
+		} else if(this.stun > 0) {
+			//Hurt, do nothing
 		} else {
-			this.states.thrown = false;
-			this.criticalChance = 0.0;
+			//idle
+			this.flip = dir.x > 0;
+			this.states.cooldown -= this.delta;
+			if(this.states.cooldown <= 0){
+				this.states.attack.set(this.attack.warm);
+				this.states.attack_lower = Math.random() > 0.5;
+			}
 		}
-		
-		this.states.cooldown -= this.delta;
-		this.states.attack -= this.delta;
 	}
 	
 	/* Animate */
-	if( this.stun > 0 ) {
-		this.frame = 0;
-		this.frame_row = 2;
-	} else {
-		if( this.states.attack > 0 ) {
-			this.frame = this.states.attack > this.attack.release ? 0 : 1;
-			this.frame += this.states.attack_lower ? 2 : 0;
-			this.frame_row = 1;
+	if( this.life <= 0 ) {
+		//dead
+		this.frame = 4;
+		this.frame_row = 1;
+	} else if( this.states.attack.time > 0 ) {
+		//Attack
+		var progress = 1 - (this.states.attack.time / this.states.attack.start);
+		if(this.states.attack_lower){
+			this.frame = Math.floor(progress * 4);
+			this.frame_row = 2;
 		} else {
-			this.frame = Math.max(this.frame + this.delta * Math.abs(this.force.x) * 0.3, 1 ) % 4;
-			if( Math.abs( this.force.x ) < 0.1 ) this.frame = 0;
-			this.frame_row = 0;
+			this.frame = 0;
+			if(progress > 0.15){ this.frame = 1;}
+			if(progress > 0.55){ this.frame = 2;}
+			if(progress > 0.6){ this.frame = 3;}
+			this.frame_row = 1;
 		}
+	} else if (this.stun > 0){
+		//dead
+		this.frame = 4;
+		this.frame_row = 1;
+	} else {
+		//idle
+		this.frame = (this.frame + this.delta * 0.2 ) % 5;
+		this.frame_row = 0;
+	}
+}
+
+Oriax.prototype.spawnSnakes = function(amount){
+	for(var i=0; i < amount; i++){
+		var snakebullet = new SnakeBullet(this.position.x, this.position.y - 16);
+		snakebullet.damage = this.damage;
+		snakebullet.flip = i;
+		snakebullet.force.x = snakebullet.flip ? 5.0 : -5.0;
+		snakebullet.force.y = -6;
+		game.addObject(snakebullet);
 	}
 }
