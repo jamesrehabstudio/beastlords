@@ -50,6 +50,7 @@ Quests = {
 	"q1" : 0
 }
 
+/*
 WorldMap.prototype = new GameObject();
 WorldMap.prototype.constructor = GameObject;
 function WorldMap(x, y){	
@@ -136,7 +137,7 @@ function WorldMap(x, y){
 		this.active = true;
 		//game.addObject( this );
 		
-		/* Save instance of current temple */
+		// Save instance of current temple
 		if( dataManager.currentTemple >= 0 && dataManager.currentTemple < this.temples.length ) {
 			var shops = [];
 			for(var i=0; i < WorldMap.Shops.length; i++) shops = shops.concat( game.getObjects(window[WorldMap.Shops[i]]) );
@@ -233,7 +234,11 @@ WorldMap.prototype.showMap = function(){
 	game.bounds = new Line(0,0,this.width*16,this.height*16);
 	game.tileSprite = sprites.world;
 	
-	game.addObject(new WorldPlayer(this.player.x, this.player.y));
+	
+	var self = this;
+	MapLoader.loadMapTmx("maps/world2.tmx",function(){
+		game.addObject(new WorldPlayer(self.player.x, self.player.y));
+	});
 	
 	for(var i=0; i<window._map_world.objects.length; i++){
 		var objdata = window._map_world.objects[i];
@@ -255,7 +260,7 @@ WorldMap.prototype.showMap = function(){
 	
 	for(var i=0; i<50; i++){
 		game.addObject(new WorldEncounter(Math.random()*16*this.width, Math.random()*16*this.height));
-	}*/
+	}*//*
 }
 WorldMap.prototype.encounter = function(){
 	if(!this.active) return;
@@ -444,14 +449,49 @@ WorldMap.prototype.worldTick = function(){
 	
 	this.saveTown();
 }
+*/
 
-WorldMap.Shops = [
-	"Alter",
-	"Arena",
-	"Prisoner",
-	"Shop",
-	"WaystoneChest"
-];
+WorldMap = {
+	"newgame" : function(){
+		window._player = new Player(64,178);
+		WorldMap.position = new Point(76*16,18*16);
+		WorldMap.open();
+	},
+	"position" : new Point(240,256),
+	"open" : function(playerLocale){
+		//Save keys for temple and remove
+		//Save game
+		MapLoader.loadMapTmx("maps/world2.tmx", function(){
+			if(playerLocale != undefined){
+				//Change players location to the set locale
+				var locales = game.getObjects(WorldLocale);
+				for(var i=0; i < locales.length; i++){
+					//Search for the locale that matches the playerLocale
+					if(locales[i].start == playerLocale){
+						WorldMap.position.x = locales[i].position.x;
+						WorldMap.position.y = locales[i].position.y;
+						break;
+					}
+				}
+			}
+			game.addObject(new WorldPlayer(
+				WorldMap.position.x,
+				WorldMap.position.y
+			));
+		});
+	},
+	"close" : function(worldLocale){
+		WorldMap.position.x = worldLocale.position.x;
+		WorldMap.position.y = worldLocale.position.y;
+	},
+	"Shops" : [
+		"Alter",
+		"Arena",
+		"Prisoner",
+		"Shop",
+		"WaystoneChest"
+	]
+};
 
 WorldPlayer.prototype = new GameObject();
 WorldPlayer.prototype.constructor = GameObject;
@@ -477,7 +517,7 @@ function WorldPlayer(x, y){
 }
 WorldPlayer.prototype.idle = function(){}
 WorldPlayer.prototype.update = function(){
-	
+	this.grounded = false;
 	this.force = this.force.scale( 1.0 - (0.2*this.delta) );
 	if( true ){
 		if( input.state("up") > 0 ) { this.force.y -= this.speed * this.delta; }
@@ -487,28 +527,35 @@ WorldPlayer.prototype.update = function(){
 	}
 	
 	var camx = game.resolution.x * 0.5;
-	game.camera.x = Math.max( Math.min( this.position.x - camx, (game.tileDimension.end.x)*16-256), 0);
-	game.camera.y = Math.max( Math.min( this.position.y - 120, (game.tileDimension.end.y)*16-240), 0);
+	game.camera.x = Math.max( Math.min( this.position.x - camx, (game.tileDimension.end.x)*16-game.resolution.x), 0);
+	game.camera.y = Math.max( Math.min( this.position.y - 120, (game.tileDimension.end.y)*16-game.resolution.y), 0);
+}
+WorldPlayer.prototype.render = function(g,c){
+	g.color = [0.8,0.2,0.0,1.0];
+	var pos = this.bounds().start;
+	g.scaleFillRect(pos.x-c.x,pos.y-c.y,this.width,this.height);
 }
 
 WorldLocale.prototype = new GameObject();
 WorldLocale.prototype.constructor = GameObject;
-function WorldLocale(x,y,type,properties){	
+function WorldLocale(x,y,d,properties){
 	this.constructor();
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.origin = new Point(-.5,-.5);
-	this.type = type;
+	this.width = d[0];
+	this.height = d[1];
+	this.type = false;
 	this.index = 0;
-	this.active = true;
+	this.active = false;
+	this.sleepTime = Game.DELTASECOND;
+	this.start = false;
 	
 	this.height = this.width = 8;
 	this.sprite = sprites.world;
 	
 	this.frame = 3;
 	this.frame_row = 5;
-	this.map_id = false;
 	
 	properties = properties || {};
 	this.properties = properties;
@@ -518,6 +565,11 @@ function WorldLocale(x,y,type,properties){
 			this.active = false;
 			this.visible = false;
 		}
+	}
+	if("tmx" in properties){
+		this.type = "tmx";
+		this.index = properties["tmx"];
+		this.visible = false;
 	}
 	if("map" in properties){
 		this.type = "map";
@@ -548,18 +600,50 @@ function WorldLocale(x,y,type,properties){
 		this.frame = 3;
 		this.frame_row = 7;
 	}
-	if("id" in properties){
-		this.map_id = properties["id"];
+	if("start" in properties){
+		this.start = properties["start"];
 	}
 	
 	this.on("collideObject", function(obj){
-		if( this.active ){
-			if( obj instanceof WorldPlayer ){
-				var dir = new Point(obj.force.x, obj.force.y);
-				_world.enterLocale( this, dir );
+		if( obj instanceof WorldPlayer ){
+			if( this.active ){
+					//var dir = new Point(obj.force.x, obj.force.y);
+					//_world.enterLocale( this, dir );
+					
+					if(this.type == "tmx"){
+						WorldMap.close(this);
+						var file = "maps/" + this.index;
+						var self = this;
+						MapLoader.loadMapTmx(file, function(starts){
+							//Determine player start location
+							if(starts.length > 0){
+								if(self.start && MapLoader.getMapIndex(starts,self.start) >= 0){
+									//Player start matches specified location start
+									var index = MapLoader.getMapIndex(starts,self.start);
+									_player.position = new Point(starts[index].x,starts[index].y);
+									game.addObject(_player);
+								} else {
+									//No start location specified, pick the first start
+									_player.position = new Point(starts[0].x,starts[0].y);
+									game.addObject(_player);
+								}
+							} else {
+								//No player start, just force one in
+								_player.position = new Point(64,192);
+								game.addObject(_player);
+							}
+						});
+					}
 			}
+			this.sleepTime = Game.DELTASECOND * 0.5;
 		}
 	});
+}
+WorldLocale.prototype.update = function(){
+	this.active = this.sleepTime <= 0;
+	if(!this.active){
+		this.sleepTime -= this.delta;
+	}
 }
 
 WorldEncounter.prototype = new GameObject();

@@ -2741,11 +2741,6 @@
   <object id="404" name="BreakableTile" x="240" y="2992" width="16" height="16"/>
   <object id="405" name="BreakableTile" x="240" y="2976" width="16" height="16"/>
   <object id="406" name="BreakableTile" x="224" y="2976" width="16" height="16"/>
-  <object id="414" name="CryptKeeper" x="208" y="3280" width="32" height="48">
-   <properties>
-    <property name="hurtable" value="0"/>
-   </properties>
-  </object>
   <object id="415" name="Trigger" x="4112" y="2016" width="16" height="64">
    <properties>
     <property name="retrigger" value="0"/>

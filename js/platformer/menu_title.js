@@ -101,13 +101,27 @@ TitleMenu.prototype.update = function(){
 					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
 					localStorage.setItem("debug_map", MapLoader.mapname);
 				} else if(this.cursor == 3){
-					MapLoader.loadMapTmx(MapLoader.mapname);
+					//Start in DEBUG mode
+					window._player = new Player(0,0);
+					MapLoader.loadMapTmx(MapLoader.mapname, function(starts){
+						_player.lightRadius = 240;
+						if(starts.length > 0){
+							_player.position.x = starts[0].x;
+							_player.position.y = starts[0].y;
+						} else {
+							_player.position.x = 64;
+							_player.position.y = 176;
+						}
+						game.addObject(_player);
+					});
 					audio.play("pause");
 				}
 			}
 		}
 	}
 }
+
+//Ӆ
 
 TitleMenu.prototype.render = function(g,c){
 	var xpos = (game.resolution.x - 427) * 0.5;
@@ -198,18 +212,7 @@ TitleMenu.prototype.startGame = function(){
 	if(this.cursor == 1) {
 		this.start = true;
 		audio.play("pause");
-		dataManager.reset();
-		
-		var world = new WorldMap(0,0);
-		world.mode = this.cursor > 0 ? 1 : 0;
-		
-		ga("send","event","start_game");
-		
-		game.clearAll();
-		game.addObject(world);
-		audio.stop("music_intro");
-		
-		world.trigger("activate");
+		WorldMap.newgame();
 	} else { 
 		audio.play("negative");
 		//ga("send","event","start_intro");

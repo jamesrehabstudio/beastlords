@@ -14,6 +14,7 @@ function Weapon(){
 Weapon.prototype.update = function(player){
 	if(this.time > 0){
 		var newState = Weapon.playerState(player);
+		var phase = this.currentAttack[this.combo];
 		
 		//Build up charge
 		if(input.state("fire") > 0){
@@ -29,6 +30,13 @@ Weapon.prototype.update = function(player){
 				this.attack(player);
 			}
 			this.chargeTime.set(0.0);
+		}
+		
+		if(input.state("left") > 0){
+			player.force.x -= phase.movement * player.deltaSpeed();
+		}
+		if(input.state("right") > 0){
+			player.force.x += phase.movement * player.deltaSpeed();
 		}
 		
 		if(this.playerState != newState){
@@ -72,10 +80,7 @@ Weapon.prototype.attack = function(player, forceNextAttack){
 			
 			audio.play("swing");
 			
-			var holdingForward = (input.state("left") > 0 && player.flip) || (input.state("right") > 0 && !player.flip);
-			var holdingBackward = (input.state("left") > 0 && !player.flip) || (input.state("right") > 0 && player.flip);
-			
-			if("force" in newPhase && holdingForward){
+			if("force" in newPhase){
 				player.force.y = newPhase["force"].y;
 				if(player.flip){
 					player.force.x = -newPhase["force"].x;
@@ -200,70 +205,85 @@ Weapon.playerState = function(player){
 }
 
 
-WeaponStats = {
-	"short_sword" : {
+createWeaponTemplate = function(baseTime, restTime, missTime, length){
+	return {
 		"damage" : 3.0,
 		"standing" : {		
 			"alwaysqueue" : 0,
 			0 : {
-				"strike" : new Line(new Point(0,-8), new Point(22,-4)),
+				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
 				"damage":1.0,
-				"time" : 0.333*Game.DELTASECOND,
-				"rest":0.1*Game.DELTASECOND,
-				"miss":0.3*Game.DELTASECOND,
+				"time" : baseTime*Game.DELTASECOND,
+				"rest":restTime*Game.DELTASECOND,
+				"miss":missTime*Game.DELTASECOND,
 				"animation" : 0,
-				"force" : new Point(3.0, 0.0),
 				"pause" : 0.1*Game.DELTASECOND,
-				"stun" : 0.5*Game.DELTASECOND
+				"stun" : 0.5*Game.DELTASECOND,
+				"movement" : 0.3
 			},
 			1 : {
-				"strike" : new Line(new Point(0,-8), new Point(22,-4)),
+				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
 				"damage":1.2,
-				"time" : 0.333*Game.DELTASECOND,
-				"rest":0.1*Game.DELTASECOND,
-				"miss":0.3*Game.DELTASECOND,
+				"time" : baseTime*Game.DELTASECOND,
+				"rest":restTime*Game.DELTASECOND,
+				"miss":missTime*Game.DELTASECOND,
 				"animation" : 1,
-				"force" : new Point(3.0, 0.0),
 				"pause" : 0.333*Game.DELTASECOND,
-				"stun" : 0.5*Game.DELTASECOND
+				"stun" : 0.5*Game.DELTASECOND,
+				"movement" : 0.3
 			},
 			2 : {
-				"strike" : new Line(new Point(0,-8), new Point(22,-4)),
+				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
 				"damage":1.5,
-				"time" : 0.333*Game.DELTASECOND,
-				"rest":0.25*Game.DELTASECOND,
-				"miss":0.333*Game.DELTASECOND,
+				"time" : baseTime*Game.DELTASECOND,
+				"rest":2.5*restTime*Game.DELTASECOND,
+				"miss":missTime*1.2*Game.DELTASECOND,
 				"animation" : 2,
 				"force" : new Point(3.0, 0.0),
 				"pause" : 0.333*Game.DELTASECOND,
 				"knockback" : 5,
-				"stun" : 0.25 * Game.DELTASECOND
+				"stun" : 0.25 * Game.DELTASECOND,
+				"movement" : 0.3
 			}
 		},
 		"ducking" : {
 			"alwaysqueue" : 0,
 			0 : {
-				"strike" : new Line(new Point(0,8), new Point(22,12)),
+				"strike" : new Line(new Point(0,8), new Point(length,12)),
 				"damage":0.8,
-				"time" : 0.333*Game.DELTASECOND,
-				"rest":0.2*Game.DELTASECOND,
-				"miss":0.2*Game.DELTASECOND,
+				"time" : baseTime*Game.DELTASECOND,
+				"rest": 2*restTime*Game.DELTASECOND,
+				"miss": 2*missTime*Game.DELTASECOND,
 				"animation" : 4,
 				"force" : new Point(0.0, 0.0),
-				"stun" : 0.5 * Game.DELTASECOND
+				"stun" : 0.5 * Game.DELTASECOND,
+				"movement" : 0.0
 			}
 		},
 		"jumping" : {
 			"alwaysqueue" : 0,
 			0 : {
-				"strike" : new Line(new Point(0,-8), new Point(22,12)),
+				"strike" : new Line(new Point(0,-8), new Point(length,12)),
 				"damage":0.8,
-				"time" : 0.333*Game.DELTASECOND,
-				"rest":0.2*Game.DELTASECOND,
-				"miss":0.3*Game.DELTASECOND,
+				"time" : baseTime*Game.DELTASECOND,
+				"rest":restTime*Game.DELTASECOND,
+				"miss":restTime*Game.DELTASECOND,
 				"animation" : 3,
-				"stun" : 0.5 * Game.DELTASECOND
+				"stun" : 0.5 * Game.DELTASECOND,
+				"movement" : 1.0
 			}
 		}
-	}
-};
+	};
+}
+
+var WeaponStats = {
+	"short_sword" : createWeaponTemplate(0.25,0.08,0.15,24),
+	"long_sword" : createWeaponTemplate(0.333,0.1,0.2,30),
+	"broad_sword" : createWeaponTemplate(0.4,0.1,0.3,32)
+}
+
+WeaponStats.short_sword.standing.alwaysqueue = 1;
+
+WeaponStats.long_sword.damage = 5;
+
+WeaponStats.broad_sword.damage = 7;

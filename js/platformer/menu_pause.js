@@ -161,7 +161,7 @@ PauseMenu.prototype.update = function(){
 		this.map_reveal[map_index] = 2;
 		var map_tile = this.map[map_index];
 		
-		if(map_tile){
+		if(map_tile != undefined){
 			//If map tile is valid, change camera locks
 			var lock;
 			switch( Math.abs(this.map[map_index]) % 16 ){

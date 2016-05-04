@@ -108,7 +108,7 @@ MapLoader.loadMap = function(map,options){
 	g.addObject(new Background());
 }
 
-MapLoader.loadMapTmx = function(url){
+MapLoader.loadMapTmx = function(url, callback){
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function(){
 		if(xhttp.readyState == 4){
@@ -116,9 +116,14 @@ MapLoader.loadMapTmx = function(url){
 			try{
 				var parser = new DOMParser();
 				var xml = parser.parseFromString(xhttp.response, "text/xml");
+				var starts = MapLoader.parseMap(xml);
 				
-				MapLoader.parseMap(xml);
-			} catch(err){}
+				if(callback instanceof Function){
+					callback.apply(window,[starts]);
+				}
+			} catch(err){
+				console.error(err);
+			}
 		}
 	}
 	xhttp.open("GET",url,true);
@@ -142,8 +147,9 @@ MapLoader.parseMap = function(xml){
 	var tilesets = new Array();
 	var width = 0;
 	var height = 0;
-	var tilesout = [new Array(), new Array(), new Array()];
+	var tilesout = [new Array(), new Array(), new Array(), new Array()];
 	var maptiles = new Array();
+	var playerStart = new Array();
 	
 	try{
 		//Load sprites
@@ -170,7 +176,9 @@ MapLoader.parseMap = function(xml){
 		height = t.getAttribute("height") * 1
 		
 		for(var j=0; j < tiles.length; j++){
-			if("front"==name){
+			if("top"==name){
+				tilesout[3].push(MapLoader.parseTile(tiles[j],tilesets));
+			} else if("front"==name){
 				tilesout[2].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("back"==name){
 				tilesout[1].push(MapLoader.parseTile(tiles[j],tilesets));
@@ -201,13 +209,7 @@ MapLoader.parseMap = function(xml){
 		temp.use(window.game);
 	} else {
 		window.tiles.tiles7.use(window.game);
-	}
-	
-	if(!window._world) {
-		var wd = new WorldMap(0,0);
-		game.addObject(wd);
-	}
-		
+	}	
 
 	var pm = new PauseMenu();
 	pm.map = PauseMenu.convertTileDataToMapData(maptiles);
@@ -253,16 +255,23 @@ MapLoader.parseMap = function(xml){
 		}
 		
 		try{
-			if(name in window){
+			if(name == "Player"){
+				var start = false;
+				if("start" in properties){
+					start = properties["start"];
+				}
+				playerStart.push({
+					"x" : x,
+					"y" : y,
+					"start" : start
+				})
+			} else if(name in window){
 				var newobj = new window[name](x,y,[w,h],properties);
 				game.addObject(newobj);
 			}
-		} catch(err){}
-	}
-	
-	if(!(_player instanceof Player)){
-		var player = new Player(64,176);
-		game.addObject(player);
+		} catch(err){
+			console.error("Cannot add object: "+name+", "+err);
+		}
 	}
 	
 	if(MapLoader.flight){
@@ -272,6 +281,17 @@ MapLoader.parseMap = function(xml){
 		var xp = Math.floor( Math.pow( MapLoader.level-1,1.8 ) * 50 );
 		_player.addXP(xp);
 	}
+	
+	return playerStart;
+}
+
+MapLoader.getMapIndex = function(list,key){
+	for(var i=0; i < list.length; i++){
+		if(list[i].start == key){
+			return i;
+		}
+	}
+	return -1;
 }
 
 MapLoader.mapname = "testmap.tmx"

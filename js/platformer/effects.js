@@ -99,7 +99,8 @@ function EffectStatus(x, y){
 	this.height = 16;
 	this.zIndex = 2;
 	this.sprite = sprites.bullets;
-	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
+	this.time = Game.DELTASECOND;
+	this.timeMax = this.time;
 	this.interactive = false;
 	this.frame_row = 4;
 	
@@ -107,6 +108,7 @@ function EffectStatus(x, y){
 }
 
 EffectStatus.prototype.update = function(){
+	var progress = this.time / this.timeMax;
 	if( this.frame == 0 ) {
 		this.position.y -= game.deltaUnscaled * 0.5;
 	} else if ( this.frame == 1 ){ 
@@ -119,9 +121,12 @@ EffectStatus.prototype.update = function(){
 		this.position.y += 0.2;
 	} else if ( this.frame == 4 ){ 
 		this.position.y += 0.5;
-	} else {
+	} else if ( this.frame == 5 ) {
 		this.position.y -= 0.5;
 		this.position.x += 4 * (Math.random() - .5);
+	} else {
+		this.position.y += Math.cos(progress*9)*0.5;
+		this.position.x += Math.sin(progress*9)*2.0;
 	}
 	
 	this.time -= game.deltaUnscaled;

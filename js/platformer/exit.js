@@ -11,7 +11,7 @@ function Exit(x,y,d,o){
 	var options = o || {};
 	this.visible = false;
 	this.offset = new Point();
-	this.location = false;
+	this.start = false;
 	
 	if("direction" in options){
 		if( options.direction == "e" ) this.offset.x += 16;
@@ -19,12 +19,19 @@ function Exit(x,y,d,o){
 		if( options.direction == "s" ) this.offset.y += 16;
 		if( options.direction == "n" ) this.offset.y -= 16;
 	}
-	if("location" in options){
-		this.location = options["location"];
+	if("start" in options){
+		this.start = options["start"];
 	}
 	
 	this.on("collideObject",function(obj){
 		if( obj instanceof Player ) {
+			if(this.start){
+				WorldMap.open(this.start);
+			} else {
+				WorldMap.open();
+			}
+			
+			/*
 			if(this.location){
 				window._world.trigger("activate");
 				var locales = game.getObjects(WorldLocale);
@@ -39,7 +46,7 @@ function Exit(x,y,d,o){
 				window._world.player.x += this.offset.x;
 				window._world.player.y += this.offset.y;
 				window._world.trigger("activate");
-			}
+			}*/
 		}
 	});
 }

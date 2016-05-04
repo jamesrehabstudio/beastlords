@@ -197,6 +197,16 @@ var tileRules = {
 		172:Tileset.ignore,
 		173:Tileset.ignore,
 		174:Tileset.ignore
+	},
+	"world" : {
+		959:Tileset.ignore,
+		960:Tileset.edge_right,
+		989:Tileset.ceil_1to0,
+		990:Tileset.ceil_0to1,
+		991:Tileset.edge_left,
+		992:Tileset.ignore,
+		1021:Tileset.slope_1to0,
+		1022:Tileset.slope_0to1
 	}
 };
 
@@ -301,7 +311,7 @@ function load_sprites (){
 	
 	sprites['tilesintro'] = new Sprite(RT+"img/tiles/tilesintro.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['town'] = new Sprite(RT+"img/tiles/town.gif", {offset:new Point(0, 0),width:16,height:16});
-	sprites['world'] = new Sprite(RT+"img/tiles/world.gif", {offset:new Point(0, 0),width:16,height:16});
+	sprites['world'] = new Sprite(RT+"img/tiles/world.png", {offset:new Point(0, 0),width:16,height:16});
 	
 	sprites['tiles0'] = new Sprite(RT+"img/tiles/tiles0.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles1'] = new Sprite(RT+"img/tiles/tiles1.gif", {offset:new Point(0, 0),width:16,height:16});
@@ -311,16 +321,19 @@ function load_sprites (){
 	sprites['tiles5'] = new Sprite(RT+"img/tiles/tiles5.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles6'] = new Sprite(RT+"img/tiles/tiles6.gif", {offset:new Point(0, 0),width:16,height:16});
 	sprites['tiles7'] = new Sprite(RT+"img/tiles/tiles7.gif", {offset:new Point(0, 0),width:16,height:16});
+	sprites['phantom'] = new Sprite(RT+"img/tiles/phantom.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['temple1'] = new Sprite(RT+"img/tiles/temple1.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['temple2'] = new Sprite(RT+"img/tiles/temple2.png", {offset:new Point(0, 0),width:16,height:16});
+	sprites['cave'] = new Sprite(RT+"img/tiles/cave.png", {offset:new Point(0, 0),width:16,height:16});
+	sprites['planes'] = new Sprite(RT+"img/tiles/planes.png", {offset:new Point(0, 0),width:16,height:16});
 	
 	for( var i in sprites ) {
 		sprites[i].name = i;
 	}
 	
 	tiles["tilesintro"] = new Tileset(sprites["tilesintro"],tileRules["small"]);
-	tiles["town"] = new Tileset(sprites["town"],tileRules["small"]);
-	tiles["world"] = new Tileset(sprites["world"],tileRules["small"]);
+	tiles["town"] = new Tileset(sprites["town"],tileRules["small"]); tiles["town"].blank = 16;
+	
 	tiles["tiles0"] = new Tileset(sprites["tiles0"],tileRules["small"]);
 	tiles["tiles1"] = new Tileset(sprites["tiles1"],tileRules["small"]);
 	tiles["tiles2"] = new Tileset(sprites["tiles2"],tileRules["small"]);
@@ -331,6 +344,23 @@ function load_sprites (){
 	tiles["tiles7"] = new Tileset(sprites["tiles7"],tileRules["small"]);
 	
 	
+	tiles["world"] = new Tileset(sprites["world"],tileRules["world"],{
+		66 : {"frames":[66,67,68,68,67,66], "speed":5.0},
+		//Make the following collision tiles invisible
+		959 : {"frames":[1024], "speed":0.0},
+		960 : {"frames":[1024], "speed":0.0},
+		989 : {"frames":[1024], "speed":0.0},
+		990 : {"frames":[1024], "speed":0.0},
+		991 : {"frames":[1024], "speed":0.0},
+		992 : {"frames":[1024], "speed":0.0},
+		1021 : {"frames":[1024], "speed":0.0},
+		1022 : {"frames":[1024], "speed":0.0},
+		1023 : {"frames":[1024], "speed":0.0}
+	});
+	
+	tiles["phantom"] = new Tileset(sprites["phantom"],tileRules["big"], {
+		1023 : {"frames":[1024], "speed":0.0}
+	});
 	tiles["temple1"] = new Tileset(sprites["temple1"],tileRules["big"], {
 		321 : {"frames":[321,322,323], "speed":6.0}
 	});
@@ -340,7 +370,12 @@ function load_sprites (){
 		307 : {"frames":[307,309,311], "speed":9.0},
 		308 : {"frames":[308,310,312], "speed":9.0}
 	});
-	
+	tiles["cave"] = new Tileset(sprites["cave"],tileRules["big"], {
+		321 : {"frames":[321,322,323], "speed":6.0}
+	});
+	tiles["planes"] = new Tileset(sprites["planes"],tileRules["big"], {
+		321 : {"frames":[321,322,323], "speed":6.0}
+	});
 }
 
 window.audio = new AudioPlayer({

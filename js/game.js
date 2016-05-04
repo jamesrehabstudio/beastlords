@@ -171,7 +171,7 @@ function Game( elm ) {
 	
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
-	this.renderOrder = [0,1,2,"o"];
+	this.renderOrder = [0,1,2,"o",3];
 	this.layerCamera = {
 		//0 : function(c){ return new Point(c.x*0.9375, c.y); }
 	}
@@ -441,7 +441,7 @@ Game.prototype.render = function( ) {
 			}
 		} else {
 			//Render Tile Layer
-			if(this.tiles){
+			if(this.tiles && this.renderOrder[o] in this.tiles){
 				var layer = this.tiles[this.renderOrder[o]];
 				this.tileRules.render(this.g,this.camera,layer,this.tileDimension.width());
 			}
@@ -1584,6 +1584,46 @@ Tileset.slope_halfto1 = function(axis,v,pos,hitbox,limits){
 	if(axis == 0){
 		var peak = (pos.y+Tileset.ts) + Math.max((pos.x-(hitbox.right+Tileset.ts)) * 0.5, 1-Tileset.ts);
 		limits[1] = Math.min(limits[1], peak-1);
+	}
+	return limits;
+}
+Tileset.ceil_0to1 = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = pos.y + Math.min(hitbox.right-pos.x,16);
+		limits[3] = Math.max(limits[3], peak+1);
+	}
+	return limits;
+}
+Tileset.ceil_1to0 = function(axis,v,pos,hitbox,limits){
+	if(axis == 0){
+		var peak = (pos.y+Tileset.ts) - Math.max(hitbox.left-pos.x, 1);
+		limits[3] = Math.max(limits[3], peak+1);
+	}
+	return limits;
+}
+Tileset.edge_left = function(axis,v,pos,hitbox,limits){
+	if(axis == 1){
+		var center = (hitbox.left + hitbox.right) * 0.5;
+		if(center > pos.x){
+			//obj on right side
+			limits[2] = pos.x;
+		} else {
+			//obj on left side
+			limits[0] = pos.x;
+		}
+	}
+	return limits;
+}
+Tileset.edge_right = function(axis,v,pos,hitbox,limits){
+	if(axis == 1){
+		var center = (hitbox.left + hitbox.right) * 0.5;
+		if(center > pos.x+Tileset.ts){
+			//obj on right side
+			limits[2] = pos.x+Tileset.ts;
+		} else {
+			//obj on left side
+			limits[0] = pos.x+Tileset.ts;
+		}
 	}
 	return limits;
 }

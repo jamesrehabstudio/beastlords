@@ -34,9 +34,9 @@ function Item(x,y,d, ops){
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
-			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 100; }
-			if( this.name == "life_up" ) { obj.lifeMax += 20; obj.heal += 20; }
-			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 20; }
+			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
+			if( this.name == "life_up" ) { obj.lifeMax += 4; obj.heal += 4; }
+			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
@@ -130,6 +130,7 @@ function Item(x,y,d, ops){
 			if( this.name == "spell_teleport") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
+			if( this.name == "unique_pray"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			
 			dataManager.itemGet(this.name);
 			
@@ -369,6 +370,28 @@ Item.prototype.setName = function(n){
 			}else{
 				this.progress = 0.0;
 				Trigger.activate("caverock");
+				game.pause = false;
+				return false;
+			}
+		}
+	}
+	
+	if( this.name == "unique_pray"){
+		this.frame = 1;
+		this.frame_row = 6;
+		this.message = "Strange Prayer";
+		this.progress = 0.0;
+		this.use = function(player){
+			this.progress += game.deltaUnscaled;
+			if(this.progress < Game.DELTASECOND * 2){
+				game.pause = true;
+				return true;
+			}else{
+				var objs = game.overlaps(new Line(game.camera,game.camera.add(game.resolution)));
+				for(var i=0; i < objs.length; i++){
+					objs[i].trigger("prayer");
+				}
+				this.progress = 0.0;
 				game.pause = false;
 				return false;
 			}

@@ -30,6 +30,7 @@ function Player(x, y){
 	this.inertia = 0.9; 
 	this.jump_boost = false;
 	this.jump_strength = 8.0;
+	this.lightRadius = 32.0;
 	
 	this.states = {
 		"duck" : false,
@@ -106,9 +107,9 @@ function Player(x, y){
 		this.position.x = 128;
 		this.position.y = 200;
 		
-		if( window._world instanceof WorldMap ){
+		/*if( window._world instanceof WorldMap ){
 			window._world.worldTick();
-		}
+		}*/
 		
 		for(var i=0; i < game.objects.length; i++ )
 			game.objects[i].trigger("player_death");
@@ -436,9 +437,6 @@ function Player(x, y){
 }
 
 Player.prototype.update = function(){
-	var speed = this.speeds.baseSpeed;
-	if( this.spellsCounters.haste > 0 ) speed *= 1.6;
-	
 	if(this.pause) {
 		this.force.x = 0;
 		this.force.y = 0;
@@ -476,8 +474,8 @@ Player.prototype.update = function(){
 	}
 	if( this.heal > 0 ){
 		audio.play("heal");
-		this.life += 2;
-		this.heal -= 2;
+		this.life += 1;
+		this.heal -= 1;
 		this.damage_buffer = 0;
 		game.slow(0.0,5.0);
 		if( this.life >= this.lifeMax ){
@@ -525,8 +523,8 @@ Player.prototype.update = function(){
 			}
 			
 			if( !this.states.duck ) {
-				if ( input.state('left') > 0 ) { this.force.x -= speed * this.delta * this.inertia; }
-				if ( input.state('right') > 0 ) { this.force.x += speed * this.delta * this.inertia; }
+				if ( input.state('left') > 0 ) { this.force.x -= this.deltaSpeed(); }
+				if ( input.state('right') > 0 ) { this.force.x += this.deltaSpeed(); }
 				
 				//Come to a complete stop
 				if ( input.state('right') <= 0 && input.state('left') <= 0 && this.grounded ) { 
@@ -602,13 +600,24 @@ Player.prototype.update = function(){
 				if( input.state('left') ) this.states.rollDirection = -1.0;
 			}
 			
+		} else if(this.stun > 0){
+			//Try to escape stun effect
+			if(
+				input.state("left") == 1 ||
+				input.state("right") == 1 ||
+				input.state("fire") == 1 ||
+				input.state("jump") == 1
+			){
+				this.statusEffects.stun -= 2.0;
+				this.position.y -= 2;
+			}
 		}
 		
 		//Apply jump boost
 		if( this.spellsCounters.flight > 0 ) {
 			this.gravity = 0.2;
-			if ( input.state('down') > 0 ) { this.force.y += speed * this.delta * 0.3 }
-			if ( input.state('jump') > 0 ) { this.force.y -= speed * this.delta * 0.4 }
+			if ( input.state('down') > 0 ) { this.force.y += this.delta * 1.55; }
+			if ( input.state('jump') > 0 ) { this.force.y -= this.delta * 1.65; }
 		} else { 
 			this.gravity = 1.0; 
 			if ( input.state('jump') > 0 && !this.grounded ) { 
@@ -759,6 +768,11 @@ Player.prototype.update = function(){
 	if( this.states.afterImage.status(this.delta) ){
 		game.addObject( new EffectAfterImage(this.position.x, this.position.y, this) );
 	}
+}
+Player.prototype.deltaSpeed = function(){
+	var speed = this.speeds.baseSpeed;
+	if( this.spellsCounters.haste > 0 ) speed *= 1.6;
+	return this.inertia * this.delta;
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){
@@ -1193,5 +1207,5 @@ Player.prototype.hudrender = function(g,c){
 	}
 	
 	//Create light
-	Background.pushLight( this.position.subtract(c), 240 );
+	Background.pushLight( this.position.subtract(c), this.lightRadius );
 }
