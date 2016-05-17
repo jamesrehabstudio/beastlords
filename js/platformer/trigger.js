@@ -21,10 +21,13 @@ function Trigger(x,y,d,o){
 	this.retrigger = 1;
 	this.retriggertime = Game.DELTASECOND;
 	this.retriggertimeCooldown = 0;
+	this.mustwaitinside = false;
 	
 	this.countdown = 0;
 	this.timer = 0;
 	this.time = 0;
+	
+	this._isover = false
 	
 	o = o || {};
 	
@@ -59,6 +62,9 @@ function Trigger(x,y,d,o){
 	if("timer" in o){
 		this.time = o["timer"] * Game.DELTASECOND;
 		this.timer = this.time;
+	}
+	if("mustwaitinside" in o){
+		this.mustwaitinside = o["mustwaitinside"];
 	}
 	
 	this.on("activate", function(obj){
@@ -108,6 +114,7 @@ function Trigger(x,y,d,o){
 				this.trigger("activate");
 			}else{
 				this.countdown = true;
+				this._isover = true;
 			}
 		}
 	});
@@ -115,6 +122,10 @@ function Trigger(x,y,d,o){
 
 Trigger.prototype.update = function(){
 	if(this.countdown){
+		if(!this._isover && this.mustwaitinside){
+			this.timer = this.time;
+			this.countdown = false;
+		}
 		if(this.timer <= 0){
 			this.timer = this.time;
 			this.countdown = false;
@@ -123,6 +134,7 @@ Trigger.prototype.update = function(){
 		this.timer -= this.delta;
 	}
 	this.retriggertimeCooldown -= this.delta;
+	this._isover = false;
 }
 Trigger.prototype.idle = function(){}
 

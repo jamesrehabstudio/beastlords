@@ -1,0 +1,14 @@
+if quest.q2 > 2
+	wait 2.0
+	actor_flip player 1
+	wait 0.5
+	actor_flip player 0
+	wait 0.5
+	actor_flip player 1
+	wait 1.0
+	actor_flip player 0
+	wait 0.5
+	actor_move player 2752 672 1.0
+	wait 1.0
+	tint 2.0 0 0 0
+	map "phantomend.tmx"

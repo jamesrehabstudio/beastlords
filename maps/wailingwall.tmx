@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="48" height="15" tilewidth="16" tileheight="16" nextobjectid="3">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="48" height="15" tilewidth="16" tileheight="16" nextobjectid="8">
  <tileset firstgid="1" name="maptiles" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="../img/tiles/maptiles.gif" width="256" height="256"/>
  </tileset>
@@ -46,6 +46,35 @@
  </layer>
  <objectgroup name="objects">
   <object id="1" name="Exit" x="752" y="0" width="16" height="208"/>
-  <object id="2" name="Player" x="720" y="176" width="16" height="32"/>
+  <object id="2" name="Player" x="704" y="176" width="16" height="32"/>
+  <object id="3" name="NPC" x="512" y="160" width="16" height="32">
+   <properties>
+    <property name="script" value="say &quot;greetings&quot; 1"/>
+   </properties>
+  </object>
+  <object id="4" name="Trigger" x="64" y="96" width="64" height="64">
+   <properties>
+    <property name="mustwaitinside" value="1"/>
+    <property name="target" value="scene"/>
+    <property name="timer" value="10.0"/>
+   </properties>
+  </object>
+  <object id="5" name="NPC" x="336" y="272" width="16" height="32">
+   <properties>
+    <property name="script" value="wailingwall_lance.script"/>
+    <property name="trigger" value="scene"/>
+   </properties>
+  </object>
+  <object id="6" name="NPC" x="535" y="160" width="16" height="32">
+   <properties>
+    <property name="script" value="say &quot;greetings&quot; 0"/>
+   </properties>
+  </object>
+  <object id="7" name="Trigger" x="688" y="144" width="64" height="64">
+   <properties>
+    <property name="darkness" value="1"/>
+    <property name="darknesscolor" value="0.1,0,0.4"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

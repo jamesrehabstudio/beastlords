@@ -870,7 +870,7 @@
   <object id="167" name="BreakableTile" gid="456" x="288" y="1344" width="16" height="16"/>
   <object id="169" name="NPC" gid="1512" x="11744" y="928" width="16" height="32">
    <properties>
-    <property name="script" value="miner"/>
+    <property name="script" value="iratamountain_minor.script"/>
    </properties>
   </object>
   <object id="170" name="Exit" gid="456" x="12528" y="928" width="16" height="192">

@@ -1,0 +1,40 @@
+if quest.q1 == 1
+	actor_flip me 1
+	actor_location me 448 192
+	actor_move me 320 192 1.0
+	wait_movements
+	say "wailingwall" 0
+	wait 0.5
+	actor_flip player 0
+	wait 1.5
+	say "wailingwall" 1
+	wait 0.5
+	actor_flip me 0
+	wait 0.5
+	actor_move me 448 192 1.5
+	wait_movements
+	actor_location me 448 300
+	actor_move player 592 176 2.0
+	wait_movements
+	actor_flip player 1
+	wait 1.0
+	say "wailingwall" 2
+	say "wailingwall" 3
+	say "wailingwall" 4
+	say "wailingwall" 5
+	say "wailingwall" 6
+	say "wailingwall" 7
+	say "wailingwall" 8
+	say "wailingwall" 9
+	say "wailingwall" 10
+	say "wailingwall" 11
+	say "wailingwall" 12
+	say "wailingwall" 13
+	say "wailingwall" 14
+	say "wailingwall" 15
+	say "wailingwall" 16
+	say "wailingwall" 17
+	additem "unique_pray"
+	wait 2.0
+	say "wailingwall" 18
+	quest q1 2

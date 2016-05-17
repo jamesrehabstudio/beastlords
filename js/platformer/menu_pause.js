@@ -35,12 +35,7 @@ PauseMenu.prototype.update = function(){
 		if( _player.life <= 0 ) {
 			//Player is dead, just wait for the start button to be pressed
 			if( input.state("pause") == 1 ) { 
-				if( window._world instanceof WorldMap ) {
-					_world.trigger("reset");
-				} else {
-					game.clearAll();
-					game.addObject(new TitleMenu());
-				}
+				_player.respawn();
 				return;
 			}
 		} else if( this.page == 0 ) {

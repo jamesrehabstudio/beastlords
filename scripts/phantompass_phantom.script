@@ -1,0 +1,20 @@
+actor_visible me 1
+actor_sprite me "phantom"
+actor_location me 512 176
+actor_location player 576 192
+actor_flip player 1
+wait 1.0
+say "phantompass" 0
+wait 0.5
+say "phantompass" 1
+actor_flip me 1
+actor_move me 480 176 0.5
+wait_movements
+wait 1.0
+actor_flip me 0
+wait 0.5
+say "phantompass" 2
+tint 2.0 0 0 0
+quest q2 1
+wait 2.0
+map "phantom.tmx"

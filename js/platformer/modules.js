@@ -578,6 +578,7 @@ var mod_boss = {
 				
 				_player.lock_overwrite = false;
 				Trigger.activate("boss_door");
+				Trigger.activate("boss_death");
 			}
 		}
 		this._boss_is_active = function(){

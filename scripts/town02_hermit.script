@@ -1,9 +1,9 @@
 if quest.q0 < 2
-	say "professor1_0"
+	say "town02_hermit" 0
 if quest.q0 == 2
-	say "professor1_1"
+	say "town02_hermit" 1
 	additem "unique_wand"
 	quest q0 3
 	end
 if quest.q0 > 2
-	say "professor1_2"
+	say "town02_hermit" 2

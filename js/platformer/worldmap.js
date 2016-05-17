@@ -46,8 +46,9 @@ Quests = {
 		return out;
 	},
 	"COMPLETED" : 9999,
-	"q0" : 0,
-	"q1" : 0
+	"q0" : 0, //Magic wand
+	"q1" : 0,
+	"q2" : 0 //Lost souls in the phantom world
 }
 
 /*
@@ -454,7 +455,7 @@ WorldMap.prototype.worldTick = function(){
 WorldMap = {
 	"newgame" : function(){
 		window._player = new Player(64,178);
-		WorldMap.position = new Point(76*16,18*16);
+		WorldMap.position = new Point(106*16,64*16);
 		WorldMap.open();
 	},
 	"position" : new Point(240,256),
@@ -612,27 +613,7 @@ function WorldLocale(x,y,d,properties){
 					
 					if(this.type == "tmx"){
 						WorldMap.close(this);
-						var file = "maps/" + this.index;
-						var self = this;
-						MapLoader.loadMapTmx(file, function(starts){
-							//Determine player start location
-							if(starts.length > 0){
-								if(self.start && MapLoader.getMapIndex(starts,self.start) >= 0){
-									//Player start matches specified location start
-									var index = MapLoader.getMapIndex(starts,self.start);
-									_player.position = new Point(starts[index].x,starts[index].y);
-									game.addObject(_player);
-								} else {
-									//No start location specified, pick the first start
-									_player.position = new Point(starts[0].x,starts[0].y);
-									game.addObject(_player);
-								}
-							} else {
-								//No player start, just force one in
-								_player.position = new Point(64,192);
-								game.addObject(_player);
-							}
-						});
+						WorldLocale.loadMap(this.index, this.start);
 					}
 			}
 			this.sleepTime = Game.DELTASECOND * 0.5;
@@ -644,6 +625,28 @@ WorldLocale.prototype.update = function(){
 	if(!this.active){
 		this.sleepTime -= this.delta;
 	}
+}
+WorldLocale.loadMap = function(map, start){
+	var file = "maps/" + map;
+	MapLoader.loadMapTmx(file, function(starts){
+		//Determine player start location
+		if(starts.length > 0){
+			if(start && MapLoader.getMapIndex(starts,start) >= 0){
+				//Player start matches specified location start
+				var index = MapLoader.getMapIndex(starts,start);
+				_player.position = new Point(starts[index].x,starts[index].y);
+				game.addObject(_player);
+			} else {
+				//No start location specified, pick the first start
+				_player.position = new Point(starts[0].x,starts[0].y);
+				game.addObject(_player);
+			}
+		} else {
+			//No player start, just force one in
+			_player.position = new Point(64,192);
+			game.addObject(_player);
+		}
+	});
 }
 
 WorldEncounter.prototype = new GameObject();

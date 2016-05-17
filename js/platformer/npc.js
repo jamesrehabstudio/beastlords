@@ -8,6 +8,7 @@ function NPC(x,y,t,o){
 	this.height = 32;
 	this.start_x = x;
 	this.sprite = sprites.characters;
+	this.name = "";
 	
 	this.addModule(mod_talk);
 	
@@ -20,9 +21,19 @@ function NPC(x,y,t,o){
 	this.scriptRun = false;
 	this.scriptWait = 0.0;
 	
+	this.movements = new Array();
+	
 	o = o || {};
 	if("script" in o){
-		this.getScript(o["script"]);
+		var s = o["script"];
+		if(s.match(/\w+\.script/)){
+			this.getScript(s);
+		} else {
+			this.script = NPC.compileScript(s);
+		}
+	}
+	if("name" in o){
+		this.name  = o["name"];
 	}
 	if("lockplayer" in o){
 		this.lockplayer = o["lockplayer"] * 1;
@@ -36,10 +47,45 @@ function NPC(x,y,t,o){
 	this.on("close", function(){
 		if(this.lockplayer){window._player.pause = false;}
 	});
+	this.on("activate", function(){
+		if(!this.scriptRun){
+			this.trigger("open");
+		}
+	});
+	
+	if("autorun" in o){
+		this.trigger("open");
+	}
+	if("trigger" in o) {
+		this._tid = o["trigger"];
+	}
 	
 }
 
+NPC.prototype.idle = function(){
+	if(this.runScript){
+		return true;
+	} else{
+		return GameObject.prototype.idle.apply(this);
+	}
+}
 NPC.prototype.update = function(){
+	
+	for(var i=0; i<this.movements.length; i++){
+		var obj = this.movements[i].object;
+		var destination = this.movements[i].destination;
+		var speed = this.movements[i].speed * this.delta;
+		var direction = destination.subtract(obj.position);
+		
+		if(direction.magnitude() <= speed){
+			obj.position = destination;
+			this.movements.remove(i);
+			i--;
+		} else {
+			obj.position = obj.position.add(direction.normalize(speed));
+		}
+	}
+	
 	if(this.scriptRun){
 		while(this.runScript()){}
 	}
@@ -83,7 +129,102 @@ NPC.prototype.runScript = function(filename){
 		NPC.variables[line[1]] = NPC.resolveCalculation(line[2]);
 		this.scriptPos++;
 		return true;
-	}else if(command == "wait"){
+	}else if(command == "additem"){
+		if(window._player instanceof Player){
+			var name = NPC.resolveCalculation(line[1]);
+			var item = new Item(0,0,0,{"name":name});
+			item.trigger("collideObject",_player);
+		}
+		this.scriptPos++;
+		return true;
+	}else if(command == "map"){
+		var map = NPC.resolveCalculation(line[1]);
+		var start;
+		if(2 in line){
+			start = NPC.resolveCalculation(line[2]);
+		}
+		WorldLocale.loadMap(map, start);
+		
+		//Loading new map, end script
+		this.scriptRun = false;
+		this.scriptPos = 0;
+		this.close();
+		return false;
+	} else if(command == "trigger"){
+		Trigger.activate(line[1]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "say"){
+		var message = i18n(NPC.resolveVariable(line[1]));
+		if(message instanceof Array){
+			var index = NPC.resolveVariable(line[2]);
+			if(line.length >= 2 && message.length > index){
+				message = message[index];
+			} else {
+				message = message[0];
+			}
+		}
+		DialogManger.set(message);
+		this.showmessage = DialogManger.show;
+		if(!this.showmessage){
+			DialogManger.clear();
+			this.scriptPos++;
+		}
+		return false;
+	}else if(command == "tint"){
+		var time = NPC.resolveCalculation(line[1]);
+		if(this.scriptWait > 0){
+			var speed = this.delta / (Game.DELTASECOND * time);
+			game.tint[0] = Math.lerp(game.tint[0],NPC.resolveVariable(line[2]),speed);
+			game.tint[1] = Math.lerp(game.tint[1],NPC.resolveVariable(line[3]),speed);
+			game.tint[2] = Math.lerp(game.tint[2],NPC.resolveVariable(line[4]),speed);
+			this.scriptWait -= this.delta;
+			if(this.scriptWait <= 0){
+				this.scriptPos++;
+				return true;
+			}
+		}else{
+			this.scriptWait = time * Game.DELTASECOND;
+		}
+		return false;
+	}else if(command == "actor_frame"){ //ACTOR COMMANDS
+		var obj = this.findNPC(line[1]);
+		obj.frame = NPC.resolveCalculation(line[2]);
+		obj.frame_row = NPC.resolveCalculation(line[3]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_visible"){
+		var obj = this.findNPC(line[1]);
+		obj.visible = NPC.resolveCalculation(line[2]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_location"){
+		var obj = this.findNPC(line[1]);
+		obj.position = new Point(NPC.resolveCalculation(line[2]), NPC.resolveCalculation(line[3]));
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_move"){
+		this.movements.push({
+			"object" : this.findNPC(line[1]),
+			"destination" : new Point(NPC.resolveCalculation(line[2]), NPC.resolveCalculation(line[3])),
+			"speed" : NPC.resolveCalculation(line[4])
+		});
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_flip"){
+		var obj = this.findNPC(line[1]);
+		obj.flip = NPC.resolveCalculation(line[2]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_sprite"){
+		var obj = this.findNPC(line[1]);
+		var sprite = NPC.resolveCalculation(line[2]);
+		if(sprite in window.sprites){
+			obj.sprite = window.sprites[sprite];
+		}
+		this.scriptPos++;
+		return true;
+	}else if(command == "wait"){ //WAIT COMMANDS
 		if(this.scriptWait > 0){
 			this.scriptWait -= this.delta;
 			if(this.scriptWait <= 0){
@@ -93,44 +234,39 @@ NPC.prototype.runScript = function(filename){
 			this.scriptWait = NPC.resolveCalculation(line[1]) * Game.DELTASECOND;
 		}
 		return false;
-	}else if(command == "additem"){
-		if(window._player instanceof Player){
-			var name = NPC.resolveCalculation(line[1]);
-			var item = new Item(0,0,0,{"name":name});
-			item.trigger("collideObject",_player);
-		}
-		this.scriptPos++;
-		return true;	
-	} else if(command == "trigger"){
-		Trigger.activate(i18n(NPC.resolveCalculation(line[1])));
-		this.scriptPos++;
-		return true;
-	}else if(command == "say"){
-		DialogManger.set(i18n(NPC.resolveVariable(line[1])));
-		this.showmessage = DialogManger.show;
-		if(!this.showmessage){
-			DialogManger.clear();
+	}else if(command == "wait_movements"){
+		if(this.movements.length > 0){
+			return false;
+		} else {
 			this.scriptPos++;
+			return true;
 		}
-		return false;
-	}else if(command == "move"){
-		var x = NPC.resolveCalculation(line[1]);
-		var y = NPC.resolveCalculation(line[2]);
-		var speed = NPC.resolveCalculation(line[3]);
-		this.scriptPos++;
-		return false;
 	}else if(command == "quest"){
 		Quests.set(line[1],NPC.resolveCalculation(line[2]));
 		this.scriptPos++;
 		return true;
-	}
+	} 
 	
 	//Command not found, go to next command
 	this.scriptPos++;
 	
 	return false;
 }
-
+NPC.prototype.findNPC = function(name){
+	if(name == "me"){
+		return this;
+	}
+	if(name == "player"){
+		return _player;
+	}
+	var npcs = game.getObjects(NPC);
+	for(var i=0; i < npcs.length; i++){
+		if(npcs[i].name == name){
+			return npcs[i];
+		}
+	}
+	return this;
+}
 NPC.resolveCalculation = function(calc){
 	var operands = new Array();
 	if(calc instanceof Array){
@@ -192,7 +328,7 @@ NPC.resolveVariable = function(varname){
 	}
 }
 NPC.prototype.getScript = function(filename){
-	ajax("scripts/"+filename+".script",function(data){
+	ajax("scripts/"+filename,function(data){
 		this.script = NPC.compileScript(data);
 	},this);
 }
@@ -258,7 +394,7 @@ NPC.compileCalc = function(tokens){
 	return o;
 }
 NPC.unpackTokens = function(line){
-	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+><=-]+)/g);
+	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+><_=-]+)/g);
 	for(var i = 0; i < out.length; i++){
 		out[i] = out[i].trim();
 		if(out[i].match(/^-?\d*\.?\d*$/)){

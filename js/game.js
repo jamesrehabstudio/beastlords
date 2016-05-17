@@ -144,6 +144,7 @@ function Game( elm ) {
 	this.bounds = new Line(new Point(-800,140),new Point(1900,1700));
 	//this.nodes = new BSPTree( this.bounds, 4);
 	this.sprites = {};
+	this.tint = [1.0,1.0,1.0,1.0];
 	
 	this.tileDimension = null;
 	this.tiles = null;
@@ -492,7 +493,7 @@ Game.prototype.render = function( ) {
 	this.backBuffer.reset(this.g);
 	
 	this.g.viewport(0,0,this.element.width,this.element.height);
-	this.g.renderBackbuffer(this.backBuffer.texture);
+	this.g.renderBackbuffer(this.backBuffer.texture, this.tint);
 	this.g.renderBackbuffer(this.hudBuffer.texture);
 	//this.g.renderImage(0,0,this.resolution.x,this.resolution.y, this.backBuffer.texture);
 	

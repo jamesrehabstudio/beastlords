@@ -1577,6 +1577,156 @@ Garmr.prototype.render = function(g,c){
 }
 Garmr.prototype.idle = function(){}
 
+ /* platformer\boss_ghostchort.js*/ 
+
+GhostChort.prototype = new GameObject();
+GhostChort.prototype.constructor = GameObject;
+function GhostChort(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 28;
+	this.height = 56;
+	this.sprite = sprites.pigboss;
+	this.speed = .9;
+	this.active = false;
+	this.start_x = x;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	this.addModule( mod_boss );
+	
+	this.bossface_frame = 0;
+	this.bossface_frame_row = 0;
+	
+	this.death_time = Game.DELTASECOND * 3;
+	this.life = Spawn.life(26,this.difficulty);
+	this.collideDamage = 5;
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.landDamage = Spawn.damage(6,this.difficulty);
+	
+	this.mass = 6.0;
+	this.gravity = 0.4;
+	
+	this.states = {
+		"attack" : 0.0,
+		"cooldown" : 100.0,
+		"bounce" : 0.0,
+		"bounceCount" : 0,
+		"direction" : 1.0,
+	}
+	
+	this.attack_times = {
+		"warm" : 24,
+		"release" : 10,
+		"cool" : 5
+	}
+	
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		if( obj.hurt instanceof Function )
+			if( this.force.y > 5 ) 
+				obj.hurt( this, this.landDamage );
+			//else
+			//	obj.hurt( this, this.collideDamage );
+	});
+	this.on("struck", EnemyStruck);
+	
+	this.on("hurt", function(){
+		audio.play("hurt");
+	});
+	this.on("death", function(){
+		_player.addXP(this.xp_award);
+		Quests.set("q2","complete");
+		
+		Item.drop(this,24);
+		audio.play("kill");
+		this.destroy();
+	});
+	this.calculateXP();
+}
+GhostChort.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if( this.life > 0 && this.active ) {
+		if( this.states.bounce > 0 ) {
+			if( this.grounded ) {
+				this.collideDamage = 5;
+				this.criticalChance = 0.0;
+				if( this.states.bounceCount > 0 ) {
+					this.force.y = -9;
+					this.states.bounceCount--;
+				} else {
+					this.states.bounce -= this.delta;
+				}
+			} else {
+				if( this.force.y < 0 ) {
+					//Target player
+					this.force.x += ( dir.x > 0 ? -1 : 1 ) * this.speed * this.delta * 0.5;
+				} else {
+					this.collideDamage = this.landDamage;
+					this.criticalChance = 1.0;
+				}
+			}
+		} else {
+			if( this.states.attack > 0 ) {
+				//Swing at player
+				this.states.attack -= this.delta;
+			} else if( Math.abs(dir.x) < 32 ) {
+				//Start punch
+				this.states.attack = this.attack_times.warm;
+				this.force.x = 0;
+			} else {
+				//Walking phase
+				if(this.position.x - this.start_x < -64 ) this.states.direction = 1;
+				if(this.position.x - this.start_x > 64 ) this.states.direction = -1;
+				
+				this.flip = dir.x > 0;
+				this.force.x = this.speed * this.states.direction * this.delta;
+				this.states.cooldown -= this.delta;
+				if( this.states.cooldown <= 0 ){
+					this.states.bounce = Game.DELTASECOND * 3;
+					this.states.bounceCount = 3 + Math.floor(Math.random() * 3);
+					this.states.cooldown = Game.DELTASECOND * (2+(Math.random()*3));
+				}
+			}
+		}
+		
+		if( this.states.attack <= this.attack_times.release && this.states.attack > this.attack_times.cool ) {
+			this.strike( new Line(12,-6,32,10) );
+		}
+	}
+	
+	/* animation */
+	
+	//28, 48
+	if( this.states.bounce > 0 ) {
+		this.width = 48;
+		this.frame_row = 1;
+		this.frame = 1;
+		if( this.grounded ) {
+			this.frame = 3;
+		} else if ( this.force.y < 0 ) {
+			this.frame = 2;
+		}
+	}else if ( this.states.attack > 0 ){
+		this.width = 28;
+		this.frame_row = 2; 
+		this.frame = 0; 
+		if( this.states.attack <= this.attack_times.release ) this.frame = 1;
+		if( this.states.attack <= this.attack_times.cool ) this.frame = 2;
+	} else {
+		this.width = 28;
+		this.frame = (this.frame + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
+		this.frame_row = 0;
+	}
+}
+
+GhostChort.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this,[g,c]);
+	Background.pushLight( this.position.subtract(c), 180 );
+}
+
  /* platformer\boss_marquis.js*/ 
 
 Marquis.prototype = new GameObject();
@@ -9000,53 +9150,96 @@ window._messages = {
 	"quest" : {
 		"english" : {
 			"q0" : ["The blocked caves", "Talk to the professor in NEARBYTOWN.", "Speak with the professor's brother hidden in the woods south of NEARBYTOWN.","Use the wand to open the cave entrence"],
-			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
-			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
-			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
+			"q1" : ["Reach the dead island", "Place your head against the Wailing Wall near Irata Mountain.", "Use the prayer to calm the resentful spirit."],
+			"q2" : ["Release the lost souls", "Find the resting places and pray for their souls."],
+			"q3" : ["Reach Doite", "Speak with someone in Irata village.", ""]
 		},
 		"engrish" : {
 			"q0" : ["The blocked caves", "Talk to the professor in NEARBYTOWN.", "Speak with the professor's brother hidden in the woods south of NEARBYTOWN.","Use the wand to open the cave entrence"],
-			"q1" : ["The men at sea", "Search for the wrecked ship off of Irata's east coast."],
-			"q2" : ["Do the thing", "Do a thing for a thing.", "get home and have a party."],
+			"q1" : ["Reach the dead island", "Place your head against the Wailing Wall near Irata Mountain.", "Use the prayer to calm the resentful spirit."],
+			"q2" : ["Release the lost souls", "Find the resting places and pray for their souls.","Return to the resentful spirit"],
 			"q3" : ["Do the other thing", "Search for the wrecked ship off of Irata's east coast."]
 		}
 	},
-	"miner0_0" : {
-		"english" : "This is no good. We were sent up here to mine. But we found this big old relief in the way. We don't exactly wanna break it. Could you ask the professor for us? He'll know what to do."
+	"greetings" : {
+		"english" : [
+			"Hello, stranger.",
+			"Evening, friend"
+		]
 	},
-	"miner0_1" : {
-		"english" : "Talk to the professor in NEARBYTOWN. He'll help us move this relief"
+	"miner0" : {
+		"english" : [
+			"This is no good. We were sent up here to mine. But we found this big old relief in the way. We don't exactly wanna break it. Could you ask the professor for us? He'll know what to do.",
+			"Talk to the professor in NEARBYTOWN. He'll help us move this relief",
+			"You talked to him? He wants you to get a magic wand? Maybe the professor is losing his marbles.",
+			"I can't believe that actually worked. Here was me thinkin' we had the week off"
+		]	
 	},
-	"miner0_2" : {
-		"english" : "You talked to him? He wants you to get a magic wand? Maybe the professor is losing his marbles. I dunno..."
+	"town01_professor" :{
+		"english" : [
+			"Thank you, young... man. Without Chort's minons running around the countryside, my research can continue unabated!",
+			"There's a large relief blocking the cave's entrence?! How amazing! That's a ancient door. Rather than have those brutes ruin it with their picks, find my brother in the south of the forest. He hides himself away, but he'll have the wand needed to open this cave.",
+			"Have you spoken with my brother? He lives south of here, on the other side of the forest.",
+			"You got the wand! It's certainly a marvel to see. It must be thousands of years old. Use it on the relief at the cave's entrence.",
+			"Hard to believe after so many years, these ancient gadgets still work."
+		]
 	},
-	"miner0_3" : {
-		"english" : "I can't believe that actually worked. Here was me thinkin' we had the week off"
+	"town02_hermit" :{
+		"english" : [
+			"Get out of here you wild thing!",
+			"I'm sorry, I thought you were some wild creature looking for food. My brother sent you? He should know better than that. If it's the wand you're after here it is. But take good care of it. It's priceless.",
+			"Next time your see my brother, tell him not to send anymore people to me. I just want to be left alone."
+		]
 	},
-	"professor0_0" :{
-		"english" : "You're a strange looking one. You have a nice day, now."
+	"southcitymadman" : {
+		"english" : [
+			"You're trying to get to the island? There's a place next to Irata Mountain called the Wailing wall. I hear if you place your head against it, a spirit will take you to the island.",
+			"Have you tried it yet? The Wailing Wall is just north of here, next to the foot of the mountain."
+		]
 	},
-	"professor0_1" :{
-		"english" : "There's a large relief blocking the cave's entrence?! How amazing! That's a ancient door. Rather than have those brutes ruin it with their picks, find my brother in the south of the forest. He hides himself away, but he'll have the wand needed to open this cave."
+	"wailingwall" :{
+		"english" : [
+			"Are... are you okay there, friend?",
+			"Someone told you if you put your head against this rock and you'll end up in across the river?! I think someone might be having you on. Here. Come and join us by our fire.",
+			"My name is Lance, and this is my friend Carl. We're travelers in these parts. We don't see many people in these parts.",
+			"Yeah, especially Beasts.",
+			"Don't be rude, Carl.",
+			"I'm not being rude. I'm just saying... I've nothing against Beast Lords.",
+			"Some of your best friends are Beast Lords. Eh, Carl?",
+			"As a matter of fact, yes.",
+			"Carl is sweet on this Beast Lord girl, but she doesn't speak a word of the language.",
+			"People can have a very meaningful time together without actually talking, Lance.",
+			"Ooooh, look at you, boasting!",
+			"Knock it off, Lance. She's not like that. She's really sweet.",
+			"It's a good thing you two can't speak. She'd realise what an oaf you are.",
+			"Anyway, why do you want to cross the river for, stranger? Haven't you heard the land there is haunted?",
+			"He's not joking either. I heard there was a resentful spirit that strikes any trespassers dead with fright.",
+			"I think Carl's girl may be from that island. The only words in our language she can speak is this weird little prayer. How does it go, Carl?",
+			"I dunno if I should be telling you this. You seem friendly, the last thing I want is you rushing off into that acursed island...",
+			"...but if you really want to know it...",
+			"Good luck, friend. Don't mess with devils and ghosts."
+		]
 	},
-	"professor0_2" :{
-		"english" : "Have you spoken with my brother? He lives south of here, on the other side of the forest."
+	
+	
+	//Phantom Pass
+	"phantompass" :{
+		"english" : [
+			"You're a strange one. You know the lament of the dead? It's a prayer for releasing lost souls, not many Mortals know it.",
+			"You want past? I cannot allow it. This is the land of the dead. No living creature can be permitted.",
+			"Perhaps there is a way for you to pass. There is something you can do for the dead to ease their weary souls. How about it?",
+			"This is Bardo, the land between life and death. Find the lost souls in this place and pray for their release.",
+			"I first wandered these lands, like you, as a living man. I wanted to help the ill and dying of this land. They were sent here to die, and offered respite.",
+			"But there were so many dead here, I haven't even half completed my task.",
+			"Good luck, young warrior. Return here once you have prayed for all the lost souls."
+		]
 	},
-	"professor0_3" :{
-		"english" : "You got the wand! It's certainly a marvel to see. It must be thousands of years old. Use it on the relief at the cave's entrence."
+	"phantomend" :{
+		"english" : [
+			"Poor sorry beast. My duty here has lasted centuries, but at last it is coming to an end. I'm sorry it had to be you, but I've dreamt of this day since I first took up the reins.",
+			"What do you think you're doing, Phantom?"
+		]
 	},
-	"professor0_4" :{
-		"english" : "Hard to believe after so many years, these ancient gadgets still work."
-	},
-	"professor1_0" :{
-		"english" : "Get out of here you wild thing!"
-	},
-	"professor1_1" :{
-		"english" : "I'm sorry, I thought you were some wild creature looking for food. My brother sent you? He should know better than that. If it's the wand you're after here it is. But take good care of it. It's priceless."
-	},
-	"professor1_2" :{
-		"english" : "Next time your see my brother, tell him not to send anymore people to me. I just want to be left alone."
-	}
 };
 function i18n(name,replace){
 	replace = replace || {};
@@ -10171,6 +10364,7 @@ MapLoader.parseMap = function(xml){
 		}
 	}
 	
+	game.tint = [1,1,1,1];
 	game.clearAll();
 	game.tiles = tilesout;
 	game.tileDimension = new Line(0,0,width,height);
@@ -10586,12 +10780,7 @@ PauseMenu.prototype.update = function(){
 		if( _player.life <= 0 ) {
 			//Player is dead, just wait for the start button to be pressed
 			if( input.state("pause") == 1 ) { 
-				if( window._world instanceof WorldMap ) {
-					_world.trigger("reset");
-				} else {
-					game.clearAll();
-					game.addObject(new TitleMenu());
-				}
+				_player.respawn();
 				return;
 			}
 		} else if( this.page == 0 ) {
@@ -11869,6 +12058,7 @@ var mod_boss = {
 				
 				_player.lock_overwrite = false;
 				Trigger.activate("boss_door");
+				Trigger.activate("boss_death");
 			}
 		}
 		this._boss_is_active = function(){
@@ -12091,6 +12281,7 @@ function NPC(x,y,t,o){
 	this.height = 32;
 	this.start_x = x;
 	this.sprite = sprites.characters;
+	this.name = "";
 	
 	this.addModule(mod_talk);
 	
@@ -12103,9 +12294,19 @@ function NPC(x,y,t,o){
 	this.scriptRun = false;
 	this.scriptWait = 0.0;
 	
+	this.movements = new Array();
+	
 	o = o || {};
 	if("script" in o){
-		this.getScript(o["script"]);
+		var s = o["script"];
+		if(s.match(/\w+\.script/)){
+			this.getScript(s);
+		} else {
+			this.script = NPC.compileScript(s);
+		}
+	}
+	if("name" in o){
+		this.name  = o["name"];
 	}
 	if("lockplayer" in o){
 		this.lockplayer = o["lockplayer"] * 1;
@@ -12119,10 +12320,45 @@ function NPC(x,y,t,o){
 	this.on("close", function(){
 		if(this.lockplayer){window._player.pause = false;}
 	});
+	this.on("activate", function(){
+		if(!this.scriptRun){
+			this.trigger("open");
+		}
+	});
+	
+	if("autorun" in o){
+		this.trigger("open");
+	}
+	if("trigger" in o) {
+		this._tid = o["trigger"];
+	}
 	
 }
 
+NPC.prototype.idle = function(){
+	if(this.runScript){
+		return true;
+	} else{
+		return GameObject.prototype.idle.apply(this);
+	}
+}
 NPC.prototype.update = function(){
+	
+	for(var i=0; i<this.movements.length; i++){
+		var obj = this.movements[i].object;
+		var destination = this.movements[i].destination;
+		var speed = this.movements[i].speed * this.delta;
+		var direction = destination.subtract(obj.position);
+		
+		if(direction.magnitude() <= speed){
+			obj.position = destination;
+			this.movements.remove(i);
+			i--;
+		} else {
+			obj.position = obj.position.add(direction.normalize(speed));
+		}
+	}
+	
 	if(this.scriptRun){
 		while(this.runScript()){}
 	}
@@ -12166,7 +12402,102 @@ NPC.prototype.runScript = function(filename){
 		NPC.variables[line[1]] = NPC.resolveCalculation(line[2]);
 		this.scriptPos++;
 		return true;
-	}else if(command == "wait"){
+	}else if(command == "additem"){
+		if(window._player instanceof Player){
+			var name = NPC.resolveCalculation(line[1]);
+			var item = new Item(0,0,0,{"name":name});
+			item.trigger("collideObject",_player);
+		}
+		this.scriptPos++;
+		return true;
+	}else if(command == "map"){
+		var map = NPC.resolveCalculation(line[1]);
+		var start;
+		if(2 in line){
+			start = NPC.resolveCalculation(line[2]);
+		}
+		WorldLocale.loadMap(map, start);
+		
+		//Loading new map, end script
+		this.scriptRun = false;
+		this.scriptPos = 0;
+		this.close();
+		return false;
+	} else if(command == "trigger"){
+		Trigger.activate(line[1]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "say"){
+		var message = i18n(NPC.resolveVariable(line[1]));
+		if(message instanceof Array){
+			var index = NPC.resolveVariable(line[2]);
+			if(line.length >= 2 && message.length > index){
+				message = message[index];
+			} else {
+				message = message[0];
+			}
+		}
+		DialogManger.set(message);
+		this.showmessage = DialogManger.show;
+		if(!this.showmessage){
+			DialogManger.clear();
+			this.scriptPos++;
+		}
+		return false;
+	}else if(command == "tint"){
+		var time = NPC.resolveCalculation(line[1]);
+		if(this.scriptWait > 0){
+			var speed = this.delta / (Game.DELTASECOND * time);
+			game.tint[0] = Math.lerp(game.tint[0],NPC.resolveVariable(line[2]),speed);
+			game.tint[1] = Math.lerp(game.tint[1],NPC.resolveVariable(line[3]),speed);
+			game.tint[2] = Math.lerp(game.tint[2],NPC.resolveVariable(line[4]),speed);
+			this.scriptWait -= this.delta;
+			if(this.scriptWait <= 0){
+				this.scriptPos++;
+				return true;
+			}
+		}else{
+			this.scriptWait = time * Game.DELTASECOND;
+		}
+		return false;
+	}else if(command == "actor_frame"){ //ACTOR COMMANDS
+		var obj = this.findNPC(line[1]);
+		obj.frame = NPC.resolveCalculation(line[2]);
+		obj.frame_row = NPC.resolveCalculation(line[3]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_visible"){
+		var obj = this.findNPC(line[1]);
+		obj.visible = NPC.resolveCalculation(line[2]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_location"){
+		var obj = this.findNPC(line[1]);
+		obj.position = new Point(NPC.resolveCalculation(line[2]), NPC.resolveCalculation(line[3]));
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_move"){
+		this.movements.push({
+			"object" : this.findNPC(line[1]),
+			"destination" : new Point(NPC.resolveCalculation(line[2]), NPC.resolveCalculation(line[3])),
+			"speed" : NPC.resolveCalculation(line[4])
+		});
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_flip"){
+		var obj = this.findNPC(line[1]);
+		obj.flip = NPC.resolveCalculation(line[2]);
+		this.scriptPos++;
+		return true;
+	}else if(command == "actor_sprite"){
+		var obj = this.findNPC(line[1]);
+		var sprite = NPC.resolveCalculation(line[2]);
+		if(sprite in window.sprites){
+			obj.sprite = window.sprites[sprite];
+		}
+		this.scriptPos++;
+		return true;
+	}else if(command == "wait"){ //WAIT COMMANDS
 		if(this.scriptWait > 0){
 			this.scriptWait -= this.delta;
 			if(this.scriptWait <= 0){
@@ -12176,44 +12507,39 @@ NPC.prototype.runScript = function(filename){
 			this.scriptWait = NPC.resolveCalculation(line[1]) * Game.DELTASECOND;
 		}
 		return false;
-	}else if(command == "additem"){
-		if(window._player instanceof Player){
-			var name = NPC.resolveCalculation(line[1]);
-			var item = new Item(0,0,0,{"name":name});
-			item.trigger("collideObject",_player);
-		}
-		this.scriptPos++;
-		return true;	
-	} else if(command == "trigger"){
-		Trigger.activate(i18n(NPC.resolveCalculation(line[1])));
-		this.scriptPos++;
-		return true;
-	}else if(command == "say"){
-		DialogManger.set(i18n(NPC.resolveVariable(line[1])));
-		this.showmessage = DialogManger.show;
-		if(!this.showmessage){
-			DialogManger.clear();
+	}else if(command == "wait_movements"){
+		if(this.movements.length > 0){
+			return false;
+		} else {
 			this.scriptPos++;
+			return true;
 		}
-		return false;
-	}else if(command == "move"){
-		var x = NPC.resolveCalculation(line[1]);
-		var y = NPC.resolveCalculation(line[2]);
-		var speed = NPC.resolveCalculation(line[3]);
-		this.scriptPos++;
-		return false;
 	}else if(command == "quest"){
 		Quests.set(line[1],NPC.resolveCalculation(line[2]));
 		this.scriptPos++;
 		return true;
-	}
+	} 
 	
 	//Command not found, go to next command
 	this.scriptPos++;
 	
 	return false;
 }
-
+NPC.prototype.findNPC = function(name){
+	if(name == "me"){
+		return this;
+	}
+	if(name == "player"){
+		return _player;
+	}
+	var npcs = game.getObjects(NPC);
+	for(var i=0; i < npcs.length; i++){
+		if(npcs[i].name == name){
+			return npcs[i];
+		}
+	}
+	return this;
+}
 NPC.resolveCalculation = function(calc){
 	var operands = new Array();
 	if(calc instanceof Array){
@@ -12275,7 +12601,7 @@ NPC.resolveVariable = function(varname){
 	}
 }
 NPC.prototype.getScript = function(filename){
-	ajax("scripts/"+filename+".script",function(data){
+	ajax("scripts/"+filename,function(data){
 		this.script = NPC.compileScript(data);
 	},this);
 }
@@ -12341,7 +12667,7 @@ NPC.compileCalc = function(tokens){
 	return o;
 }
 NPC.unpackTokens = function(line){
-	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+><=-]+)/g);
+	var out = line.match(/\s*(\"[^\"]+\")|([A-Za-z0-9.+><_=-]+)/g);
 	for(var i = 0; i < out.length; i++){
 		out[i] = out[i].trim();
 		if(out[i].match(/^-?\d*\.?\d*$/)){
@@ -12352,6 +12678,128 @@ NPC.unpackTokens = function(line){
 }
 NPC.operators = ["/","*","+","-","==",">","<"];
 NPC.variables = {};
+
+ /* platformer\phantom.js*/ 
+
+Phantom.prototype = new GameObject();
+Phantom.prototype.constructor = GameObject;
+function Phantom(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 24;
+	this.sprite = sprites.phantom;
+	this.speed = 2.1;
+	this.resetPosition = new Point(x,y);
+	
+	this.frame = 0;
+	this.frame_row = 0;
+	this.force = new Point(0,0);
+	this.friction = 0.2;
+	this.active = false;
+	
+	this.warmup = Game.DELTASECOND * 1.5;
+	this.warmupTotal = Game.DELTASECOND * 0.7;
+	
+	o = o || {};
+	
+	this.on("player_death", function(){
+		this.position.x = this.resetPosition.x;
+		this.position.y = this.resetPosition.y;
+		this.force = new Point();
+		this.warmup = Game.DELTASECOND * 1.5;
+		this.active = false;
+	});
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			obj.invincible = -1;
+			obj.hurt( this, 9999 );
+		}
+	});
+	this.on("prayer", function(){
+		var b = game.getObject(Background);
+		if(b instanceof Background){
+			b.darknessFunction = function(c){return 1;}
+			b.ambience = [0.3,0.0,0.4];
+		}
+		
+		Trigger.activate("ghost");
+		Background.flash = [1,1,1,1];
+		this.destroy();
+	});
+}
+Phantom.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if(!this.active){
+		this.frame = (this.frame + this.delta * 0.2) % 4;
+		this.frame_row = 2;
+		if(Math.abs(dir.x) < 128 ){
+			this.active = true;
+		}
+	} else if( this.warmup > 0 ){
+		var progress = this.warmup / this.warmupTotal;
+		if(progress > 1){
+			this.frame = (this.frame + this.delta * 0.2) % 4;
+			this.frame_row = 2;
+		} else {
+			shakeCamera(0.1,9);
+			this.frame = (1-progress) * 4;
+			this.frame_row = 3;
+		}
+		this.warmup -= this.delta;
+	} else {
+		shakeCamera(0.1,4);
+		this.force = this.force.add(dir.normalize(-this.speed * this.delta));
+		this.frame = Math.max((this.frame+this.delta)%4,2);
+		this.frame_row = 1;
+	}
+	
+	this.force.x *= 1 - (this.friction * this.delta);
+	this.force.y *= 1 - (this.friction * this.delta);
+	
+	this.position = new Point(
+		this.position.x + this.force.x * this.delta,
+		this.position.y + this.force.y * this.delta
+	);
+	this.flip = dir.x > 0;
+}
+
+PhantomGrave.prototype = new GameObject();
+PhantomGrave.prototype.constructor = GameObject;
+function PhantomGrave(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = d[0];
+	this.height = d[1];
+	this.sprite = sprites.phantomgraves;
+	this.zIndex = -21;
+	this.size = 180;
+	this.show = true;
+	
+	this.frame = 0;
+	this.frame_row = 0;
+	
+	o = o || {};
+	if("index" in o){
+		this.index = o.index * 1;
+		this.frame = this.index % 3;
+		this.frame_row = Math.floor(this.index / 3);
+	}
+	
+	this.on("prayer", function(){
+		Background.flash = [1,1,1,1];
+		this.destroy();
+	});
+}
+PhantomGrave.prototype.update = function(){
+}
+PhantomGrave.prototype.render = function(g,c){	
+	GameObject.prototype.render.apply(this,[g,c]);
+	Background.pushLight( this.position.subtract(c), this.width * 2 );
+}
 
  /* platformer\platform_generator.js*/ 
 
@@ -13432,6 +13880,22 @@ Player.prototype.hasCharm = function(value){
 		return this.charm.name == value;
 	}
 	return false;
+}
+Player.prototype.respawn = function(g,c){
+	var keys = this.keys;
+	this.life = this.lifeMax;
+	this.mana = this.manaMax;
+	this.position.x = this.checkpoint.x;
+	this.position.y = this.checkpoint.y;
+	this.interactive = true;
+	this.lock_overwrite = false;
+	game.addObject(this);
+	this.keys = keys;
+	audio.playAs(audio.alias["music"],"music");
+	try{ 
+		game.pause = false;
+		game.getObject(PauseMenu).open = false; 
+	} catch(err){}
 }
 Player.prototype.render = function(g,c){	
 	//Render shield behind the player
@@ -16214,10 +16678,13 @@ function Trigger(x,y,d,o){
 	this.retrigger = 1;
 	this.retriggertime = Game.DELTASECOND;
 	this.retriggertimeCooldown = 0;
+	this.mustwaitinside = false;
 	
 	this.countdown = 0;
 	this.timer = 0;
 	this.time = 0;
+	
+	this._isover = false
 	
 	o = o || {};
 	
@@ -16252,6 +16719,9 @@ function Trigger(x,y,d,o){
 	if("timer" in o){
 		this.time = o["timer"] * Game.DELTASECOND;
 		this.timer = this.time;
+	}
+	if("mustwaitinside" in o){
+		this.mustwaitinside = o["mustwaitinside"];
 	}
 	
 	this.on("activate", function(obj){
@@ -16301,6 +16771,7 @@ function Trigger(x,y,d,o){
 				this.trigger("activate");
 			}else{
 				this.countdown = true;
+				this._isover = true;
 			}
 		}
 	});
@@ -16308,6 +16779,10 @@ function Trigger(x,y,d,o){
 
 Trigger.prototype.update = function(){
 	if(this.countdown){
+		if(!this._isover && this.mustwaitinside){
+			this.timer = this.time;
+			this.countdown = false;
+		}
 		if(this.timer <= 0){
 			this.timer = this.time;
 			this.countdown = false;
@@ -16316,6 +16791,7 @@ Trigger.prototype.update = function(){
 		this.timer -= this.delta;
 	}
 	this.retriggertimeCooldown -= this.delta;
+	this._isover = false;
 }
 Trigger.prototype.idle = function(){}
 
@@ -16782,8 +17258,9 @@ Quests = {
 		return out;
 	},
 	"COMPLETED" : 9999,
-	"q0" : 0,
-	"q1" : 0
+	"q0" : 0, //Magic wand
+	"q1" : 0,
+	"q2" : 0 //Lost souls in the phantom world
 }
 
 /*
@@ -17190,7 +17667,7 @@ WorldMap.prototype.worldTick = function(){
 WorldMap = {
 	"newgame" : function(){
 		window._player = new Player(64,178);
-		WorldMap.position = new Point(76*16,18*16);
+		WorldMap.position = new Point(106*16,64*16);
 		WorldMap.open();
 	},
 	"position" : new Point(240,256),
@@ -17348,27 +17825,7 @@ function WorldLocale(x,y,d,properties){
 					
 					if(this.type == "tmx"){
 						WorldMap.close(this);
-						var file = "maps/" + this.index;
-						var self = this;
-						MapLoader.loadMapTmx(file, function(starts){
-							//Determine player start location
-							if(starts.length > 0){
-								if(self.start && MapLoader.getMapIndex(starts,self.start) >= 0){
-									//Player start matches specified location start
-									var index = MapLoader.getMapIndex(starts,self.start);
-									_player.position = new Point(starts[index].x,starts[index].y);
-									game.addObject(_player);
-								} else {
-									//No start location specified, pick the first start
-									_player.position = new Point(starts[0].x,starts[0].y);
-									game.addObject(_player);
-								}
-							} else {
-								//No player start, just force one in
-								_player.position = new Point(64,192);
-								game.addObject(_player);
-							}
-						});
+						WorldLocale.loadMap(this.index, this.start);
 					}
 			}
 			this.sleepTime = Game.DELTASECOND * 0.5;
@@ -17380,6 +17837,28 @@ WorldLocale.prototype.update = function(){
 	if(!this.active){
 		this.sleepTime -= this.delta;
 	}
+}
+WorldLocale.loadMap = function(map, start){
+	var file = "maps/" + map;
+	MapLoader.loadMapTmx(file, function(starts){
+		//Determine player start location
+		if(starts.length > 0){
+			if(start && MapLoader.getMapIndex(starts,start) >= 0){
+				//Player start matches specified location start
+				var index = MapLoader.getMapIndex(starts,start);
+				_player.position = new Point(starts[index].x,starts[index].y);
+				game.addObject(_player);
+			} else {
+				//No start location specified, pick the first start
+				_player.position = new Point(starts[0].x,starts[0].y);
+				game.addObject(_player);
+			}
+		} else {
+			//No player start, just force one in
+			_player.position = new Point(64,192);
+			game.addObject(_player);
+		}
+	});
 }
 
 WorldEncounter.prototype = new GameObject();
@@ -18045,7 +18524,7 @@ window.shaders["2d-fragment-lightbeam"] = "precision mediump float;\nuniform vec
 
  /* platformer\shaders\2d-fragment-shader.shader*/ 
 
-window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	gl_FragColor = u_color * texture2D(u_image, v_texCoord);\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\n}";
+window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 additive = u_color - 1.0;\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	gl_FragColor = additive + multiply * texture2D(u_image, v_texCoord);\n}";
 
 
 

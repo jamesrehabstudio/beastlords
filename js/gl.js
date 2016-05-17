@@ -519,7 +519,7 @@ WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
 	this.drawArrays(this.TRIANGLE_STRIP, 0, geo.length/2);
 }
 
-WebGLRenderingContext.prototype.renderBackbuffer = function(image){
+WebGLRenderingContext.prototype.renderBackbuffer = function(image, tint){
 	var top = game.resolution.y / 512;
 	var lef = game.resolution.x / 512;
 	
@@ -530,6 +530,10 @@ WebGLRenderingContext.prototype.renderBackbuffer = function(image){
 	
 	this.bindTexture(this.TEXTURE_2D, image);
 	
+	if(tint == undefined){
+		tint = [1.0,1.0,1.0,1.0];
+	}
+	
 	var buffer = this.createBuffer();
 	this.bindBuffer( this.ARRAY_BUFFER, buffer );
 	this.bufferData( this.ARRAY_BUFFER, geo, this.DYNAMIC_DRAW);
@@ -539,7 +543,7 @@ WebGLRenderingContext.prototype.renderBackbuffer = function(image){
 	this.bindBuffer( this.ARRAY_BUFFER, tbuffer );
 	this.bufferData( this.ARRAY_BUFFER, tex, this.DYNAMIC_DRAW);
 	shader.set("a_texCoord");
-	
+	shader.set("u_color", tint);
 	shader.set("u_resolution", game.resolution.x, game.resolution.y);
 	
 	this.drawArrays(this.TRIANGLE_STRIP, 0, geo.length/2);

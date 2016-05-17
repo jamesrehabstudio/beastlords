@@ -192,6 +192,7 @@ MapLoader.parseMap = function(xml){
 		}
 	}
 	
+	game.tint = [1,1,1,1];
 	game.clearAll();
 	game.tiles = tilesout;
 	game.tileDimension = new Line(0,0,width,height);

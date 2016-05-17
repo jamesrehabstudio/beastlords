@@ -1034,6 +1034,22 @@ Player.prototype.hasCharm = function(value){
 	}
 	return false;
 }
+Player.prototype.respawn = function(g,c){
+	var keys = this.keys;
+	this.life = this.lifeMax;
+	this.mana = this.manaMax;
+	this.position.x = this.checkpoint.x;
+	this.position.y = this.checkpoint.y;
+	this.interactive = true;
+	this.lock_overwrite = false;
+	game.addObject(this);
+	this.keys = keys;
+	audio.playAs(audio.alias["music"],"music");
+	try{ 
+		game.pause = false;
+		game.getObject(PauseMenu).open = false; 
+	} catch(err){}
+}
 Player.prototype.render = function(g,c){	
 	//Render shield behind the player
 	if( !this.guard.active ){

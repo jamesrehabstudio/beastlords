@@ -1,0 +1,19 @@
+actor_sprite me "phantom"
+if quest.q2 > 2
+	end
+if quest.q2 < 2
+	if phantomchat == 0
+		say "phantompass" 3
+		set phantomchat 1
+		end
+	if phantomchat == 1
+		say "phantompass" 4
+		set phantomchat 2
+		end
+	if phantomchat == 2
+		say "phantompass" 5
+		set phantomchat 3
+		end
+	if phantomchat == 3
+		say "phantompass" 6
+		end

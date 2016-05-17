@@ -1,12 +1,12 @@
 if quest.q0 == 0
-	say "miner0_0"
+	say "miner0" 0
 	quest q0 1
 	end
 if quest.q0 == 1
-	say "miner0_1"
+	say "miner0" 1
 if quest.q0 == 2
-	say "miner0_2"
+	say "miner0" 2
 if quest.q0 == 3
-	say "miner0_2"
+	say "miner0" 2
 if quest.q0 > 3
-	say "miner0_3"
+	say "miner0" 3

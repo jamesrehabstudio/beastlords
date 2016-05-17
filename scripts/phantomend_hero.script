@@ -1,0 +1,22 @@
+actor_visible player 0
+actor_frame me 0 0
+actor_location me 488 192
+actor_location player 488 192
+actor_move me 592 192 1.0
+actor_move player 592 192 1.0
+wait_movements
+wait 1.0
+actor_frame me 0 1
+wait 0.2
+actor_frame me 1 1
+wait 0.2
+actor_frame me 2 1
+wait 1.0
+actor_move phantom 624 192 1.5
+wait_movements
+say "phantomend" 0
+actor_move player 424 192 1.5
+actor_move phantom 424 192 1.5
+wait_movements
+say "phantomend" 1
+actor_visible player 1

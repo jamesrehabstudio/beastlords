@@ -1,0 +1,12 @@
+if quest.q0 == 0
+	say "town01_professor" 0
+if quest.q0 == 1
+	say "town01_professor" 1
+	quest q0 2
+	end
+if quest.q0 == 2
+	say "town01_professor" 2
+if quest.q0 == 3
+	say "town01_professor" 3
+if quest.q0 > 3
+	say "town01_professor" 4

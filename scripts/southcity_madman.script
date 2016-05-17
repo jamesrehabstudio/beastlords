@@ -1,0 +1,7 @@
+if quest.q1 == 0
+	say "southcitymadman" 0
+	quest q1 1
+	end
+if quest.q1 == 1
+	say "southcitymadman" 1
+	end

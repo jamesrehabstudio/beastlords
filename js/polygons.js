@@ -313,7 +313,9 @@ Point.prototype.scale = function(scale){
 	return new Point(this.x * scale, this.y * scale);
 }
 Point.prototype.normalize = function(scale){
-	scale = scale || 1;
+	if(scale == undefined){
+		scale = 1;
+	}
 	var norm = this.length();
 	if(norm != 0){
 		return new Point( scale * this.x / norm, scale * this.y / norm );
