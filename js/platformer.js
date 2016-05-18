@@ -2367,7 +2367,7 @@ function Bullet(x,y,d){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 10;
-	this.height = 10;
+	this.height = 6;
 	this.blockable = true;
 	this.range = 512;
 	
@@ -2394,10 +2394,18 @@ function Bullet(x,y,d){
 	
 	this.on("collideObject", function(obj){
 		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
-			if( !this.blockable ) {
+			if( !this.blockable || !obj.hasModule(mod_combat) ) {
 				obj.hurt( this, this.damage );
 			} else {
-				if( "_shield" in obj && game.overlaps(this.bounds()).indexOf(obj._shield) > -1 ){
+				var flip = obj.flip ? -1:1;
+				var shield = new Line(
+					obj.position.x + (obj.guard.x) * flip,
+					obj.position.y + (obj.guard.y),
+					obj.position.x + (obj.guard.x + obj.guard.w) * flip,
+					obj.position.y + (obj.guard.y + obj.guard.h)
+				);
+				
+				if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
 					this.trigger("blocked",obj);
 					obj.trigger("block",this,this.position,this.damage);
 				} else {
@@ -2850,7 +2858,7 @@ Checkpoint.prototype.render = function(g,c){
 
 CornerStone.prototype = new GameObject();
 CornerStone.prototype.constructor = GameObject;
-function CornerStone(x,y,parm,options){
+function CornerStone(x,y,d,options){
 	options = options || {};
 	
 	this.constructor();
@@ -2860,13 +2868,19 @@ function CornerStone(x,y,parm,options){
 	this.width = 64;
 	this.height = 96;
 	this.gate = "gate" in options;
-	this.gate_number = this.gate ? options.gate-0 : dataManager.currentTemple;
-	this.broken = false;
+	this.gate_number = 0;
+	this.gate_variable = "gate_0"
+	this.broken = 0;
 	
 	this.play_fanfair = false;
 	
-	if( this.gate_number in _world.temples ){
-		this.broken = _world.temples[this.gate_number].complete
+	if("gate" in options){
+		this.gate_number = options["gate"] * 1;
+		this.gate_variable = "gate_" + this.gate_number;
+	}
+	
+	if( this.gate_variable in NPC.variables ){
+		this.broken = NPC.variables[this.gate_variable];
 	}
 	
 	
@@ -2877,11 +2891,11 @@ function CornerStone(x,y,parm,options){
 	this.progress = 0.0;
 	this.on("struck",function(obj,pos,damage){
 		if( !this.gate && !this.active && obj instanceof Player ) {
-			_world.temples[this.gate_number].complete = true;
+			NPC.variables[this.gate_variable] = 1;
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
-			ga("send","event","cornerstone","completed temple:"+dataManager.currentTemple);
+			//ga("send","event","cornerstone","completed temple:"+dataManager.currentTemple);
 		}
 	});
 	
@@ -2889,7 +2903,7 @@ function CornerStone(x,y,parm,options){
 	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
 		game.setTile(
 			-32 + x + _x,
-			-32 + y +_y,
+			-48 + y +_y,
 			game.tileCollideLayer, 
 			tile
 		);
@@ -2915,7 +2929,11 @@ CornerStone.prototype.update = function(){
 		if( this.progress > 233.333 ) {
 			game.pause = false;
 			_player.addXP(40);
-			window._world.trigger("activate");
+			
+			//For fun only
+			WorldLocale.loadMap("temple2.tmx");
+			
+			//WorldMap.open()
 		}
 		
 		this.progress += game.deltaUnscaled;
@@ -8715,6 +8733,9 @@ function Exit(x,y,d,o){
 	
 	this.on("collideObject",function(obj){
 		if( obj instanceof Player ) {
+			WorldLocale.loadMap("temple1.tmx");
+			return;
+			
 			if(this.start){
 				WorldMap.open(this.start);
 			} else {
@@ -13117,7 +13138,7 @@ function Player(x, y){
 	this.stats = {
 		"attack" : 1,
 		"defence" : 1,
-		"technique" : 1,
+		//"technique" : 1,
 		"magic" : 1
 	}
 	
@@ -13801,8 +13822,8 @@ Player.prototype.equip = function(sword, shield){
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
 		var magic = Math.max( Math.min( mag_bonus + this.stats.magic - 1, 19), 0 );
 		
-		this.guard.lifeMax += 3 * def + tech;
-		this.guard.restore = 0.4 + tech * 0.05;
+		//this.guard.lifeMax += 3 * def + tech;
+		//this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
@@ -14056,7 +14077,7 @@ Player.prototype.hudrender = function(g,c){
 		);
 	}
 	
-	var item_pos = 20 + this.lifeMax * 0.25;
+	var item_pos = 20 + Math.max(this.lifeMax, this.manaMax);
 	//item hud
 	if(this.charm instanceof Item ){
 		this.charm.position.x = this.charm.position.y = 0;
@@ -16089,6 +16110,8 @@ spell_fire = function(player){
 		return 0;
 	}
 	
+	audio.play("cracking");
+	var damage = Math.floor(18 + player.stats.magic*4);
 	var bullet = new Bullet(player.position.x, player.position.y, (player.flip?-1:1));
 	bullet.team = 1;
 	bullet.frames = [5,6,7];
@@ -16108,6 +16131,7 @@ spell_bifurcate = function(player){
 		return 0;
 	}
 	
+	audio.play("cracking");
 	var bullet = new Bullet(player.position.x, player.position.y, (player.flip?-1:1));
 	bullet.team = 1;
 	bullet.frames = [5,6,7];
@@ -16138,13 +16162,13 @@ spell_flash = function(player){
 	audio.play("spell");
 	var area = new Line(game.camera, game.camera.add(game.resolution));
 	var objs = game.interactive.get(area);
-	var damage = Math.floor(8 + player.stats.magic*3);
+	var damage = Math.floor(8 + player.stats.magic*2);
 	var heal = 0;
 	for(var i=0; i < objs.length; i++){
 		var obj = objs[i];
 		if(obj.hasModule(mod_combat) && obj.team != player.team && area.overlaps(obj.position)){
 			obj.hurt(player,damage);
-			heal += damage;
+			heal += 2;
 		}
 	}
 	player.heal += heal;
@@ -16159,7 +16183,9 @@ spell_heal = function(player){
 		audio.play("negative");
 		return 0;
 	}
-	player.heal += 15;
+	
+	var heal = Math.floor(8 + player.stats.magic*3);
+	player.heal += heal;
 	
 	return cost;
 }
@@ -16600,7 +16626,7 @@ BreakableTile.prototype.update = function(){
 	}
 }
 
-BreakableTile.unbreakable = 232;
+BreakableTile.unbreakable = 1023;
 
  /* platformer\titlecard.js*/ 
 
@@ -17667,8 +17693,9 @@ WorldMap.prototype.worldTick = function(){
 WorldMap = {
 	"newgame" : function(){
 		window._player = new Player(64,178);
-		WorldMap.position = new Point(106*16,64*16);
-		WorldMap.open();
+		WorldMap.position = new Point(73*16,40*16);
+		//WorldMap.open();
+		WorldLocale.loadMap("temple1.tmx");
 	},
 	"position" : new Point(240,256),
 	"open" : function(playerLocale){

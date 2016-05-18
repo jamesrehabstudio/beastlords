@@ -270,7 +270,7 @@ function Player(x, y){
 	this.stats = {
 		"attack" : 1,
 		"defence" : 1,
-		"technique" : 1,
+		//"technique" : 1,
 		"magic" : 1
 	}
 	
@@ -954,8 +954,8 @@ Player.prototype.equip = function(sword, shield){
 		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
 		var magic = Math.max( Math.min( mag_bonus + this.stats.magic - 1, 19), 0 );
 		
-		this.guard.lifeMax += 3 * def + tech;
-		this.guard.restore = 0.4 + tech * 0.05;
+		//this.guard.lifeMax += 3 * def + tech;
+		//this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
@@ -1209,7 +1209,7 @@ Player.prototype.hudrender = function(g,c){
 		);
 	}
 	
-	var item_pos = 20 + this.lifeMax * 0.25;
+	var item_pos = 20 + Math.max(this.lifeMax, this.manaMax);
 	//item hud
 	if(this.charm instanceof Item ){
 		this.charm.position.x = this.charm.position.y = 0;

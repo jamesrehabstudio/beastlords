@@ -6,6 +6,8 @@ spell_fire = function(player){
 		return 0;
 	}
 	
+	audio.play("cracking");
+	var damage = Math.floor(18 + player.stats.magic*4);
 	var bullet = new Bullet(player.position.x, player.position.y, (player.flip?-1:1));
 	bullet.team = 1;
 	bullet.frames = [5,6,7];
@@ -25,6 +27,7 @@ spell_bifurcate = function(player){
 		return 0;
 	}
 	
+	audio.play("cracking");
 	var bullet = new Bullet(player.position.x, player.position.y, (player.flip?-1:1));
 	bullet.team = 1;
 	bullet.frames = [5,6,7];
@@ -55,13 +58,13 @@ spell_flash = function(player){
 	audio.play("spell");
 	var area = new Line(game.camera, game.camera.add(game.resolution));
 	var objs = game.interactive.get(area);
-	var damage = Math.floor(8 + player.stats.magic*3);
+	var damage = Math.floor(8 + player.stats.magic*2);
 	var heal = 0;
 	for(var i=0; i < objs.length; i++){
 		var obj = objs[i];
 		if(obj.hasModule(mod_combat) && obj.team != player.team && area.overlaps(obj.position)){
 			obj.hurt(player,damage);
-			heal += damage;
+			heal += 2;
 		}
 	}
 	player.heal += heal;
@@ -76,7 +79,9 @@ spell_heal = function(player){
 		audio.play("negative");
 		return 0;
 	}
-	player.heal += 15;
+	
+	var heal = Math.floor(8 + player.stats.magic*3);
+	player.heal += heal;
 	
 	return cost;
 }

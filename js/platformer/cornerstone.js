@@ -1,6 +1,6 @@
 CornerStone.prototype = new GameObject();
 CornerStone.prototype.constructor = GameObject;
-function CornerStone(x,y,parm,options){
+function CornerStone(x,y,d,options){
 	options = options || {};
 	
 	this.constructor();
@@ -10,13 +10,19 @@ function CornerStone(x,y,parm,options){
 	this.width = 64;
 	this.height = 96;
 	this.gate = "gate" in options;
-	this.gate_number = this.gate ? options.gate-0 : dataManager.currentTemple;
-	this.broken = false;
+	this.gate_number = 0;
+	this.gate_variable = "gate_0"
+	this.broken = 0;
 	
 	this.play_fanfair = false;
 	
-	if( this.gate_number in _world.temples ){
-		this.broken = _world.temples[this.gate_number].complete
+	if("gate" in options){
+		this.gate_number = options["gate"] * 1;
+		this.gate_variable = "gate_" + this.gate_number;
+	}
+	
+	if( this.gate_variable in NPC.variables ){
+		this.broken = NPC.variables[this.gate_variable];
 	}
 	
 	
@@ -27,11 +33,11 @@ function CornerStone(x,y,parm,options){
 	this.progress = 0.0;
 	this.on("struck",function(obj,pos,damage){
 		if( !this.gate && !this.active && obj instanceof Player ) {
-			_world.temples[this.gate_number].complete = true;
+			NPC.variables[this.gate_variable] = 1;
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
-			ga("send","event","cornerstone","completed temple:"+dataManager.currentTemple);
+			//ga("send","event","cornerstone","completed temple:"+dataManager.currentTemple);
 		}
 	});
 	
@@ -39,7 +45,7 @@ function CornerStone(x,y,parm,options){
 	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
 		game.setTile(
 			-32 + x + _x,
-			-32 + y +_y,
+			-48 + y +_y,
 			game.tileCollideLayer, 
 			tile
 		);
@@ -65,7 +71,11 @@ CornerStone.prototype.update = function(){
 		if( this.progress > 233.333 ) {
 			game.pause = false;
 			_player.addXP(40);
-			window._world.trigger("activate");
+			
+			//For fun only
+			WorldLocale.loadMap("temple2.tmx");
+			
+			//WorldMap.open()
 		}
 		
 		this.progress += game.deltaUnscaled;

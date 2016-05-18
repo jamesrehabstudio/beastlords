@@ -5,7 +5,7 @@ function Bullet(x,y,d){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 10;
-	this.height = 10;
+	this.height = 6;
 	this.blockable = true;
 	this.range = 512;
 	
@@ -32,10 +32,18 @@ function Bullet(x,y,d){
 	
 	this.on("collideObject", function(obj){
 		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
-			if( !this.blockable ) {
+			if( !this.blockable || !obj.hasModule(mod_combat) ) {
 				obj.hurt( this, this.damage );
 			} else {
-				if( "_shield" in obj && game.overlaps(this.bounds()).indexOf(obj._shield) > -1 ){
+				var flip = obj.flip ? -1:1;
+				var shield = new Line(
+					obj.position.x + (obj.guard.x) * flip,
+					obj.position.y + (obj.guard.y),
+					obj.position.x + (obj.guard.x + obj.guard.w) * flip,
+					obj.position.y + (obj.guard.y + obj.guard.h)
+				);
+				
+				if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
 					this.trigger("blocked",obj);
 					obj.trigger("block",this,this.position,this.damage);
 				} else {

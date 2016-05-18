@@ -455,8 +455,9 @@ WorldMap.prototype.worldTick = function(){
 WorldMap = {
 	"newgame" : function(){
 		window._player = new Player(64,178);
-		WorldMap.position = new Point(106*16,64*16);
-		WorldMap.open();
+		WorldMap.position = new Point(73*16,40*16);
+		//WorldMap.open();
+		WorldLocale.loadMap("temple1.tmx");
 	},
 	"position" : new Point(240,256),
 	"open" : function(playerLocale){

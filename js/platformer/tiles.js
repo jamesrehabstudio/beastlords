@@ -286,4 +286,4 @@ BreakableTile.prototype.update = function(){
 	}
 }
 
-BreakableTile.unbreakable = 232;
+BreakableTile.unbreakable = 1023;
