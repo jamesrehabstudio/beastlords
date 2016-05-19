@@ -1,5 +1,5 @@
-window.language = "english";
-window._messages = {
+i18n_language = "english";
+i18n_messages = {
 	"intro_text" : {
 		"english" : "A distant war has torn the land to pieces. Forced from their homes your people search for a new land to settle far away from the conflict. Though peace reigns so too does poverty. To save your new homeland you journey to the castles of the mysterious Beast Lords who want for nothing to take what you need for your people to survive.",
 		"engrish" : "Distant war has hurt the land. The people will search for their home to a new land is safe from a distance dispute. Look out for poverty. In the castle of a mysterious Beast Lords take what is necessary for what is needed to survive. You will save the new home."
@@ -209,12 +209,12 @@ window._messages = {
 function i18n(name,replace){
 	replace = replace || {};
 	var out = "";
-	if( name in window._messages ){
-		if( window.language in window._messages[name] ){
-			out = window._messages[name][window.language];
+	if( name in i18n_messages ){
+		if( i18n_language in i18n_messages[name] ){
+			out = i18n_messages[name][i18n_language];
 		}else {
-			for(var i in window._messages[name]){
-				out = window._messages[name][i];
+			for(var i in i18n_messages[name]){
+				out = i18n_messages[name][i];
 				break;
 			}
 		}

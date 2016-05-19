@@ -3,8 +3,10 @@ import time
 import datetime
 import os
 
-saveto = "platformer.js"
-previous = "prev"
+js_saveto = "platformer.js"
+sh_saveto = "shaders.js"
+js_previous = "prev"
+sh_previous = "prev"
 
 watching = [
 	"platformer/*.js",
@@ -19,12 +21,13 @@ def convertShader(file):
 	return out
 	
 def concat():
-	global saveto, previous
-	out = ""
+	global js_saveto, sh_saveto, js_previous, sh_previous
+	js_out = ""
+	sh_out = ""
 	complete = []
 	
-	out += "/* Shader list */\n"
-	out += "window.shaders = {};\n\n"
+	js_out += "/* Shader list */\n"
+	sh_out += "window.shaders = {};\n\n"
 	
 	for watch in watching:
 		filepath = glob.glob( watch )
@@ -33,24 +36,34 @@ def concat():
 				ext = os.path.splitext(file)[1]
 				if ext == ".shader": #is a shader
 					name = os.path.splitext(os.path.basename(file))[0]
-					out += "\n\n /* " + file + "*/ \n\n"
-					out += "window.shaders[\""+name+"\"] = \""+convertShader(file)+"\";\n\n"
+					sh_out += "\n\n /* " + file + "*/ \n\n"
+					sh_out += "window.shaders[\""+name+"\"] = \""+convertShader(file)+"\";\n\n"
 				else:
 					complete.append( file )
 					f = open( file, 'r' )
-					out += "\n\n /* " + file + "*/ \n\n"
-					out += f.read()
+					js_out += "\n\n /* " + file + "*/ \n\n"
+					js_out += f.read()
 	
 	#verify difference
-	if previous != out:
+	if js_previous != js_out:
 		#only save if it has changed
-		f = open( saveto, 'w')
-		f.write( out )
+		f = open( js_saveto, 'w')
+		f.write( js_out )
 		f.close()
 		
 		date = datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")
-		print  "("+ date + ") update to " + saveto
-	previous = out
+		print  "("+ date + ") update to " + js_saveto
+		
+	if sh_previous != sh_out:
+		#only save if it has changed
+		f = open( sh_saveto, 'w')
+		f.write( sh_out )
+		f.close()
+		
+		date = datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")
+		print  "("+ date + ") update to " + sh_saveto
+	js_previous = js_out
+	sh_previous = sh_out
 	
 	
 def loop():

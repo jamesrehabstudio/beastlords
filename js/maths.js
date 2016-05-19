@@ -1,44 +1,118 @@
-/*
-<!doctype html>
-<html>
-<head>
-	<title>Polygon</title>
-	<style>
-		* {margin:0; padding:0 }
-		
-		#canvas {
-			position:relative;
-			background:#EEF;
-			width:800px;
-			height:800px;
-		}
-		
-		#canvas div {
-			position:absolute;
-			width:4px;
-			height:4px;
-			
-		}
-	</style>
-</head>
-<body>
-	<canvas id="canvas" width=800 height=800></canvas>
-	
-	<script>
-	
-function GameObject() {
-	this.pos = new Point();
-	this.hitbox = new Polygon();
-	
-	this.hitbox.addPoint( new Point(-4, -4 ) );
-	this.hitbox.addPoint( new Point(4, -4 ) );
-	this.hitbox.addPoint( new Point(4, 4 ) );
-	this.hitbox.addPoint( new Point(-4, 4 ) );
+function Timer(time, interval){
+	this.countdown = false;
+	this.time = this.start = this.previous = this.interval = 0;
+	if(time != undefined){
+		this.set( time, interval );
+	}
 }
-GameObject.prototype.intersects = function( a ){
-	return this.hitbox.intersects( a );
+
+Timer.prototype.set = function(time, interval){
+	this.start = time;
+	this.time = time;
+	this.countdown = time > 0;
+	this.previous = time + (this.countdown?-1.0:1.0);
+	if( interval != undefined ) {
+		this.interval = interval;
+	}
+	if( this.interval instanceof Array ) {
+		this.interval = this.interval.sort(function(a,b){return a-b;});
+	} else {
+		this.nextInterval = this.time;
+	}
 }
-*/	
+Timer.prototype.tick = function(delta){
+	if( delta > 0 ) {
+		this.previous = this.time;
+		if(this.countdown){
+			this.time -= delta;
+		} else {
+			this.time += delta;
+		}
+	}
+}
+Timer.prototype.status = function(delta){
+	if( this.time <= 0 ) {
+		return false;
+	}
+	this.tick(delta);
+	if( this.interval instanceof Array ) {
+		for(var i=0; i < this.interval.length; i++ ){
+			if( this.time < this.interval[i] ) {
+				return 1 + (this.interval.length - i);
+			}
+		}
+		return 1;
+	} else {
+		if( this.time <= this.nextInterval ){
+			this.nextInterval -= this.interval;
+			return true;
+		}
+		return false;
+	}
+}
+
+Timer.prototype.at = function(position){
+	if(this.countdown){
+		return position >= this.time && position < this.previous;
+	} else {
+		return position <= this.time && position > this.previous;
+	}
+}
+Timer.prototype.progress = function(delta){
+	if( this.interval instanceof Array ) {
+		for(var i=this.interval.length-1; i >= 0; i-- ){
+			if( this.time > this.interval[i] ) {
+				var low = this.interval[i];
+				var high = (i+1 in this.interval) ? this.interval[i+1] : this.start;
+				return 1.0 - ((this.time-low) / (high-low));
+			}
+		}
+		return 1.0 - (this.time / this.interval[0]);
+	} else {
+		return 1.0 - (this.time-this.nextInterval / this.interval);
+	}
+}
+
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
+Array.prototype.peek = function() {
+  if ( this.length > 0 ) return this[ this.length - 1 ];
+  return undefined;
+};
+Array.prototype.intersection = function(a){
+	var out = new Array();
+	for(var i=0; i < a.length; i++)
+		if(this.indexOf(a[i]) >= 0) 
+			out.push(a[i]);
+	return out;
+}
+Math.angleTurnDirection = function(_a,_b){
+	_a = _a % (2*Math.PI);
+	_b = _b % (2*Math.PI);
+	
+	var a = (_a - _b);
+	var b = ((_a-(2*Math.PI))-_b);
+	var test = Math.abs(b) < Math.abs(a) ? b: a;
+	return test > 0 ? -1 : 1;
+	
+}
+Math.trunc = function(x){
+	return x < 0 ? Math.ceil(x) : Math.floor(x);
+}
+Math.mod = function(x,n){
+	if( x >= 0 ) return x % n;
+	while(x < 0 ) {
+		x += n;
+	}
+	return x;
+}
+Math.lerp = function(x,y,delta){
+	return x + (y-x) * delta;
+}
+
 function Polygon(){
 	this.points = new Array();
 	this._lines = new Array();

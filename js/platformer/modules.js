@@ -145,13 +145,13 @@ var mod_camera = {
 		game.camera.x = this.position.x - 160;
 		game.camera.y = this.position.y - 120;
 		
-		var self = this;
-		window.shakeCamera = function(duration,strength){
+		var that = this;
+		shakeCamera = function(duration,strength){
 			if(duration instanceof Point){
-				self.camerShake = duration;
+				that.camerShake = duration;
 			} else {
 				strength = strength || 4;
-				self.camerShake = new Point(duration,strength);
+				that.camerShake = new Point(duration,strength);
 			}
 			
 		};

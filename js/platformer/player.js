@@ -24,8 +24,8 @@ function Player(x, y){
 	
 	this.equip_weapon = new Weapon();
 	
-	window._player = this;
-	this.sprite = sprites.player;
+	_player = this;
+	this.sprite = "player";
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
@@ -58,7 +58,7 @@ function Player(x, y){
 		"strike" : 8.5,
 		"rest" : 5.0,
 		"range" : 8.0,
-		"sprite" : sprites.sword1
+		"sprite" : "sword1"
 	};
 	
 	this.shieldProperties = {
@@ -93,7 +93,7 @@ function Player(x, y){
 		"active" : false,
 		"frame" : 0,
 		"frame_row" : 0,
-		"sprite" : sprites.cape1,
+		"sprite" : "cape1",
 		"cape" : null,
 		"flip" : this.flip
 	}
@@ -651,70 +651,70 @@ Player.prototype.update = function(){
 	
 	//Animation
 	if ( this.knockedout ){
-		this.frame_row = 1;
-		this.frame = 5;
+		this.frame.y = 1;
+		this.frame.x = 5;
 	} else if ( this.stun > 0 || this.life < 0 ) {
 		//Stunned
 		this.stand();
-		this.frame = 4;
-		this.frame_row = 0;
+		this.frame.x = 4;
+		this.frame.y = 0;
 	} else if( this.states.roll > 0 ) {
-		this.frame_row = 3;
-		this.frame = 5 * (1 - this.states.roll / this.rollTime);
+		this.frame.y = 3;
+		this.frame.x = 5 * (1 - this.states.roll / this.rollTime);
 	} else if( this.states.downStab ){
-		this.frame = 5;
-		this.frame_row = 0; 
+		this.frame.x = 5;
+		this.frame.y = 0; 
 	} else {
 		if(this.equip_weapon.time > 0){
 			//Attack
 			this.equip_weapon.animate(this);
 		} else if( !this.grounded ) {
 			//In air
-			this.frame_row = 3;
+			this.frame.y = 3;
 			if(this.force.y < 0.5){
-				this.frame = 0;
+				this.frame.x = 0;
 			} else if(this.force.y > 2.0){
-				this.frame = 2;
+				this.frame.x = 2;
 			} else {
-				this.frame = 1;
+				this.frame.x = 1;
 			}
 		} else if( this.states.duck ) {
 			//Duck
-			this.frame = Math.min(this.frame + this.delta * 0.4,2);
-			this.frame_row = 2;
+			this.frame.x = Math.min(this.frame.x + this.delta * 0.4,2);
+			this.frame.y = 2;
 			
-			if( this.states.attack > 0 ) this.frame = 4;
-			if( this.states.attack > this.attackProperties.rest ) this.frame = 6;
-			if( this.states.attack > this.attackProperties.strike ) this.frame = 5;		
+			if( this.states.attack > 0 ) this.frame.x = 4;
+			if( this.states.attack > this.attackProperties.rest ) this.frame.x = 6;
+			if( this.states.attack > this.attackProperties.strike ) this.frame.x = 5;		
 		} else {
-			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame_row = 2;
+			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame.y = 2;
 			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				//Run animation
-				this.frame_row = 1;
-				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 5;
+				this.frame.y = 1;
+				this.frame.x = (this.frame.x + this.delta * 0.1 * Math.abs( this.force.x )) % 5;
 			} else {
 				//Idle
-				this.frame_row = 0;
-				this.frame = (this.frame + this.delta * 0.1) % 4;
+				this.frame.y = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.1) % 4;
 			}
 		}
 		
-		//if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame = 0;
+		//if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame.x = 0;
 	}
 	
 	//Animation Sword
 	if(this.equip_weapon.time > 0){
-		this.weapon.frame = this.frame;
-		this.weapon.frame_row = this.frame_row;
+		this.weapon.frame.x = this.frame.x;
+		this.weapon.frame.y = this.frame.y;
 	} else if (this.states.downStab) {
-		this.weapon.frame = 5;
-		this.weapon.frame_row = 0;
+		this.weapon.frame.x = 5;
+		this.weapon.frame.y = 0;
 	} else if( this.states.attack_charge > 0 ){ 
-		this.weapon.frame = 0;
-		this.weapon.frame_row = 2;
+		this.weapon.frame.x = 0;
+		this.weapon.frame.y = 2;
 	} else { 
-		this.weapon.frame = this.frame;
-		this.weapon.frame_row = this.frame_row;
+		this.weapon.frame.x = this.frame.x;
+		this.weapon.frame.y = this.frame.y;
 	}
 	
 	//Animation Cape
@@ -722,7 +722,7 @@ Player.prototype.update = function(){
 		if( this.flip != this.cape.flip ){
 			this.cape.flip = this.flip;
 			this.cape.frame_row = 4;
-			this.cape.frame = 0;
+			this.cape.frame.x = 0;
 		}
 		if( this.grounded || Math.abs(this.force.y) < 0.4) {
 			if(this.states.duck) {
@@ -786,7 +786,7 @@ Player.prototype.duck = function(){
 		this.position.y += 3.0;
 		this.states.duck = true;
 		if( this.grounded )	this.force.x = 0;
-		this.frame = 0;
+		this.frame.x = 0;
 	}
 }
 Player.prototype.jump = function(){ 
@@ -1066,7 +1066,7 @@ Player.prototype.render = function(g,c){
 			sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
 		}
 		if( this.spellsCounters.magic_armour > 0 ){
-			this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
+			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
 		}
 		
 		GameObject.prototype.render.apply(this,[g,c]);
@@ -1076,7 +1076,7 @@ Player.prototype.render = function(g,c){
 		}
 	} else {
 		//When rolling, ignore flip and shader
-		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
+		this.sprite.render(g, this.position.subtract(c), this.frame.x, this.frame.y, this.force.x < 0);
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){
@@ -1092,9 +1092,11 @@ Player.prototype.render = function(g,c){
 	if(this.states.roll <= 0){
 		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
 		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
-		this.attackProperties.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+		g.renderSprite(
+			this.attackProperties.sprite,
+			this.position.add(weaponDuckPosition).subtract(c), 
+			this.zIndex,
 			this.weapon.frame, 
-			this.weapon.frame_row, 
 			this.flip, 
 			weapon_filter
 		);
@@ -1126,6 +1128,7 @@ Player.prototype.render = function(g,c){
 
 Player.prototype.rendershield = function(g,c){
 	//Render shield
+	return 0;
 	
 	if( this.states.roll > 0 || this.states.downStab ) return;
 	
@@ -1143,20 +1146,15 @@ Player.prototype.rendershield = function(g,c){
 }
 Player.prototype.hudrender = function(g,c){
 	/* Render HP */
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,7,(this.lifeMax)+2,10);
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,this.lifeMax,8);
-	g.closePath();
-	g.beginPath();
 	g.color = [1.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,Math.max(this.life,0),8);
-	g.closePath();
 	
 	/* Render Buffered Damage */
 	if(this.life > 0){
-		g.beginPath();
 		g.color = [0.65,0.0625,0.0,1.0];
 		var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer), 8)
 		g.scaleFillRect(
@@ -1165,34 +1163,24 @@ Player.prototype.hudrender = function(g,c){
 			-Math.min(this.damage_buffer,this.life),
 			8
 		);
-		g.closePath();
 	}
 	
 	/* Render Mana */
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,19,this.manaMax+2,4);
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,20,this.manaMax,2);
-	g.closePath();
-	g.beginPath();
-	g.fillStyle = "#3CBCFC";
 	g.color = [0.23,0.73,0.98,1.0];
 	g.scaleFillRect(8,20,this.mana,2);
-	g.closePath();
 	
 	/* Render XP */
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,25,24+2,4);
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,26,24,2);
-	g.closePath();
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
-	g.closePath();
-	
+	/*
 	textArea(g,"$"+this.money,8, 216 );
 	textArea(g,"#"+this.waystones,8, 216+12 );
 	
@@ -1220,8 +1208,8 @@ Player.prototype.hudrender = function(g,c){
 		this.spell.position.x = this.spell.position.y = 0;
 		this.spell.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
-	}
+	}*/
 	
 	//Create light
-	Background.pushLight( this.position.subtract(c), this.lightRadius );
+	//Background.pushLight( this.position.subtract(c), this.lightRadius );
 }

@@ -8,7 +8,7 @@ var game, data, input;
 var pixel_scale = 2.0;
 
 function loop() {
-	game.update();
+	game.render();
 	
 	if ( requestAnimationFrame instanceof Function ) {
 		requestAnimationFrame( loop )
@@ -134,17 +134,18 @@ function Game( elm ) {
 		window.msRequestAnimationFrame     || 
 		null;
 	
-	//this.queues = new QueueManager();
-	//Options
 	this.renderCollisions = true;
+	this.gameThread = new Worker("js/base.js");
 	
-	this.objects = new Array();
-	this.camera = new Point();
-	this.collisions = new Array();
+	var self = this;
+	this.gameThread.onmessage = function(event){
+		//console.log(event.data);
+		self.objects = event.data;
+	}
+	
 	this.bounds = new Line(new Point(-800,140),new Point(1900,1700));
-	//this.nodes = new BSPTree( this.bounds, 4);
-	this.sprites = {};
 	this.tint = [1.0,1.0,1.0,1.0];
+	this.objects = {};
 	
 	this.tileDimension = null;
 	this.tiles = null;
@@ -231,39 +232,6 @@ Game.prototype.resize = function(x,y) {
 }
 Game.prototype.avr = function( obj ) {
 	return 1 / ((this.delta_tot / this.delta_avr) / 1000.0);
-}
-
-Game.prototype.addObject = function( obj ) {
-	if( obj instanceof GameObject ) {
-		this._id_index++;
-		obj.id = this._id_index;
-		obj.assignParent( this );
-		obj.trigger("added");
-		this.objects.push ( obj );
-	}
-}
-
-Game.prototype.removeObject = function( obj ) {
-	this._objectsDeleteList.push(obj)
-}
-Game.prototype.getObject = function( type ) {
-	if( type instanceof Function ){
-		for(var i=0; i < this.objects.length; i++ ) if( this.objects[i] instanceof type ) return this.objects[i];
-	}
-}
-Game.prototype.getObjects = function( type ) {
-	var out = new Array();
-	if( type instanceof Function ){
-		for(var i=0; i < this.objects.length; i++ ) if( this.objects[i] instanceof type ) out.push( this.objects[i] );
-	}
-	return out;
-}
-Game.prototype.clearAll = function(){
-	this.objects = [];
-	this.collisions = [];
-	this.bounds = new Line(0,0,0,0);
-	this.tileDimension = new Line(0,0,0,0);
-	this.tiles = [[],[],[]];
 }
 
 
@@ -399,16 +367,56 @@ Game.prototype.update = function( ) {
 	if ( input != undefined ) { input.update(); }
 }
 
+Game.prototype.renderObject = function(obj){
+	if(obj.type == 0){
+		//render sprite
+		var sprite = window.sprites[obj.sprite];
+		
+		sprite.render(
+			this.g,
+			new Point(obj.x,obj.y),
+			obj.frame,
+			obj.frame_row,
+			obj.flip,
+			obj.filter
+		);
+	} else if(obj.type == 1){
+		
+	}
+	
+}
+
 Game.prototype.render = function( ) {
+	
+	this.gameThread.postMessage({
+		"input" : input.states,
+		"resolution" : {
+			"x" : this.resolution.x,
+			"y" : this.resolution.y
+		}
+	});
+	
 	//this.resolution = new Point(512,512);
 	this.g.viewport(0,0,this.resolution.x,this.resolution.y);
 	this.backBuffer.use(this.g);
 	
-	var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex; } );
-	var camera_center = new Point( this.camera.x, this.camera.y );
+	//var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex; } );
+	//var camera_center = new Point( this.camera.x, this.camera.y );
 	
 	this.g.clear(this.g.COLOR_BUFFER_BIT);
 	this.g.enable(this.g.BLEND);
+	
+	for(var order=0; order < this.renderOrder.length; order++){
+		if(this.renderOrder[order] == "o"){
+			if("render" in this.objects){
+				for(var i=0; i < this.objects["render"].length; i++){
+					this.renderObject( this.objects["render"][i] ); 
+				}
+			}
+		}
+	}
+	
+	/*
 	
 	//Prerender
 	for ( var i in this.prerenderTree ) {
@@ -489,6 +497,9 @@ Game.prototype.render = function( ) {
 			lines[i].render( this.g, camera_center );
 		}
 	}
+	*/
+	this.hudBuffer.use(this.g);
+	this.hudBuffer.reset(this.g);
 	
 	this.backBuffer.reset(this.g);
 	
@@ -1634,120 +1645,7 @@ Tileset.ignore = function(axis,v,pos,hitbox,limits){
 
 
 
-function Timer(time, interval){
-	this.countdown = false;
-	this.time = this.start = this.previous = this.interval = 0;
-	if(time != undefined){
-		this.set( time, interval );
-	}
-}
 
-Timer.prototype.set = function(time, interval){
-	this.start = time;
-	this.time = time;
-	this.countdown = time > 0;
-	this.previous = time + (this.countdown?-1.0:1.0);
-	if( interval != undefined ) {
-		this.interval = interval;
-	}
-	if( this.interval instanceof Array ) {
-		this.interval = this.interval.sort(function(a,b){return a-b;});
-	} else {
-		this.nextInterval = this.time;
-	}
-}
-Timer.prototype.tick = function(delta){
-	if( delta > 0 ) {
-		this.previous = this.time;
-		if(this.countdown){
-			this.time -= delta;
-		} else {
-			this.time += delta;
-		}
-	}
-}
-Timer.prototype.status = function(delta){
-	if( this.time <= 0 ) {
-		return false;
-	}
-	this.tick(delta);
-	if( this.interval instanceof Array ) {
-		for(var i=0; i < this.interval.length; i++ ){
-			if( this.time < this.interval[i] ) {
-				return 1 + (this.interval.length - i);
-			}
-		}
-		return 1;
-	} else {
-		if( this.time <= this.nextInterval ){
-			this.nextInterval -= this.interval;
-			return true;
-		}
-		return false;
-	}
-}
-
-Timer.prototype.at = function(position){
-	if(this.countdown){
-		return position >= this.time && position < this.previous;
-	} else {
-		return position <= this.time && position > this.previous;
-	}
-}
-Timer.prototype.progress = function(delta){
-	if( this.interval instanceof Array ) {
-		for(var i=this.interval.length-1; i >= 0; i-- ){
-			if( this.time > this.interval[i] ) {
-				var low = this.interval[i];
-				var high = (i+1 in this.interval) ? this.interval[i+1] : this.start;
-				return 1.0 - ((this.time-low) / (high-low));
-			}
-		}
-		return 1.0 - (this.time / this.interval[0]);
-	} else {
-		return 1.0 - (this.time-this.nextInterval / this.interval);
-	}
-}
-
-Array.prototype.remove = function(from, to) {
-  var rest = this.slice((to || from) + 1 || this.length);
-  this.length = from < 0 ? this.length + from : from;
-  return this.push.apply(this, rest);
-};
-Array.prototype.peek = function() {
-  if ( this.length > 0 ) return this[ this.length - 1 ];
-  return undefined;
-};
-Array.prototype.intersection = function(a){
-	var out = new Array();
-	for(var i=0; i < a.length; i++)
-		if(this.indexOf(a[i]) >= 0) 
-			out.push(a[i]);
-	return out;
-}
-Math.angleTurnDirection = function(_a,_b){
-	_a = _a % (2*Math.PI);
-	_b = _b % (2*Math.PI);
-	
-	var a = (_a - _b);
-	var b = ((_a-(2*Math.PI))-_b);
-	var test = Math.abs(b) < Math.abs(a) ? b: a;
-	return test > 0 ? -1 : 1;
-	
-}
-Math.trunc = function(x){
-	return x < 0 ? Math.ceil(x) : Math.floor(x);
-}
-Math.mod = function(x,n){
-	if( x >= 0 ) return x % n;
-	while(x < 0 ) {
-		x += n;
-	}
-	return x;
-}
-Math.lerp = function(x,y,delta){
-	return x + (y-x) * delta;
-}
 mergeLists = function(a,b){ 
 	var out = {};
 	for(var i in a){

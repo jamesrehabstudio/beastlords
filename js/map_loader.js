@@ -145,11 +145,21 @@ MapLoader.parseTile = function(tile,tilesets){
 MapLoader.parseMap = function(xml){
 	var tileset = "";
 	var tilesets = new Array();
-	var width = 0;
-	var height = 0;
-	var tilesout = [new Array(), new Array(), new Array(), new Array()];
-	var maptiles = new Array();
 	var playerStart = new Array();
+	
+	var out = {
+		"tileset" : "",
+		"width" : 0,
+		"height" : 0,
+		"layers" : [
+			new Array(),
+			new Array(),
+			new Array(),
+			new Array()
+		],
+		"map" : new Array(),
+		"objects" : new Array()
+	}
 	
 	try{
 		//Load sprites
@@ -163,7 +173,7 @@ MapLoader.parseMap = function(xml){
 	for(var i=0; i < tilesetXml.length; i++){
 		var name = tilesetXml[i].getAttribute("name");
 		tilesets.push(tilesetXml[i].getAttribute("firstgid") * 1);
-		if(i==0 || name in window.tiles) tileset = name;
+		if(i==0 || name in window.tiles) out.tileset = name;
 	}
 	
 	var tileLayers = xml.getElementsByTagName("layer");
@@ -172,32 +182,29 @@ MapLoader.parseMap = function(xml){
 		var name = t.getAttribute("name");
 		var tiles = t.getElementsByTagName("data")[0].innerHTML.split(",");
 		
-		width = t.getAttribute("width") * 1
-		height = t.getAttribute("height") * 1
+		out.width = t.getAttribute("width") * 1
+		out.height = t.getAttribute("height") * 1
 		
 		for(var j=0; j < tiles.length; j++){
 			if("top"==name){
-				tilesout[3].push(MapLoader.parseTile(tiles[j],tilesets));
+				out.layers[3].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("front"==name){
-				tilesout[2].push(MapLoader.parseTile(tiles[j],tilesets));
+				out.layers[2].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("back"==name){
-				tilesout[1].push(MapLoader.parseTile(tiles[j],tilesets));
+				out.layers[1].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("far"==name){
-				tilesout[0].push(MapLoader.parseTile(tiles[j],tilesets));
+				out.layers[0].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("map"==name){
-				if((j%width) < width/16 && Math.floor(j/width) < height/15){
-					maptiles.push(MapLoader.parseTile(tiles[j],tilesets));
+				if((j%out.width) < out.width/16 && Math.floor(j/out.width) < out.height/15){
+					out.map.push(MapLoader.parseTile(tiles[j],tilesets));
 				}
 			}
 		}
 	}
 	
-	game.tint = [1,1,1,1];
-	game.clearAll();
-	game.tiles = tilesout;
-	game.tileDimension = new Line(0,0,width,height);
-	game.bounds = new Line(0,0,width*16,height*16);
+	out.map = MapLoader.convertTileDataToMapData(out.map);
 	
+	/*
 	if(tileset in window.tiles){
 		window.tiles[tileset].use(window.game);
 	} else if(sprite instanceof Sprite){
@@ -219,7 +226,7 @@ MapLoader.parseMap = function(xml){
 	
 	var bg = new Background();
 	game.addObject(bg);
-	
+	*/
 	var objects = xml.getElementsByTagName("object");
 	for(var i=0; i < objects.length; i++){
 		obj = objects[i];
@@ -266,14 +273,15 @@ MapLoader.parseMap = function(xml){
 					"y" : y,
 					"start" : start
 				})
-			} else if(name in window){
-				var newobj = new window[name](x,y,[w,h],properties);
-				game.addObject(newobj);
+			} else {
+				out.objects.push({"name":name,"x":x,"y":y,"width":w,"height":h,"properties":properties});
 			}
 		} catch(err){
 			console.error("Cannot add object: "+name+", "+err);
 		}
 	}
+	
+	game.gameThread.postMessage(out);
 	
 	if(MapLoader.flight){
 		_player.spellsCounters.flight = 99999
@@ -285,7 +293,19 @@ MapLoader.parseMap = function(xml){
 	
 	return playerStart;
 }
-
+MapLoader.convertTileDataToMapData = function(data){
+	//Used to convert raw map data to something useable by the map engine
+	out = new Array(data.length);
+	for(var i=0; i < data.length; i++){
+		if(data[i]==0){
+			out[i] = null;
+		}else{
+			var d = data[i] - 1;
+			out[i] = Math.floor(d/16)+(d%16)*16;
+		}
+	}
+	return out;
+}
 MapLoader.getMapIndex = function(list,key){
 	for(var i=0; i < list.length; i++){
 		if(list[i].start == key){

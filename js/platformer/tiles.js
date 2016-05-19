@@ -1,5 +1,3 @@
-window.BLANK_TILE = 16;
-
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
 function CollapseTile(x,y,n,o){
@@ -45,7 +43,7 @@ function CollapseTile(x,y,n,o){
 		this.active = false;
 		this.position.x = this.center.x;
 		this.position.y = this.center.y;
-		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, window.BLANK_TILE);
+		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 1024);
 		this.timer = this.totalTime;
 	});
 }

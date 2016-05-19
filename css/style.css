@@ -35,7 +35,7 @@ div.wrap {
 	image-rendering: -webkit-optimize-contrast; /* webkit */
 	image-rendering: -moz-crisp-edges; /* Firefox */
 	cursor:pointer;
-	display:none;
+	//display:none;
 }
 div.fullscreen_wrap{}
 div.fullscreen_wrap #game {

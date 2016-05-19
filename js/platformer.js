@@ -1,6 +1,4 @@
 /* Shader list */
-window.shaders = {};
-
 
 
  /* platformer\alter.js*/ 
@@ -6821,7 +6819,7 @@ function Oriax(x,y,d,o){
 	this.width = 32;
 	this.height = 48;
 	
-	this.sprite = sprites.oriax;
+	this.sprite = "oriax";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -9054,8 +9052,8 @@ HomeVillage.createRoom = function(g,room, p, t){
 
  /* platformer\i18n.js*/ 
 
-window.language = "english";
-window._messages = {
+i18n_language = "english";
+i18n_messages = {
 	"intro_text" : {
 		"english" : "A distant war has torn the land to pieces. Forced from their homes your people search for a new land to settle far away from the conflict. Though peace reigns so too does poverty. To save your new homeland you journey to the castles of the mysterious Beast Lords who want for nothing to take what you need for your people to survive.",
 		"engrish" : "Distant war has hurt the land. The people will search for their home to a new land is safe from a distance dispute. Look out for poverty. In the castle of a mysterious Beast Lords take what is necessary for what is needed to survive. You will save the new home."
@@ -9265,12 +9263,12 @@ window._messages = {
 function i18n(name,replace){
 	replace = replace || {};
 	var out = "";
-	if( name in window._messages ){
-		if( window.language in window._messages[name] ){
-			out = window._messages[name][window.language];
+	if( name in i18n_messages ){
+		if( i18n_language in i18n_messages[name] ){
+			out = i18n_messages[name][i18n_language];
 		}else {
-			for(var i in window._messages[name]){
-				out = window._messages[name][i];
+			for(var i in i18n_messages[name]){
+				out = i18n_messages[name][i];
 				break;
 			}
 		}
@@ -9292,7 +9290,7 @@ function Item(x,y,d, ops){
 	this.width = 18;
 	this.height = 16;
 	this.name = "";
-	this.sprite = sprites.items;
+	this.sprite = "items";
 	this.sleep = null;
 	
 	this.glowing = false;
@@ -9348,7 +9346,7 @@ function Item(x,y,d, ops){
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			//Enchanted items
-			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = sprites.player; audio.play("levelup"); }
+			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
 			
 			
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); }
@@ -9417,7 +9415,7 @@ function Item(x,y,d, ops){
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			if( this.name == "unique_pray"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			
-			dataManager.itemGet(this.name);
+			//dataManager.itemGet(this.name);
 			
 			if( "equip" in obj ){
 				obj.equip();
@@ -9446,9 +9444,9 @@ Item.prototype.setName = function(n){
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword1 };
+		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":"sword1" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -9458,9 +9456,9 @@ Item.prototype.setName = function(n){
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":sprites.sword2 };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":"sword2" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -9470,9 +9468,9 @@ Item.prototype.setName = function(n){
 		this.frame = 3; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":sprites.sword2 };
+		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":"sword2" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -9482,9 +9480,9 @@ Item.prototype.setName = function(n){
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":"sword3" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -9494,9 +9492,9 @@ Item.prototype.setName = function(n){
 		this.frame = 6; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = true;
 		this.level=1; this.bonus_att=5; 
-		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":sprites.sword4 };
+		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":"sword4" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -10188,309 +10186,6 @@ MapDebug.prototype.hudrender = function(g,c){
 	} catch (err) {}
 }
 MapDebug.prototype.idle = function(){}
-
- /* platformer\map_loader.js*/ 
-
-MapLoader.prototype = new GameObject();
-MapLoader.prototype.constructor = GameObject;
-function MapLoader(x,y){
-	this.constructor();
-}
-
-MapLoader.loadMap = function(map,options){
-	var g = window.game;
-	
-	//Get map from mapname
-	if(!(map in window._map_maps)){
-		console.error("Cannot find map with name: "+ map);
-		return;
-	} else{
-		map = window._map_maps[map];
-	}
-	
-	var playerStartPositions = new Array();
-	
-	this.slices = [];
-	g.clearAll();
-	g.tileSprite = sprites.town;
-	options = options || {};
-	
-	if( "tileset" in map ) g.tileSprite = sprites[map.tileset];
-	if( "tileset" in options ) g.tileSprite = sprites[options.tileset];
-	
-	g.bounds = new Line(0,0,map.width*256,map.height*240);
-	var mapDimension = new Line(0,0,map.width,map.height);
-	g.tileDimension = new Line(
-		g.bounds.start.x/16,
-		g.bounds.start.y/16,
-		g.bounds.end.x/16,
-		g.bounds.end.y/16
-	);
-	g.tiles = [
-		new Array( ~~g.tileDimension.area() ),
-		new Array( ~~g.tileDimension.area() ),
-		new Array( ~~g.tileDimension.area() )
-	];
-	g.buildCollisions();
-	for(var i=0; i < map.front.length; i++){
-		if("front" in map) g.tiles[2][i] = map.front[i];
-		if("back" in map) g.tiles[1][i] = map.back[i];
-		if("far" in map) g.tiles[0][i] = map.far[i];
-	}
-	if("objects" in map) for(var i=0; i < map.objects.length; i++){
-		var obj = map.objects[i];
-		if(obj[3] == "Player"){
-			playerStartPositions.push(obj);
-		} else {
-			try{
-				g.addObject( new window[obj[3]](
-					obj[0],
-					obj[1],
-					obj[2],
-					obj[4]
-				));
-			} catch(err){
-				console.error("Unable to add object: "+ obj[2]);
-			}
-		}
-	}
-	var mapTiles = [];
-	if( "map" in map ) {
-		mapTiles = PauseMenu.convertTileDataToMapData(map["map"]);
-	}
-	
-	if( _player instanceof Player ){
-		window._player.keys = new Array();
-		window._player.lock_overwrite = false;
-	} else {
-		window._player = new Player();
-	}
-	
-	//Default player spawns positions
-	_player.position.x = 64;
-	_player.position.y = 200;
-	
-	//Go through all player starts and determine the correct start
-	for(var i=0;i<playerStartPositions.length;i++){
-		var obj = playerStartPositions[i];
-		if(i==0){
-			//First Player will be default unless a better match is made
-			window._player.position.x = obj[0];
-			window._player.position.y = obj[1];
-		}
-		if("start" in obj[4]){
-			if(
-				obj[4].start == options.start ||
-				obj[4].start == "west" && options.direction.x >= 0 ||
-				obj[4].start == "east" && options.direction.x < 0
-			){
-				window._player.position.x = obj[0];
-				window._player.position.y = obj[1];
-				break;
-			}
-		}
-	}
-	
-	g.addObject(window._player);
-	
-	var pm = new PauseMenu();
-	pm.map = mapTiles;
-	pm.mapDimension = mapDimension;
-	
-	g.addObject(pm);
-	g.addObject(new Background());
-}
-
-MapLoader.loadMapTmx = function(url, callback){
-	var xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function(){
-		if(xhttp.readyState == 4){
-			//AJAX load
-			try{
-				var parser = new DOMParser();
-				var xml = parser.parseFromString(xhttp.response, "text/xml");
-				var starts = MapLoader.parseMap(xml);
-				
-				if(callback instanceof Function){
-					callback.apply(window,[starts]);
-				}
-			} catch(err){
-				console.error(err);
-			}
-		}
-	}
-	xhttp.open("GET",url,true);
-	xhttp.send();
-}
-
-MapLoader.parseTile = function(tile,tilesets){
-	tile *= 1;
-	var subtract = 1;
-	for(var i=0; i < tilesets.length; i++){
-		if(tile >= tilesets[i]){
-			subtract = tilesets[i];
-		}
-	}
-	subtract -= 1;
-	return tile - subtract;
-}
-
-MapLoader.parseMap = function(xml){
-	var tileset = "";
-	var tilesets = new Array();
-	var width = 0;
-	var height = 0;
-	var tilesout = [new Array(), new Array(), new Array(), new Array()];
-	var maptiles = new Array();
-	var playerStart = new Array();
-	
-	try{
-		//Load sprites
-		var filename = xml.getElementsByTagName("tileset")[0].getElementsByTagName("image")[0].getAttribute("source");
-		sprite = new Sprite(filename,{offset:new Point(0, 0),width:16,height:16});
-	} catch(err){
-		
-	}
-	
-	var tilesetXml = xml.getElementsByTagName("tileset");
-	for(var i=0; i < tilesetXml.length; i++){
-		var name = tilesetXml[i].getAttribute("name");
-		tilesets.push(tilesetXml[i].getAttribute("firstgid") * 1);
-		if(i==0 || name in window.tiles) tileset = name;
-	}
-	
-	var tileLayers = xml.getElementsByTagName("layer");
-	for(var i=0; i < tileLayers.length; i++){
-		var t = tileLayers[i];
-		var name = t.getAttribute("name");
-		var tiles = t.getElementsByTagName("data")[0].innerHTML.split(",");
-		
-		width = t.getAttribute("width") * 1
-		height = t.getAttribute("height") * 1
-		
-		for(var j=0; j < tiles.length; j++){
-			if("top"==name){
-				tilesout[3].push(MapLoader.parseTile(tiles[j],tilesets));
-			} else if("front"==name){
-				tilesout[2].push(MapLoader.parseTile(tiles[j],tilesets));
-			} else if("back"==name){
-				tilesout[1].push(MapLoader.parseTile(tiles[j],tilesets));
-			} else if("far"==name){
-				tilesout[0].push(MapLoader.parseTile(tiles[j],tilesets));
-			} else if("map"==name){
-				if((j%width) < width/16 && Math.floor(j/width) < height/15){
-					maptiles.push(MapLoader.parseTile(tiles[j],tilesets));
-				}
-			}
-		}
-	}
-	
-	game.tint = [1,1,1,1];
-	game.clearAll();
-	game.tiles = tilesout;
-	game.tileDimension = new Line(0,0,width,height);
-	game.bounds = new Line(0,0,width*16,height*16);
-	
-	if(tileset in window.tiles){
-		window.tiles[tileset].use(window.game);
-	} else if(sprite instanceof Sprite){
-		var temp;
-		if(sprite.width > 256){
-			temp = new Tileset(sprite,tileRules.big);
-		} else {
-			temp = new Tileset(sprite,tileRules.small);
-		}
-		temp.use(window.game);
-	} else {
-		window.tiles.tiles7.use(window.game);
-	}	
-
-	var pm = new PauseMenu();
-	pm.map = PauseMenu.convertTileDataToMapData(maptiles);
-	pm.mapDimension = new Line(0,0,Math.floor(width/16),Math.floor(height/15));
-	game.addObject(pm);
-	
-	var bg = new Background();
-	game.addObject(bg);
-	
-	var objects = xml.getElementsByTagName("object");
-	for(var i=0; i < objects.length; i++){
-		obj = objects[i];
-		var name = obj.getAttribute("name");
-		var x = obj.getAttribute("x") * 1;
-		var y = obj.getAttribute("y") * 1;
-		var w = 16;
-		var h = 16;
-		
-		if(obj.getAttribute("width")){
-			w = obj.getAttribute("width") * 1;
-		}
-		if(obj.getAttribute("height")){
-			h = obj.getAttribute("height") * 1;
-		}
-		
-		var rect = !obj.getAttribute("gid");
-		if(rect){
-			x += Math.floor(w/2); 
-			y += Math.floor(h/2);
-		}else{
-			x += Math.floor(w/2); 
-			y -= Math.floor(h/2);
-		}
-		
-		//Build properties
-		var properties = {};
-		if(obj.children.length > 0){
-			var props = obj.getElementsByTagName("property");
-			for(var j=0; j < props.length; j++){
-				var p = props[j];
-				properties[p.getAttribute("name")] = p.getAttribute("value");
-			}
-		}
-		
-		try{
-			if(name == "Player"){
-				var start = false;
-				if("start" in properties){
-					start = properties["start"];
-				}
-				playerStart.push({
-					"x" : x,
-					"y" : y,
-					"start" : start
-				})
-			} else if(name in window){
-				var newobj = new window[name](x,y,[w,h],properties);
-				game.addObject(newobj);
-			}
-		} catch(err){
-			console.error("Cannot add object: "+name+", "+err);
-		}
-	}
-	
-	if(MapLoader.flight){
-		_player.spellsCounters.flight = 99999
-	}
-	if(MapLoader.level > 1){
-		var xp = Math.floor( Math.pow( MapLoader.level-1,1.8 ) * 50 );
-		_player.addXP(xp);
-	}
-	
-	return playerStart;
-}
-
-MapLoader.getMapIndex = function(list,key){
-	for(var i=0; i < list.length; i++){
-		if(list[i].start == key){
-			return i;
-		}
-	}
-	return -1;
-}
-
-MapLoader.mapname = "testmap.tmx"
-MapLoader.flight = false;
-MapLoader.level = 1;
 
  /* platformer\mayor.js*/ 
 
@@ -11646,13 +11341,13 @@ var mod_camera = {
 		game.camera.x = this.position.x - 160;
 		game.camera.y = this.position.y - 120;
 		
-		var self = this;
-		window.shakeCamera = function(duration,strength){
+		var that = this;
+		shakeCamera = function(duration,strength){
 			if(duration instanceof Point){
-				self.camerShake = duration;
+				that.camerShake = duration;
 			} else {
 				strength = strength || 4;
-				self.camerShake = new Point(duration,strength);
+				that.camerShake = new Point(duration,strength);
 			}
 			
 		};
@@ -12892,8 +12587,8 @@ function Player(x, y){
 	
 	this.equip_weapon = new Weapon();
 	
-	window._player = this;
-	this.sprite = sprites.player;
+	_player = this;
+	this.sprite = "player";
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
@@ -12926,7 +12621,7 @@ function Player(x, y){
 		"strike" : 8.5,
 		"rest" : 5.0,
 		"range" : 8.0,
-		"sprite" : sprites.sword1
+		"sprite" : "sword1"
 	};
 	
 	this.shieldProperties = {
@@ -12961,7 +12656,7 @@ function Player(x, y){
 		"active" : false,
 		"frame" : 0,
 		"frame_row" : 0,
-		"sprite" : sprites.cape1,
+		"sprite" : "cape1",
 		"cape" : null,
 		"flip" : this.flip
 	}
@@ -13519,70 +13214,70 @@ Player.prototype.update = function(){
 	
 	//Animation
 	if ( this.knockedout ){
-		this.frame_row = 1;
-		this.frame = 5;
+		this.frame.y = 1;
+		this.frame.x = 5;
 	} else if ( this.stun > 0 || this.life < 0 ) {
 		//Stunned
 		this.stand();
-		this.frame = 4;
-		this.frame_row = 0;
+		this.frame.x = 4;
+		this.frame.y = 0;
 	} else if( this.states.roll > 0 ) {
-		this.frame_row = 3;
-		this.frame = 5 * (1 - this.states.roll / this.rollTime);
+		this.frame.y = 3;
+		this.frame.x = 5 * (1 - this.states.roll / this.rollTime);
 	} else if( this.states.downStab ){
-		this.frame = 5;
-		this.frame_row = 0; 
+		this.frame.x = 5;
+		this.frame.y = 0; 
 	} else {
 		if(this.equip_weapon.time > 0){
 			//Attack
 			this.equip_weapon.animate(this);
 		} else if( !this.grounded ) {
 			//In air
-			this.frame_row = 3;
+			this.frame.y = 3;
 			if(this.force.y < 0.5){
-				this.frame = 0;
+				this.frame.x = 0;
 			} else if(this.force.y > 2.0){
-				this.frame = 2;
+				this.frame.x = 2;
 			} else {
-				this.frame = 1;
+				this.frame.x = 1;
 			}
 		} else if( this.states.duck ) {
 			//Duck
-			this.frame = Math.min(this.frame + this.delta * 0.4,2);
-			this.frame_row = 2;
+			this.frame.x = Math.min(this.frame.x + this.delta * 0.4,2);
+			this.frame.y = 2;
 			
-			if( this.states.attack > 0 ) this.frame = 4;
-			if( this.states.attack > this.attackProperties.rest ) this.frame = 6;
-			if( this.states.attack > this.attackProperties.strike ) this.frame = 5;		
+			if( this.states.attack > 0 ) this.frame.x = 4;
+			if( this.states.attack > this.attackProperties.rest ) this.frame.x = 6;
+			if( this.states.attack > this.attackProperties.strike ) this.frame.x = 5;		
 		} else {
-			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame_row = 2;
+			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame.y = 2;
 			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				//Run animation
-				this.frame_row = 1;
-				this.frame = (this.frame + this.delta * 0.1 * Math.abs( this.force.x )) % 5;
+				this.frame.y = 1;
+				this.frame.x = (this.frame.x + this.delta * 0.1 * Math.abs( this.force.x )) % 5;
 			} else {
 				//Idle
-				this.frame_row = 0;
-				this.frame = (this.frame + this.delta * 0.1) % 4;
+				this.frame.y = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.1) % 4;
 			}
 		}
 		
-		//if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame = 0;
+		//if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame.x = 0;
 	}
 	
 	//Animation Sword
 	if(this.equip_weapon.time > 0){
-		this.weapon.frame = this.frame;
-		this.weapon.frame_row = this.frame_row;
+		this.weapon.frame.x = this.frame.x;
+		this.weapon.frame.y = this.frame.y;
 	} else if (this.states.downStab) {
-		this.weapon.frame = 5;
-		this.weapon.frame_row = 0;
+		this.weapon.frame.x = 5;
+		this.weapon.frame.y = 0;
 	} else if( this.states.attack_charge > 0 ){ 
-		this.weapon.frame = 0;
-		this.weapon.frame_row = 2;
+		this.weapon.frame.x = 0;
+		this.weapon.frame.y = 2;
 	} else { 
-		this.weapon.frame = this.frame;
-		this.weapon.frame_row = this.frame_row;
+		this.weapon.frame.x = this.frame.x;
+		this.weapon.frame.y = this.frame.y;
 	}
 	
 	//Animation Cape
@@ -13590,7 +13285,7 @@ Player.prototype.update = function(){
 		if( this.flip != this.cape.flip ){
 			this.cape.flip = this.flip;
 			this.cape.frame_row = 4;
-			this.cape.frame = 0;
+			this.cape.frame.x = 0;
 		}
 		if( this.grounded || Math.abs(this.force.y) < 0.4) {
 			if(this.states.duck) {
@@ -13654,7 +13349,7 @@ Player.prototype.duck = function(){
 		this.position.y += 3.0;
 		this.states.duck = true;
 		if( this.grounded )	this.force.x = 0;
-		this.frame = 0;
+		this.frame.x = 0;
 	}
 }
 Player.prototype.jump = function(){ 
@@ -13934,7 +13629,7 @@ Player.prototype.render = function(g,c){
 			sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
 		}
 		if( this.spellsCounters.magic_armour > 0 ){
-			this.sprite.render(g,this.position.subtract(c),this.frame, this.frame_row, this.flip, "enchanted");
+			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
 		}
 		
 		GameObject.prototype.render.apply(this,[g,c]);
@@ -13944,7 +13639,7 @@ Player.prototype.render = function(g,c){
 		}
 	} else {
 		//When rolling, ignore flip and shader
-		this.sprite.render(g, this.position.subtract(c), this.frame, this.frame_row, this.force.x < 0);
+		this.sprite.render(g, this.position.subtract(c), this.frame.x, this.frame.y, this.force.x < 0);
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){
@@ -13960,9 +13655,11 @@ Player.prototype.render = function(g,c){
 	if(this.states.roll <= 0){
 		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
 		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
-		this.attackProperties.sprite.render(g, this.position.add(weaponDuckPosition).subtract(c), 
+		g.renderSprite(
+			this.attackProperties.sprite,
+			this.position.add(weaponDuckPosition).subtract(c), 
+			this.zIndex,
 			this.weapon.frame, 
-			this.weapon.frame_row, 
 			this.flip, 
 			weapon_filter
 		);
@@ -13994,6 +13691,7 @@ Player.prototype.render = function(g,c){
 
 Player.prototype.rendershield = function(g,c){
 	//Render shield
+	return 0;
 	
 	if( this.states.roll > 0 || this.states.downStab ) return;
 	
@@ -14011,20 +13709,15 @@ Player.prototype.rendershield = function(g,c){
 }
 Player.prototype.hudrender = function(g,c){
 	/* Render HP */
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,7,(this.lifeMax)+2,10);
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,this.lifeMax,8);
-	g.closePath();
-	g.beginPath();
 	g.color = [1.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,8,Math.max(this.life,0),8);
-	g.closePath();
 	
 	/* Render Buffered Damage */
 	if(this.life > 0){
-		g.beginPath();
 		g.color = [0.65,0.0625,0.0,1.0];
 		var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer), 8)
 		g.scaleFillRect(
@@ -14033,34 +13726,24 @@ Player.prototype.hudrender = function(g,c){
 			-Math.min(this.damage_buffer,this.life),
 			8
 		);
-		g.closePath();
 	}
 	
 	/* Render Mana */
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,19,this.manaMax+2,4);
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,20,this.manaMax,2);
-	g.closePath();
-	g.beginPath();
-	g.fillStyle = "#3CBCFC";
 	g.color = [0.23,0.73,0.98,1.0];
 	g.scaleFillRect(8,20,this.mana,2);
-	g.closePath();
 	
 	/* Render XP */
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(7,25,24+2,4);
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,26,24,2);
-	g.closePath();
-	g.beginPath();
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
-	g.closePath();
-	
+	/*
 	textArea(g,"$"+this.money,8, 216 );
 	textArea(g,"#"+this.waystones,8, 216+12 );
 	
@@ -14088,10 +13771,10 @@ Player.prototype.hudrender = function(g,c){
 		this.spell.position.x = this.spell.position.y = 0;
 		this.spell.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
-	}
+	}*/
 	
 	//Create light
-	Background.pushLight( this.position.subtract(c), this.lightRadius );
+	//Background.pushLight( this.position.subtract(c), this.lightRadius );
 }
 
  /* platformer\prisoner.js*/ 
@@ -16239,27 +15922,6 @@ spell_teleport = function(player){
  /* platformer\start.js*/ 
 
 function game_start(g){
-	var shaders = window.shaders;
-	
-	new Material(g.g, "default", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
-	new Material(g.g, "hurt", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"],"settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
-	new Material(g.g, "gold", {"fs":shaders["fragment-greytocolor"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
-	new Material(g.g, "color", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"]} );
-	new Material(g.g, "heat", {"fs":shaders["fragment-heat"],"vs":shaders["2d-vertex-shader"]} );
-	new Material(g.g, "blur", {"fs":shaders["2d-fragment-blur"],"vs":shaders["2d-vertex-scale"]} );
-	new Material(g.g, "enchanted", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
-	new Material(g.g, "item", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"]} );
-	
-	new Material(g.g, "t1", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.1]}} );
-	new Material(g.g, "t2", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[-0.1]}} );
-	new Material(g.g, "t3", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.2]}} );
-	new Material(g.g, "t4", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.3]}} );
-	new Material(g.g, "t5", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.5]}} );
-	
-	new Material(g.g, "backbuffer", {"fs":shaders["2d-fragment-shader"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
-	new Material(g.g, "solid", {"fs":shaders["2d-fragment-solid"],"vs":shaders["2d-vertex-shader"]} );
-	new Material(g.g, "lightbeam", {"fs":shaders["2d-fragment-lightbeam"],"vs":shaders["2d-vertex-shader"]} );
-	
 	g.addObject( new TitleMenu() );
 	//dataManager.randomLevel(game,0);
 }
@@ -16338,8 +16000,6 @@ TeleMarker.prototype.render = function(g,c){
 
  /* platformer\tiles.js*/ 
 
-window.BLANK_TILE = 16;
-
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
 function CollapseTile(x,y,n,o){
@@ -16385,7 +16045,7 @@ function CollapseTile(x,y,n,o){
 		this.active = false;
 		this.position.x = this.center.x;
 		this.position.y = this.center.y;
-		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, window.BLANK_TILE);
+		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 1024);
 		this.timer = this.totalTime;
 	});
 }
@@ -18530,68 +18190,3 @@ SceneTransform.prototype.render = function(g,c){
 	}
 	this.sprite.render(g,this.position.subtract(c),this.frame);
 }
-
- /* platformer\shaders\2d-fragment-blur.shader*/ 
-
-window.shaders["2d-fragment-blur"] = "precision mediump float;\nuniform sampler2D u_image;\nuniform float blur;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	vec4 u = texture2D(u_image, v_texCoord + vec2(0,-blur));\n	vec4 d = texture2D(u_image, v_texCoord + vec2(0,blur));\n	vec4 l = texture2D(u_image, v_texCoord + vec2(-blur,0));\n	vec4 r = texture2D(u_image, v_texCoord + vec2(blur,0));\n	\n	if( v_position.y < 3.0 ) u = color;\n	if( v_position.y > 14.0 ) d = color;\n	if( v_position.x < 3.0 ) l = color;\n	if( v_position.x > 14.0 ) r = color;\n	\n	float activeColors = 0.0;\n	if( color.a > 0.1 ) activeColors++;\n	if( u.a > 0.1 ) activeColors++;\n	if( d.a > 0.1 ) activeColors++;\n	if( l.a > 0.1 ) activeColors++;\n	if( r.a > 0.1 ) activeColors++;\n	\n	color.r = (color.r + u.r + d.r + l.r + r.r) / activeColors;\n	color.g = (color.g + u.g + d.g + l.g + r.g) / activeColors;\n	color.b = (color.b + u.b + d.b + l.b + r.b) / activeColors;\n	color.a = (color.a + u.a + d.a + l.a + r.a) / 5.0;\n	\n	//color.a = 1.0; color.r = v_position.x/16.0; color.g = v_position.y/16.0; color.b = 0.0;\n	gl_FragColor = color;\n}";
-
-
-
- /* platformer\shaders\2d-fragment-glow.shader*/ 
-
-window.shaders["2d-fragment-glow"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	float pixSize = 1.0 / 256.0;\n	vec4 color = texture2D(u_image, v_texCoord);\n	if( color.a < 0.1 ) {\n		if( \n			texture2D(u_image, v_texCoord - vec2(pixSize,0)).a > 0.1 || \n			texture2D(u_image, v_texCoord + vec2(pixSize,0)).a > 0.1 || \n			texture2D(u_image, v_texCoord - vec2(0, pixSize)).a > 0.1 || \n			texture2D(u_image, v_texCoord + vec2(0, pixSize)).a > 0.1\n		) {\n			color = u_color;\n		}\n	}\n	gl_FragColor = color;\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\n}";
-
-
-
- /* platformer\shaders\2d-fragment-lightbeam.shader*/ 
-
-window.shaders["2d-fragment-lightbeam"] = "precision mediump float;\nuniform vec4 u_color;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = u_color;\n	color.a *= 1.0 - v_texCoord.y;\n	gl_FragColor = color;\n}";
-
-
-
- /* platformer\shaders\2d-fragment-shader.shader*/ 
-
-window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 additive = u_color - 1.0;\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	gl_FragColor = additive + multiply * texture2D(u_image, v_texCoord);\n}";
-
-
-
- /* platformer\shaders\2d-fragment-solid.shader*/ 
-
-window.shaders["2d-fragment-solid"] = "precision mediump float;\nuniform vec4 u_color;\n\nvoid main() {\n	gl_FragColor = u_color;\n}";
-
-
-
- /* platformer\shaders\2d-vertex-scale.shader*/ 
-
-window.shaders["2d-vertex-scale"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 scale;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position * scale + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
-
-
-
- /* platformer\shaders\2d-vertex-shader.shader*/ 
-
-window.shaders["2d-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
-
-
-
- /* platformer\shaders\back-vertex-shader.shader*/ 
-
-window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(a_position, 0, 1);\n	v_texCoord = a_texCoord;\n}";
-
-
-
- /* platformer\shaders\fragment-greytocolor.shader*/ 
-
-window.shaders["fragment-greytocolor"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	if( abs((color.r+color.g+color.b)-color.r*3.0) < 0.04 ) {\n		gl_FragColor = color * u_color;\n	} else { \n		gl_FragColor = color;\n	}\n}";
-
-
-
- /* platformer\shaders\fragment-heat.shader*/ 
-
-window.shaders["fragment-heat"] = "precision mediump float;\nuniform sampler2D u_image;\nuniform float heat;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	color.r = color.r * (1.0-heat) + heat;\n	color.g = color.g * (1.0-heat) + heat * 0.4;\n	color.b = color.b * (1.0-heat);\n	gl_FragColor = color;\n}";
-
-
-
- /* platformer\shaders\fragment-shifthue.shader*/ 
-
-window.shaders["fragment-shifthue"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_shift;\n\nvec3 rgb2hsv(vec3 c)\n{\n	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);\n	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));\n	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));\n\n	float d = q.x - min(q.w, q.y);\n	float e = 1.0e-10;\n	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);\n}\n\nvec3 hsv2rgb(vec3 c)\n{\n	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	vec3 hsv = rgb2hsv(color.rgb);\n	hsv.x = mod(hsv.x + u_shift, 1.0);\n	vec3 rgb = hsv2rgb(hsv);\n	gl_FragColor = vec4(rgb,color.a);\n}";
-

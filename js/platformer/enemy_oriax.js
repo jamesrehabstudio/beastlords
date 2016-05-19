@@ -7,7 +7,7 @@ function Oriax(x,y,d,o){
 	this.width = 32;
 	this.height = 48;
 	
-	this.sprite = sprites.oriax;
+	this.sprite = "oriax";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

@@ -7,7 +7,7 @@ function Item(x,y,d, ops){
 	this.width = 18;
 	this.height = 16;
 	this.name = "";
-	this.sprite = sprites.items;
+	this.sprite = "items";
 	this.sleep = null;
 	
 	this.glowing = false;
@@ -63,7 +63,7 @@ function Item(x,y,d, ops){
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			//Enchanted items
-			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = sprites.player; audio.play("levelup"); }
+			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
 			
 			
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); }
@@ -132,7 +132,7 @@ function Item(x,y,d, ops){
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			if( this.name == "unique_pray"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			
-			dataManager.itemGet(this.name);
+			//dataManager.itemGet(this.name);
 			
 			if( "equip" in obj ){
 				obj.equip();
@@ -161,9 +161,9 @@ Item.prototype.setName = function(n){
 		this.frame = 0; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":sprites.sword1 };
+		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":"sword1" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -173,9 +173,9 @@ Item.prototype.setName = function(n){
 		this.frame = 1; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":sprites.sword2 };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":"sword2" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -185,9 +185,9 @@ Item.prototype.setName = function(n){
 		this.frame = 3; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":sprites.sword2 };
+		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":"sword2" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -197,9 +197,9 @@ Item.prototype.setName = function(n){
 		this.frame = 2; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":sprites.sword3 };
+		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":"sword3" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
@@ -209,9 +209,9 @@ Item.prototype.setName = function(n){
 		this.frame = 6; this.frame_row = 2; 
 		this.isWeapon = true; this.twoHanded = true;
 		this.level=1; this.bonus_att=5; 
-		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":sprites.sword4 };
+		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":"sword4" };
 		this.message = Item.weaponDescription;
-		if( dataManager.currentTemple >= 0 ) {
+		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
 			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
 		}
