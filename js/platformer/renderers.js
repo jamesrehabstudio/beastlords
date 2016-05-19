@@ -42,10 +42,13 @@ function textArea(g,s,x,y,w,h){
 		} else {
 			var index = textLookup.indexOf(s[i]);
 			if( index >= 0 ){
-				sprites.text.render(g,new Point(
-					_x*window.text_size+x,
-					_y*window.text_height+y
-				),index);
+				g.renderSprite(
+					"text",
+					new Point(_x*window.text_size+x,_y*window.text_height+y),
+					999,
+					new Point(index/16,index%16),
+					false
+				);
 				_x++;
 			}
 		}
@@ -110,7 +113,13 @@ DialogManger = {
 				var x = xoff + j * 8;
 				var index = textLookup.indexOf(line[j]);
 				if(charcount < DialogManger.progress){
-					sprites.text.render(g,new Point(x,y),index);
+					g.renderSprite(
+						"text",
+						new Point(x,y),
+						999,
+						new Point(index/16,index%16),
+						false
+					);
 				} else {
 					filled = false;
 				}

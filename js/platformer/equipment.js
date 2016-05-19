@@ -117,7 +117,7 @@ Weapon.prototype.hit = function(player,obj,damage){
 		game.slow(0.0, phase["pause"]);
 	}
 	if("shake" in phase){
-		window.shakeCamera(Game.DELTASECOND*0.25, phase["shake"]);
+		shakeCamera(Game.DELTASECOND*0.25, phase["shake"]);
 	}
 	
 	if("stun" in phase){
@@ -168,11 +168,11 @@ Weapon.prototype.animate = function(player){
 			}
 			
 			if(animTime > 0){
-				player.frame = base_f + Math.floor(progress * base_len);
-				player.frame_row = base_fr;
+				player.frame.x = base_f + Math.floor(progress * base_len);
+				player.frame.y = base_fr;
 			} else {
-				player.frame = base_f + base_len - 1;
-				player.frame_row = base_fr;
+				player.frame.x = base_f + base_len - 1;
+				player.frame.y = base_fr;
 			}
 		}
 	} catch (e){

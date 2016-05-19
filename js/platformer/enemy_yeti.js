@@ -6,7 +6,7 @@ function Yeti(x,y,d,o){
 	this.position.y = y;
 	this.width = 20;
 	this.height = 40;
-	this.sprite = sprites.yeti;
+	this.sprite = "yeti";
 	this.speed = 0.1;
 	this.origin.y = 0.45;
 	

@@ -6,7 +6,7 @@ function Axedog(x, y, d, o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 30;
-	this.sprite = sprites.axedog;
+	this.sprite = "axedog";
 	this.speed = 0.25;
 	
 	this.addModule( mod_rigidbody );
@@ -91,21 +91,21 @@ Axedog.prototype.update = function(){
 	
 	/* Animation */
 	if( this.stun > 0 ) {
-		this.frame = 3;
-		this.frame_row = 2;
+		this.frame.x = 3;
+		this.frame.y = 2;
 	} else if( this.states.attack > 0 ) {
 		if( this.states.attack < this.attacks.rest ) {
-			this.frame = 2;
-			this.frame_row = 2;
+			this.frame.x = 2;
+			this.frame.y = 2;
 		} else if (this.states.attack < this.attacks.release ){
-			this.frame = 1;
-			this.frame_row = 2;
+			this.frame.x = 1;
+			this.frame.y = 2;
 		} else {
-			this.frame = 0;
-			this.frame_row = 2;
+			this.frame.x = 0;
+			this.frame.y = 2;
 		}
 	} else {
-		this.frame_row = 1;
-		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+		this.frame.y = 1;
+		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 	}
 }

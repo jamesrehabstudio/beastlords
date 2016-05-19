@@ -6,7 +6,7 @@ function Bear(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 32;
-	this.sprite = sprites.bear;
+	this.sprite = "bear";
 	this.speed = 0.2;
 	this.active = false;
 	
@@ -70,7 +70,7 @@ function Bear(x,y,d,o){
 	this.calculateXP();
 }
 Bear.prototype.update = function(){	
-	//this.sprite = sprites.knight;
+	//this.sprite = "knight";
 	if ( this.stun <= 0 ) {
 		var dir = this.position.subtract( _player.position );
 		this.active = this.active || Math.abs( dir.x ) < 120;
@@ -110,30 +110,33 @@ Bear.prototype.update = function(){
 	
 	/* Animation */
 	if ( this.stun > 0 ) {
-		this.frame = 0;
-		this.frame_row = 2;
+		this.frame.x = 0;
+		this.frame.y = 2;
 	} else { 
 		if( this.states.attack > 0 ) {
-			this.frame = (this.states.attack_down == 1 ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
-			this.frame_row = 1;
+			this.frame.x = (this.states.attack_down == 1 ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
+			this.frame.y = 1;
 			this.criticalChance = 1.0;
 		} else {
 			this.criticalChance = 0.0;
 			if( Math.abs( this.force.x ) > 0.1 ) {
-				this.frame = Math.max( (this.frame + this.delta * Math.abs(this.force.x) * 0.2) % 4, 1 );
+				this.frame.x = Math.max( (this.frame.x + this.delta * Math.abs(this.force.x) * 0.2) % 4, 1 );
 			} else {
-				this.frame = 0;
+				this.frame.x = 0;
 			}
-			this.frame_row = 0;
+			this.frame.y = 0;
 		}
 	}
 }
 Bear.prototype.render = function(g,c){
 	//Shield
 	if( this.states.guard > 0 ) {
-		this.sprite.render( g, 
-			new Point(this.position.x - c.x, this.position.y - c.y), 
-			(this.states.guard > 1 ? 2 : 3 ), 2, this.flip
+		g.renderSprite(
+			this.sprite,
+			new Point(this.position.x - c.x, this.position.y - c.y),
+			this.zIndex,
+			new Point((this.states.guard > 1 ? 2 : 3 ), 2),
+			this.flip
 		);
 	}
 	//Body
@@ -141,10 +144,14 @@ Bear.prototype.render = function(g,c){
 	
 	//Sword
 	var _x = 0
-	if( this.states.attack > 0 )
+	if( this.states.attack > 0 ){
 		_x = (this.states.attack > this.attack_time ? 0 : (this.flip ? -32 : 32 ));
-	this.sprite.render( g, 
+	}
+	g.renderSprite(
+		this.sprite,
 		new Point(_x + this.position.x - c.x, this.position.y - c.y), 
-		this.frame, this.frame_row+3, this.flip
+		this.zIndex,
+		new Point(this.frame.x, this.frame.y+3),
+		this.flip
 	);
 }

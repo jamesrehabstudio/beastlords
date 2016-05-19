@@ -8,7 +8,7 @@ function Svarog(x,y,d,o){
 	this.height = 40;
 	
 	this.speed = 2.5;
-	this.sprite = sprites.svarog;
+	this.sprite = "svarog";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

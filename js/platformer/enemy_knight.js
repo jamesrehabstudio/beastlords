@@ -6,7 +6,7 @@ function Knight(x,y,d,o){
 	this.position.y = y;
 	this.width = 20;
 	this.height = 40;
-	this.sprite = sprites.knight;
+	this.sprite = "knight";
 	this.speed = 0.4;
 	this.active = false;
 	this.start_x = x;
@@ -161,7 +161,7 @@ Knight.prototype.render = function(g,c){
 	//Shield no guard
 	if(!this.guard.active){
 		//render shield
-		this.sprite.render(g,this.position.subtract(c),3, 2, this.flip, this.filter);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(3, 2), this.flip, this.filter);
 	}
 	//Render body
 	GameObject.prototype.render.apply(this, [g,c]);
@@ -170,7 +170,7 @@ Knight.prototype.render = function(g,c){
 	if(this.guard.active){
 		//render shield
 		var shield_f = this.guard.y > 0 ? 1 : 2;
-		this.sprite.render(g,this.position.subtract(c),shield_f, 2, this.flip, this.filter);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(shield_f, 2), this.flip, this.filter);
 	}
 	
 	//Render sword
@@ -180,5 +180,5 @@ Knight.prototype.render = function(g,c){
 		sword_f = this.frame;
 		sword_fr = this.states.attack_down ? 4 : 3;
 	}
-	this.sprite.render(g,this.position.subtract(c),sword_f, sword_fr, this.flip, this.filter);
+	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, this.filter);
 }

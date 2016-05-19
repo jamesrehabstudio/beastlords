@@ -10,17 +10,17 @@ function Detritus(x, y, d, ops){
 	ops = ops || {};
 	
 	switch( game.tileSprite.name ) {
-		case "tiles0": this.sprite = sprites.detritus0; break;
-		case "tiles1": this.sprite = sprites.detritus1; break;
-		case "tiles2": this.sprite = sprites.detritus2; break;
-		case "tiles3": this.sprite = sprites.detritus3; break;
-		case "tiles4": this.sprite = sprites.detritus4; break;
-		case "tiles5": this.sprite = sprites.detritus5; break;
-		case "tiles6": this.sprite = sprites.detritus6; break;
-		case "tiles7": this.sprite = sprites.detritus7; break;
-		case "tiles8": this.sprite = sprites.detritus8; break;
-		case "tiles9": this.sprite = sprites.detritus9; break;
-		default: this.sprite = sprites.detritus0; break;
+		case "tiles0": this.sprite = "detritus0"; break;
+		case "tiles1": this.sprite = "detritus1"; break;
+		case "tiles2": this.sprite = "detritus2"; break;
+		case "tiles3": this.sprite = "detritus3"; break;
+		case "tiles4": this.sprite = "detritus4"; break;
+		case "tiles5": this.sprite = "detritus5"; break;
+		case "tiles6": this.sprite = "detritus6"; break;
+		case "tiles7": this.sprite = "detritus7"; break;
+		case "tiles8": this.sprite = "detritus8"; break;
+		case "tiles9": this.sprite = "detritus9"; break;
+		default: this.sprite = "detritus0"; break;
 	}
 	this.interactive = false;
 	
@@ -50,7 +50,7 @@ function Statue(x, y, d, ops){
 	ops = ops || {};
 	var tilesetNumber = game.tileSprite.name.match(/\d+/)-0;
 	
-	this.sprite = sprites.statues;
+	this.sprite = "statues";
 	this.frame = Math.floor( Math.random() * 2 );
 	this.frame_row = tilesetNumber-1;
 	

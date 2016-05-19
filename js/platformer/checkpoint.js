@@ -6,7 +6,7 @@ function Checkpoint(x,y,d,ops){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 64;
-	this.sprite = sprites.checkpoint;
+	this.sprite = "checkpoint";
 	this.activated = false;
 	
 	this.on("collideObject",function(obj){

@@ -7,7 +7,7 @@ function Villager(x,y,t,o){
 	this.width = 16;
 	this.height = 32;
 	this.start_x = x;
-	this.sprite = sprites.characters;
+	this.sprite = "characters";
 	this.town = t || _world.towns[1];
 	
 	this.state = 0;

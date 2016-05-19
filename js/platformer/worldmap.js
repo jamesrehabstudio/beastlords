@@ -233,7 +233,7 @@ WorldMap.prototype.showMap = function(){
 	this.buildtiles();
 	game.tileDimension = new Line(0,0,this.width,this.height);
 	game.bounds = new Line(0,0,this.width*16,this.height*16);
-	game.tileSprite = sprites.world;
+	game.tileSprite = "world";
 	
 	
 	var self = this;
@@ -278,7 +278,7 @@ WorldMap.prototype.encounter = function(){
 	game.tiles = [ new Array(96*15), new Array(95*15) ];
 	game.tileDimension = new Line(0,0,96,15);
 	game.bounds = new Line(0,0,96*16,15*16);
-	game.tileSprite = sprites.town;
+	game.tileSprite = "town";
 	for(var x=0; x < 96; x++) for(var y=0; y<15;y++){
 		var i = x + 96*y;
 		if( y==0) game.tiles[1][i] = window.BLANK_TILE;
@@ -506,7 +506,7 @@ function WorldPlayer(x, y){
 	//this.origin = new Point(0.2,0.2);
 	
 	this.height = this.width = 12;
-	this.sprite = sprites.world;
+	this.sprite = "world";
 	this.speed = 0.5;
 	this.zIndex = 2;
 	
@@ -554,7 +554,7 @@ function WorldLocale(x,y,d,properties){
 	this.start = false;
 	
 	this.height = this.width = 8;
-	this.sprite = sprites.world;
+	this.sprite = "world";
 	
 	this.frame = 3;
 	this.frame_row = 5;
@@ -662,7 +662,7 @@ function WorldEncounter(x, y){
 	this.origin = new Point(-0.1,-0.3);
 	
 	this.height = this.width = 12;
-	this.sprite = sprites.world;
+	this.sprite = "world";
 	this.speed = 0.125;
 	this.zIndex = 1;
 	

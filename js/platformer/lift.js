@@ -8,7 +8,7 @@ function Lift(x,y,d,ops){
 	this.width = 28;
 	this.height = 32;
 	this.speed = 3.0;
-	this.sprite = sprites.elevator;
+	this.sprite = "elevator";
 	
 	this.onboard = false;
 	

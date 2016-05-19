@@ -6,7 +6,7 @@ function Lamp(x,y,t,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.sprite = sprites.lamps;
+	this.sprite = "lamps";
 	this.zIndex = -21;
 	this.size = 180;
 	this.show = true;

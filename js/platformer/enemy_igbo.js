@@ -6,7 +6,7 @@ function Igbo(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 46;
-	this.sprite = sprites.igbo;
+	this.sprite = "igbo";
 	this.speed = 0.3;
 	this.start_x = x;
 	
@@ -78,7 +78,7 @@ function Igbo(x,y,d,o){
 	this.calculateXP();
 }
 Igbo.prototype.update = function(){	
-	//this.sprite = sprites.knight;
+	//this.sprite = "knight";
 	if ( this.stun <= 0 ) {
 		var dir = this.position.subtract( _player.position );
 		

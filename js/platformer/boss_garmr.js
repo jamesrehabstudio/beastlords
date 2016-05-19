@@ -6,7 +6,7 @@ function Garmr(x,y){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 32;
-	this.sprite = sprites.garmr;
+	this.sprite = "garmr";
 	this.speed = 1.8;
 	
 	this.active = false;

@@ -4,7 +4,7 @@ function WaystoneChest(x,y,d,options){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.waystones;
+	this.sprite = "waystones";
 	this.width = 32;
 	this.height = 48;
 	options = options || {};

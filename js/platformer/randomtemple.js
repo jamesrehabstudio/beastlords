@@ -282,7 +282,7 @@ RandomTemple.prototype.use = function(g){
 	g.addObject(pm);
 	g.addObject(new Background());
 	
-	g.tileSprite = sprites.tiles7;
+	g.tileSprite = "tiles7";
 }
 
 RandomTemple.prototype.createRoom = function(room_slice,cursor,room_options){

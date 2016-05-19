@@ -4,7 +4,7 @@ function Mayor(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y+8;
-	this.sprite = sprites.characters2;
+	this.sprite = "characters2";
 	
 	this.frame = 0;
 	this.frame_row = 0;

@@ -281,7 +281,7 @@ MapLoader.parseMap = function(xml){
 		}
 	}
 	
-	game.gameThread.postMessage(out);
+	game.useMap(out);
 	
 	if(MapLoader.flight){
 		_player.spellsCounters.flight = 99999

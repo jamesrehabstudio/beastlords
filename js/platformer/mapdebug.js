@@ -31,7 +31,7 @@ MapDebug.prototype.hudrender = function(g,c){
 					if( w > 0) tileY += 2;
 					if( w < slice[i].width-1) tileY += 1;
 					var mpos = pos.add(new Point(w,h)).scale(8).subtract(this.offset);
-					sprites.map.render(g,mpos,0,tileY);
+					"map".render(g,mpos,0,tileY);
 				}
 			}
 		}
@@ -41,7 +41,7 @@ MapDebug.prototype.hudrender = function(g,c){
 				//Render room parts
 				var pos = MapSlice.idToLoc(i);
 				var mpos = pos.scale(8).subtract(this.offset);
-				sprites.map.render(g,mpos,4,4);
+				"map".render(g,mpos,4,4);
 			}
 		}
 		*/

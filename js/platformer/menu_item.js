@@ -2,7 +2,7 @@ ItemMenu.prototype = new GameObject();
 ItemMenu.prototype.constructor = GameObject;
 function ItemMenu(unlocks){
 	this.constructor();
-	this.sprite = sprites.items;
+	this.sprite = "items";
 	this.zIndex = 999;
 	
 	this.open = false;
@@ -119,7 +119,7 @@ ItemMenu.prototype.postrender = function(g,c){
 		for(var j=0; j < points; j++){
 			var angle = (j/points) * Math.PI * 2;
 			var p = new Point(xpos+radius*Math.sin(angle),radius*Math.cos(angle));
-			sprites.bullets.render(g,p.add(this.burst).subtract(this.scroll),2,2);
+			"bullets".render(g,p.add(this.burst).subtract(this.scroll),2,2);
 		}
 	}
 }

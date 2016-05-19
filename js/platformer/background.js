@@ -84,7 +84,7 @@ Background.prototype.postrender = function(gl,c){
 		var light = Background.lights.pop();
 		var position = light[0];
 		var radius = light[1];
-		sprites.halo.renderSize(
+		"halo".renderSize(
 			gl, 
 			position.x - (radius*0.5), 
 			position.y - (radius*0.5), 

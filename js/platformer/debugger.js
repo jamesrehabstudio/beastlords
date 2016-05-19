@@ -1,7 +1,7 @@
 Debuger.prototype = new GameObject();
 Debuger.prototype.constructor = GameObject;
 function Debuger(x, y){	
-	this.sprite = sprites.player;
+	this.sprite = "player";
 	this.width = 14;
 	this.height = 30;
 	this.speed = 10;

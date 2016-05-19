@@ -6,7 +6,7 @@ function Marquis(x,y){
 	this.position.y = y;
 	this.width = 24;
 	this.height = 64;
-	this.sprite = sprites.megaknight;
+	this.sprite = "megaknight";
 	this.speed = .1;
 	this.active = false;
 	this.start_x = x;
@@ -89,7 +89,7 @@ function Marquis(x,y){
 	this.calculateXP();
 }
 Marquis.prototype.update = function(){	
-	this.sprite = sprites.megaknight;
+	this.sprite = "megaknight";
 	if ( this.stun <= 0  && this.life > 0 && this.active) {
 		var dir = this.position.subtract( _player.position );
 				

@@ -16,7 +16,7 @@ function SlugPlatform(x,y,d,o){
 	this.leftStart = false;
 	
 	this.speed = 1.5;
-	this.sprite = sprites.slugplatform;
+	this.sprite = "slugplatform";
 	this.waitforplayer = 0;
 	
 	this.addModule( mod_block );

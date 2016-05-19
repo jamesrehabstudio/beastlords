@@ -8,7 +8,7 @@ function Shooter(x,y,d,o){
 	this.height = 48;
 	this.team = 0;
 	this.start_x = x;
-	this.sprite = sprites.shooter;
+	this.sprite = "shooter";
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);

@@ -6,7 +6,7 @@ function Ratgut(x,y,d,o){
 	this.position.y = y;
 	this.width = 24;
 	this.height = 24;
-	this.sprite = sprites.ratgut;
+	this.sprite = "ratgut";
 	this.speed = 0.3;
 	
 	this.addModule( mod_rigidbody );

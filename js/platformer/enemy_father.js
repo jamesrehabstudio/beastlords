@@ -6,7 +6,7 @@ function Father(x,y){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 32;
-	this.sprite = sprites.characters;
+	this.sprite = "characters";
 	this.speed = 0.05;
 	this.active = false;
 	

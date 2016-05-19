@@ -8,7 +8,7 @@ function LilGhost(x,y,d,o){
 	this.height = 16;
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.team = 0;
-	this.sprite = sprites.lilghost;
+	this.sprite = "lilghost";
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);

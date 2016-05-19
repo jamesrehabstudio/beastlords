@@ -2,7 +2,7 @@ SceneEnding.prototype = new GameObject();
 SceneEnding.prototype.constructor = GameObject;
 function SceneEnding(x,y){
 	game.clearAll();
-	game.tileSprite = sprites.tiles3;
+	game.tileSprite = "tiles3";
 	
 	var bg = new Background();
 	bg.walls = false;
@@ -99,14 +99,14 @@ SceneEnding.prototype.render = function(g,c){
 		g.color = [0,0,0,1];
 		g.scaleFillRect(0, 0, game.resolution.x, game.resolution.y );
 	} else if( this.phase == 1 ) {
-		sprites.chazbike.render(g,new Point(104,192),0,2);
-		sprites.ending.render(g,new Point(this.father_position*20-64,176),0,0);		
-		sprites.player.render(g,new Point(this.player_position*20-20,192),1,2,true);
+		"chazbike".render(g,new Point(104,192),0,2);
+		"ending".render(g,new Point(this.father_position*20-64,176),0,0);		
+		"player".render(g,new Point(this.player_position*20-20,192),1,2,true);
 		
 	} else if( this.phase == 2 ) {
 		var pos = 1 + Math.min(-this.x_off*0.01+Math.pow(this.x_off*0.005,2),0);
 		if(this.progress > 45) pos += Math.max(this.progress-45,0);
-		sprites.ending.render(g,new Point(88*pos,176),1,1);
+		"ending".render(g,new Point(88*pos,176),1,1);
 		
 		var credit_pos = Math.lerp(360,-320,Math.min(this.progress/40,1));
 		textArea(g,this.text_credits,128,credit_pos,120);

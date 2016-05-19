@@ -6,7 +6,7 @@ function Ammit(x,y,d,o){
 	this.position.y = y;
 	this.width = 32;
 	this.height = 48;
-	this.sprite = sprites.ammit;
+	this.sprite = "ammit";
 	this.speed = 0.25;
 	
 	this.start_x = x;

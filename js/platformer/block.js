@@ -13,7 +13,7 @@ function SinkingBlock(x,y,d,ops){
 	this.sink = false;
 	this.resetOnSleep = 1;
 	
-	this.addModule(window.mod_block);
+	this.addModule(mod_block);
 	
 	ops = ops || {};
 	

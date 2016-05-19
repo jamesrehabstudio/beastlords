@@ -9,7 +9,7 @@ function Chaz(x,y,d,o){
 	this.start_x = x;
 	
 	this.speed = 0.1;
-	this.sprite = sprites.chaz;
+	this.sprite = "chaz";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

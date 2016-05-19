@@ -12,7 +12,7 @@ function SlimeGrenadier(x,y,d,o){
 	this.height = 48;
 	
 	this.speed = 1.5;
-	this.sprite = sprites.slimegrenadier;
+	this.sprite = "slimegrenadier";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -100,7 +100,7 @@ function Gernade(x,y,d,o){
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	
 	this.frame = 5;
 	this.frame_row = 0;

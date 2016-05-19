@@ -4,7 +4,7 @@ function Shop(x,y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.shops;
+	this.sprite = "shops";
 	this.width = 16;
 	this.height = 32;
 	this.zIndex = -1;
@@ -160,7 +160,7 @@ Shop.prototype.getPrice = function(i){
 	
 Shop.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
-	sprites.retailers.render(g,this.position.subtract(c),this.anim_character,0,false);
+	"retailers".render(g,this.position.subtract(c),this.anim_character,0,false);
 }
 
 Shop.prototype.postrender = function(g,c){	

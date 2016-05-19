@@ -6,7 +6,7 @@ function Phantom(x,y,d,o){
 	this.position.y = y;
 	this.width = 24;
 	this.height = 24;
-	this.sprite = sprites.phantom;
+	this.sprite = "phantom";
 	this.speed = 2.1;
 	this.resetPosition = new Point(x,y);
 	
@@ -91,7 +91,7 @@ function PhantomGrave(x,y,d,o){
 	this.position.y = y;
 	this.width = d[0];
 	this.height = d[1];
-	this.sprite = sprites.phantomgraves;
+	this.sprite = "phantomgraves";
 	this.zIndex = -21;
 	this.size = 180;
 	this.show = true;

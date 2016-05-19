@@ -9,7 +9,7 @@ function FlyingSlime(x,y,d,o){
 	this.height = 32;
 	
 	this.speed = 0.4;
-	this.sprite = sprites.flyingslime;
+	this.sprite = "flyingslime";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

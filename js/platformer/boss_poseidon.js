@@ -6,7 +6,7 @@ function Poseidon(x,y){
 	this.position.y = y;
 	this.width = 48;
 	this.height = 96;
-	this.sprite = sprites.poseidon;
+	this.sprite = "poseidon";
 	this.speed = .3;
 	this.active = false;
 	this.start_x = x;
@@ -201,7 +201,7 @@ Poseidon.prototype.render = function(g,c){
 		if(this.begin < Game.DELTASECOND * 2 ) {
 			this.sprite.render(g,this.position.subtract(c),2,1);
 		}
-		sprites.characters.render(g,this.position.subtract(c).add(new Point(0,32)),3,0);
+		"characters".render(g,this.position.subtract(c).add(new Point(0,32)),3,0);
 	} else {
 		GameObject.prototype.render.apply(this,[g,c]);
 	}

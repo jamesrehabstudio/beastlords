@@ -7,7 +7,7 @@ function FrogBoss(x,y){
 	this.width = 120;
 	this.height = 180;
 	this.team = 0;
-	this.sprite = sprites.frogmonster;
+	this.sprite = "frogmonster";
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
@@ -173,18 +173,20 @@ FrogBoss.prototype.render = function(g,c){
 		head.x *= -1; rleg.x *= -1; rarm.x *= -1;
 	}
 	
-	this.sprite.render(g,this.position.add(larm).subtract(c), 0, 4, this.flip, this.filter);
-	this.sprite.render(g,this.position.add(lleg).subtract(c), llegFrame, 5, this.flip, this.filter);
-	this.sprite.render(g,this.position.add(body).subtract(c), 0, 1, this.flip, this.filter);
-	this.sprite.render(g,this.position.add(head).subtract(c), headFrame, 0, this.flip, this.filter);
-	this.sprite.render(g,this.position.add(rleg).subtract(c), rlegFrame, 2, this.flip, this.filter);
-	this.sprite.render(g,this.position.add(rarm).subtract(c), 0, 3, this.flip, this.filter);
+	g.renderSprite(this.sprite,this.position.add(larm).subtract(c),this.zIndex,new Point(0,4),this.flip,this.filter);
+	g.renderSprite(this.sprite,this.position.add(lleg).subtract(c),this.zIndex,new Point(llegFrame,5),this.flip,this.filter);
+	g.renderSprite(this.sprite,this.position.add(body).subtract(c),this.zIndex,new Point(0,1),this.flip,this.filter);
+	g.renderSprite(this.sprite,this.position.add(head).subtract(c),this.zIndex,new Point(headFrame,0),this.flip,this.filter);
+	g.renderSprite(this.sprite,this.position.add(rleg).subtract(c),this.zIndex,new Point(rlegFrame,2),this.flip,this.filter);
+	g.renderSprite(this.sprite,this.position.add(rarm).subtract(c),this.zIndex,new Point(0,3),this.flip,this.filter);
 	
 	//pupils
+	/*
 	if( window._player instanceof Player ) {
 		var dir = window._player.position.normalize(4)
 		this.sprite.render(g,this.position.add(head).subtract(c).subtract(dir), 0, 6, this.flip);
 	}
+	*/
 	
 	g.color = [1.0,0,0,1.0];
 	g.scaleFillRect(this.rockBox.start.x - c.x, this.rockBox.start.y - c.y, this.rockBox.width(), this.rockBox.height() );

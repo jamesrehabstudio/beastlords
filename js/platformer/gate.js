@@ -8,7 +8,7 @@ function Gate(x,y,d,ops){
 	this.position.x = x;
 	this.position.y = y;
 	
-	this.sprite = sprites.gate;
+	this.sprite = "gate";
 	this.open = false;
 	this.progress = 0;
 	

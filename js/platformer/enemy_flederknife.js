@@ -6,7 +6,7 @@ function Flederknife(x, y, d, o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 30;
-	this.sprite = sprites.flederknife;
+	this.sprite = "flederknife";
 	this.speed = 0.3;
 	this.turndelay = 0.0;
 	

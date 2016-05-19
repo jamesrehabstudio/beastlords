@@ -6,7 +6,7 @@ function ChickenChain(x, y, d, o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 30;
-	this.sprite = sprites.chickenchain;
+	this.sprite = "chickenchain";
 	this.speed = 0.125;
 	
 	this.addModule( mod_rigidbody );

@@ -8,7 +8,7 @@ function EffectExplosion(x, y, sound){
 	this.width = 16;
 	this.height = 16;
 	this.zIndex = 2;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	
 	this.speed = 0.3;	
 	sound = sound || "explode2";
@@ -17,12 +17,12 @@ function EffectExplosion(x, y, sound){
 }
 
 EffectExplosion.prototype.update = function(){
-	this.frame = this.frame + (this.speed * game.deltaUnscaled);
-	this.frame_row = 1;
+	this.frame.x = this.frame.x + (this.speed * game.deltaUnscaled);
+	this.frame.y = 1;
 	
-	if(this.frame >= 3) {
+	if(this.frame.x >= 3) {
 		this.destroy();
-		this.frame = 2;
+		this.frame.x = 2;
 	}
 }
 
@@ -36,7 +36,7 @@ function EffectSmoke(x, y, d, ops){
 	this.width = 16;
 	this.height = 16;
 	this.zIndex = 2;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
@@ -70,7 +70,7 @@ function EffectIce(x, y){
 	this.width = 16;
 	this.height = 16;
 	this.zIndex = 2;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
@@ -98,7 +98,7 @@ function EffectStatus(x, y){
 	this.width = 16;
 	this.height = 16;
 	this.zIndex = 2;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	this.time = Game.DELTASECOND;
 	this.timeMax = this.time;
 	this.interactive = false;
@@ -143,7 +143,7 @@ function EffectBlood(x, y, dir, dam){
 	this.width = 8;
 	this.height = 8;
 	this.zIndex = 2;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	
 	this.frame = 3
 	this.frame_row = 1;
@@ -197,7 +197,7 @@ function EffectNumber(x, y, value){
 	this.width = 8;
 	this.height = 8;
 	this.zIndex = 2;
-	this.sprite = sprites.numbers;
+	this.sprite = "numbers";
 	this.value = Math.floor(value);
 	this.progress = 0.0;
 	
@@ -234,7 +234,7 @@ function EffectCritical(x, y){
 	this.width = 8;
 	this.height = 8;
 	this.zIndex = 99;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	
 	this.progress = 0;
 	
@@ -333,7 +333,7 @@ function EffectItemPickup(x, y, message){
 	this.width = 8;
 	this.height = 8;
 	this.zIndex = 99;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	
 	this.time = 0;
 	this.flash = true;
@@ -390,14 +390,14 @@ EffectItemPickup.prototype.render = function(gl,c){
 	shader = window.materials["default"].use();
 	if( p2 <= 0 ) {
 		var r = 24 * p1;
-		sprites.halo.renderSize(gl, 
+		"halo".renderSize(gl, 
 			this.position.x - r - c.x, this.position.y - r - c.y,
 			r * 2, r * 2, 0, 0 
 		);
 	}
 	
 	r = 240 * Math.max(p2,0);
-	sprites.ring.renderSize(gl, 
+	"ring".renderSize(gl, 
 		this.position.x - r - c.x, this.position.y - r - c.y,
 		r * 2, r * 2, 0, 0 
 	);
@@ -420,14 +420,14 @@ var EffectList = {
 			audio.playLock("charge",0.5);
 			for(var i=0; i < 5; i++) {
 				var off = new Point(r*Math.sin(i), r*Math.cos(i));
-				sprites.bullets.render(g,p.add(off),3,2);
+				"bullets".render(g,p.add(off),3,2);
 			}
 		}
 		
 		if( progress > 1.0 && progress < 1.2 ) {
 			audio.playLock("chargeready",0.5);
 			var flashprogress = Math.floor((progress - 1.0) * 10);
-			sprites.bullets.render(g,p,flashprogress,1);
+			"bullets".render(g,p,flashprogress,1);
 		}
 	}
 };

@@ -97,7 +97,7 @@ SceneEndIntro.prototype.render = function(g,c){
 			if( this.progress < 13.0 ) {
 				g.color = (this.progress * 6.0) % 1.0 > 0.5 ? [0.0,0.0,0.0,1.0] : [0.7,0.0,0.0,1.0];
 				g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
-				sprites.player.render(g,new Point(xpos+128,120), 4, 0, false);
+				"player".render(g,new Point(xpos+128,120), 4, 0, false);
 			} else {
 				g.color = [0.0,0.0,0.0,1.0];
 				g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
@@ -106,9 +106,9 @@ SceneEndIntro.prototype.render = function(g,c){
 				for(var i=0; i < this.stars.length; i++){
 					this.stars[i].pos.y -= this.stars[i].speed * this.delta;
 					if( this.stars[i].pos.y > lowest ) lowest = this.stars[i].pos.y;
-					sprites.bullets.render(g, this.stars[i].pos.add(new Point(xpos,0)), 3, 2);
+					"bullets".render(g, this.stars[i].pos.add(new Point(xpos,0)), 3, 2);
 				}
-				sprites.title.render(g, new Point(xpos, lowest), 0, 2);
+				"title".render(g, new Point(xpos, lowest), 0, 2);
 				
 				if( lowest <= 0 ) {
 					this.destroy();
@@ -117,17 +117,17 @@ SceneEndIntro.prototype.render = function(g,c){
 			}
 		} else {
 			//Cut scene
-			sprites.player.render(g,this.objPlayer.pos.subtract(c), 0, 3, false);
-			sprites.player.render(g,this.objPlayer.pos.subtract(c), this.objPlayer.frame, this.objPlayer.frame_row, false);
+			"player".render(g,this.objPlayer.pos.subtract(c), 0, 3, false);
+			"player".render(g,this.objPlayer.pos.subtract(c), this.objPlayer.frame, this.objPlayer.frame_row, false);
 			
-			sprites.zoder.render(g,this.objZoder.pos.subtract(c), this.objZoder.frame, this.objZoder.frame_row, true);
+			"zoder".render(g,this.objZoder.pos.subtract(c), this.objZoder.frame, this.objZoder.frame_row, true);
 			
 			if( this.objSpear.visible ) {
-				sprites.zoder.render(g,this.objSpear.pos.subtract(c), this.objSpear.frame, this.objSpear.frame_row, true);
+				"zoder".render(g,this.objSpear.pos.subtract(c), this.objSpear.frame, this.objSpear.frame_row, true);
 			}
 			
 			for(var i=0; i < this.villagers.length; i++ ){
-				sprites.characters.render(g,this.villagers[i].pos.subtract(c), this.villagers[i].frame, this.villagers[i].frame_row, false);
+				"characters".render(g,this.villagers[i].pos.subtract(c), this.villagers[i].frame, this.villagers[i].frame_row, false);
 			}
 		}
 	}

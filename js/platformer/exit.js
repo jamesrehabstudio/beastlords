@@ -2,7 +2,7 @@ Exit.prototype = new GameObject();
 Exit.prototype.constructor = GameObject;
 function Exit(x,y,d,o){
 	this.constructor();
-	this.sprite = sprites.cornerstones;
+	this.sprite = "cornerstones";
 	this.position.x = x - 8;
 	this.position.y = y + 8;
 	this.width = d[0] * 1;

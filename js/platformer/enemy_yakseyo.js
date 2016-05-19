@@ -6,7 +6,7 @@ function Yakseyo(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 14;
-	this.sprite = sprites.yakseyo;
+	this.sprite = "yakseyo";
 	this.speed = 0.3;
 	
 	this.addModule( mod_rigidbody );

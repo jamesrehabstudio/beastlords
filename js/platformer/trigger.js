@@ -170,7 +170,7 @@ function Switch(x,y,d,o){
 	//Clear the on touch trigger
 	this.clearEvents("collideObject");
 	
-	this.sprite = sprites["switch"];
+	this.sprite = "switch";
 	this.playerover = false;
 	this.frame = 0;
 	this.frame_row = 0;
@@ -206,7 +206,7 @@ function Switch(x,y,d,o){
 			if(this.playerover){
 				var pos = _player.position.subtract(c);
 				pos.y -= 24;
-				sprites.text.render(g,pos,4,6);
+				"text".render(g,pos,4,6);
 				this.playerover = false;
 			}
 		}

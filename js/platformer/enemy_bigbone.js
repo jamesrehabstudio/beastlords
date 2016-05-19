@@ -6,7 +6,7 @@ function BigBones(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 40;
-	this.sprite = sprites.bigbones;
+	this.sprite = "bigbones";
 	this.speed = .3;
 	this.active = true;
 	

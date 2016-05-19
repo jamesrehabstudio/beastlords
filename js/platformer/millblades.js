@@ -8,7 +8,7 @@ function MillBlades(x, y){
 	this.width = 96;
 	this.height = 64;
 	this.zIndex = 0;
-	this.sprite = sprites.tiles0;
+	this.sprite = "tiles0";
 	
 	this.speed = 1.3;	
 	this.rotation = 0;

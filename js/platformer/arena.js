@@ -4,7 +4,7 @@ function Arena(x,y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.arena;
+	this.sprite = "arena";
 	this.width = 64;
 	this.height = 128;
 	this.zIndex = -1;

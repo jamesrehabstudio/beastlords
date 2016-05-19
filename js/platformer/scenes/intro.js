@@ -15,7 +15,7 @@ SceneIntro.prototype.update = function(){
 		if( _player instanceof Player ) { 
 			_player.visible = false;
 			_player.stun = Game.DELTAYEAR;
-			_player.sprite = sprites.playerhuman;
+			_player.sprite = "playerhuman";
 		}
 		
 		this.player.pos.y = this.father.pos.y = 160;
@@ -64,7 +64,7 @@ SceneIntro.prototype.update = function(){
 	}
 }
 SceneIntro.prototype.render = function(g,c){
-	sprites.characters.render(g, this.father.pos.subtract(c), this.father.frame, this.father.frame_row, this.father.flip);
-	sprites.characters.render(g, this.player.pos.subtract(c), this.player.frame, this.player.frame_row, this.player.flip);
+	"characters".render(g, this.father.pos.subtract(c), this.father.frame, this.father.frame_row, this.father.flip);
+	"characters".render(g, this.player.pos.subtract(c), this.player.frame, this.player.frame_row, this.player.flip);
 }
 SceneIntro.prototype.idle = function(){}

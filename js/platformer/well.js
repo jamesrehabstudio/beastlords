@@ -65,7 +65,7 @@ Well.prototype.render = function(g,c){
 		this.coin.x = Math.lerp(this.position.x, this.coin.x, this.progress);
 		this.coin.y += fall;
 		
-		sprites.items.render(g,this.coin.subtract(c),7+frame,1);
+		"items".render(g,this.coin.subtract(c),7+frame,1);
 	}
 }
 Well.prototype.idle = function(){}

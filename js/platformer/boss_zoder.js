@@ -6,7 +6,7 @@ function Zoder(x,y){
 	this.position.y = y;
 	this.width = 24;
 	this.height = 64;
-	this.sprite = sprites.zoder;
+	this.sprite = "zoder";
 	this.speed = 0.4;
 	this.active = false;
 	this.start_x = x;

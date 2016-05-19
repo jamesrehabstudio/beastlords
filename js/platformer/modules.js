@@ -153,11 +153,48 @@ var mod_camera = {
 				strength = strength || 4;
 				that.camerShake = new Point(duration,strength);
 			}
-			
 		};
+		
+		this.camera_lock = function(){
+			var mapwidth = Math.floor(game.map.width / 16);
+			var map_index = (
+				( Math.floor(this.position.x / 256) - 0 ) + 
+				( Math.floor(this.position.y / 240) - 0 ) * mapwidth
+			);
+			
+			var map_tile = game.map.map[map_index];
+			
+			if(map_tile != undefined){
+				//If map tile is valid, change camera locks
+				var lock;
+				switch( Math.abs(map_tile) % 16 ){
+					case 0: lock = new Line(0,0,256,480); break;
+					case 1: lock = new Line(0,0,512,480); break;
+					case 2: lock = new Line(-256,0,256,480); break;
+					case 3: lock = new Line(-256,0,512,480); break;
+					case 4: lock = new Line(0,0,256,240); break;
+					case 5: lock = new Line(0,0,512,240); break;
+					case 6: lock = new Line(-256,0,256,240); break;
+					case 7: lock = new Line(-256,0,512,240); break;
+					case 8: lock = new Line(0,-240,256,480); break;
+					case 9: lock = new Line(0,-240,512,480); break;
+					case 10: lock = new Line(-256,-240,256,480); break;
+					case 11: lock = new Line(-256,-240,512,480); break;
+					case 12: lock = new Line(0,-240,256,240); break;
+					case 13: lock = new Line(0,-240,512,240); break;
+					case 14: lock = new Line(-256,-240,256,240); break;
+					case 15: lock = new Line(-256,-240,512,240); break;
+					default: lock = new Line(-256,-240,256,480); break;
+				}
+				lock = lock.transpose( 
+					Math.floor(this.position.x / 256)*256,  
+					Math.floor(this.position.y / 240)*240 
+				);
+				return lock;
+			}
+		}
 	},
 	'update' : function(){
-		var screen = game.resolution;
 		game.camera.x = this.position.x - (game.resolution.x / 2);
 		var yCenter = this.position.y - (game.resolution.y / 2);
 		
@@ -180,35 +217,17 @@ var mod_camera = {
 				), yCenter + 72
 			);
 		}
-		//game.camera.y = Math.floor( this.position.y  / screen.y ) * screen.y;
 		
 		//Set up locks
-		if( this.lock_overwrite instanceof Line ) {
-			if( this._lock_current instanceof Line ) {
-				var transition = this.delta * 0.1;
-				this._lock_current.start.x = Math.lerp( this._lock_current.start.x, this.lock_overwrite.start.x, transition );
-				this._lock_current.start.y = Math.lerp( this._lock_current.start.y, this.lock_overwrite.start.y, transition );
-				this._lock_current.end.x = Math.lerp( this._lock_current.end.x, this.lock_overwrite.end.x, transition );
-				this._lock_current.end.y = Math.lerp( this._lock_current.end.y, this.lock_overwrite.end.y, transition );
-			} else {
-				this._lock_current = this.lock_overwrite;
+		var lock = this.camera_lock();
+		if( lock ) {
+			if( lock.width() < game.resolution.x ){
+				var center = (lock.start.x + lock.end.x) / 2;
+				lock.start.x = center - (game.resolution.x/2);
+				lock.end.x = center + (game.resolution.x/2);
 			}
-		} else {
-			if( this.lock instanceof Line ) {
-				this._lock_current = new Line(this.lock.start.x, this.lock.start.y, this.lock.end.x, this.lock.end.y);
-			} else {
-				this._lock_current = false;
-			}
-		}
-		
-		if( this._lock_current instanceof Line ) {
-			if( this._lock_current.width() < game.resolution.x ){
-				var center = (this._lock_current.start.x + this._lock_current.end.x) / 2;
-				this._lock_current.start.x = center - (game.resolution.x/2);
-				this._lock_current.end.x = center + (game.resolution.x/2);
-			}
-			game.camera.x = Math.min( Math.max( game.camera.x, this._lock_current.start.x ), this._lock_current.end.x - screen.x );
-			game.camera.y = Math.min( Math.max( game.camera.y, this._lock_current.start.y ), this._lock_current.end.y - screen.y );
+			game.camera.x = Math.min( Math.max( game.camera.x, lock.start.x ), lock.end.x - game.resolution.x );
+			game.camera.y = Math.min( Math.max( game.camera.y, lock.start.y ), lock.end.y - game.resolution.y );
 		}
 		
 		if(this.camerShake.x > 0){
@@ -218,6 +237,7 @@ var mod_camera = {
 		}
 	},
 	"postrender" : function(g,c){
+		/*
 		if(this.lock){
 			var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
 			if( viewWidth < game.resolution.x ){
@@ -227,6 +247,7 @@ var mod_camera = {
 				g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
 			}
 		}
+		*/
 	}
 }
 
@@ -632,8 +653,8 @@ var mod_boss = {
 			var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
 			var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
 			
-			sprites.bossface.render(g,porta,1,0,false);
-			sprites.bossface.render(g,portb,this.bossface_frame,this.bossface_frame_row,true);
+			"bossface".render(g,porta,1,0,false);
+			"bossface".render(g,portb,this.bossface_frame,this.bossface_frame_row,true);
 		}
 	}
 }
@@ -672,7 +693,7 @@ var mod_talk = {
 		if( this.canOpen && this._talk_is_over > 0 && this.open < 1){
 			var pos = _player.position.subtract(c);
 			pos.y -= 24;
-			sprites.text.render(g,pos,4,6);
+			"text".render(g,pos,4,6);
 		}
 	}
 }

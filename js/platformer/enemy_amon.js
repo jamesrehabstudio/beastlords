@@ -8,7 +8,7 @@ function Amon(x,y,d,o){
 	this.height = 16;
 	
 	this.speed = 2.5;
-	this.sprite = sprites.lilghost;
+	this.sprite = "lilghost";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

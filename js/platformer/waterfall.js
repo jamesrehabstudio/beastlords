@@ -6,7 +6,7 @@ function Waterfall(x,y,t,o){
 	this.position.y=y;
 	this.width = 128;
 	this.height = 240;
-	this.sprite = sprites.waterfall;
+	this.sprite = "waterfall";
 	this.frame = 0;
 	this.frame_row = t;
 	this.zIndex = 1;

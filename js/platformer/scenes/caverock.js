@@ -8,7 +8,7 @@ function SceneCaveRock(x,y,dim,o){
 	this.start = new Point(x,y);
 	this.end = new Point(x,y+16*5);
 	
-	this.sprite = sprites.cornerstones;
+	this.sprite = "cornerstones";
 	
 	this._tid = "caverock";
 	this.active = false;
@@ -78,7 +78,7 @@ SceneCaveRock.prototype.close = function(){
 			this.tiles[i].x,
 			this.tiles[i].y,
 			game.tileCollideLayer,
-			BLANK_TILE
+			1024
 		);
 	}
 }

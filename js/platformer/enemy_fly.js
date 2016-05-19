@@ -8,7 +8,7 @@ function Fly(x,y,d,o){
 	this.height = 24;
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.team = 0;
-	this.sprite = sprites.amon;
+	this.sprite = "amon";
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);

@@ -6,7 +6,7 @@ function Baller(x, y, d, o){
 	this.position.y = y;
 	this.width = 48;
 	this.height = 72;
-	this.sprite = sprites.baller;
+	this.sprite = "baller";
 	
 	this.ball = new BallerBall(x-48,y);
 	game.addObject( this.ball );
@@ -146,7 +146,7 @@ function BallerBall(x, y){
 	this.position.y = y;
 	this.width = 48;
 	this.height = 48;
-	this.sprite = sprites.baller;
+	this.sprite = "baller";
 	this.damage = 0;
 	this.reflect = false;
 	

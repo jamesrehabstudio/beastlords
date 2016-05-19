@@ -6,7 +6,7 @@ function Minotaur(x,y){
 	this.position.y = y;
 	this.width = 32;
 	this.height = 64;
-	this.sprite = sprites.minotaur;
+	this.sprite = "minotaur";
 	this.speed = 1.8;
 	this.active = false;
 	this.origin = new Point(.5,1);

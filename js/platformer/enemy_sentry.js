@@ -8,7 +8,7 @@ function Sentry(x,y,d,o){
 	this.height = 32;
 	
 	this.speed = 0.0;
-	this.sprite = sprites.chaz;
+	this.sprite = "chaz";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

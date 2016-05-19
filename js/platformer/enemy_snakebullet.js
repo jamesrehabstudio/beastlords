@@ -8,7 +8,7 @@ function SnakeBullet(x,y,d,o){
 	this.height = 12;
 	
 	this.speed = 0.3;
-	this.sprite = sprites.snake;
+	this.sprite = "snake";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

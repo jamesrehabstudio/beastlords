@@ -6,7 +6,7 @@ function HammerMathers(x, y, d, o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 24;
-	this.sprite = sprites.hammermather;
+	this.sprite = "hammermather";
 	this.speed = 10;
 	this.jump = 8;
 	this.attackTime = Game.DELTASECOND * 2.5;

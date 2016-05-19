@@ -6,7 +6,7 @@ function Malsum(x,y,d,o){
 	this.position.y = y;
 	this.width = 32;
 	this.height = 32;
-	this.sprite = sprites.bear;
+	this.sprite = "bear";
 	this.speed = 0.3;
 	
 	this.start_x = x;

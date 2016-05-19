@@ -8,7 +8,7 @@ function Shell(x,y,d,o){
 	this.height = 12;
 	
 	this.speed = 0.5;
-	this.sprite = sprites.shell;
+	this.sprite = "shell";
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

@@ -6,7 +6,7 @@ function GhostChort(x,y){
 	this.position.y = y;
 	this.width = 28;
 	this.height = 56;
-	this.sprite = sprites.pigboss;
+	this.sprite = "pigboss";
 	this.speed = .9;
 	this.active = false;
 	this.start_x = x;

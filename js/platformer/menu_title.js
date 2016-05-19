@@ -2,7 +2,7 @@ TitleMenu.prototype = new GameObject();
 TitleMenu.prototype.constructor = GameObject;
 function TitleMenu(){	
 	this.constructor();
-	this.sprite = sprites.title;
+	this.sprite = "title";
 	this.zIndex = 999;
 	this.visible = true;
 	this.page = 0;
@@ -131,7 +131,7 @@ TitleMenu.prototype.render = function(g,c){
 		//g.fillStyle = "#FFF";
 		//g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
 	} else if( this.start ) {
-		sprites.loading.render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
+		"loading".render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
 		
@@ -145,7 +145,7 @@ TitleMenu.prototype.render = function(g,c){
 				this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
 			) frame = 3;
 				
-			sprites.bullets.render(g,this.stars[i].pos.add(new Point(xpos,0)),frame,2);
+			"bullets".render(g,this.stars[i].pos.add(new Point(xpos,0)),frame,2);
 			this.stars[i].timer -= this.delta;
 			if( this.stars[i].timer <= 0 ){
 				this.stars[i].timer = Game.DELTASECOND * 1.0;
@@ -181,7 +181,7 @@ TitleMenu.prototype.render = function(g,c){
 			textArea(g,"Debug",x_pos+24,162);
 			if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
 			
-			sprites.text.render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
+			"text".render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
 		} else if(this.page == 2){ 
 			var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
 			boxArea(g,x_pos,16,200,208);

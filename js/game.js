@@ -140,22 +140,30 @@ function Game( elm ) {
 	var self = this;
 	this.gameThread.onmessage = function(event){
 		//console.log(event.data);
-		self.objects = event.data;
+		if("loadmap" in event.data){
+			//load a new map
+			MapLoader.loadMapTmx("maps/" + event.data.loadmap);
+		} else {
+			//frame update
+			self.objects = event.data.render;
+			self.camera = new Point(event.data.camera.x, event.data.camera.y);
+			
+			if("audio" in event.data){
+				for(var i in event.data.audio){
+					for(var j=0; j < event.data.audio[i].length; j++){
+						audio[i].apply(audio,event.data.audio[i][j]);
+					}
+				}
+			}
+		}
 	}
 	
-	this.bounds = new Line(new Point(-800,140),new Point(1900,1700));
+	this.camera = new Point(0,0);
 	this.tint = [1.0,1.0,1.0,1.0];
 	this.objects = {};
-	
-	this.tileDimension = null;
-	this.tiles = null;
-	this.tileSprite = sprites.tiles2;
-	this.tileRules = tiles.tilesgoo;
-	this.tileCollideLayer = 2;
+	this.map = null;
 	
 	//Per frame datastructures
-	this.renderTree;
-	this.interactive = new BSPTree(this.bounds, 4);
 	this.time = new Date();
 	this.delta = 1;
 	this.deltaUnscaled = 1;
@@ -368,6 +376,8 @@ Game.prototype.update = function( ) {
 }
 
 Game.prototype.renderObject = function(obj){
+	if ( input != undefined ) { input.update(); }
+	
 	if(obj.type == 0){
 		//render sprite
 		var sprite = window.sprites[obj.sprite];
@@ -381,7 +391,13 @@ Game.prototype.renderObject = function(obj){
 			obj.filter
 		);
 	} else if(obj.type == 1){
-		
+		this.g.color = obj.color;
+		this.g.scaleFillRect(
+			obj.x,
+			obj.y,
+			obj.w,
+			obj.h
+		);
 	}
 	
 }
@@ -411,6 +427,20 @@ Game.prototype.render = function( ) {
 			if("render" in this.objects){
 				for(var i=0; i < this.objects["render"].length; i++){
 					this.renderObject( this.objects["render"][i] ); 
+				}
+			}
+		} else {
+			//Render Tile Layer
+			if(this.map && this.renderOrder[order] in this.map.layers){
+				var layer = this.map.layers[this.renderOrder[order]];
+				var tilesprite = window.tiles[this.map.tileset];
+				if(layer.length >= this.map.width){
+					tilesprite.render(
+						this.g,
+						this.camera,
+						layer,
+						this.map.width
+					);
 				}
 			}
 		}
@@ -511,23 +541,16 @@ Game.prototype.render = function( ) {
 	this.g.flush();
 }
 //debug = 1;
-Game.prototype.overlap = function( obj ) {
-	//Returns a list of objects the provided object is currently on top of
-	var out = new Array();
-	
-	var interactive = this.interactive.get(obj.position);
-	
-	for ( var i = 0; i < interactive.length; i++ ) {
-		var temp = interactive[i];
-		if ( obj != temp ) {
-			if ( obj.intersects( temp ) ){
-				out.push( temp );
-			}
-		}
-	}
-	
-	return out;
+Game.prototype.useMap = function( m ) {
+	this.gameThread.postMessage(m);
+	this.map = {
+		"layers" : m.layers,
+		"width" : m.width,
+		"height" : m.height,
+		"tileset" : m.tileset
+	};
 }
+
 
 Game.prototype.t_unstick = function( obj ) {
 	var hitbox = obj.corners();
@@ -923,61 +946,6 @@ Game.prototype.t_move2 = function(obj, x, y) {
 			}
 		}
 	}
-}
-Game.prototype.c_move = function( obj, x, y ) {
-	//Attempt to move a game object without hitting a colliding line
-	var lines = new Array();
-	var max_collides = 1;//Prevent slide if any more lines are touched
-	obj.transpose(x,y);
-	
-	var interactive = this.interactive.get(obj.position);	
-	
-	for ( var i = 0; i < interactive.length; i++ ){
-		collider = interactive[i];
-		if ( obj != collider && obj.mass && collider.applyForce instanceof Function ){
-			if ( collider.intersects(obj) ){
-				var direction = collider.position.subtract( obj.position );
-				collider.applyForce( new Point((direction.x+x)*obj.mass,(direction.y+y)*obj.mass) );
-				lines.push( collider );
-				obj.transpose(-x,-y);
-			}
-		}
-	}
-	
-	if ( lines.length <= 0 ) {
-		var collisions = this.lines.get( new Line( 
-			new Point(obj.position.x-20,obj.position.y-20),
-			new Point(obj.position.x+20,obj.position.y+20) 
-		) );
-		
-		for ( var i = 0; i < collisions.length; i++ ){
-			if ( obj.intersects( collisions[i] ) ){
-				lines.push( collisions[i] );
-				if ( lines.length > max_collides ) break;
-			}
-		}
-		
-		if( lines.length > 0 ) {
-			obj.transpose(-x,-y);
-			if ( lines.length <= max_collides ) {
-				var line = lines[0];
-				
-				var v = new Point(x,y).normalize();
-				var n = line.normal().normalize();
-				
-				obj.transpose( 
-					(v.x + n.x) * 0.8,
-					(v.y + n.y) * 0.8
-				);
-			}
-		}
-	}
-	
-	//obj.transpose( transpose );
-	if ( lines.length > 0 ) {
-		obj.oncollide(lines);
-	}
-	return false;
 }
 Game.prototype.isFullscreen = function(){
 	var fullscreen = 
@@ -1535,6 +1503,7 @@ Tileset.prototype.collide = function(t,axis,v,pos,hitbox,limits,start_hitbox){
 	}
 }
 Tileset.prototype.render = function(g,c,tiles,width){
+	BLANK_TILE = this.blank;
 	this.sprite.renderTiles(g,tiles,width,c.x,c.y,this.animation);
 }
 Tileset.ts = 16;

@@ -7,7 +7,7 @@ function Door(x,y,d,ops){
 	this.width = 20;
 	this.height = 64;
 	this.name = "";
-	this.sprite = sprites.doors;
+	this.sprite = "doors";
 	
 	this.lock = -1;
 	this.isOpen = false;
@@ -49,8 +49,8 @@ function Door(x,y,d,ops){
 	if("name" in ops) {
 		this.name = ops.name;
 		this.lock = this.name.match(/\d+/) - 0;
-		this.frame = this.lock % 4;
-		this.frame_row = Math.floor( this.lock / 4 );
+		this.frame.x = this.lock % 4;
+		this.frame.y = Math.floor( this.lock / 4 );
 	}
 	if("trigger" in ops) {
 		this._tid = ops["trigger"];
@@ -61,7 +61,7 @@ function Door(x,y,d,ops){
 }
 Door.prototype.close = function(){
 	for(var i=0; i < this.door_blocks.length; i++){
-		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, window.BLANK_TILE);
+		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 1024);
 	}
 	this.zIndex = 0;
 	this.isOpen = false;
@@ -82,14 +82,20 @@ Door.prototype.update = function(){
 	}
 }
 Door.prototype.render = function(g,c){
-	this.sprite.render(g, this.position.subtract(c), this.openAnimation, 3);
+	g.renderSprite(
+		this.sprite, 
+		this.position.subtract(c), 
+		this.zIndex,
+		new Point(this.openAnimation, 3)
+	);
 	
 	if( !this.isOpen && this.lock >= 0) {
 		//Render lock
-		this.sprite.render(g, 
+		g.renderSprite(
+			this.sprite,
 			this.position.subtract(c).add(new Point(10,36)), 
-			this.frame, 
-			this.frame_row
+			this.zIndex,
+			this.frame
 		);
 	}
 }

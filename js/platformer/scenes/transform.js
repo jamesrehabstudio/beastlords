@@ -7,7 +7,7 @@ function SceneTransform(x,y){
 	this.position.x = x;
 	this.position.y = y;
 	
-	this.sprite = sprites.transform;
+	this.sprite = "transform";
 	
 	_player.visible = false;
 	_player.stun = Game.DELTAYEAR;

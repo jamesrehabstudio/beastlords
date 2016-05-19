@@ -82,8 +82,7 @@ function Player(x, y){
 	};
 	
 	this.weapon = {
-		"frame" : 0,
-		"frame_row" : 0,
+		"frame" : new Point(0,0),
 		"combo" : 0,
 		"charge" : 0,
 		"charge_ready" : false,
@@ -175,7 +174,7 @@ function Player(x, y){
 	this.on("hurt", function(obj, damage){
 		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
 		var dir = this.position.subtract(obj.position);
-		window.shakeCamera(Game.DELTASECOND*0.5,str);
+		shakeCamera(Game.DELTASECOND*0.5,str);
 		this.equip_weapon.cancel(this);
 		
 		var knockback = this.grounded ? 7 : 3;
@@ -220,7 +219,7 @@ function Player(x, y){
 		//Charge kill explosion!
 		if( this.equip_weapon.charge ){
 			//A little shake
-			window.shakeCamera(Game.DELTASECOND*0.1,5);
+			shakeCamera(Game.DELTASECOND*0.1,5);
 			
 			if( obj.mass < 2.0 && obj.life <= 0 ) {
 				//Send the enemy flying
@@ -796,7 +795,7 @@ Player.prototype.jump = function(){
 			this.position.x,
 			this.position.y + 2 + _player.height * .5
 		);
-		if(standingTile in game.tileRules.special && game.tileRules.special[standingTile] == Tileset.onewayup){
+		if(standingTile in tilerules.currentrule() && tilerules.currentrule()[standingTile] == tilerules.onewayup){
 			this.grounded = false; 
 			this.position.y += 2;
 			return;
@@ -1063,7 +1062,7 @@ Player.prototype.render = function(g,c){
 			var wings_offset = new Point((this.flip?8:-8),0);
 			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
 			if( this.grounded ) wings_frame = 0;
-			sprites.magic_effects.render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
+			"magic_effects".render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
 		}
 		if( this.spellsCounters.magic_armour > 0 ){
 			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
@@ -1080,7 +1079,7 @@ Player.prototype.render = function(g,c){
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){
-		sprites.magic_effects.render(g,this.position.subtract(c),3, 0, this.flip);
+		"magic_effects".render(g,this.position.subtract(c),3, 0, this.flip);
 	}
 	
 	//Render shield after player if active
@@ -1120,28 +1119,25 @@ Player.prototype.render = function(g,c){
 		var sframe = Math.trunc(2 - (progress*3));
 		if(this.flip) spos.x *= -1;
 		if(this.states.duck) spos.y = 4;
-		sprites.bullets.render(g,this.position.add(spos).subtract(c),sframe,slength,this.flip);
+		"bullets".render(g,this.position.add(spos).subtract(c),sframe,slength,this.flip);
 	}
 }
 
 
 
 Player.prototype.rendershield = function(g,c){
-	//Render shield
-	return 0;
-	
+	//Render shield	
 	if( this.states.roll > 0 || this.states.downStab ) return;
 	
 	var frame = this.guard.active ? 0 : 1;
 	
 	//var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
-	sprites.shields.render(g, 
+	g.renderSprite(
+		"shields",
 		this.position.subtract(c).add(new Point(0, this.guard.y)), 
-		this.shieldProperties.frame + frame, 
-		this.shieldProperties.frame_row, 
-		this.flip,
-		"heat",
-		{"heat" : 1 - (this.guard.life / ( this.guard.lifeMax * 1.0))}
+		this.zIndex,
+		new Point(this.shieldProperties.frame + frame, this.shieldProperties.frame_row),
+		this.flip
 	);
 }
 Player.prototype.hudrender = function(g,c){

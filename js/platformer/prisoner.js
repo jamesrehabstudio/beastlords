@@ -2,7 +2,7 @@ Prisoner.prototype = new GameObject();
 Prisoner.prototype.constructor = GameObject;
 function Prisoner(x,y,n,options){
 	this.constructor();
-	this.sprite = sprites.prisoner;
+	this.sprite = "prisoner";
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;

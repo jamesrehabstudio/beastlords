@@ -205,7 +205,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 	var ani = [0,1,2,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,6,7,7,7,7,7,8,9,10];
 	var row = ani[ Math.floor( Math.min(this.cursor,ani.length-1) ) ];
 
-	sprites.pig.render(g,new Point(128,128), 0, row );
+	"pig".render(g,new Point(128,128), 0, row );
 	this.cursor += 0.15 * this.delta;
 	*/
 	/* mini map */
@@ -234,7 +234,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 			
 			var gamex = game.resolution.x * 0.5 - 427 * 0.5;
-			sprites.title.render(g,new Point(gamex,0), 0,3);
+			"title".render(g,new Point(gamex,0), 0,3);
 			
 			boxArea(g,xpos+68,168,120,40);
 			textArea(g,i18n("press_start"),xpos+84,184);
@@ -403,16 +403,16 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
 				);
 				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
-					//sprites.map.render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
+					//"map".render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
 					var xtile = Math.floor(this.map[i] / 16);
 					var ytile = this.map[i] % 16;
 					if( this.map_reveal[i] < 2 ) xtile += 4;
-					sprites.map.render(g,pos.add(offset),xtile,ytile);
+					"map".render(g,pos.add(offset),xtile,ytile);
 					
 					if( this.map_reveal[i] >= 2 ) {
 						for(var j=0; j < this.icons.length; j++ ){
 							if( tile.x == this.icons[j].x && tile.y == this.icons[j].y ){
-								sprites.map.render(g,pos.add(offset),this.icons[j].f,this.icons[j].fr);
+								"map".render(g,pos.add(offset),this.icons[j].f,this.icons[j].fr);
 							}
 						}
 					}

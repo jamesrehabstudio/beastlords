@@ -6,7 +6,7 @@ function CryptKeeper(x,y,d,o){
 	this.position.y = y;
 	this.width = 24;
 	this.height = 56;
-	this.sprite = sprites.cryptkeeper;
+	this.sprite = "cryptkeeper";
 	this.speed = 0.3;
 	//this.active = false;
 	

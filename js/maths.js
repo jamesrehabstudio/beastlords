@@ -89,6 +89,33 @@ Array.prototype.intersection = function(a){
 			out.push(a[i]);
 	return out;
 }
+Array.prototype.insertSort = function(a,func){
+	var index = Math.floor(this.length / 2);
+	var increment = Math.max(Math.floor(index/2),1);
+	if(func == undefined){
+		func = function(a,b){return a-b;}
+	}
+	
+	while(1){
+		if(index == 0){
+			break;
+		}
+		if(index == this.length -1){
+			break;
+		}
+		if(func(a,this[index-1])>=0 && func(a,this[index+1])<0){
+			break;
+		}
+		if(func(a,this[index-1])<0){
+			index -= increment;
+		} else {
+			index += increment;
+		}
+		increment = Math.max(Math.floor(increment/2),1);
+	}
+	this.splice(index, 0, a);
+	return this;
+}
 Math.angleTurnDirection = function(_a,_b){
 	_a = _a % (2*Math.PI);
 	_b = _b % (2*Math.PI);

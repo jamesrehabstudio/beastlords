@@ -24,7 +24,7 @@ function Bullet(x,y,d){
 	};
 	
 	this.speed = 6.0;
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	
 	this.addModule( mod_rigidbody );
 	this.force.x = d * this.speed;
@@ -107,7 +107,7 @@ function PhantomBullet(x,y){
 	this.width = 10;
 	this.height = 10;
 	
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	this.frame = 0;
 	this.frame_row = 0;
 	
@@ -137,7 +137,7 @@ function Fire(x,y){
 	
 	this.addModule( mod_rigidbody );
 	
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	this.frame = 0;
 	this.frame_row = 3;
 	this.life = Game.DELTASECOND * 8;
@@ -181,7 +181,7 @@ function FallingRock(x,y){
 	
 	this.addModule( mod_rigidbody );
 	
-	this.sprite = sprites.bullets;
+	this.sprite = "bullets";
 	this.gravity = 0.333;
 	this.pushable = false;
 	this.frame = 3;
@@ -219,7 +219,7 @@ function ExplodingEnemy(x,y, direction, ops){
 	
 	this.damage = ops.damage || 0;
 	this.speed = ops.speed || 20;
-	this.sprite = ops.sprite || sprites.bullets;
+	this.sprite = ops.sprite || "bullets";
 	this.frame = ops.frame || 0;
 	this.frame_row = ops.frame_row || 0;
 	this.flip = ops.flip || false;
@@ -277,7 +277,7 @@ function Explosion(x,y, d, ops){
 	
 	this.damage = ops.damage || 0;
 	
-	this.sprite = sprites.explosion;
+	this.sprite = "explosion";
 	
 	this.totalTime = Game.DELTASECOND * 0.5;
 	this.time = this.totalTime;

@@ -4,7 +4,7 @@ function Alter(x,y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.alter;
+	this.sprite = "alter";
 	this.width = 64;
 	this.height = 128;
 	this.zIndex = -1;
@@ -69,6 +69,6 @@ Alter.prototype.render = function(g,c){
 		textArea(g," Yes",32,136);
 		textArea(g," No",32,152);
 		
-		sprites.text.render(g, new Point(28,136+this.cursor*16), 95);
+		"text".render(g, new Point(28,136+this.cursor*16), 95);
 	}
 }

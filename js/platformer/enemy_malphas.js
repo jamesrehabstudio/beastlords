@@ -6,7 +6,7 @@ function Malphas(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 32;
-	this.sprite = sprites.malphas;
+	this.sprite = "malphas";
 	this.speed = 0.3;
 	this.start_x = x;
 	

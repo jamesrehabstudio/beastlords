@@ -7,7 +7,7 @@ function NPC(x,y,t,o){
 	this.width = 16;
 	this.height = 32;
 	this.start_x = x;
-	this.sprite = sprites.characters;
+	this.sprite = "characters";
 	this.name = "";
 	
 	this.addModule(mod_talk);

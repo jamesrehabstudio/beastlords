@@ -6,7 +6,7 @@ function Deckard(x,y,d,o){
 	this.position.y = y;
 	this.width = 24;
 	this.height = 36;
-	this.sprite = sprites.deckard;
+	this.sprite = "deckard";
 	this.speed = 0.1;
 	
 	this.addModule( mod_rigidbody );

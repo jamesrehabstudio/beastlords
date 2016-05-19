@@ -4,7 +4,7 @@ function Healer(x,y,n,options){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.sprite = sprites.characters;
+	this.sprite = "characters";
 	this.width = 16;
 	this.height = 32;
 	this.zIndex = 5;
@@ -99,6 +99,6 @@ Healer.prototype.postrender = function(g,c){
 		textArea(g," Yes",32,136);
 		textArea(g," No",32,152);
 		
-		sprites.text.render(g, new Point(28,136+this.cursor*16), 95);
+		"text".render(g, new Point(28,136+this.cursor*16), 95);
 	}
 }

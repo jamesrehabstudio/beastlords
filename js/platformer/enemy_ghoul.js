@@ -6,7 +6,7 @@ function Ghoul(x,y,d,o){
 	this.position.y = y;
 	this.width = 20;
 	this.height = 30;
-	this.sprite = sprites.ghoul;
+	this.sprite = "ghoul";
 	this.speed = 0.1;
 	
 	this.addModule( mod_rigidbody );

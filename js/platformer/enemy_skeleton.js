@@ -6,7 +6,7 @@ function Skeleton(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 32;
-	this.sprite = sprites.skele;
+	this.sprite = "skele";
 	this.speed = .3;
 	this.active = false;
 	
@@ -85,7 +85,7 @@ function Skeleton(x,y,d,o){
 	this.calculateXP();
 }
 Skeleton.prototype.update = function(){	
-	this.sprite = sprites.skele;
+	this.sprite = "skele";
 	if ( this.stun <= 0 && this.life > 0 ) {
 		var dir = this.position.subtract( _player.position );
 		this.active = this.active || Math.abs( dir.x ) < 120;

@@ -7,7 +7,7 @@ function Laughing(x,y,d,o){
 	this.width = 16;
 	this.height = 16;
 	this.team = 0;
-	this.sprite = sprites.laughing;
+	this.sprite = "laughing";
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);

@@ -11,7 +11,7 @@ function Slimerilla(x,y,d,o){
 	
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
-	this.sprite = sprites.slimerilla;
+	this.sprite = "slimerilla";
 	this.speed = 0.3;
 	this.visible = false;
 	this.pushable = false;

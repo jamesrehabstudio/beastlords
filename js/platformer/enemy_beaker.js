@@ -6,7 +6,7 @@ function Beaker(x, y, d, o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.sprite = sprites.beaker;
+	this.sprite = "beaker";
 	this.speed = 0;
 	
 	this.addModule( mod_rigidbody );

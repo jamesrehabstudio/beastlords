@@ -4,7 +4,7 @@ function CornerStone(x,y,d,options){
 	options = options || {};
 	
 	this.constructor();
-	this.sprite = sprites.cornerstones;
+	this.sprite = "cornerstones";
 	this.position.x = x - 8;
 	this.position.y = y + 8;
 	this.width = 64;
@@ -41,7 +41,7 @@ function CornerStone(x,y,d,options){
 		}
 	});
 	
-	var tile = this.broken ? 0 : window.BLANK_TILE;
+	var tile = this.broken ? 0 : 1024;
 	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
 		game.setTile(
 			-32 + x + _x,

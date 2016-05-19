@@ -13,7 +13,7 @@ HomeVillage.townFromTag = function(tag){
 }
 HomeVillage.create = function(g){
 	g.clearAll();
-	g.tileSprite = sprites.town;
+	g.tileSprite = "town";
 	
 	var pos = 1;
 	var rooms = new Array();
