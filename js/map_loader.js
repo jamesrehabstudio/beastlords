@@ -158,7 +158,8 @@ MapLoader.parseMap = function(xml){
 			new Array()
 		],
 		"map" : new Array(),
-		"objects" : new Array()
+		"objects" : new Array(),
+		"starts" : new Array()
 	}
 	
 	try{
@@ -268,11 +269,15 @@ MapLoader.parseMap = function(xml){
 				if("start" in properties){
 					start = properties["start"];
 				}
-				playerStart.push({
+				
+				var player = {
 					"x" : x,
 					"y" : y,
 					"start" : start
-				})
+				};
+				
+				out.starts.push(player);
+				playerStart.push(player);
 			} else {
 				out.objects.push({"name":name,"x":x,"y":y,"width":w,"height":h,"properties":properties});
 			}
@@ -305,14 +310,6 @@ MapLoader.convertTileDataToMapData = function(data){
 		}
 	}
 	return out;
-}
-MapLoader.getMapIndex = function(list,key){
-	for(var i=0; i < list.length; i++){
-		if(list[i].start == key){
-			return i;
-		}
-	}
-	return -1;
 }
 
 MapLoader.mapname = "testmap.tmx"

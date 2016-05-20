@@ -45,7 +45,7 @@ SceneCaveRock.prototype.update = function(){
 		this.position = Point.lerp(this.start,this.end,this.progress);
 		
 		if(this.progress < 1){
-			window.shakeCamera(10,4);
+			shakeCamera(10,4);
 			audio.playLock("cracking",0.2);
 		} else {
 			this.active = false;

@@ -12,8 +12,7 @@ function TitleMenu(){
 	this.castle_position = 240;
 	
 	this.progress = 0;
-	this.cursor = 0;
-	this.loading = true;
+	this.cursor = 1;
 	
 	this.starPositions = [
 		new Point(84,64),
@@ -35,87 +34,79 @@ function TitleMenu(){
 		{ "pos" : new Point(), "timer" : 0 }
 	];
 	
-	this.playedIntro = !!localStorage.getItem("playedintro");
-	if( this.playedIntro ) this.cursor = 1;
-	this.playedIntro = true;
-	
 	//this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [
 		"introduction_help",
 		"start_help"
 	];
 	
+	/*
 	if(localStorage.getItem("debug_map")){
 		MapLoader.mapname = localStorage.getItem("debug_map")
 	}
+	*/
 }
 
 TitleMenu.prototype.update = function(){
-	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
-		//Display game object
-		game.element.style.display = "block";
+	//if( this.progress == 0 ) audio.playAs("music_intro","music");
+	
+	if( this.page == 0 ){
+		this.progress += this.delta / Game.DELTASECOND;
+		if( this.progress > 52 ) this.progress = 9.0;
+		if( input.state("pause") == 1 || input.state("fire") == 1 ) {
+			if(this.progress > 9 && this.progress < 24){
+				this.page = 1;
+				this.cursor = 0;
+			}else{
+				this.progress = 10.0;
+			}
+		}
+	} else if( this.page == 1 ) {
+		this.progress = 10.0;
+		if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
+		if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+			if(this.cursor == 0){
+				this.page = 2;
+				audio.play("pause");
+			} else if(this.cursor == 1){
+				this.startGame(); 
+			}
+		}
+	} else if( this.page == 2 ) {
+		this.progress = 10.0;
+		if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
+		if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
+		this.cursor = Math.max(Math.min(this.cursor,3),0);
 		
-		this.loading = false;
-		//if( this.progress == 0 ) audio.playAs("music_intro","music");
+		if(this.cursor == 1){
+			if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
+			MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
+		}else if(this.cursor == 2){
+			if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+		}
 		
-		if( this.page == 0 ){
-			this.progress += this.delta / Game.DELTASECOND;
-			if( this.progress > 52 ) this.progress = 9.0;
-			if( input.state("pause") == 1 || input.state("fire") == 1 ) {
-				if(this.progress > 9 && this.progress < 24){
-					this.page = 1;
-					this.cursor = 0;
-				}else{
-					this.progress = 10.0;
-				}
-			}
-		} else if( this.page == 1 ) {
-			this.progress = 10.0;
-			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
-			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
-				if(this.cursor == 0){
-					this.page = 2;
-					audio.play("pause");
-				} else if(this.cursor == 1){
-					this.startGame(); 
-				}
-			}
-		} else if( this.page == 2 ) {
-			this.progress = 10.0;
-			if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
-			this.cursor = Math.max(Math.min(this.cursor,3),0);
-			
-			if(this.cursor == 1){
-				if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
-				MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
-			}else if(this.cursor == 2){
-				if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
-			}
-			
-			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
-				if(this.cursor == 0){
-					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
-					localStorage.setItem("debug_map", MapLoader.mapname);
-				} else if(this.cursor == 3){
-					//Start in DEBUG mode
-					window._player = new Player(0,0);
-					MapLoader.loadMapTmx(MapLoader.mapname, function(starts){
-						_player.lightRadius = 240;
-						if(starts.length > 0){
-							_player.position.x = starts[0].x;
-							_player.position.y = starts[0].y;
-						} else {
-							_player.position.x = 64;
-							_player.position.y = 176;
-						}
-						game.addObject(_player);
-					});
-					audio.play("pause");
-				}
+		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+			if(this.cursor == 0){
+				MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
+				localStorage.setItem("debug_map", MapLoader.mapname);
+			} else if(this.cursor == 3){
+				//Start in DEBUG mode
+				window._player = new Player(0,0);
+				MapLoader.loadMapTmx(MapLoader.mapname, function(starts){
+					_player.lightRadius = 240;
+					if(starts.length > 0){
+						_player.position.x = starts[0].x;
+						_player.position.y = starts[0].y;
+					} else {
+						_player.position.x = 64;
+						_player.position.y = 176;
+					}
+					game.addObject(_player);
+				});
+				audio.play("pause");
 			}
 		}
 	}
@@ -126,30 +117,27 @@ TitleMenu.prototype.update = function(){
 TitleMenu.prototype.render = function(g,c){
 	var xpos = (game.resolution.x - 427) * 0.5;
 	
-	if( this.loading ){ 
-		//g.font = (30*pixel_scale)+"px monospace";
-		//g.fillStyle = "#FFF";
-		//g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
-	} else if( this.start ) {
-		"loading".render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
+	if( this.start ) {
+		//"loading".render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
 		
-		this.sprite.render(g,new Point(xpos,0),0,2);
+		g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
 		
 		//Random twinkling stars
 		for(var i=0; i<this.stars.length; i++) {
+			var star = this.stars[i];
 			var frame = 2;
 			if( 
 				this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
 				this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
 			) frame = 3;
 				
-			"bullets".render(g,this.stars[i].pos.add(new Point(xpos,0)),frame,2);
-			this.stars[i].timer -= this.delta;
-			if( this.stars[i].timer <= 0 ){
-				this.stars[i].timer = Game.DELTASECOND * 1.0;
-				this.stars[i].pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+			g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
+			star.timer -= this.delta;
+			if( star.timer <= 0 ){
+				star.timer = Game.DELTASECOND * 1.0;
+				star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
 			}			
 		}
 		this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
@@ -158,11 +146,11 @@ TitleMenu.prototype.render = function(g,c){
 			this.stars.timer += this.stars.reset;
 		}
 		
-		this.sprite.render(g,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),0,1);
-		this.sprite.render(g,new Point(xpos,Math.lerp( this.title_position, 0, pan)),0,0);
+		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
+		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
 		
 		textArea(g,"Copyright Pogames.uk 2016",8,4);
-		textArea(g,"Version "+window._version,8,228);
+		//textArea(g,"Version "+window._version,8,228);
 		
 		if(this.page == 0){
 			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;

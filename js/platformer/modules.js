@@ -69,7 +69,12 @@ var mod_rigidbody = {
 			//The timer prevents landing errors
 			this._groundedTimer -= this.grounded ? 1 : 10;
 			this.grounded = this._groundedTimer > 0;
-			game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
+			var limits = game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
+			
+			if(this.grounded && limits[1] > this.position.y && limits[1] - this.position.y < 16 ){
+				this.position.y = limits[1];
+				this.trigger("collideVertical", 1);
+			}
 			
 			var friction_x = 1.0 - this.friction * this.delta;
 			this.force.x *= friction_x;
@@ -665,13 +670,9 @@ var mod_talk = {
 		this.canOpen = true;
 		this._talk_is_over = 0;
 		
-		if(window._dialogueOpen == undefined){
-			window._dialogueOpen = false;
-		}
-		
 		this.close = function(){
 			this.open = 0;
-			window._dialogueOpen = false;
+			DialogManger.dialogOpen = false;
 			this.trigger("close");
 		}
 		
@@ -682,9 +683,9 @@ var mod_talk = {
 		});
 	},
 	"update" : function(){
-		if( !window._dialogueOpen && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
+		if( !DialogManger.dialogOpen && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
 			this.open = 1;
-			window._dialogueOpen = true;
+			DialogManger.dialogOpen = true;
 			this.trigger("open");
 		}
 		this._talk_is_over--;

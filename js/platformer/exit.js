@@ -24,10 +24,7 @@ function Exit(x,y,d,o){
 	}
 	
 	this.on("collideObject",function(obj){
-		if( obj instanceof Player ) {
-			WorldLocale.loadMap("temple1.tmx");
-			return;
-			
+		if( obj instanceof Player ) {			
 			if(this.start){
 				WorldMap.open(this.start);
 			} else {

@@ -115,8 +115,6 @@ function Player(x, y){
 		game.getObject(PauseMenu).open = true;
 		audio.play("playerdeath");
 		this.destroy();
-		
-		ga("send","event", "death","died:"+dataManager.currentTemple+" at level:"+this.level);
 	});
 	this.on("land", function(){
 		//Land from a height
@@ -254,11 +252,12 @@ function Player(x, y){
 			this.spellsCounters[i] = 0;
 		}
 		
+		/*
 		if( dataManager.temple_instance ) {
 			this.keys = dataManager.temple_instance.keys;
 		} else {
 			this.keys = new Array();
-		}
+		}*/
 	})
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
@@ -1016,11 +1015,9 @@ Player.prototype.addXP = function(value){
 		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
 		
-		ga("send","event", "levelup","level:" + this.level);
-		
 		if(Math.random() < 0.1){
 			var treasure = Item.randomTreasure(Math.random(),[],{"locked":true});
-			dataManager.itemUnlock(treasure.name);
+			//dataManager.itemUnlock(treasure.name);
 		}
 		
 		//Call again, just in case the player got more than one level
@@ -1207,5 +1204,5 @@ Player.prototype.hudrender = function(g,c){
 	}*/
 	
 	//Create light
-	//Background.pushLight( this.position.subtract(c), this.lightRadius );
+	Background.pushLight( this.position, this.lightRadius );
 }

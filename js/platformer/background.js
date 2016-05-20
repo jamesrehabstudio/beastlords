@@ -38,16 +38,15 @@ function Background(x,y){
 			"lapse" : Math.random() * 500
 		});
 	}
-	
-	this.lightBuffer = game.g.createF();
 }
 Background.prototype.render = function(gl,c){
 	this.time += this.delta;
 }
 
-Background.prototype.postrender = function(gl,c){
+Background.prototype.postrender = function(g,c){
 	this.renderDust(gl,c);
 	
+	/*
 	if( c.y < 480 ) {
 		//Render light beams when player is above ground
 		var offset = Math.mod( -c.x / this.lightbeamLoop, 32 );
@@ -63,46 +62,7 @@ Background.prototype.postrender = function(gl,c){
 		
 		}
 	}
-	
-	//Render ambience
-	this.lightBuffer.use(gl);
-	gl.clear(gl.COLOR_BUFFER_BIT);
-	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA );
-	
-	//Calculate strength
-	this.ambienceStrength = Math.min(Math.max(this.darknessFunction(c),0),1);
-	gl.color = [
-		Math.lerp(1.0,this.ambience[0],this.ambienceStrength),
-		Math.lerp(1.0,this.ambience[1],this.ambienceStrength),
-		Math.lerp(1.0,this.ambience[2],this.ambienceStrength),
-		1.0
-	];
-	gl.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
-	
-	//render lights
-	while( Background.lights.length > 0 ) {
-		var light = Background.lights.pop();
-		var position = light[0];
-		var radius = light[1];
-		"halo".renderSize(
-			gl, 
-			position.x - (radius*0.5), 
-			position.y - (radius*0.5), 
-			radius, 
-			radius,
-			0,
-			0
-		);
-	}
-	
-	//Done, switch back to back buffer
-	game.backBuffer.use(gl);
-	
-	gl.blendFunc( gl.ZERO, gl.SRC_COLOR );
-	gl.renderBackbuffer(this.lightBuffer.texture);
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
-
-	Background.lights = new Array();
+	*/
 	
 	//Render flash
 	if(Background.flash instanceof Array){
@@ -140,6 +100,7 @@ Background.prototype.renderLightbeam = function(g,p,r,a){
 	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
 }
 Background.prototype.renderDust = function(g,c){
+	/*
 	for(var i=0; i < Math.min(this.dustAmount, this.dust.length); i++){
 		var dust = this.dust[i];
 		var x = Math.sin( dust.lapse * dust.direction.x );
@@ -159,10 +120,31 @@ Background.prototype.renderDust = function(g,c){
 			"blur", {"blur":Math.min(0.004 * dust.scale, 0.008), "scale": [0.3*dust.scale, 0.3*dust.scale]}
 		);
 	}
+	*/
 }
 Background.prototype.prerender = function(gl,c){
 	var c2 = new Point(c.x, c.y - this.sealevel);
 	this.preset(gl,c2);
+}
+Background.prototype.lightrender = function(g,c){
+	//Calculate strength
+	this.ambienceStrength = Math.min(Math.max(this.darknessFunction(c),0),1);
+	g.color = [
+		Math.lerp(1.0,this.ambience[0],this.ambienceStrength),
+		Math.lerp(1.0,this.ambience[1],this.ambienceStrength),
+		Math.lerp(1.0,this.ambience[2],this.ambienceStrength),
+		1.0
+	];
+	g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
+	
+	//render lights
+	while( Background.lights.length > 0 ) {
+		var light = Background.lights.pop();
+		var position = light[0];
+		var radius = light[1];
+		g.renderSprite("halo",position.subtract(c),this.zIndex,new Point());
+	}
+	Background.lights = new Array();
 }
 Background.prototype.idle = function(){}
 Background.lightbeam = function(p, r, w, h){

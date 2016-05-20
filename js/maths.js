@@ -1,3 +1,26 @@
+function ajax(filepath, callback, caller){
+	var xhttp = new XMLHttpRequest();
+	caller = caller || window;
+	xhttp.onreadystatechange = function(){
+		if(xhttp.readyState == 4){
+			callback.apply(caller, [xhttp.response]);
+		}
+	}
+	xhttp.open("GET",filepath,true);
+	xhttp.send();
+}
+mergeLists = function(a,b){ 
+	var out = {};
+	for(var i in a){
+		out[i] = a[i];
+	}
+	for(var i in b){
+		if(!(i in out)){
+			out[i] = b[i];
+		}
+	}
+	return out;
+}
 function Timer(time, interval){
 	this.countdown = false;
 	this.time = this.start = this.previous = this.interval = 0;
@@ -90,23 +113,42 @@ Array.prototype.intersection = function(a){
 	return out;
 }
 Array.prototype.insertSort = function(a,func){
-	var index = Math.floor(this.length / 2);
-	var increment = Math.max(Math.floor(index/2),1);
 	if(func == undefined){
 		func = function(a,b){return a-b;}
 	}
+	if(this.length == 0){
+		this.push(a);
+		return this;
+	}
+	if(this.length == 1){
+		if(func(a,this[0])>0){
+			this.push(a);
+		} else {
+			this.splice(0, 0, a);
+		}
+		return this;
+	}
+	var index = Math.floor(this.length / 2);
+	var increment = Math.max(Math.floor(index/2),1);
 	
 	while(1){
 		if(index == 0){
-			break;
+			if(func(a,this[index])<0){
+				break;
+			}
 		}
-		if(index == this.length -1){
-			break;
+		if(index >= this.length-1){
+			if(func(a,this[index])>=0){
+				index+=1;
+				break;
+			}
+		} else {
+			if(func(a,this[index])>=0 && func(a,this[index+1])<0){
+				index+=1;
+				break;
+			}
 		}
-		if(func(a,this[index-1])>=0 && func(a,this[index+1])<0){
-			break;
-		}
-		if(func(a,this[index-1])<0){
+		if(func(a,this[index])<0){
 			index -= increment;
 		} else {
 			index += increment;
@@ -116,6 +158,7 @@ Array.prototype.insertSort = function(a,func){
 	this.splice(index, 0, a);
 	return this;
 }
+
 Math.angleTurnDirection = function(_a,_b){
 	_a = _a % (2*Math.PI);
 	_b = _b % (2*Math.PI);

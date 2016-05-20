@@ -198,7 +198,7 @@ function FallingRock(x,y){
 	this.on("collideVertical", function(obj){ this.trigger("death");});
 	this.on("collideHorizontal", function(obj){ this.trigger("death");});
 	this.on("death", function(){
-		window.audio.play("explode2");
+		audio.play("explode2");
 		game.addObject(new EffectSmoke(this.position.x, this.position.y));
 		this.destroy();
 	});
@@ -295,7 +295,7 @@ function Explosion(x,y, d, ops){
 	try{
 		//Shake screen
 		var dir = this.position.subtract(_player.position).normalize(20);
-		window.shakeCamera(dir);
+		shakeCamera(dir);
 	} catch (err) {}
 }
 Explosion.prototype.idle = function(){}

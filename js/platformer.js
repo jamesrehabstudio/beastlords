@@ -264,16 +264,15 @@ function Background(x,y){
 			"lapse" : Math.random() * 500
 		});
 	}
-	
-	this.lightBuffer = game.g.createF();
 }
 Background.prototype.render = function(gl,c){
 	this.time += this.delta;
 }
 
-Background.prototype.postrender = function(gl,c){
+Background.prototype.postrender = function(g,c){
 	this.renderDust(gl,c);
 	
+	/*
 	if( c.y < 480 ) {
 		//Render light beams when player is above ground
 		var offset = Math.mod( -c.x / this.lightbeamLoop, 32 );
@@ -289,46 +288,7 @@ Background.prototype.postrender = function(gl,c){
 		
 		}
 	}
-	
-	//Render ambience
-	this.lightBuffer.use(gl);
-	gl.clear(gl.COLOR_BUFFER_BIT);
-	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA );
-	
-	//Calculate strength
-	this.ambienceStrength = Math.min(Math.max(this.darknessFunction(c),0),1);
-	gl.color = [
-		Math.lerp(1.0,this.ambience[0],this.ambienceStrength),
-		Math.lerp(1.0,this.ambience[1],this.ambienceStrength),
-		Math.lerp(1.0,this.ambience[2],this.ambienceStrength),
-		1.0
-	];
-	gl.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
-	
-	//render lights
-	while( Background.lights.length > 0 ) {
-		var light = Background.lights.pop();
-		var position = light[0];
-		var radius = light[1];
-		"halo".renderSize(
-			gl, 
-			position.x - (radius*0.5), 
-			position.y - (radius*0.5), 
-			radius, 
-			radius,
-			0,
-			0
-		);
-	}
-	
-	//Done, switch back to back buffer
-	game.backBuffer.use(gl);
-	
-	gl.blendFunc( gl.ZERO, gl.SRC_COLOR );
-	gl.renderBackbuffer(this.lightBuffer.texture);
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
-
-	Background.lights = new Array();
+	*/
 	
 	//Render flash
 	if(Background.flash instanceof Array){
@@ -366,6 +326,7 @@ Background.prototype.renderLightbeam = function(g,p,r,a){
 	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
 }
 Background.prototype.renderDust = function(g,c){
+	/*
 	for(var i=0; i < Math.min(this.dustAmount, this.dust.length); i++){
 		var dust = this.dust[i];
 		var x = Math.sin( dust.lapse * dust.direction.x );
@@ -385,10 +346,31 @@ Background.prototype.renderDust = function(g,c){
 			"blur", {"blur":Math.min(0.004 * dust.scale, 0.008), "scale": [0.3*dust.scale, 0.3*dust.scale]}
 		);
 	}
+	*/
 }
 Background.prototype.prerender = function(gl,c){
 	var c2 = new Point(c.x, c.y - this.sealevel);
 	this.preset(gl,c2);
+}
+Background.prototype.lightrender = function(g,c){
+	//Calculate strength
+	this.ambienceStrength = Math.min(Math.max(this.darknessFunction(c),0),1);
+	g.color = [
+		Math.lerp(1.0,this.ambience[0],this.ambienceStrength),
+		Math.lerp(1.0,this.ambience[1],this.ambienceStrength),
+		Math.lerp(1.0,this.ambience[2],this.ambienceStrength),
+		1.0
+	];
+	g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
+	
+	//render lights
+	while( Background.lights.length > 0 ) {
+		var light = Background.lights.pop();
+		var position = light[0];
+		var radius = light[1];
+		g.renderSprite("halo",position.subtract(c),this.zIndex,new Point());
+	}
+	Background.lights = new Array();
 }
 Background.prototype.idle = function(){}
 Background.lightbeam = function(p, r, w, h){
@@ -2556,7 +2538,7 @@ function FallingRock(x,y){
 	this.on("collideVertical", function(obj){ this.trigger("death");});
 	this.on("collideHorizontal", function(obj){ this.trigger("death");});
 	this.on("death", function(){
-		window.audio.play("explode2");
+		audio.play("explode2");
 		game.addObject(new EffectSmoke(this.position.x, this.position.y));
 		this.destroy();
 	});
@@ -2653,7 +2635,7 @@ function Explosion(x,y, d, ops){
 	try{
 		//Shake screen
 		var dir = this.position.subtract(_player.position).normalize(20);
-		window.shakeCamera(dir);
+		shakeCamera(dir);
 	} catch (err) {}
 }
 Explosion.prototype.idle = function(){}
@@ -3478,12 +3460,12 @@ function EffectSmoke(x, y, d, ops){
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
-	this.frame = 0;
-	this.frame_row = 2;
+	this.frame.x = 0;
+	this.frame.y = 2;
 	
 	ops = ops || {};
-	if( "frame" in ops ) this.frame = ops.frame;
-	if( "frame_row" in ops ) this.frame_row = ops.frame_row;
+	if( "frame" in ops ) this.frame.x = ops.frame*1;
+	if( "frame_row" in ops ) this.frame.y = ops.frame_row*1;
 	if( "speed" in ops ) this.speed = ops.speed;
 	if( "time" in ops ) this.time = ops.time;
 	
@@ -3649,9 +3631,9 @@ EffectNumber.prototype.render = function(g,c){
 		var offset = Math.min(this.progress-(i*2),Math.PI);
 		var bounce = Math.sin(offset) * 8;
 		if(offset > 0){
-			this.frame = v[i] * 1;
-			this.frame_row = 1;
-			this.sprite.render(g,this.position.subtract(c).add(new Point(i*6-x_off,-bounce)),this.frame,this.frame_row);
+			this.frame.x = v[i] * 1;
+			this.frame.y = 1;
+			g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(i*6-x_off,-bounce)),this.zIndex,this.frame);
 		}
 	}
 	
@@ -8747,10 +8729,7 @@ function Exit(x,y,d,o){
 	}
 	
 	this.on("collideObject",function(obj){
-		if( obj instanceof Player ) {
-			WorldLocale.loadMap("temple1.tmx");
-			return;
-			
+		if( obj instanceof Player ) {			
 			if(this.start){
 				WorldMap.open(this.start);
 			} else {
@@ -9458,7 +9437,7 @@ Item.prototype.setName = function(n){
 	
 	//Equipment
 	if(n == "short_sword") { 
-		this.frame = 0; this.frame_row = 2; 
+		this.frame.x = 0; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
 		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":"sword1" };
@@ -9470,7 +9449,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "long_sword") { 
-		this.frame = 1; this.frame_row = 2; 
+		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
 		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":"sword2" };
@@ -9482,7 +9461,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "broad_sword") { 
-		this.frame = 3; this.frame_row = 2; 
+		this.frame.x = 3; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
 		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":"sword2" };
@@ -9494,7 +9473,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "spear") { 
-		this.frame = 2; this.frame_row = 2; 
+		this.frame.x = 2; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
 		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":"sword3" };
@@ -9506,7 +9485,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "warhammer") { 
-		this.frame = 6; this.frame_row = 2; 
+		this.frame.x = 6; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = true;
 		this.level=1; this.bonus_att=5; 
 		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":"sword4" };
@@ -9518,81 +9497,81 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "small_shield") { 
-		this.frame = 0; this.frame_row = 3; 
+		this.frame.x = 0; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.0,"guardlife":30,"height":11, "frame":0, "frame_row":0}
 		return; 
 	}
 	if(n == "large_shield") { 
-		this.frame = 1; this.frame_row = 3; 
+		this.frame.x = 1; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1}
 		return; 
 	}
 	if(n == "kite_shield") { 
-		this.frame = 2; this.frame_row = 3; 
+		this.frame.x = 2; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2}
 		return; 
 	}
 	if(n == "broad_shield") { 
-		this.frame = 3; this.frame_row = 3; 
+		this.frame.x = 3; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.4,"guardlife":50,"height":18, "frame":0, "frame_row":3}
 		return; 
 	}
 	if(n == "knight_shield") { 
-		this.frame = 4; this.frame_row = 3; 
+		this.frame.x = 4; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":17, "frame":2, "frame_row":0}
 		return; 
 	}
 	if(n == "spiked_shield") { 
-		this.frame = 5; this.frame_row = 3; 
+		this.frame.x = 5; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":2, "frame_row":1}
 		return; 
 	}
 	if(n == "heavy_shield") { 
-		this.frame = 6; this.frame_row = 3; 
+		this.frame.x = 6; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.2,"guardlife":60,"height":17, "frame":2, "frame_row":2}
 		return; 
 	}
 	if(n == "tower_shield") { 
-		this.frame = 7; this.frame_row = 3; 
+		this.frame.x = 7; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.5,"guardlife":70,"height":30, "frame":2, "frame_row":3}
 		return; 
 	}
 	
-	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
-	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
-	if(n == "map") { this.frame = 3; this.frame_row = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
+	if( this.name.match(/^key_\d+$/) ) { this.frame.x = this.name.match(/\d+/) - 0; this.frame.y = 0; return; }
+	if(n == "life") { this.frame.x = 0; this.frame.y = 1; return; }
+	if(n == "map") { this.frame.x = 3; this.frame.y = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
 	
-	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "mana_small") { this.frame = 4; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "money_bag") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "life_small") { this.frame.x = 1; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "mana_small") { this.frame.x = 4; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "money_bag") { this.frame.x = 5; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "xp_big") { this.frame.x = 2; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
 	
-	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "waystone") { this.frames = [13,14,15]; this.frame = 13; this.frame_row = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
+	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
+	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
+	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.frame.y = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
 	
 	//Charms
-	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
+	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}
 	if( this.name == "charm_mana") { 
-		this.frame = 1; 
-		this.frame_row = 8;
+		this.frame.x = 1; 
+		this.frame.y = 8;
 		this.message = "Mana Charm\nLarger supply of mana.";
 		this.on("equip",function(){ 
 			_player.manaMax += 3;
@@ -9603,63 +9582,63 @@ Item.prototype.setName = function(n){
 			_player.mana = Math.max(_player.mana-3,0);
 		});
 	}
-	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
-	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
-	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
-	if( this.name == "charm_methuselah") { this.frame = 5; this.frame_row = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
-	if( this.name == "charm_barter") { this.frame = 6; this.frame_row = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
-	if( this.name == "charm_elephant") { this.frame = 7; this.frame_row = 8; this.message = "Elephant Charm\nWounds open slowly.";}
+	if( this.name == "charm_alchemist") { this.frame.x = 2; this.frame.y = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
+	if( this.name == "charm_musa") { this.frame.x = 3; this.frame.y = 8; this.message = "Musa's Charm\nGold heals wounds.";}
+	if( this.name == "charm_wise") { this.frame.x = 4; this.frame.y = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
+	if( this.name == "charm_methuselah") { this.frame.x = 5; this.frame.y = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
+	if( this.name == "charm_barter") { this.frame.x = 6; this.frame.y = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
+	if( this.name == "charm_elephant") { this.frame.x = 7; this.frame.y = 8; this.message = "Elephant Charm\nWounds open slowly.";}
 	
 	//All items below this point glow!
 	this.glowing=true;
 		
-	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
-	if( this.name == "intro_item") { this.frame = 0; this.frame_row = 4; this.message = "Mysterious drink.";}
+	if(n == "life_up") { this.frame.x = 6; this.frame.y = 1; return; }
+	if( this.name == "intro_item") { this.frame.x = 0; this.frame.y = 4; this.message = "Mysterious drink.";}
 	
-	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nAttack up.";}
-	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}
-	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; this.message = "Malphas Seed\nTechnique up.";}
-	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; this.message = "Yeti Seed\nCold Strike.";}
-	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; this.message = "Guard Seed\nIncreased invincibility.";}
-	if( this.name == "seed_minotaur") { this.frame = 5; this.frame_row = 4; this.message = "Minotaur Seed\nCrashing into enemies hurts them.";}
-	if( this.name == "seed_plaguerat") { this.frame = 6; this.frame_row = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
-	if( this.name == "seed_marquis") { this.frame = 7; this.frame_row = 4; this.message = "Marquis Seed\nPain no longer phases you.";}
-	if( this.name == "seed_batty") { this.frame = 8; this.frame_row = 4; this.message = "Batty Seed\nYou can fly.";}
-	if( this.name == "seed_chort") { this.frame = 9; this.frame_row = 4; this.message = "Chort Seed\nYour body is a tank.";}
-	if( this.name == "seed_poseidon") { this.frame = 10; this.frame_row = 4; this.message = "Poseidon Seed\nAll attributes up.";}
-	if( this.name == "seed_tails") { this.frame = 11; this.frame_row = 4; this.message = "Tails Seed\nGold runs in your veins.";}
-	if( this.name == "seed_mair") { this.frame = 12; this.frame_row = 4; this.message = "Mair Seed\nTrades attack and defence for technique.";}
-	if( this.name == "seed_igbo") { this.frame = 13; this.frame_row = 4; this.message = "Igbo Seed\nDefence very up.";}
+	if( this.name == "seed_oriax") { this.frame.x = 0; this.frame.y = 4; this.message = "Oriax Seed\nAttack up.";}
+	if( this.name == "seed_bear") { this.frame.x = 1; this.frame.y = 4; this.message = "Onikuma Seed\nDefence up.";}
+	if( this.name == "seed_malphas") { this.frame.x = 2; this.frame.y = 4; this.message = "Malphas Seed\nTechnique up.";}
+	if( this.name == "seed_cryptid") { this.frame.x = 3; this.frame.y = 4; this.message = "Yeti Seed\nCold Strike.";}
+	if( this.name == "seed_knight") { this.frame.x = 4; this.frame.y = 4; this.message = "Guard Seed\nIncreased invincibility.";}
+	if( this.name == "seed_minotaur") { this.frame.x = 5; this.frame.y = 4; this.message = "Minotaur Seed\nCrashing into enemies hurts them.";}
+	if( this.name == "seed_plaguerat") { this.frame.x = 6; this.frame.y = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
+	if( this.name == "seed_marquis") { this.frame.x = 7; this.frame.y = 4; this.message = "Marquis Seed\nPain no longer phases you.";}
+	if( this.name == "seed_batty") { this.frame.x = 8; this.frame.y = 4; this.message = "Batty Seed\nYou can fly.";}
+	if( this.name == "seed_chort") { this.frame.x = 9; this.frame.y = 4; this.message = "Chort Seed\nYour body is a tank.";}
+	if( this.name == "seed_poseidon") { this.frame.x = 10; this.frame.y = 4; this.message = "Poseidon Seed\nAll attributes up.";}
+	if( this.name == "seed_tails") { this.frame.x = 11; this.frame.y = 4; this.message = "Tails Seed\nGold runs in your veins.";}
+	if( this.name == "seed_mair") { this.frame.x = 12; this.frame.y = 4; this.message = "Mair Seed\nTrades attack and defence for technique.";}
+	if( this.name == "seed_igbo") { this.frame.x = 13; this.frame.y = 4; this.message = "Igbo Seed\nDefence very up.";}
 	
-	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; this.message = "Pedila\nFantastically light shoes.";}
-	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; this.message = "Haft\nIncreased critical damage.";}
-	if( this.name == "zacchaeus_stick") { this.frame = 3; this.frame_row = 5; this.message = "Zacchaeus'\nMore money.";}
-	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; this.message = "Fangs\nLife steal.";}
-	if( this.name == "passion_fruit") { this.frame = 5; this.frame_row = 5; this.message = "Passion Fruit\nFull restoration.";}
-	if( this.name == "shield_metal") { this.frame = 6; this.frame_row = 5; this.message = "Shield Metal\nCurrent shield improved.";}
-	if( this.name == "magic_gem") { this.frame = 7; this.frame_row = 5; this.message = "Magic Gem\nEnchanted attack.";}
-	if( this.name == "snake_head") { this.frame = 8; this.frame_row = 5; this.message = "Snake Head\nAdds poison chance to attack.";}
-	if( this.name == "broken_banana") { this.frame = 9; this.frame_row = 5; this.message = "Broken Banana\nWeakens enemies.";}
-	if( this.name == "blood_letter") { this.frame = 10; this.frame_row = 5; this.message = "Blood letter\nAdds bleed chance to attack.";}
-	if( this.name == "red_cape") { this.frame = 11; this.frame_row = 5; this.message = "Red cape\nAdds rage chance to attack.";}
-	if( this.name == "chort_nose") { this.frame = 12; this.frame_row = 5; this.message = "Chort Nose\nSniffs out Waystones.";}
-	if( this.name == "plague_mask") { this.frame = 13; this.frame_row = 5; this.message = "Plague Mask\nImmune to poison.";}
-	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
-	if( this.name == "black_heart") { this.frame = 15; this.frame_row = 5; this.message = "Black Heart\nLess life, more attributes.";}
-	if( this.name == "treasure_map") { this.frame = 0; this.frame_row = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
-	if( this.name == "life_fruit") { this.frame = 1; this.frame_row = 6; this.message = "Life fruit\nLife up.";}
-	if( this.name == "mana_fruit") { this.frame = 2; this.frame_row = 6; this.message = "Mana fruit\nMana up.";}
+	if( this.name == "pedila") { this.frame.x = 0; this.frame.y = 5; this.message = "Pedila\nFantastically light shoes.";}
+	if( this.name == "haft") { this.frame.x = 2; this.frame.y = 5; this.message = "Haft\nIncreased critical damage.";}
+	if( this.name == "zacchaeus_stick") { this.frame.x = 3; this.frame.y = 5; this.message = "Zacchaeus'\nMore money.";}
+	if( this.name == "fangs") { this.frame.x = 4; this.frame.y = 5; this.message = "Fangs\nLife steal.";}
+	if( this.name == "passion_fruit") { this.frame.x = 5; this.frame.y = 5; this.message = "Passion Fruit\nFull restoration.";}
+	if( this.name == "shield_metal") { this.frame.x = 6; this.frame.y = 5; this.message = "Shield Metal\nCurrent shield improved.";}
+	if( this.name == "magic_gem") { this.frame.x = 7; this.frame.y = 5; this.message = "Magic Gem\nEnchanted attack.";}
+	if( this.name == "snake_head") { this.frame.x = 8; this.frame.y = 5; this.message = "Snake Head\nAdds poison chance to attack.";}
+	if( this.name == "broken_banana") { this.frame.x = 9; this.frame.y = 5; this.message = "Broken Banana\nWeakens enemies.";}
+	if( this.name == "blood_letter") { this.frame.x = 10; this.frame.y = 5; this.message = "Blood letter\nAdds bleed chance to attack.";}
+	if( this.name == "red_cape") { this.frame.x = 11; this.frame.y = 5; this.message = "Red cape\nAdds rage chance to attack.";}
+	if( this.name == "chort_nose") { this.frame.x = 12; this.frame.y = 5; this.message = "Chort Nose\nSniffs out Waystones.";}
+	if( this.name == "plague_mask") { this.frame.x = 13; this.frame.y = 5; this.message = "Plague Mask\nImmune to poison.";}
+	if( this.name == "spiked_shield") { this.frame.x = 14; this.frame.y = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
+	if( this.name == "black_heart") { this.frame.x = 15; this.frame.y = 5; this.message = "Black Heart\nLess life, more attributes.";}
+	if( this.name == "treasure_map") { this.frame.x = 0; this.frame.y = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
+	if( this.name == "life_fruit") { this.frame.x = 1; this.frame.y = 6; this.message = "Life fruit\nLife up.";}
+	if( this.name == "mana_fruit") { this.frame.x = 2; this.frame.y = 6; this.message = "Mana fruit\nMana up.";}
 	
-	if( this.name == "spell_fire") { this.frame = 0; this.frame_row = 10; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
-	if( this.name == "spell_flash") { this.frame = 1; this.frame_row = 10; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
-	if( this.name == "spell_heal") { this.frame = 2; this.frame_row = 10; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
-	if( this.name == "spell_purify") { this.frame = 3; this.frame_row = 10; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_bifurcate") { this.frame = 4; this.frame_row = 10; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
-	if( this.name == "spell_teleport") { this.frame = 5; this.frame_row = 10; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
+	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
+	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
+	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
+	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
+	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
+	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
 	
 	if( this.name == "unique_wand"){
-		this.frame = 2;
-		this.frame_row = 6;
+		this.frame.x = 2;
+		this.frame.y = 6;
 		this.message = "Ancient Wand";
 		this.progress = 0.0;
 		this.use = function(player){
@@ -9677,8 +9656,8 @@ Item.prototype.setName = function(n){
 	}
 	
 	if( this.name == "unique_pray"){
-		this.frame = 1;
-		this.frame_row = 6;
+		this.frame.x = 1;
+		this.frame.y = 6;
 		this.message = "Strange Prayer";
 		this.progress = 0.0;
 		this.use = function(player){
@@ -9721,9 +9700,9 @@ Item.prototype.update = function(){
 	}
 	if( this.frames.length > 0 ) {
 		this.animation_frame = (this.animation_frame + this.delta * this.animation_speed) % this.frames.length;
-		this.frame = this.frames[ Math.floor( this.animation_frame ) ];
-		this.flip = this.frame < 0;
-		this.frame = Math.abs(this.frame);
+		this.frame.x = this.frames[ Math.floor( this.animation_frame ) ];
+		this.flip = this.frame.x < 0;
+		this.frame.x = Math.abs(this.frame.x);
 	}
 }
 
@@ -9738,8 +9717,8 @@ Item.prototype.render = function(g,c){
 		
 		this.sprite.render(g, 
 			this.position.subtract(c).add(o), 
-			this.frame, 
-			this.frame_row,
+			this.frame.x, 
+			this.frame.y,
 			false,
 			"item",
 			{"u_color":[0.8,0.1,1.0,a]}
@@ -10057,7 +10036,7 @@ Lamp.prototype.render = function(g,c){
 	if(this.show){
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
-	Background.pushLight( this.position.subtract(c), this.size );
+	Background.pushLight( this.position, this.size );
 }
 Lamp.prototype.idle = function(){
 	var current = this.awake;
@@ -10243,11 +10222,11 @@ Mayor.prototype.fetchProjects = function(){
 	this.projects = {};
 	this.projectCount = 0;
 	
-	if( window._world instanceof WorldMap ) {
-		this.peopleFree = window._world.town.people;
+	if( _world instanceof WorldMap ) {
+		this.peopleFree = _world.town.people;
 		
-		for(var i in window._world.town.buildings ){
-			var building = window._world.town.buildings[i];
+		for(var i in _world.town.buildings ){
+			var building = _world.town.buildings[i];
 			this.peopleFree -= building.people;
 			
 			if( building.complete && Mayor.ongoingProjects.indexOf(i) >= 0 ){
@@ -10624,42 +10603,13 @@ PauseMenu.prototype.update = function(){
 			audio.play("pause");
 		}
 	}
-	
-	//Reveal map
-	if( this.mapDimension instanceof Line ) {
-		var map_index = (
-			( Math.floor(_player.position.x / 256) - this.mapDimension.start.x ) + 
-			( Math.floor(_player.position.y / 240) - this.mapDimension.start.y ) * this.mapDimension.width()
-		);
-		this.map_reveal[map_index] = 2;
-		var map_tile = this.map[map_index];
-		
-		if(map_tile != undefined){
-			//If map tile is valid, change camera locks
-			var lock;
-			switch( Math.abs(this.map[map_index]) % 16 ){
-				case 0: lock = new Line(0,0,256,480); break;
-				case 1: lock = new Line(0,0,512,480); break;
-				case 2: lock = new Line(-256,0,256,480); break;
-				case 3: lock = new Line(-256,0,512,480); break;
-				case 4: lock = new Line(0,0,256,240); break;
-				case 5: lock = new Line(0,0,512,240); break;
-				case 6: lock = new Line(-256,0,256,240); break;
-				case 7: lock = new Line(-256,0,512,240); break;
-				case 8: lock = new Line(0,-240,256,480); break;
-				case 9: lock = new Line(0,-240,512,480); break;
-				case 10: lock = new Line(-256,-240,256,480); break;
-				case 11: lock = new Line(-256,-240,512,480); break;
-				case 12: lock = new Line(0,-240,256,240); break;
-				case 13: lock = new Line(0,-240,512,240); break;
-				case 14: lock = new Line(-256,-240,256,240); break;
-				case 15: lock = new Line(-256,-240,512,240); break;
-				default: lock = new Line(-256,-240,256,480); break;
-			}
-			lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
-			_player.lock = lock;
-		}
-	}
+
+	var map_width = Math.floor(game.map.width / 16);
+	var map_index = (
+		( Math.floor(_player.position.x / 256) - 0 ) + 
+		( Math.floor(_player.position.y / 240) - 0 ) * map_width
+	);
+	this.map_reveal[map_index] = 2;
 	
 	this.message_time -= game.deltaUnscaled;
 }
@@ -10669,9 +10619,12 @@ PauseMenu.prototype.message = function(m){
 }
 PauseMenu.prototype.revealMap = function(secrets){
 	secrets = secrets || 0;
-	for(var i=0; i < this.map.length; i++ ) {
-		if( secrets > 0 || this.map[i] >= 0 ){
-			if( this.map_reveal[i] == undefined ) this.map_reveal[i] = 0;
+	var map = game.map.map;
+	for(var i=0; i < map.length; i++ ) {
+		if( secrets > 0 || map[i] >= 0 ){
+			if( this.map_reveal[i] == undefined ) {
+				this.map_reveal[i] = 0;
+			}
 			this.map_reveal[i] = Math.max( this.map_reveal[i], 1 );
 		}
 	}
@@ -10853,13 +10806,13 @@ PauseMenu.prototype.fetchDoors = function(g,cursor,offset,limits){
 			var id = doors[i].name.match(/(\d+)/)[0] - 0;
 			var x = Math.floor(doors[i].position.x/256) 
 			var y = Math.floor(doors[i].position.y/240)
-			this.icons.push({"x":x,"y":y,"f":8,"fr":id});
+			this.icons.push({"x":x,"y":y,frame:new Point(8,id)});
 		}
 	}
 	for(var i=0; i < shops.length; i++){
 		var x = Math.floor(shops[i].position.x/256) 
 		var y = Math.floor(shops[i].position.y/240)
-		this.icons.push({"x":x,"y":y,"f":8,"fr":9});
+		this.icons.push({"x":x,"y":y,frame:new Point(8,9)});
 	}
 }
 PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
@@ -10869,28 +10822,32 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		if(!this.icons){
 			this.fetchDoors();
 		}
+		var mapstart = new Point(0,0);
+		var mapwidth = Math.floor(game.map.width/16);
+		var map = game.map.map;
 		
-		for(var i=0; i < this.map.length; i++ ){
-			if( this.map[i] != undefined && this.map_reveal[i] > 0 )  {
+		for(var i=0; i < map.length; i++ ){
+			if( map[i] != undefined && this.map_reveal[i] > 0 )  {
 				var tile = new Point(
-					this.mapDimension.start.x + (i%this.mapDimension.width() ),
-					this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
+					mapstart.x + (i%mapwidth ),
+					mapstart.y + Math.floor(i/mapwidth )
 				);
 				var pos = new Point( 
-					(this.mapDimension.start.x*8) + (cursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
-					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
+					(mapstart.x*8) + (cursor.x*8) + (i%mapwidth ) * size.x, 
+					(mapstart.y*8) + (cursor.y*8) + Math.floor(i/mapwidth ) * size.y 
 				);
 				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 					//"map".render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
-					var xtile = Math.floor(this.map[i] / 16);
-					var ytile = this.map[i] % 16;
+					var xtile = Math.floor(map[i] / 16);
+					var ytile = map[i] % 16;
 					if( this.map_reveal[i] < 2 ) xtile += 4;
-					"map".render(g,pos.add(offset),xtile,ytile);
+					g.renderSprite("map",pos.add(offset),this.zIndex,new Point(xtile,ytile));
 					
+					//Render icons
 					if( this.map_reveal[i] >= 2 ) {
 						for(var j=0; j < this.icons.length; j++ ){
 							if( tile.x == this.icons[j].x && tile.y == this.icons[j].y ){
-								"map".render(g,pos.add(offset),this.icons[j].f,this.icons[j].fr);
+								g.renderSprite("map",pos.add(offset),this.zIndex,this.icons[j].frame);
 							}
 						}
 					}
@@ -10955,8 +10912,7 @@ function TitleMenu(){
 	this.castle_position = 240;
 	
 	this.progress = 0;
-	this.cursor = 0;
-	this.loading = true;
+	this.cursor = 1;
 	
 	this.starPositions = [
 		new Point(84,64),
@@ -10978,87 +10934,79 @@ function TitleMenu(){
 		{ "pos" : new Point(), "timer" : 0 }
 	];
 	
-	this.playedIntro = !!localStorage.getItem("playedintro");
-	if( this.playedIntro ) this.cursor = 1;
-	this.playedIntro = true;
-	
 	//this.message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pharetra sodales enim, quis ornare elit vehicula vel. Praesent tincidunt molestie augue, a euismod massa. Vestibulum eu neque quis dolor egestas aliquam. Vestibulum et finibus velit. Phasellus rutrum consectetur tellus a maximus. Suspendisse commodo lobortis sapien, at eleifend turpis aliquet vitae. Mauris convallis, enim sit amet sodales ornare, nisi felis interdum ex, eget tempus nulla ex vel mauris.";
 	this.options = [
 		"introduction_help",
 		"start_help"
 	];
 	
+	/*
 	if(localStorage.getItem("debug_map")){
 		MapLoader.mapname = localStorage.getItem("debug_map")
 	}
+	*/
 }
 
 TitleMenu.prototype.update = function(){
-	if( this.sprite.loaded && audio.isLoaded("music_intro") && !this.start ) {
-		//Display game object
-		game.element.style.display = "block";
+	//if( this.progress == 0 ) audio.playAs("music_intro","music");
+	
+	if( this.page == 0 ){
+		this.progress += this.delta / Game.DELTASECOND;
+		if( this.progress > 52 ) this.progress = 9.0;
+		if( input.state("pause") == 1 || input.state("fire") == 1 ) {
+			if(this.progress > 9 && this.progress < 24){
+				this.page = 1;
+				this.cursor = 0;
+			}else{
+				this.progress = 10.0;
+			}
+		}
+	} else if( this.page == 1 ) {
+		this.progress = 10.0;
+		if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
+		if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+			if(this.cursor == 0){
+				this.page = 2;
+				audio.play("pause");
+			} else if(this.cursor == 1){
+				this.startGame(); 
+			}
+		}
+	} else if( this.page == 2 ) {
+		this.progress = 10.0;
+		if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
+		if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
+		this.cursor = Math.max(Math.min(this.cursor,3),0);
 		
-		this.loading = false;
-		//if( this.progress == 0 ) audio.playAs("music_intro","music");
+		if(this.cursor == 1){
+			if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
+			MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
+		}else if(this.cursor == 2){
+			if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+		}
 		
-		if( this.page == 0 ){
-			this.progress += this.delta / Game.DELTASECOND;
-			if( this.progress > 52 ) this.progress = 9.0;
-			if( input.state("pause") == 1 || input.state("fire") == 1 ) {
-				if(this.progress > 9 && this.progress < 24){
-					this.page = 1;
-					this.cursor = 0;
-				}else{
-					this.progress = 10.0;
-				}
-			}
-		} else if( this.page == 1 ) {
-			this.progress = 10.0;
-			if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
-			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
-				if(this.cursor == 0){
-					this.page = 2;
-					audio.play("pause");
-				} else if(this.cursor == 1){
-					this.startGame(); 
-				}
-			}
-		} else if( this.page == 2 ) {
-			this.progress = 10.0;
-			if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
-			if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
-			this.cursor = Math.max(Math.min(this.cursor,3),0);
-			
-			if(this.cursor == 1){
-				if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
-				MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
-			}else if(this.cursor == 2){
-				if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
-			}
-			
-			if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
-				if(this.cursor == 0){
-					MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
-					localStorage.setItem("debug_map", MapLoader.mapname);
-				} else if(this.cursor == 3){
-					//Start in DEBUG mode
-					window._player = new Player(0,0);
-					MapLoader.loadMapTmx(MapLoader.mapname, function(starts){
-						_player.lightRadius = 240;
-						if(starts.length > 0){
-							_player.position.x = starts[0].x;
-							_player.position.y = starts[0].y;
-						} else {
-							_player.position.x = 64;
-							_player.position.y = 176;
-						}
-						game.addObject(_player);
-					});
-					audio.play("pause");
-				}
+		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
+			if(this.cursor == 0){
+				MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
+				localStorage.setItem("debug_map", MapLoader.mapname);
+			} else if(this.cursor == 3){
+				//Start in DEBUG mode
+				window._player = new Player(0,0);
+				MapLoader.loadMapTmx(MapLoader.mapname, function(starts){
+					_player.lightRadius = 240;
+					if(starts.length > 0){
+						_player.position.x = starts[0].x;
+						_player.position.y = starts[0].y;
+					} else {
+						_player.position.x = 64;
+						_player.position.y = 176;
+					}
+					game.addObject(_player);
+				});
+				audio.play("pause");
 			}
 		}
 	}
@@ -11069,30 +11017,27 @@ TitleMenu.prototype.update = function(){
 TitleMenu.prototype.render = function(g,c){
 	var xpos = (game.resolution.x - 427) * 0.5;
 	
-	if( this.loading ){ 
-		//g.font = (30*pixel_scale)+"px monospace";
-		//g.fillStyle = "#FFF";
-		//g.fillText("Loading", 64*pixel_scale, 120*pixel_scale);
-	} else if( this.start ) {
-		"loading".render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
+	if( this.start ) {
+		//"loading".render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
 	} else {
 		var pan = Math.min(this.progress/8, 1.0);
 		
-		this.sprite.render(g,new Point(xpos,0),0,2);
+		g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
 		
 		//Random twinkling stars
 		for(var i=0; i<this.stars.length; i++) {
+			var star = this.stars[i];
 			var frame = 2;
 			if( 
 				this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
 				this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
 			) frame = 3;
 				
-			"bullets".render(g,this.stars[i].pos.add(new Point(xpos,0)),frame,2);
-			this.stars[i].timer -= this.delta;
-			if( this.stars[i].timer <= 0 ){
-				this.stars[i].timer = Game.DELTASECOND * 1.0;
-				this.stars[i].pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+			g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
+			star.timer -= this.delta;
+			if( star.timer <= 0 ){
+				star.timer = Game.DELTASECOND * 1.0;
+				star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
 			}			
 		}
 		this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
@@ -11101,11 +11046,11 @@ TitleMenu.prototype.render = function(g,c){
 			this.stars.timer += this.stars.reset;
 		}
 		
-		this.sprite.render(g,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),0,1);
-		this.sprite.render(g,new Point(xpos,Math.lerp( this.title_position, 0, pan)),0,0);
+		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
+		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
 		
 		textArea(g,"Copyright Pogames.uk 2016",8,4);
-		textArea(g,"Version "+window._version,8,228);
+		//textArea(g,"Version "+window._version,8,228);
 		
 		if(this.page == 0){
 			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
@@ -11282,7 +11227,12 @@ var mod_rigidbody = {
 			//The timer prevents landing errors
 			this._groundedTimer -= this.grounded ? 1 : 10;
 			this.grounded = this._groundedTimer > 0;
-			game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
+			var limits = game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
+			
+			if(this.grounded && limits[1] > this.position.y && limits[1] - this.position.y < 16 ){
+				this.position.y = limits[1];
+				this.trigger("collideVertical", 1);
+			}
 			
 			var friction_x = 1.0 - this.friction * this.delta;
 			this.force.x *= friction_x;
@@ -11878,13 +11828,9 @@ var mod_talk = {
 		this.canOpen = true;
 		this._talk_is_over = 0;
 		
-		if(window._dialogueOpen == undefined){
-			window._dialogueOpen = false;
-		}
-		
 		this.close = function(){
 			this.open = 0;
-			window._dialogueOpen = false;
+			DialogManger.dialogOpen = false;
 			this.trigger("close");
 		}
 		
@@ -11895,9 +11841,9 @@ var mod_talk = {
 		});
 	},
 	"update" : function(){
-		if( !window._dialogueOpen && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
+		if( !DialogManger.dialogOpen && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
 			this.open = 1;
-			window._dialogueOpen = true;
+			DialogManger.dialogOpen = true;
 			this.trigger("open");
 		}
 		this._talk_is_over--;
@@ -12068,11 +12014,11 @@ function NPC(x,y,t,o){
 	
 	this.on("open", function(){
 		this.scriptRun = true;
-		if(this.lockplayer){window._player.pause = true;}
+		if(this.lockplayer){_player.pause = true;}
 	});
 	
 	this.on("close", function(){
-		if(this.lockplayer){window._player.pause = false;}
+		if(this.lockplayer){_player.pause = false;}
 	});
 	this.on("activate", function(){
 		if(!this.scriptRun){
@@ -12157,7 +12103,7 @@ NPC.prototype.runScript = function(filename){
 		this.scriptPos++;
 		return true;
 	}else if(command == "additem"){
-		if(window._player instanceof Player){
+		if(_player instanceof Player){
 			var name = NPC.resolveCalculation(line[1]);
 			var item = new Item(0,0,0,{"name":name});
 			item.trigger("collideObject",_player);
@@ -12245,10 +12191,7 @@ NPC.prototype.runScript = function(filename){
 		return true;
 	}else if(command == "actor_sprite"){
 		var obj = this.findNPC(line[1]);
-		var sprite = NPC.resolveCalculation(line[2]);
-		if(sprite in window.sprites){
-			obj.sprite = window.sprites[sprite];
-		}
+		obj.sprite = NPC.resolveCalculation(line[2]);
 		this.scriptPos++;
 		return true;
 	}else if(command == "wait"){ //WAIT COMMANDS
@@ -12355,7 +12298,7 @@ NPC.resolveVariable = function(varname){
 	}
 }
 NPC.prototype.getScript = function(filename){
-	ajax("scripts/"+filename,function(data){
+	ajax("/scripts/"+filename,function(data){
 		this.script = NPC.compileScript(data);
 	},this);
 }
@@ -12716,8 +12659,6 @@ function Player(x, y){
 		game.getObject(PauseMenu).open = true;
 		audio.play("playerdeath");
 		this.destroy();
-		
-		ga("send","event", "death","died:"+dataManager.currentTemple+" at level:"+this.level);
 	});
 	this.on("land", function(){
 		//Land from a height
@@ -12855,11 +12796,12 @@ function Player(x, y){
 			this.spellsCounters[i] = 0;
 		}
 		
+		/*
 		if( dataManager.temple_instance ) {
 			this.keys = dataManager.temple_instance.keys;
 		} else {
 			this.keys = new Array();
-		}
+		}*/
 	})
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
@@ -13617,11 +13559,9 @@ Player.prototype.addXP = function(value){
 		this.damage_buffer = 0;
 		audio.playLock("levelup2",0.1);
 		
-		ga("send","event", "levelup","level:" + this.level);
-		
 		if(Math.random() < 0.1){
 			var treasure = Item.randomTreasure(Math.random(),[],{"locked":true});
-			dataManager.itemUnlock(treasure.name);
+			//dataManager.itemUnlock(treasure.name);
 		}
 		
 		//Call again, just in case the player got more than one level
@@ -13808,7 +13748,7 @@ Player.prototype.hudrender = function(g,c){
 	}*/
 	
 	//Create light
-	//Background.pushLight( this.position.subtract(c), this.lightRadius );
+	Background.pushLight( this.position, this.lightRadius );
 }
 
  /* platformer\prisoner.js*/ 
@@ -15259,9 +15199,9 @@ function textArea(g,s,x,y,w,h){
 			if( index >= 0 ){
 				g.renderSprite(
 					"text",
-					new Point(_x*window.text_size+x,_y*window.text_height+y),
+					new Point(_x * text_size + x, _y * text_height + y),
 					999,
-					new Point(index/16,index%16),
+					new Point(index%16,index/16),
 					false
 				);
 				_x++;
@@ -15284,6 +15224,7 @@ function renderDialog(g,s, top){
 }
 
 DialogManger = {
+	"dialogOpen" : false,
 	"width":25,
 	"maxlines":4,
 	"text" : "",
@@ -15332,7 +15273,7 @@ DialogManger = {
 						"text",
 						new Point(x,y),
 						999,
-						new Point(index/16,index%16),
+						new Point(index%16,index/16),
 						false
 					);
 				} else {
@@ -16992,419 +16933,18 @@ Quests = {
 	"q2" : 0 //Lost souls in the phantom world
 }
 
-/*
-WorldMap.prototype = new GameObject();
-WorldMap.prototype.constructor = GameObject;
-function WorldMap(x, y){	
-	this.constructor();
-	
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 16;
-	this.height = 16;
-	this.life = 1;
-	this.item = false;
-	this.zIndex = 999;
-	this.speed = 2.5;
-	this.seed = "" + Math.random();
-	//this.seed = "0.3662224621511996";
-	this.active = true;
-	this.mode = 0;
-	
-	this.dreams = 0;
-	this.lastDream = 0;
-	this.checkpoint = 0;
-	
-	window._world = this;
-	new Player(0,0);
-	
-	this.camera = new Point();
-	this.player_start = new Point(16*56,16*26);
-	this.player = new Point(this.player_start.x,this.player_start.y);
-	this.rest = 0;
-	
-	this.width = 112;
-	this.height = 64;
-	
-	this.quests = {
-		"q0" : 0,
-		"q1" : 0
-	}
-	
-	this.temples = [];
-	for(var i=0; i<6; i++) this.temples.push({ "number":i, "complete":false, "position":new Point(), "seed":i+this.seed });
-	this.temples[0].position.x = 47*16; this.temples[0].position.y = 22*16;
-	this.temples[1].position.x = 16*16; this.temples[1].position.y = 20*16;
-	this.temples[2].position.x = 31*16; this.temples[2].position.y = 14*16;
-	this.temples[3].position.x = 59*16; this.temples[3].position.y = 18*16;
-	this.temples[4].position.x = 27*16; this.temples[4].position.y = 38*16;
-	this.temples[5].position.x = 84*16; this.temples[5].position.y = 59*16; 
-	//this.temples[6].position.x = 52*16; this.temples[6].position.y = 1*16; this.temples[6].complete = true;
-	//this.temples[7].position.x = 30*16; this.temples[7].position.y = 14*16; this.temples[7].complete = true;
-	//this.temples[8].position.x = 66*16; this.temples[8].position.y = 36*16; this.temples[8].complete = true;
-	
-	this.towns = [];
-	this.playerIcon = null;
-	
-	for(var i=0; i<1; i++) this.towns.push({ "id":i, "nation":Math.floor(Math.random()*3), "faith":Math.floor(Math.random()*3), "capital":false, "position":new Point(), "size":Math.floor(1+Math.random()*3), "seed":i+this.seed });
-	this.towns[0].position.x = 36*16; this.towns[0].position.y = 27*16; this.towns[0].name = "Aghalee"; size = 1;
-	
-	this.locations = [
-		{"position":new Point(61*16,59*16), "map":3}
-	]
-	
-	this.town = {
-		"people" : 5,
-		"money" : 0,
-		"science" : 0,
-		"buildings" : {
-			"hall" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : true },
-			"mine" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
-			"lab" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
-			"hunter" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
-			"mill" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
-			"library" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false },
-			"inn" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : false },
-			"farm" : { "progress" : 1, "people" : 0, "unlocked" : true, "complete" : true },
-			"smith" : { "progress" : 0, "people" : 0, "unlocked" : true, "complete" : false },
-			"bank" : { "progress" : 0, "people" : 0, "unlocked" : false, "complete" : false }
-		}
-	};
-	this.loadTown();
-	
-	this.animation = 0;
-	
-	this.on("activate", function(){
-		audio.playAs("music_world", "music");
-		this.active = true;
-		//game.addObject( this );
-		
-		// Save instance of current temple
-		if( dataManager.currentTemple >= 0 && dataManager.currentTemple < this.temples.length ) {
-			var shops = [];
-			for(var i=0; i < WorldMap.Shops.length; i++) shops = shops.concat( game.getObjects(window[WorldMap.Shops[i]]) );
-			var instance = {
-				"keys" : _player.keys,
-				"items" : game.getObjects(Item),
-				"map" : game.getObject(PauseMenu).map_reveal,
-				"shops" : shops
-			};
-			this.temples[dataManager.currentTemple].instance = instance;
-		}
-		
-		this.showMap();
-		game.pause = false;
-	});
-	
-	this.on("reset", function(){
-		if( this.mode == 0 ) {
-			var keys = _player.keys;
-			_player.life = _player.lifeMax;
-			_player.mana = _player.manaMax;
-			_player.position.x = _player.checkpoint.x;
-			_player.position.y = _player.checkpoint.y;
-			_player.interactive = true;
-			_player.lock_overwrite = false;
-			game.addObject(_player);
-			_player.keys = keys;
-			audio.playAs(audio.alias["music"],"music");
-			try{ 
-				game.pause = false;
-				game.getObject(PauseMenu).open = false; 
-			} catch(err){}
-		} else {
-			game.clearAll();
-			this.seed = this.seed = "" + Math.random();
-			for(var i=0; i < this.temples.length; i++ ) {
-				this.temples[i].complete = false;
-				this.temples[i].seed = i+this.seed;
-				delete this.temples[i].instance;
-			}
-			this.player = new Point(this.player_start.x,this.player_start.y);
-			
-			var im = new ItemMenu(dataManager.unlocks);
-			im.on("destroy", function(){
-				new Player(0,0);
-				_world.trigger("activate");
-			});
-			game.addObject(im);
-			
-			dataManager.reset();
-		}
-	});
-}
-WorldMap.prototype.buildtiles = function(){
-	game.tiles = [
-		new Array(window._map_world.front.data.length),
-		window._map_world.back.data,
-		window._map_world.front.data,
-	];
-	if( this.checkpoint >= 2 ){
-		this.appendTiles(window._map_world.road0,1);
-	}
-	if( this.checkpoint >= 5 ){
-		this.appendTiles(window._map_world.road1,1);
-	}
-	if( this.checkpoint >= 3 ){
-		this.appendTiles(window._map_world.island0,1);
-		this.appendTiles(window._map_world.island0front,2);
-	}
-	if( this.checkpoint >= 4 ){
-		this.appendTiles(window._map_world.island1,1);
-		this.appendTiles(window._map_world.island1front,2);
-	}
-}
-WorldMap.prototype.appendTiles = function(layer,index){	
-	for(var i=0; i < layer.data.length; i++){
-		var x = layer.xoff + Math.floor(i%layer.width);
-		var y = layer.yoff + Math.floor(i/layer.width);
-		var j = x + y * this.width;
-		if( layer.data[i] > 0 ){
-			game.tiles[index][j] = layer.data[i];
-			if (layer.data[i] == 143){
-				game.tiles[index][j] = 0;
-			}
-		}
-	}
-}
-
-WorldMap.prototype.showMap = function(){
-	game.clearAll();
-	game.addObject(this);
-	this.buildtiles();
-	game.tileDimension = new Line(0,0,this.width,this.height);
-	game.bounds = new Line(0,0,this.width*16,this.height*16);
-	game.tileSprite = "world";
-	
-	
-	var self = this;
-	MapLoader.loadMapTmx("maps/world2.tmx",function(){
-		game.addObject(new WorldPlayer(self.player.x, self.player.y));
-	});
-	
-	for(var i=0; i<window._map_world.objects.length; i++){
-		var objdata = window._map_world.objects[i];
-		var obj = new window[objdata[2]](objdata[0], objdata[1],"none",objdata[3]);
-		game.addObject(obj);
-	}
-	/*
-	for(var i=0; i<this.towns.length; i++){
-		var wl = new WorldLocale(this.towns[i].position.x, this.towns[i].position.y,"town");
-		wl.index = i; wl.frame = 2 + this.towns[i].size; wl.frame_row = 7;
-		game.addObject(wl);
-	}
-	for(var i=0; i<this.locations.length; i++){
-		var wl = new WorldLocale(this.locations[i].position.x, this.locations[i].position.y,"map");
-		wl.index = this.locations[i].map; wl.visible = false;
-		game.addObject(wl);
-	}
-	
-	
-	for(var i=0; i<50; i++){
-		game.addObject(new WorldEncounter(Math.random()*16*this.width, Math.random()*16*this.height));
-	}*//*
-}
-WorldMap.prototype.encounter = function(){
-	if(!this.active) return;
-	
-	this.active = false;
-	var pl = game.getObject(WorldPlayer);
-	this.player.x = pl.position.x;
-	this.player.y = pl.position.y;
-	
-	var temple = dataManager.temples[ Math.floor(Math.random() * 3) ];
-	dataManager.currentTemple = Math.floor(Math.random() * 2);
-	
-	game.clearAll();
-	game.tiles = [ new Array(96*15), new Array(95*15) ];
-	game.tileDimension = new Line(0,0,96,15);
-	game.bounds = new Line(0,0,96*16,15*16);
-	game.tileSprite = "town";
-	for(var x=0; x < 96; x++) for(var y=0; y<15;y++){
-		var i = x + 96*y;
-		if( y==0) game.tiles[1][i] = window.BLANK_TILE;
-		if( y==13) game.tiles[1][i] = 177 + (x%8);
-		if( y>13) game.tiles[1][i] = 193 + (x%8);
-	}
-	_player.position.x = 768;
-	_player.position.y = 192;
-	
-	background = new Background(0,0);
-	background.walls = false;
-	game.addObject(background);
-	
-	game.addObject(_player);
-	game.addObject(new Exit(8,120));
-	game.addObject(new Exit(1528,120));
-	game.addObject(new PauseMenu());
-	_player.lock = game.bounds;
-	_player.lock_overwrite = false;
-	
-	for(var x=32; x < 96*16; x+=64){
-		if( Math.random() < 0.4 && Math.abs(x-768) > 80 ) {
-			var monster;
-			if( Math.random() < 0.3 ) {
-				monster = temple.majormonster[Math.floor(Math.random()*temple.majormonster.length)];
-			} else {
-				monster = temple.minormonster[Math.floor(Math.random()*temple.minormonster.length)];
-			}
-			game.addObject(new window[monster](x, 180));
-		}		
-	}
-	dataManager.currentTemple = -1;
-	audio.playAs("music_temple1", "music");
-}
-	
-WorldMap.prototype.update = function(){
-	this.animation += this.delta * 0.1;
-	this.rest -= this.delta;
-}
-WorldMap.prototype.enterLocale = function(locale, dir){
-	if( !this.active ) return;
-	if( this.rest > 0 ){
-		this.rest = Game.DELTASECOND * 0.25;
-		return;
-	}
-	var type = locale.type;
-	var i = locale.index;
-	var avatar = window.game.getObject(WorldPlayer);
-	
-	if( type == "boat" ){
-		objs = window.game.getObjects(WorldLocale);
-		for(var i=0; i<objs.length;i++){
-			if(objs[i].type=="boat" && objs[i].index==locale.gotoIndex){
-				avatar.position.x = objs[i].position.x;
-				avatar.position.y = objs[i].position.y;
-			}
-		}
-		this.rest = Game.DELTASECOND * 0.25;
-	} else if( type == "temple" && !this.temples[i].complete ){
-		this.active = false;
-		this.player.x = locale.position.x;
-		this.player.y = locale.position.y;
-		this.rest = Game.DELTASECOND * 0.25;
-		
-		var rt = new RandomTemple(i);
-		rt.generate(this.temples[i].seed);
-		rt.use(window.game);
-		
-		audio.playAs("music_temple1", "music");
-	} else if(type == "town"){
-		this.active = false;
-		this.player.x = locale.position.x;
-		this.player.y = locale.position.y;
-		this.rest = Game.DELTASECOND * 0.25;
-		
-		HomeVillage.create(game);
-		
-		audio.playAs("music_town", "music");
-	} else if(type == "map"){
-		this.active = false;
-		this.player.x = locale.position.x;
-		this.player.y = locale.position.y;
-		this.rest = Game.DELTASECOND * 0.25;
-		
-		//Load new map
-		MapLoader.loadMap(
-			locale.index,
-			mergeLists(locale.properties,{"direction":dir})
-		);
-		audio.playAs("music_town", "music");
-	}
-}
-WorldMap.prototype.passable = function(x,y){
-	var block_list = [0,37,38,39,40,64,65,66,67,68,69,87,88,103,104];
-	var index = Math.floor(x/16) + Math.floor((y/16)*this.width);
-	var t = this.tiles[0][index]-1;
-	var r = this.tiles[1][index];
-	return block_list.indexOf( t ) < 0 && r == 0;
-}
-WorldMap.prototype.idle = function(){}
-
-WorldMap.prototype.saveTown = function(){
-	localStorage.setItem("town_people", this.town.people);
-	localStorage.setItem("town_money", this.town.money);
-	localStorage.setItem("town_science", this.town.science);
-	for( var i in this.town.buildings ) {
-		var building = this.town.buildings[i];
-		localStorage.setItem("town_building_"+i+"_complete", building.complete);
-		localStorage.setItem("town_building_"+i+"_people", building.people);
-		localStorage.setItem("town_building_"+i+"_progress", building.progress);
-		localStorage.setItem("town_building_"+i+"_unlocked", building.unlocked);
-	}
-}
-
-WorldMap.prototype.loadTown = function(){
-	if( localStorage.hasOwnProperty("town_people") ) {
-		
-		this.town.people = localStorage.getItem("town_people")-0;
-		this.town.money = localStorage.getItem("town_money")-0;
-		this.town.science = localStorage.getItem("town_science")-0;
-		
-		for( var i in this.town.buildings ) {
-			if( localStorage.hasOwnProperty("town_building_"+i+"_complete") ) {
-				var building = this.town.buildings[i];
-				building.complete = localStorage.getItem("town_building_"+i+"_complete") == "true";
-				building.people = localStorage.getItem("town_building_"+i+"_people")-0;
-				building.progress = localStorage.getItem("town_building_"+i+"_progress")-0;
-				building.unlocked = localStorage.getItem("town_building_"+i+"_unlocked")  == "true";
-			}
-		}
-	}
-}
-
-WorldMap.prototype.worldTick = function(){
-	//Generate money
-	this.town.money += 10;
-	if( this.town.buildings.mine.complete ) {
-		this.town.money += this.town.buildings.mine.people * 10;
-	}
-	
-	//Increase scene
-	var freePeople = this.town.people;
-	var moneyNeeded = 0;
-	for(var i in this.town.buildings){
-		freePeople -= this.town.buildings[i].people;
-		moneyNeeded += this.town.buildings[i].people * 20;
-	}
-	this.town.science += freePeople;
-	
-	var productionFactor = Math.min(this.town.money / moneyNeeded, 1.0);
-	this.town.money = Math.max(this.town.money - moneyNeeded, 0);
-	
-	//Increase population
-	this.town.people += Math.floor( 
-		productionFactor*this.town.buildings.farm.people * 0.5 
-	);
-	
-	//Increase production
-	for(var i in this.town.buildings){
-		var building = this.town.buildings[i];
-		var production = productionFactor * building.people * 3;
-		building.progress += Math.floor( production );
-		
-		if( !building.complete && building.progress > 30 ) {
-			this.town.buildings[i].complete = true;
-			this.town.buildings[i].people = 0;
-		}
-	}
-	
-	this.saveTown();
-}
-*/
-
 WorldMap = {
 	"newgame" : function(){
-		window._player = new Player(64,178);
+		new Player(64,178);
 		WorldMap.position = new Point(73*16,40*16);
-		//WorldMap.open();
-		WorldLocale.loadMap("temple1.tmx");
+		WorldMap.open();
+		//WorldLocale.loadMap("world2.tmx");
 	},
 	"position" : new Point(240,256),
 	"open" : function(playerLocale){
 		//Save keys for temple and remove
 		//Save game
-		MapLoader.loadMapTmx("maps/world2.tmx", function(){
+		game.loadMap("world2.tmx", function(){
 			if(playerLocale != undefined){
 				//Change players location to the set locale
 				var locales = game.getObjects(WorldLocale);
@@ -17470,8 +17010,8 @@ WorldPlayer.prototype.update = function(){
 	}
 	
 	var camx = game.resolution.x * 0.5;
-	game.camera.x = Math.max( Math.min( this.position.x - camx, (game.tileDimension.end.x)*16-game.resolution.x), 0);
-	game.camera.y = Math.max( Math.min( this.position.y - 120, (game.tileDimension.end.y)*16-game.resolution.y), 0);
+	game.camera.x = Math.max( Math.min( this.position.x - camx, (game.map.width*16)-game.resolution.x), 0);
+	game.camera.y = Math.max( Math.min( this.position.y - 120, (game.map.height*16)-game.resolution.y), 0);
 }
 WorldPlayer.prototype.render = function(g,c){
 	g.color = [0.8,0.2,0.0,1.0];
@@ -17569,13 +17109,13 @@ WorldLocale.prototype.update = function(){
 	}
 }
 WorldLocale.loadMap = function(map, start){
-	var file = "maps/" + map;
-	MapLoader.loadMapTmx(file, function(starts){
+	var file = map;
+	game.loadMap(file, function(starts){
 		//Determine player start location
 		if(starts.length > 0){
-			if(start && MapLoader.getMapIndex(starts,start) >= 0){
+			var index = WorldLocale.getMapIndex(starts,start);
+			if(index >= 0){
 				//Player start matches specified location start
-				var index = MapLoader.getMapIndex(starts,start);
 				_player.position = new Point(starts[index].x,starts[index].y);
 				game.addObject(_player);
 			} else {
@@ -17588,7 +17128,17 @@ WorldLocale.loadMap = function(map, start){
 			_player.position = new Point(64,192);
 			game.addObject(_player);
 		}
+		game.addObject(new PauseMenu(0,0));
+		game.addObject(new Background(0,0));
 	});
+}
+WorldLocale.getMapIndex = function(list,key){
+	for(var i=0; i < list.length; i++){
+		if(list[i].start == key){
+			return i;
+		}
+	}
+	return -1;
 }
 
 WorldEncounter.prototype = new GameObject();
@@ -17706,7 +17256,7 @@ SceneCaveRock.prototype.update = function(){
 		this.position = Point.lerp(this.start,this.end,this.progress);
 		
 		if(this.progress < 1){
-			window.shakeCamera(10,4);
+			shakeCamera(10,4);
 			audio.playLock("cracking",0.2);
 		} else {
 			this.active = false;

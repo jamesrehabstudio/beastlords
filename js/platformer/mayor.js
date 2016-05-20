@@ -35,11 +35,11 @@ Mayor.prototype.fetchProjects = function(){
 	this.projects = {};
 	this.projectCount = 0;
 	
-	if( window._world instanceof WorldMap ) {
-		this.peopleFree = window._world.town.people;
+	if( _world instanceof WorldMap ) {
+		this.peopleFree = _world.town.people;
 		
-		for(var i in window._world.town.buildings ){
-			var building = window._world.town.buildings[i];
+		for(var i in _world.town.buildings ){
+			var building = _world.town.buildings[i];
 			this.peopleFree -= building.people;
 			
 			if( building.complete && Mayor.ongoingProjects.indexOf(i) >= 0 ){

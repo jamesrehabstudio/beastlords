@@ -26,20 +26,26 @@ audio = {
 	}
 }
 
+RENDER_STEPS = ["prerender","render","postrender","hudrender","lightrender"];
+
 Renderer = {
 	color : [1,1,1,1],
-	layers : [new Array(),new Array(),new Array(),new Array()],
+	layers : [new Array(),new Array(),new Array(),new Array(),new Array()],
 	layer : 1
 }
 Renderer.clear = function(){
 	Renderer.color = [1,1,1,1];
-	Renderer.layers = [new Array(),new Array(),new Array(),new Array()];
+	Renderer.layers = [new Array(),new Array(),new Array(),new Array(),new Array()];
 	Renderer.layer = 1;
 }
 Renderer.serialize = function(){
 	var out = {};
 	for(var i=0; i < RENDER_STEPS.length; i++){
-		out[RENDER_STEPS[i]] = Renderer.layers[i];
+		if(Renderer.layers[i] instanceof Array){
+			out[RENDER_STEPS[i]] = Renderer.layers[i];
+		} else {
+			out[RENDER_STEPS[i]] = new Array();
+		}
 	}
 	return out;
 }
@@ -66,21 +72,24 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,filter){
 		if("z" in b){
 			return a.z - b.z;
 		}
-		return -1;
+		return 1;
 	});
 }
 Renderer.scaleFillRect = function(x,y,w,h){
-	Renderer.layers[Renderer.layer].push({
+	Renderer.layers[Renderer.layer].insertSort({
 		"type" : 1,
 		"color" : [Renderer.color[0],Renderer.color[1],Renderer.color[2],Renderer.color[3]],
 		"x" : x,
 		"y" : y,
 		"w" : w,
 		"h" : h
+	},function(a,b){
+		if("z" in b){
+			return -1;
+		}
+		return 1;
 	});
 }
-
-RENDER_STEPS = ["prerender","render","postrender","hudrender"];
 
 //////////////////
 //Game controller
@@ -101,8 +110,14 @@ function Game(){
 	this.delta = 1;
 	this.deltaUnscaled = 1;
 	this.deltaScale = 1.0;
+	this.pause = false;
 	
 	this.newmap = false;
+	this._newmapCallback = false;
+	
+	if("game_start" in self && self.game_start instanceof Function){
+		self.game_start(this);
+	}
 }
 
 //constants
@@ -117,7 +132,8 @@ Game.prototype.slow = function(s,d) {
 		this.deltaScaleReset = d;
 	}	
 }
-Game.prototype.loadMap = function(name){
+Game.prototype.loadMap = function(name, func){
+	this._newmapCallback = func;
 	this.newmap = name;
 }
 Game.prototype.update = function(){
@@ -130,7 +146,7 @@ Game.prototype.update = function(){
 		0.1*Game.DELTASECOND
 	);
 	this.deltaUnscaled = baseDelta;
-	this.delta = this.deltaUnscaled * this.deltaScale;
+	this.delta = this.deltaUnscaled * this.deltaScale * (this.pause?0:1);
 	this.deltaScaleReset -= this.deltaUnscaled;
 	if(this.deltaScaleReset <= 0){
 		this.deltaScale = 1.0;
@@ -178,6 +194,7 @@ Game.prototype.update = function(){
 		for(var j=0; j < RENDER_STEPS.length; j++){
 			try{
 				var step = RENDER_STEPS[j];
+				Renderer.layer = j;
 				if(obj[step] instanceof Function){
 					obj[step](Renderer, this.camera);
 				}
@@ -212,7 +229,7 @@ Game.prototype.useMap = function(m){
 		"height" : m.height
 	};
 	
-	this.addObject(new Player(64,240+176));
+	//this.addObject(new Player(64,240+176));
 	
 	for(var i=0; i < m.objects.length; i++){
 		var obj = m.objects[i];
@@ -220,6 +237,10 @@ Game.prototype.useMap = function(m){
 			var newobj = new self[obj.name](obj.x,obj.y,[obj.width,obj.height],obj.properties);
 			this.addObject(newobj);
 		}
+	}
+	
+	if(this._newmapCallback instanceof Function){
+		this._newmapCallback(m.starts);
 	}
 }
 Game.prototype.getTile = function( x,y,layer ) {
@@ -359,8 +380,13 @@ Game.prototype.t_move = function(obj, x, y) {
 		var xinc = obj.width/ Math.ceil(obj.width/ts);
 		var yinc = obj.height/ Math.ceil(obj.height/ts);
 		
-		for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc )
-		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
+		var addleft = (x<0&&dir==1)?xinc:0;
+		var addright = (x>0&&dir==1)?xinc:0;
+		var addtop = (y<0&&dir==0)?yinc:0;
+		var addbot = (y>0&&dir==0)?yinc:0;
+		
+		for(var _x=hitbox.left-addleft; _x<=hitbox.right+addright; _x+=xinc )
+		for(var _y=hitbox.top-addtop; _y <=hitbox.bottom+addbot; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
 			var corner = new Point(Math.floor(_x/ts)*ts, Math.floor(_y/ts)*ts);
 			var v = dir==0?y:x;
@@ -383,11 +409,6 @@ Game.prototype.t_move = function(obj, x, y) {
 			limits[1] += margins[3] - 0.1;
 			limits[3] += margins[1] + 0.1;
 			
-			if(obj.grounded && obj.position.y+6 > limits[1] ){
-				//Stick to bottom
-				obj.position.y= limits[1];
-			}
-			
 			if( obj.position.y > limits[1] ) {
 				obj.position.y= limits[1];
 				obj.trigger("collideVertical", y);
@@ -400,6 +421,7 @@ Game.prototype.t_move = function(obj, x, y) {
 	}
 	
 	this.collideObject(obj);
+	return limits;
 }
 Game.prototype.collideObject = function(obj) {
 	var hitbox = obj.bounds();
@@ -428,7 +450,11 @@ Game.prototype.collideObject = function(obj) {
 var tilerules = {
 	"ts" : 16,
 	"currentrule" : function(){
-		return tilerules.rules.big;
+		if(game.map.tileset == "world"){
+			return tilerules.rules.world;
+		} else {
+			return tilerules.rules.big;	
+		}
 	},	
 	"rules" : {},
 	"collide" : function(t,axis,v,pos,hitbox,limits,start_hitbox){
@@ -548,7 +574,16 @@ var tilerules = {
 		return limits;
 	}
 }
-
+tilerules.rules["world"] = {
+	959:tilerules.ignore,
+	960:tilerules.edge_right,
+	989:tilerules.ceil_1to0,
+	990:tilerules.ceil_0to1,
+	991:tilerules.edge_left,
+	992:tilerules.ignore,
+	1021:tilerules.slope_1to0,
+	1022:tilerules.slope_0to1
+};
 tilerules.rules["big"] = {
 	9:tilerules.slope_1tohalf,
 	10:tilerules.slope_halfto0,
@@ -797,8 +832,6 @@ importScripts("platformer.js");
 _player = null;
 game = new Game();
 
-game.loadMap("temple1.tmx");
-
 var input = {
 	"states" : {},
 	"state" : function(name){
@@ -808,14 +841,22 @@ var input = {
 		return 0;
 	},
 	"update" : function(s){
-		for(var i in s){
-			if(!(i in this.states)){
-				this.states[i] = 0;
+		if(s == undefined){
+			for(var i in this.states){
+				if(this.states[i] > 0){
+					this.states[i]++;
+				}
 			}
-			if(s[i] > 0){
-				this.states[i]++;
-			} else {
-				this.states[i] = 0;
+		} else{
+			for(var i in s){
+				if(!(i in this.states)){
+					this.states[i] = 0;
+				}
+				if(s[i] > 0){
+					this.states[i]++;
+				} else {
+					this.states[i] = 0;
+				}
 			}
 		}
 	}
@@ -839,6 +880,7 @@ self.onmessage = function(event){
 
 function loop(){
 	game.update();
+	input.update();
 	setTimeout(loop, 1);
 	
 }

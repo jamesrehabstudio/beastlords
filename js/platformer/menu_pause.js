@@ -146,42 +146,13 @@ PauseMenu.prototype.update = function(){
 			audio.play("pause");
 		}
 	}
-	
-	//Reveal map
-	if( this.mapDimension instanceof Line ) {
-		var map_index = (
-			( Math.floor(_player.position.x / 256) - this.mapDimension.start.x ) + 
-			( Math.floor(_player.position.y / 240) - this.mapDimension.start.y ) * this.mapDimension.width()
-		);
-		this.map_reveal[map_index] = 2;
-		var map_tile = this.map[map_index];
-		
-		if(map_tile != undefined){
-			//If map tile is valid, change camera locks
-			var lock;
-			switch( Math.abs(this.map[map_index]) % 16 ){
-				case 0: lock = new Line(0,0,256,480); break;
-				case 1: lock = new Line(0,0,512,480); break;
-				case 2: lock = new Line(-256,0,256,480); break;
-				case 3: lock = new Line(-256,0,512,480); break;
-				case 4: lock = new Line(0,0,256,240); break;
-				case 5: lock = new Line(0,0,512,240); break;
-				case 6: lock = new Line(-256,0,256,240); break;
-				case 7: lock = new Line(-256,0,512,240); break;
-				case 8: lock = new Line(0,-240,256,480); break;
-				case 9: lock = new Line(0,-240,512,480); break;
-				case 10: lock = new Line(-256,-240,256,480); break;
-				case 11: lock = new Line(-256,-240,512,480); break;
-				case 12: lock = new Line(0,-240,256,240); break;
-				case 13: lock = new Line(0,-240,512,240); break;
-				case 14: lock = new Line(-256,-240,256,240); break;
-				case 15: lock = new Line(-256,-240,512,240); break;
-				default: lock = new Line(-256,-240,256,480); break;
-			}
-			lock = lock.transpose( Math.floor(_player.position.x / 256)*256,  Math.floor(_player.position.y / 240)*240 );
-			_player.lock = lock;
-		}
-	}
+
+	var map_width = Math.floor(game.map.width / 16);
+	var map_index = (
+		( Math.floor(_player.position.x / 256) - 0 ) + 
+		( Math.floor(_player.position.y / 240) - 0 ) * map_width
+	);
+	this.map_reveal[map_index] = 2;
 	
 	this.message_time -= game.deltaUnscaled;
 }
@@ -191,9 +162,12 @@ PauseMenu.prototype.message = function(m){
 }
 PauseMenu.prototype.revealMap = function(secrets){
 	secrets = secrets || 0;
-	for(var i=0; i < this.map.length; i++ ) {
-		if( secrets > 0 || this.map[i] >= 0 ){
-			if( this.map_reveal[i] == undefined ) this.map_reveal[i] = 0;
+	var map = game.map.map;
+	for(var i=0; i < map.length; i++ ) {
+		if( secrets > 0 || map[i] >= 0 ){
+			if( this.map_reveal[i] == undefined ) {
+				this.map_reveal[i] = 0;
+			}
 			this.map_reveal[i] = Math.max( this.map_reveal[i], 1 );
 		}
 	}
@@ -375,13 +349,13 @@ PauseMenu.prototype.fetchDoors = function(g,cursor,offset,limits){
 			var id = doors[i].name.match(/(\d+)/)[0] - 0;
 			var x = Math.floor(doors[i].position.x/256) 
 			var y = Math.floor(doors[i].position.y/240)
-			this.icons.push({"x":x,"y":y,"f":8,"fr":id});
+			this.icons.push({"x":x,"y":y,frame:new Point(8,id)});
 		}
 	}
 	for(var i=0; i < shops.length; i++){
 		var x = Math.floor(shops[i].position.x/256) 
 		var y = Math.floor(shops[i].position.y/240)
-		this.icons.push({"x":x,"y":y,"f":8,"fr":9});
+		this.icons.push({"x":x,"y":y,frame:new Point(8,9)});
 	}
 }
 PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
@@ -391,28 +365,32 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		if(!this.icons){
 			this.fetchDoors();
 		}
+		var mapstart = new Point(0,0);
+		var mapwidth = Math.floor(game.map.width/16);
+		var map = game.map.map;
 		
-		for(var i=0; i < this.map.length; i++ ){
-			if( this.map[i] != undefined && this.map_reveal[i] > 0 )  {
+		for(var i=0; i < map.length; i++ ){
+			if( map[i] != undefined && this.map_reveal[i] > 0 )  {
 				var tile = new Point(
-					this.mapDimension.start.x + (i%this.mapDimension.width() ),
-					this.mapDimension.start.y + Math.floor(i/this.mapDimension.width() )
+					mapstart.x + (i%mapwidth ),
+					mapstart.y + Math.floor(i/mapwidth )
 				);
 				var pos = new Point( 
-					(this.mapDimension.start.x*8) + (cursor.x*8) + (i%this.mapDimension.width() ) * size.x, 
-					(this.mapDimension.start.y*8) + (cursor.y*8) + Math.floor(i/this.mapDimension.width() ) * size.y 
+					(mapstart.x*8) + (cursor.x*8) + (i%mapwidth ) * size.x, 
+					(mapstart.y*8) + (cursor.y*8) + Math.floor(i/mapwidth ) * size.y 
 				);
 				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 					//"map".render(g,pos.add(offset),Math.abs(this.map[i])-1,(this.map_reveal[i]>=2?0:1));
-					var xtile = Math.floor(this.map[i] / 16);
-					var ytile = this.map[i] % 16;
+					var xtile = Math.floor(map[i] / 16);
+					var ytile = map[i] % 16;
 					if( this.map_reveal[i] < 2 ) xtile += 4;
-					"map".render(g,pos.add(offset),xtile,ytile);
+					g.renderSprite("map",pos.add(offset),this.zIndex,new Point(xtile,ytile));
 					
+					//Render icons
 					if( this.map_reveal[i] >= 2 ) {
 						for(var j=0; j < this.icons.length; j++ ){
 							if( tile.x == this.icons[j].x && tile.y == this.icons[j].y ){
-								"map".render(g,pos.add(offset),this.icons[j].f,this.icons[j].fr);
+								g.renderSprite("map",pos.add(offset),this.zIndex,this.icons[j].frame);
 							}
 						}
 					}

@@ -44,9 +44,9 @@ function textArea(g,s,x,y,w,h){
 			if( index >= 0 ){
 				g.renderSprite(
 					"text",
-					new Point(_x*window.text_size+x,_y*window.text_height+y),
+					new Point(_x * text_size + x, _y * text_height + y),
 					999,
-					new Point(index/16,index%16),
+					new Point(index%16,index/16),
 					false
 				);
 				_x++;
@@ -69,6 +69,7 @@ function renderDialog(g,s, top){
 }
 
 DialogManger = {
+	"dialogOpen" : false,
 	"width":25,
 	"maxlines":4,
 	"text" : "",
@@ -117,7 +118,7 @@ DialogManger = {
 						"text",
 						new Point(x,y),
 						999,
-						new Point(index/16,index%16),
+						new Point(index%16,index/16),
 						false
 					);
 				} else {

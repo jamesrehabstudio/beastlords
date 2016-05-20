@@ -158,7 +158,7 @@ Item.prototype.setName = function(n){
 	
 	//Equipment
 	if(n == "short_sword") { 
-		this.frame = 0; this.frame_row = 2; 
+		this.frame.x = 0; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
 		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":"sword1" };
@@ -170,7 +170,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "long_sword") { 
-		this.frame = 1; this.frame_row = 2; 
+		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
 		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":"sword2" };
@@ -182,7 +182,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "broad_sword") { 
-		this.frame = 3; this.frame_row = 2; 
+		this.frame.x = 3; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
 		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":"sword2" };
@@ -194,7 +194,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "spear") { 
-		this.frame = 2; this.frame_row = 2; 
+		this.frame.x = 2; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=4; 
 		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":"sword3" };
@@ -206,7 +206,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "warhammer") { 
-		this.frame = 6; this.frame_row = 2; 
+		this.frame.x = 6; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = true;
 		this.level=1; this.bonus_att=5; 
 		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":"sword4" };
@@ -218,81 +218,81 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "small_shield") { 
-		this.frame = 0; this.frame_row = 3; 
+		this.frame.x = 0; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.0,"guardlife":30,"height":11, "frame":0, "frame_row":0}
 		return; 
 	}
 	if(n == "large_shield") { 
-		this.frame = 1; this.frame_row = 3; 
+		this.frame.x = 1; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1}
 		return; 
 	}
 	if(n == "kite_shield") { 
-		this.frame = 2; this.frame_row = 3; 
+		this.frame.x = 2; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2}
 		return; 
 	}
 	if(n == "broad_shield") { 
-		this.frame = 3; this.frame_row = 3; 
+		this.frame.x = 3; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.4,"guardlife":50,"height":18, "frame":0, "frame_row":3}
 		return; 
 	}
 	if(n == "knight_shield") { 
-		this.frame = 4; this.frame_row = 3; 
+		this.frame.x = 4; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":17, "frame":2, "frame_row":0}
 		return; 
 	}
 	if(n == "spiked_shield") { 
-		this.frame = 5; this.frame_row = 3; 
+		this.frame.x = 5; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":2, "frame_row":1}
 		return; 
 	}
 	if(n == "heavy_shield") { 
-		this.frame = 6; this.frame_row = 3; 
+		this.frame.x = 6; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.2,"guardlife":60,"height":17, "frame":2, "frame_row":2}
 		return; 
 	}
 	if(n == "tower_shield") { 
-		this.frame = 7; this.frame_row = 3; 
+		this.frame.x = 7; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
 		this.stats = {"speed":1.5,"guardlife":70,"height":30, "frame":2, "frame_row":3}
 		return; 
 	}
 	
-	if( this.name.match(/^key_\d+$/) ) { this.frame = this.name.match(/\d+/) - 0; this.frame_row = 0; return; }
-	if(n == "life") { this.frame = 0; this.frame_row = 1; return; }
-	if(n == "map") { this.frame = 3; this.frame_row = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
+	if( this.name.match(/^key_\d+$/) ) { this.frame.x = this.name.match(/\d+/) - 0; this.frame.y = 0; return; }
+	if(n == "life") { this.frame.x = 0; this.frame.y = 1; return; }
+	if(n == "map") { this.frame.x = 3; this.frame.y = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
 	
-	if(n == "life_small") { this.frame = 1; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "mana_small") { this.frame = 4; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "money_bag") { this.frame = 5; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "xp_big") { this.frame = 2; this.frame_row = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "life_small") { this.frame.x = 1; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "mana_small") { this.frame.x = 4; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "money_bag") { this.frame.x = 5; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "xp_big") { this.frame.x = 2; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
 	
-	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame_row = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "waystone") { this.frames = [13,14,15]; this.frame = 13; this.frame_row = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
+	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
+	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
+	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.frame.y = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
 	
 	//Charms
-	if( this.name == "charm_sword") { this.frame = 0; this.frame_row = 8; this.message = "Sword Charm\nEnchanted attack.";}
+	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}
 	if( this.name == "charm_mana") { 
-		this.frame = 1; 
-		this.frame_row = 8;
+		this.frame.x = 1; 
+		this.frame.y = 8;
 		this.message = "Mana Charm\nLarger supply of mana.";
 		this.on("equip",function(){ 
 			_player.manaMax += 3;
@@ -303,63 +303,63 @@ Item.prototype.setName = function(n){
 			_player.mana = Math.max(_player.mana-3,0);
 		});
 	}
-	if( this.name == "charm_alchemist") { this.frame = 2; this.frame_row = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
-	if( this.name == "charm_musa") { this.frame = 3; this.frame_row = 8; this.message = "Musa's Charm\nGold heals wounds.";}
-	if( this.name == "charm_wise") { this.frame = 4; this.frame_row = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
-	if( this.name == "charm_methuselah") { this.frame = 5; this.frame_row = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
-	if( this.name == "charm_barter") { this.frame = 6; this.frame_row = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
-	if( this.name == "charm_elephant") { this.frame = 7; this.frame_row = 8; this.message = "Elephant Charm\nWounds open slowly.";}
+	if( this.name == "charm_alchemist") { this.frame.x = 2; this.frame.y = 8; this.message = "Alchemist Charm\nDoubles Waystone collection.";}
+	if( this.name == "charm_musa") { this.frame.x = 3; this.frame.y = 8; this.message = "Musa's Charm\nGold heals wounds.";}
+	if( this.name == "charm_wise") { this.frame.x = 4; this.frame.y = 8; this.message = "Wiseman's Charm\nGreater Experience.";}
+	if( this.name == "charm_methuselah") { this.frame.x = 5; this.frame.y = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
+	if( this.name == "charm_barter") { this.frame.x = 6; this.frame.y = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
+	if( this.name == "charm_elephant") { this.frame.x = 7; this.frame.y = 8; this.message = "Elephant Charm\nWounds open slowly.";}
 	
 	//All items below this point glow!
 	this.glowing=true;
 		
-	if(n == "life_up") { this.frame = 6; this.frame_row = 1; return; }
-	if( this.name == "intro_item") { this.frame = 0; this.frame_row = 4; this.message = "Mysterious drink.";}
+	if(n == "life_up") { this.frame.x = 6; this.frame.y = 1; return; }
+	if( this.name == "intro_item") { this.frame.x = 0; this.frame.y = 4; this.message = "Mysterious drink.";}
 	
-	if( this.name == "seed_oriax") { this.frame = 0; this.frame_row = 4; this.message = "Oriax Seed\nAttack up.";}
-	if( this.name == "seed_bear") { this.frame = 1; this.frame_row = 4; this.message = "Onikuma Seed\nDefence up.";}
-	if( this.name == "seed_malphas") { this.frame = 2; this.frame_row = 4; this.message = "Malphas Seed\nTechnique up.";}
-	if( this.name == "seed_cryptid") { this.frame = 3; this.frame_row = 4; this.message = "Yeti Seed\nCold Strike.";}
-	if( this.name == "seed_knight") { this.frame = 4; this.frame_row = 4; this.message = "Guard Seed\nIncreased invincibility.";}
-	if( this.name == "seed_minotaur") { this.frame = 5; this.frame_row = 4; this.message = "Minotaur Seed\nCrashing into enemies hurts them.";}
-	if( this.name == "seed_plaguerat") { this.frame = 6; this.frame_row = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
-	if( this.name == "seed_marquis") { this.frame = 7; this.frame_row = 4; this.message = "Marquis Seed\nPain no longer phases you.";}
-	if( this.name == "seed_batty") { this.frame = 8; this.frame_row = 4; this.message = "Batty Seed\nYou can fly.";}
-	if( this.name == "seed_chort") { this.frame = 9; this.frame_row = 4; this.message = "Chort Seed\nYour body is a tank.";}
-	if( this.name == "seed_poseidon") { this.frame = 10; this.frame_row = 4; this.message = "Poseidon Seed\nAll attributes up.";}
-	if( this.name == "seed_tails") { this.frame = 11; this.frame_row = 4; this.message = "Tails Seed\nGold runs in your veins.";}
-	if( this.name == "seed_mair") { this.frame = 12; this.frame_row = 4; this.message = "Mair Seed\nTrades attack and defence for technique.";}
-	if( this.name == "seed_igbo") { this.frame = 13; this.frame_row = 4; this.message = "Igbo Seed\nDefence very up.";}
+	if( this.name == "seed_oriax") { this.frame.x = 0; this.frame.y = 4; this.message = "Oriax Seed\nAttack up.";}
+	if( this.name == "seed_bear") { this.frame.x = 1; this.frame.y = 4; this.message = "Onikuma Seed\nDefence up.";}
+	if( this.name == "seed_malphas") { this.frame.x = 2; this.frame.y = 4; this.message = "Malphas Seed\nTechnique up.";}
+	if( this.name == "seed_cryptid") { this.frame.x = 3; this.frame.y = 4; this.message = "Yeti Seed\nCold Strike.";}
+	if( this.name == "seed_knight") { this.frame.x = 4; this.frame.y = 4; this.message = "Guard Seed\nIncreased invincibility.";}
+	if( this.name == "seed_minotaur") { this.frame.x = 5; this.frame.y = 4; this.message = "Minotaur Seed\nCrashing into enemies hurts them.";}
+	if( this.name == "seed_plaguerat") { this.frame.x = 6; this.frame.y = 4; this.message = "Plague Rat Seed\nYou carry the plague.";}
+	if( this.name == "seed_marquis") { this.frame.x = 7; this.frame.y = 4; this.message = "Marquis Seed\nPain no longer phases you.";}
+	if( this.name == "seed_batty") { this.frame.x = 8; this.frame.y = 4; this.message = "Batty Seed\nYou can fly.";}
+	if( this.name == "seed_chort") { this.frame.x = 9; this.frame.y = 4; this.message = "Chort Seed\nYour body is a tank.";}
+	if( this.name == "seed_poseidon") { this.frame.x = 10; this.frame.y = 4; this.message = "Poseidon Seed\nAll attributes up.";}
+	if( this.name == "seed_tails") { this.frame.x = 11; this.frame.y = 4; this.message = "Tails Seed\nGold runs in your veins.";}
+	if( this.name == "seed_mair") { this.frame.x = 12; this.frame.y = 4; this.message = "Mair Seed\nTrades attack and defence for technique.";}
+	if( this.name == "seed_igbo") { this.frame.x = 13; this.frame.y = 4; this.message = "Igbo Seed\nDefence very up.";}
 	
-	if( this.name == "pedila") { this.frame = 0; this.frame_row = 5; this.message = "Pedila\nFantastically light shoes.";}
-	if( this.name == "haft") { this.frame = 2; this.frame_row = 5; this.message = "Haft\nIncreased critical damage.";}
-	if( this.name == "zacchaeus_stick") { this.frame = 3; this.frame_row = 5; this.message = "Zacchaeus'\nMore money.";}
-	if( this.name == "fangs") { this.frame = 4; this.frame_row = 5; this.message = "Fangs\nLife steal.";}
-	if( this.name == "passion_fruit") { this.frame = 5; this.frame_row = 5; this.message = "Passion Fruit\nFull restoration.";}
-	if( this.name == "shield_metal") { this.frame = 6; this.frame_row = 5; this.message = "Shield Metal\nCurrent shield improved.";}
-	if( this.name == "magic_gem") { this.frame = 7; this.frame_row = 5; this.message = "Magic Gem\nEnchanted attack.";}
-	if( this.name == "snake_head") { this.frame = 8; this.frame_row = 5; this.message = "Snake Head\nAdds poison chance to attack.";}
-	if( this.name == "broken_banana") { this.frame = 9; this.frame_row = 5; this.message = "Broken Banana\nWeakens enemies.";}
-	if( this.name == "blood_letter") { this.frame = 10; this.frame_row = 5; this.message = "Blood letter\nAdds bleed chance to attack.";}
-	if( this.name == "red_cape") { this.frame = 11; this.frame_row = 5; this.message = "Red cape\nAdds rage chance to attack.";}
-	if( this.name == "chort_nose") { this.frame = 12; this.frame_row = 5; this.message = "Chort Nose\nSniffs out Waystones.";}
-	if( this.name == "plague_mask") { this.frame = 13; this.frame_row = 5; this.message = "Plague Mask\nImmune to poison.";}
-	if( this.name == "spiked_shield") { this.frame = 14; this.frame_row = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
-	if( this.name == "black_heart") { this.frame = 15; this.frame_row = 5; this.message = "Black Heart\nLess life, more attributes.";}
-	if( this.name == "treasure_map") { this.frame = 0; this.frame_row = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
-	if( this.name == "life_fruit") { this.frame = 1; this.frame_row = 6; this.message = "Life fruit\nLife up.";}
-	if( this.name == "mana_fruit") { this.frame = 2; this.frame_row = 6; this.message = "Mana fruit\nMana up.";}
+	if( this.name == "pedila") { this.frame.x = 0; this.frame.y = 5; this.message = "Pedila\nFantastically light shoes.";}
+	if( this.name == "haft") { this.frame.x = 2; this.frame.y = 5; this.message = "Haft\nIncreased critical damage.";}
+	if( this.name == "zacchaeus_stick") { this.frame.x = 3; this.frame.y = 5; this.message = "Zacchaeus'\nMore money.";}
+	if( this.name == "fangs") { this.frame.x = 4; this.frame.y = 5; this.message = "Fangs\nLife steal.";}
+	if( this.name == "passion_fruit") { this.frame.x = 5; this.frame.y = 5; this.message = "Passion Fruit\nFull restoration.";}
+	if( this.name == "shield_metal") { this.frame.x = 6; this.frame.y = 5; this.message = "Shield Metal\nCurrent shield improved.";}
+	if( this.name == "magic_gem") { this.frame.x = 7; this.frame.y = 5; this.message = "Magic Gem\nEnchanted attack.";}
+	if( this.name == "snake_head") { this.frame.x = 8; this.frame.y = 5; this.message = "Snake Head\nAdds poison chance to attack.";}
+	if( this.name == "broken_banana") { this.frame.x = 9; this.frame.y = 5; this.message = "Broken Banana\nWeakens enemies.";}
+	if( this.name == "blood_letter") { this.frame.x = 10; this.frame.y = 5; this.message = "Blood letter\nAdds bleed chance to attack.";}
+	if( this.name == "red_cape") { this.frame.x = 11; this.frame.y = 5; this.message = "Red cape\nAdds rage chance to attack.";}
+	if( this.name == "chort_nose") { this.frame.x = 12; this.frame.y = 5; this.message = "Chort Nose\nSniffs out Waystones.";}
+	if( this.name == "plague_mask") { this.frame.x = 13; this.frame.y = 5; this.message = "Plague Mask\nImmune to poison.";}
+	if( this.name == "spiked_shield") { this.frame.x = 14; this.frame.y = 5; this.message = "Spiked Shield\nInflicts damage on attackers.";}
+	if( this.name == "black_heart") { this.frame.x = 15; this.frame.y = 5; this.message = "Black Heart\nLess life, more attributes.";}
+	if( this.name == "treasure_map") { this.frame.x = 0; this.frame.y = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
+	if( this.name == "life_fruit") { this.frame.x = 1; this.frame.y = 6; this.message = "Life fruit\nLife up.";}
+	if( this.name == "mana_fruit") { this.frame.x = 2; this.frame.y = 6; this.message = "Mana fruit\nMana up.";}
 	
-	if( this.name == "spell_fire") { this.frame = 0; this.frame_row = 10; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
-	if( this.name == "spell_flash") { this.frame = 1; this.frame_row = 10; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
-	if( this.name == "spell_heal") { this.frame = 2; this.frame_row = 10; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
-	if( this.name == "spell_purify") { this.frame = 3; this.frame_row = 10; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_bifurcate") { this.frame = 4; this.frame_row = 10; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
-	if( this.name == "spell_teleport") { this.frame = 5; this.frame_row = 10; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
+	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
+	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
+	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
+	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
+	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
+	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
 	
 	if( this.name == "unique_wand"){
-		this.frame = 2;
-		this.frame_row = 6;
+		this.frame.x = 2;
+		this.frame.y = 6;
 		this.message = "Ancient Wand";
 		this.progress = 0.0;
 		this.use = function(player){
@@ -377,8 +377,8 @@ Item.prototype.setName = function(n){
 	}
 	
 	if( this.name == "unique_pray"){
-		this.frame = 1;
-		this.frame_row = 6;
+		this.frame.x = 1;
+		this.frame.y = 6;
 		this.message = "Strange Prayer";
 		this.progress = 0.0;
 		this.use = function(player){
@@ -421,9 +421,9 @@ Item.prototype.update = function(){
 	}
 	if( this.frames.length > 0 ) {
 		this.animation_frame = (this.animation_frame + this.delta * this.animation_speed) % this.frames.length;
-		this.frame = this.frames[ Math.floor( this.animation_frame ) ];
-		this.flip = this.frame < 0;
-		this.frame = Math.abs(this.frame);
+		this.frame.x = this.frames[ Math.floor( this.animation_frame ) ];
+		this.flip = this.frame.x < 0;
+		this.frame.x = Math.abs(this.frame.x);
 	}
 }
 
@@ -438,8 +438,8 @@ Item.prototype.render = function(g,c){
 		
 		this.sprite.render(g, 
 			this.position.subtract(c).add(o), 
-			this.frame, 
-			this.frame_row,
+			this.frame.x, 
+			this.frame.y,
 			false,
 			"item",
 			{"u_color":[0.8,0.1,1.0,a]}

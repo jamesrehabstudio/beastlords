@@ -40,12 +40,12 @@ function EffectSmoke(x, y, d, ops){
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
 	this.speed = 1 + Math.random()*0.3;
 	this.interactive = false;
-	this.frame = 0;
-	this.frame_row = 2;
+	this.frame.x = 0;
+	this.frame.y = 2;
 	
 	ops = ops || {};
-	if( "frame" in ops ) this.frame = ops.frame;
-	if( "frame_row" in ops ) this.frame_row = ops.frame_row;
+	if( "frame" in ops ) this.frame.x = ops.frame*1;
+	if( "frame_row" in ops ) this.frame.y = ops.frame_row*1;
 	if( "speed" in ops ) this.speed = ops.speed;
 	if( "time" in ops ) this.time = ops.time;
 	
@@ -211,9 +211,9 @@ EffectNumber.prototype.render = function(g,c){
 		var offset = Math.min(this.progress-(i*2),Math.PI);
 		var bounce = Math.sin(offset) * 8;
 		if(offset > 0){
-			this.frame = v[i] * 1;
-			this.frame_row = 1;
-			this.sprite.render(g,this.position.subtract(c).add(new Point(i*6-x_off,-bounce)),this.frame,this.frame_row);
+			this.frame.x = v[i] * 1;
+			this.frame.y = 1;
+			g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(i*6-x_off,-bounce)),this.zIndex,this.frame);
 		}
 	}
 	

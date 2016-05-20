@@ -41,11 +41,11 @@ function NPC(x,y,t,o){
 	
 	this.on("open", function(){
 		this.scriptRun = true;
-		if(this.lockplayer){window._player.pause = true;}
+		if(this.lockplayer){_player.pause = true;}
 	});
 	
 	this.on("close", function(){
-		if(this.lockplayer){window._player.pause = false;}
+		if(this.lockplayer){_player.pause = false;}
 	});
 	this.on("activate", function(){
 		if(!this.scriptRun){
@@ -130,7 +130,7 @@ NPC.prototype.runScript = function(filename){
 		this.scriptPos++;
 		return true;
 	}else if(command == "additem"){
-		if(window._player instanceof Player){
+		if(_player instanceof Player){
 			var name = NPC.resolveCalculation(line[1]);
 			var item = new Item(0,0,0,{"name":name});
 			item.trigger("collideObject",_player);
@@ -218,10 +218,7 @@ NPC.prototype.runScript = function(filename){
 		return true;
 	}else if(command == "actor_sprite"){
 		var obj = this.findNPC(line[1]);
-		var sprite = NPC.resolveCalculation(line[2]);
-		if(sprite in window.sprites){
-			obj.sprite = window.sprites[sprite];
-		}
+		obj.sprite = NPC.resolveCalculation(line[2]);
 		this.scriptPos++;
 		return true;
 	}else if(command == "wait"){ //WAIT COMMANDS
@@ -328,7 +325,7 @@ NPC.resolveVariable = function(varname){
 	}
 }
 NPC.prototype.getScript = function(filename){
-	ajax("scripts/"+filename,function(data){
+	ajax("/scripts/"+filename,function(data){
 		this.script = NPC.compileScript(data);
 	},this);
 }
