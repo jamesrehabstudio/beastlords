@@ -1305,8 +1305,8 @@ FrogBoss.prototype.update = function(){
 		this.states.rockSpawn -= this.delta;
 		
 		if( this.states.ceilingCollapse && this.grounded ){
-			window.audio.play("explode1");
-			window.shakeCamera(new Point(0,8));
+			audio.play("explode1");
+			shakeCamera(new Point(0,8));
 			for(var i=0; i < 8; i++ ) {
 				var rock = new FallingRock( 
 					this.rockBox.start.x + this.rockBox.width() * Math.random(),
@@ -1403,10 +1403,6 @@ FrogBoss.prototype.render = function(g,c){
 		this.sprite.render(g,this.position.add(head).subtract(c).subtract(dir), 0, 6, this.flip);
 	}
 	*/
-	
-	g.color = [1.0,0,0,1.0];
-	g.scaleFillRect(this.rockBox.start.x - c.x, this.rockBox.start.y - c.y, this.rockBox.width(), this.rockBox.height() );
-	
 }
 
 FrogBoss.pos = {
@@ -3703,7 +3699,8 @@ EffectCritical.prototype.render = function(g,c){
 
 EffectAfterImage.prototype = new GameObject();
 EffectAfterImage.prototype.constructor = GameObject;
-function EffectAfterImage(x, y, obj){	
+function EffectAfterImage(x, y, obj){
+	/*
 	this.constructor();
 	
 	this.life = Game.DELTASECOND;
@@ -3732,9 +3729,11 @@ function EffectAfterImage(x, y, obj){
 	game.backBuffer.use(gl);
 	game.resolution = tempres;
 	gl.viewport(0,0,game.resolution.x,game.resolution.y);
+	*/
 }
 
 EffectAfterImage.prototype.render = function(g,c){
+	/*
 	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );
 	
 	var geo = Sprite.RectBuffer(this.position.subtract(c), 64,64);
@@ -3763,6 +3762,8 @@ EffectAfterImage.prototype.render = function(g,c){
 	
 	this.life -= this.delta;
 	if( this.life <= 0 ) this.destroy();
+	*/
+	this.destroy();
 }
 
 EffectItemPickup.prototype = new GameObject();
@@ -4289,7 +4290,7 @@ function Batty(x,y,d,o){
 	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
-	this.fuse = dataManager.currentTemple >= 4;
+	this.fuse = this.difficulty >= 3;
 	
 	this.on("collideObject", function(obj){
 		if( this.fuse && obj instanceof Batty ) {
@@ -4844,7 +4845,6 @@ function Chaz(x,y,d,o){
 		this.destroy();
 	});
 	
-	SpecialEnemy(this);
 	this.calculateXP();
 	
 	o = o || {};
@@ -4898,8 +4898,8 @@ Chaz.prototype.update = function(){
 					missle = new Bullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
 				}
 				missle.damage = this.damage;
-				missle.frame = 4;
-				missle.frame_row = 0;
+				missle.frame.x = 4;
+				missle.frame.y = 0;
 				game.addObject( missle ); 
 			}
 		} else {
@@ -4912,16 +4912,18 @@ Chaz.prototype.update = function(){
 	
 	/* Animate */
 	if( this.stun > 0 ) {
-		this.frame = 0;
-		this.frame_row = 3;
+		this.frame.x = 0;
+		this.frame.y = 3;
 	} else {
 		if( this.states.attack > 0 ) {
-			this.frame = this.states.attack > this.attack.release ? 0 : 1;
-			this.frame_row = this.states.attack_lower ? 2 : 1;
+			this.frame.x = this.states.attack > this.attack.release ? 0 : 1;
+			this.frame.y = this.states.attack_lower ? 2 : 1;
 		} else {
-			this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 2;
-			if( Math.abs( this.force.x ) < 0.1 ) this.frame = 0;
-			this.frame_row = 0;
+			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 2;
+			if( Math.abs( this.force.x ) < 0.1 ){
+				this.frame = 0;
+			} 
+			this.frame.y = 0;
 		}
 	}
 }
@@ -15679,7 +15681,7 @@ Spawn.prototype.create = function(enemies){
 	for(var j=0; j < enemies.length; j++){
 		var name = enemies[j];
 		try {
-			var object = new window[ name ]( 
+			var object = new self[ name ]( 
 				this.position.x + j * 24,
 				this.position.y,
 				null,

@@ -32,7 +32,7 @@ function Batty(x,y,d,o){
 	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
-	this.fuse = dataManager.currentTemple >= 4;
+	this.fuse = this.difficulty >= 3;
 	
 	this.on("collideObject", function(obj){
 		if( this.fuse && obj instanceof Batty ) {

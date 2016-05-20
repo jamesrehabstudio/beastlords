@@ -89,8 +89,8 @@ FrogBoss.prototype.update = function(){
 		this.states.rockSpawn -= this.delta;
 		
 		if( this.states.ceilingCollapse && this.grounded ){
-			window.audio.play("explode1");
-			window.shakeCamera(new Point(0,8));
+			audio.play("explode1");
+			shakeCamera(new Point(0,8));
 			for(var i=0; i < 8; i++ ) {
 				var rock = new FallingRock( 
 					this.rockBox.start.x + this.rockBox.width() * Math.random(),
@@ -187,10 +187,6 @@ FrogBoss.prototype.render = function(g,c){
 		this.sprite.render(g,this.position.add(head).subtract(c).subtract(dir), 0, 6, this.flip);
 	}
 	*/
-	
-	g.color = [1.0,0,0,1.0];
-	g.scaleFillRect(this.rockBox.start.x - c.x, this.rockBox.start.y - c.y, this.rockBox.width(), this.rockBox.height() );
-	
 }
 
 FrogBoss.pos = {

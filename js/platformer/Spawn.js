@@ -106,7 +106,7 @@ Spawn.prototype.create = function(enemies){
 	for(var j=0; j < enemies.length; j++){
 		var name = enemies[j];
 		try {
-			var object = new window[ name ]( 
+			var object = new self[ name ]( 
 				this.position.x + j * 24,
 				this.position.y,
 				null,

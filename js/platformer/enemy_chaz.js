@@ -31,7 +31,6 @@ function Chaz(x,y,d,o){
 		this.destroy();
 	});
 	
-	SpecialEnemy(this);
 	this.calculateXP();
 	
 	o = o || {};
@@ -85,8 +84,8 @@ Chaz.prototype.update = function(){
 					missle = new Bullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
 				}
 				missle.damage = this.damage;
-				missle.frame = 4;
-				missle.frame_row = 0;
+				missle.frame.x = 4;
+				missle.frame.y = 0;
 				game.addObject( missle ); 
 			}
 		} else {
@@ -99,16 +98,18 @@ Chaz.prototype.update = function(){
 	
 	/* Animate */
 	if( this.stun > 0 ) {
-		this.frame = 0;
-		this.frame_row = 3;
+		this.frame.x = 0;
+		this.frame.y = 3;
 	} else {
 		if( this.states.attack > 0 ) {
-			this.frame = this.states.attack > this.attack.release ? 0 : 1;
-			this.frame_row = this.states.attack_lower ? 2 : 1;
+			this.frame.x = this.states.attack > this.attack.release ? 0 : 1;
+			this.frame.y = this.states.attack_lower ? 2 : 1;
 		} else {
-			this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 2;
-			if( Math.abs( this.force.x ) < 0.1 ) this.frame = 0;
-			this.frame_row = 0;
+			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 2;
+			if( Math.abs( this.force.x ) < 0.1 ){
+				this.frame = 0;
+			} 
+			this.frame.y = 0;
 		}
 	}
 }

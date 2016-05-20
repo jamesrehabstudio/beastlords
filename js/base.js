@@ -125,7 +125,11 @@ Game.prototype.update = function(){
 	while((new Date() * 1)-this.cycleTime < this.interval){}
 	
 	var newTime = new Date() * 1;
-	this.deltaUnscaled = (newTime - this.cycleTime) * (0.001*Game.DELTASECOND);
+	var baseDelta = Math.min(
+		(newTime - this.cycleTime) * (0.001*Game.DELTASECOND),
+		0.1*Game.DELTASECOND
+	);
+	this.deltaUnscaled = baseDelta;
 	this.delta = this.deltaUnscaled * this.deltaScale;
 	this.deltaScaleReset -= this.deltaUnscaled;
 	if(this.deltaScaleReset <= 0){
@@ -293,7 +297,7 @@ Game.prototype.t_unstick = function( obj ) {
 	for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc ) {
 		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
-			if( tile != 0 && !(tile in tilerules.rules) ) {
+			if( tile != 0 && !(tile in tilerules.currentrule()) ) {
 				//You're stuck, do something about it!
 				isStuck = true;
 			} else {
@@ -798,14 +802,29 @@ game.loadMap("temple1.tmx");
 var input = {
 	"states" : {},
 	"state" : function(name){
-		return this.states[name];
+		if(name in this.states){
+			return this.states[name];
+		}
+		return 0;
+	},
+	"update" : function(s){
+		for(var i in s){
+			if(!(i in this.states)){
+				this.states[i] = 0;
+			}
+			if(s[i] > 0){
+				this.states[i]++;
+			} else {
+				this.states[i] = 0;
+			}
+		}
 	}
 }
 
 self.onmessage = function(event){
 	if("input" in event.data){
 		//general update
-		input.states = event.data.input;
+		input.update(event.data.input);
 		if(game instanceof Game){
 			game.resolution.x = event.data.resolution.x;
 			game.resolution.y = event.data.resolution.y;
@@ -816,8 +835,14 @@ self.onmessage = function(event){
 			game.useMap(event.data)
 		}
 	}
-	game.update();
 }
+
+function loop(){
+	game.update();
+	setTimeout(loop, 1);
+	
+}
+loop();
 
 /*
 while(1){

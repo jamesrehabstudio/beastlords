@@ -261,7 +261,8 @@ EffectCritical.prototype.render = function(g,c){
 
 EffectAfterImage.prototype = new GameObject();
 EffectAfterImage.prototype.constructor = GameObject;
-function EffectAfterImage(x, y, obj){	
+function EffectAfterImage(x, y, obj){
+	/*
 	this.constructor();
 	
 	this.life = Game.DELTASECOND;
@@ -290,9 +291,11 @@ function EffectAfterImage(x, y, obj){
 	game.backBuffer.use(gl);
 	game.resolution = tempres;
 	gl.viewport(0,0,game.resolution.x,game.resolution.y);
+	*/
 }
 
 EffectAfterImage.prototype.render = function(g,c){
+	/*
 	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );
 	
 	var geo = Sprite.RectBuffer(this.position.subtract(c), 64,64);
@@ -321,6 +324,8 @@ EffectAfterImage.prototype.render = function(g,c){
 	
 	this.life -= this.delta;
 	if( this.life <= 0 ) this.destroy();
+	*/
+	this.destroy();
 }
 
 EffectItemPickup.prototype = new GameObject();
