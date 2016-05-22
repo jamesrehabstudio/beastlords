@@ -57,8 +57,8 @@ SlimeGrenadier.prototype.update = function(){
 		if(this.times.attack.time > 0){
 			//Throw attack
 			var progress = 1.0 - (this.times.attack.time / this.times.attack.start);
-			this.frame = Math.floor(progress * 5);
-			this.frame_row = 1;
+			this.frame.x = Math.floor(progress * 5);
+			this.frame.y = 1;
 			
 			if(this.times.attack.at(this.times.attackRelease)){
 				//Throw bomb
@@ -75,13 +75,13 @@ SlimeGrenadier.prototype.update = function(){
 			this.times.attack.tick(this.delta);
 		} else if(this.stun > 0) {
 			//stun
-			this.frame = 4;
-			this.frame_row = 0;
+			this.frame.x = 4;
+			this.frame.y = 0;
 		} else {
 			//idle
 			
-			this.frame = (this.frame + this.delta * 0.2) % 4;
-			this.frame_row = 0;
+			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+			this.frame.y = 0;
 			this.flip = dir.x < 0;
 			
 			if(this.times.cooldown <= 0 ){
@@ -102,8 +102,8 @@ function Gernade(x,y,d,o){
 	this.position.y = y;
 	this.sprite = "bullets";
 	
-	this.frame = 5;
-	this.frame_row = 0;
+	this.frame.x = 5;
+	this.frame.y = 0;
 	
 	this.addModule( mod_rigidbody );
 	

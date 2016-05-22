@@ -102,29 +102,29 @@ Oriax.prototype.update = function(){
 	/* Animate */
 	if( this.life <= 0 ) {
 		//dead
-		this.frame = 4;
-		this.frame_row = 1;
+		this.frame.x = 4;
+		this.frame.y = 1;
 	} else if( this.states.attack.time > 0 ) {
 		//Attack
 		var progress = 1 - (this.states.attack.time / this.states.attack.start);
 		if(this.states.attack_lower){
-			this.frame = Math.floor(progress * 4);
-			this.frame_row = 2;
+			this.frame.x = Math.floor(progress * 4);
+			this.frame.y = 2;
 		} else {
-			this.frame = 0;
-			if(progress > 0.15){ this.frame = 1;}
-			if(progress > 0.55){ this.frame = 2;}
-			if(progress > 0.6){ this.frame = 3;}
-			this.frame_row = 1;
+			this.frame.x = 0;
+			if(progress > 0.15){ this.frame.x = 1;}
+			if(progress > 0.55){ this.frame.x = 2;}
+			if(progress > 0.6){ this.frame.x = 3;}
+			this.frame.y = 1;
 		}
 	} else if (this.stun > 0){
 		//dead
-		this.frame = 4;
-		this.frame_row = 1;
+		this.frame.x = 4;
+		this.frame.y = 1;
 	} else {
 		//idle
-		this.frame = (this.frame + this.delta * 0.2 ) % 5;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + this.delta * 0.2 ) % 5;
+		this.frame.y = 0;
 	}
 }
 

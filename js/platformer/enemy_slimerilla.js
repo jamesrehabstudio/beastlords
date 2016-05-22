@@ -75,22 +75,22 @@ Slimerilla.prototype.update = function(){
 		if(this.times.attack > 0){
 			//once warming up for an attack, there's no stoping him!
 			if(this.times.attack < this.times.attackRest ){
-				this.frame = 0
-				this.frame_row = 0;
+				this.frame.x = 0
+				this.frame.y = 0;
 			} else if(this.times.attack < this.times.attackRelease ){
 				this.strike(new Line(new Point(0,-24),new Point(48,24)));
-				this.frame = 1
-				this.frame_row = 1;
+				this.frame.x = 1
+				this.frame.y = 1;
 			} else {
 				this.force.x = 0;
-				this.frame = 0
-				this.frame_row = 1;
+				this.frame.x = 0
+				this.frame.y = 1;
 			}
 			this.times.attack -= this.delta;
 		} else if(this.stun > 0){
 			//Do nothing
-			this.frame = 0;
-			this.frame_row = 0;
+			this.frame.x = 0;
+			this.frame.y = 0;
 		} else if(this.times.jumpback){
 			//jump away from player
 			this.force.y = -6;

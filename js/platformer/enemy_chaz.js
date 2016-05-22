@@ -107,7 +107,7 @@ Chaz.prototype.update = function(){
 		} else {
 			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 2;
 			if( Math.abs( this.force.x ) < 0.1 ){
-				this.frame = 0;
+				this.frame.x = 0;
 			} 
 			this.frame.y = 0;
 		}

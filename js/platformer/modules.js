@@ -658,8 +658,8 @@ var mod_boss = {
 			var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
 			var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
 			
-			"bossface".render(g,porta,1,0,false);
-			"bossface".render(g,portb,this.bossface_frame,this.bossface_frame_row,true);
+			g.renderSprite("bossface",porta,this.zIndex,new Point(1,0),false);
+			g.renderSprite("bossface",portb,this.zIndex,new Point(this.bossface_frame,this.bossface_frame_row),true);
 		}
 	}
 }

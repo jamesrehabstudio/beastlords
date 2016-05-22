@@ -112,17 +112,17 @@ Flederknife.prototype.update = function(){
 	
 	/* Animation */
 	if( this.stun > 0 ) {
-		this.frame = 3;
-		this.frame_row = 2;
+		this.frame.x = 3;
+		this.frame.y  = 2;
 	} else if( this.states.jump ){
-		this.frame = (this.frame + this.delta * 0.4) % 3;
-		this.frame_row = 2;
+		this.frame.x = (this.frame.x + this.delta * 0.4) % 3;
+		this.frame.y = 2;
 	} else {
-		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 		if(this.states.duck){
-			this.frame_row = 0;
+			this.frame.y  = 0;
 		} else {
-			this.frame_row = 1;
+			this.frame.y  = 1;
 		}
 	}
 }

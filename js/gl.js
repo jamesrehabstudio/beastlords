@@ -228,7 +228,7 @@ Sprite.prototype.uv = function( frame, row ) {
 	return [frame * xinc, row * yinc, (frame+1) * xinc, (row+1) * yinc];
 }
 	
-Sprite.prototype.render = function( gl, p, frame, row, flip, shader, shaderOps ) {
+Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 	if( !this.loaded  ) return;
 	
 	if(frame == undefined ){
@@ -242,15 +242,25 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader, shaderOps )
 		row = ~~row;
 	}
 	
-	if( shader instanceof Material ){
-		//Correct shader already selected
-	} else if( shader in window.materials ){
-		shader = window.materials[shader].use();
-	} else { 
-		shader = window.materials["default"].use();
+	shaderOps = shaderOps || {};
+	
+	var shader = window.materials["default"];
+	var scale = 1.0;
+	
+	if( "shader" in shaderOps){
+		if( shaderOps["shader"] instanceof Material ){
+			//Correct shader already selected
+		} else if( shaderOps["shader"] in window.materials ){
+			shader = window.materials[shaderOps["shader"]]
+		}
+		delete shaderOps.shader;
+	}
+	if("scale" in shaderOps){
+		scale = shaderOps["scale"] * 1;
 	}
 	
-	shaderOps = shaderOps || {};
+	shader.use();
+	
 	for(var i in shaderOps){
 		shader.set(i, shaderOps[i]);
 	}
@@ -262,12 +272,12 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader, shaderOps )
 	var x2 = (frame+1) * xinc;
 	var y1 = row * yinc;
 	var y2 = (row+1) * yinc;
-	var offset = new Point(this.offset.x, this.offset.y);
+	var offset = new Point(this.offset.x*scale, this.offset.y*scale);
 	if( flip ) {
 		var temp = x1;
 		x1 = x2;
 		x2 = temp;
-		offset.x = this.frame_width - offset.x;
+		offset.x = this.frame_width * scale - offset.x;
 	}
 	
 	var texbuffer = gl.createBuffer();
@@ -287,7 +297,9 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shader, shaderOps )
 	if( !this.buffer ) this.buffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	
-	gl.bufferData(gl.ARRAY_BUFFER, this.bufferData, gl.DYNAMIC_DRAW);
+	var geodata = Sprite.RectBuffer(new Point(), this.frame_width*scale,this.frame_height*scale,0);
+	
+	gl.bufferData(gl.ARRAY_BUFFER, geodata, gl.DYNAMIC_DRAW);
 	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 	shader.set("a_position");
 	shader.set("u_resolution",game.resolution.x, game.resolution.y);

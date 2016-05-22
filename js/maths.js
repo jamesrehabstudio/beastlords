@@ -132,12 +132,16 @@ Array.prototype.insertSort = function(a,func){
 	var increment = Math.max(Math.floor(index/2),1);
 	
 	while(1){
+		if(index >= this.length){
+			index = this.length;
+			break;
+		}
 		if(index == 0){
 			if(func(a,this[index])<0){
 				break;
 			}
 		}
-		if(index >= this.length-1){
+		if(index == this.length-1){
 			if(func(a,this[index])>=0){
 				index+=1;
 				break;

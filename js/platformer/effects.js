@@ -145,8 +145,7 @@ function EffectBlood(x, y, dir, dam){
 	this.zIndex = 2;
 	this.sprite = "bullets";
 	
-	this.frame = 3
-	this.frame_row = 1;
+	this.frame = new Point(3,1);
 	
 	this.drops = [];
 	for(var i=0; i < Math.min(Math.max(dam/3,3),10); i++){
@@ -178,11 +177,11 @@ EffectBlood.prototype.update = function(){
 
 EffectBlood.prototype.render = function(g,c){
 	for(var i=0; i < this.drops.length; i++){
-		this.sprite.render(
-			g,
+		g.renderSprite(
+			this.sprite,
 			this.drops[i].pos.add(this.position).subtract(c),
-			this.drops[i].frame,
-			this.frame_row
+			this.zIndex,
+			new Point(this.drops[i].frame, this.frame.y)
 		);
 	}
 }
@@ -235,6 +234,7 @@ function EffectCritical(x, y){
 	this.height = 8;
 	this.zIndex = 99;
 	this.sprite = "bullets";
+	this.frame = new Point(2,2);
 	
 	this.progress = 0;
 	
@@ -255,7 +255,7 @@ EffectCritical.prototype.render = function(g,c){
 	for(var i=0; i < points; i++){
 		var angle = (i/points) * Math.PI * 2;
 		var p = new Point(radius*Math.sin(angle),radius*Math.cos(angle));
-		this.sprite.render(g,p.add(this.position).subtract(c),2,2);
+		g.renderSprite(this.sprite,p.add(this.position).subtract(c),this.zIndex,this.frame);
 	}
 }
 
@@ -351,6 +351,7 @@ function EffectItemPickup(x, y, message){
 
 EffectItemPickup.prototype.render = function(gl,c){
 	this.time += game.deltaUnscaled;
+	/*
 	var p1 = this.time / (Game.DELTASECOND * 0.7);
 	var p2 = (this.time-(Game.DELTASECOND * 0.7)) / (Game.DELTASECOND * 0.3);
 	
@@ -408,7 +409,7 @@ EffectItemPickup.prototype.render = function(gl,c){
 	);
 	
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
-	
+	*/
 	if( this.time > Game.DELTASECOND ){
 		this.destroy();
 	}
@@ -425,14 +426,14 @@ var EffectList = {
 			audio.playLock("charge",0.5);
 			for(var i=0; i < 5; i++) {
 				var off = new Point(r*Math.sin(i), r*Math.cos(i));
-				"bullets".render(g,p.add(off),3,2);
+				g.renderSprite("bullets",p.add(off),this.zIndex,new Point(3,2));
 			}
 		}
 		
 		if( progress > 1.0 && progress < 1.2 ) {
 			audio.playLock("chargeready",0.5);
 			var flashprogress = Math.floor((progress - 1.0) * 10);
-			"bullets".render(g,p,flashprogress,1);
+			g.renderSprite("bullets",p,this.zIndex,new Point(flashprogress,1));
 		}
 	}
 };

@@ -265,12 +265,12 @@ function Background(x,y){
 		});
 	}
 }
-Background.prototype.render = function(gl,c){
+Background.prototype.render = function(g,c){
 	this.time += this.delta;
 }
 
 Background.prototype.postrender = function(g,c){
-	this.renderDust(gl,c);
+	this.renderDust(g,c);
 	
 	/*
 	if( c.y < 480 ) {
@@ -292,8 +292,8 @@ Background.prototype.postrender = function(g,c){
 	
 	//Render flash
 	if(Background.flash instanceof Array){
-		gl.color = Background.flash;
-		gl.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+		g.color = Background.flash;
+		g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 		Background.flash = false;
 	}
 }
@@ -326,7 +326,7 @@ Background.prototype.renderLightbeam = function(g,p,r,a){
 	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
 }
 Background.prototype.renderDust = function(g,c){
-	/*
+	
 	for(var i=0; i < Math.min(this.dustAmount, this.dust.length); i++){
 		var dust = this.dust[i];
 		var x = Math.sin( dust.lapse * dust.direction.x );
@@ -336,21 +336,26 @@ Background.prototype.renderDust = function(g,c){
 		dust.position.x += x * this.delta * dust.scale * this.dustSpeed;
 		dust.position.y += y * this.delta * dust.scale * this.dustSpeed;
 		
-		game.tileSprite.render(
-			g, 
+		g.renderSprite(
+			game.map.tileset,
 			new Point(
-				Math.mod( dust.position.x - c.x * dust.scale, game.resolution.x ),
-				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y ) 
+				Math.mod( dust.position.x - c.x * dust.scale, game.resolution.x+16 ),
+				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y+16 ) 
 			),
-			11, 13, false, 
-			"blur", {"blur":Math.min(0.004 * dust.scale, 0.008), "scale": [0.3*dust.scale, 0.3*dust.scale]}
+			this.zIndex = 0,
+			new Point(0, 0), 
+			false, 
+			{
+				"shader":"blur",
+				"blur":Math.min(0.004 * dust.scale, 0.008), 
+				"scale": 0.3*dust.scale
+			}
 		);
 	}
-	*/
 }
-Background.prototype.prerender = function(gl,c){
+Background.prototype.prerender = function(g,c){
 	var c2 = new Point(c.x, c.y - this.sealevel);
-	this.preset(gl,c2);
+	this.preset(g,c2);
 }
 Background.prototype.lightrender = function(g,c){
 	//Calculate strength
@@ -368,7 +373,8 @@ Background.prototype.lightrender = function(g,c){
 		var light = Background.lights.pop();
 		var position = light[0];
 		var radius = light[1];
-		g.renderSprite("halo",position.subtract(c),this.zIndex,new Point());
+		var color = light[2];
+		g.renderSprite("halo",position.subtract(c),this.zIndex,new Point(),false,{"scale":radius/240,"u_color":color});
 	}
 	Background.lights = new Array();
 }
@@ -444,13 +450,13 @@ Background.presets = {
 			var y = (c.y * strength) + (48*16 - game.resolution.y);
 			
 			if("upper3" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["upper3"],48,0,0);
+				tileset.renderTiles(g,backgroundTiles["upper3"],48,0,0);
 			}
 			if("upper2" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["upper2"],48,x*0.6666666666,y*0.66666666);
+				tileset.renderTiles(g,backgroundTiles["upper2"],48,x*0.6666666666,y*0.66666666);
 			}
 			if("upper1" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["upper1"],48,x,y);
+				tileset.renderTiles(g,backgroundTiles["upper1"],48,x,y);
 			}
 		}
 		if(c.y > this.sealevel){
@@ -460,7 +466,7 @@ Background.presets = {
 			var y = ((c.y) - zero.y*16) * strength;
 			
 			if("under1" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+				tileset.renderTiles(g,backgroundTiles["under1"],48,x,y);
 			}
 		}
 	}
@@ -585,7 +591,7 @@ function Ammit(x,y,d,o){
 	this.addModule( mod_boss );
 	
 	this.bossface_frame = 4;
-	this.bossface_frame_row = 0;
+	this.bossface_frame.y = 0;
 	
 	this.states = {
 		"current" : 0,
@@ -700,30 +706,30 @@ Ammit.prototype.update = function(){
 			//change from one state to another
 			if(this.states.current == Ammit.STATE_BOUNCE){
 				//appear as ball
-				this.frame = Math.max(2 - progress * 3,0);
-				this.frame_row = 3;
+				this.frame.x = Math.max(2 - progress * 3,0);
+				this.frame.y = 3;
 			} else if(this.states.previous == Ammit.STATE_BOUNCE){
 				//Disappear as ball
-				this.frame = progress * 3;
-				this.frame_row = 3;
+				this.frame.x = progress * 3;
+				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_HIDDEN){
 				//Disappear
-				this.frame = Math.max(3 - progress * 4,0);
-				this.frame_row = 2;
+				this.frame.x = Math.max(3 - progress * 4,0);
+				this.frame.y = 2;
 			} else if(this.states.previous == Ammit.STATE_HIDDEN){
 				//Appear
-				this.frame = progress * 4;
-				this.frame_row = 2;
+				this.frame.x = progress * 4;
+				this.frame.y = 2;
 			} else if(this.states.current == Ammit.STATE_PUNCH || this.states.current == Ammit.STATE_REACH){
 				//Punch
-				this.frame = 0;
-				if(progress > 0.6){this.frame = 1;}
-				if(progress > 0.8){this.frame = 2;}
-				this.frame_row = 1;
+				this.frame.x = 0;
+				if(progress > 0.6){this.frame.x = 1;}
+				if(progress > 0.8){this.frame.x = 2;}
+				this.frame.y = 1;
 			} else {
 				//idle
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			}
 			this.states.transition -= this.delta;
 		} else {
@@ -740,8 +746,8 @@ Ammit.prototype.update = function(){
 					}
 				}
 				this.states.cooldown -= this.delta;
-				this.frame = 3;
-				this.frame_row = 3;
+				this.frame.x = 3;
+				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_BOUNCE){
 				//Bounce
 				this.force.x += this.speed * 1.5 * this.delta * (this.flip?-1:1);
@@ -767,8 +773,8 @@ Ammit.prototype.update = function(){
 				}
 				
 				this.states.cooldown -= this.delta;
-				this.frame = 0;
-				this.frame_row = 3;
+				this.frame.x = 0;
+				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_REACH){
 				//Reach Punch
 				var reach = 1 - this.states.attack / this.states.attackTotal;
@@ -779,8 +785,8 @@ Ammit.prototype.update = function(){
 					this.changeState(Ammit.STATE_IDLE);
 				}
 				this.states.attack -= this.delta;
-				this.frame = 3;
-				this.frame_row = 1;
+				this.frame.x = 3;
+				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_PUNCH){
 				//Punch
 				this.strike(new Line(new Point(0,-8), new Point(48,0)));
@@ -789,8 +795,8 @@ Ammit.prototype.update = function(){
 					this.changeState(Ammit.STATE_IDLE);
 				}
 				this.states.attack -= this.delta;
-				this.frame = 3;
-				this.frame_row = 1;
+				this.frame.x = 3;
+				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_MOVE){
 				//Change side
 				this.force.x += this.speed * 2 * this.delta * (this.flip?-1:1);
@@ -801,8 +807,8 @@ Ammit.prototype.update = function(){
 					this.flip = !this.flip;
 					this.changeState(Ammit.STATE_IDLE);
 				}
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_SPAWN){
 				//spawn enemies
 				this.force.x += this.speed * this.delta * (this.flip?-1:1);
@@ -819,8 +825,8 @@ Ammit.prototype.update = function(){
 					Spawn.addToList(this.position,this.slimes,Slime,5);
 				}
 				this.states.attack += this.delta;
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_IDLE){
 				//idle
 				this.flip = dir.x > 0;
@@ -848,8 +854,8 @@ Ammit.prototype.update = function(){
 					}
 				}
 				this.states.cooldown -= this.delta;
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			}
 		}
 	}
@@ -862,15 +868,15 @@ Ammit.prototype.render = function(g,c){
 		var dir = this.flip ? -1 : 1;
 		if(this.states.current == Ammit.STATE_PUNCH ){
 			//draw hand
-			this.sprite.render(g,this.position.subtract(c).add(new Point(dir*80,0)),0, 4,this.flip);
+			g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(dir*80,0)),this.zIndex,new Point(0, 4),this.flip);
 		} else if(this.states.current == Ammit.STATE_REACH){
 			var reach = 1 - this.states.attack / this.states.attackTotal;
 			var rd = 80 + Ammit.REACH * reach;
 			//draw hand
-			this.sprite.render(g,this.position.subtract(c).add(new Point(dir*rd,0)),0, 4,this.flip);
+			g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(dir*rd,0)),this.zIndex,new Point(0, 4),this.flip);
 			for(var i = rd; i > 80; i -= 32){
 				//draw wrist
-				this.sprite.render(g,this.position.subtract(c).add(new Point(dir*(i-32),0)),1, 4,this.flip);
+				g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(dir*(i-32),0)),this.zIndex,new Point(1, 4),this.flip);
 			}
 		}
 	}
@@ -1001,23 +1007,23 @@ Chort.prototype.update = function(){
 	//28, 48
 	if( this.states.bounce > 0 ) {
 		this.width = 48;
-		this.frame_row = 1;
-		this.frame = 1;
+		this.frame.y = 1;
+		this.frame.x = 1;
 		if( this.grounded ) {
-			this.frame = 3;
+			this.frame.x = 3;
 		} else if ( this.force.y < 0 ) {
-			this.frame = 2;
+			this.frame.x = 2;
 		}
 	}else if ( this.states.attack > 0 ){
 		this.width = 28;
-		this.frame_row = 2; 
-		this.frame = 0; 
-		if( this.states.attack <= this.attack_times.release ) this.frame = 1;
-		if( this.states.attack <= this.attack_times.cool ) this.frame = 2;
+		this.frame.y = 2; 
+		this.frame.x = 0; 
+		if( this.states.attack <= this.attack_times.release ) this.frame.x = 1;
+		if( this.states.attack <= this.attack_times.cool ) this.frame.x = 2;
 	} else {
 		this.width = 28;
-		this.frame = (this.frame + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
+		this.frame.y = 0;
 	}
 }
 
@@ -3314,11 +3320,11 @@ Drain.prototype.render = function(g,c){
 			var tile = Drain.TILES[_t]-1;
 			var tilex = tile%32;
 			var tiley = Math.floor(tile/32);
-			game.tileSprite.render(g,pos.subtract(c),tilex,tiley);
+			g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(tilex,tiley));
 			
 			//Render bottom row of tiles to hide edge
 			var tile = game.getTile(this.position.x+x,this.position.y+8,game.tileCollideLayer) - 1;
-			game.tileSprite.render(g,this.position.add(new Point(x,0)).subtract(c),tile);
+			g.renderSprite(game.map.tileset,this.position.add(new Point(x,0)).subtract(c),this.zIndex,new Point(tile%32,tile/32));
 		}
 	}
 }
@@ -3565,8 +3571,7 @@ function EffectBlood(x, y, dir, dam){
 	this.zIndex = 2;
 	this.sprite = "bullets";
 	
-	this.frame = 3
-	this.frame_row = 1;
+	this.frame = new Point(3,1);
 	
 	this.drops = [];
 	for(var i=0; i < Math.min(Math.max(dam/3,3),10); i++){
@@ -3598,11 +3603,11 @@ EffectBlood.prototype.update = function(){
 
 EffectBlood.prototype.render = function(g,c){
 	for(var i=0; i < this.drops.length; i++){
-		this.sprite.render(
-			g,
+		g.renderSprite(
+			this.sprite,
 			this.drops[i].pos.add(this.position).subtract(c),
-			this.drops[i].frame,
-			this.frame_row
+			this.zIndex,
+			new Point(this.drops[i].frame, this.frame.y)
 		);
 	}
 }
@@ -3655,6 +3660,7 @@ function EffectCritical(x, y){
 	this.height = 8;
 	this.zIndex = 99;
 	this.sprite = "bullets";
+	this.frame = new Point(2,2);
 	
 	this.progress = 0;
 	
@@ -3675,7 +3681,7 @@ EffectCritical.prototype.render = function(g,c){
 	for(var i=0; i < points; i++){
 		var angle = (i/points) * Math.PI * 2;
 		var p = new Point(radius*Math.sin(angle),radius*Math.cos(angle));
-		this.sprite.render(g,p.add(this.position).subtract(c),2,2);
+		g.renderSprite(this.sprite,p.add(this.position).subtract(c),this.zIndex,this.frame);
 	}
 }
 
@@ -3771,6 +3777,7 @@ function EffectItemPickup(x, y, message){
 
 EffectItemPickup.prototype.render = function(gl,c){
 	this.time += game.deltaUnscaled;
+	/*
 	var p1 = this.time / (Game.DELTASECOND * 0.7);
 	var p2 = (this.time-(Game.DELTASECOND * 0.7)) / (Game.DELTASECOND * 0.3);
 	
@@ -3828,7 +3835,7 @@ EffectItemPickup.prototype.render = function(gl,c){
 	);
 	
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
-	
+	*/
 	if( this.time > Game.DELTASECOND ){
 		this.destroy();
 	}
@@ -3845,14 +3852,14 @@ var EffectList = {
 			audio.playLock("charge",0.5);
 			for(var i=0; i < 5; i++) {
 				var off = new Point(r*Math.sin(i), r*Math.cos(i));
-				"bullets".render(g,p.add(off),3,2);
+				g.renderSprite("bullets",p.add(off),this.zIndex,new Point(3,2));
 			}
 		}
 		
 		if( progress > 1.0 && progress < 1.2 ) {
 			audio.playLock("chargeready",0.5);
 			var flashprogress = Math.floor((progress - 1.0) * 10);
-			"bullets".render(g,p,flashprogress,1);
+			g.renderSprite("bullets",p,this.zIndex,new Point(flashprogress,1));
 		}
 	}
 };
@@ -3913,7 +3920,7 @@ function Amon(x,y,d,o){
 	this.calculateXP();
 }
 Amon.prototype.update = function(){
-	this.frame = ( this.frame + this.delta * 0.2 ) % 3;
+	this.frame.x = ( this.frame.x + this.delta * 0.2 ) % 3;
 	
 	if( this.stun < 0 ) {
 		if( Math.abs( this.force.x ) > 0.1 ) {
@@ -4369,12 +4376,12 @@ Batty.prototype.update = function(){
 	
 	/* Animation */
 	if( Math.abs(this.force.y) < 0.2 && Math.abs(this.force.x) < 0.2  ) {
-		this.frame = 1;
+		this.frame.x = 1;
 	} else {
 		if( this.force.y > 1.0 ) {
-			this.frame = 0;
+			this.frame.x = 0;
 		} else {
-			this.frame = Math.max( (this.frame + this.delta * 0.3) % 5, 2);
+			this.frame.x = Math.max( (this.frame.x + this.delta * 0.3) % 5, 2);
 		}
 	}
 }
@@ -4903,7 +4910,7 @@ Chaz.prototype.update = function(){
 		} else {
 			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 2;
 			if( Math.abs( this.force.x ) < 0.1 ){
-				this.frame = 0;
+				this.frame.x = 0;
 			} 
 			this.frame.y = 0;
 		}
@@ -5710,17 +5717,17 @@ Flederknife.prototype.update = function(){
 	
 	/* Animation */
 	if( this.stun > 0 ) {
-		this.frame = 3;
-		this.frame_row = 2;
+		this.frame.x = 3;
+		this.frame.y  = 2;
 	} else if( this.states.jump ){
-		this.frame = (this.frame + this.delta * 0.4) % 3;
-		this.frame_row = 2;
+		this.frame.x = (this.frame.x + this.delta * 0.4) % 3;
+		this.frame.y = 2;
 	} else {
-		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 		if(this.states.duck){
-			this.frame_row = 0;
+			this.frame.y  = 0;
 		} else {
-			this.frame_row = 1;
+			this.frame.y  = 1;
 		}
 	}
 }
@@ -5758,8 +5765,7 @@ function Fly(x,y,d,o){
 	this.damage = Spawn.damage(1,this.difficulty);
 	
 	this.speed = 0.25;
-	this.frame = 0;
-	this.frame_row = 1;
+	this.frame = new Point(0,1);
 	this.gravity = 0.0;
 	this.friction = 0.1;
 	this.mass = 0.7;
@@ -5816,7 +5822,7 @@ Fly.prototype.update = function(){
 		}
 	}
 	
-	this.frame = (this.frame + this.delta * 0.5) % 2.0;
+	this.frame.x = (this.frame.x + this.delta * 0.5) % 2.0;
 }
 
  /* platformer\enemy_flyingslime.js*/ 
@@ -6349,22 +6355,22 @@ Knight.prototype.update = function(){
 				} else {
 					this.strike(new Line(0,0,32,4));
 				}
-				this.frame = 2;
+				this.frame.x = 2;
 			} else if(this.states.attack > this.attack_release){
 				var p = (this.states.attack - this.attack_release) / (this.attack_warm - this.attack_release)
-				this.frame = p > 0.5 ? 0 : 1;
+				this.frame.x = p > 0.5 ? 0 : 1;
 			} else {
-				this.frame = 3;
+				this.frame.x = 3;
 			}
 			
 			this.states.attack -= this.delta;
-			this.frame_row = 1;
+			this.frame.y = 1;
 			this.guard.active = false;
 		} else if(this.stun > 0 || this.states.guard_freeze > 0){
 			//hurt, do nothing
 			this.guard.active = false;
-			this.frame = 0;
-			this.frame_row = 2;
+			this.frame.x = 0;
+			this.frame.y = 2;
 			this.states.guard_freeze -= this.delta;
 		} else {
 			this.flip = dir.x > 0;
@@ -6400,8 +6406,8 @@ Knight.prototype.update = function(){
 				this.force.x += this.speed * this.delta * (home_x>0?-1:1);
 			}
 			
-			this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 4;
-			this.frame_row = 0;
+			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 4;
+			this.frame.y = 0;
 		}
 	}
 }
@@ -6425,7 +6431,7 @@ Knight.prototype.render = function(g,c){
 	var sword_f = 4;
 	var sword_fr = 0;
 	if(this.states.attack > 0){
-		sword_f = this.frame;
+		sword_f = this.frame.x;
 		sword_fr = this.states.attack_down ? 4 : 3;
 	}
 	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, this.filter);
@@ -6913,29 +6919,29 @@ Oriax.prototype.update = function(){
 	/* Animate */
 	if( this.life <= 0 ) {
 		//dead
-		this.frame = 4;
-		this.frame_row = 1;
+		this.frame.x = 4;
+		this.frame.y = 1;
 	} else if( this.states.attack.time > 0 ) {
 		//Attack
 		var progress = 1 - (this.states.attack.time / this.states.attack.start);
 		if(this.states.attack_lower){
-			this.frame = Math.floor(progress * 4);
-			this.frame_row = 2;
+			this.frame.x = Math.floor(progress * 4);
+			this.frame.y = 2;
 		} else {
-			this.frame = 0;
-			if(progress > 0.15){ this.frame = 1;}
-			if(progress > 0.55){ this.frame = 2;}
-			if(progress > 0.6){ this.frame = 3;}
-			this.frame_row = 1;
+			this.frame.x = 0;
+			if(progress > 0.15){ this.frame.x = 1;}
+			if(progress > 0.55){ this.frame.x = 2;}
+			if(progress > 0.6){ this.frame.x = 3;}
+			this.frame.y = 1;
 		}
 	} else if (this.stun > 0){
 		//dead
-		this.frame = 4;
-		this.frame_row = 1;
+		this.frame.x = 4;
+		this.frame.y = 1;
 	} else {
 		//idle
-		this.frame = (this.frame + this.delta * 0.2 ) % 5;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + this.delta * 0.2 ) % 5;
+		this.frame.y = 0;
 	}
 }
 
@@ -7535,28 +7541,28 @@ Skeleton.prototype.update = function(){
 	
 	/* Animation */
 	if ( this.stun > 0 ) {
-		this.frame = 0;
-		this.frame_row = 2;
+		this.frame.x = 0;
+		this.frame.y = 2;
 	} else { 
 		if( this.states.attack > 0 ) {
-			this.frame = 0;
-			if( this.states.attack <= this.attacktimes.release ) this.frame = 1;
-			if( this.states.attack <= this.attacktimes.rest ) this.frame = 2;
-			this.frame_row = 1
+			this.frame.x = 0;
+			if( this.states.attack <= this.attacktimes.release ) this.frame.x = 1;
+			if( this.states.attack <= this.attacktimes.rest ) this.frame.x = 2;
+			this.frame.y = 1
 		} else if( !this.grounded ) {
-			this.frame = 3;
-			this.frame_row = 1;
+			this.frame.x = 3;
+			this.frame.y = 1;
 		} else {
-			this.frame_row = 0;
+			this.frame.y = 0;
 			if( Math.abs( this.force.x ) > 0.1 ) {
-				this.frame = (this.frame + this.delta * Math.abs( this.force.x ) * 0.1 ) % 4;
+				this.frame.x = (this.frame.x + this.delta * Math.abs( this.force.x ) * 0.1 ) % 4;
 			}
 		}
 	}
 }
 Skeleton.prototype.render = function(g,c){
-	this.sprite.render(g,this.position.subtract(c),4,0,this.flip);
 	GameObject.prototype.render.apply(this,[g,c]);
+	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(4,0),this.flip);
 }
 
  /* platformer\enemy_slime.js*/ 
@@ -7619,8 +7625,8 @@ function Slime(x,y,d,o){
 }
 Slime.prototype.update = function(){
 	if(this.times.move){
-		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.1) % 5;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 5;
+		this.frame.y = 0;
 		if(this.flip){
 			this.force.x -= this.speed * this.delta;
 		} else{
@@ -7651,8 +7657,8 @@ Slime.prototype.update = function(){
 		if(this.times.melt){
 			//
 			this.times.transition += this.delta * 0.1;
-			this.frame = Math.floor(this.times.transition * 5);
-			this.frame_row = 1;
+			this.frame.x = Math.floor(this.times.transition * 5);
+			this.frame.y = 1;
 			if(this.times.transition >= 1){
 				this.visible = false;
 				this.times.move = 1;
@@ -7663,8 +7669,8 @@ Slime.prototype.update = function(){
 			//reform
 			this.visible = true;
 			this.times.transition += this.delta * 0.1;
-			this.frame = 5 - Math.floor(this.times.transition * 5);
-			this.frame_row = 1;
+			this.frame.x = 5 - Math.floor(this.times.transition * 5);
+			this.frame.y = 1;
 			if(this.times.transition >= 1){
 				this.interactive = true;
 				this.times.move = 1;
@@ -7739,8 +7745,8 @@ SlimeGrenadier.prototype.update = function(){
 		if(this.times.attack.time > 0){
 			//Throw attack
 			var progress = 1.0 - (this.times.attack.time / this.times.attack.start);
-			this.frame = Math.floor(progress * 5);
-			this.frame_row = 1;
+			this.frame.x = Math.floor(progress * 5);
+			this.frame.y = 1;
 			
 			if(this.times.attack.at(this.times.attackRelease)){
 				//Throw bomb
@@ -7757,13 +7763,13 @@ SlimeGrenadier.prototype.update = function(){
 			this.times.attack.tick(this.delta);
 		} else if(this.stun > 0) {
 			//stun
-			this.frame = 4;
-			this.frame_row = 0;
+			this.frame.x = 4;
+			this.frame.y = 0;
 		} else {
 			//idle
 			
-			this.frame = (this.frame + this.delta * 0.2) % 4;
-			this.frame_row = 0;
+			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+			this.frame.y = 0;
 			this.flip = dir.x < 0;
 			
 			if(this.times.cooldown <= 0 ){
@@ -7784,8 +7790,8 @@ function Gernade(x,y,d,o){
 	this.position.y = y;
 	this.sprite = "bullets";
 	
-	this.frame = 5;
-	this.frame_row = 0;
+	this.frame.x = 5;
+	this.frame.y = 0;
 	
 	this.addModule( mod_rigidbody );
 	
@@ -7896,22 +7902,22 @@ Slimerilla.prototype.update = function(){
 		if(this.times.attack > 0){
 			//once warming up for an attack, there's no stoping him!
 			if(this.times.attack < this.times.attackRest ){
-				this.frame = 0
-				this.frame_row = 0;
+				this.frame.x = 0
+				this.frame.y = 0;
 			} else if(this.times.attack < this.times.attackRelease ){
 				this.strike(new Line(new Point(0,-24),new Point(48,24)));
-				this.frame = 1
-				this.frame_row = 1;
+				this.frame.x = 1
+				this.frame.y = 1;
 			} else {
 				this.force.x = 0;
-				this.frame = 0
-				this.frame_row = 1;
+				this.frame.x = 0
+				this.frame.y = 1;
 			}
 			this.times.attack -= this.delta;
 		} else if(this.stun > 0){
 			//Do nothing
-			this.frame = 0;
-			this.frame_row = 0;
+			this.frame.x = 0;
+			this.frame.y = 0;
 		} else if(this.times.jumpback){
 			//jump away from player
 			this.force.y = -6;
@@ -9715,10 +9721,10 @@ Item.prototype.render = function(g,c){
 		var a = (1.0 + Math.sin(this.glow)) * 0.5;
 		var o = new Point(0, (a-0.5) * 2);
 		
-		this.sprite.render(g, 
-			this.position.subtract(c).add(o), 
-			this.frame.x, 
-			this.frame.y,
+		g.renderSprite(this.sprite, 
+			this.position.subtract(c).add(o),
+			this.zIndex,
+			this.frame,
 			false,
 			"item",
 			{"u_color":[0.8,0.1,1.0,a]}
@@ -10036,7 +10042,7 @@ Lamp.prototype.render = function(g,c){
 	if(this.show){
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
-	Background.pushLight( this.position, this.size );
+	Background.pushLight( this.position, this.size, [1.0,0.85,0.75,1.0] );
 }
 Lamp.prototype.idle = function(){
 	var current = this.awake;
@@ -10117,8 +10123,8 @@ Lift.prototype.update = function(){
 		}
 	}
 	
-	this.frame = (this.frame+this.delta*Math.abs(this.force.y))%3;
-	if(Math.abs(this.force.y) < 0.2) this.frame = 0;
+	this.frame.x = (this.frame.x+this.delta*Math.abs(this.force.y))%3;
+	if(Math.abs(this.force.y) < 0.2) this.frame.x = 0;
 	this.frame_row = 0;
 	
 	this.onboard = false;
@@ -10665,7 +10671,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 			
 			var gamex = game.resolution.x * 0.5 - 427 * 0.5;
-			"title".render(g,new Point(gamex,0), 0,3);
+			g.renderSprite("title",new Point(gamex,0),this.zIndex,new Point(0,3));
 			
 			boxArea(g,xpos+68,168,120,40);
 			textArea(g,i18n("press_start"),xpos+84,184);
@@ -10760,7 +10766,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 				if(this.cursor == i){
 					textArea(g,"@",leftx+16,y_pos);
 				}
-				item.sprite.render(g,new Point(leftx+40,y_pos+4),item.frame,item.frame_row);
+				g.renderSprite("item",new Point(leftx+40,y_pos+4),this.zIndex,item.frame);
 				textArea(g,name,leftx+52,y_pos);
 			}
 		} else if ( this.page == 4 ){
@@ -11017,81 +11023,79 @@ TitleMenu.prototype.update = function(){
 TitleMenu.prototype.render = function(g,c){
 	var xpos = (game.resolution.x - 427) * 0.5;
 	
-	if( this.start ) {
-		//"loading".render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
-	} else {
-		var pan = Math.min(this.progress/8, 1.0);
-		
-		g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
-		
-		//Random twinkling stars
-		for(var i=0; i<this.stars.length; i++) {
-			var star = this.stars[i];
-			var frame = 2;
-			if( 
-				this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
-				this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
-			) frame = 3;
-				
-			g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
-			star.timer -= this.delta;
-			if( star.timer <= 0 ){
-				star.timer = Game.DELTASECOND * 1.0;
-				star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
-			}			
-		}
-		this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
-		if( this.progress > this.stars.timer ) {
-			this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
-			this.stars.timer += this.stars.reset;
-		}
-		
-		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
-		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
-		
-		textArea(g,"Copyright Pogames.uk 2016",8,4);
-		//textArea(g,"Version "+window._version,8,228);
-		
-		if(this.page == 0){
-			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-			if( this.progress >= 9.0 && this.progress < 24.0  ){
-				boxArea(g,x_pos,168,120,40);
-				textArea(g,i18n("press_start"),x_pos+16,184);
-			}
-		} else if(this.page == 1) {
-			var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
-			boxArea(g,x_pos,32,192,88);
-			textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+	var pan = Math.min(this.progress/8, 1.0);
+	
+	g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
+	
+	//Random twinkling stars
+	for(var i=0; i<this.stars.length; i++) {
+		var star = this.stars[i];
+		var frame = 2;
+		if( 
+			this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
+			this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
+		) frame = 3;
 			
-			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-			boxArea(g,x_pos,146,120,56);
-			//textArea(g,i18n("introduction"),x_pos+24,162);
-			textArea(g,"Debug",x_pos+24,162);
-			if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
-			
-			"text".render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
-		} else if(this.page == 2){ 
-			var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
-			boxArea(g,x_pos,16,200,208);
-			textArea(g,"Map name",x_pos+32,48);
-			textArea(g,"Level",x_pos+32,80);
-			textArea(g,"Flight",x_pos+32,112);
-			textArea(g,"Play",x_pos+32,144);
-			
-			textArea(g,"@",x_pos+16,48+32*this.cursor);
-			
-			textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
-			textArea(g,""+MapLoader.level,x_pos+32,80+12);
-			textArea(g,""+MapLoader.flight,x_pos+32,112+12);
-		}
-		
-		if( this.progress >= 24 ) {
-			var y_pos = Math.lerp(240,16, Math.min( (this.progress-24)/8, 1) );
-			var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
-			boxArea(g,0,y_pos-16,game.resolution.x,game.resolution.y);
-			textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
-		}
+		g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
+		star.timer -= this.delta;
+		if( star.timer <= 0 ){
+			star.timer = Game.DELTASECOND * 1.0;
+			star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+		}			
 	}
+	this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
+	if( this.progress > this.stars.timer ) {
+		this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
+		this.stars.timer += this.stars.reset;
+	}
+	
+	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
+	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
+	
+	textArea(g,"Copyright Pogames.uk 2016",8,4);
+	textArea(g,"Version "+version,8,228);
+}
+
+TitleMenu.prototype.hudrender = function(g,c){
+	if(this.page == 0){
+		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+		if( this.progress >= 9.0 && this.progress < 24.0  ){
+			boxArea(g,x_pos,168,120,40);
+			textArea(g,i18n("press_start"),x_pos+16,184);
+		}
+	} else if(this.page == 1) {
+		var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
+		boxArea(g,x_pos,32,192,88);
+		textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+		
+		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+		boxArea(g,x_pos,146,120,56);
+		//textArea(g,i18n("introduction"),x_pos+24,162);
+		textArea(g,"Debug",x_pos+24,162);
+		textArea(g,i18n("new_game"),x_pos+24,178);
+		
+		g.renderSprite("text",new Point(x_pos+16,162+(16*this.cursor)),this.zIndex,new Point(15,5));
+	} else if(this.page == 2){ 
+		var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
+		boxArea(g,x_pos,16,200,208);
+		textArea(g,"Map name",x_pos+32,48);
+		textArea(g,"Level",x_pos+32,80);
+		textArea(g,"Flight",x_pos+32,112);
+		textArea(g,"Play",x_pos+32,144);
+		
+		textArea(g,"@",x_pos+16,48+32*this.cursor);
+		
+		textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
+		textArea(g,""+MapLoader.level,x_pos+32,80+12);
+		textArea(g,""+MapLoader.flight,x_pos+32,112+12);
+	}
+	
+	if( this.progress >= 24 ) {
+		var y_pos = Math.lerp(240,16, Math.min( (this.progress-24)/8, 1) );
+		var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
+		boxArea(g,0,y_pos-16,game.resolution.x,game.resolution.y);
+		textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
+	}	
 }
 TitleMenu.prototype.idle = function(){}
 
@@ -11816,8 +11820,8 @@ var mod_boss = {
 			var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
 			var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
 			
-			"bossface".render(g,porta,1,0,false);
-			"bossface".render(g,portb,this.bossface_frame,this.bossface_frame_row,true);
+			g.renderSprite("bossface",porta,this.zIndex,new Point(1,0),false);
+			g.renderSprite("bossface",portb,this.zIndex,new Point(this.bossface_frame,this.bossface_frame_row),true);
 		}
 	}
 }
@@ -13584,7 +13588,7 @@ Player.prototype.respawn = function(g,c){
 	this.lock_overwrite = false;
 	game.addObject(this);
 	this.keys = keys;
-	audio.playAs(audio.alias["music"],"music");
+	//audio.playAs(audio.alias["music"],"music");
 	try{ 
 		game.pause = false;
 		game.getObject(PauseMenu).open = false; 
@@ -13603,7 +13607,7 @@ Player.prototype.render = function(g,c){
 			var wings_offset = new Point((this.flip?8:-8),0);
 			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
 			if( this.grounded ) wings_frame = 0;
-			"magic_effects".render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
+			g.render("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex,new Point(wings_frame, 0), this.flip);
 		}
 		if( this.spellsCounters.magic_armour > 0 ){
 			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
@@ -13616,7 +13620,7 @@ Player.prototype.render = function(g,c){
 		}
 	} else {
 		//When rolling, ignore flip and shader
-		this.sprite.render(g, this.position.subtract(c), this.frame.x, this.frame.y, this.force.x < 0);
+		g.renderSprite(this.sprite, this.position.subtract(c), this.zIndex, this.frame, this.force.x < 0);
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){
@@ -16533,7 +16537,7 @@ function Switch(x,y,d,o){
 			if(this.playerover){
 				var pos = _player.position.subtract(c);
 				pos.y -= 24;
-				"text".render(g,pos,4,6);
+				g.renderSprite("text",g,pos,this.zIndex,new Point(4,6));
 				this.playerover = false;
 			}
 		}
@@ -16879,6 +16883,8 @@ Well.prototype.render = function(g,c){
 Well.prototype.idle = function(){}
 
  /* platformer\worldmap.js*/ 
+
+var version = "0.3.0";
 
 Quests = {
 	"set" : function(id,value){

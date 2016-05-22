@@ -1040,7 +1040,7 @@ Player.prototype.respawn = function(g,c){
 	this.lock_overwrite = false;
 	game.addObject(this);
 	this.keys = keys;
-	audio.playAs(audio.alias["music"],"music");
+	//audio.playAs(audio.alias["music"],"music");
 	try{ 
 		game.pause = false;
 		game.getObject(PauseMenu).open = false; 
@@ -1059,7 +1059,7 @@ Player.prototype.render = function(g,c){
 			var wings_offset = new Point((this.flip?8:-8),0);
 			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
 			if( this.grounded ) wings_frame = 0;
-			"magic_effects".render(g,this.position.subtract(c).add(wings_offset),wings_frame, 0, this.flip);
+			g.render("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex,new Point(wings_frame, 0), this.flip);
 		}
 		if( this.spellsCounters.magic_armour > 0 ){
 			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
@@ -1072,7 +1072,7 @@ Player.prototype.render = function(g,c){
 		}
 	} else {
 		//When rolling, ignore flip and shader
-		this.sprite.render(g, this.position.subtract(c), this.frame.x, this.frame.y, this.force.x < 0);
+		g.renderSprite(this.sprite, this.position.subtract(c), this.zIndex, this.frame, this.force.x < 0);
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){

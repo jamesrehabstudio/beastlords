@@ -39,12 +39,12 @@ function Background(x,y){
 		});
 	}
 }
-Background.prototype.render = function(gl,c){
+Background.prototype.render = function(g,c){
 	this.time += this.delta;
 }
 
 Background.prototype.postrender = function(g,c){
-	this.renderDust(gl,c);
+	this.renderDust(g,c);
 	
 	/*
 	if( c.y < 480 ) {
@@ -66,8 +66,8 @@ Background.prototype.postrender = function(g,c){
 	
 	//Render flash
 	if(Background.flash instanceof Array){
-		gl.color = Background.flash;
-		gl.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+		g.color = Background.flash;
+		g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 		Background.flash = false;
 	}
 }
@@ -100,7 +100,7 @@ Background.prototype.renderLightbeam = function(g,p,r,a){
 	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
 }
 Background.prototype.renderDust = function(g,c){
-	/*
+	
 	for(var i=0; i < Math.min(this.dustAmount, this.dust.length); i++){
 		var dust = this.dust[i];
 		var x = Math.sin( dust.lapse * dust.direction.x );
@@ -110,21 +110,26 @@ Background.prototype.renderDust = function(g,c){
 		dust.position.x += x * this.delta * dust.scale * this.dustSpeed;
 		dust.position.y += y * this.delta * dust.scale * this.dustSpeed;
 		
-		game.tileSprite.render(
-			g, 
+		g.renderSprite(
+			game.map.tileset,
 			new Point(
-				Math.mod( dust.position.x - c.x * dust.scale, game.resolution.x ),
-				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y ) 
+				Math.mod( dust.position.x - c.x * dust.scale, game.resolution.x+16 ),
+				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y+16 ) 
 			),
-			11, 13, false, 
-			"blur", {"blur":Math.min(0.004 * dust.scale, 0.008), "scale": [0.3*dust.scale, 0.3*dust.scale]}
+			this.zIndex = 0,
+			new Point(0, 0), 
+			false, 
+			{
+				"shader":"blur",
+				"blur":Math.min(0.004 * dust.scale, 0.008), 
+				"scale": 0.3*dust.scale
+			}
 		);
 	}
-	*/
 }
-Background.prototype.prerender = function(gl,c){
+Background.prototype.prerender = function(g,c){
 	var c2 = new Point(c.x, c.y - this.sealevel);
-	this.preset(gl,c2);
+	this.preset(g,c2);
 }
 Background.prototype.lightrender = function(g,c){
 	//Calculate strength
@@ -142,7 +147,8 @@ Background.prototype.lightrender = function(g,c){
 		var light = Background.lights.pop();
 		var position = light[0];
 		var radius = light[1];
-		g.renderSprite("halo",position.subtract(c),this.zIndex,new Point());
+		var color = light[2];
+		g.renderSprite("halo",position.subtract(c),this.zIndex,new Point(),false,{"scale":radius/240,"u_color":color});
 	}
 	Background.lights = new Array();
 }
@@ -218,13 +224,13 @@ Background.presets = {
 			var y = (c.y * strength) + (48*16 - game.resolution.y);
 			
 			if("upper3" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["upper3"],48,0,0);
+				tileset.renderTiles(g,backgroundTiles["upper3"],48,0,0);
 			}
 			if("upper2" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["upper2"],48,x*0.6666666666,y*0.66666666);
+				tileset.renderTiles(g,backgroundTiles["upper2"],48,x*0.6666666666,y*0.66666666);
 			}
 			if("upper1" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["upper1"],48,x,y);
+				tileset.renderTiles(g,backgroundTiles["upper1"],48,x,y);
 			}
 		}
 		if(c.y > this.sealevel){
@@ -234,7 +240,7 @@ Background.presets = {
 			var y = ((c.y) - zero.y*16) * strength;
 			
 			if("under1" in backgroundTiles){
-				tileset.renderTiles(gl,backgroundTiles["under1"],48,x,y);
+				tileset.renderTiles(g,backgroundTiles["under1"],48,x,y);
 			}
 		}
 	}

@@ -117,81 +117,79 @@ TitleMenu.prototype.update = function(){
 TitleMenu.prototype.render = function(g,c){
 	var xpos = (game.resolution.x - 427) * 0.5;
 	
-	if( this.start ) {
-		//"loading".render(g,new Point(game.resolution.x*0.5,game.resolution.y*0.5),0,0);
-	} else {
-		var pan = Math.min(this.progress/8, 1.0);
-		
-		g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
-		
-		//Random twinkling stars
-		for(var i=0; i<this.stars.length; i++) {
-			var star = this.stars[i];
-			var frame = 2;
-			if( 
-				this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
-				this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
-			) frame = 3;
-				
-			g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
-			star.timer -= this.delta;
-			if( star.timer <= 0 ){
-				star.timer = Game.DELTASECOND * 1.0;
-				star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
-			}			
-		}
-		this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
-		if( this.progress > this.stars.timer ) {
-			this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
-			this.stars.timer += this.stars.reset;
-		}
-		
-		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
-		g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
-		
-		textArea(g,"Copyright Pogames.uk 2016",8,4);
-		//textArea(g,"Version "+window._version,8,228);
-		
-		if(this.page == 0){
-			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-			if( this.progress >= 9.0 && this.progress < 24.0  ){
-				boxArea(g,x_pos,168,120,40);
-				textArea(g,i18n("press_start"),x_pos+16,184);
-			}
-		} else if(this.page == 1) {
-			var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
-			boxArea(g,x_pos,32,192,88);
-			textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+	var pan = Math.min(this.progress/8, 1.0);
+	
+	g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
+	
+	//Random twinkling stars
+	for(var i=0; i<this.stars.length; i++) {
+		var star = this.stars[i];
+		var frame = 2;
+		if( 
+			this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
+			this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
+		) frame = 3;
 			
-			var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-			boxArea(g,x_pos,146,120,56);
-			//textArea(g,i18n("introduction"),x_pos+24,162);
-			textArea(g,"Debug",x_pos+24,162);
-			if( this.playedIntro ) textArea(g,i18n("new_game"),x_pos+24,178);
-			
-			"text".render(g, new Point(x_pos+16,162+(16*this.cursor)),15,5);
-		} else if(this.page == 2){ 
-			var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
-			boxArea(g,x_pos,16,200,208);
-			textArea(g,"Map name",x_pos+32,48);
-			textArea(g,"Level",x_pos+32,80);
-			textArea(g,"Flight",x_pos+32,112);
-			textArea(g,"Play",x_pos+32,144);
-			
-			textArea(g,"@",x_pos+16,48+32*this.cursor);
-			
-			textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
-			textArea(g,""+MapLoader.level,x_pos+32,80+12);
-			textArea(g,""+MapLoader.flight,x_pos+32,112+12);
-		}
-		
-		if( this.progress >= 24 ) {
-			var y_pos = Math.lerp(240,16, Math.min( (this.progress-24)/8, 1) );
-			var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
-			boxArea(g,0,y_pos-16,game.resolution.x,game.resolution.y);
-			textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
-		}
+		g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
+		star.timer -= this.delta;
+		if( star.timer <= 0 ){
+			star.timer = Game.DELTASECOND * 1.0;
+			star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+		}			
 	}
+	this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
+	if( this.progress > this.stars.timer ) {
+		this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
+		this.stars.timer += this.stars.reset;
+	}
+	
+	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
+	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
+	
+	textArea(g,"Copyright Pogames.uk 2016",8,4);
+	textArea(g,"Version "+version,8,228);
+}
+
+TitleMenu.prototype.hudrender = function(g,c){
+	if(this.page == 0){
+		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+		if( this.progress >= 9.0 && this.progress < 24.0  ){
+			boxArea(g,x_pos,168,120,40);
+			textArea(g,i18n("press_start"),x_pos+16,184);
+		}
+	} else if(this.page == 1) {
+		var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
+		boxArea(g,x_pos,32,192,88);
+		textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
+		
+		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
+		boxArea(g,x_pos,146,120,56);
+		//textArea(g,i18n("introduction"),x_pos+24,162);
+		textArea(g,"Debug",x_pos+24,162);
+		textArea(g,i18n("new_game"),x_pos+24,178);
+		
+		g.renderSprite("text",new Point(x_pos+16,162+(16*this.cursor)),this.zIndex,new Point(15,5));
+	} else if(this.page == 2){ 
+		var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
+		boxArea(g,x_pos,16,200,208);
+		textArea(g,"Map name",x_pos+32,48);
+		textArea(g,"Level",x_pos+32,80);
+		textArea(g,"Flight",x_pos+32,112);
+		textArea(g,"Play",x_pos+32,144);
+		
+		textArea(g,"@",x_pos+16,48+32*this.cursor);
+		
+		textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
+		textArea(g,""+MapLoader.level,x_pos+32,80+12);
+		textArea(g,""+MapLoader.flight,x_pos+32,112+12);
+	}
+	
+	if( this.progress >= 24 ) {
+		var y_pos = Math.lerp(240,16, Math.min( (this.progress-24)/8, 1) );
+		var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
+		boxArea(g,0,y_pos-16,game.resolution.x,game.resolution.y);
+		textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
+	}	
 }
 TitleMenu.prototype.idle = function(){}
 

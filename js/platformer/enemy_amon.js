@@ -52,7 +52,7 @@ function Amon(x,y,d,o){
 	this.calculateXP();
 }
 Amon.prototype.update = function(){
-	this.frame = ( this.frame + this.delta * 0.2 ) % 3;
+	this.frame.x = ( this.frame.x + this.delta * 0.2 ) % 3;
 	
 	if( this.stun < 0 ) {
 		if( Math.abs( this.force.x ) > 0.1 ) {

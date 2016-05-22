@@ -206,7 +206,7 @@ function Switch(x,y,d,o){
 			if(this.playerover){
 				var pos = _player.position.subtract(c);
 				pos.y -= 24;
-				"text".render(g,pos,4,6);
+				g.renderSprite("text",g,pos,this.zIndex,new Point(4,6));
 				this.playerover = false;
 			}
 		}

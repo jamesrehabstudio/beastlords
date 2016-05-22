@@ -1,3 +1,5 @@
+var version = "0.3.0";
+
 Quests = {
 	"set" : function(id,value){
 		if(typeof value == "string" && value.toLowerCase() == "complete"){

@@ -56,8 +56,8 @@ function Slime(x,y,d,o){
 }
 Slime.prototype.update = function(){
 	if(this.times.move){
-		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.1) % 5;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 5;
+		this.frame.y = 0;
 		if(this.flip){
 			this.force.x -= this.speed * this.delta;
 		} else{
@@ -88,8 +88,8 @@ Slime.prototype.update = function(){
 		if(this.times.melt){
 			//
 			this.times.transition += this.delta * 0.1;
-			this.frame = Math.floor(this.times.transition * 5);
-			this.frame_row = 1;
+			this.frame.x = Math.floor(this.times.transition * 5);
+			this.frame.y = 1;
 			if(this.times.transition >= 1){
 				this.visible = false;
 				this.times.move = 1;
@@ -100,8 +100,8 @@ Slime.prototype.update = function(){
 			//reform
 			this.visible = true;
 			this.times.transition += this.delta * 0.1;
-			this.frame = 5 - Math.floor(this.times.transition * 5);
-			this.frame_row = 1;
+			this.frame.x = 5 - Math.floor(this.times.transition * 5);
+			this.frame.y = 1;
 			if(this.times.transition >= 1){
 				this.interactive = true;
 				this.times.move = 1;

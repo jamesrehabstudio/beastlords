@@ -208,7 +208,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
 			
 			var gamex = game.resolution.x * 0.5 - 427 * 0.5;
-			"title".render(g,new Point(gamex,0), 0,3);
+			g.renderSprite("title",new Point(gamex,0),this.zIndex,new Point(0,3));
 			
 			boxArea(g,xpos+68,168,120,40);
 			textArea(g,i18n("press_start"),xpos+84,184);
@@ -303,7 +303,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 				if(this.cursor == i){
 					textArea(g,"@",leftx+16,y_pos);
 				}
-				item.sprite.render(g,new Point(leftx+40,y_pos+4),item.frame,item.frame_row);
+				g.renderSprite("item",new Point(leftx+40,y_pos+4),this.zIndex,item.frame);
 				textArea(g,name,leftx+52,y_pos);
 			}
 		} else if ( this.page == 4 ){

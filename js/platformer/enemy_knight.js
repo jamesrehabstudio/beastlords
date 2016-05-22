@@ -101,22 +101,22 @@ Knight.prototype.update = function(){
 				} else {
 					this.strike(new Line(0,0,32,4));
 				}
-				this.frame = 2;
+				this.frame.x = 2;
 			} else if(this.states.attack > this.attack_release){
 				var p = (this.states.attack - this.attack_release) / (this.attack_warm - this.attack_release)
-				this.frame = p > 0.5 ? 0 : 1;
+				this.frame.x = p > 0.5 ? 0 : 1;
 			} else {
-				this.frame = 3;
+				this.frame.x = 3;
 			}
 			
 			this.states.attack -= this.delta;
-			this.frame_row = 1;
+			this.frame.y = 1;
 			this.guard.active = false;
 		} else if(this.stun > 0 || this.states.guard_freeze > 0){
 			//hurt, do nothing
 			this.guard.active = false;
-			this.frame = 0;
-			this.frame_row = 2;
+			this.frame.x = 0;
+			this.frame.y = 2;
 			this.states.guard_freeze -= this.delta;
 		} else {
 			this.flip = dir.x > 0;
@@ -152,8 +152,8 @@ Knight.prototype.update = function(){
 				this.force.x += this.speed * this.delta * (home_x>0?-1:1);
 			}
 			
-			this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 4;
-			this.frame_row = 0;
+			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 4;
+			this.frame.y = 0;
 		}
 	}
 }
@@ -177,7 +177,7 @@ Knight.prototype.render = function(g,c){
 	var sword_f = 4;
 	var sword_fr = 0;
 	if(this.states.attack > 0){
-		sword_f = this.frame;
+		sword_f = this.frame.x;
 		sword_fr = this.states.attack_down ? 4 : 3;
 	}
 	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, this.filter);

@@ -128,11 +128,11 @@ Drain.prototype.render = function(g,c){
 			var tile = Drain.TILES[_t]-1;
 			var tilex = tile%32;
 			var tiley = Math.floor(tile/32);
-			game.tileSprite.render(g,pos.subtract(c),tilex,tiley);
+			g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(tilex,tiley));
 			
 			//Render bottom row of tiles to hide edge
 			var tile = game.getTile(this.position.x+x,this.position.y+8,game.tileCollideLayer) - 1;
-			game.tileSprite.render(g,this.position.add(new Point(x,0)).subtract(c),tile);
+			g.renderSprite(game.map.tileset,this.position.add(new Point(x,0)).subtract(c),this.zIndex,new Point(tile%32,tile/32));
 		}
 	}
 }

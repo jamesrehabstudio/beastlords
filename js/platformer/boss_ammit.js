@@ -18,7 +18,7 @@ function Ammit(x,y,d,o){
 	this.addModule( mod_boss );
 	
 	this.bossface_frame = 4;
-	this.bossface_frame_row = 0;
+	this.bossface_frame.y = 0;
 	
 	this.states = {
 		"current" : 0,
@@ -133,30 +133,30 @@ Ammit.prototype.update = function(){
 			//change from one state to another
 			if(this.states.current == Ammit.STATE_BOUNCE){
 				//appear as ball
-				this.frame = Math.max(2 - progress * 3,0);
-				this.frame_row = 3;
+				this.frame.x = Math.max(2 - progress * 3,0);
+				this.frame.y = 3;
 			} else if(this.states.previous == Ammit.STATE_BOUNCE){
 				//Disappear as ball
-				this.frame = progress * 3;
-				this.frame_row = 3;
+				this.frame.x = progress * 3;
+				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_HIDDEN){
 				//Disappear
-				this.frame = Math.max(3 - progress * 4,0);
-				this.frame_row = 2;
+				this.frame.x = Math.max(3 - progress * 4,0);
+				this.frame.y = 2;
 			} else if(this.states.previous == Ammit.STATE_HIDDEN){
 				//Appear
-				this.frame = progress * 4;
-				this.frame_row = 2;
+				this.frame.x = progress * 4;
+				this.frame.y = 2;
 			} else if(this.states.current == Ammit.STATE_PUNCH || this.states.current == Ammit.STATE_REACH){
 				//Punch
-				this.frame = 0;
-				if(progress > 0.6){this.frame = 1;}
-				if(progress > 0.8){this.frame = 2;}
-				this.frame_row = 1;
+				this.frame.x = 0;
+				if(progress > 0.6){this.frame.x = 1;}
+				if(progress > 0.8){this.frame.x = 2;}
+				this.frame.y = 1;
 			} else {
 				//idle
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			}
 			this.states.transition -= this.delta;
 		} else {
@@ -173,8 +173,8 @@ Ammit.prototype.update = function(){
 					}
 				}
 				this.states.cooldown -= this.delta;
-				this.frame = 3;
-				this.frame_row = 3;
+				this.frame.x = 3;
+				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_BOUNCE){
 				//Bounce
 				this.force.x += this.speed * 1.5 * this.delta * (this.flip?-1:1);
@@ -200,8 +200,8 @@ Ammit.prototype.update = function(){
 				}
 				
 				this.states.cooldown -= this.delta;
-				this.frame = 0;
-				this.frame_row = 3;
+				this.frame.x = 0;
+				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_REACH){
 				//Reach Punch
 				var reach = 1 - this.states.attack / this.states.attackTotal;
@@ -212,8 +212,8 @@ Ammit.prototype.update = function(){
 					this.changeState(Ammit.STATE_IDLE);
 				}
 				this.states.attack -= this.delta;
-				this.frame = 3;
-				this.frame_row = 1;
+				this.frame.x = 3;
+				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_PUNCH){
 				//Punch
 				this.strike(new Line(new Point(0,-8), new Point(48,0)));
@@ -222,8 +222,8 @@ Ammit.prototype.update = function(){
 					this.changeState(Ammit.STATE_IDLE);
 				}
 				this.states.attack -= this.delta;
-				this.frame = 3;
-				this.frame_row = 1;
+				this.frame.x = 3;
+				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_MOVE){
 				//Change side
 				this.force.x += this.speed * 2 * this.delta * (this.flip?-1:1);
@@ -234,8 +234,8 @@ Ammit.prototype.update = function(){
 					this.flip = !this.flip;
 					this.changeState(Ammit.STATE_IDLE);
 				}
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_SPAWN){
 				//spawn enemies
 				this.force.x += this.speed * this.delta * (this.flip?-1:1);
@@ -252,8 +252,8 @@ Ammit.prototype.update = function(){
 					Spawn.addToList(this.position,this.slimes,Slime,5);
 				}
 				this.states.attack += this.delta;
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_IDLE){
 				//idle
 				this.flip = dir.x > 0;
@@ -281,8 +281,8 @@ Ammit.prototype.update = function(){
 					}
 				}
 				this.states.cooldown -= this.delta;
-				this.frame = (this.frame + this.delta * 0.3) % 4;
-				this.frame_row = 0;
+				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
 			}
 		}
 	}
@@ -295,15 +295,15 @@ Ammit.prototype.render = function(g,c){
 		var dir = this.flip ? -1 : 1;
 		if(this.states.current == Ammit.STATE_PUNCH ){
 			//draw hand
-			this.sprite.render(g,this.position.subtract(c).add(new Point(dir*80,0)),0, 4,this.flip);
+			g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(dir*80,0)),this.zIndex,new Point(0, 4),this.flip);
 		} else if(this.states.current == Ammit.STATE_REACH){
 			var reach = 1 - this.states.attack / this.states.attackTotal;
 			var rd = 80 + Ammit.REACH * reach;
 			//draw hand
-			this.sprite.render(g,this.position.subtract(c).add(new Point(dir*rd,0)),0, 4,this.flip);
+			g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(dir*rd,0)),this.zIndex,new Point(0, 4),this.flip);
 			for(var i = rd; i > 80; i -= 32){
 				//draw wrist
-				this.sprite.render(g,this.position.subtract(c).add(new Point(dir*(i-32),0)),1, 4,this.flip);
+				g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(dir*(i-32),0)),this.zIndex,new Point(1, 4),this.flip);
 			}
 		}
 	}

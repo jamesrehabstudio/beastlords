@@ -129,12 +129,12 @@ Batty.prototype.update = function(){
 	
 	/* Animation */
 	if( Math.abs(this.force.y) < 0.2 && Math.abs(this.force.x) < 0.2  ) {
-		this.frame = 1;
+		this.frame.x = 1;
 	} else {
 		if( this.force.y > 1.0 ) {
-			this.frame = 0;
+			this.frame.x = 0;
 		} else {
-			this.frame = Math.max( (this.frame + this.delta * 0.3) % 5, 2);
+			this.frame.x = Math.max( (this.frame.x + this.delta * 0.3) % 5, 2);
 		}
 	}
 }

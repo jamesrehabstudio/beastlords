@@ -120,22 +120,22 @@ Chort.prototype.update = function(){
 	//28, 48
 	if( this.states.bounce > 0 ) {
 		this.width = 48;
-		this.frame_row = 1;
-		this.frame = 1;
+		this.frame.y = 1;
+		this.frame.x = 1;
 		if( this.grounded ) {
-			this.frame = 3;
+			this.frame.x = 3;
 		} else if ( this.force.y < 0 ) {
-			this.frame = 2;
+			this.frame.x = 2;
 		}
 	}else if ( this.states.attack > 0 ){
 		this.width = 28;
-		this.frame_row = 2; 
-		this.frame = 0; 
-		if( this.states.attack <= this.attack_times.release ) this.frame = 1;
-		if( this.states.attack <= this.attack_times.cool ) this.frame = 2;
+		this.frame.y = 2; 
+		this.frame.x = 0; 
+		if( this.states.attack <= this.attack_times.release ) this.frame.x = 1;
+		if( this.states.attack <= this.attack_times.cool ) this.frame.x = 2;
 	} else {
 		this.width = 28;
-		this.frame = (this.frame + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + this.delta * 0.3 * Math.abs(this.force.x)) % 3;
+		this.frame.y = 0;
 	}
 }

@@ -123,26 +123,26 @@ Skeleton.prototype.update = function(){
 	
 	/* Animation */
 	if ( this.stun > 0 ) {
-		this.frame = 0;
-		this.frame_row = 2;
+		this.frame.x = 0;
+		this.frame.y = 2;
 	} else { 
 		if( this.states.attack > 0 ) {
-			this.frame = 0;
-			if( this.states.attack <= this.attacktimes.release ) this.frame = 1;
-			if( this.states.attack <= this.attacktimes.rest ) this.frame = 2;
-			this.frame_row = 1
+			this.frame.x = 0;
+			if( this.states.attack <= this.attacktimes.release ) this.frame.x = 1;
+			if( this.states.attack <= this.attacktimes.rest ) this.frame.x = 2;
+			this.frame.y = 1
 		} else if( !this.grounded ) {
-			this.frame = 3;
-			this.frame_row = 1;
+			this.frame.x = 3;
+			this.frame.y = 1;
 		} else {
-			this.frame_row = 0;
+			this.frame.y = 0;
 			if( Math.abs( this.force.x ) > 0.1 ) {
-				this.frame = (this.frame + this.delta * Math.abs( this.force.x ) * 0.1 ) % 4;
+				this.frame.x = (this.frame.x + this.delta * Math.abs( this.force.x ) * 0.1 ) % 4;
 			}
 		}
 	}
 }
 Skeleton.prototype.render = function(g,c){
-	this.sprite.render(g,this.position.subtract(c),4,0,this.flip);
 	GameObject.prototype.render.apply(this,[g,c]);
+	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(4,0),this.flip);
 }

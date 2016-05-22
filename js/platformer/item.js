@@ -436,10 +436,10 @@ Item.prototype.render = function(g,c){
 		var a = (1.0 + Math.sin(this.glow)) * 0.5;
 		var o = new Point(0, (a-0.5) * 2);
 		
-		this.sprite.render(g, 
-			this.position.subtract(c).add(o), 
-			this.frame.x, 
-			this.frame.y,
+		g.renderSprite(this.sprite, 
+			this.position.subtract(c).add(o),
+			this.zIndex,
+			this.frame,
 			false,
 			"item",
 			{"u_color":[0.8,0.1,1.0,a]}

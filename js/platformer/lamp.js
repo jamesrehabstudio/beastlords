@@ -29,7 +29,7 @@ Lamp.prototype.render = function(g,c){
 	if(this.show){
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
-	Background.pushLight( this.position, this.size );
+	Background.pushLight( this.position, this.size, [1.0,0.85,0.75,1.0] );
 }
 Lamp.prototype.idle = function(){
 	var current = this.awake;

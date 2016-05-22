@@ -24,8 +24,7 @@ function Fly(x,y,d,o){
 	this.damage = Spawn.damage(1,this.difficulty);
 	
 	this.speed = 0.25;
-	this.frame = 0;
-	this.frame_row = 1;
+	this.frame = new Point(0,1);
 	this.gravity = 0.0;
 	this.friction = 0.1;
 	this.mass = 0.7;
@@ -82,5 +81,5 @@ Fly.prototype.update = function(){
 		}
 	}
 	
-	this.frame = (this.frame + this.delta * 0.5) % 2.0;
+	this.frame.x = (this.frame.x + this.delta * 0.5) % 2.0;
 }

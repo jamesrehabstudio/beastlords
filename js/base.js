@@ -49,7 +49,7 @@ Renderer.serialize = function(){
 	}
 	return out;
 }
-Renderer.renderSprite = function(sprite,pos,z,frame,flip,filter){
+Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 	var f = 0; var fr = 0;
 	if(frame instanceof Point){
 		f = Math.floor(frame.x);
@@ -67,7 +67,7 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,filter){
 		"frame" : f,
 		"frame_row" : fr,
 		"flip" : flip,
-		"filter" : filter
+		"options" : options
 	},function(a,b){
 		if("z" in b){
 			return a.z - b.z;
@@ -103,6 +103,7 @@ function Game(){
 	this.objects = new Array();
 	this.cycleTime = new Date() * 1;
 	this.interval = 7;
+	this.tree = new BSPTree(new Line(0,0,256,240));
 	
 	this.deltaScaleReset = 0.0;
 	this.deltaScalePause = 0;
@@ -168,6 +169,8 @@ Game.prototype.update = function(){
 		
 		obj.idle();
 		if( obj.awake ) {
+			this.tree.remove(obj);
+			
 			var mods = obj.modules;
 			//Set any frame specific values
 			obj.delta = this.delta * obj.deltaScale;
@@ -189,23 +192,29 @@ Game.prototype.update = function(){
 			} else {
 				obj.update();
 			}
+			
+			if(obj.interactive && this.objects.indexOf(obj) >= 0){
+				this.tree.push(obj);
+			}
 		}
 		
-		for(var j=0; j < RENDER_STEPS.length; j++){
-			try{
-				var step = RENDER_STEPS[j];
-				Renderer.layer = j;
-				if(obj[step] instanceof Function){
-					obj[step](Renderer, this.camera);
-				}
-				
-				for(var m=0; m < obj.modules.length; m++){
-					if(step in obj.modules[m] ){
-						obj.modules[m][step](Renderer, this.camera);
+		if(obj.shouldRender()){
+			for(var j=0; j < RENDER_STEPS.length; j++){
+				//try{
+					var step = RENDER_STEPS[j];
+					Renderer.layer = j;
+					if(obj[step] instanceof Function){
+						obj[step](Renderer, this.camera);
 					}
-				}
-			}catch(err){
-				
+					
+					for(var m=0; m < obj.modules.length; m++){
+						if(step in obj.modules[m] ){
+							obj.modules[m][step](Renderer, this.camera);
+						}
+					}
+				//}catch(err){
+					
+				//}
 			}
 		}
 	}
@@ -229,7 +238,8 @@ Game.prototype.useMap = function(m){
 		"height" : m.height
 	};
 	
-	//this.addObject(new Player(64,240+176));
+	var splits = Math.floor(Math.max(m.width,m.height)/64);
+	this.tree = new BSPTree(new Line(0,0,m.width*16,m.height*16), splits);
 	
 	for(var i=0; i < m.objects.length; i++){
 		var obj = m.objects[i];
@@ -264,6 +274,7 @@ Game.prototype.setTile = function( x,y,layer,t ) {
 Game.prototype.addObject = function(obj){
 	if(obj instanceof GameObject && this.objects.indexOf(obj) < 0){
 		this.objects.push(obj);
+		obj.trigger("added");
 	}
 }
 Game.prototype.removeObject = function( obj ) {
@@ -344,10 +355,7 @@ Game.prototype.t_unstick = function( obj ) {
 	}
 	return isStuck;
 }
-Game.prototype.t_move = function(obj, x, y) {
-	
-	if( this.t_unstick(obj) ) return;
-	
+Game.prototype.t_move = function(obj, x, y) {	
 	var start_hitbox = obj.corners();
 	var interation_size = 1.0;
 	var ts = 16;
@@ -366,6 +374,10 @@ Game.prototype.t_move = function(obj, x, y) {
 		obj.position.y - start_hitbox.bottom
 	];
 	var dirs = [0,1];
+	
+	if( this.t_unstick(obj) ) {
+		return limits;
+	}
 	
 	//for(var dir=0; dir < dirs.length; dir++ ){
 	for(var dir=1; dir >= 0; dir-- ){
@@ -424,16 +436,8 @@ Game.prototype.t_move = function(obj, x, y) {
 	return limits;
 }
 Game.prototype.collideObject = function(obj) {
-	var hitbox = obj.bounds();
-	var area = new Line( 
-		new Point(hitbox.start.x - obj.width, hitbox.start.y - obj.height),
-		new Point(hitbox.end.x + obj.width, hitbox.end.y + obj.height) 
-	);
-	
-	if( obj.interactive ) {
-		//Collide with other objects
-		//var objs = this.interactive.get( area );
-		var objs = this.objects;
+	if(obj.interactive){
+		var objs = this.tree.get(obj.bounds());
 		
 		for(var o=0; o < objs.length; o++ ){
 			if( objs[o] != obj ) {
@@ -444,7 +448,144 @@ Game.prototype.collideObject = function(obj) {
 			}
 		}
 	}
+}
+
+function BSPTree(bounds, levels) {
+	//For sorting objects
+	this.bounds = bounds;
+	this.values = new Array();
+	this.lower = null;
+	this.higher = null;
 	
+	if ( levels ) this.split(levels);
+}
+BSPTree.prototype.split = function(levels){
+	if( levels % 2 == 0 ) {
+		this.lower = new BSPTree( new Line(
+			new Point( this.bounds.start.x, this.bounds.start.y ),
+			new Point( 
+				(this.bounds.start.x + this.bounds.end.x) * 0.5, 
+				this.bounds.end.y 
+			)
+		) );
+		this.higher = new BSPTree( new Line(
+			new Point( 
+				(this.bounds.start.x + this.bounds.end.x) * 0.5, 
+				this.bounds.start.y 
+			),
+			new Point( this.bounds.end.x, this.bounds.end.y )
+		) );
+	} else {
+		this.lower = new BSPTree( new Line(
+			new Point( this.bounds.start.x, this.bounds.start.y ),
+			new Point( 
+				this.bounds.end.x,
+				(this.bounds.start.y + this.bounds.end.y) * 0.5
+			)
+		) );
+		this.higher = new BSPTree( new Line(
+			new Point( 
+				this.bounds.start.x,
+				(this.bounds.start.y + this.bounds.end.y) * 0.5
+			),
+			new Point( this.bounds.end.x, this.bounds.end.y )
+		) );
+	}
+	if ( levels > 1 ) {
+		this.lower.split(levels-1); 
+		this.higher.split(levels-1);
+	}
+}
+BSPTree.prototype.push = function(value){
+	if( this.lower instanceof BSPTree && this.higher instanceof BSPTree ){
+		var position = value;	
+		if ( position instanceof GameObject ) position = position.bounds();
+		
+		var _lower = this.lower.bounds.overlaps(position);
+		var _higher = this.higher.bounds.overlaps(position);
+		if( _lower && _higher ) {
+			this.values.push( value );
+		} else if ( _lower ) {
+			this.lower.push( value );
+		} else if ( _higher ) {
+			this.higher.push( value );
+		}
+	} else {
+		this.values.push( value );
+	}
+}
+BSPTree.prototype.get = function(value){
+	var output = this.values;
+	if( this.bounds.overlaps( value ) ){
+		if( this.lower instanceof BSPTree && this.lower.bounds.overlaps(value) ){
+			output = output.concat(this.lower.get(value));
+		}
+		if( this.higher instanceof BSPTree && this.higher.bounds.overlaps(value) ){
+			output = output.concat(this.higher.get(value));
+		}
+	}
+	return output;
+}
+BSPTree.prototype.remove = function(value){
+	var index = this.values.indexOf(value);
+	if( index >= 0 ) {
+		this.values.remove(index);
+		return value;
+	} else { 
+		if( this.lower instanceof BSPTree ) if( this.lower.remove(value) ) return value;
+		if( this.higher instanceof BSPTree ) if( this.higher.remove(value) ) return value;
+	}
+	return false;
+}
+BSPTree.prototype.nearest = function(position, conditions){
+	conditions = conditions || function(){ return true; };
+	
+	out = false;
+	temp = new Array();
+	temp.concat( this.values );
+	
+	var _higher = false;
+	var _lower = false;
+	
+	if ( this.higher instanceof BSPTree ) _higher = this.higher.bounds.overlaps(position);
+	if ( this.lower instanceof BSPTree ) _lower = this.lower.bounds.overlaps(position);
+	
+	//Check results in closest partition
+	if ( _higher ) {
+		var t = this.higher.nearest(position,conditions);
+		if ( t ) temp.concat( t );
+	} 
+	if ( _lower ) {
+		var t = this.lower.nearest(position,conditions);
+		if ( t ) temp.concat( t );	
+	}
+	
+	//Check if their any valid items in this partition
+	for( var i = 0; i<this.values.length;i++) {
+		if( conditions( this.values[i], position ) ) temp.push( this.values[i] );
+	}
+	
+	//If all else failed, check off-partition
+	if( temp.length < 0 ) {
+		if ( !_higher ) {
+			var t = this.higher.nearest(position,conditions);
+			if ( t ) temp.push( t );
+		} else if ( !_lower ) {
+			var t = this.lower.nearest(position,conditions);
+			if ( t ) temp.push( t );
+		}		
+	}
+	
+	//Establish closest item and return it.
+	var nearest_distance = Number.MAX_VALUE;
+	for( var i = 0; i < temp.length; i++ ) {
+		var temp_distance = position.distance(temp[i].position || temp[i]);
+		if( temp_distance < nearest_distance ) { 
+			nearest_distance = temp_distance;
+			out = temp[i];
+		}
+	}
+	return out;
 }
 
 var tilerules = {
@@ -796,7 +937,7 @@ GameObject.prototype.render = function( g, camera ){
 			this.zIndex,
 			this.frame,
 			this.flip,
-			this.filter
+			{"shader":this.filter}
 		);
 	}
 }
@@ -809,6 +950,7 @@ GameObject.prototype.destroy = function() {
 	if( index >= 0 ) {
 		game.objects.remove( index );
 	}
+	game.tree.remove(this);
 }
 
 Test.prototype = new GameObject();

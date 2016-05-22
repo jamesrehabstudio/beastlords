@@ -58,8 +58,8 @@ Lift.prototype.update = function(){
 		}
 	}
 	
-	this.frame = (this.frame+this.delta*Math.abs(this.force.y))%3;
-	if(Math.abs(this.force.y) < 0.2) this.frame = 0;
+	this.frame.x = (this.frame.x+this.delta*Math.abs(this.force.y))%3;
+	if(Math.abs(this.force.y) < 0.2) this.frame.x = 0;
 	this.frame_row = 0;
 	
 	this.onboard = false;
