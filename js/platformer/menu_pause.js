@@ -303,7 +303,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 				if(this.cursor == i){
 					textArea(g,"@",leftx+16,y_pos);
 				}
-				g.renderSprite("item",new Point(leftx+40,y_pos+4),this.zIndex,item.frame);
+				g.renderSprite("items",new Point(leftx+40,y_pos+4),this.zIndex,item.frame);
 				textArea(g,name,leftx+52,y_pos);
 			}
 		} else if ( this.page == 4 ){

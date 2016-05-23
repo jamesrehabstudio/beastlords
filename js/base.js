@@ -115,6 +115,7 @@ function Game(){
 	
 	this.newmap = false;
 	this._newmapCallback = false;
+	this._loadCallback = false;
 	
 	if("game_start" in self && self.game_start instanceof Function){
 		self.game_start(this);
@@ -448,6 +449,23 @@ Game.prototype.collideObject = function(obj) {
 			}
 		}
 	}
+}
+Game.prototype.load = function(callback){
+	this._loadCallback = callback;
+	postMessage({
+		"loaddata" : {
+			"profile" : 0
+		}
+	});
+	
+}
+Game.prototype.save = function(data){
+	postMessage({
+		"savedata" : {
+			"profile" : 0,
+			"data" : data
+		}
+	});
 }
 
 function BSPTree(bounds, levels) {
@@ -1005,6 +1023,9 @@ var input = {
 }
 
 self.onmessage = function(event){
+	if("loaddata" in event.data && game._loadCallback instanceof Function) {
+		game._loadCallback(event.data["loaddata"]);
+	}
 	if("input" in event.data){
 		//general update
 		input.update(event.data.input);
@@ -1012,7 +1033,8 @@ self.onmessage = function(event){
 			game.resolution.x = event.data.resolution.x;
 			game.resolution.y = event.data.resolution.y;
 		}
-	} else {
+	} 
+	if("map" in event.data){
 		//New map
 		if(game instanceof Game){
 			game.useMap(event.data)

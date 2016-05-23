@@ -138,28 +138,7 @@ function Game( elm ) {
 	this.gameThread = new Worker("js/base.js");
 	
 	var self = this;
-	this.gameThread.onmessage = function(event){
-		//console.log(event.data);
-		if("loadmap" in event.data){
-			//load a new map
-			this.map = null;
-			MapLoader.loadMapTmx("maps/" + event.data.loadmap);
-		} else if("render" in event.data) {
-			//frame update
-			self.objects = event.data.render;
-			self.camera = new Point(event.data.camera.x, event.data.camera.y);
-			
-			if("audio" in event.data){
-				for(var i in event.data.audio){
-					for(var j=0; j < event.data.audio[i].length; j++){
-						audio[i].apply(audio,event.data.audio[i][j]);
-					}
-				}
-			}
-		} else if("save" in event.data){
-			
-		}
-	}
+	this.gameThread.onmessage = function(event){ self.onmessage(event.data); }
 	
 	this.camera = new Point(0,0);
 	this.tint = [1.0,1.0,1.0,1.0];
@@ -249,6 +228,47 @@ Game.prototype.avr = function( obj ) {
 
 window.__time = 0;
 
+Game.prototype.onmessage = function(data){
+	//Interface with game thread
+	
+	if("loaddata" in data){
+		var profile = data["loaddata"]["profile"] * 1;
+		var name = "profile_" + profile;
+		try{
+			var loaddata = JSON.parse(localStorage.getItem(name));
+			this.gameThread.postMessage({"loaddata":loaddata});
+		} catch (err){}
+	}
+	if("savedata" in data){
+		//Save sent data to localStorage
+		var profile = data["savedata"]["profile"] * 1;
+		var savedata  = data["savedata"]["data"];
+		var name = "profile_" + profile;
+		localStorage.setItem(name,JSON.stringify(savedata));
+	}
+	
+	if("loadmap" in data){
+		//load a new map
+		this.map = null;
+		MapLoader.loadMapTmx("maps/" + data.loadmap);
+	} 
+
+	if("render" in data) {
+		//frame update
+		this.objects = data.render;
+		this.camera = new Point(data.camera.x, data.camera.y);
+		
+		if("audio" in data){
+			for(var i in data.audio){
+				for(var j=0; j < data.audio[i].length; j++){
+					audio[i].apply(audio,data.audio[i][j]);
+				}
+			}
+		}
+	}
+}
+	
+	
 Game.prototype.update = function( ) {
 	//
 	

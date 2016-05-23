@@ -58,7 +58,13 @@ WorldMap = {
 		new Player(64,178);
 		WorldMap.position = new Point(73*16,40*16);
 		WorldMap.open();
-		//WorldLocale.loadMap("world2.tmx");
+		
+		game.load(function(data){
+			for(var q in data.quests){
+				Quests[q] = data.quests[q];
+			}
+			NPC.variables = data.variables;
+		});
 	},
 	"position" : new Point(240,256),
 	"open" : function(playerLocale){
@@ -93,7 +99,24 @@ WorldMap = {
 		"Prisoner",
 		"Shop",
 		"WaystoneChest"
-	]
+	],
+	"save" : function(){
+		var q = {}
+		var i = 0;
+		while("q"+i in Quests){
+			q["q"+i] = Quests["q"+i];
+			i++;
+		}
+		
+		var data = {
+			"savedata" : new Date * 1,
+			"quests" : q,
+			"variables" : NPC.variables,
+			"settings" : {}
+		}
+		
+		game.save(data);
+	}
 };
 
 WorldPlayer.prototype = new GameObject();
