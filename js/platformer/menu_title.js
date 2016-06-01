@@ -80,32 +80,24 @@ TitleMenu.prototype.update = function(){
 		this.cursor = Math.max(Math.min(this.cursor,3),0);
 		
 		if(this.cursor == 1){
-			if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
-			MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
+			if( input.state("left") == 1 ) { TitleMenu.level -= 1; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { TitleMenu.level += 1; audio.play("cursor"); }
+			TitleMenu.level = Math.max(Math.min(TitleMenu.level,50),1);
 		}else if(this.cursor == 2){
-			if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+			if( input.state("left") == 1 ) { TitleMenu.flight = !TitleMenu.flight; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { TitleMenu.flight = !TitleMenu.flight; audio.play("cursor"); }
 		}
 		
 		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
 			if(this.cursor == 0){
-				MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
-				localStorage.setItem("debug_map", MapLoader.mapname);
+				TitleMenu.mapname = game.prompt("Enter filename",TitleMenu.mapname, function(name){
+					TitleMenu.mapname = name;
+				});
+				//localStorage.setItem("debug_map", MapLoader.mapname);
 			} else if(this.cursor == 3){
 				//Start in DEBUG mode
-				window._player = new Player(0,0);
-				MapLoader.loadMapTmx(MapLoader.mapname, function(starts){
-					_player.lightRadius = 240;
-					if(starts.length > 0){
-						_player.position.x = starts[0].x;
-						_player.position.y = starts[0].y;
-					} else {
-						_player.position.x = 64;
-						_player.position.y = 176;
-					}
-					game.addObject(_player);
-				});
+				new Player(0,0);
+				WorldLocale.loadMap(TitleMenu.mapname);
 				audio.play("pause");
 			}
 		}
@@ -179,9 +171,9 @@ TitleMenu.prototype.hudrender = function(g,c){
 		
 		textArea(g,"@",x_pos+16,48+32*this.cursor);
 		
-		textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
-		textArea(g,""+MapLoader.level,x_pos+32,80+12);
-		textArea(g,""+MapLoader.flight,x_pos+32,112+12);
+		textArea(g,""+TitleMenu.mapname,x_pos+32,48+12);
+		textArea(g,""+TitleMenu.level,x_pos+32,80+12);
+		textArea(g,""+TitleMenu.flight,x_pos+32,112+12);
 	}
 	
 	if( this.progress >= 24 ) {
@@ -206,3 +198,6 @@ TitleMenu.prototype.startGame = function(){
 		//audio.stop("music_intro");
 	}
 }
+TitleMenu.mapname = "testmap.tmx";
+TitleMenu.level = 1;
+TitleMenu.flight = false;

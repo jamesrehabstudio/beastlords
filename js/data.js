@@ -17,6 +17,7 @@ function game_start(g){
 	new Material(g.g, "blur", {"fs":shaders["2d-fragment-blur"],"vs":shaders["2d-vertex-shader"]} );
 	new Material(g.g, "enchanted", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
 	new Material(g.g, "item", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"]} );
+	new Material(g.g, "halo", {"fs":shaders["2d-fragment-redasalpha"],"vs":shaders["2d-vertex-shader"]} );
 	
 	new Material(g.g, "t1", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.1]}} );
 	new Material(g.g, "t2", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[-0.1]}} );
@@ -234,6 +235,8 @@ var tileRules = {
 };
 
 function load_sprites (){	
+	sprites['bgcave1'] = new Sprite(RT+"img/background/cave1.png", {offset:new Point(0, 0),width:256,height:64});
+	
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['numbers'] = new Sprite(RT+"img/numbers.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['pig'] = new Sprite(RT+"img/pig.gif", {offset:new Point(0, 0),width:32,height:40});
@@ -274,7 +277,7 @@ function load_sprites (){
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['characters2'] = new Sprite(RT+"img/characters2.gif", {offset:new Point(24, 32),width:48,height:48});
 	sprites['checkpoint'] = new Sprite(RT+"img/checkpoint.gif", {offset:new Point(8, 32),width:16,height:64});
-	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(20, 16),width:40,height:32});
+	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(18, 25),width:48,height:40});
 	sprites['chazbike'] = new Sprite(RT+"img/chazbike.gif", {offset:new Point(24, 32),width:48,height:48});
 	sprites['chickenchain'] = new Sprite(RT+"img/chickenchain.gif", {offset:new Point(20, 32),width:48,height:48});
 	sprites['cryptkeeper'] = new Sprite(RT+"img/cryptkeeper.png", {offset:new Point(36, 36),width:64,height:64});
@@ -393,7 +396,11 @@ function load_sprites (){
 		275 : {"frames":[275,277,279], "speed":9.0},
 		276 : {"frames":[276,278,280], "speed":9.0},
 		307 : {"frames":[307,309,311], "speed":9.0},
-		308 : {"frames":[308,310,312], "speed":9.0}
+		308 : {"frames":[308,310,312], "speed":9.0},
+		326 : {"frames":[326,327,328], "speed":9.0},
+		358 : {"frames":[358,359,360], "speed":18.0},
+		390 : {"frames":[390,391,392], "speed":9.0},
+		422 : {"frames":[422,423,424], "speed":9.0}
 	});
 	tiles["cave"] = new Tileset(sprites["cave"],tileRules["big"], {
 		321 : {"frames":[321,322,323], "speed":6.0}

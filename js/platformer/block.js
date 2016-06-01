@@ -7,11 +7,13 @@ function SinkingBlock(x,y,d,ops){
 	this.position.x = x - d[0]*0.5;
 	this.position.y = y - d[1]*0.5;
 	this.originalPosition = new Point(this.position.x,this.position.y);
+	this.maxy = Number.MAX_SAFE_INTEGER;
 	this.width = d[0];
 	this.height = d[1];
 	this.speed = 0.25;
 	this.sink = false;
 	this.resetOnSleep = 1;
+	this.triggerType = 0;
 	
 	this.addModule(mod_block);
 	
@@ -20,8 +22,19 @@ function SinkingBlock(x,y,d,ops){
 	if("trigger" in ops){
 		this._tid = ops.trigger;
 	}
+	if("triggertype" in ops){
+		this.triggerType = ops["triggertype"] * 1;
+	}
+	if("maxy" in ops){
+		this.maxy = ops["maxy"] * 1;
+	}
 	if("speed" in ops){
 		this.speed = ops["speed"] * 1;
+	}
+	if("sleep" in ops){
+		if(!(ops["sleep"] * 1)){
+			this.idle = function(){}
+		}
 	}
 	if("empty" in ops && ops["empty"]){
 		this.height = 0;
@@ -31,7 +44,12 @@ function SinkingBlock(x,y,d,ops){
 	}
 	
 	this.on("activate", function(obj){
-		this.destroy();
+		if(this.triggerType == 0){
+			this.destroy();
+		} else if (this.triggerType == 1){
+			this.sink = 1;
+		}
+		
 	});
 	this.on("blockLand", function(obj){
 		if(obj instanceof Player){
@@ -70,6 +88,10 @@ function SinkingBlock(x,y,d,ops){
 SinkingBlock.prototype.update = function(){
 	if(this.sink){
 		this.position.y += this.speed * this.delta;
+		if(this.position.y >= this.maxy ){
+			this.sink = 0;
+			this.position.y = this.maxy;
+		}
 	}
 }
 
@@ -83,9 +105,10 @@ SinkingBlock.prototype.render = function(g,c){
 				this.position.x + x * 16,
 				this.position.y + y * 16
 			);
-			
+				
 			if(tile > 0){
-				game.tileSprite.render(g,pos.subtract(c),tile-1);
+				var t = tile-1;
+				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32));
 			}
 			i++;
 		}

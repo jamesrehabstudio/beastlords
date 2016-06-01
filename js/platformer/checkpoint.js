@@ -28,16 +28,16 @@ function Checkpoint(x,y,d,ops){
 
 Checkpoint.prototype.render = function(g,c){
 	if(this.activated){
-		this.frame = (this.frame + this.delta * 0.2) % 4;
-		this.frame_row = 1;
+		this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+		this.frame.y = 1;
 		Background.pushLight(
-			this.position.subtract(c),
+			this.position,
 			Math.random()*5+120,
 			[1.0,0.8,0.6,1.0]
 		);
 	}else {
-		this.frame = 0;
-		this.frame_row = 0;
+		this.frame.x = 0;
+		this.frame.y = 0;
 	}
 	GameObject.prototype.render.apply(this,[g,c]);
 }

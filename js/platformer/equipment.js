@@ -32,11 +32,13 @@ Weapon.prototype.update = function(player){
 			this.chargeTime.set(0.0);
 		}
 		
-		if(input.state("left") > 0){
-			player.force.x -= phase.movement * player.deltaSpeed();
-		}
-		if(input.state("right") > 0){
-			player.force.x += phase.movement * player.deltaSpeed();
+		if(phase){
+			if(input.state("left") > 0){
+				player.force.x -= phase.movement * player.deltaSpeed();
+			}
+			if(input.state("right") > 0){
+				player.force.x += phase.movement * player.deltaSpeed();
+			}
 		}
 		
 		if(this.playerState != newState){

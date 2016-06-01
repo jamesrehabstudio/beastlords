@@ -53,6 +53,13 @@ Quests = {
 	"q2" : 0 //Lost souls in the phantom world
 }
 
+Settings = {
+	"fullscreen" : false,
+	"sfxvolume" : 1.0,
+	"musvolume" : 1.0,
+	"debugmap" : "testmap.tmx"
+}
+
 WorldMap = {
 	"newgame" : function(){
 		new Player(64,178);
@@ -64,6 +71,14 @@ WorldMap = {
 				Quests[q] = data.quests[q];
 			}
 			NPC.variables = data.variables;
+			
+			if("settings" in data){
+				for(var i in data["settings"]){
+					if(i in Settings){
+						Settings[i] = data["settings"][i];
+					}
+				}
+			}
 		});
 	},
 	"position" : new Point(240,256),
@@ -100,6 +115,11 @@ WorldMap = {
 		"Shop",
 		"WaystoneChest"
 	],
+	"updateSettings" : function(){
+		self.postMessage({
+			"settings" : Settings
+		})
+	},
 	"save" : function(){
 		var q = {}
 		var i = 0;
@@ -112,7 +132,7 @@ WorldMap = {
 			"savedata" : new Date * 1,
 			"quests" : q,
 			"variables" : NPC.variables,
-			"settings" : {}
+			"settings" : Settings
 		}
 		
 		game.save(data);

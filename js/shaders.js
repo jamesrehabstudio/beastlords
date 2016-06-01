@@ -20,6 +20,12 @@ window.shaders["2d-fragment-lightbeam"] = "precision mediump float;\nuniform vec
 
 
 
+ /* platformer\shaders\2d-fragment-redasalpha.shader*/ 
+
+window.shaders["2d-fragment-redasalpha"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	color.a *= color.r;\n	color.rgb = vec3(1,1,1);\n	gl_FragColor = color;\n}";
+
+
+
  /* platformer\shaders\2d-fragment-shader.shader*/ 
 
 window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 additive = u_color - 1.0;\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	gl_FragColor = additive + multiply * texture2D(u_image, v_texCoord);\n}";

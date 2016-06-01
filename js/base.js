@@ -69,8 +69,12 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 		"flip" : flip,
 		"options" : options
 	},function(a,b){
-		if("z" in b){
-			return a.z - b.z;
+		if("z" in b && !isNaN(b.z)){
+			if("z" in a && !isNaN(a.z)){
+				return a.z - b.z;
+			} else {
+				return -1;
+			}
 		}
 		return 1;
 	});
@@ -104,6 +108,7 @@ function Game(){
 	this.cycleTime = new Date() * 1;
 	this.interval = 7;
 	this.tree = new BSPTree(new Line(0,0,256,240));
+	this.tileDelta = {};
 	
 	this.deltaScaleReset = 0.0;
 	this.deltaScalePause = 0;
@@ -116,6 +121,7 @@ function Game(){
 	this.newmap = false;
 	this._newmapCallback = false;
 	this._loadCallback = false;
+	this._promptCallback = false;
 	
 	if("game_start" in self && self.game_start instanceof Function){
 		self.game_start(this);
@@ -210,7 +216,7 @@ Game.prototype.update = function(){
 					
 					for(var m=0; m < obj.modules.length; m++){
 						if(step in obj.modules[m] ){
-							obj.modules[m][step](Renderer, this.camera);
+							obj.modules[m][step].apply(obj,[Renderer, this.camera]);
 						}
 					}
 				//}catch(err){
@@ -223,8 +229,11 @@ Game.prototype.update = function(){
 	postMessage({
 		"audio" : audio.serialize(),
 		"render" : Renderer.serialize(),
-		"camera" : {"x":this.camera.x, "y":this.camera.y}
+		"camera" : {"x":this.camera.x, "y":this.camera.y},
+		"tiles" : this.tileDelta
 	});
+	
+	this.tileDelta = {};
 	Renderer.clear();
 	audio.clear();
 }
@@ -270,6 +279,11 @@ Game.prototype.setTile = function( x,y,layer,t ) {
 	x = Math.floor(x/ts);
 	y = Math.floor(y/ts);
 	var index = (x + Math.floor( (y)*this.map.width));
+	
+	//Set tile delta
+	if(!(layer in this.tileDelta)) this.tileDelta[layer] = {};
+	this.tileDelta[layer][index] = t;
+	
 	return this.map.layers[layer][index] = t;
 }
 Game.prototype.addObject = function(obj){
@@ -449,6 +463,15 @@ Game.prototype.collideObject = function(obj) {
 			}
 		}
 	}
+}
+Game.prototype.prompt = function(message,value,callback){
+	this._promptCallback = callback;
+	postMessage({
+		"prompt" : {
+			"message" : message,
+			"value" : value
+		}
+	});
 }
 Game.prototype.load = function(callback){
 	this._loadCallback = callback;
@@ -1025,6 +1048,9 @@ var input = {
 self.onmessage = function(event){
 	if("loaddata" in event.data && game._loadCallback instanceof Function) {
 		game._loadCallback(event.data["loaddata"]);
+	}
+	if("prompt" in event.data){
+		game._promptCallback(event.data["prompt"]);
 	}
 	if("input" in event.data){
 		//general update

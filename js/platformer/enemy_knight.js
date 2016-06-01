@@ -60,9 +60,9 @@ function Knight(x,y,d,o){
 		audio.playLock("block",0.1);
 	});
 	this.on("blockOther", function(obj, position, damage){
-		audio.playLock("clang",0.5);
-		this.states.guard_freeze = Game.DELTASECOND;
-		this.states.combo = 0;
+		//audio.playLock("clang",0.5);
+		//this.states.guard_freeze = Game.DELTASECOND;
+		//this.states.combo = 0;
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
@@ -158,10 +158,11 @@ Knight.prototype.update = function(){
 	}
 }
 Knight.prototype.render = function(g,c){
+	var filter = {"shader":this.filter};
 	//Shield no guard
 	if(!this.guard.active){
 		//render shield
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(3, 2), this.flip, this.filter);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(3, 2), this.flip, filter);
 	}
 	//Render body
 	GameObject.prototype.render.apply(this, [g,c]);
@@ -170,7 +171,7 @@ Knight.prototype.render = function(g,c){
 	if(this.guard.active){
 		//render shield
 		var shield_f = this.guard.y > 0 ? 1 : 2;
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(shield_f, 2), this.flip, this.filter);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(shield_f, 2), this.flip, filter);
 	}
 	
 	//Render sword
@@ -180,5 +181,5 @@ Knight.prototype.render = function(g,c){
 		sword_f = this.frame.x;
 		sword_fr = this.states.attack_down ? 4 : 3;
 	}
-	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, this.filter);
+	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, filter);
 }

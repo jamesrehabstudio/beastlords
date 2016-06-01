@@ -1173,19 +1173,20 @@ Player.prototype.hudrender = function(g,c){
 	g.scaleFillRect(8,26,24,2);
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
-	/*
-	textArea(g,"$"+this.money,8, 216 );
-	textArea(g,"#"+this.waystones,8, 216+12 );
 	
-	if( this.stat_points > 0 )
+	textArea(g,"$"+this.money,8, 228 );
+	//textArea(g,"#"+this.waystones,8, 216+12 );
+	
+	if( this.stat_points > 0 ){
 		textArea(g,"Press Start",8, 32 );
+	}
 	
 	//Keys
 	for(var i=0; i < this.keys.length; i++) {
-		this.keys[i].sprite.render(g, 
+		g.renderSprite("items", 
 			new Point((game.resolution.x-33)+i*4, 40),
+			this.zIndex,
 			this.keys[i].frame,
-			this.keys[i].frame_row,
 			false 
 		);
 	}
@@ -1201,7 +1202,7 @@ Player.prototype.hudrender = function(g,c){
 		this.spell.position.x = this.spell.position.y = 0;
 		this.spell.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
-	}*/
+	}
 	
 	//Create light
 	Background.pushLight( this.position, this.lightRadius );

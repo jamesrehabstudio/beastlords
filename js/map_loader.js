@@ -1,9 +1,4 @@
-MapLoader.prototype = new GameObject();
-MapLoader.prototype.constructor = GameObject;
-function MapLoader(x,y){
-	this.constructor();
-}
-
+MapLoader = {};
 MapLoader.loadMap = function(map,options){
 	var g = window.game;
 	

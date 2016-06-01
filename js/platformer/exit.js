@@ -30,23 +30,6 @@ function Exit(x,y,d,o){
 			} else {
 				WorldMap.open();
 			}
-			
-			/*
-			if(this.location){
-				window._world.trigger("activate");
-				var locales = game.getObjects(WorldLocale);
-				var player = game.getObject(WorldPlayer);
-				for(var i=0; i < locales.length; i++){
-					if(locales[i].map_id == this.location){
-						player.position.x = locales[i].position.x;
-						player.position.y = locales[i].position.y;
-					}
-				}
-			} else {
-				window._world.player.x += this.offset.x;
-				window._world.player.y += this.offset.y;
-				window._world.trigger("activate");
-			}*/
 		}
 	});
 }

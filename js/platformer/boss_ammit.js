@@ -193,7 +193,7 @@ Ammit.prototype.update = function(){
 						Spawn.addToList(this.position,this.slimes,Slime,5);
 						Spawn.addToList(this.position,this.slimes,Slime,5);
 					} else {
-						window.shakeCamera(Game.DELTASECOND*0.3,2);
+						shakeCamera(Game.DELTASECOND*0.3,2);
 						this.grounded = false;
 						this.force.y = -9;
 					}

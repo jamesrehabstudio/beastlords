@@ -48,22 +48,18 @@ PauseMenu.prototype.update = function(){
 			
 			if( input.state("fire") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) game.fullscreen(!game.isFullscreen());
+				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
 				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
-				if(this.cursor == 3 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
-				
-				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
-				localStorage.setItem("musvolume",audio.musVolume.gain.value);
+				if(this.cursor == 2 ) Settings.sfxvolume = Math.min(Settings.sfxvolume+0.25,1);
+				if(this.cursor == 3 ) Settings.musvolume = Math.min(Settings.musvolume+0.25,1);
+				WorldMap.updateSettings();
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) game.fullscreen(!game.isFullscreen());
+				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
 				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
-				if(this.cursor == 3 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
-				
-				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
-				localStorage.setItem("musvolume",audio.musVolume.gain.value);
+				if(this.cursor == 2 ) Settings.sfxvolume = Math.max(Settings.sfxvolume-0.25,0);
+				if(this.cursor == 3 ) Settings.musvolume = Math.max(Settings.musvolume-0.25,0);
+				WorldMap.updateSettings();
 			}
 		} else if( this.page == 1 ) {
 			//Map page
@@ -220,7 +216,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,"Settings",leftx+30,20);
 			
 			textArea(g,"Screen",leftx+16,40);
-			textArea(g,(game.isFullscreen()?"Fullscreen":"Windowed"),leftx+20,52);
+			textArea(g,(Settings.fullscreen?"Fullscreen":"Windowed"),leftx+20,52);
 			
 			textArea(g,"Guard Style",leftx+16,72);
 			textArea(g,(_player.autoblock?"Automatic":"Manual"),leftx+20,84);
@@ -228,12 +224,13 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,"SFX Volume",leftx+16,104);
 			//g.fillStyle = "#e45c10";
 			g.color = [0.8,0.6,0.1,1.0];
-			for(var i=0; i<audio.sfxVolume.gain.value*20; i++)
+			
+			for(var i=0; i<Settings.sfxvolume*20; i++)
 				g.scaleFillRect(leftx+20+i*4, 116, 3, 8 );
 			
 			textArea(g,"MUS Volume",leftx+16,136);
 			g.color = [0.8,0.6,0.1,1.0];
-			for(var i=0; i<audio.musVolume.gain.value*20; i++)
+			for(var i=0; i<Settings.musvolume*20; i++)
 				g.scaleFillRect(leftx+20+i*4, 148, 3, 8 );
 			
 			//Draw cursor 84

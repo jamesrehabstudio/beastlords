@@ -13,6 +13,7 @@ function Trigger(x,y,d,o){
 	this.origin.x = this.origin.y = 0;
 	
 	this.targets = new Array();
+	this.background = null;
 	this.darknessFunction = null;
 	this.darknessColour = null;
 	this.dustCount = null;
@@ -47,6 +48,9 @@ function Trigger(x,y,d,o){
 			]
 		} catch(err){}
 	}
+	if("background" in o){
+		this.background = o["background"];
+	}
 	if("dustcount" in o){
 		this.dustCount = o["dustcount"] * 1;
 	}
@@ -76,7 +80,8 @@ function Trigger(x,y,d,o){
 					this.darknessFunction instanceof Function ||
 					this.darknessColour instanceof Array ||
 					this.dustCount != undefined ||
-					this.sealevel != undefined
+					this.sealevel != undefined ||
+					this.background
 				){
 					var b = game.getObject(Background);
 					if(b instanceof Background){
@@ -92,6 +97,10 @@ function Trigger(x,y,d,o){
 						
 						if(this.sealevel != undefined)
 							b.sealevel = this.sealevel;
+						
+						if(this.background)
+							if(this.background in Background.presets)
+								b.preset = Background.presets[this.background];
 					}
 				}
 				
@@ -196,7 +205,7 @@ function Switch(x,y,d,o){
 	
 	this.render = function(g,c){
 		if(this.triggerCount==0 && this.retrigger){
-			Background.pushLight(this.position.add(new Point(this.width*0.5,this.height*0.5)).subtract(c),96);
+			Background.pushLight(this.position.add(new Point(this.width*0.5,this.height*0.5)),96);
 		}
 		GameObject.prototype.render.apply(this,[g,c]);
 	}

@@ -493,6 +493,14 @@ Point.lerp = function(a,b,d){
 		a.y + (b.y-a.y) * d
 	);
 }
+getTileData = function(t){
+	return {
+		"hflip" : !!(t&0x80000000),
+		"vflip" : !!(t&0x40000000),
+		"dflip" : !!(t&0x20000000), 
+		"tile" : (t & ~(0x80000000|0x40000000|0x20000000))
+	};
+}
 
 //Data
 /*

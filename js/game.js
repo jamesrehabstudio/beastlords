@@ -251,7 +251,15 @@ Game.prototype.onmessage = function(data){
 		//load a new map
 		this.map = null;
 		MapLoader.loadMapTmx("maps/" + data.loadmap);
-	} 
+	}
+	
+	if("prompt" in data){
+		var d = prompt(
+			data["prompt"]["message"],
+			data["prompt"]["value"]
+		);
+		this.gameThread.postMessage({"prompt":d});
+	}
 
 	if("render" in data) {
 		//frame update
@@ -262,6 +270,23 @@ Game.prototype.onmessage = function(data){
 			for(var i in data.audio){
 				for(var j=0; j < data.audio[i].length; j++){
 					audio[i].apply(audio,data.audio[i][j]);
+				}
+			}
+		}
+	}
+	
+	if("settings" in data){
+		var settings = data["settings"];
+		if("sfxvolume" in settings) audio.sfxVolume.gain.value = settings.sfxvolume;
+		if("musvolume" in settings) audio.musVolume.gain.value = settings.musvolume;
+		if("fullscreen" in settings) game.fullscreen(settings.fullscreen);
+	}
+	
+	if("tiles" in data){
+		for(var layer in data["tiles"]){
+			for(var index in data["tiles"][layer]){
+				if(layer in game.map.layers && index in game.map.layers[layer]){
+					game.map.layers[layer][index] = data["tiles"][layer][index];
 				}
 			}
 		}
@@ -395,28 +420,31 @@ Game.prototype.update = function( ) {
 Game.prototype.renderObject = function(obj){
 	if ( input != undefined ) { input.update(); }
 	
-	if(obj.type == 0){
-		//render sprite
-		var sprite = window.sprites[obj.sprite];
+	try{
+		if(obj.type == 0){
+			//render sprite
+			var sprite = window.sprites[obj.sprite];
+			
+			sprite.render(
+				this.g,
+				new Point(obj.x,obj.y),
+				obj.frame,
+				obj.frame_row,
+				obj.flip,
+				obj.options
+			);
+		} else if(obj.type == 1){
+			this.g.color = obj.color;
+			this.g.scaleFillRect(
+				obj.x,
+				obj.y,
+				obj.w,
+				obj.h
+			);
+		}
+	} catch (err){
 		
-		sprite.render(
-			this.g,
-			new Point(obj.x,obj.y),
-			obj.frame,
-			obj.frame_row,
-			obj.flip,
-			obj.options
-		);
-	} else if(obj.type == 1){
-		this.g.color = obj.color;
-		this.g.scaleFillRect(
-			obj.x,
-			obj.y,
-			obj.w,
-			obj.h
-		);
 	}
-	
 }
 
 Game.prototype.render = function( ) {
@@ -761,174 +789,6 @@ Game.prototype.path_update = function(e){
 	}
 }
 */
-
-/* GAME PRIMITIVES */
-
-function GameObject() {
-	this.id = -1;
-	this.position = new Point();
-	this.origin = new Point(0.5, 0.5);
-	this.sprite;
-	this.width = 8;
-	this.height = 8;
-	this.frame = 0;
-	this.frame_row = 0;
-	this.flip = false;
-	this.zIndex = 0;
-	this.awake = true;
-	this.interactive = true;
-	this.properties = false;
-	this.events = {};
-	this.delta = 0;
-	this.deltaUnscaled = 0;
-	this.deltaScale = 1.0;
-	this.filter = false;
-	
-	this.visible = true;
-	this.modules = new Array();
-}
-GameObject.prototype.on = function(name, func) {
-	if( !(name in this.events) ) 
-		this.events[name] = [];
-	this.events[name].push(func);
-}
-GameObject.prototype.trigger = function(name) {
-	if( name in this.events) {
-		var args = Array.prototype.slice.call(arguments);
-		args.shift();
-		for( var i=0; i < this.events[name].length; i++ ){
-			this.events[name][i].apply(this,args)
-		}
-	}
-}
-GameObject.prototype.clearEvents = function(name){
-	this.events[name] = [];
-}
-GameObject.prototype.transpose = function(x, y) {
-	if ( x instanceof Point ){
-		this.position = this.position.add(x);
-	} else {
-		this.position.x += x;
-		this.position.y += y;
-	}
-}
-GameObject.prototype.corners = function() {
-	return {
-		"left" : this.position.x + (-this.width*this.origin.x),
-		"right" : this.position.x + (this.width*(1.0-this.origin.x)),
-		"top" : this.position.y + (-this.height*this.origin.y),
-		"bottom" : this.position.y + (this.height*(1.0-this.origin.y))
-	};
-}
-GameObject.prototype.bounds = function() {
-	var left_width = Math.floor( this.width * this.origin.x );
-	var right_width = Math.floor( this.width * (1.0-this.origin.x) );
-	var top_height = Math.floor( this.height * this.origin.y );
-	var bot_height = Math.floor( this.height * (1.0-this.origin.y) );
-	
-	return new Line(
-		new Point( 
-			this.position.x - left_width,
-			this.position.y - top_height
-		),
-		new Point( 
-			this.position.x + right_width,
-			this.position.y + bot_height
-		)
-	);
-}
-GameObject.prototype.hitbox = function() {
-	/*
-	var left_width = Math.floor( this.width * this.origin.x );
-	var right_width = Math.floor( this.width * (1.0-this.origin.x) );
-	var top_height = Math.floor( this.height * this.origin.y );
-	var bot_height = Math.floor( this.height * (1.0-this.origin.y) );
-	*/
-	var left_width =  ( this.width * this.origin.x );
-	var right_width = ( this.width * (1.0-this.origin.x) );
-	var top_height = ( this.height * this.origin.y );
-	var bot_height = ( this.height * (1.0-this.origin.y) );
-	
-	this._hitbox = new Polygon();
-	this._hitbox.addPoint( new Point(this.position.x-left_width , this.position.y-top_height) );
-	this._hitbox.addPoint( new Point(this.position.x+right_width , this.position.y-top_height) );
-	this._hitbox.addPoint( new Point(this.position.x+right_width , this.position.y+bot_height) );
-	this._hitbox.addPoint( new Point(this.position.x-left_width , this.position.y+bot_height) );
-	
-	return this._hitbox;
-}
-GameObject.prototype.hasModule = function(x){
-	return this.modules.indexOf(x) >= 0;
-}
-GameObject.prototype.addModule = function(x){
-	if( this.hasModule(x) ) return;
-	if ( x.init instanceof Function ){
-		x.init.apply(this);
-	}
-	this.modules.push(x);
-}
-GameObject.prototype.intersects = function(a) {
-	if (a instanceof Line ) {
-		return this.hitbox().intersects(a);
-	} else if ( a instanceof GameObject ) {
-		
-		var me = this.bounds();
-		var you = a.bounds();
-		
-		return me.overlaps(you);
-	} else if ( a instanceof Polygon ){
-		return this.hitbox().intersects(a);
-	}
-}
-GameObject.prototype.update = function(){ }
-GameObject.prototype.idle = function(){
-	var current = this.awake;
-	var corners = this.corners();
-	var margin = 32;
-	
-	this.awake = (
-		corners.right + margin > game.camera.x &&
-		corners.left - margin < game.camera.x + game.resolution.x &&
-		corners.bottom + margin > game.camera.y &&
-		corners.top - margin < game.camera.y + game.resolution.y
-	);
-	
-	if( current != this.awake ){
-		this.trigger( (this.awake ? "wakeup" : "sleep") );
-	}
-}
-GameObject.prototype.shouldRender = function(){
-	if(!this.visible) return false;
-	if(!this.awake) return false;
-	return true;
-}
-GameObject.prototype.render = function( g, camera ){
-	if( window.debug ) {
-		var bounds = this.bounds();
-		g.fillStyle = "#A00";
-		g.scaleFillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
-		
-		if( this.ttest instanceof Line ){
-			g.fillStyle = "#AF0";
-			g.scaleFillRect(this.ttest.start.x - camera.x, this.ttest.start.y - camera.y, this.ttest.width(), this.ttest.height() );
-		}
-	}
-	
-	if ( this.sprite instanceof Sprite ) {
-		this.sprite.render( g, 
-			new Point(this.position.x - camera.x, this.position.y - camera.y), 
-			this.frame, this.frame_row, this.flip, this.filter
-		);
-	}
-}
-GameObject.prototype.assignParent = function ( parent ) {
-	this.parent = parent;
-}
-GameObject.prototype.destroy = function() {
-	this.trigger("destroy");
-	var index = game.objects.indexOf(this);
-	if( index >= 0 ) game.objects.remove( game.objects.indexOf(this) );
-}
 
 function Tileset(sprite,rules,animation){
 	this.sprite = sprite;

@@ -10,6 +10,7 @@ var mod_rigidbody = {
 		this.friction = 0.1;
 		this.bounce = 0.0;
 		this.collisionReduction = 0.0;
+		this.preventPlatFormSnap = false;
 		this.pushable = true;
 		
 		this.on("collideHorizontal", function(dir){
@@ -71,13 +72,16 @@ var mod_rigidbody = {
 			this.grounded = this._groundedTimer > 0;
 			var limits = game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
 			
-			if(this.grounded && limits[1] > this.position.y && limits[1] - this.position.y < 16 ){
-				this.position.y = limits[1];
-				this.trigger("collideVertical", 1);
+			if(this.preventPlatFormSnap <= 0){
+				if(this.grounded && limits[1] > this.position.y && limits[1] - this.position.y < 16 ){
+					this.position.y = limits[1];
+					this.trigger("collideVertical", 1);
+				}
 			}
 			
 			var friction_x = 1.0 - this.friction * this.delta;
 			this.force.x *= friction_x;
+			this.preventPlatFormSnap -= this.delta;
 			
 			if( inair && this.grounded ) {
 				this.trigger("land");
@@ -95,7 +99,7 @@ var mod_block = {
 		this.blockPrevious = new Point(this.position.x, this.position.y);
 		
 		this.on("collideObject", function(obj){
-			if(this.blockCollide){
+			if(this.blockCollide && this.width > 0 && this.height > 0){
 				if( obj.hasModule(mod_rigidbody) && this.blockOnboard.indexOf(obj) < 0 ) {
 					var c = obj.corners();
 					var d = this.corners();
@@ -118,10 +122,11 @@ var mod_block = {
 					} else if(obj.force.y >= 0){
 						//top
 						var dif = c.bottom - obj.position.y;
-						obj.position.y = d.top - dif;
+						obj.position.y = 1 + (d.top - dif);
 						obj.trigger( "collideVertical", 1);
 						this.trigger("blockLand",obj);
 						this.blockOnboard.push(obj);
+						obj.preventPlatFormSnap = Game.DELTASECOND * 0.5;
 					}
 				}
 			}
@@ -140,9 +145,7 @@ var mod_block = {
 
 var mod_camera = {
 	'init' : function(){
-		this.lock = false;
-		this.lock_overwrite = false;
-		this._lock_current = false;
+		this.cameraLock = false;
 		this.cameraYTween = false;
 		this.camerShake = new Point();
 		this.camera_target = new Point();
@@ -225,14 +228,15 @@ var mod_camera = {
 		
 		//Set up locks
 		var lock = this.camera_lock();
-		if( lock ) {
-			if( lock.width() < game.resolution.x ){
-				var center = (lock.start.x + lock.end.x) / 2;
-				lock.start.x = center - (game.resolution.x/2);
-				lock.end.x = center + (game.resolution.x/2);
+		if( lock ) { this.cameraLock = lock; }
+		
+		if(this.cameraLock){
+			game.camera.x = Math.min( Math.max( game.camera.x, this.cameraLock.start.x ), this.cameraLock.end.x - game.resolution.x );
+			game.camera.y = Math.min( Math.max( game.camera.y, this.cameraLock.start.y ), this.cameraLock.end.y - game.resolution.y );
+			if( this.cameraLock.width() < game.resolution.x ){
+				var excess = game.resolution.x - this.cameraLock.width();
+				game.camera.x = this.cameraLock.start.x - excess * 0.5;
 			}
-			game.camera.x = Math.min( Math.max( game.camera.x, lock.start.x ), lock.end.x - game.resolution.x );
-			game.camera.y = Math.min( Math.max( game.camera.y, lock.start.y ), lock.end.y - game.resolution.y );
 		}
 		
 		if(this.camerShake.x > 0){
@@ -242,9 +246,8 @@ var mod_camera = {
 		}
 	},
 	"postrender" : function(g,c){
-		/*
-		if(this.lock){
-			var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
+		if(this.cameraLock){
+			var viewWidth = this.cameraLock.width();
 			if( viewWidth < game.resolution.x ){
 				var excess = game.resolution.x - viewWidth;
 				g.color = [0,0,0,1];
@@ -252,7 +255,6 @@ var mod_camera = {
 				g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
 			}
 		}
-		*/
 	}
 }
 
@@ -281,6 +283,7 @@ var mod_combat = {
 		this._damage_buffer_timer = 0;
 		this.xp_award = 0;
 		this.showDamage = true;
+		this._damageCounter = new EffectNumber(0,0,0);
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -448,7 +451,14 @@ var mod_combat = {
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
 				
 				if(damage > 0 && this.showDamage){
-					game.addObject(new EffectNumber(this.position.x, this.position.y, damage));
+					this._damageCounter.value = (this._damageCounter.value * 1) + (damage * 1);
+					this._damageCounter.progress = 0.0;
+					this._damageCounter.position.x = this.position.x;
+					this._damageCounter.position.y = this.position.y - 16;
+					if(this._damageCounter.sleep){
+						game.addObject(this._damageCounter);
+					}
+					
 				}
 				
 				if( this.buffer_damage ) 

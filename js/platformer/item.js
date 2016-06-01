@@ -441,8 +441,7 @@ Item.prototype.render = function(g,c){
 			this.zIndex,
 			this.frame,
 			false,
-			"item",
-			{"u_color":[0.8,0.1,1.0,a]}
+			{"shader":"item","u_color":[0.8,0.1,1.0,a]}
 		);
 	}
 }

@@ -90,6 +90,8 @@ function BreakableTile(x, y, d, ops){
 	this.chainSize = 10;
 	this.target = false;
 	this.resetOnSleep = 0;
+	this.tileLayer = game.tileCollideLayer;
+	this.explode = 1;
 	
 	this.startBroken = 0;
 	
@@ -134,19 +136,25 @@ function BreakableTile(x, y, d, ops){
 	if("resetonsleep" in ops){
 		this.resetOnSleep = ops["resetonsleep"];
 	}
+	if("tilelayer" in ops){
+		this.tileLayer = ops["tilelayer"] * 1;
+	}
+	if("explode" in ops){
+		this.explode = ops["explode"] * 1;
+	}
 	
 	this.on("activate", function(obj,pos,damage){
 		if(this.broken){
-			this.unbreak(true);
+			this.unbreak(this.explode);
 		}else{
-			this.break(true);
+			this.break(this.explode);
 		}
 	});
 	this.on("break", function(){
-		this.break(true);
+		this.break(this.explode);
 	});
 	this.on("unbreak", function(){
-		this.unbreak(true);
+		this.unbreak(this.explode);
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.strikeable && obj instanceof Player){
@@ -158,7 +166,7 @@ function BreakableTile(x, y, d, ops){
 				if(this.target instanceof Array){
 					Trigger.activate(this.target);
 				}
-				this.break(true);
+				this.break(this.explode);
 			}
 		}
 	});
@@ -193,7 +201,7 @@ BreakableTile.prototype.unbreak = function(explode){
 					game.setTile(
 						4 + this.position.x + x, 
 						4 + this.position.y + y, 
-						game.tileCollideLayer, 
+						this.tileLayer, 
 						this.undertile[i]
 					);
 					i++;
@@ -203,7 +211,7 @@ BreakableTile.prototype.unbreak = function(explode){
 			game.setTile(
 				this.position.x, 
 				this.position.y, 
-				game.tileCollideLayer, 
+				this.tileLayer, 
 				this.undertile
 			);
 		}
@@ -225,7 +233,7 @@ BreakableTile.prototype.break = function(explode){
 					game.setTile(
 						4 + this.position.x + x, 
 						4 + this.position.y + y, 
-						game.tileCollideLayer, 
+						this.tileLayer, 
 						0
 					);
 				}
@@ -234,7 +242,7 @@ BreakableTile.prototype.break = function(explode){
 			game.setTile(
 				this.position.x, 
 				this.position.y, 
-				game.tileCollideLayer, 
+				this.tileLayer, 
 				0
 			);
 		}

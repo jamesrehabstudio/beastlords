@@ -209,24 +209,6 @@ Sprite.prototype.imageLoaded = function() {
 	
 	//gl.bindTexture( gl.TEXTURE_2D, null );
 }
-
-Sprite.prototype.uv = function( frame, row ) {
-	if(frame == undefined ){
-		frame = row = 0;
-	} else if ( row == undefined ) {
-		var f = Math.floor(frame);
-		frame = f % Math.floor(this.width/this.frame_width);
-		row = Math.floor(f / Math.floor(this.width/this.frame_width));
-	} else {
-		frame = ~~frame;
-		row = ~~row;
-	}
-	
-	var xinc = this.frame_width / (this.width * 1.0);
-	var yinc = this.frame_height / (this.height * 1.0);
-	
-	return [frame * xinc, row * yinc, (frame+1) * xinc, (row+1) * yinc];
-}
 	
 Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 	if( !this.loaded  ) return;
@@ -398,23 +380,20 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 		var tile = tiles[tile_index];
 		if( tile == 0 || tile == undefined) tile = window.BLANK_TILE;
 		
+		var tileData =  getTileData(tile);
+		
 		if(animation != undefined){
-			if(tile in animation){
-				var anim = animation[tile];
-				var f = Math.floor((anim.speed * game.time.getTime() / 1000) % anim.frames.length);
-				tile = anim.frames[f];
+			if(tileData.tile in animation){
+				var anim = animation[tileData.tile];
+				var f = Math.floor((anim.speed * new Date() * 0.001) % anim.frames.length);
+				tileData.tile = anim.frames[f];
 			}
 		}
-	
-		var tileUV = this.uv(tile-1);
 		
-		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
-		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
-		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
-		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
-		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
-		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+		this.getTileUVMap(tileData, uvVerts);
+		
 	}
+		
 	var campos = new Point(
 		0-Math.round(Math.mod(camera.x,ts)),
 		0-Math.round(Math.mod(camera.y,ts))
@@ -435,6 +414,84 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	material.set("a_texCoord");
 	
 	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
+}
+
+Sprite.prototype.uv = function( frame, row ) {
+	if(frame == undefined ){
+		frame = row = 0;
+	} else if ( row == undefined ) {
+		var f = Math.floor(frame);
+		frame = f % Math.floor(this.width/this.frame_width);
+		row = Math.floor(f / Math.floor(this.width/this.frame_width));
+	} else {
+		frame = ~~frame;
+		row = ~~row;
+	}
+	
+	var xinc = this.frame_width / (this.width * 1.0);
+	var yinc = this.frame_height / (this.height * 1.0);
+	
+	return [frame * xinc, row * yinc, (frame+1) * xinc, (row+1) * yinc];
+}
+
+Sprite.prototype.getTileUVMap = function(tileData, uvVerts){
+	var tileUV = this.uv(tileData.tile-1);
+		
+	if(tileData.dflip){
+		if(tileData.hflip){
+			if(tileData.vflip){
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+			} else {
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+			}
+		} else {
+			if(tileData.vflip){
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+			} else {
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]); //topleft
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]); //topright
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]); //botleft
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]); //botleft
+				uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]); //topright
+				uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]); //botright
+			}
+		}
+		
+	} else {
+		if(tileData.hflip){
+			var a = tileUV[0];
+			tileUV[0] = tileUV[2];
+			tileUV[2] = a;
+		}
+		if(tileData.vflip){
+			var a = tileUV[1];
+			tileUV[1] = tileUV[3];
+			tileUV[3] = a;
+		}
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+		uvVerts.push(tileUV[0]); uvVerts.push(tileUV[3]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[1]);
+		uvVerts.push(tileUV[2]); uvVerts.push(tileUV[3]);
+	}
+	
+	return uvVerts;
 }
 
 Sprite.RectBuffer = function(p, w, h, r){

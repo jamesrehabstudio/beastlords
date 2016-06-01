@@ -13,7 +13,8 @@ function Drain(x,y,d,ops){
 	this.resetOnSleep = 0;
 	
 	this.fullheight = this.height;
-	this.onboard = new Array();
+	
+	this.addModule(mod_block);
 	
 	this.active = 0;
 	this.filling = 0;
@@ -44,7 +45,7 @@ function Drain(x,y,d,ops){
 		this.updateTiles();
 	});
 	
-	
+	/*
 	this.on("collideObject", function(obj){
 		if(this.active){
 			if( obj.hasModule(mod_rigidbody) ) {
@@ -54,7 +55,7 @@ function Drain(x,y,d,ops){
 				this.onboard.push(obj);
 			}
 		}
-	});
+	});*/
 	
 	ops = ops || {};
 	
@@ -107,12 +108,14 @@ Drain.prototype.update = function(){
 				this.active = 0;
 			}
 		}
+		/*
 		for(var i=0; i < this.onboard.length; i++){
 			this.onboard[i].position.y -= movement;
 		}
+		*/
 		this.updateTiles();
 	}
-	this.onboard = new Array();
+	//this.onboard = new Array();
 }
 
 Drain.prototype.render = function(g,c){

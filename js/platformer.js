@@ -427,6 +427,36 @@ Background.presets = {
 			g.scaleFillRect(0,y,game.resolution.x, y+inc);
 		}
 	},
+	"cavefire" : function(g,c){
+		g.color = [0,0,0,1];
+		g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
+		var mapHeight = game.map.height * 16 - this.sealevel;
+		var sspeed = 0.25;
+		var pos = new Point();
+		var sspeeds = [0.1,0.05,0.025];
+		
+		//Top
+		for(var j=0; j < sspeeds.length; j++){
+			sspeed = sspeeds[j];
+			pos = new Point(0,0).subtract(c.scale(sspeed));
+			pos.x = pos.x % 256;
+			for(var i=0;i<3;i++){
+				g.renderSprite("bgcave1",pos.add(new Point(i*256,j*16)),-99-j,new Point(0,5-j));
+			}
+		}
+		
+		//Bottom
+		for(var j=sspeeds.length-1; j >= 0; j--){
+			sspeed = sspeeds[j];
+			var pos = new Point(
+				(-c.x*sspeed)%256,
+				(176-j*16)+(((game.map.height*16-this.sealevel) - game.resolution.y)-c.y)*sspeed
+			);
+			for(var i=0;i<3;i++){
+				g.renderSprite("bgcave1",pos.add(new Point(i*256,0)),-99,new Point(0,j));
+			}
+		}
+	},
 	"graveyard" : function(g,c){
 		var backgroundTiles = _map_backdrops[1];
 		var tileset = sprites[backgroundTiles.tileset];
@@ -484,11 +514,13 @@ function SinkingBlock(x,y,d,ops){
 	this.position.x = x - d[0]*0.5;
 	this.position.y = y - d[1]*0.5;
 	this.originalPosition = new Point(this.position.x,this.position.y);
+	this.maxy = Number.MAX_SAFE_INTEGER;
 	this.width = d[0];
 	this.height = d[1];
 	this.speed = 0.25;
 	this.sink = false;
 	this.resetOnSleep = 1;
+	this.triggerType = 0;
 	
 	this.addModule(mod_block);
 	
@@ -497,8 +529,19 @@ function SinkingBlock(x,y,d,ops){
 	if("trigger" in ops){
 		this._tid = ops.trigger;
 	}
+	if("triggertype" in ops){
+		this.triggerType = ops["triggertype"] * 1;
+	}
+	if("maxy" in ops){
+		this.maxy = ops["maxy"] * 1;
+	}
 	if("speed" in ops){
 		this.speed = ops["speed"] * 1;
+	}
+	if("sleep" in ops){
+		if(!(ops["sleep"] * 1)){
+			this.idle = function(){}
+		}
 	}
 	if("empty" in ops && ops["empty"]){
 		this.height = 0;
@@ -508,7 +551,12 @@ function SinkingBlock(x,y,d,ops){
 	}
 	
 	this.on("activate", function(obj){
-		this.destroy();
+		if(this.triggerType == 0){
+			this.destroy();
+		} else if (this.triggerType == 1){
+			this.sink = 1;
+		}
+		
 	});
 	this.on("blockLand", function(obj){
 		if(obj instanceof Player){
@@ -547,6 +595,10 @@ function SinkingBlock(x,y,d,ops){
 SinkingBlock.prototype.update = function(){
 	if(this.sink){
 		this.position.y += this.speed * this.delta;
+		if(this.position.y >= this.maxy ){
+			this.sink = 0;
+			this.position.y = this.maxy;
+		}
 	}
 }
 
@@ -560,9 +612,10 @@ SinkingBlock.prototype.render = function(g,c){
 				this.position.x + x * 16,
 				this.position.y + y * 16
 			);
-			
+				
 			if(tile > 0){
-				game.tileSprite.render(g,pos.subtract(c),tile-1);
+				var t = tile-1;
+				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32));
 			}
 			i++;
 		}
@@ -766,7 +819,7 @@ Ammit.prototype.update = function(){
 						Spawn.addToList(this.position,this.slimes,Slime,5);
 						Spawn.addToList(this.position,this.slimes,Slime,5);
 					} else {
-						window.shakeCamera(Game.DELTASECOND*0.3,2);
+						shakeCamera(Game.DELTASECOND*0.3,2);
 						this.grounded = false;
 						this.force.y = -9;
 					}
@@ -1376,13 +1429,13 @@ FrogBoss.prototype.render = function(g,c){
 		larm.x *= -1; lleg.x *= -1; body.x *= -1;
 		head.x *= -1; rleg.x *= -1; rarm.x *= -1;
 	}
-	
-	g.renderSprite(this.sprite,this.position.add(larm).subtract(c),this.zIndex,new Point(0,4),this.flip,this.filter);
-	g.renderSprite(this.sprite,this.position.add(lleg).subtract(c),this.zIndex,new Point(llegFrame,5),this.flip,this.filter);
-	g.renderSprite(this.sprite,this.position.add(body).subtract(c),this.zIndex,new Point(0,1),this.flip,this.filter);
-	g.renderSprite(this.sprite,this.position.add(head).subtract(c),this.zIndex,new Point(headFrame,0),this.flip,this.filter);
-	g.renderSprite(this.sprite,this.position.add(rleg).subtract(c),this.zIndex,new Point(rlegFrame,2),this.flip,this.filter);
-	g.renderSprite(this.sprite,this.position.add(rarm).subtract(c),this.zIndex,new Point(0,3),this.flip,this.filter);
+	var f = {"shader" : this.filter};
+	g.renderSprite(this.sprite,this.position.add(larm).subtract(c),this.zIndex,new Point(0,4),this.flip,f);
+	g.renderSprite(this.sprite,this.position.add(lleg).subtract(c),this.zIndex,new Point(llegFrame,5),this.flip,f);
+	g.renderSprite(this.sprite,this.position.add(body).subtract(c),this.zIndex,new Point(0,1),this.flip,f);
+	g.renderSprite(this.sprite,this.position.add(head).subtract(c),this.zIndex,new Point(headFrame,0),this.flip,f);
+	g.renderSprite(this.sprite,this.position.add(rleg).subtract(c),this.zIndex,new Point(rlegFrame,2),this.flip,f);
+	g.renderSprite(this.sprite,this.position.add(rarm).subtract(c),this.zIndex,new Point(0,3),this.flip,f);
 	
 	//pupils
 	/*
@@ -2824,16 +2877,16 @@ function Checkpoint(x,y,d,ops){
 
 Checkpoint.prototype.render = function(g,c){
 	if(this.activated){
-		this.frame = (this.frame + this.delta * 0.2) % 4;
-		this.frame_row = 1;
+		this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+		this.frame.y = 1;
 		Background.pushLight(
-			this.position.subtract(c),
+			this.position,
 			Math.random()*5+120,
 			[1.0,0.8,0.6,1.0]
 		);
 	}else {
-		this.frame = 0;
-		this.frame_row = 0;
+		this.frame.x = 0;
+		this.frame.y = 0;
 	}
 	GameObject.prototype.render.apply(this,[g,c]);
 }
@@ -3205,7 +3258,8 @@ function Drain(x,y,d,ops){
 	this.resetOnSleep = 0;
 	
 	this.fullheight = this.height;
-	this.onboard = new Array();
+	
+	this.addModule(mod_block);
 	
 	this.active = 0;
 	this.filling = 0;
@@ -3236,7 +3290,7 @@ function Drain(x,y,d,ops){
 		this.updateTiles();
 	});
 	
-	
+	/*
 	this.on("collideObject", function(obj){
 		if(this.active){
 			if( obj.hasModule(mod_rigidbody) ) {
@@ -3246,7 +3300,7 @@ function Drain(x,y,d,ops){
 				this.onboard.push(obj);
 			}
 		}
-	});
+	});*/
 	
 	ops = ops || {};
 	
@@ -3299,12 +3353,14 @@ Drain.prototype.update = function(){
 				this.active = 0;
 			}
 		}
+		/*
 		for(var i=0; i < this.onboard.length; i++){
 			this.onboard[i].position.y -= movement;
 		}
+		*/
 		this.updateTiles();
 	}
-	this.onboard = new Array();
+	//this.onboard = new Array();
 }
 
 Drain.prototype.render = function(g,c){
@@ -3625,8 +3681,12 @@ function EffectNumber(x, y, value){
 	this.sprite = "numbers";
 	this.value = Math.floor(value);
 	this.progress = 0.0;
+	this.timelimit = Game.DELTASECOND * 2.0;
+	this.sleep = true;
 	
 	this.on("sleep",function(){ this.destroy(); } );
+	this.on("destroy",function(){ this.sleep = true; this.value = 0; } );
+	this.on("added",function(){ this.sleep = false; this.progress = 0.0; } );
 }
 
 EffectNumber.prototype.render = function(g,c){
@@ -3642,7 +3702,7 @@ EffectNumber.prototype.render = function(g,c){
 		}
 	}
 	
-	if(this.progress > Game.DELTASECOND * 1.5){
+	if(this.progress > this.timelimit){
 		this.destroy();
 	}
 	
@@ -3764,78 +3824,58 @@ function EffectItemPickup(x, y, message){
 	this.width = 8;
 	this.height = 8;
 	this.zIndex = 99;
-	this.sprite = "bullets";
+	this.sprite = "ring";
 	
 	this.time = 0;
 	this.flash = true;
+	this.phase1Time = Game.DELTASECOND * 0.7;
+	this.totalTime = Game.DELTASECOND;
 	
 	this.on("sleep",function(){ this.destroy(); } );
 	
+	this.particles = new Array();
+	for(var i=0; i < 12; i++){
+		this.particles.push({
+			"angle" : Math.random() * 2 * Math.PI,
+			"radius" : 64 + Math.random() * 32
+		})
+	}
+	
 	audio.play("powerup");
-	game.slow(0.01, Game.DELTASECOND);
+	game.slow(0.01, this.totalTime);
 }
 
-EffectItemPickup.prototype.render = function(gl,c){
+EffectItemPickup.prototype.render = function(g,c){
 	this.time += game.deltaUnscaled;
-	/*
-	var p1 = this.time / (Game.DELTASECOND * 0.7);
-	var p2 = (this.time-(Game.DELTASECOND * 0.7)) / (Game.DELTASECOND * 0.3);
 	
-	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA );
-	
-	var shader = window.materials["lightbeam"].use();
-	var distance = 16 + Math.max(24 * (1-p1),0);
-	var length = Math.min(32 * p1, 24*(1-p2));
-	for(var i=0; i < 16; i++ ){
-		var rotation = ((Math.PI * 2) / 16) * i;
-		var degrees = (rotation / Math.PI) * 180;
-		var variation = 1 - Math.sin( Math.PI * ((degrees / 90) % 1));
-		variation = 0.5 + variation / 2;
-		var pos = new Point(
-			variation * distance * Math.cos(rotation),
-			variation * distance * Math.sin(rotation)
-		);
-		var data = Sprite.RectBuffer(pos.add(this.position).subtract(c), variation * length, 1, degrees);
-		var tdata = Sprite.RectBuffer(new Point(), 1, 1);
+	if(this.time > this.phase1Time){
+		//Explode out
+		if(!this.flash){
+			Background.flash = [1.0,1.0,1.0,1.0];
+			this.flash = true;
+		}
+		var progress = (this.time-this.phase1Time) / (this.totalTime-this.phase1Time);
+		var scale = (1-progress);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":2*progress});
 		
-		var buffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-		gl.bufferData( gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-		//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-		shader.set("a_position");
+		Background.pushLight(this.position,240*scale);
+	} else {
+		//Suck in
+		var progress = this.time / this.phase1Time;
+		var scale = (1-progress);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":.1 + 0.5*scale});
 		
-		var tbuffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, tdata, gl.DYNAMIC_DRAW);
-		//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);			
-		shader.set("a_texCoord");
+		g.renderSprite("halo",this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":0.5*progress});
 		
-		//gl.uniform2f(res, game.resolution.x, game.resolution.y);
-		//gl.uniform2f(cam, offsetx, 144);
-		shader.set("u_resolution", game.resolution.x, game.resolution.y);
-		shader.set("u_camera", 0, 0);
-		shader.set("u_color", 1.0, 1.0, 1.0, variation * 0.5);
+		for(var i=0; i < this.particles.length; i++){
+			var p = this.particles[i];
+			var r = p.radius * scale;
+			var pos = new Point(r * Math.sin(p.angle), r * Math.cos(p.angle));
+			g.renderSprite("halo",this.position.add(pos).subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":0.06*scale});
+		}
 		
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
+		Background.pushLight(this.position,progress*360);
 	}
-	
-	shader = window.materials["default"].use();
-	if( p2 <= 0 ) {
-		var r = 24 * p1;
-		"halo".renderSize(gl, 
-			this.position.x - r - c.x, this.position.y - r - c.y,
-			r * 2, r * 2, 0, 0 
-		);
-	}
-	
-	r = 240 * Math.max(p2,0);
-	"ring".renderSize(gl, 
-		this.position.x - r - c.x, this.position.y - r - c.y,
-		r * 2, r * 2, 0, 0 
-	);
-	
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
-	*/
 	if( this.time > Game.DELTASECOND ){
 		this.destroy();
 	}
@@ -3973,7 +4013,7 @@ function Axedog(x, y, d, o){
 	
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
-	this.damage = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.life(2,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){
@@ -4905,8 +4945,22 @@ Chaz.prototype.update = function(){
 		this.frame.y = 3;
 	} else {
 		if( this.states.attack > 0 ) {
-			this.frame.x = this.states.attack > this.attack.release ? 0 : 1;
-			this.frame.y = this.states.attack_lower ? 2 : 1;
+			var progress = this.states.attack / (this.attack.warm-this.attack.release);
+			if(this.states.attack_lower){
+				this.frame.x = this.states.attack > this.attack.release ? 0 : 1;
+				this.frame.y = 2;
+			} else {
+				if(this.states.attack <= this.attack.release){
+					this.frame.x = 3;
+				} else if(progress > 1.8){
+					this.frame.x = 0;
+				} else if(progress > 1.6){
+					this.frame.x = 1;
+				} else {
+					this.frame.x = 2;
+				}
+				this.frame.y = 1;
+			}
 		} else {
 			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 2;
 			if( Math.abs( this.force.x ) < 0.1 ){
@@ -5634,7 +5688,7 @@ function Flederknife(x, y, d, o){
 	
 	this.life = Spawn.life(3,this.difficulty);
 	this.lifeMax = Spawn.life(3,this.difficulty);
-	this.damage = Spawn.life(2,this.difficulty);
+	this.damage = Spawn.life(1,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("struck", EnemyStruck);
@@ -6314,9 +6368,9 @@ function Knight(x,y,d,o){
 		audio.playLock("block",0.1);
 	});
 	this.on("blockOther", function(obj, position, damage){
-		audio.playLock("clang",0.5);
-		this.states.guard_freeze = Game.DELTASECOND;
-		this.states.combo = 0;
+		//audio.playLock("clang",0.5);
+		//this.states.guard_freeze = Game.DELTASECOND;
+		//this.states.combo = 0;
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
@@ -6412,10 +6466,11 @@ Knight.prototype.update = function(){
 	}
 }
 Knight.prototype.render = function(g,c){
+	var filter = {"shader":this.filter};
 	//Shield no guard
 	if(!this.guard.active){
 		//render shield
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(3, 2), this.flip, this.filter);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(3, 2), this.flip, filter);
 	}
 	//Render body
 	GameObject.prototype.render.apply(this, [g,c]);
@@ -6424,7 +6479,7 @@ Knight.prototype.render = function(g,c){
 	if(this.guard.active){
 		//render shield
 		var shield_f = this.guard.y > 0 ? 1 : 2;
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(shield_f, 2), this.flip, this.filter);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(shield_f, 2), this.flip, filter);
 	}
 	
 	//Render sword
@@ -6434,7 +6489,7 @@ Knight.prototype.render = function(g,c){
 		sword_f = this.frame.x;
 		sword_fr = this.states.attack_down ? 4 : 3;
 	}
-	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, this.filter);
+	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, filter);
 }
 
  /* platformer\enemy_laughing.js*/ 
@@ -8451,11 +8506,13 @@ Weapon.prototype.update = function(player){
 			this.chargeTime.set(0.0);
 		}
 		
-		if(input.state("left") > 0){
-			player.force.x -= phase.movement * player.deltaSpeed();
-		}
-		if(input.state("right") > 0){
-			player.force.x += phase.movement * player.deltaSpeed();
+		if(phase){
+			if(input.state("left") > 0){
+				player.force.x -= phase.movement * player.deltaSpeed();
+			}
+			if(input.state("right") > 0){
+				player.force.x += phase.movement * player.deltaSpeed();
+			}
 		}
 		
 		if(this.playerState != newState){
@@ -8741,23 +8798,6 @@ function Exit(x,y,d,o){
 			} else {
 				WorldMap.open();
 			}
-			
-			/*
-			if(this.location){
-				window._world.trigger("activate");
-				var locales = game.getObjects(WorldLocale);
-				var player = game.getObject(WorldPlayer);
-				for(var i=0; i < locales.length; i++){
-					if(locales[i].map_id == this.location){
-						player.position.x = locales[i].position.x;
-						player.position.y = locales[i].position.y;
-					}
-				}
-			} else {
-				window._world.player.x += this.offset.x;
-				window._world.player.y += this.offset.y;
-				window._world.trigger("activate");
-			}*/
 		}
 	});
 }
@@ -9726,8 +9766,7 @@ Item.prototype.render = function(g,c){
 			this.zIndex,
 			this.frame,
 			false,
-			"item",
-			{"u_color":[0.8,0.1,1.0,a]}
+			{"shader":"item","u_color":[0.8,0.1,1.0,a]}
 		);
 	}
 }
@@ -10511,22 +10550,18 @@ PauseMenu.prototype.update = function(){
 			
 			if( input.state("fire") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) game.fullscreen(!game.isFullscreen());
+				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
 				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) audio.sfxVolume.gain.value = Math.min(audio.sfxVolume.gain.value+0.1,1);
-				if(this.cursor == 3 ) audio.musVolume.gain.value = Math.min(audio.musVolume.gain.value+0.1,1);
-				
-				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
-				localStorage.setItem("musvolume",audio.musVolume.gain.value);
+				if(this.cursor == 2 ) Settings.sfxvolume = Math.min(Settings.sfxvolume+0.25,1);
+				if(this.cursor == 3 ) Settings.musvolume = Math.min(Settings.musvolume+0.25,1);
+				WorldMap.updateSettings();
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) game.fullscreen(!game.isFullscreen());
+				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
 				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) audio.sfxVolume.gain.value = Math.max(audio.sfxVolume.gain.value-0.1,0);
-				if(this.cursor == 3 ) audio.musVolume.gain.value = Math.max(audio.musVolume.gain.value-0.1,0);
-				
-				localStorage.setItem("sfxvolume",audio.sfxVolume.gain.value);
-				localStorage.setItem("musvolume",audio.musVolume.gain.value);
+				if(this.cursor == 2 ) Settings.sfxvolume = Math.max(Settings.sfxvolume-0.25,0);
+				if(this.cursor == 3 ) Settings.musvolume = Math.max(Settings.musvolume-0.25,0);
+				WorldMap.updateSettings();
 			}
 		} else if( this.page == 1 ) {
 			//Map page
@@ -10683,7 +10718,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,"Settings",leftx+30,20);
 			
 			textArea(g,"Screen",leftx+16,40);
-			textArea(g,(game.isFullscreen()?"Fullscreen":"Windowed"),leftx+20,52);
+			textArea(g,(Settings.fullscreen?"Fullscreen":"Windowed"),leftx+20,52);
 			
 			textArea(g,"Guard Style",leftx+16,72);
 			textArea(g,(_player.autoblock?"Automatic":"Manual"),leftx+20,84);
@@ -10691,12 +10726,13 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,"SFX Volume",leftx+16,104);
 			//g.fillStyle = "#e45c10";
 			g.color = [0.8,0.6,0.1,1.0];
-			for(var i=0; i<audio.sfxVolume.gain.value*20; i++)
+			
+			for(var i=0; i<Settings.sfxvolume*20; i++)
 				g.scaleFillRect(leftx+20+i*4, 116, 3, 8 );
 			
 			textArea(g,"MUS Volume",leftx+16,136);
 			g.color = [0.8,0.6,0.1,1.0];
-			for(var i=0; i<audio.musVolume.gain.value*20; i++)
+			for(var i=0; i<Settings.musvolume*20; i++)
 				g.scaleFillRect(leftx+20+i*4, 148, 3, 8 );
 			
 			//Draw cursor 84
@@ -10986,32 +11022,24 @@ TitleMenu.prototype.update = function(){
 		this.cursor = Math.max(Math.min(this.cursor,3),0);
 		
 		if(this.cursor == 1){
-			if( input.state("left") == 1 ) { MapLoader.level -= 1; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { MapLoader.level += 1; audio.play("cursor"); }
-			MapLoader.level = Math.max(Math.min(MapLoader.level,50),1);
+			if( input.state("left") == 1 ) { TitleMenu.level -= 1; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { TitleMenu.level += 1; audio.play("cursor"); }
+			TitleMenu.level = Math.max(Math.min(TitleMenu.level,50),1);
 		}else if(this.cursor == 2){
-			if( input.state("left") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { MapLoader.flight = !MapLoader.flight; audio.play("cursor"); }
+			if( input.state("left") == 1 ) { TitleMenu.flight = !TitleMenu.flight; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { TitleMenu.flight = !TitleMenu.flight; audio.play("cursor"); }
 		}
 		
 		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
 			if(this.cursor == 0){
-				MapLoader.mapname = prompt("Enter filename",MapLoader.mapname);
-				localStorage.setItem("debug_map", MapLoader.mapname);
+				TitleMenu.mapname = game.prompt("Enter filename",TitleMenu.mapname, function(name){
+					TitleMenu.mapname = name;
+				});
+				//localStorage.setItem("debug_map", MapLoader.mapname);
 			} else if(this.cursor == 3){
 				//Start in DEBUG mode
-				window._player = new Player(0,0);
-				MapLoader.loadMapTmx(MapLoader.mapname, function(starts){
-					_player.lightRadius = 240;
-					if(starts.length > 0){
-						_player.position.x = starts[0].x;
-						_player.position.y = starts[0].y;
-					} else {
-						_player.position.x = 64;
-						_player.position.y = 176;
-					}
-					game.addObject(_player);
-				});
+				new Player(0,0);
+				WorldLocale.loadMap(TitleMenu.mapname);
 				audio.play("pause");
 			}
 		}
@@ -11085,9 +11113,9 @@ TitleMenu.prototype.hudrender = function(g,c){
 		
 		textArea(g,"@",x_pos+16,48+32*this.cursor);
 		
-		textArea(g,""+MapLoader.mapname,x_pos+32,48+12);
-		textArea(g,""+MapLoader.level,x_pos+32,80+12);
-		textArea(g,""+MapLoader.flight,x_pos+32,112+12);
+		textArea(g,""+TitleMenu.mapname,x_pos+32,48+12);
+		textArea(g,""+TitleMenu.level,x_pos+32,80+12);
+		textArea(g,""+TitleMenu.flight,x_pos+32,112+12);
 	}
 	
 	if( this.progress >= 24 ) {
@@ -11112,6 +11140,9 @@ TitleMenu.prototype.startGame = function(){
 		//audio.stop("music_intro");
 	}
 }
+TitleMenu.mapname = "testmap.tmx";
+TitleMenu.level = 1;
+TitleMenu.flight = false;
 
  /* platformer\millblades.js*/ 
 
@@ -11172,6 +11203,7 @@ var mod_rigidbody = {
 		this.friction = 0.1;
 		this.bounce = 0.0;
 		this.collisionReduction = 0.0;
+		this.preventPlatFormSnap = false;
 		this.pushable = true;
 		
 		this.on("collideHorizontal", function(dir){
@@ -11233,13 +11265,16 @@ var mod_rigidbody = {
 			this.grounded = this._groundedTimer > 0;
 			var limits = game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
 			
-			if(this.grounded && limits[1] > this.position.y && limits[1] - this.position.y < 16 ){
-				this.position.y = limits[1];
-				this.trigger("collideVertical", 1);
+			if(this.preventPlatFormSnap <= 0){
+				if(this.grounded && limits[1] > this.position.y && limits[1] - this.position.y < 16 ){
+					this.position.y = limits[1];
+					this.trigger("collideVertical", 1);
+				}
 			}
 			
 			var friction_x = 1.0 - this.friction * this.delta;
 			this.force.x *= friction_x;
+			this.preventPlatFormSnap -= this.delta;
 			
 			if( inair && this.grounded ) {
 				this.trigger("land");
@@ -11257,7 +11292,7 @@ var mod_block = {
 		this.blockPrevious = new Point(this.position.x, this.position.y);
 		
 		this.on("collideObject", function(obj){
-			if(this.blockCollide){
+			if(this.blockCollide && this.width > 0 && this.height > 0){
 				if( obj.hasModule(mod_rigidbody) && this.blockOnboard.indexOf(obj) < 0 ) {
 					var c = obj.corners();
 					var d = this.corners();
@@ -11280,10 +11315,11 @@ var mod_block = {
 					} else if(obj.force.y >= 0){
 						//top
 						var dif = c.bottom - obj.position.y;
-						obj.position.y = d.top - dif;
+						obj.position.y = 1 + (d.top - dif);
 						obj.trigger( "collideVertical", 1);
 						this.trigger("blockLand",obj);
 						this.blockOnboard.push(obj);
+						obj.preventPlatFormSnap = Game.DELTASECOND * 0.5;
 					}
 				}
 			}
@@ -11302,9 +11338,7 @@ var mod_block = {
 
 var mod_camera = {
 	'init' : function(){
-		this.lock = false;
-		this.lock_overwrite = false;
-		this._lock_current = false;
+		this.cameraLock = false;
 		this.cameraYTween = false;
 		this.camerShake = new Point();
 		this.camera_target = new Point();
@@ -11387,14 +11421,15 @@ var mod_camera = {
 		
 		//Set up locks
 		var lock = this.camera_lock();
-		if( lock ) {
-			if( lock.width() < game.resolution.x ){
-				var center = (lock.start.x + lock.end.x) / 2;
-				lock.start.x = center - (game.resolution.x/2);
-				lock.end.x = center + (game.resolution.x/2);
+		if( lock ) { this.cameraLock = lock; }
+		
+		if(this.cameraLock){
+			game.camera.x = Math.min( Math.max( game.camera.x, this.cameraLock.start.x ), this.cameraLock.end.x - game.resolution.x );
+			game.camera.y = Math.min( Math.max( game.camera.y, this.cameraLock.start.y ), this.cameraLock.end.y - game.resolution.y );
+			if( this.cameraLock.width() < game.resolution.x ){
+				var excess = game.resolution.x - this.cameraLock.width();
+				game.camera.x = this.cameraLock.start.x - excess * 0.5;
 			}
-			game.camera.x = Math.min( Math.max( game.camera.x, lock.start.x ), lock.end.x - game.resolution.x );
-			game.camera.y = Math.min( Math.max( game.camera.y, lock.start.y ), lock.end.y - game.resolution.y );
 		}
 		
 		if(this.camerShake.x > 0){
@@ -11404,9 +11439,8 @@ var mod_camera = {
 		}
 	},
 	"postrender" : function(g,c){
-		/*
-		if(this.lock){
-			var viewWidth = Math.abs(this.lock.start.x - this.lock.end.x);
+		if(this.cameraLock){
+			var viewWidth = this.cameraLock.width();
 			if( viewWidth < game.resolution.x ){
 				var excess = game.resolution.x - viewWidth;
 				g.color = [0,0,0,1];
@@ -11414,7 +11448,6 @@ var mod_camera = {
 				g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
 			}
 		}
-		*/
 	}
 }
 
@@ -11443,6 +11476,7 @@ var mod_combat = {
 		this._damage_buffer_timer = 0;
 		this.xp_award = 0;
 		this.showDamage = true;
+		this._damageCounter = new EffectNumber(0,0,0);
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -11610,7 +11644,14 @@ var mod_combat = {
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
 				
 				if(damage > 0 && this.showDamage){
-					game.addObject(new EffectNumber(this.position.x, this.position.y, damage));
+					this._damageCounter.value = (this._damageCounter.value * 1) + (damage * 1);
+					this._damageCounter.progress = 0.0;
+					this._damageCounter.position.x = this.position.x;
+					this._damageCounter.position.y = this.position.y - 16;
+					if(this._damageCounter.sleep){
+						game.addObject(this._damageCounter);
+					}
+					
 				}
 				
 				if( this.buffer_damage ) 
@@ -13721,19 +13762,20 @@ Player.prototype.hudrender = function(g,c){
 	g.scaleFillRect(8,26,24,2);
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
-	/*
-	textArea(g,"$"+this.money,8, 216 );
-	textArea(g,"#"+this.waystones,8, 216+12 );
 	
-	if( this.stat_points > 0 )
+	textArea(g,"$"+this.money,8, 228 );
+	//textArea(g,"#"+this.waystones,8, 216+12 );
+	
+	if( this.stat_points > 0 ){
 		textArea(g,"Press Start",8, 32 );
+	}
 	
 	//Keys
 	for(var i=0; i < this.keys.length; i++) {
-		this.keys[i].sprite.render(g, 
+		g.renderSprite("items", 
 			new Point((game.resolution.x-33)+i*4, 40),
+			this.zIndex,
 			this.keys[i].frame,
-			this.keys[i].frame_row,
 			false 
 		);
 	}
@@ -13749,7 +13791,7 @@ Player.prototype.hudrender = function(g,c){
 		this.spell.position.x = this.spell.position.y = 0;
 		this.spell.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
-	}*/
+	}
 	
 	//Create light
 	Background.pushLight( this.position, this.lightRadius );
@@ -13873,6 +13915,51 @@ Prisoner.prototype.postrender = function(g,c){
 	if( this.alert == 1 && this.phase == 0 ){
 		boxArea(g,16,16,224,64);
 		textArea(g, this.message_help, 32,32,192);
+	}
+}
+
+ /* platformer\pusher.js*/ 
+
+Pusher.prototype = new GameObject();
+Pusher.prototype.constructor = GameObject;
+function Pusher(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 1;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y + d[1]*0.5;
+	this.width = d[0];
+	this.height = d[1];
+	this.force = new Point();
+	
+	this.active = 1;
+	
+	this.on("activate",function(obj){
+		this.active = !this.active;
+	});
+	
+	this.on("collideObject", function(obj){
+		if(this.active){
+			if( obj.hasModule(mod_rigidbody) ) {
+				obj.position.x += this.force.x * this.delta;
+				obj.position.y += this.force.y * this.delta;
+			}
+		}
+	});
+	
+	ops = ops || {};
+	
+	if("active" in ops){
+		this.active = ops["active"] * 1;
+	}
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	if("forcex" in ops){
+		this.force.x = ops["forcex"] * 1;
+	}
+	if("forcey" in ops){
+		this.force.y = ops["forcey"] * 1;
 	}
 }
 
@@ -15832,7 +15919,7 @@ spell_flash = function(player){
 	
 	audio.play("spell");
 	var area = new Line(game.camera, game.camera.add(game.resolution));
-	var objs = game.interactive.get(area);
+	var objs = game.overlaps(area);
 	var damage = Math.floor(8 + player.stats.magic*2);
 	var heal = 0;
 	for(var i=0; i < objs.length; i++){
@@ -15912,6 +15999,17 @@ spell_teleport = function(player){
 function game_start(g){
 	g.addObject( new TitleMenu() );
 	//dataManager.randomLevel(game,0);
+	
+	/*
+	setTimeout(function(){
+		new Player(0,0);
+		WorldLocale.loadMap("temple2.tmx");
+		setTimeout(function(){
+			game.getObject(Background).preset = Background.presets.cavefire;
+			_player.lightRadius = 480;
+		}, 1000);
+	},100);
+	*/
 }
 
  /* platformer\telemarker.js*/ 
@@ -16080,6 +16178,8 @@ function BreakableTile(x, y, d, ops){
 	this.chainSize = 10;
 	this.target = false;
 	this.resetOnSleep = 0;
+	this.tileLayer = game.tileCollideLayer;
+	this.explode = 1;
 	
 	this.startBroken = 0;
 	
@@ -16124,19 +16224,25 @@ function BreakableTile(x, y, d, ops){
 	if("resetonsleep" in ops){
 		this.resetOnSleep = ops["resetonsleep"];
 	}
+	if("tilelayer" in ops){
+		this.tileLayer = ops["tilelayer"] * 1;
+	}
+	if("explode" in ops){
+		this.explode = ops["explode"] * 1;
+	}
 	
 	this.on("activate", function(obj,pos,damage){
 		if(this.broken){
-			this.unbreak(true);
+			this.unbreak(this.explode);
 		}else{
-			this.break(true);
+			this.break(this.explode);
 		}
 	});
 	this.on("break", function(){
-		this.break(true);
+		this.break(this.explode);
 	});
 	this.on("unbreak", function(){
-		this.unbreak(true);
+		this.unbreak(this.explode);
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.strikeable && obj instanceof Player){
@@ -16148,7 +16254,7 @@ function BreakableTile(x, y, d, ops){
 				if(this.target instanceof Array){
 					Trigger.activate(this.target);
 				}
-				this.break(true);
+				this.break(this.explode);
 			}
 		}
 	});
@@ -16183,7 +16289,7 @@ BreakableTile.prototype.unbreak = function(explode){
 					game.setTile(
 						4 + this.position.x + x, 
 						4 + this.position.y + y, 
-						game.tileCollideLayer, 
+						this.tileLayer, 
 						this.undertile[i]
 					);
 					i++;
@@ -16193,7 +16299,7 @@ BreakableTile.prototype.unbreak = function(explode){
 			game.setTile(
 				this.position.x, 
 				this.position.y, 
-				game.tileCollideLayer, 
+				this.tileLayer, 
 				this.undertile
 			);
 		}
@@ -16215,7 +16321,7 @@ BreakableTile.prototype.break = function(explode){
 					game.setTile(
 						4 + this.position.x + x, 
 						4 + this.position.y + y, 
-						game.tileCollideLayer, 
+						this.tileLayer, 
 						0
 					);
 				}
@@ -16224,7 +16330,7 @@ BreakableTile.prototype.break = function(explode){
 			game.setTile(
 				this.position.x, 
 				this.position.y, 
-				game.tileCollideLayer, 
+				this.tileLayer, 
 				0
 			);
 		}
@@ -16344,6 +16450,7 @@ function Trigger(x,y,d,o){
 	this.origin.x = this.origin.y = 0;
 	
 	this.targets = new Array();
+	this.background = null;
 	this.darknessFunction = null;
 	this.darknessColour = null;
 	this.dustCount = null;
@@ -16378,6 +16485,9 @@ function Trigger(x,y,d,o){
 			]
 		} catch(err){}
 	}
+	if("background" in o){
+		this.background = o["background"];
+	}
 	if("dustcount" in o){
 		this.dustCount = o["dustcount"] * 1;
 	}
@@ -16407,7 +16517,8 @@ function Trigger(x,y,d,o){
 					this.darknessFunction instanceof Function ||
 					this.darknessColour instanceof Array ||
 					this.dustCount != undefined ||
-					this.sealevel != undefined
+					this.sealevel != undefined ||
+					this.background
 				){
 					var b = game.getObject(Background);
 					if(b instanceof Background){
@@ -16423,6 +16534,10 @@ function Trigger(x,y,d,o){
 						
 						if(this.sealevel != undefined)
 							b.sealevel = this.sealevel;
+						
+						if(this.background)
+							if(this.background in Background.presets)
+								b.preset = Background.presets[this.background];
 					}
 				}
 				
@@ -16527,7 +16642,7 @@ function Switch(x,y,d,o){
 	
 	this.render = function(g,c){
 		if(this.triggerCount==0 && this.retrigger){
-			Background.pushLight(this.position.add(new Point(this.width*0.5,this.height*0.5)).subtract(c),96);
+			Background.pushLight(this.position.add(new Point(this.width*0.5,this.height*0.5)),96);
 		}
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
@@ -16939,6 +17054,13 @@ Quests = {
 	"q2" : 0 //Lost souls in the phantom world
 }
 
+Settings = {
+	"fullscreen" : false,
+	"sfxvolume" : 1.0,
+	"musvolume" : 1.0,
+	"debugmap" : "testmap.tmx"
+}
+
 WorldMap = {
 	"newgame" : function(){
 		new Player(64,178);
@@ -16950,6 +17072,14 @@ WorldMap = {
 				Quests[q] = data.quests[q];
 			}
 			NPC.variables = data.variables;
+			
+			if("settings" in data){
+				for(var i in data["settings"]){
+					if(i in Settings){
+						Settings[i] = data["settings"][i];
+					}
+				}
+			}
 		});
 	},
 	"position" : new Point(240,256),
@@ -16986,6 +17116,11 @@ WorldMap = {
 		"Shop",
 		"WaystoneChest"
 	],
+	"updateSettings" : function(){
+		self.postMessage({
+			"settings" : Settings
+		})
+	},
 	"save" : function(){
 		var q = {}
 		var i = 0;
@@ -16998,7 +17133,7 @@ WorldMap = {
 			"savedata" : new Date * 1,
 			"quests" : q,
 			"variables" : NPC.variables,
-			"settings" : {}
+			"settings" : Settings
 		}
 		
 		game.save(data);

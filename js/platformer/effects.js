@@ -199,8 +199,12 @@ function EffectNumber(x, y, value){
 	this.sprite = "numbers";
 	this.value = Math.floor(value);
 	this.progress = 0.0;
+	this.timelimit = Game.DELTASECOND * 2.0;
+	this.sleep = true;
 	
 	this.on("sleep",function(){ this.destroy(); } );
+	this.on("destroy",function(){ this.sleep = true; this.value = 0; } );
+	this.on("added",function(){ this.sleep = false; this.progress = 0.0; } );
 }
 
 EffectNumber.prototype.render = function(g,c){
@@ -216,7 +220,7 @@ EffectNumber.prototype.render = function(g,c){
 		}
 	}
 	
-	if(this.progress > Game.DELTASECOND * 1.5){
+	if(this.progress > this.timelimit){
 		this.destroy();
 	}
 	
@@ -338,78 +342,58 @@ function EffectItemPickup(x, y, message){
 	this.width = 8;
 	this.height = 8;
 	this.zIndex = 99;
-	this.sprite = "bullets";
+	this.sprite = "ring";
 	
 	this.time = 0;
 	this.flash = true;
+	this.phase1Time = Game.DELTASECOND * 0.7;
+	this.totalTime = Game.DELTASECOND;
 	
 	this.on("sleep",function(){ this.destroy(); } );
 	
+	this.particles = new Array();
+	for(var i=0; i < 12; i++){
+		this.particles.push({
+			"angle" : Math.random() * 2 * Math.PI,
+			"radius" : 64 + Math.random() * 32
+		})
+	}
+	
 	audio.play("powerup");
-	game.slow(0.01, Game.DELTASECOND);
+	game.slow(0.01, this.totalTime);
 }
 
-EffectItemPickup.prototype.render = function(gl,c){
+EffectItemPickup.prototype.render = function(g,c){
 	this.time += game.deltaUnscaled;
-	/*
-	var p1 = this.time / (Game.DELTASECOND * 0.7);
-	var p2 = (this.time-(Game.DELTASECOND * 0.7)) / (Game.DELTASECOND * 0.3);
 	
-	gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA );
-	
-	var shader = window.materials["lightbeam"].use();
-	var distance = 16 + Math.max(24 * (1-p1),0);
-	var length = Math.min(32 * p1, 24*(1-p2));
-	for(var i=0; i < 16; i++ ){
-		var rotation = ((Math.PI * 2) / 16) * i;
-		var degrees = (rotation / Math.PI) * 180;
-		var variation = 1 - Math.sin( Math.PI * ((degrees / 90) % 1));
-		variation = 0.5 + variation / 2;
-		var pos = new Point(
-			variation * distance * Math.cos(rotation),
-			variation * distance * Math.sin(rotation)
-		);
-		var data = Sprite.RectBuffer(pos.add(this.position).subtract(c), variation * length, 1, degrees);
-		var tdata = Sprite.RectBuffer(new Point(), 1, 1);
+	if(this.time > this.phase1Time){
+		//Explode out
+		if(!this.flash){
+			Background.flash = [1.0,1.0,1.0,1.0];
+			this.flash = true;
+		}
+		var progress = (this.time-this.phase1Time) / (this.totalTime-this.phase1Time);
+		var scale = (1-progress);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":2*progress});
 		
-		var buffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-		gl.bufferData( gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-		//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-		shader.set("a_position");
+		Background.pushLight(this.position,240*scale);
+	} else {
+		//Suck in
+		var progress = this.time / this.phase1Time;
+		var scale = (1-progress);
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":.1 + 0.5*scale});
 		
-		var tbuffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, tdata, gl.DYNAMIC_DRAW);
-		//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);			
-		shader.set("a_texCoord");
+		g.renderSprite("halo",this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":0.5*progress});
 		
-		//gl.uniform2f(res, game.resolution.x, game.resolution.y);
-		//gl.uniform2f(cam, offsetx, 144);
-		shader.set("u_resolution", game.resolution.x, game.resolution.y);
-		shader.set("u_camera", 0, 0);
-		shader.set("u_color", 1.0, 1.0, 1.0, variation * 0.5);
+		for(var i=0; i < this.particles.length; i++){
+			var p = this.particles[i];
+			var r = p.radius * scale;
+			var pos = new Point(r * Math.sin(p.angle), r * Math.cos(p.angle));
+			g.renderSprite("halo",this.position.add(pos).subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":0.06*scale});
+		}
 		
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
+		Background.pushLight(this.position,progress*360);
 	}
-	
-	shader = window.materials["default"].use();
-	if( p2 <= 0 ) {
-		var r = 24 * p1;
-		"halo".renderSize(gl, 
-			this.position.x - r - c.x, this.position.y - r - c.y,
-			r * 2, r * 2, 0, 0 
-		);
-	}
-	
-	r = 240 * Math.max(p2,0);
-	"ring".renderSize(gl, 
-		this.position.x - r - c.x, this.position.y - r - c.y,
-		r * 2, r * 2, 0, 0 
-	);
-	
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
-	*/
 	if( this.time > Game.DELTASECOND ){
 		this.destroy();
 	}

@@ -57,7 +57,7 @@ spell_flash = function(player){
 	
 	audio.play("spell");
 	var area = new Line(game.camera, game.camera.add(game.resolution));
-	var objs = game.interactive.get(area);
+	var objs = game.overlaps(area);
 	var damage = Math.floor(8 + player.stats.magic*2);
 	var heal = 0;
 	for(var i=0; i < objs.length; i++){
