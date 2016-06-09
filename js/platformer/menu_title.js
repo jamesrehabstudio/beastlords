@@ -96,9 +96,29 @@ TitleMenu.prototype.update = function(){
 				//localStorage.setItem("debug_map", MapLoader.mapname);
 			} else if(this.cursor == 3){
 				//Start in DEBUG mode
-				new Player(0,0);
-				WorldLocale.loadMap(TitleMenu.mapname);
 				audio.play("pause");
+				
+				var p = new Player(0,0);
+				for(var i=1; i < TitleMenu.level; i++){
+					p.addXP(p.nextLevel-p.experience);
+				}
+				
+				game.loadMap(TitleMenu.mapname, function(starts){
+					if(starts.length > 0 ){
+						_player.position = new Point(starts[0].x,starts[0].y);
+					} else {
+						_player.position = new Point(48,176);
+					}
+					game.addObject(_player);
+					game.addObject(new PauseMenu());
+					game.addObject(new Background());
+					
+					_player.lightRadius = 240;
+					if(TitleMenu.flight){ 
+						_player.spellsCounters.flight = Game.DELTAYEAR;
+					}
+				})
+				
 			}
 		}
 	}

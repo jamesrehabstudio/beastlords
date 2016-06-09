@@ -5,11 +5,11 @@ function game_start(g){
 	/*
 	setTimeout(function(){
 		new Player(0,0);
-		WorldLocale.loadMap("temple2.tmx");
+		WorldLocale.loadMap("temple3.tmx");
 		setTimeout(function(){
 			game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 480;
 		}, 1000);
 	},100);
-	*/
+	/**/
 }

@@ -622,6 +622,163 @@ SinkingBlock.prototype.render = function(g,c){
 	}
 }
 
+MovingBlock.prototype = new GameObject();
+MovingBlock.prototype.constructor = GameObject;
+function MovingBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.startPosition = new Point(this.position.x, this.position.y);
+	this.endPosition = new Point(this.position.x, this.position.y);
+	this.direction = 0;
+	this.width = d[0];
+	this.height = d[1];
+	this.speed = 1.0;
+	this.move = false;
+	this.loop = 0;
+	this.killStuck = 0;
+	this.sync = 0;
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	if("autostart" in ops){
+		this.move = ops["autostart"] * 1;
+	}
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	if("movex" in ops){
+		this.endPosition.x += ops["movex"] * 1;
+	}
+	if("movey" in ops){
+		this.endPosition.y += ops["movey"] * 1;
+	}
+	if("speed" in ops){
+		this.speed = ops["speed"] * 1;
+	}
+	if("loop" in ops){
+		this.loop = ops["loop"] * 1;
+	}
+	if("killstuck" in ops){
+		this.killStuck = ops["killstuck"] * 1;
+	}
+	
+	this.on("activate", function(obj){
+		this.move = 1;
+	});
+	
+	this.on("collideObject", function(obj){
+		if(this.killStuck && this.move){
+			if(obj.hasModule(mod_rigidbody) && obj.hasModule(mod_combat)){
+				if(obj.isStuck){
+					if(obj instanceof Player && obj.states.ledgeObject == this){
+						obj.trigger("dropLedge");
+					} else {
+						if(this.dotDirection(obj.position) > 0.1){
+							obj.invincible = -1;
+							obj.hurt( this, Math.floor( 9999 ) );
+						} else {
+							console.log("Spare crushing object");
+						}
+					}
+				}
+			}
+		} else {
+			//fall off platform if obj hits a tile
+			if(obj.isStuck && obj instanceof Player && obj.states.ledgeObject == this){
+				obj.trigger("dropLedge");
+			}
+		}
+	});
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+	
+	if("sync" in ops){
+		this.sync = true;
+		this.position = Point.lerp(this.startPosition, this.endPosition, ops["sync"] * 1);
+	}
+}
+
+MovingBlock.prototype.idle = function(){
+	if(!this.sync){
+		GameObject.prototype.idle.apply(this);
+	}
+}
+
+MovingBlock.prototype.update = function(){
+	if(this.move){
+		var s = this.speed * this.delta;
+		var des = this.direction == 0 ? this.endPosition : this.startPosition;
+		var dif = des.subtract(this.position);
+		var dir = dif.normalize(s);
+		if(dif.length() <= s ){
+			this.destinationReached();
+		} else {
+			this.position = this.position.add(dir);
+		}
+	}
+}
+MovingBlock.prototype.dotDirection = function(p){
+	var pos = p.subtract(this.position);
+	return pos.dot(this.getDirection());
+}
+MovingBlock.prototype.getDirection = function(){
+	var des = this.direction == 0 ? this.endPosition : this.startPosition;
+	var dif = des.subtract(this.position);
+	return dif.normalize();
+}
+MovingBlock.prototype.destinationReached = function(){
+	var des = this.direction == 0 ? this.endPosition : this.startPosition;
+	this.position.x = des.x;
+	this.position.y = des.y;
+	this.direction = this.direction == 0 ? 1 : 0;
+	if(!this.loop){
+		this.move = 0;
+	}
+}
+
+MovingBlock.prototype.render = function(g,c){
+	var i = 0;
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = this.tiles[i];
+			
+			var pos = new Point(
+				this.position.x + x * 16,
+				this.position.y + y * 16
+			);
+				
+			if(tile > 0){
+				var t = tile-1;
+				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32));
+			}
+			i++;
+		}
+	}
+}
+
  /* platformer\boss_ammit.js*/ 
 
 Ammit.prototype = new GameObject();
@@ -2230,9 +2387,9 @@ Poseidon.prototype.update = function(){
 Poseidon.prototype.render = function(g,c){
 	if(!this.active || this.begin > 0 ) {
 		if(this.begin < Game.DELTASECOND * 2 ) {
-			this.sprite.render(g,this.position.subtract(c),2,1);
+			g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(2,1));
 		}
-		"characters".render(g,this.position.subtract(c).add(new Point(0,32)),3,0);
+		g.renderSprite("characters",this.position.subtract(c).add(new Point(0,32)),this.zIndex,new Point(3,0));
 	} else {
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
@@ -5219,9 +5376,9 @@ ChickenChain.prototype.render = function(g,c){
 		var links = Math.ceil(this.states.attack / 9);
 		for(var i=0; i < links; i++){
 			var b2 = b.add(new Point(i*-9*this.states.direction,0));
-			this.sprite.render(g,b2.add(this.position).subtract(c),0,2);
+			g.renderSprite(this.sprite,b2.add(this.position).subtract(c),this.zIndex,new Point(0,2));
 		}
-		this.sprite.render(g,b.add(this.position).subtract(c),1,2);
+		g.renderSprite(this.sprite,b.add(this.position).subtract(c),this.zIndex,new Point(1,2));
 	}
 	GameObject.prototype.render.apply(this,[g,c]);
 }
@@ -6948,7 +7105,7 @@ Oriax.prototype.update = function(){
 					snakebullet.flip = this.flip;
 					game.addObject(snakebullet);
 				} else {
-					var bullet = new Bullet(this.position.x, this.position.y,(this.flip?-1:1));
+					var bullet = new Bullet(this.position.x, this.position.y+4,(this.flip?-1:1));
 					bullet.frames = [5,6,7];
 					bullet.frame_row = 1;
 					bullet.blockable = 1;
@@ -8609,7 +8766,7 @@ Weapon.prototype.hit = function(player,obj,damage){
 
 Weapon.prototype.downstab = function(player){
 	this.playerState = "downstab";
-	var damage = this.baseDamage(player) * 0.6;
+	var damage = Math.max(Math.floor(this.baseDamage(player) * 0.6),1);
 	var type = "struck";
 	player.strike(new Line( -4, 8, 4, 20), type, damage);
 }
@@ -11038,9 +11195,29 @@ TitleMenu.prototype.update = function(){
 				//localStorage.setItem("debug_map", MapLoader.mapname);
 			} else if(this.cursor == 3){
 				//Start in DEBUG mode
-				new Player(0,0);
-				WorldLocale.loadMap(TitleMenu.mapname);
 				audio.play("pause");
+				
+				var p = new Player(0,0);
+				for(var i=1; i < TitleMenu.level; i++){
+					p.addXP(p.nextLevel-p.experience);
+				}
+				
+				game.loadMap(TitleMenu.mapname, function(starts){
+					if(starts.length > 0 ){
+						_player.position = new Point(starts[0].x,starts[0].y);
+					} else {
+						_player.position = new Point(48,176);
+					}
+					game.addObject(_player);
+					game.addObject(new PauseMenu());
+					game.addObject(new Background());
+					
+					_player.lightRadius = 240;
+					if(TitleMenu.flight){ 
+						_player.spellsCounters.flight = Game.DELTAYEAR;
+					}
+				})
+				
 			}
 		}
 	}
@@ -11307,11 +11484,17 @@ var mod_block = {
 						var dif = c.right - obj.position.x;
 						obj.position.x = d.left - dif;
 						obj.trigger( "collideHorizontal", 1);
+						if(d.top > c.top && obj.force.y > 0){
+							obj.trigger("catchLedge", new Point(d.left, d.top), obj.flip, this);
+						}
 					} else if(!this.blockTopOnly && c.right > d.right && c.bottom-fallspeed > d.top){
 						//right
 						var dif = obj.position.x - c.left;
 						obj.position.x = d.right + dif;
 						obj.trigger( "collideHorizontal", -1);
+						if(d.top > c.top && obj.force.y > 0){
+							obj.trigger("catchLedge", new Point(d.right, d.top), obj.flip, this);
+						}
 					} else if(obj.force.y >= 0){
 						//top
 						var dif = c.bottom - obj.position.y;
@@ -11644,7 +11827,7 @@ var mod_combat = {
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
 				
 				if(damage > 0 && this.showDamage){
-					this._damageCounter.value = (this._damageCounter.value * 1) + (damage * 1);
+					this._damageCounter.value = Math.round(this._damageCounter.value + damage * 1);
 					this._damageCounter.progress = 0.0;
 					this._damageCounter.position.x = this.position.x;
 					this._damageCounter.position.y = this.position.y - 16;
@@ -12620,6 +12803,7 @@ function Player(x, y){
 	this.jump_boost = false;
 	this.jump_strength = 8.0;
 	this.lightRadius = 32.0;
+	this.grabLedges = false;
 	
 	this.states = {
 		"duck" : false,
@@ -12637,7 +12821,9 @@ function Player(x, y){
 		"effectTimer" : 0.0,
 		"downStab" : false,
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
-		"manaRegenTime" : 0.0
+		"manaRegenTime" : 0.0,
+		"ledge" : false,
+		"ledgeObject" : null
 	};
 	
 	this.attackProperties = {
@@ -12848,6 +13034,25 @@ function Player(x, y){
 			this.keys = new Array();
 		}*/
 	})
+	this.on("catchLedge", function(edge, flip, obj){
+		if(this.grabLedges){
+			this.force.x = this.force.y = 0;
+			if(flip){
+				this.states.ledge = edge.add(new Point(this.width*0.5,this.height*0.5));
+			} else {
+				this.states.ledge = edge.add(new Point(this.width*-0.5,this.height*0.5));
+			}
+			this.states.ledgeObject = obj;
+			if(this.states.ledgeObject){
+				this.states.ledge = this.states.ledge.subtract(this.states.ledgeObject.position);
+			}
+		}
+	});
+	this.on("dropLedge", function(){
+		this.states.ledge = false;
+		this.gravity = 1.0;
+	});
+	
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
@@ -13072,7 +13277,39 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
-		if( this.states.roll > 0 ) {
+		
+		if( this.states.ledge){
+			if(this.states.ledgeObject){
+				this.position = this.states.ledgeObject.position.add(this.states.ledge);
+			} else {
+				this.position.x = this.states.ledge.x;
+				this.position.y = this.states.ledge.y;
+			}
+			this.gravity = 0;
+			
+			if(input.state("jump") == 1){
+				this.trigger("dropLedge");
+				this.jump();
+				if(input.state("right")>0) { this.force.x = 3; }
+				if(input.state("left")>0) { this.force.x = -3; }
+			}
+			if(input.state("down") == 1){
+				this.trigger("dropLedge");
+			}
+		} else if (this.stun > 0 ){
+			//Try to escape stun effect
+			if(
+				input.state("left") == 1 ||
+				input.state("right") == 1 ||
+				input.state("fire") == 1 ||
+				input.state("jump") == 1
+			){
+				this.statusEffects.stun -= 2.0;
+				this.position.y -= 2;
+			}
+		} else if (this.knockedout > 0){
+			//Do nothing
+		} else if( this.states.roll > 0 ) {
 			this.force.x = this.states.rollDirection * 5;
 			this.states.roll -= this.delta;
 			
@@ -13096,7 +13333,7 @@ Player.prototype.update = function(){
 			this.equip_weapon.strike(this);
 			
 			//Determine range and damage
-		} else if( !this.knockedout && this.stun <= 0 && this.delta > 0) {
+		} else if( this.delta > 0) {
 			//Player is in move/idle state
 			
 			this.states.guard = ( input.state('block') > 0 || this.autoblock );
@@ -13133,7 +13370,27 @@ Player.prototype.update = function(){
 					strafe = true;
 				}
 			*/
-			} else { 
+			} else {
+				if(!this.grounded && this.force.y > 0){
+					//Try to catch a ledge
+					var forwardDir = this.flip?-1:1;
+					if((forwardDir>0&&input.state("right")>0)||(forwardDir<0&&input.state("left")>0)){
+						var forward = this.position.add(new Point(16*forwardDir,0));
+						var bottom = forward.add(new Point(0,8));
+						var tileTop = game.getTile(forward.add(new Point(0,-8)));
+						var tileBot = game.getTile(bottom);
+						var under = game.getTile(this.position.add(new Point(0,20)));
+						
+						if(under == 0 && tileTop<=0 && tileBot > 0 && !(tileBot in tilerules.currentrule())){
+							//Edge grabbed
+							var edge = new Point(
+								this.flip ? (Math.ceil(bottom.x/16) * 16) : (Math.floor(bottom.x/16) * 16),
+								Math.floor(bottom.y/16) * 16
+							);
+							this.trigger("catchLedge", edge, this.flip);
+						}
+					}
+				}
 			/*
 				this.states.charge_multiplier = false;
 				
@@ -13148,6 +13405,29 @@ Player.prototype.update = function(){
 				}
 				this.states.attack_charge = 0; 
 			*/
+			}
+			
+			
+			//Apply jump boost
+			if( this.spellsCounters.flight > 0 ) {
+				this.gravity = 0.2;
+				if ( input.state('down') > 0 ) { this.force.y += this.delta * 1.55; }
+				if ( input.state('jump') > 0 ) { this.force.y -= this.delta * 1.65; }
+			} else { 
+				this.gravity = 1.0; 
+				if ( input.state('jump') > 0 && !this.grounded ) { 
+					
+					if( this.force.y > 0 ) {
+						this.force.y -= this.speeds.airBoost * this.speeds.airGlide * this.delta;
+					}
+				
+					if( this.jump_boost ) {
+						var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+						this.force.y -= this.gravity * boost * this.delta; 
+					}
+				} else {
+					this.jump_boost = false;
+				}
 			}
 			
 			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { 
@@ -13187,41 +13467,8 @@ Player.prototype.update = function(){
 				if( input.state('left') ) this.states.rollDirection = -1.0;
 			}
 			
-		} else if(this.stun > 0){
-			//Try to escape stun effect
-			if(
-				input.state("left") == 1 ||
-				input.state("right") == 1 ||
-				input.state("fire") == 1 ||
-				input.state("jump") == 1
-			){
-				this.statusEffects.stun -= 2.0;
-				this.position.y -= 2;
-			}
 		}
-		
-		//Apply jump boost
-		if( this.spellsCounters.flight > 0 ) {
-			this.gravity = 0.2;
-			if ( input.state('down') > 0 ) { this.force.y += this.delta * 1.55; }
-			if ( input.state('jump') > 0 ) { this.force.y -= this.delta * 1.65; }
-		} else { 
-			this.gravity = 1.0; 
-			if ( input.state('jump') > 0 && !this.grounded ) { 
 				
-				if( this.force.y > 0 ) {
-					this.force.y -= this.speeds.airBoost * this.speeds.airGlide * this.delta;
-				}
-			
-				if( this.jump_boost ) {
-					var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-					this.force.y -= this.gravity * boost * this.delta; 
-				}
-			} else {
-				this.jump_boost = false;
-			}
-		}
-		
 		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
@@ -13648,7 +13895,7 @@ Player.prototype.render = function(g,c){
 			var wings_offset = new Point((this.flip?8:-8),0);
 			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
 			if( this.grounded ) wings_frame = 0;
-			g.render("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex,new Point(wings_frame, 0), this.flip);
+			g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
 		}
 		if( this.spellsCounters.magic_armour > 0 ){
 			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
@@ -13665,7 +13912,7 @@ Player.prototype.render = function(g,c){
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){
-		"magic_effects".render(g,this.position.subtract(c),3, 0, this.flip);
+		g.renderSprite("magic_effects",this.position.subtract(c),this.zIndex, new Point(3, 0), this.flip);
 	}
 	
 	//Render shield after player if active
@@ -16003,13 +16250,13 @@ function game_start(g){
 	/*
 	setTimeout(function(){
 		new Player(0,0);
-		WorldLocale.loadMap("temple2.tmx");
+		WorldLocale.loadMap("temple3.tmx");
 		setTimeout(function(){
 			game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 480;
 		}, 1000);
 	},100);
-	*/
+	/**/
 }
 
  /* platformer\telemarker.js*/ 

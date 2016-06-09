@@ -135,7 +135,7 @@ Weapon.prototype.hit = function(player,obj,damage){
 
 Weapon.prototype.downstab = function(player){
 	this.playerState = "downstab";
-	var damage = this.baseDamage(player) * 0.6;
+	var damage = Math.max(Math.floor(this.baseDamage(player) * 0.6),1);
 	var type = "struck";
 	player.strike(new Line( -4, 8, 4, 20), type, damage);
 }

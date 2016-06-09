@@ -352,6 +352,7 @@ function load_sprites (){
 	sprites['tiles_phantom'] = new Sprite(RT+"img/tiles/phantom.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['temple1'] = new Sprite(RT+"img/tiles/temple1.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['temple2'] = new Sprite(RT+"img/tiles/temple2.png", {offset:new Point(0, 0),width:16,height:16});
+	sprites['temple3'] = new Sprite(RT+"img/tiles/temple3.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['cave'] = new Sprite(RT+"img/tiles/cave.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['planes'] = new Sprite(RT+"img/tiles/planes.png", {offset:new Point(0, 0),width:16,height:16});
 	
@@ -401,6 +402,8 @@ function load_sprites (){
 		358 : {"frames":[358,359,360], "speed":18.0},
 		390 : {"frames":[390,391,392], "speed":9.0},
 		422 : {"frames":[422,423,424], "speed":9.0}
+	});
+	tiles["temple3"] = new Tileset(sprites["temple3"],tileRules["big"], {
 	});
 	tiles["cave"] = new Tileset(sprites["cave"],tileRules["big"], {
 		321 : {"frames":[321,322,323], "speed":6.0}

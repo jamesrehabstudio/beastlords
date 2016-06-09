@@ -148,9 +148,9 @@ ChickenChain.prototype.render = function(g,c){
 		var links = Math.ceil(this.states.attack / 9);
 		for(var i=0; i < links; i++){
 			var b2 = b.add(new Point(i*-9*this.states.direction,0));
-			this.sprite.render(g,b2.add(this.position).subtract(c),0,2);
+			g.renderSprite(this.sprite,b2.add(this.position).subtract(c),this.zIndex,new Point(0,2));
 		}
-		this.sprite.render(g,b.add(this.position).subtract(c),1,2);
+		g.renderSprite(this.sprite,b.add(this.position).subtract(c),this.zIndex,new Point(1,2));
 	}
 	GameObject.prototype.render.apply(this,[g,c]);
 }

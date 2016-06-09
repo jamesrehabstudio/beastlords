@@ -200,9 +200,6 @@ function Game( elm ) {
 		audio.musVolume.gain.value = localStorage.getItem("musvolume");
 	}
 	
-	var fs = localStorage.getItem("fullscreen") == "true";
-	this.fullscreen(fs);
-	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
 	
@@ -680,7 +677,6 @@ Game.prototype.fullscreen = function(fs){
 				document.webkitExitFullscreen;
 			cancelscreen.apply(document);
 		}
-		localStorage.setItem("fullscreen", this.isFullscreen());
 	} catch (err) {
 		console.error("Cannot fullscreen.");
 	}

@@ -31,6 +31,7 @@ function Player(x, y){
 	this.jump_boost = false;
 	this.jump_strength = 8.0;
 	this.lightRadius = 32.0;
+	this.grabLedges = false;
 	
 	this.states = {
 		"duck" : false,
@@ -48,7 +49,9 @@ function Player(x, y){
 		"effectTimer" : 0.0,
 		"downStab" : false,
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
-		"manaRegenTime" : 0.0
+		"manaRegenTime" : 0.0,
+		"ledge" : false,
+		"ledgeObject" : null
 	};
 	
 	this.attackProperties = {
@@ -259,6 +262,25 @@ function Player(x, y){
 			this.keys = new Array();
 		}*/
 	})
+	this.on("catchLedge", function(edge, flip, obj){
+		if(this.grabLedges){
+			this.force.x = this.force.y = 0;
+			if(flip){
+				this.states.ledge = edge.add(new Point(this.width*0.5,this.height*0.5));
+			} else {
+				this.states.ledge = edge.add(new Point(this.width*-0.5,this.height*0.5));
+			}
+			this.states.ledgeObject = obj;
+			if(this.states.ledgeObject){
+				this.states.ledge = this.states.ledge.subtract(this.states.ledgeObject.position);
+			}
+		}
+	});
+	this.on("dropLedge", function(){
+		this.states.ledge = false;
+		this.gravity = 1.0;
+	});
+	
 	this._weapontimeout = 0;
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_camera );
@@ -483,7 +505,39 @@ Player.prototype.update = function(){
 	}
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
-		if( this.states.roll > 0 ) {
+		
+		if( this.states.ledge){
+			if(this.states.ledgeObject){
+				this.position = this.states.ledgeObject.position.add(this.states.ledge);
+			} else {
+				this.position.x = this.states.ledge.x;
+				this.position.y = this.states.ledge.y;
+			}
+			this.gravity = 0;
+			
+			if(input.state("jump") == 1){
+				this.trigger("dropLedge");
+				this.jump();
+				if(input.state("right")>0) { this.force.x = 3; }
+				if(input.state("left")>0) { this.force.x = -3; }
+			}
+			if(input.state("down") == 1){
+				this.trigger("dropLedge");
+			}
+		} else if (this.stun > 0 ){
+			//Try to escape stun effect
+			if(
+				input.state("left") == 1 ||
+				input.state("right") == 1 ||
+				input.state("fire") == 1 ||
+				input.state("jump") == 1
+			){
+				this.statusEffects.stun -= 2.0;
+				this.position.y -= 2;
+			}
+		} else if (this.knockedout > 0){
+			//Do nothing
+		} else if( this.states.roll > 0 ) {
 			this.force.x = this.states.rollDirection * 5;
 			this.states.roll -= this.delta;
 			
@@ -507,7 +561,7 @@ Player.prototype.update = function(){
 			this.equip_weapon.strike(this);
 			
 			//Determine range and damage
-		} else if( !this.knockedout && this.stun <= 0 && this.delta > 0) {
+		} else if( this.delta > 0) {
 			//Player is in move/idle state
 			
 			this.states.guard = ( input.state('block') > 0 || this.autoblock );
@@ -544,7 +598,27 @@ Player.prototype.update = function(){
 					strafe = true;
 				}
 			*/
-			} else { 
+			} else {
+				if(!this.grounded && this.force.y > 0){
+					//Try to catch a ledge
+					var forwardDir = this.flip?-1:1;
+					if((forwardDir>0&&input.state("right")>0)||(forwardDir<0&&input.state("left")>0)){
+						var forward = this.position.add(new Point(16*forwardDir,0));
+						var bottom = forward.add(new Point(0,8));
+						var tileTop = game.getTile(forward.add(new Point(0,-8)));
+						var tileBot = game.getTile(bottom);
+						var under = game.getTile(this.position.add(new Point(0,20)));
+						
+						if(under == 0 && tileTop<=0 && tileBot > 0 && !(tileBot in tilerules.currentrule())){
+							//Edge grabbed
+							var edge = new Point(
+								this.flip ? (Math.ceil(bottom.x/16) * 16) : (Math.floor(bottom.x/16) * 16),
+								Math.floor(bottom.y/16) * 16
+							);
+							this.trigger("catchLedge", edge, this.flip);
+						}
+					}
+				}
 			/*
 				this.states.charge_multiplier = false;
 				
@@ -559,6 +633,29 @@ Player.prototype.update = function(){
 				}
 				this.states.attack_charge = 0; 
 			*/
+			}
+			
+			
+			//Apply jump boost
+			if( this.spellsCounters.flight > 0 ) {
+				this.gravity = 0.2;
+				if ( input.state('down') > 0 ) { this.force.y += this.delta * 1.55; }
+				if ( input.state('jump') > 0 ) { this.force.y -= this.delta * 1.65; }
+			} else { 
+				this.gravity = 1.0; 
+				if ( input.state('jump') > 0 && !this.grounded ) { 
+					
+					if( this.force.y > 0 ) {
+						this.force.y -= this.speeds.airBoost * this.speeds.airGlide * this.delta;
+					}
+				
+					if( this.jump_boost ) {
+						var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+						this.force.y -= this.gravity * boost * this.delta; 
+					}
+				} else {
+					this.jump_boost = false;
+				}
 			}
 			
 			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { 
@@ -598,41 +695,8 @@ Player.prototype.update = function(){
 				if( input.state('left') ) this.states.rollDirection = -1.0;
 			}
 			
-		} else if(this.stun > 0){
-			//Try to escape stun effect
-			if(
-				input.state("left") == 1 ||
-				input.state("right") == 1 ||
-				input.state("fire") == 1 ||
-				input.state("jump") == 1
-			){
-				this.statusEffects.stun -= 2.0;
-				this.position.y -= 2;
-			}
 		}
-		
-		//Apply jump boost
-		if( this.spellsCounters.flight > 0 ) {
-			this.gravity = 0.2;
-			if ( input.state('down') > 0 ) { this.force.y += this.delta * 1.55; }
-			if ( input.state('jump') > 0 ) { this.force.y -= this.delta * 1.65; }
-		} else { 
-			this.gravity = 1.0; 
-			if ( input.state('jump') > 0 && !this.grounded ) { 
 				
-				if( this.force.y > 0 ) {
-					this.force.y -= this.speeds.airBoost * this.speeds.airGlide * this.delta;
-				}
-			
-				if( this.jump_boost ) {
-					var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
-					this.force.y -= this.gravity * boost * this.delta; 
-				}
-			} else {
-				this.jump_boost = false;
-			}
-		}
-		
 		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
@@ -1059,7 +1123,7 @@ Player.prototype.render = function(g,c){
 			var wings_offset = new Point((this.flip?8:-8),0);
 			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
 			if( this.grounded ) wings_frame = 0;
-			g.render("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex,new Point(wings_frame, 0), this.flip);
+			g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
 		}
 		if( this.spellsCounters.magic_armour > 0 ){
 			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
@@ -1076,7 +1140,7 @@ Player.prototype.render = function(g,c){
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){
-		"magic_effects".render(g,this.position.subtract(c),3, 0, this.flip);
+		g.renderSprite("magic_effects",this.position.subtract(c),this.zIndex, new Point(3, 0), this.flip);
 	}
 	
 	//Render shield after player if active

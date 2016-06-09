@@ -460,6 +460,27 @@ Point.prototype.multiply = function(a){
 Point.prototype.scale = function(scale){
 	return new Point(this.x * scale, this.y * scale);
 }
+Point.prototype.floor = function(nearest){
+	if(!nearest) { nearest = 1;}
+	return new Point(
+		Math.floor(this.x / nearest) * nearest, 
+		Math.floor(this.y / nearest) * nearest
+	);
+}
+Point.prototype.ceil = function(nearest){
+	if(!nearest) { nearest = 1;}
+	return new Point(
+		Math.ceil(this.x / nearest) * nearest, 
+		Math.ceil(this.y / nearest) * nearest
+	);
+}
+Point.prototype.round = function(nearest){
+	if(!nearest) { nearest = 1;}
+	return new Point(
+		Math.round(this.x / nearest) * nearest, 
+		Math.round(this.y / nearest) * nearest
+	);
+}
 Point.prototype.normalize = function(scale){
 	if(scale == undefined){
 		scale = 1;

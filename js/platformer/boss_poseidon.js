@@ -199,9 +199,9 @@ Poseidon.prototype.update = function(){
 Poseidon.prototype.render = function(g,c){
 	if(!this.active || this.begin > 0 ) {
 		if(this.begin < Game.DELTASECOND * 2 ) {
-			this.sprite.render(g,this.position.subtract(c),2,1);
+			g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(2,1));
 		}
-		"characters".render(g,this.position.subtract(c).add(new Point(0,32)),3,0);
+		g.renderSprite("characters",this.position.subtract(c).add(new Point(0,32)),this.zIndex,new Point(3,0));
 	} else {
 		GameObject.prototype.render.apply(this,[g,c]);
 	}

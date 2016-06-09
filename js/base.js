@@ -329,7 +329,7 @@ Game.prototype.overlaps = function(l, end){
 }
 Game.prototype.t_unstick = function( obj ) {
 	var hitbox = obj.corners();
-	var isStuck = false;
+	obj.isStuck = false;
 	var escape = {
 		"top" : 0,
 		"bottom" : 0,
@@ -346,7 +346,7 @@ Game.prototype.t_unstick = function( obj ) {
 			var tile = this.getTile(_x,_y);
 			if( tile != 0 && !(tile in tilerules.currentrule()) ) {
 				//You're stuck, do something about it!
-				isStuck = true;
+				obj.isStuck = true;
 			} else {
 				if( _x == hitbox.left ) escape["left"] ++;
 				else if( _x == hitbox.right ) escape["right"] ++;
@@ -356,7 +356,7 @@ Game.prototype.t_unstick = function( obj ) {
 			}
 		}
 	}
-	if( isStuck ) {
+	if( obj.isStuck ) {
 		//Try to escape
 		var dir = new Point(
 			escape["right"] - escape["left"],
@@ -368,7 +368,7 @@ Game.prototype.t_unstick = function( obj ) {
 			obj.position = obj.position.add(dir);
 		}
 	}
-	return isStuck;
+	return obj.isStuck;
 }
 Game.prototype.t_move = function(obj, x, y) {	
 	var start_hitbox = obj.corners();
@@ -391,6 +391,7 @@ Game.prototype.t_move = function(obj, x, y) {
 	var dirs = [0,1];
 	
 	if( this.t_unstick(obj) ) {
+		this.collideObject(obj);
 		return limits;
 	}
 	
@@ -842,6 +843,7 @@ function GameObject() {
 	this.deltaUnscaled = 0;
 	this.deltaScale = 1.0;
 	this.filter = false;
+	this.isStuck = false;
 	
 	this.visible = true;
 	this.modules = new Array();

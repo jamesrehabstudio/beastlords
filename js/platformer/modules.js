@@ -114,11 +114,17 @@ var mod_block = {
 						var dif = c.right - obj.position.x;
 						obj.position.x = d.left - dif;
 						obj.trigger( "collideHorizontal", 1);
+						if(d.top > c.top && obj.force.y > 0){
+							obj.trigger("catchLedge", new Point(d.left, d.top), obj.flip, this);
+						}
 					} else if(!this.blockTopOnly && c.right > d.right && c.bottom-fallspeed > d.top){
 						//right
 						var dif = obj.position.x - c.left;
 						obj.position.x = d.right + dif;
 						obj.trigger( "collideHorizontal", -1);
+						if(d.top > c.top && obj.force.y > 0){
+							obj.trigger("catchLedge", new Point(d.right, d.top), obj.flip, this);
+						}
 					} else if(obj.force.y >= 0){
 						//top
 						var dif = c.bottom - obj.position.y;
@@ -451,7 +457,7 @@ var mod_combat = {
 				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
 				
 				if(damage > 0 && this.showDamage){
-					this._damageCounter.value = (this._damageCounter.value * 1) + (damage * 1);
+					this._damageCounter.value = Math.round(this._damageCounter.value + damage * 1);
 					this._damageCounter.progress = 0.0;
 					this._damageCounter.position.x = this.position.x;
 					this._damageCounter.position.y = this.position.y - 16;

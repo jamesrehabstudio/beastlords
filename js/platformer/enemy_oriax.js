@@ -76,7 +76,7 @@ Oriax.prototype.update = function(){
 					snakebullet.flip = this.flip;
 					game.addObject(snakebullet);
 				} else {
-					var bullet = new Bullet(this.position.x, this.position.y,(this.flip?-1:1));
+					var bullet = new Bullet(this.position.x, this.position.y+4,(this.flip?-1:1));
 					bullet.frames = [5,6,7];
 					bullet.frame_row = 1;
 					bullet.blockable = 1;
