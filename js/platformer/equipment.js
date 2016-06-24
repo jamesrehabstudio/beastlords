@@ -144,8 +144,10 @@ Weapon.prototype.strike = function(player){
 	if(!this.combohit && this.time > this.timeMiss){
 		var phase = this.currentAttack[this.combo];
 		var damage = this.damage(player);
-		var rect = phase["strike"];
-		player.strike(rect,"struck",damage);
+		if(phase != undefined){
+			var rect = phase["strike"];
+			player.strike(rect,"struck",damage);
+		}
 	}
 }
 Weapon.prototype.animate = function(player){
@@ -163,10 +165,10 @@ Weapon.prototype.animate = function(player){
 			
 			switch(animation){
 				case 0: base_f=0; base_fr=4; base_len=4; break; //open
-				case 1: base_f=0; base_fr=5; base_len=4; break; //continue
-				case 2: base_f=4; base_fr=4; base_len=4; break; //long
-				case 3: base_f=4; base_fr=5; base_len=4; break; //jumping
-				case 4: base_f=4; base_fr=2; base_len=3; break; //ducking
+				case 1: base_f=4; base_fr=4; base_len=4; break; //continue
+				case 2: base_f=7; base_fr=4; base_len=4; break; //long
+				case 3: base_f=1; base_fr=8; base_len=5; break; //jumping
+				case 4: base_f=1; base_fr=9; base_len=5; break; //ducking
 			}
 			
 			if(animTime > 0){
@@ -193,7 +195,11 @@ Weapon.prototype.damage = function(player){
 	
 	if(this.charge) multi *= 2;
 	
-	return Math.round(multi * this.baseDamage(player) * phase["damage"]);
+	if(phase != undefined) {
+		return Math.round(multi * this.baseDamage(player) * phase["damage"]);
+	} else {
+		return this.baseDamage(player);
+	}
 }
 
 Weapon.playerState = function(player){
@@ -252,13 +258,13 @@ createWeaponTemplate = function(baseTime, restTime, missTime, length){
 			"alwaysqueue" : 0,
 			0 : {
 				"strike" : new Line(new Point(0,8), new Point(length,12)),
-				"damage":0.8,
+				"damage":1.2,
 				"time" : baseTime*Game.DELTASECOND,
-				"rest": 2*restTime*Game.DELTASECOND,
-				"miss": 2*missTime*Game.DELTASECOND,
+				"rest": restTime*Game.DELTASECOND,
+				"miss": missTime*Game.DELTASECOND,
 				"animation" : 4,
 				"force" : new Point(0.0, 0.0),
-				"stun" : 0.5 * Game.DELTASECOND,
+				"stun" : 0.3 * Game.DELTASECOND,
 				"movement" : 0.0
 			}
 		},
@@ -267,7 +273,7 @@ createWeaponTemplate = function(baseTime, restTime, missTime, length){
 			0 : {
 				"strike" : new Line(new Point(0,-8), new Point(length,12)),
 				"damage":0.8,
-				"time" : baseTime*Game.DELTASECOND,
+				"time" : 1.5*baseTime*Game.DELTASECOND,
 				"rest":restTime*Game.DELTASECOND,
 				"miss":restTime*Game.DELTASECOND,
 				"animation" : 3,
@@ -279,9 +285,9 @@ createWeaponTemplate = function(baseTime, restTime, missTime, length){
 }
 
 var WeaponStats = {
-	"short_sword" : createWeaponTemplate(0.25,0.08,0.15,24),
-	"long_sword" : createWeaponTemplate(0.333,0.1,0.2,30),
-	"broad_sword" : createWeaponTemplate(0.4,0.1,0.3,32)
+	"short_sword" : createWeaponTemplate(0.25,0.08,0.15,38),
+	"long_sword" : createWeaponTemplate(0.333,0.1,0.2,42),
+	"broad_sword" : createWeaponTemplate(0.4,0.1,0.3,42)
 }
 
 WeaponStats.short_sword.standing.alwaysqueue = 1;

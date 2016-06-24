@@ -34,9 +34,9 @@ function Baller(x, y, d, o){
 	}
 	
 	this.death_time = Game.DELTASECOND * 3.0;
-	this.life = Spawn.life(28,this.difficulty);
-	this.lifeMax = Spawn.life(28,this.difficulty);
-	this.damage = Spawn.life(5,this.difficulty);
+	this.life = Spawn.life(16,this.difficulty);
+	this.lifeMax = this.life;
+	this.damage = Spawn.damage(5,this.difficulty);
 	this.mass = 4.0;
 	
 	this.on("struck", EnemyStruck);
@@ -92,7 +92,7 @@ Baller.prototype.update = function(){
 			//Spin ball around head
 			var ball_position = Math.sin( this.states.swing * 0.2 );
 			var ball_height = Math.max( Math.min( 32-Math.abs(dir.x*0.4), 32), -32);
-			this.ball.frame = 1 + Math.floor((1-Math.abs(ball_position))*3);
+			this.ball.frame.x = 1 + Math.floor((1-Math.abs(ball_position))*3);
 			this.ball.flip = ball_position < 0;
 			this.ball.position.x = this.position.x + ball_position * 96;
 			this.ball.position.y = this.position.y + ball_height;
@@ -100,7 +100,7 @@ Baller.prototype.update = function(){
 			if( this.states.swing <= 0 ) {
 				this.states.release = this.timers.release;
 				//Fling the ball
-				this.ball.frame = 0;
+				this.ball.frame.x = 0;
 				this.ball.gravity = 0.5;
 				this.ball.force.x = 10 * (dir.x > 0 ? -1.0 : 1.0);
 				this.ball.force.y = -3;
@@ -120,20 +120,20 @@ Baller.prototype.update = function(){
 	
 	/* Animation */
 	if( this.ball.reflect || this.stun > 0 ) {
-		this.frame = 3;
-		this.frame_row = 1;
+		this.frame.x = 3;
+		this.frame.y = 1;
 	} else if( this.states.retrieve > 0 ) {
-		this.frame = Math.max((this.frame + this.delta * 0.1) % 3, 1);
-		this.frame_row = 1;
+		this.frame.x = Math.max((this.frame.x + this.delta * 0.1) % 3, 1);
+		this.frame.y = 1;
 	} else if ( this.states.release > 0 ) {
-		this.frame = 0;
-		this.frame_row = 1;
+		this.frame.x = 0;
+		this.frame.y = 1;
 	} else if ( this.states.swing > 0 ) { 
-		this.frame = (this.frame + this.delta * 0.2) % 4;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+		this.frame.y = 0;
 	} else {
-		this.frame = 1;
-		this.frame_row = 1;
+		this.frame.x = 1;
+		this.frame.y = 1;
 	}
 }
 
@@ -179,8 +179,8 @@ function BallerBall(x, y){
 	});
 	
 	this.mass = 3.0;
-	this.frame = 0
-	this.frame_row = 2;
+	this.frame.x = 0
+	this.frame.y = 2;
 }
 BallerBall.prototype.update = function(){
 	if( this.damage > 0 ) {

@@ -62,6 +62,8 @@ function Item(x,y,d, ops){
 			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
+			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); }
+			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
 			
@@ -221,56 +223,56 @@ Item.prototype.setName = function(n){
 		this.frame.x = 0; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
-		this.stats = {"speed":1.0,"guardlife":30,"height":11, "frame":0, "frame_row":0}
+		this.stats = {"speed":1.0,"guardlife":30,"height":16, "frame":0, "frame_row":0,"turn":0.3}
 		return; 
 	}
 	if(n == "large_shield") { 
 		this.frame.x = 1; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
-		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1}
+		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1,"turn":0.5}
 		return; 
 	}
 	if(n == "kite_shield") { 
 		this.frame.x = 2; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
-		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2}
+		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2,"turn":0.6}
 		return; 
 	}
 	if(n == "broad_shield") { 
 		this.frame.x = 3; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
-		this.stats = {"speed":1.4,"guardlife":50,"height":18, "frame":0, "frame_row":3}
+		this.stats = {"speed":1.4,"guardlife":50,"height":18, "frame":0, "frame_row":3,"turn":0.6}
 		return; 
 	}
 	if(n == "knight_shield") { 
 		this.frame.x = 4; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
-		this.stats = {"speed":1.1,"guardlife":50,"height":17, "frame":2, "frame_row":0}
+		this.stats = {"speed":1.1,"guardlife":50,"height":17, "frame":2, "frame_row":0,"turn":0.5}
 		return; 
 	}
 	if(n == "spiked_shield") { 
 		this.frame.x = 5; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
-		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":2, "frame_row":1}
+		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":2, "frame_row":1,"turn":0.5}
 		return; 
 	}
 	if(n == "heavy_shield") { 
 		this.frame.x = 6; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
-		this.stats = {"speed":1.2,"guardlife":60,"height":17, "frame":2, "frame_row":2}
+		this.stats = {"speed":1.2,"guardlife":60,"height":17, "frame":2, "frame_row":2,"turn":0.8}
 		return; 
 	}
 	if(n == "tower_shield") { 
 		this.frame.x = 7; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
-		this.stats = {"speed":1.5,"guardlife":70,"height":30, "frame":2, "frame_row":3}
+		this.stats = {"speed":1.5,"guardlife":70,"height":30, "frame":2, "frame_row":3,"turn":1.1}
 		return; 
 	}
 	
@@ -287,6 +289,9 @@ Item.prototype.setName = function(n){
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
 	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.frame.y = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
+	
+	//Special items
+	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; return; }
 	
 	//Charms
 	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}

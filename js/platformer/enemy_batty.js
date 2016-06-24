@@ -32,7 +32,7 @@ function Batty(x,y,d,o){
 	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
-	this.fuse = this.difficulty >= 3;
+	this.fuse = this.difficulty >= 2;
 	
 	this.on("collideObject", function(obj){
 		if( this.fuse && obj instanceof Batty ) {
@@ -40,7 +40,18 @@ function Batty(x,y,d,o){
 			this.destroy();
 			obj.destroy();
 			this.fuse = obj.fuse = false;
-			game.addObject(new Deckard( this.position.x, this.position.y ));
+			var deckard = new Deckard( 
+				this.position.x, 
+				this.position.y, 
+				false, 
+				{
+					"difficulty":this.difficulty
+				} 
+			);
+			game.addObject(deckard);
+			
+			obj.trigger("swap", deckard);
+			this.trigger("swap", deckard);
 		}
 	});
 	this.on("collideHorizontal", function(x){

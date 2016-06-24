@@ -102,31 +102,31 @@ function EffectStatus(x, y){
 	this.time = Game.DELTASECOND;
 	this.timeMax = this.time;
 	this.interactive = false;
-	this.frame_row = 4;
+	this.frame.y = 4;
 	
 	this.on("sleep",function(){ this.destroy(); } );
 }
 
 EffectStatus.prototype.update = function(){
 	var progress = this.time / this.timeMax;
-	if( this.frame == 0 ) {
+	if( this.frame.x == 0 ) {
 		this.position.y -= game.deltaUnscaled * 0.5;
-	} else if ( this.frame == 1 ){ 
+	} else if ( this.frame.x == 1 ){ 
 		this.position.y -= game.deltaUnscaled * 0.7;
 		this.position.x += Math.sin(this.time*0.3);
-	} else if ( this.frame == 2 ){ 
+	} else if ( this.frame.x == 2 ){ 
 		this.position.y += 4 * (Math.random() - .5);
 		this.position.x += 4 * (Math.random() - .5);
-	} else if ( this.frame == 3 ){ 
+	} else if ( this.frame.x == 3 ){ 
 		this.position.y += 0.2;
-	} else if ( this.frame == 4 ){ 
+	} else if ( this.frame.x == 4 ){ 
 		this.position.y += 0.5;
-	} else if ( this.frame == 5 ) {
+	} else if ( this.frame.x == 5 ) {
 		this.position.y -= 0.5;
 		this.position.x += 4 * (Math.random() - .5);
 	} else {
-		this.position.y += Math.cos(progress*9)*0.5;
-		this.position.x += Math.sin(progress*9)*2.0;
+		this.position.y += Math.cos(progress*9)*0.25;
+		this.position.x += Math.sin(progress*9)*1.0;
 	}
 	
 	this.time -= game.deltaUnscaled;

@@ -36,7 +36,7 @@ function ChickenChain(x, y, d, o){
 	
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
-	this.damage = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){
@@ -124,19 +124,21 @@ ChickenChain.prototype.update = function(){
 	
 	/* Animation */
 	if( this.stun > 0 ) {
-		this.frame = 2;
-		this.frame_row = 1;
+		this.frame.x = 2;
+		this.frame.y = 1;
 	} else if( this.states.attackstage > 0 ) {
 		if( this.states.duck ) {
-			this.frame = 1;
-			this.frame_row = 1;
+			var maxFrame = this.states.attackstage > 1 ? 5 : 3;
+			this.frame.x = Math.min(this.frame.x + this.delta * 0.2, maxFrame);
+			this.frame.y = 4;
 		} else {
-			this.frame = 0;
-			this.frame_row = 1;
+			var maxFrame = this.states.attackstage > 1 ? 4 : 2;
+			this.frame.x = Math.min(this.frame.x + this.delta * 0.2, maxFrame);
+			this.frame.y = 3;
 		}
 	} else {
-		this.frame_row = 0;
-		this.frame = (this.frame + Math.abs(this.force.x) * this.delta * 0.2) % 3;
+		this.frame.y = 0;
+		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 	}
 }
 ChickenChain.prototype.render = function(g,c){

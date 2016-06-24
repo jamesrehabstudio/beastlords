@@ -94,7 +94,7 @@ Door.prototype.render = function(g,c){
 		g.renderSprite(
 			this.sprite,
 			this.position.subtract(c).add(new Point(10,36)), 
-			this.zIndex,
+			this.zIndex+1,
 			this.frame
 		);
 	}

@@ -30,6 +30,7 @@ RENDER_STEPS = ["prerender","render","postrender","hudrender","lightrender"];
 
 Renderer = {
 	color : [1,1,1,1],
+	tint : [1,1,1,1],
 	layers : [new Array(),new Array(),new Array(),new Array(),new Array()],
 	layer : 1
 }
@@ -39,7 +40,11 @@ Renderer.clear = function(){
 	Renderer.layer = 1;
 }
 Renderer.serialize = function(){
-	var out = {};
+	var out = {
+		"options" : {
+			"tint" : this.tint
+		}
+	};
 	for(var i=0; i < RENDER_STEPS.length; i++){
 		if(Renderer.layers[i] instanceof Array){
 			out[RENDER_STEPS[i]] = Renderer.layers[i];
@@ -490,6 +495,20 @@ Game.prototype.save = function(data){
 			"data" : data
 		}
 	});
+}
+
+
+function Sequence(d){
+	this.data = d;
+}
+Sequence.prototype.frame = function(progress){
+	var i = 0;
+	for(var i in this.data){
+		if(progress <= i){
+			return new Point(this.data[i][0], this.data[i][1]);
+		}
+	}
+	return new Point(this.data[i][0], this.data[i][1]);
 }
 
 function BSPTree(bounds, levels) {
@@ -967,10 +986,6 @@ GameObject.prototype.render = function( g, camera ){
 	if( self.debug ) {
 		var bounds = this.bounds();
 		g.scaleFillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
-		
-		if( this.ttest instanceof Line ){
-			g.scaleFillRect(this.ttest.start.x - camera.x, this.ttest.start.y - camera.y, this.ttest.width(), this.ttest.height() );
-		}
 	}
 	
 	if ( this.sprite ) {

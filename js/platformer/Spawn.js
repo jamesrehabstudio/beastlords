@@ -104,6 +104,7 @@ Spawn.prototype.isAlive = function(enemies){
 }
 Spawn.prototype.create = function(enemies){
 	for(var j=0; j < enemies.length; j++){
+		var that = this;
 		var name = enemies[j];
 		try {
 			var object = new self[ name ]( 
@@ -112,6 +113,13 @@ Spawn.prototype.create = function(enemies){
 				null,
 				{"difficulty":this.difficulty}
 			);
+			object.on("swap", function(obj){
+				that.enemies.remove(that.enemies.indexOf(this));
+				that.enemies.push(obj);
+				if(that.autodestroy){
+					obj.on("sleep", function(){this.destroy();});
+				}
+			});
 			if(this.autodestroy){
 				object.on("sleep", function(){this.destroy();});
 			}

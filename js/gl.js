@@ -228,6 +228,7 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 	
 	var shader = window.materials["default"];
 	var scale = 1.0;
+	var rotate = 0.0;
 	
 	if( "shader" in shaderOps){
 		if( shaderOps["shader"] instanceof Material ){
@@ -239,6 +240,9 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 	}
 	if("scale" in shaderOps){
 		scale = shaderOps["scale"] * 1;
+	}
+	if("rotate" in shaderOps){
+		rotate = shaderOps["rotate"] * 1;
 	}
 	
 	shader.use();
@@ -279,7 +283,7 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 	if( !this.buffer ) this.buffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	
-	var geodata = Sprite.RectBuffer(new Point(), this.frame_width*scale,this.frame_height*scale,0);
+	var geodata = Sprite.RectBuffer(new Point(), this.frame_width*scale,this.frame_height*scale,rotate,this.offset);
 	
 	gl.bufferData(gl.ARRAY_BUFFER, geodata, gl.DYNAMIC_DRAW);
 	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
@@ -494,12 +498,20 @@ Sprite.prototype.getTileUVMap = function(tileData, uvVerts){
 	return uvVerts;
 }
 
-Sprite.RectBuffer = function(p, w, h, r){
+Sprite.RectBuffer = function(p, w, h, r, o){
 	//creates a set of data for a generic rectangle
 	if( r == undefined ) r = 0;
+	if( o == undefined ) o = new Point();
 	r = r / 180 * Math.PI;
 	var s = Math.sin(r); 
 	var c = Math.cos(r); 
+	
+	var topleft = p.add(new Point(0,0).rotate(r,o));
+	var topRight = p.add(new Point(w,0).rotate(r,o));
+	var botLeft = p.add(new Point(0,h).rotate(r,o));
+	var botRight = p.add(new Point(w,h).rotate(r,o));
+	
+	/*
 	return new Float32Array([
 		p.x, p.y,
 		p.x+(w*c), p.y+(w*s),
@@ -507,6 +519,15 @@ Sprite.RectBuffer = function(p, w, h, r){
 		p.x-(h*s), p.y+(h*c),
 		p.x+(w*c), p.y+(w*s),
 		p.x+(w*c)-(h*s), p.y+(w*s)+(h*c),
+	]);
+	*/
+	return new Float32Array([
+		topleft.x, topleft.y,
+		topRight.x, topRight.y,
+		botLeft.x, botLeft.y,
+		botLeft.x, botLeft.y,
+		topRight.x, topRight.y,
+		botRight.x, botRight.y
 	]);
 }
 

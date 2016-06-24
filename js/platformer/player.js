@@ -51,7 +51,8 @@ function Player(x, y){
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
 		"manaRegenTime" : 0.0,
 		"ledge" : false,
-		"ledgeObject" : null
+		"ledgeObject" : null,
+		"turn" : 0.0
 	};
 	
 	this.attackProperties = {
@@ -81,7 +82,8 @@ function Player(x, y){
 		"airBoost" : 1.0,
 		"airGlide" : 0.0,
 		"breaks": 0.4,
-		"manaRegen" : Game.DELTASECOND * 60
+		"manaRegen" : Game.DELTASECOND * 60,
+		"turn" : Game.DELTASECOND * 0.5
 	};
 	
 	this.weapon = {
@@ -158,11 +160,11 @@ function Player(x, y){
 		
 		//blocked
 		var dir = this.position.subtract(obj.position);
-		var kb = damage / 15.0;
+		var kb = damage / 3.0;
 		
 		if( "knockbackScale" in obj ) kb *= obj.knockbackScale;
 		
-		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
+		//obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
 		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
 		audio.playLock("block",0.1);
 	});
@@ -290,7 +292,6 @@ function Player(x, y){
 	this.stats = {
 		"attack" : 1,
 		"defence" : 1,
-		//"technique" : 1,
 		"magic" : 1
 	}
 	
@@ -573,6 +574,10 @@ Player.prototype.update = function(){
 					this.mana = Math.max(this.mana - cost, 0);
 				}
 			}
+			if(this.states.turn > 0){
+				//Block disabled while turning
+				this.states.guard = false;
+			}
 			
 			if( !this.states.duck ) {
 				if ( input.state('left') > 0 ) { this.force.x -= this.deltaSpeed(); }
@@ -683,8 +688,14 @@ Player.prototype.update = function(){
 				
 			} else {
 				//Change to face player's selected direction
-				if ( input.state('left') > 0 ) { this.flip = true;}
-				if ( input.state('right') > 0 ) { this.flip = false; }
+				if ( input.state('left') > 0 ) { 
+					if(!this.flip) this.states.turn = this.speeds.turn;
+					this.flip = true; 
+				}
+				if ( input.state('right') > 0 ) { 
+					if(this.flip) this.states.turn = this.speeds.turn;
+					this.flip = false;
+				}
 			}
 			
 			//Prep roll
@@ -713,51 +724,56 @@ Player.prototype.update = function(){
 	
 	//Animation
 	if ( this.knockedout ){
+		this.frame.x = 10;
 		this.frame.y = 1;
-		this.frame.x = 5;
 	} else if ( this.stun > 0 || this.life < 0 ) {
 		//Stunned
 		this.stand();
-		this.frame.x = 4;
-		this.frame.y = 0;
+		this.frame.x = 10;
+		this.frame.y = 1;
 	} else if( this.states.roll > 0 ) {
-		this.frame.y = 3;
-		this.frame.x = 5 * (1 - this.states.roll / this.rollTime);
+		this.frame.y = 2;
+		this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
 	} else if( this.states.downStab ){
-		this.frame.x = 5;
-		this.frame.y = 0; 
+		if(this.frame.x > 2) this.frame.x = 0;
+		this.frame.x = Math.min(this.frame.x + this.delta * 0.2,2);
+		this.frame.y = 3; 
 	} else {
 		if(this.equip_weapon.time > 0){
 			//Attack
 			this.equip_weapon.animate(this);
 		} else if( !this.grounded ) {
 			//In air
-			this.frame.y = 3;
+			this.frame.y = 2;
 			if(this.force.y < 0.5){
-				this.frame.x = 0;
+				this.frame.x = 6;
 			} else if(this.force.y > 2.0){
-				this.frame.x = 2;
+				this.frame.x = 8;
 			} else {
-				this.frame.x = 1;
+				this.frame.x = 7;
 			}
 		} else if( this.states.duck ) {
 			//Duck
-			this.frame.x = Math.min(this.frame.x + this.delta * 0.4,2);
-			this.frame.y = 2;
+			this.frame.x = Math.max(Math.min(this.frame.x + this.delta * 0.4,10),8);
+			this.frame.y = 0;
 			
 			if( this.states.attack > 0 ) this.frame.x = 4;
 			if( this.states.attack > this.attackProperties.rest ) this.frame.x = 6;
 			if( this.states.attack > this.attackProperties.strike ) this.frame.x = 5;		
 		} else {
 			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame.y = 2;
-			if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
+			if(this.states.turn > 0){
+				//Turn animation
+				this.frame.y = 3;
+				this.frame.x = 3 + 6 * (1-this.states.turn/this.speeds.turn);
+			} else if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				//Run animation
 				this.frame.y = 1;
-				this.frame.x = (this.frame.x + this.delta * 0.1 * Math.abs( this.force.x )) % 5;
+				this.frame.x = (this.frame.x + this.delta * 0.1 * Math.abs( this.force.x )) % 10;
 			} else {
 				//Idle
 				this.frame.y = 0;
-				this.frame.x = (this.frame.x + this.delta * 0.1) % 4;
+				this.frame.x = (this.frame.x + this.delta * 0.2) % 8;
 			}
 		}
 		
@@ -826,6 +842,7 @@ Player.prototype.update = function(){
 		this.spellsCounters[i] -= this.delta;
 	}
 	this.states.effectTimer += this.delta;
+	this.states.turn -= this.delta;
 	
 	if( this.states.afterImage.status(this.delta) ){
 		game.addObject( new EffectAfterImage(this.position.x, this.position.y, this) );
@@ -847,6 +864,7 @@ Player.prototype.duck = function(){
 	if( !this.states.duck ) {
 		this.position.y += 3.0;
 		this.states.duck = true;
+		this.states.turn = 0.0;
 		if( this.grounded )	this.force.x = 0;
 		this.frame.x = 0;
 	}
@@ -955,11 +973,14 @@ Player.prototype.equip = function(sword, shield){
 				this.attackProperties.warm *= shield.stats.speed;
 				this.attackProperties.strike *= shield.stats.speed;
 				this.attackProperties.rest *= shield.stats.speed;
-				this.shieldProperties.duck = -5.0 + (15 - (shield.stats.height/2));
-				this.shieldProperties.stand = -5.0;
+				this.shieldProperties.duck = -12.0 + (15 - (shield.stats.height/2));
+				this.shieldProperties.stand = -12.0;
+				this.guard.x = 0;
+				this.guard.w = 28;
 				this.guard.lifeMax = shield.stats.guardlife;
 				this.guard.life = this.guard.lifeMax;
 				this.guard.h = shield.stats.height;
+				this.speeds.turn = shield.stats.turn * Game.DELTASECOND;
 				this.shieldProperties.frame = shield.stats.frame;
 				this.shieldProperties.frame_row = shield.stats.frame_row;
 			}
@@ -1111,10 +1132,15 @@ Player.prototype.respawn = function(g,c){
 	} catch(err){}
 }
 Player.prototype.render = function(g,c){	
-	//Render shield behind the player
-	if( !this.guard.active ){
-		this.rendershield(g,c);
-	}
+	/*
+	if(this.trot == undefined)this.trot = new Point(0,0);
+	if(input.state("left")==1) this.trot.x -= 1;
+	if(input.state("right")==1) this.trot.x += 1;
+	if(input.state("up")==1) this.trot.y -= 1;
+	if(input.state("down")==1) this.trot.y += 1;
+	this.frame.x = this.trot.x;
+	this.frame.y = this.trot.y;
+	*/
 	
 	//Render player
 	if( this.states.roll <= 0 ){
@@ -1144,22 +1170,44 @@ Player.prototype.render = function(g,c){
 	}
 	
 	//Render shield after player if active
-	if( this.guard.active ){
-		this.rendershield(g,c);
-	}
+	//this.rendershield(g,c);
 	
 	//Render current sword
 	if(this.states.roll <= 0){
-		var weapon_filter = this.spellsCounters.magic_strength > 0 ? "enchanted" : _player.equip_sword.filter;
-		var weaponDuckPosition = new Point(0, (this.states.duck?4:0));
-		g.renderSprite(
-			this.attackProperties.sprite,
-			this.position.add(weaponDuckPosition).subtract(c), 
-			this.zIndex,
-			this.weapon.frame, 
-			this.flip, 
-			weapon_filter
-		);
+		try{
+			var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
+			var rotation = _t.r;
+			var sposition = _t.p;
+			var zPlus = _t.z;
+			var effect = _t.v;
+			var shield = _t.s;
+			
+			if(this.flip){
+				sposition = new Point(sposition.x*-1,sposition.y);
+			}
+			
+			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, new Point(), false, {
+				"rotate" : (this.flip ? -1 : 1) * rotation
+			});
+			if(effect instanceof Point){
+				g.renderSprite("swordeffect", this.position.subtract(c), this.zIndex+2, effect, this.flip);
+			}
+			if(shield instanceof Point){
+				var shieldFrames = new Point(Math.abs(shield.y), this.shieldProperties.frame_row);
+				var shieldFlip = shield.y < 0 ? !this.flip : this.flip;
+				var shieldOffset = new Point(
+					(this.flip?-1:1)*shield.x, 
+					Math.floor(this.guard.y+_player.guard.h*0.5)
+				);
+				g.renderSprite(
+					"shields", 
+					this.position.subtract(c).add(shieldOffset), 
+					this.zIndex+1, 
+					shieldFrames, 
+					shieldFlip
+				);
+			}
+		}catch(e){}
 	}
 	
 	//Charge effect
@@ -1184,23 +1232,6 @@ Player.prototype.render = function(g,c){
 	}
 }
 
-
-
-Player.prototype.rendershield = function(g,c){
-	//Render shield	
-	if( this.states.roll > 0 || this.states.downStab ) return;
-	
-	var frame = this.guard.active ? 0 : 1;
-	
-	//var shield_frame = (this.states.guard_down ? 1:0) + (this.states.guard ? 0:2);
-	g.renderSprite(
-		"shields",
-		this.position.subtract(c).add(new Point(0, this.guard.y)), 
-		this.zIndex,
-		new Point(this.shieldProperties.frame + frame, this.shieldProperties.frame_row),
-		this.flip
-	);
-}
 Player.prototype.hudrender = function(g,c){
 	/* Render HP */
 	g.color = [1.0,1.0,1.0,1.0];
@@ -1271,3 +1302,89 @@ Player.prototype.hudrender = function(g,c){
 	//Create light
 	Background.pushLight( this.position, this.lightRadius );
 }
+
+var playerSwordPosition = {
+		0 : {
+			0 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
+			1 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
+			2 : {p:new Point(-17,-2),s:new Point(20,2),r:0,z:1,v:0},
+			3 : {p:new Point(-17,-3),s:new Point(20,2),r:0,z:1,v:0},
+			4 : {p:new Point(-17,-3),s:new Point(20,2),r:0,z:1,v:0},
+			5 : {p:new Point(-17,-2),s:new Point(20,2),r:0,z:1,v:0},
+			6 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
+			7 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
+			8 : {p:new Point(-17,-5),s:new Point(20,2),r:0,z:1,v:0},
+			9 : {p:new Point(-15,5),s:new Point(19,2),r:-5,z:1,v:0},
+			10 : {p:new Point(-14,4),s:new Point(18,2),r:-80,z:1,v:0},
+		},
+		1 : {
+			0 : {p:new Point(-9,1),s:new Point(20,0),r:-110,z:1,v:0},
+			1 : {p:new Point(-9,1),s:new Point(20,0),r:-100,z:1,v:0},
+			2 : {p:new Point(-10,2),s:new Point(20,1),r:-90,z:1,v:0},
+			3 : {p:new Point(-11,4),s:new Point(20,1),r:-100,z:1,v:0},
+			4 : {p:new Point(-12,1),s:new Point(20,2),r:-110,z:1,v:0},
+			5 : {p:new Point(-12,0),s:new Point(20,2),r:-110,z:1,v:0},
+			6 : {p:new Point(-12,3),s:new Point(20,1),r:-100,z:1,v:0},
+			7 : {p:new Point(-12,4),s:new Point(20,1),r:-90,z:1,v:0},
+			8 : {p:new Point(-12,3),s:new Point(20,1),r:-100,z:1,v:0},
+			9 : {p:new Point(-12,5),s:new Point(20,0),r:-110,z:1,v:0},
+			10 : {p:new Point(-16,0),r:114,z:1,v:0},
+		},
+		2 : {
+			6 : {p:new Point(-13,-2),s:new Point(20,2),r:-10,z:1,v:0},
+			7 : {p:new Point(-13,-3),s:new Point(20,2),r:0,z:1,v:0},
+			8 : {p:new Point(-13,-7),s:new Point(20,2),r:0,z:1,v:0},
+			9 : {p:new Point(-13,-4),s:new Point(20,2),r:0,z:1,v:0},
+		},
+		3 : {
+			0 : {p:new Point(-12,-24),r:60,z:1,v:0},
+			1 : {p:new Point(2,1),r:180,z:1,v:0},
+			2 : {p:new Point(2,2),r:180,z:1,v:0},
+			
+			3 : {p:new Point(14,1),s:new Point(-20,-2),r:100,z:1,v:0},
+			4 : {p:new Point(16,-1),s:new Point(-16,-3),r:70,z:1,v:0},
+			5 : {p:new Point(6,-1),s:new Point(-8,-3),r:0,z:-1,v:0},
+			6 : {p:new Point(-6,1),s:new Point(0,4),r:0,z:-1,v:0},
+			7 : {p:new Point(-19,4),s:new Point(8,3),r:30,z:1,v:0},
+			8 : {p:new Point(-18,-1),s:new Point(16,2),r:-10,z:1,v:0},
+		},
+		4 : {
+			0 : {p:new Point(-14,0),r:-80,z:1,v:new Point(0,0)},
+			1 : {p:new Point(16,-6),r:70,z:1,v:new Point(1,0)},
+			2 : {p:new Point(12,-6),r:-45,z:-1,v:new Point(2,0)},
+			3 : {p:new Point(12,-6),r:-50,z:-1,v:0},
+			4 : {p:new Point(12,-6),r:-45,z:-1,v:0},
+			5 : {p:new Point(-24,2),r:-60,z:1,v:new Point(0,1)},
+			6 : {p:new Point(-21,-1),r:-60,z:1,v:new Point(1,1)},
+			7 : {p:new Point(-23,0),r:-10,z:1,v:new Point(2,1)},
+			8 : {p:new Point(21,-4),r:90,z:-1,v:new Point(0,4)},
+			9 : {p:new Point(20,-4),r:90,z:-1,v:new Point(1,4)},
+			10 : {p:new Point(20,-4),r:90,z:-1,v:0}
+		},
+		5 : {
+			0 : {p:new Point(-16,1),r:-45,z:1,v:0},
+			1 : {p:new Point(-16,2),r:-90,z:1,v:0},
+			2 : {p:new Point(15,-2),r:90,z:1,v:new Point(0,2)},
+			3 : {p:new Point(12,-6),r:45,z:-1,v:new Point(1,2)},
+			4 : {p:new Point(6,-6),r:45,z:-1,v:new Point(2,2)},
+			5 : {p:new Point(14,-2),r:50,z:-1,v:new Point(3,2)},
+			6 : {p:new Point(16,4),r:60,z:1,v:0},
+		},
+		8 : {
+			0 : {p:new Point(-15,-2),r:-10,z:1,v:0},
+			1 : {p:new Point(-14,-5),r:-45,z:1,v:0},
+			2 : {p:new Point(-15,-2),r:-140,z:1,v:0},
+			3 : {p:new Point(12,-6),r:45,z:-1,v:new Point(0,3)},
+			4 : {p:new Point(-4,5),r:220,z:-1,v:new Point(1,3)},
+			5 : {p:new Point(9,2),r:110,z:1,v:0},
+			6 : {p:new Point(-20,-1),r:60,z:1,v:0},
+		},
+		9 : {
+			0 : {p:new Point(-16,5),r:-80,z:1,v:0},
+			1 : {p:new Point(-20,2),r:45,z:1,v:0},
+			2 : {p:new Point(-20,2),r:90,z:1,v:0},
+			3 : {p:new Point(21,1),r:90,z:-1,v:new Point(0,5)},
+			4 : {p:new Point(17,2),r:90,z:-1,v:new Point(1,5)},
+			5 : {p:new Point(-20,1),r:55,z:1,v:0}
+		}
+	}

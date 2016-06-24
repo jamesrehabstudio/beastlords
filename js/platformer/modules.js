@@ -21,7 +21,9 @@ var mod_rigidbody = {
 				this.grounded = true;
 				this._groundedTimer = 2;
 			}
-			this.force.y *= -this.bounce;
+			if((this.force.y > 0 && dir > 0) || (this.force.y < 0 && dir < 0 )){
+				this.force.y *= -this.bounce;
+			}
 		});
 		this.on("collideObject", function(obj){
 			if( obj.hasModule(mod_rigidbody) && this.pushable && obj.pushable ) {
@@ -352,11 +354,7 @@ var mod_combat = {
 					
 					var shield;
 					if("guard" in hits[i] && hits[i].guard.active){
-						var g = hits[i].guard;
-						shield = new Line( 
-							hits[i].position.add( new Point( g.x * (hits[i].flip ? -1.0 : 1.0), g.y) ),
-							hits[i].position.add( new Point( (g.x+g.w) * (hits[i].flip ? -1.0 : 1.0), g.y+g.h) )
-						);
+						shield = hits[i].shieldArea();
 					}
 					
 					if(hits[i].hurtable != undefined && !hits[i].hurtable){
@@ -391,6 +389,24 @@ var mod_combat = {
 			}
 			
 			return out;
+		}
+		this.shieldArea = function(){
+			shield = new Line( 
+				this.position.add( 
+					new Point( 
+						this.guard.x * (this.flip ? -1.0 : 1.0), 
+						this.guard.y
+					) 
+				),
+				this.position.add( 
+					new Point( 
+						(this.guard.x+this.guard.w) * (this.flip ? -1.0 : 1.0),
+						this.guard.y+this.guard.h
+					) 
+				)
+			);
+			shield.correct();
+			return shield;
 		}
 		this.isDead = function(){
 			if( this.life <= 0 ){
@@ -541,7 +557,7 @@ var mod_combat = {
 							this.position.y+(Math.random()-.5)*this.height
 						);
 					}
-					effect.frame = j;
+					effect.frame.x = j;
 					game.addObject(effect);
 				}
 				if( i == "stun"){
@@ -589,6 +605,28 @@ var mod_combat = {
 		
 		this.invincible -= this.deltaUnscaled;
 		this.stun -= this.delta;
+	},
+	"postrender" : function(g,c){
+		if(self.debug){
+			if(this.guard.active){
+				var shield = this.shieldArea();
+				g.color = [0.2,0.3,1.0,1.0];
+				g.scaleFillRect(
+					shield.start.x - c.x,
+					shield.start.y - c.y,
+					shield.width(),shield.height()
+				);
+			}
+			
+			if(this.ttest instanceof Line){
+				g.color = [0.8,0.0,0.0,1.0];
+				g.scaleFillRect(
+					this.ttest.start.x - c.x,
+					this.ttest.start.y - c.y,
+					this.ttest.width(),this.ttest.height()
+				);
+			}
+		}
 	}
 }
 
@@ -710,7 +748,7 @@ var mod_talk = {
 		if( this.canOpen && this._talk_is_over > 0 && this.open < 1){
 			var pos = _player.position.subtract(c);
 			pos.y -= 24;
-			"text".render(g,pos,4,6);
+			g.renderSprite("text",pos,9999,new Point(4,6));
 		}
 	}
 }

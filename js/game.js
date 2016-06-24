@@ -474,6 +474,14 @@ Game.prototype.render = function( ) {
 	
 	this.g.enable(this.g.BLEND);
 	
+	var options = {};
+	if("options" in this.objects){
+		if("tint" in this.objects.options){
+			this.tint = this.objects.options.tint;
+		}
+	}
+	
+	
 	if("prerender" in this.objects){
 		this.backBuffer.use(this.g);
 		for(var i=0; i < this.objects["prerender"].length; i++){

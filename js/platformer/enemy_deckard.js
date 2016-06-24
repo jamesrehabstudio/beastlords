@@ -66,7 +66,12 @@ function Deckard(x,y,d,o){
 		
 		for(var i=0; i < 2; i++ ){
 			//Spawn bats on death
-			var batty = new Batty(this.position.x, this.position.y);
+			var batty = new Batty(
+				this.position.x, 
+				this.position.y, 
+				false, 
+				{"difficulty":this.difficulty}
+			);
 			batty.fuse = false;
 			batty.invincible = batty.invincible_time;
 			batty.force.x = i <= 0 ? -8 : 8;
@@ -157,15 +162,15 @@ Deckard.prototype.update = function(){
 	
 	/* Animation */
 	if( this.states.attack > 0 ){
-		this.frame = this.states.attack < this.attack_time * 0.3 ? 1 : 0;
-		this.frame_row = this.states.attack_lower ? 2 : 1;
+		this.frame.x = this.states.attack < this.attack_time * 0.3 ? 1 : 0;
+		this.frame.y = this.states.attack_lower ? 2 : 1;
 	} else {
 		if( this.grounded ) {
-			this.frame = 0;
-			this.frame_row = 0;
+			this.frame.x = 0;
+			this.frame.y = 0;
 		} else {
-			this.frame = (this.frame + (this.delta * Math.abs(this.force.x) * 0.2)) % 2;
-			this.frame_row = 3;
+			this.frame.x = (this.frame.x + (this.delta * Math.abs(this.force.x) * 0.2)) % 2;
+			this.frame.y = 3;
 		}
 	}
 }

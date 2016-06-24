@@ -251,6 +251,11 @@ MovingBlock.prototype.destinationReached = function(){
 		this.move = 0;
 	}
 }
+MovingBlock.prototype.shouldRender = function(){
+	var c = this.corners();
+	var l = new Line(c.left,c.top,c.right,c.bottom).transpose(game.camera.scale(-1));
+	return l.overlaps(new Line(0,0,game.resolution.x,game.resolution.y));
+}
 
 MovingBlock.prototype.render = function(g,c){
 	var i = 0;
@@ -271,3 +276,145 @@ MovingBlock.prototype.render = function(g,c){
 		}
 	}
 }
+
+
+
+Crusher.prototype = new GameObject();
+Crusher.prototype.constructor = GameObject;
+function Crusher(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.startPosition = new Point(this.position.x, this.position.y);
+	this.width = d[0];
+	this.height = d[1];
+	this.speed = 1.0;
+	this.fallSpeed = 5.0;
+	this.move = false;
+	this.killStuck = 1;
+	this.margin = 32;
+	
+	this.states = {
+		"phase" : 0,
+		"cooldown" : 0.0
+	};
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	this.on("collideObject", function(obj){
+		if(this.move && obj.hasModule(mod_block)){
+			this.states.phase = 2;
+			this.states.cooldown = Game.DELTASECOND;
+		} else if(this.killStuck && this.move){
+			if(obj.hasModule(mod_rigidbody) && obj.hasModule(mod_combat)){
+				if(obj.isStuck){
+					if(obj instanceof Player && obj.states.ledgeObject == this){
+						obj.trigger("dropLedge");
+					} else {
+						if(this.dotDirection(obj.position) > 0.1){
+							obj.invincible = -1;
+							obj.hurt( this, Math.floor( 9999 ) );
+						} else {
+							console.log("Spare crushing object");
+						}
+					}
+				}
+			}
+		} else {
+			//fall off platform if obj hits a tile
+			if(obj.isStuck && obj instanceof Player && obj.states.ledgeObject == this){
+				obj.trigger("dropLedge");
+			}
+		}
+	});
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+Crusher.prototype.lowest = function(){
+	var c = this.corners();
+	var y = c.bottom + 8;
+	var x1 = c.left;
+	var x2 = c.right;
+	
+	for(var x = x1; x < x2; x+=16){
+		var tile = game.getTile(x,y);
+		if(tile != 0 ){
+			return Math.floor(y/16)*16;
+		}
+	}
+	return Number.MAX_SAFE_INTEGER;
+}
+
+Crusher.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if(this.states.phase == 0){
+		//Wait for player
+		this.move = false;
+		var c = this.corners();
+		if(
+			_player.position.y > this.position.y &&
+			_player.position.x + this.margin > c.left &&
+			_player.position.x - this.margin < c.right
+		){
+			this.states.phase = 1;
+			this.states.cooldown = Game.DELTASECOND;
+		}
+	} else if(this.states.phase == 1){
+		//falling
+		this.move = true;
+		this.position.y += this.delta * this.fallSpeed;
+		var l = this.lowest();
+		
+		if(this.position.y + this.height >= l){
+			this.states.phase = 2;
+			this.position.y = l - this.height;
+		}
+	} else if(this.states.phase == 2){
+		//Rest on floor
+		this.move = false;
+		this.states.cooldown -= this.delta;
+		if(this.states.cooldown <= 0){
+			this.states.phase = 3;
+		}
+	} else {
+		//Move up
+		this.move = true;
+		this.position.y -= this.delta * this.speed;
+		if(this.position.y <= this.startPosition.y){
+			this.position.y = this.startPosition.y;
+			this.states.phase = 0;
+		}
+	}
+}
+Crusher.prototype.getDirection = function(){
+	if(this.states.phase == 1) return new Point(0,1);
+	if(this.states.phase == 3) return new Point(0,-1);
+	return new Point(0,0);
+};
+Crusher.prototype.shouldRender = MovingBlock.prototype.shouldRender;
+Crusher.prototype.dotDirection = MovingBlock.prototype.dotDirection;
+Crusher.prototype.render = MovingBlock.prototype.render;

@@ -175,9 +175,9 @@ NPC.prototype.runScript = function(filename){
 		var time = NPC.resolveCalculation(line[1]);
 		if(this.scriptWait > 0){
 			var speed = this.delta / (Game.DELTASECOND * time);
-			game.tint[0] = Math.lerp(game.tint[0],NPC.resolveVariable(line[2]),speed);
-			game.tint[1] = Math.lerp(game.tint[1],NPC.resolveVariable(line[3]),speed);
-			game.tint[2] = Math.lerp(game.tint[2],NPC.resolveVariable(line[4]),speed);
+			Renderer.tint[0] = Math.lerp(Renderer.tint[0],NPC.resolveVariable(line[2]),speed);
+			Renderer.tint[1] = Math.lerp(Renderer.tint[1],NPC.resolveVariable(line[3]),speed);
+			Renderer.tint[2] = Math.lerp(Renderer.tint[2],NPC.resolveVariable(line[4]),speed);
 			this.scriptWait -= this.delta;
 			if(this.scriptWait <= 0){
 				this.scriptPos++;
