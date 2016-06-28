@@ -496,8 +496,13 @@ var mod_combat = {
 			}
 		}
 		this.calculateXP = function(scale){
-			if(!this.filter && !(this instanceof Player) && !this.hasModule(mod_boss))
-				this.filter = "t"+this.difficulty;
+			if(!(this instanceof Player) && !this.hasModule(mod_boss)){
+				if(this.paletteSwaps instanceof Array && this.paletteSwaps.length > this.difficulty){
+					this.filter = this.paletteSwaps[this.difficulty];
+				} else {
+					this.filter = "t"+this.difficulty;
+				}
+			}
 			
 			scale = scale == undefined ? 1 : scale;
 			this.xp_award = 0;
@@ -571,7 +576,7 @@ var mod_combat = {
 		if( this.damage_buffer > 0 && this._damage_buffer_timer <= 0 ){
 			this.life -= 1;
 			this.damage_buffer -= 1;
-			this._damage_buffer_timer = Game.DELTASECOND * 0.3;
+			this._damage_buffer_timer = Game.DELTASECOND * 0.6;
 			this.isDead();
 		}
 		
@@ -654,6 +659,7 @@ var mod_boss = {
 				this.position.x = this.boss_starting_position.x;
 				this.position.y = this.boss_starting_position.y;
 				this.active = false;
+				this.life = this.lifeMax;
 				this.boss_intro = 0.0;
 				
 				_player.lock_overwrite = false;
@@ -700,9 +706,23 @@ var mod_boss = {
 		}
 	},
 	"hudrender" : function(g,c){
+		if( this.active && this.life > 0 ){
+			var width = 160;
+			var height = 8;
+			var start = game.resolution.x * 0.5 - width * 0.5;
+			var lifePercent = this.life / this.lifeMax;
+			
+			g.color = [1.0,1.0,1.0,1.0];
+			g.scaleFillRect(start-1, game.resolution.y-25, width+2, height+2);
+			g.color = [0.0,0.0,0.0,1.0];
+			g.scaleFillRect(start, game.resolution.y-24, width, height);
+			g.color = [1.0,0.0,0.0,1.0];
+			g.scaleFillRect(start, game.resolution.y-24, width*lifePercent, height);
+			
+		}
 		if( this.active && this.boss_intro < 1.0){
 			this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
-			g.color = [0.0,0.0,0.0,0.5];
+			g.color = [0.0,0.0,0.0,0.3];
 			
 			var slide = Math.min(Math.sin(Math.PI*this.boss_intro)*4, 1);
 			var border = Math.min(Math.sin(Math.PI*this.boss_intro)*3, 1) * 64;

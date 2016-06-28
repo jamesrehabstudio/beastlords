@@ -806,7 +806,7 @@
   <properties>
    <property name="trigger" value="boss_door"/>
   </properties>
-  <object id="1" name="Player" x="3744" y="160" width="16" height="32"/>
+  <object id="1" name="Player" x="368" y="3056" width="16" height="32"/>
   <object id="2" name="Checkpoint" x="3696" y="2048" width="32" height="64"/>
   <object id="3" name="Checkpoint" x="3712" y="1568" width="16" height="64"/>
   <object id="4" name="Checkpoint" x="1152" y="1808" width="16" height="64"/>

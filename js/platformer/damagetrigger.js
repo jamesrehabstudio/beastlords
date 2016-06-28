@@ -12,12 +12,16 @@ function DamageTrigger(x,y,d,o){
 	this.origin.y = 0;
 	
 	this.restTimer = 0.0;
-	this.damage = 25;
-	this.alwaysHurt = 0;
+	this.damage = 12;
+	this.alwaysKill = 0;
+	this.alwaysHurt = 1;
 	
 	o = o || {};
 	if("damage" in o){
 		this.damage = o.damage * 1;
+	}
+	if("kill" in o){
+		this.alwaysKill = o.kill * 1;
 	}
 	if("alwayshurt" in o){
 		this.alwaysHurt = o["alwayshurt"] * 1;
@@ -25,7 +29,11 @@ function DamageTrigger(x,y,d,o){
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
-			if( this.restTimer <= 0 || this.alwaysHurt ){
+			if(this.alwaysKill){
+				obj.invincible = -1;
+				obj.life = 0;
+				obj.hurt(this,0);
+			} else if( this.restTimer <= 0 ){
 				if(this.alwaysHurt){
 					obj.invincible = -1;
 				}

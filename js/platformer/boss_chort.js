@@ -20,6 +20,7 @@ function Chort(x,y){
 	
 	this.death_time = Game.DELTASECOND * 3;
 	this.life = Spawn.life(26,this.difficulty);
+	this.lifeMax = this.life;
 	this.collideDamage = 5;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);

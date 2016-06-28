@@ -12,6 +12,8 @@ function Spawn(x,y,d,ops){
 	this.autodestroy = 0;
 	this.enemies = new Array();
 	this.active = false;
+	this.timer = 0.0;
+	this.timerTotal = 0.0;
 	
 	this.on("activate",function(obj){
 		this.spawn();
@@ -49,15 +51,29 @@ function Spawn(x,y,d,ops){
 	} else { 
 		this.tags = new Array();
 	}
+	if("timer" in ops){
+		this.timerTotal = ops["timer"] * Game.DELTASECOND;
+		this.timer = this.timerTotal;
+	}
 	if("trigger" in ops){
 		this._tid = ops.trigger;
 	}
 	
-	
-	
 	if(autospawn){
 		//Spawn on creation
 		this.spawn();
+	}
+}
+
+Spawn.prototype.update = function(){
+	if(this.timerTotal > 0){
+		this.timer -= this.delta;
+		if(this.timer <= 0){
+			this.timer = this.timerTotal;
+			if(!this.isAlive()){
+				this.spawn();
+			}
+		}
 	}
 }
 
@@ -133,6 +149,7 @@ Spawn.prototype.create = function(enemies){
 
 Spawn.addToList = function(pos,list, type, max, ops){
 	var slot = -1;
+	var obj;
 	max = max == undefined ? 5 : max;
 	
 	for(var i=0; i < max; i++){
@@ -148,12 +165,14 @@ Spawn.addToList = function(pos,list, type, max, ops){
 	}
 	
 	if(slot >= 0){
-		var obj = new type(pos.x, pos.y, false, ops);
+		obj = new type(pos.x, pos.y, false, ops);
 		//obj.on("sleep", function(){ this.destroy();});
 		obj.xp_award = 0;
 		game.addObject(obj);
 		list[slot] = obj;
 	}
+	
+	return obj;
 }
 Spawn.countList = function(list){
 	var count = 0;

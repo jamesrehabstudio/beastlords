@@ -95,6 +95,11 @@ function BreakableTile(x, y, d, ops){
 	
 	this.startBroken = 0;
 	
+	ops = ops || {};
+	if("tilelayer" in ops){
+		this.tileLayer = ops["tilelayer"] * 1;
+	}
+	
 	if(d[0] > 16 || d[1] > 16){
 		this.origin = new Point(0.0, 0.0);
 		this.width = Math.round(d[0]/16)*16;
@@ -105,16 +110,15 @@ function BreakableTile(x, y, d, ops){
 		this.undertile = new Array();
 		for(var x=0; x < this.width; x+= 16){
 			for(var y=0; y < this.height; y+= 16){
-				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y);
+				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y, this.tileLayer);
 				this.undertile.push(tile);
 			}
 		}
 	} else {
 		this.width = this.height = 16;
-		this.undertile = game.getTile(this.position.x, this.position.y);
+		this.undertile = game.getTile(this.position.x, this.position.y, this.tileLayer);
 	}
 	
-	ops = ops || {};
 	if( "strikeable" in ops ) {
 		this.strikeable = ops["strikeable"] * 1;
 	}
@@ -135,9 +139,6 @@ function BreakableTile(x, y, d, ops){
 	}
 	if("resetonsleep" in ops){
 		this.resetOnSleep = ops["resetonsleep"];
-	}
-	if("tilelayer" in ops){
-		this.tileLayer = ops["tilelayer"] * 1;
 	}
 	if("explode" in ops){
 		this.explode = ops["explode"] * 1;
@@ -173,7 +174,10 @@ function BreakableTile(x, y, d, ops){
 	
 	//Set first state
 	if(this.startBroken){
+		var tempChain = this.chain;
+		this.chain = 0;
 		this.break(false);
+		this.chain = tempChain;
 	}
 	if(this.resetOnSleep){
 		this.on("sleep", function(){
@@ -187,12 +191,12 @@ function BreakableTile(x, y, d, ops){
 }
 BreakableTile.prototype.unbreak = function(explode){
 	if(this.broken && this.undertile != 0){
+		if(this.chain) {
+			this.chainActive = true;
+			this.chaintype = "unbreak";
+		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
-			if(this.chain) {
-				this.chainActive = true;
-				this.chaintype = "unbreak";
-			}
 		}
 		if(this.undertile instanceof Array){
 			var i = 0;
@@ -220,12 +224,12 @@ BreakableTile.prototype.unbreak = function(explode){
 }
 BreakableTile.prototype.break = function(explode){
 	if(!this.broken && this.undertile != BreakableTile.unbreakable && this.undertile != 0){
+		if(this.chain) {
+			this.chainActive = true;
+			this.chaintype = "break";
+		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
-			if(this.chain) {
-				this.chainActive = true;
-				this.chaintype = "break";
-			}
 		}
 		if(this.undertile instanceof Array){
 			for(var x=0; x < this.width; x+= 16){
@@ -268,16 +272,18 @@ BreakableTile.prototype.spawnObject = function(){
 	}
 }
 BreakableTile.prototype.neighbours = function(type){
-	
+	var corners = this.corners()
 	var hits = game.overlaps(new Line(
-		this.center.x - (this.width*0.5 + this.chainSize), 
-		this.center.y - (this.height*0.5 + this.chainSize),
-		this.center.x + (this.width*0.5 + this.chainSize), 
-		this.center.y + (this.height*0.5 + this.chainSize)
+		corners.left - this.chainSize, 
+		corners.top - this.chainSize,
+		corners.right + this.chainSize, 
+		corners.bottom + this.chainSize
 	));
 	for(var i=0; i< hits.length; i++) {
 		if( hits[i] instanceof BreakableTile && hits[i] != this ) {
-			hits[i].trigger(type, this);
+			if(hits[i].chain){
+				hits[i].trigger(type, this);
+			}
 		}
 	}
 }

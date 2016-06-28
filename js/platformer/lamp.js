@@ -10,6 +10,7 @@ function Lamp(x,y,t,o){
 	this.zIndex = -21;
 	this.size = 180;
 	this.show = true;
+	this.color = [1.0,0.85,0.75,1.0];
 	
 	this.frame = 0;
 	this.frame_row = 0;
@@ -21,6 +22,14 @@ function Lamp(x,y,t,o){
 	if("show" in o){
 		this.show = o.show * 1;
 	}
+	if("color" in o){
+		var colorArray = o.color.split(",");
+		if(colorArray.length >= 3){
+			this.color[0] = colorArray[0] * 1;
+			this.color[1] = colorArray[1] * 1;
+			this.color[2] = colorArray[2] * 1;
+		}
+	}
 }
 Lamp.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.3) % 4;
@@ -29,7 +38,7 @@ Lamp.prototype.render = function(g,c){
 	if(this.show){
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
-	Background.pushLight( this.position, this.size, [1.0,0.85,0.75,1.0] );
+	Background.pushLight( this.position, this.size, this.color );
 }
 Lamp.prototype.idle = function(){
 	var current = this.awake;

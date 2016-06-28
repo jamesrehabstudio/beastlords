@@ -321,7 +321,7 @@ function load_sprites (){
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
 	
-	sprites['swordtest'] = new Sprite(RT+"img/sword_test.png", {offset:new Point(7, 24),width:16,height:32});
+	sprites['swordtest'] = new Sprite(RT+"img/sword_test.png", {offset:new Point(15, 56),width:32,height:64});
 	sprites['swordeffect'] = new Sprite(RT+"img/swordeffect.png", {offset:new Point(48, 33),width:112,height:48});
 	
 	sprites['bossface'] = new Sprite(RT+"img/bossface.gif", {offset:new Point(0, 0),width:90,height:120});
@@ -396,14 +396,20 @@ function load_sprites (){
 		1023 : {"frames":[1024], "speed":0.0}
 	});
 	tiles["temple1"] = new Tileset(sprites["temple1"],tileRules["big"], {
-		321 : {"frames":[321,322,323], "speed":6.0}
+		321 : {"frames":[321,322,323], "speed":6.0},
+		357 : {"frames":[357,357,357,357,357,357,357,357,357,357,358,359,360,361,362], "speed":8.0},
+		499 : {"frames":[499,499,499,499,499,499,499,500,501,502,503,504,499,499,499], "speed":8.0}
 	});
 	tiles["temple2"] = new Tileset(sprites["temple2"],tileRules["big"], {
 		275 : {"frames":[275,277,279], "speed":9.0},
 		276 : {"frames":[276,278,280], "speed":9.0},
 		307 : {"frames":[307,309,311], "speed":9.0},
 		308 : {"frames":[308,310,312], "speed":9.0},
+		//slime flow
 		326 : {"frames":[326,327,328], "speed":9.0},
+		327 : {"frames":[326,327,328], "speed":6.0},
+		328 : {"frames":[326,327,328], "speed":3.0},
+		
 		358 : {"frames":[358,359,360], "speed":18.0},
 		390 : {"frames":[390,391,392], "speed":9.0},
 		422 : {"frames":[422,423,424], "speed":9.0}

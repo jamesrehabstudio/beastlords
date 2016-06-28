@@ -18,11 +18,12 @@ function Player(x, y){
 	this.knockedout = false;
 	this.pause = false;
 	
+	this.equip_weapon = new Weapon("short_sword");
 	this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 	this.unique_item = false;
 	
-	this.equip_weapon = new Weapon();
+	
 	
 	_player = this;
 	this.sprite = "player";
@@ -234,7 +235,7 @@ function Player(x, y){
 					obj.position.y,
 					dir.add(new Point(0, -2)),
 					{
-						"damage" : this.damage * 4,
+						"damage" : this.equip_weapon.baseDamage(this) * 4,
 						"sprite" : obj.sprite,
 						"flip" : obj.flip,
 						"frame" : obj.frame,
@@ -731,6 +732,9 @@ Player.prototype.update = function(){
 		this.stand();
 		this.frame.x = 10;
 		this.frame.y = 1;
+	} else if( this.states.ledge ) {
+		this.frame.x = 0;
+		this.frame.y = 6;
 	} else if( this.states.roll > 0 ) {
 		this.frame.y = 2;
 		this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
@@ -957,12 +961,7 @@ Player.prototype.equipCharm = function(c){
 Player.prototype.equip = function(sword, shield){
 	try {	
 		if( sword.isWeapon && "stats" in sword ){
-			this.attackProperties.warm =  sword.stats.warm;
-			this.attackProperties.strike = sword.stats.strike;
-			this.attackProperties.rest = sword.stats.rest;
-			this.attackProperties.range = sword.stats.range;
-			this.attackProperties.sprite = sword.stats.sprite;
-			if( sword.twoHanded ) shield = null;
+			this.equip_weapon = new Weapon(sword.name);
 		} else {
 			throw "No valid weapon";
 		}
@@ -1186,7 +1185,7 @@ Player.prototype.render = function(g,c){
 				sposition = new Point(sposition.x*-1,sposition.y);
 			}
 			
-			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, new Point(), false, {
+			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.stats.sprite, false, {
 				"rotate" : (this.flip ? -1 : 1) * rotation
 			});
 			if(effect instanceof Point){
@@ -1246,7 +1245,7 @@ Player.prototype.hudrender = function(g,c){
 		g.color = [0.65,0.0625,0.0,1.0];
 		var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer), 8)
 		g.scaleFillRect(
-			Math.max(this.life/4,0)+8,
+			Math.max(this.life,0)+8,
 			8,
 			-Math.min(this.damage_buffer,this.life),
 			8

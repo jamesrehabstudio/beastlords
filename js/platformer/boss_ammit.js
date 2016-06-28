@@ -46,8 +46,15 @@ function Ammit(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
-		if(Math.random() > 0.666){
-			this.changeState(Ammit.STATE_HIDDEN);
+		if(Math.random() > 0.666 && this.states.current != Ammit.STATE_BURST){
+			var livingSlimes = Spawn.countList(this.slimes);
+			var burstChance = (1-(livingSlimes/5.0)) * Math.min(Math.max(1-(this.life/this.lifeMax),0.2),0.8);
+			
+			if(Math.random() < burstChance){
+				this.changeState(Ammit.STATE_BURST);
+			} else {
+				this.changeState(Ammit.STATE_HIDDEN);
+			}
 		}
 	});
 	this.on("collideObject", function(obj){
@@ -62,7 +69,7 @@ function Ammit(x,y,d,o){
 			}
 		}
 	});
-	this.on("pre_death", function(){
+	this.on(["player_death","pre_death"], function(){
 		for(var i=0; i < this.slimes.length; i++){
 			if(this.slimes[i] instanceof Slime){
 				this.slimes[i].destroy();
@@ -89,6 +96,7 @@ Ammit.STATE_PUNCH = 3;
 Ammit.STATE_REACH = 4;
 Ammit.STATE_BOUNCE = 5;
 Ammit.STATE_HIDDEN = 6;
+Ammit.STATE_BURST = 7;
 
 Ammit.prototype.changeState = function(newState){
 	this.states.previous = this.states.current;
@@ -96,7 +104,7 @@ Ammit.prototype.changeState = function(newState){
 	this.states.transition = this.states.transitionTotal = Game.DELTASECOND;
 	this.interactive = true;
 	if(newState == Ammit.STATE_IDLE){
-		this.states.cooldown = Game.DELTASECOND * 1.5;
+		this.states.cooldown = Game.DELTASECOND * 1.25;
 		this.states.transition = this.states.transitionTotal = 0.3 * Game.DELTASECOND;
 		if(this.life / this.lifeMax < 0.5){
 			this.states.cooldown = Game.DELTASECOND * 0.6;
@@ -121,6 +129,10 @@ Ammit.prototype.changeState = function(newState){
 	if(newState == Ammit.STATE_BOUNCE){
 		this.states.cooldown = Game.DELTASECOND * 5;
 		this.states.transition = this.states.transitionTotal = 0.3 * Game.DELTASECOND;
+	}
+	if(newState == Ammit.STATE_BURST){
+		this.states.cooldown = Game.DELTASECOND * 1.5;
+		this.states.transition = this.states.transitionTotal = 0.0;
 	}
 }
 Ammit.prototype.update = function(){	
@@ -216,10 +228,19 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_PUNCH){
 				//Punch
-				this.strike(new Line(new Point(0,-8), new Point(48,0)));
+				if(this.states.attack > Game.DELTASECOND * 0.7){
+					this.strike(new Line(new Point(0,-8), new Point(48,0)));
+				}
 				
 				if(this.states.attack < 0){
-					this.changeState(Ammit.STATE_IDLE);
+					var r = Math.random();
+					if(r < 0.2){
+						this.changeState(Ammit.STATE_MOVE);
+					} else if (r < 0.5){
+						this.changeState(Ammit.STATE_SPAWN);
+					} else {
+						this.changeState(Ammit.STATE_IDLE);
+					}
 				}
 				this.states.attack -= this.delta;
 				this.frame.x = 3;
@@ -234,8 +255,8 @@ Ammit.prototype.update = function(){
 					this.flip = !this.flip;
 					this.changeState(Ammit.STATE_IDLE);
 				}
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
-				this.frame.y = 0;
+				this.frame.x = 5;
+				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_SPAWN){
 				//spawn enemies
 				this.force.x += this.speed * this.delta * (this.flip?-1:1);
@@ -282,6 +303,20 @@ Ammit.prototype.update = function(){
 				}
 				this.states.cooldown -= this.delta;
 				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
+			} else if(this.states.current == Ammit.STATE_BURST){
+				if(this.states.cooldown < 0){
+					for(var i=0; i < 5; i++){
+						var randomPosition = new Point(Math.random()-.5,Math.random()-.5).scale(32);
+						var slime = Spawn.addToList(this.position.add(randomPosition),this.slimes,Slime,5);
+						if(slime instanceof GameObject){
+							slime.force = new Point(Math.random()-0.5,Math.random()-0.8).normalize(8);
+						}
+					}
+					this.changeState(Ammit.STATE_HIDDEN);
+				}
+				this.states.cooldown -= this.delta;
+				this.frame.x = Math.max((this.frame.x + this.delta * 0.5) % 6, 4);
 				this.frame.y = 0;
 			}
 		}

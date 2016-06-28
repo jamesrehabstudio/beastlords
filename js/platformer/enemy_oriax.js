@@ -8,6 +8,7 @@ function Oriax(x,y,d,o){
 	this.height = 48;
 	
 	this.sprite = "oriax";
+	this.paletteSwaps = ["t0","t0","t2","t3","t4"];
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -78,7 +79,7 @@ Oriax.prototype.update = function(){
 				} else {
 					var bullet = new Bullet(this.position.x, this.position.y+4,(this.flip?-1:1));
 					bullet.frames = [5,6,7];
-					bullet.frame_row = 1;
+					bullet.frame.y = 1;
 					bullet.blockable = 1;
 					bullet.damage = this.damage;
 					game.addObject(bullet);

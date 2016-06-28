@@ -11,9 +11,9 @@ spell_fire = function(player){
 	var bullet = new Bullet(player.position.x, player.position.y, (player.flip?-1:1));
 	bullet.team = 1;
 	bullet.frames = [5,6,7];
-	bullet.frame_row = 1;
+	bullet.frame.y = 1;
 	bullet.blockable = 0;
-	bullet.damage = player.damage;
+	bullet.damage = 10 + player.stats.magic * 5;
 	game.addObject(bullet);
 	
 	return cost;

@@ -449,7 +449,7 @@ Game.prototype.render = function( ) {
 	var useLightBuffer = false;
 	
 	this.gameThread.postMessage({
-		"input" : input.states,
+		"input" : input.serialize(),
 		"resolution" : {
 			"x" : this.resolution.x,
 			"y" : this.resolution.y

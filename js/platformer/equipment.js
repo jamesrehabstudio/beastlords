@@ -1,10 +1,10 @@
-function Weapon(){
+function Weapon(name){
 	this.combo = 0;
 	this.time = 0.0;
 	this.timeRest = 0.0;
 	this.timeMiss = 0.0;
 	this.queue = 0;
-	this.stats = WeaponStats["short_sword"];
+	this.stats = WeaponStats[name];
 	this.combohit = 0;
 	this.playerState = "standing";
 	this.currentAttack = null;
@@ -109,6 +109,11 @@ Weapon.prototype.hit = function(player,obj,damage){
 		this.cancel();
 		return;
 	}
+	if(this.currentAttack == undefined || !(this.combo in this.currentAttack)){
+		this.cancel();
+		return;
+	}
+	
 	var phase = this.currentAttack[this.combo];
 	
 	this.combohit = 1;

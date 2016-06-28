@@ -96,3 +96,21 @@ Input.prototype.update = function( ) {
 		}
 	}
 }
+
+Input.prototype.serialize = function(){
+	var out = {};
+	for(var i=0;i < this.INPUT_KEYS.length; i++){
+		var index = this.INPUT_KEYS[i];
+		
+		if(index in this.states && index in this.joystates){
+			out[index] = Math.max(this.states[index],this.joystates[index]);
+		} else if(index in this.states){
+			out[index] = this.states[index];
+		} else if(index in this.joystates){
+			out[index] = this.joystates[index];
+		} else {
+			out[index] = 0;
+		}
+	}
+	return out;
+}

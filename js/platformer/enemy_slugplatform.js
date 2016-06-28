@@ -31,6 +31,15 @@ function SlugPlatform(x,y,d,o){
 	if("loop" in o){
 		this.loop = o["loop"] * 1;
 	}
+	if("deathreset" in o){
+			this.on("player_death", function(){
+			this.position.x = this.startPosition.x;
+			this.position.y = this.startPosition.y;
+			if(this.waitforplayer){
+				this.active = false;
+			}
+		});
+	}
 	
 	if(this.waitforplayer){
 		this.active = false;
@@ -71,7 +80,7 @@ SlugPlatform.prototype.update = function(){
 				if(Math.abs(this.position.x-this.startPosition.x) < 8){
 					this.position.x = this.startPosition.x;
 					this.active = false;
-					this.flip = false;
+					this.flip = !this.flip;
 					this.leftStart = false;
 				}
 			}

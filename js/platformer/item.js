@@ -163,7 +163,7 @@ Item.prototype.setName = function(n){
 		this.frame.x = 0; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":"sword1" };
+		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":new Point(0,0) };
 		this.message = Item.weaponDescription;
 		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -175,7 +175,7 @@ Item.prototype.setName = function(n){
 		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":"sword2" };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":new Point(1,0) };
 		this.message = Item.weaponDescription;
 		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -187,7 +187,7 @@ Item.prototype.setName = function(n){
 		this.frame.x = 3; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":"sword2" };
+		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":new Point(2,0) };
 		this.message = Item.weaponDescription;
 		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);

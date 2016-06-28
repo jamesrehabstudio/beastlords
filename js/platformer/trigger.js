@@ -166,14 +166,45 @@ Trigger.activate = function(targets){
 	}	
 }
 
+AttackTrigger.prototype = Trigger.prototype;
+AttackTrigger.prototype.constructor = GameObject;
+function AttackTrigger(x,y,d,o){
+	Trigger.apply(this,[x,y,d,o]);
+	this.clearEvents("collideObject");
+	
+	this.addModule(mod_combat);
+	
+	o = o || {};
+	this.lifeMax = this.life = 1;
+	
+	if(!("retrigger" in o)){
+		this.retrigger = 0;
+	}
+	if("life" in o){
+		this.lifeMax = this.life = o["life"] * 1;
+	}
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		//this.states.attack = 0;
+		audio.play("hurt");
+	});
+	this.on("death", function(){
+		this.trigger("activate");
+		if(this.retrigger){
+			this.dead = false;
+			this.life = this.lifeMax;
+			this.interactive = true;
+		} else {
+			this.destroy();
+		}
+	});
+}
+
 Switch.prototype = Trigger.prototype;
 Switch.prototype.constructor = GameObject;
 function Switch(x,y,d,o){
 	o = o || {};
-	if(!("retrigger" in o)){
-		//Set retrigger to 0 by default
-		o["retrigger"] == 0;
-	}
 	Trigger.apply(this,[x,y,d,o]);
 	
 	//Clear the on touch trigger

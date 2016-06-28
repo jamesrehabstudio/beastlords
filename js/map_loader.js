@@ -128,13 +128,16 @@ MapLoader.loadMapTmx = function(url, callback){
 MapLoader.parseTile = function(tile,tilesets){
 	tile *= 1;
 	var subtract = 1;
+	var flags = Math.abs(tile & 0xF0000000);
+	var utile = Math.abs(tile & 0x0FFFFFFF);
+	
 	for(var i=0; i < tilesets.length; i++){
-		if(tile >= tilesets[i]){
+		if(utile >= tilesets[i]){
 			subtract = tilesets[i];
 		}
 	}
 	subtract -= 1;
-	return tile - subtract;
+	return flags + (utile - subtract);
 }
 
 MapLoader.parseMap = function(xml){

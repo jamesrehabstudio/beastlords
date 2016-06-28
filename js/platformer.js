@@ -343,7 +343,7 @@ Background.prototype.renderDust = function(g,c){
 				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y+16 ) 
 			),
 			this.zIndex = 0,
-			new Point(0, 0), 
+			new Point(0, 31), 
 			false, 
 			{
 				"shader":"blur",
@@ -976,8 +976,15 @@ function Ammit(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
-		if(Math.random() > 0.666){
-			this.changeState(Ammit.STATE_HIDDEN);
+		if(Math.random() > 0.666 && this.states.current != Ammit.STATE_BURST){
+			var livingSlimes = Spawn.countList(this.slimes);
+			var burstChance = (1-(livingSlimes/5.0)) * Math.min(Math.max(1-(this.life/this.lifeMax),0.2),0.8);
+			
+			if(Math.random() < burstChance){
+				this.changeState(Ammit.STATE_BURST);
+			} else {
+				this.changeState(Ammit.STATE_HIDDEN);
+			}
 		}
 	});
 	this.on("collideObject", function(obj){
@@ -992,7 +999,7 @@ function Ammit(x,y,d,o){
 			}
 		}
 	});
-	this.on("pre_death", function(){
+	this.on(["player_death","pre_death"], function(){
 		for(var i=0; i < this.slimes.length; i++){
 			if(this.slimes[i] instanceof Slime){
 				this.slimes[i].destroy();
@@ -1019,6 +1026,7 @@ Ammit.STATE_PUNCH = 3;
 Ammit.STATE_REACH = 4;
 Ammit.STATE_BOUNCE = 5;
 Ammit.STATE_HIDDEN = 6;
+Ammit.STATE_BURST = 7;
 
 Ammit.prototype.changeState = function(newState){
 	this.states.previous = this.states.current;
@@ -1026,7 +1034,7 @@ Ammit.prototype.changeState = function(newState){
 	this.states.transition = this.states.transitionTotal = Game.DELTASECOND;
 	this.interactive = true;
 	if(newState == Ammit.STATE_IDLE){
-		this.states.cooldown = Game.DELTASECOND * 1.5;
+		this.states.cooldown = Game.DELTASECOND * 1.25;
 		this.states.transition = this.states.transitionTotal = 0.3 * Game.DELTASECOND;
 		if(this.life / this.lifeMax < 0.5){
 			this.states.cooldown = Game.DELTASECOND * 0.6;
@@ -1051,6 +1059,10 @@ Ammit.prototype.changeState = function(newState){
 	if(newState == Ammit.STATE_BOUNCE){
 		this.states.cooldown = Game.DELTASECOND * 5;
 		this.states.transition = this.states.transitionTotal = 0.3 * Game.DELTASECOND;
+	}
+	if(newState == Ammit.STATE_BURST){
+		this.states.cooldown = Game.DELTASECOND * 1.5;
+		this.states.transition = this.states.transitionTotal = 0.0;
 	}
 }
 Ammit.prototype.update = function(){	
@@ -1146,10 +1158,19 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_PUNCH){
 				//Punch
-				this.strike(new Line(new Point(0,-8), new Point(48,0)));
+				if(this.states.attack > Game.DELTASECOND * 0.7){
+					this.strike(new Line(new Point(0,-8), new Point(48,0)));
+				}
 				
 				if(this.states.attack < 0){
-					this.changeState(Ammit.STATE_IDLE);
+					var r = Math.random();
+					if(r < 0.2){
+						this.changeState(Ammit.STATE_MOVE);
+					} else if (r < 0.5){
+						this.changeState(Ammit.STATE_SPAWN);
+					} else {
+						this.changeState(Ammit.STATE_IDLE);
+					}
 				}
 				this.states.attack -= this.delta;
 				this.frame.x = 3;
@@ -1164,8 +1185,8 @@ Ammit.prototype.update = function(){
 					this.flip = !this.flip;
 					this.changeState(Ammit.STATE_IDLE);
 				}
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
-				this.frame.y = 0;
+				this.frame.x = 5;
+				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_SPAWN){
 				//spawn enemies
 				this.force.x += this.speed * this.delta * (this.flip?-1:1);
@@ -1212,6 +1233,20 @@ Ammit.prototype.update = function(){
 				}
 				this.states.cooldown -= this.delta;
 				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.y = 0;
+			} else if(this.states.current == Ammit.STATE_BURST){
+				if(this.states.cooldown < 0){
+					for(var i=0; i < 5; i++){
+						var randomPosition = new Point(Math.random()-.5,Math.random()-.5).scale(32);
+						var slime = Spawn.addToList(this.position.add(randomPosition),this.slimes,Slime,5);
+						if(slime instanceof GameObject){
+							slime.force = new Point(Math.random()-0.5,Math.random()-0.8).normalize(8);
+						}
+					}
+					this.changeState(Ammit.STATE_HIDDEN);
+				}
+				this.states.cooldown -= this.delta;
+				this.frame.x = Math.max((this.frame.x + this.delta * 0.5) % 6, 4);
 				this.frame.y = 0;
 			}
 		}
@@ -1264,6 +1299,7 @@ function Chort(x,y){
 	
 	this.death_time = Game.DELTASECOND * 3;
 	this.life = Spawn.life(26,this.difficulty);
+	this.lifeMax = this.life;
 	this.collideDamage = 5;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
@@ -2852,8 +2888,8 @@ Bullet.prototype.update = function(){
 	}
 	
 	if(this.frames != undefined ) {
-		var f = ( 99999 - this.range) % this.frames.length;
-		this.frame = this.frames[Math.floor(f)];
+		var f = ((99999 - this.range)*0.2) % this.frames.length;
+		this.frame.x = this.frames[Math.floor(f)];
 	}
 	
 	if(this.effect!=null){
@@ -3272,30 +3308,25 @@ function CornerStone(x,y,d,options){
 	this.position.y = y + 8;
 	this.width = 64;
 	this.height = 96;
-	this.gate = "gate" in options;
-	this.gate_number = 0;
+	this.gateNumber = 0;
 	this.gate_variable = "gate_0"
 	this.broken = 0;
 	
 	this.play_fanfair = false;
 	
 	if("gate" in options){
-		this.gate_number = options["gate"] * 1;
-		this.gate_variable = "gate_" + this.gate_number;
-	}
-	
-	if( this.gate_variable in NPC.variables ){
-		this.broken = NPC.variables[this.gate_variable];
+		this.gateNumber = options["gate"] * 1;
 	}
 	
 	
-	this.frame = this.broken ? 2 : 0;
-	this.frame_row = this.gate_number;
+	this.frame.x = this.broken ? 2 : 0;
+	this.frame.y = this.gateNumber - 1;
 	
 	this.active = false;
 	this.progress = 0.0;
+	
 	this.on("struck",function(obj,pos,damage){
-		if( !this.gate && !this.active && obj instanceof Player ) {
+		if( !this.active && obj instanceof Player ) {
 			NPC.variables[this.gate_variable] = 1;
 			audio.stopAs("music");
 			audio.play("crash");
@@ -3320,23 +3351,29 @@ CornerStone.prototype.update = function(){
 	if( this.active ) {
 		//Progress to the end of the level
 		game.pause = true;
-		this.frame = 1;
+		this.frame.x = 1;
 		
-		if( this.progress > 33.333 ) {
+		if( this.progress > Game.DELTASECOND ) {
 			if( !this.play_fanfair ){
 				this.play_fanfair = true;
 				audio.playAs("fanfair","music");
 			}
 			audio.playLock("explode1",10.0);
-			this.frame = 2;
+			this.frame.x = 2;
 		}
 		
-		if( this.progress > 233.333 ) {
+		if( this.progress > Game.DELTASECOND * 7.0 ) {
 			game.pause = false;
 			_player.addXP(40);
 			
 			//For fun only
-			WorldLocale.loadMap("temple2.tmx");
+			if(this.gateNumber == 1){
+				var nextLevel = this.gateNumber + 1;
+				WorldLocale.loadMap("temple"+nextLevel+".tmx");
+			} else if (this.gateNumber == 2){
+				game.clearAll();
+				game.addObject(new DemoThanks(0,0));
+			}
 			
 			//WorldMap.open()
 		}
@@ -3362,12 +3399,16 @@ function DamageTrigger(x,y,d,o){
 	this.origin.y = 0;
 	
 	this.restTimer = 0.0;
-	this.damage = 25;
-	this.alwaysHurt = 0;
+	this.damage = 12;
+	this.alwaysKill = 0;
+	this.alwaysHurt = 1;
 	
 	o = o || {};
 	if("damage" in o){
 		this.damage = o.damage * 1;
+	}
+	if("kill" in o){
+		this.alwaysKill = o.kill * 1;
 	}
 	if("alwayshurt" in o){
 		this.alwaysHurt = o["alwayshurt"] * 1;
@@ -3375,7 +3416,11 @@ function DamageTrigger(x,y,d,o){
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
-			if( this.restTimer <= 0 || this.alwaysHurt ){
+			if(this.alwaysKill){
+				obj.invincible = -1;
+				obj.life = 0;
+				obj.hurt(this,0);
+			} else if( this.restTimer <= 0 ){
 				if(this.alwaysHurt){
 					obj.invincible = -1;
 				}
@@ -3443,6 +3488,110 @@ Debuger.prototype.update = function(){
 	if ( input.state('up') > 0 ) {  this.position.y -= this.speed * this.delta }
 	if ( input.state('down') > 0 ) {  this.position.y += this.speed * this.delta }
 }
+
+ /* platformer\demo.js*/ 
+
+DemoThanks.prototype = new GameObject();
+DemoThanks.prototype.constructor = GameObject;
+function DemoThanks(){	
+	this.constructor();
+	this.sprite = "title";
+	this.zIndex = 999;
+	this.visible = true;
+	this.page = 0;
+	this.start = false;
+	
+	this.title_position = -960;
+	this.castle_position = 240;
+	
+	this.progress = 0;
+	this.cursor = 1;
+	
+	this.starPositions = [
+		new Point(84,64),
+		new Point(102,80),
+		new Point(99,93),
+		new Point(117,99),
+		new Point(117,111),
+		new Point(128,71),
+		new Point(191,41),
+		new Point(64,108 ),
+		new Point(158,65),
+		new Point(15,5),
+		new Point(229,69)
+	]
+	
+	this.stars = [
+		{ "pos" : new Point(), "timer" : 10 },
+		{ "pos" : new Point(), "timer" : 20 },
+		{ "pos" : new Point(), "timer" : 0 }
+	];
+}
+
+DemoThanks.prototype.update = function(){
+	
+	if(this.progress >= 8.0){
+		if(input.state("pause") == 1){
+			audio.play("pause");
+			delete self._player;
+			game.clearAll();
+			game.pause = false;
+			game.deltaScale = 1.0;
+			game_start(game);
+		}
+	} else {
+		if(input.state("pause") == 1){
+			this.progress = 10.0;
+		}
+	}
+	
+	this.progress += this.delta / Game.DELTASECOND;
+}
+
+DemoThanks.prototype.render = function(g,c){
+	var xpos = (game.resolution.x - 427) * 0.5;
+	
+	var pan = Math.min(this.progress/8, 1.0);
+	
+	g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
+	
+	//Random twinkling stars
+	for(var i=0; i<this.stars.length; i++) {
+		var star = this.stars[i];
+		var frame = 2;
+		if( 
+			this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
+			this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
+		) frame = 3;
+			
+		g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
+		star.timer -= this.delta;
+		if( star.timer <= 0 ){
+			star.timer = Game.DELTASECOND * 1.0;
+			star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+		}			
+	}
+	this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
+	if( this.progress > this.stars.timer ) {
+		this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
+		this.stars.timer += this.stars.reset;
+	}
+	
+	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
+	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
+	
+	textArea(g,"Copyright Rattus/Rattus LLP 2016",8,4);
+	textArea(g,"Version "+version,8,228);
+}
+
+DemoThanks.prototype.hudrender = function(g,c){	
+	if( this.progress >= 8 ) {
+		var y_pos = Math.lerp(240,152, Math.min( (this.progress-8)/2, 1) );
+		var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
+		textBox(g,"Thank you for playing!\n\nPress start to play again",x_pos,y_pos,256,64);
+	}	
+}
+DemoThanks.prototype.idle = function(){}
 
  /* platformer\detritus.js*/ 
 
@@ -7460,6 +7609,7 @@ function Oriax(x,y,d,o){
 	this.height = 48;
 	
 	this.sprite = "oriax";
+	this.paletteSwaps = ["t0","t0","t2","t3","t4"];
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -7530,7 +7680,7 @@ Oriax.prototype.update = function(){
 				} else {
 					var bullet = new Bullet(this.position.x, this.position.y+4,(this.flip?-1:1));
 					bullet.frames = [5,6,7];
-					bullet.frame_row = 1;
+					bullet.frame.y = 1;
 					bullet.blockable = 1;
 					bullet.damage = this.damage;
 					game.addObject(bullet);
@@ -8213,6 +8363,7 @@ function Slime(x,y,d,o){
 	this.collideDamage = 0;
 	this.team = 0;
 	
+	this.paletteSwaps = ["t0","t0","t2","t3","t4"];
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	this.sprite = "slime";
@@ -8254,12 +8405,24 @@ function Slime(x,y,d,o){
 		this.destroy();
 	});
 	
+	//Set opening state
+	if(Math.random() > 0.5){
+		this.visible = true;
+		this.interactive = true;
+		this.pushable = true;
+		this.times.move = 1;
+	}
+	
+	this.flip = Math.random() > 0.5;
 	this.life = Spawn.life(0, this.difficulty);
 	this.damage = Spawn.damage(1,this.difficulty);
 	this.calculateXP();
 }
 Slime.prototype.update = function(){
-	if(this.times.move){
+	if(!this.grounded){
+		this.frame.x = 0;
+		this.frame.y = 2;
+	} else if(this.times.move){
 		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 5;
 		this.frame.y = 0;
 		if(this.flip){
@@ -8477,7 +8640,7 @@ function Slimerilla(x,y,d,o){
 	this.speed = 0.3;
 	this.visible = false;
 	this.pushable = false;
-	this.startactive = false;
+	this.startactive = true;
 	this.gravity = 0.5;
 	
 	o = o || {};
@@ -8629,6 +8792,15 @@ function SlugPlatform(x,y,d,o){
 	if("loop" in o){
 		this.loop = o["loop"] * 1;
 	}
+	if("deathreset" in o){
+			this.on("player_death", function(){
+			this.position.x = this.startPosition.x;
+			this.position.y = this.startPosition.y;
+			if(this.waitforplayer){
+				this.active = false;
+			}
+		});
+	}
 	
 	if(this.waitforplayer){
 		this.active = false;
@@ -8669,7 +8841,7 @@ SlugPlatform.prototype.update = function(){
 				if(Math.abs(this.position.x-this.startPosition.x) < 8){
 					this.position.x = this.startPosition.x;
 					this.active = false;
-					this.flip = false;
+					this.flip = !this.flip;
 					this.leftStart = false;
 				}
 			}
@@ -9052,13 +9224,13 @@ Yeti.prototype.update = function(){
 
  /* platformer\equipment.js*/ 
 
-function Weapon(){
+function Weapon(name){
 	this.combo = 0;
 	this.time = 0.0;
 	this.timeRest = 0.0;
 	this.timeMiss = 0.0;
 	this.queue = 0;
-	this.stats = WeaponStats["short_sword"];
+	this.stats = WeaponStats[name];
 	this.combohit = 0;
 	this.playerState = "standing";
 	this.currentAttack = null;
@@ -9163,6 +9335,11 @@ Weapon.prototype.hit = function(player,obj,damage){
 		this.cancel();
 		return;
 	}
+	if(this.currentAttack == undefined || !(this.combo in this.currentAttack)){
+		this.cancel();
+		return;
+	}
+	
 	var phase = this.currentAttack[this.combo];
 	
 	this.combohit = 1;
@@ -10074,7 +10251,7 @@ Item.prototype.setName = function(n){
 		this.frame.x = 0; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":"sword1" };
+		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":new Point(0,0) };
 		this.message = Item.weaponDescription;
 		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -10086,7 +10263,7 @@ Item.prototype.setName = function(n){
 		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":"sword2" };
+		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":new Point(1,0) };
 		this.message = Item.weaponDescription;
 		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -10098,7 +10275,7 @@ Item.prototype.setName = function(n){
 		this.frame.x = 3; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":"sword2" };
+		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":new Point(2,0) };
 		this.message = Item.weaponDescription;
 		if(0) {
 			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
@@ -10653,6 +10830,7 @@ function Lamp(x,y,t,o){
 	this.zIndex = -21;
 	this.size = 180;
 	this.show = true;
+	this.color = [1.0,0.85,0.75,1.0];
 	
 	this.frame = 0;
 	this.frame_row = 0;
@@ -10664,6 +10842,14 @@ function Lamp(x,y,t,o){
 	if("show" in o){
 		this.show = o.show * 1;
 	}
+	if("color" in o){
+		var colorArray = o.color.split(",");
+		if(colorArray.length >= 3){
+			this.color[0] = colorArray[0] * 1;
+			this.color[1] = colorArray[1] * 1;
+			this.color[2] = colorArray[2] * 1;
+		}
+	}
 }
 Lamp.prototype.update = function(){
 	this.frame = (this.frame + this.delta * 0.3) % 4;
@@ -10672,7 +10858,7 @@ Lamp.prototype.render = function(g,c){
 	if(this.show){
 		GameObject.prototype.render.apply(this,[g,c]);
 	}
-	Background.pushLight( this.position, this.size, [1.0,0.85,0.75,1.0] );
+	Background.pushLight( this.position, this.size, this.color );
 }
 Lamp.prototype.idle = function(){
 	var current = this.awake;
@@ -12300,8 +12486,13 @@ var mod_combat = {
 			}
 		}
 		this.calculateXP = function(scale){
-			if(!this.filter && !(this instanceof Player) && !this.hasModule(mod_boss))
-				this.filter = "t"+this.difficulty;
+			if(!(this instanceof Player) && !this.hasModule(mod_boss)){
+				if(this.paletteSwaps instanceof Array && this.paletteSwaps.length > this.difficulty){
+					this.filter = this.paletteSwaps[this.difficulty];
+				} else {
+					this.filter = "t"+this.difficulty;
+				}
+			}
 			
 			scale = scale == undefined ? 1 : scale;
 			this.xp_award = 0;
@@ -12375,7 +12566,7 @@ var mod_combat = {
 		if( this.damage_buffer > 0 && this._damage_buffer_timer <= 0 ){
 			this.life -= 1;
 			this.damage_buffer -= 1;
-			this._damage_buffer_timer = Game.DELTASECOND * 0.3;
+			this._damage_buffer_timer = Game.DELTASECOND * 0.6;
 			this.isDead();
 		}
 		
@@ -12458,6 +12649,7 @@ var mod_boss = {
 				this.position.x = this.boss_starting_position.x;
 				this.position.y = this.boss_starting_position.y;
 				this.active = false;
+				this.life = this.lifeMax;
 				this.boss_intro = 0.0;
 				
 				_player.lock_overwrite = false;
@@ -12504,9 +12696,23 @@ var mod_boss = {
 		}
 	},
 	"hudrender" : function(g,c){
+		if( this.active && this.life > 0 ){
+			var width = 160;
+			var height = 8;
+			var start = game.resolution.x * 0.5 - width * 0.5;
+			var lifePercent = this.life / this.lifeMax;
+			
+			g.color = [1.0,1.0,1.0,1.0];
+			g.scaleFillRect(start-1, game.resolution.y-25, width+2, height+2);
+			g.color = [0.0,0.0,0.0,1.0];
+			g.scaleFillRect(start, game.resolution.y-24, width, height);
+			g.color = [1.0,0.0,0.0,1.0];
+			g.scaleFillRect(start, game.resolution.y-24, width*lifePercent, height);
+			
+		}
 		if( this.active && this.boss_intro < 1.0){
 			this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
-			g.color = [0.0,0.0,0.0,0.5];
+			g.color = [0.0,0.0,0.0,0.3];
 			
 			var slide = Math.min(Math.sin(Math.PI*this.boss_intro)*4, 1);
 			var border = Math.min(Math.sin(Math.PI*this.boss_intro)*3, 1) * 64;
@@ -13262,11 +13468,12 @@ function Player(x, y){
 	this.knockedout = false;
 	this.pause = false;
 	
+	this.equip_weapon = new Weapon("short_sword");
 	this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 	this.unique_item = false;
 	
-	this.equip_weapon = new Weapon();
+	
 	
 	_player = this;
 	this.sprite = "player";
@@ -13478,7 +13685,7 @@ function Player(x, y){
 					obj.position.y,
 					dir.add(new Point(0, -2)),
 					{
-						"damage" : this.damage * 4,
+						"damage" : this.equip_weapon.baseDamage(this) * 4,
 						"sprite" : obj.sprite,
 						"flip" : obj.flip,
 						"frame" : obj.frame,
@@ -13975,6 +14182,9 @@ Player.prototype.update = function(){
 		this.stand();
 		this.frame.x = 10;
 		this.frame.y = 1;
+	} else if( this.states.ledge ) {
+		this.frame.x = 0;
+		this.frame.y = 6;
 	} else if( this.states.roll > 0 ) {
 		this.frame.y = 2;
 		this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
@@ -14201,12 +14411,7 @@ Player.prototype.equipCharm = function(c){
 Player.prototype.equip = function(sword, shield){
 	try {	
 		if( sword.isWeapon && "stats" in sword ){
-			this.attackProperties.warm =  sword.stats.warm;
-			this.attackProperties.strike = sword.stats.strike;
-			this.attackProperties.rest = sword.stats.rest;
-			this.attackProperties.range = sword.stats.range;
-			this.attackProperties.sprite = sword.stats.sprite;
-			if( sword.twoHanded ) shield = null;
+			this.equip_weapon = new Weapon(sword.name);
 		} else {
 			throw "No valid weapon";
 		}
@@ -14430,7 +14635,7 @@ Player.prototype.render = function(g,c){
 				sposition = new Point(sposition.x*-1,sposition.y);
 			}
 			
-			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, new Point(), false, {
+			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.stats.sprite, false, {
 				"rotate" : (this.flip ? -1 : 1) * rotation
 			});
 			if(effect instanceof Point){
@@ -14490,7 +14695,7 @@ Player.prototype.hudrender = function(g,c){
 		g.color = [0.65,0.0625,0.0,1.0];
 		var buffer_start = Math.max( 8 + (this.lifeMax-this.damage_buffer), 8)
 		g.scaleFillRect(
-			Math.max(this.life/4,0)+8,
+			Math.max(this.life,0)+8,
 			8,
 			-Math.min(this.damage_buffer,this.life),
 			8
@@ -16439,7 +16644,7 @@ Shop.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer\Spawn.js*/ 
+ /* platformer\spawn.js*/ 
 
 Spawn.prototype = new GameObject();
 Spawn.prototype.constructor = GameObject;
@@ -16455,6 +16660,8 @@ function Spawn(x,y,d,ops){
 	this.autodestroy = 0;
 	this.enemies = new Array();
 	this.active = false;
+	this.timer = 0.0;
+	this.timerTotal = 0.0;
 	
 	this.on("activate",function(obj){
 		this.spawn();
@@ -16492,15 +16699,29 @@ function Spawn(x,y,d,ops){
 	} else { 
 		this.tags = new Array();
 	}
+	if("timer" in ops){
+		this.timerTotal = ops["timer"] * Game.DELTASECOND;
+		this.timer = this.timerTotal;
+	}
 	if("trigger" in ops){
 		this._tid = ops.trigger;
 	}
 	
-	
-	
 	if(autospawn){
 		//Spawn on creation
 		this.spawn();
+	}
+}
+
+Spawn.prototype.update = function(){
+	if(this.timerTotal > 0){
+		this.timer -= this.delta;
+		if(this.timer <= 0){
+			this.timer = this.timerTotal;
+			if(!this.isAlive()){
+				this.spawn();
+			}
+		}
 	}
 }
 
@@ -16576,6 +16797,7 @@ Spawn.prototype.create = function(enemies){
 
 Spawn.addToList = function(pos,list, type, max, ops){
 	var slot = -1;
+	var obj;
 	max = max == undefined ? 5 : max;
 	
 	for(var i=0; i < max; i++){
@@ -16591,12 +16813,14 @@ Spawn.addToList = function(pos,list, type, max, ops){
 	}
 	
 	if(slot >= 0){
-		var obj = new type(pos.x, pos.y, false, ops);
+		obj = new type(pos.x, pos.y, false, ops);
 		//obj.on("sleep", function(){ this.destroy();});
 		obj.xp_award = 0;
 		game.addObject(obj);
 		list[slot] = obj;
 	}
+	
+	return obj;
 }
 Spawn.countList = function(list){
 	var count = 0;
@@ -16717,9 +16941,9 @@ spell_fire = function(player){
 	var bullet = new Bullet(player.position.x, player.position.y, (player.flip?-1:1));
 	bullet.team = 1;
 	bullet.frames = [5,6,7];
-	bullet.frame_row = 1;
+	bullet.frame.y = 1;
 	bullet.blockable = 0;
-	bullet.damage = player.damage;
+	bullet.damage = 10 + player.stats.magic * 5;
 	game.addObject(bullet);
 	
 	return cost;
@@ -16842,15 +17066,16 @@ spell_teleport = function(player){
 
 function game_start(g){
 	//g.addObject( new TitleMenu() );
+	//g.addObject( new DemoThanks() );
 	//dataManager.randomLevel(game,0);
-	
+	//return;
 	
 	setTimeout(function(){
 		new Player(0,0);
 		WorldLocale.loadMap("temple1.tmx");
 		setTimeout(function(){
-			game.getObject(Background).preset = Background.presets.cavefire;
-			_player.lightRadius = 480;
+			//game.getObject(Background).preset = Background.presets.cavefire;
+			_player.lightRadius = 240;
 		}, 1000);
 	},100);
 	/**/
@@ -17027,6 +17252,11 @@ function BreakableTile(x, y, d, ops){
 	
 	this.startBroken = 0;
 	
+	ops = ops || {};
+	if("tilelayer" in ops){
+		this.tileLayer = ops["tilelayer"] * 1;
+	}
+	
 	if(d[0] > 16 || d[1] > 16){
 		this.origin = new Point(0.0, 0.0);
 		this.width = Math.round(d[0]/16)*16;
@@ -17037,16 +17267,15 @@ function BreakableTile(x, y, d, ops){
 		this.undertile = new Array();
 		for(var x=0; x < this.width; x+= 16){
 			for(var y=0; y < this.height; y+= 16){
-				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y);
+				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y, this.tileLayer);
 				this.undertile.push(tile);
 			}
 		}
 	} else {
 		this.width = this.height = 16;
-		this.undertile = game.getTile(this.position.x, this.position.y);
+		this.undertile = game.getTile(this.position.x, this.position.y, this.tileLayer);
 	}
 	
-	ops = ops || {};
 	if( "strikeable" in ops ) {
 		this.strikeable = ops["strikeable"] * 1;
 	}
@@ -17067,9 +17296,6 @@ function BreakableTile(x, y, d, ops){
 	}
 	if("resetonsleep" in ops){
 		this.resetOnSleep = ops["resetonsleep"];
-	}
-	if("tilelayer" in ops){
-		this.tileLayer = ops["tilelayer"] * 1;
 	}
 	if("explode" in ops){
 		this.explode = ops["explode"] * 1;
@@ -17105,7 +17331,10 @@ function BreakableTile(x, y, d, ops){
 	
 	//Set first state
 	if(this.startBroken){
+		var tempChain = this.chain;
+		this.chain = 0;
 		this.break(false);
+		this.chain = tempChain;
 	}
 	if(this.resetOnSleep){
 		this.on("sleep", function(){
@@ -17119,12 +17348,12 @@ function BreakableTile(x, y, d, ops){
 }
 BreakableTile.prototype.unbreak = function(explode){
 	if(this.broken && this.undertile != 0){
+		if(this.chain) {
+			this.chainActive = true;
+			this.chaintype = "unbreak";
+		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
-			if(this.chain) {
-				this.chainActive = true;
-				this.chaintype = "unbreak";
-			}
 		}
 		if(this.undertile instanceof Array){
 			var i = 0;
@@ -17152,12 +17381,12 @@ BreakableTile.prototype.unbreak = function(explode){
 }
 BreakableTile.prototype.break = function(explode){
 	if(!this.broken && this.undertile != BreakableTile.unbreakable && this.undertile != 0){
+		if(this.chain) {
+			this.chainActive = true;
+			this.chaintype = "break";
+		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
-			if(this.chain) {
-				this.chainActive = true;
-				this.chaintype = "break";
-			}
 		}
 		if(this.undertile instanceof Array){
 			for(var x=0; x < this.width; x+= 16){
@@ -17200,16 +17429,18 @@ BreakableTile.prototype.spawnObject = function(){
 	}
 }
 BreakableTile.prototype.neighbours = function(type){
-	
+	var corners = this.corners()
 	var hits = game.overlaps(new Line(
-		this.center.x - (this.width*0.5 + this.chainSize), 
-		this.center.y - (this.height*0.5 + this.chainSize),
-		this.center.x + (this.width*0.5 + this.chainSize), 
-		this.center.y + (this.height*0.5 + this.chainSize)
+		corners.left - this.chainSize, 
+		corners.top - this.chainSize,
+		corners.right + this.chainSize, 
+		corners.bottom + this.chainSize
 	));
 	for(var i=0; i< hits.length; i++) {
 		if( hits[i] instanceof BreakableTile && hits[i] != this ) {
-			hits[i].trigger(type, this);
+			if(hits[i].chain){
+				hits[i].trigger(type, this);
+			}
 		}
 	}
 }
@@ -17447,14 +17678,45 @@ Trigger.activate = function(targets){
 	}	
 }
 
+AttackTrigger.prototype = Trigger.prototype;
+AttackTrigger.prototype.constructor = GameObject;
+function AttackTrigger(x,y,d,o){
+	Trigger.apply(this,[x,y,d,o]);
+	this.clearEvents("collideObject");
+	
+	this.addModule(mod_combat);
+	
+	o = o || {};
+	this.lifeMax = this.life = 1;
+	
+	if(!("retrigger" in o)){
+		this.retrigger = 0;
+	}
+	if("life" in o){
+		this.lifeMax = this.life = o["life"] * 1;
+	}
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		//this.states.attack = 0;
+		audio.play("hurt");
+	});
+	this.on("death", function(){
+		this.trigger("activate");
+		if(this.retrigger){
+			this.dead = false;
+			this.life = this.lifeMax;
+			this.interactive = true;
+		} else {
+			this.destroy();
+		}
+	});
+}
+
 Switch.prototype = Trigger.prototype;
 Switch.prototype.constructor = GameObject;
 function Switch(x,y,d,o){
 	o = o || {};
-	if(!("retrigger" in o)){
-		//Set retrigger to 0 by default
-		o["retrigger"] == 0;
-	}
 	Trigger.apply(this,[x,y,d,o]);
 	
 	//Clear the on touch trigger
@@ -17843,7 +18105,7 @@ Well.prototype.idle = function(){}
 
  /* platformer\worldmap.js*/ 
 
-var version = "0.3.1";
+var version = "0.3.3";
 
 Quests = {
 	"set" : function(id,value){

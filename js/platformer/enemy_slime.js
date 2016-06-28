@@ -9,6 +9,7 @@ function Slime(x,y,d,o){
 	this.collideDamage = 0;
 	this.team = 0;
 	
+	this.paletteSwaps = ["t0","t0","t2","t3","t4"];
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	this.sprite = "slime";
@@ -50,12 +51,24 @@ function Slime(x,y,d,o){
 		this.destroy();
 	});
 	
+	//Set opening state
+	if(Math.random() > 0.5){
+		this.visible = true;
+		this.interactive = true;
+		this.pushable = true;
+		this.times.move = 1;
+	}
+	
+	this.flip = Math.random() > 0.5;
 	this.life = Spawn.life(0, this.difficulty);
 	this.damage = Spawn.damage(1,this.difficulty);
 	this.calculateXP();
 }
 Slime.prototype.update = function(){
-	if(this.times.move){
+	if(!this.grounded){
+		this.frame.x = 0;
+		this.frame.y = 2;
+	} else if(this.times.move){
 		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 5;
 		this.frame.y = 0;
 		if(this.flip){

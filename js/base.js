@@ -349,7 +349,8 @@ Game.prototype.t_unstick = function( obj ) {
 	for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc ) {
 		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
-			if( tile != 0 && !(tile in tilerules.currentrule()) ) {
+			var tileData = getTileData(tile);
+			if( tileData.tile != 0 && !(tileData.tile in tilerules.currentrule()) ) {
 				//You're stuck, do something about it!
 				obj.isStuck = true;
 			} else {
@@ -421,9 +422,10 @@ Game.prototype.t_move = function(obj, x, y) {
 		for(var _x=hitbox.left-addleft; _x<=hitbox.right+addright; _x+=xinc )
 		for(var _y=hitbox.top-addtop; _y <=hitbox.bottom+addbot; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
+			var tileData = getTileData(tile);
 			var corner = new Point(Math.floor(_x/ts)*ts, Math.floor(_y/ts)*ts);
 			var v = dir==0?y:x;
-			limits = tilerules.collide(tile,dir,v,corner,hitbox,limits,start_hitbox);
+			limits = tilerules.collide(tileData.tile,dir,v,corner,hitbox,limits,start_hitbox);
 		}
 	
 		//for(var i=0; i<limits.length; i++) limits[i] -= margins[i];
@@ -868,9 +870,15 @@ function GameObject() {
 	this.modules = new Array();
 }
 GameObject.prototype.on = function(name, func) {
-	if( !(name in this.events) ) 
-		this.events[name] = [];
-	this.events[name].push(func);
+	if(name instanceof Array){
+		for(var i=0; i < name.length; i++){
+			this.on(name[i], func);
+		}
+	} else {
+		if( !(name in this.events) ) 
+			this.events[name] = [];
+		this.events[name].push(func);
+	}
 }
 GameObject.prototype.trigger = function(name) {
 	if( name in this.events) {

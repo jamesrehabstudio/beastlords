@@ -85,8 +85,8 @@ Bullet.prototype.update = function(){
 	}
 	
 	if(this.frames != undefined ) {
-		var f = ( 99999 - this.range) % this.frames.length;
-		this.frame = this.frames[Math.floor(f)];
+		var f = ((99999 - this.range)*0.2) % this.frames.length;
+		this.frame.x = this.frames[Math.floor(f)];
 	}
 	
 	if(this.effect!=null){

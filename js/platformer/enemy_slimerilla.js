@@ -15,7 +15,7 @@ function Slimerilla(x,y,d,o){
 	this.speed = 0.3;
 	this.visible = false;
 	this.pushable = false;
-	this.startactive = false;
+	this.startactive = true;
 	this.gravity = 0.5;
 	
 	o = o || {};
