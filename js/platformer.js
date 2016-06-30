@@ -1061,7 +1061,7 @@ Ammit.prototype.changeState = function(newState){
 		this.states.transition = this.states.transitionTotal = 0.3 * Game.DELTASECOND;
 	}
 	if(newState == Ammit.STATE_BURST){
-		this.states.cooldown = Game.DELTASECOND * 1.5;
+		this.states.cooldown = Game.DELTASECOND * 1.0;
 		this.states.transition = this.states.transitionTotal = 0.0;
 	}
 }
@@ -1237,10 +1237,10 @@ Ammit.prototype.update = function(){
 			} else if(this.states.current == Ammit.STATE_BURST){
 				if(this.states.cooldown < 0){
 					for(var i=0; i < 5; i++){
-						var randomPosition = new Point(Math.random()-.5,Math.random()-.5).scale(32);
+						var randomPosition = new Point(Math.random()-.5,Math.random()-.8).normalize(32);
 						var slime = Spawn.addToList(this.position.add(randomPosition),this.slimes,Slime,5);
 						if(slime instanceof GameObject){
-							slime.force = new Point(Math.random()-0.5,Math.random()-0.8).normalize(8);
+							slime.force = randomPosition.normalize(8);
 						}
 					}
 					this.changeState(Ammit.STATE_HIDDEN);
@@ -3368,6 +3368,7 @@ CornerStone.prototype.update = function(){
 			
 			//For fun only
 			if(this.gateNumber == 1){
+				_player.keys = new Array();
 				var nextLevel = this.gateNumber + 1;
 				WorldLocale.loadMap("temple"+nextLevel+".tmx");
 			} else if (this.gateNumber == 2){
@@ -3913,8 +3914,12 @@ Drain.prototype.updateTiles = function(){
 			var _t = 0;
 			if(x>0) _t += 1;
 			if(x+16>=this.width) _t += 1;
-			if(y>0) _t += 3;
-			if(y+16>=this.fullheight) _t += 3;
+			if(y>0) {
+				_t += 3;
+				if(y+16>=this.fullheight) {
+					_t += 3;
+				}
+			}
 			var tile = Drain.TILES[_t];
 			game.setTile(pos.x,pos.y,game.tileCollideLayer,tile);
 		} else {
@@ -10151,6 +10156,7 @@ function Item(x,y,d, ops){
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); }
+			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); }
 			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
@@ -10380,6 +10386,7 @@ Item.prototype.setName = function(n){
 	
 	//Special items
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; return; }
+	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; return; }
 	
 	//Charms
 	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}
@@ -13455,7 +13462,7 @@ function Player(x, y){
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 14;
+	this.width = 18;
 	this.height = 30;
 	this.zIndex = 1;
 	this.checkpoint = new Point(x,y);
@@ -13483,6 +13490,7 @@ function Player(x, y){
 	this.jump_strength = 8.0;
 	this.lightRadius = 32.0;
 	this.grabLedges = false;
+	this.doubleJump = false;
 	
 	this.states = {
 		"duck" : false,
@@ -13503,7 +13511,9 @@ function Player(x, y){
 		"manaRegenTime" : 0.0,
 		"ledge" : false,
 		"ledgeObject" : null,
-		"turn" : 0.0
+		"turn" : 0.0,
+		"doubleJumpReady": true,
+		"airSpin" : false,
 	};
 	
 	this.attackProperties = {
@@ -13574,6 +13584,9 @@ function Player(x, y){
 	});
 	this.on("land", function(){
 		//Land from a height
+		this.states.doubleJumpReady = true;
+		this.states.airSpin = false;
+		
 		audio.play("land");
 		var dust = Math.floor(2 + Math.random() * 3);
 		for(var i=0; i < dust; i++ ){
@@ -13700,6 +13713,8 @@ function Player(x, y){
 		this.lock_overwrite = false;
 		this.checkpoint = new Point(this.position.x, this.position.y);
 		this.force.x = this.force.y = 0;
+		this.states.doubleJumpReady = true;
+		this.states.airSpin = false;
 		
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
@@ -13717,6 +13732,8 @@ function Player(x, y){
 	})
 	this.on("catchLedge", function(edge, flip, obj){
 		if(this.grabLedges){
+			this.states.doubleJumpReady = true;
+			this.states.airSpin = false;
 			this.force.x = this.force.y = 0;
 			if(flip){
 				this.states.ledge = edge.add(new Point(this.width*0.5,this.height*0.5));
@@ -14114,8 +14131,10 @@ Player.prototype.update = function(){
 				}
 			}
 			
-			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { 
-				this.jump(); 
+			if ( input.state('block') <= 0 && input.state('jump') == 1 ) { 
+				if(this.grounded || (this.states.doubleJumpReady && this.doubleJump)){
+					this.jump(); 
+				}
 			}
 			if ( input.state('up') == 0 && input.state('down') > 0 && this.grounded ) { 
 				this.duck(); 
@@ -14158,7 +14177,8 @@ Player.prototype.update = function(){
 			}
 			
 		}
-				
+		
+		this.states.doubleJumpReady = this.states.doubleJumpReady || this.grounded;
 		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
@@ -14198,13 +14218,18 @@ Player.prototype.update = function(){
 			this.equip_weapon.animate(this);
 		} else if( !this.grounded ) {
 			//In air
-			this.frame.y = 2;
-			if(this.force.y < 0.5){
-				this.frame.x = 6;
-			} else if(this.force.y > 2.0){
-				this.frame.x = 8;
+			if(this.states.airSpin){
+				this.frame.y = 2;
+				this.frame.x = Math.max(1,(this.frame.x + this.delta * 0.3)%5);
 			} else {
-				this.frame.x = 7;
+				this.frame.y = 2;
+				if(this.force.y < 0.5){
+					this.frame.x = 6;
+				} else if(this.force.y > 2.0){
+					this.frame.x = 8;
+				} else {
+					this.frame.x = 7;
+				}
 			}
 		} else if( this.states.duck ) {
 			//Duck
@@ -14335,6 +14360,10 @@ Player.prototype.jump = function(){
 			this.position.y += 2;
 			return;
 		}
+	}
+	if(!this.grounded){
+		this.states.airSpin = true;
+		this.states.doubleJumpReady = false;
 	}
 	
 	var force = this.speeds.jump;
@@ -17072,7 +17101,7 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
-		WorldLocale.loadMap("temple1.tmx");
+		WorldLocale.loadMap("temple3.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
@@ -17157,17 +17186,17 @@ TeleMarker.prototype.render = function(g,c){
 
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
-function CollapseTile(x,y,n,o){
+function CollapseTile(x,y,d,o){
 	this.constructor();
 	this.position.x = x-8;
 	this.position.y = y-8;
-	this.sprite = game.tileSprite;
+	this.sprite = game.map.tileset;
 	this.origin = new Point(0.0, 0.5);
 	this.width = this.height = 16;
-	this.frame = 6;
-	this.frame_row = 11;
+	this.frame.x = 6;
+	this.frame.y = 11;
 	this.visible = false;
-	this.totalTime = 20;
+	this.totalTime = Game.DELTASECOND * 0.6;
 	
 	this.center = new Point(this.position.x, this.position.y);
 	
@@ -17182,8 +17211,8 @@ function CollapseTile(x,y,n,o){
 	
 	var existingTile = game.getTile(this.position.x,this.position.y);
 	if(existingTile > 0){
-		this.frame = Math.floor((existingTile-1) % 16);
-		this.frame_row = Math.floor((existingTile-1) / 16);
+		this.frame.x = Math.floor((existingTile-1) % 32);
+		this.frame.y = Math.floor((existingTile-1) / 32);
 	}
 	
 	this.timer = this.totalTime;
@@ -17195,7 +17224,7 @@ function CollapseTile(x,y,n,o){
 			audio.playLock("cracking",0.4);
 		}
 	});
-	this.on("wakeup",function(){
+	this.on(["wakeup","added"],function(){
 		this.visible = true; 
 		this.active = false;
 		this.position.x = this.center.x;
@@ -17287,6 +17316,10 @@ function BreakableTile(x, y, d, ops){
 	}
 	if("target" in ops) {
 		this.target = ops["target"].split(",");
+	}
+	if("chaintimer" in ops) {
+		this.chaintime = Game.DELTASECOND * ops["chaintimer"];
+		this.chaintimer = this.chaintime;
 	}
 	if("broken" in ops) {
 		this.startBroken = ops["broken"] * 1;
@@ -18105,7 +18138,7 @@ Well.prototype.idle = function(){}
 
  /* platformer\worldmap.js*/ 
 
-var version = "0.3.3";
+var version = "0.3.4";
 
 Quests = {
 	"set" : function(id,value){

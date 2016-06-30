@@ -151,8 +151,12 @@ Drain.prototype.updateTiles = function(){
 			var _t = 0;
 			if(x>0) _t += 1;
 			if(x+16>=this.width) _t += 1;
-			if(y>0) _t += 3;
-			if(y+16>=this.fullheight) _t += 3;
+			if(y>0) {
+				_t += 3;
+				if(y+16>=this.fullheight) {
+					_t += 3;
+				}
+			}
 			var tile = Drain.TILES[_t];
 			game.setTile(pos.x,pos.y,game.tileCollideLayer,tile);
 		} else {

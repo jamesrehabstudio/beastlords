@@ -1,16 +1,16 @@
 CollapseTile.prototype = new GameObject();
 CollapseTile.prototype.constructor = GameObject;
-function CollapseTile(x,y,n,o){
+function CollapseTile(x,y,d,o){
 	this.constructor();
 	this.position.x = x-8;
 	this.position.y = y-8;
-	this.sprite = game.tileSprite;
+	this.sprite = game.map.tileset;
 	this.origin = new Point(0.0, 0.5);
 	this.width = this.height = 16;
-	this.frame = 6;
-	this.frame_row = 11;
+	this.frame.x = 6;
+	this.frame.y = 11;
 	this.visible = false;
-	this.totalTime = 20;
+	this.totalTime = Game.DELTASECOND * 0.6;
 	
 	this.center = new Point(this.position.x, this.position.y);
 	
@@ -25,8 +25,8 @@ function CollapseTile(x,y,n,o){
 	
 	var existingTile = game.getTile(this.position.x,this.position.y);
 	if(existingTile > 0){
-		this.frame = Math.floor((existingTile-1) % 16);
-		this.frame_row = Math.floor((existingTile-1) / 16);
+		this.frame.x = Math.floor((existingTile-1) % 32);
+		this.frame.y = Math.floor((existingTile-1) / 32);
 	}
 	
 	this.timer = this.totalTime;
@@ -38,7 +38,7 @@ function CollapseTile(x,y,n,o){
 			audio.playLock("cracking",0.4);
 		}
 	});
-	this.on("wakeup",function(){
+	this.on(["wakeup","added"],function(){
 		this.visible = true; 
 		this.active = false;
 		this.position.x = this.center.x;
@@ -130,6 +130,10 @@ function BreakableTile(x, y, d, ops){
 	}
 	if("target" in ops) {
 		this.target = ops["target"].split(",");
+	}
+	if("chaintimer" in ops) {
+		this.chaintime = Game.DELTASECOND * ops["chaintimer"];
+		this.chaintimer = this.chaintime;
 	}
 	if("broken" in ops) {
 		this.startBroken = ops["broken"] * 1;

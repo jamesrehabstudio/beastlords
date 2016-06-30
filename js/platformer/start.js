@@ -6,7 +6,7 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
-		WorldLocale.loadMap("temple1.tmx");
+		WorldLocale.loadMap("temple3.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;

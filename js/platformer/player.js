@@ -5,7 +5,7 @@ function Player(x, y){
 	
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 14;
+	this.width = 18;
 	this.height = 30;
 	this.zIndex = 1;
 	this.checkpoint = new Point(x,y);
@@ -33,6 +33,7 @@ function Player(x, y){
 	this.jump_strength = 8.0;
 	this.lightRadius = 32.0;
 	this.grabLedges = false;
+	this.doubleJump = false;
 	
 	this.states = {
 		"duck" : false,
@@ -53,7 +54,9 @@ function Player(x, y){
 		"manaRegenTime" : 0.0,
 		"ledge" : false,
 		"ledgeObject" : null,
-		"turn" : 0.0
+		"turn" : 0.0,
+		"doubleJumpReady": true,
+		"airSpin" : false,
 	};
 	
 	this.attackProperties = {
@@ -124,6 +127,9 @@ function Player(x, y){
 	});
 	this.on("land", function(){
 		//Land from a height
+		this.states.doubleJumpReady = true;
+		this.states.airSpin = false;
+		
 		audio.play("land");
 		var dust = Math.floor(2 + Math.random() * 3);
 		for(var i=0; i < dust; i++ ){
@@ -250,6 +256,8 @@ function Player(x, y){
 		this.lock_overwrite = false;
 		this.checkpoint = new Point(this.position.x, this.position.y);
 		this.force.x = this.force.y = 0;
+		this.states.doubleJumpReady = true;
+		this.states.airSpin = false;
 		
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
@@ -267,6 +275,8 @@ function Player(x, y){
 	})
 	this.on("catchLedge", function(edge, flip, obj){
 		if(this.grabLedges){
+			this.states.doubleJumpReady = true;
+			this.states.airSpin = false;
 			this.force.x = this.force.y = 0;
 			if(flip){
 				this.states.ledge = edge.add(new Point(this.width*0.5,this.height*0.5));
@@ -664,8 +674,10 @@ Player.prototype.update = function(){
 				}
 			}
 			
-			if ( input.state('block') <= 0 && input.state('jump') == 1 && this.grounded ) { 
-				this.jump(); 
+			if ( input.state('block') <= 0 && input.state('jump') == 1 ) { 
+				if(this.grounded || (this.states.doubleJumpReady && this.doubleJump)){
+					this.jump(); 
+				}
 			}
 			if ( input.state('up') == 0 && input.state('down') > 0 && this.grounded ) { 
 				this.duck(); 
@@ -708,7 +720,8 @@ Player.prototype.update = function(){
 			}
 			
 		}
-				
+		
+		this.states.doubleJumpReady = this.states.doubleJumpReady || this.grounded;
 		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
@@ -748,13 +761,18 @@ Player.prototype.update = function(){
 			this.equip_weapon.animate(this);
 		} else if( !this.grounded ) {
 			//In air
-			this.frame.y = 2;
-			if(this.force.y < 0.5){
-				this.frame.x = 6;
-			} else if(this.force.y > 2.0){
-				this.frame.x = 8;
+			if(this.states.airSpin){
+				this.frame.y = 2;
+				this.frame.x = Math.max(1,(this.frame.x + this.delta * 0.3)%5);
 			} else {
-				this.frame.x = 7;
+				this.frame.y = 2;
+				if(this.force.y < 0.5){
+					this.frame.x = 6;
+				} else if(this.force.y > 2.0){
+					this.frame.x = 8;
+				} else {
+					this.frame.x = 7;
+				}
 			}
 		} else if( this.states.duck ) {
 			//Duck
@@ -885,6 +903,10 @@ Player.prototype.jump = function(){
 			this.position.y += 2;
 			return;
 		}
+	}
+	if(!this.grounded){
+		this.states.airSpin = true;
+		this.states.doubleJumpReady = false;
 	}
 	
 	var force = this.speeds.jump;

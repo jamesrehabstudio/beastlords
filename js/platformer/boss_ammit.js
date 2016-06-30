@@ -131,7 +131,7 @@ Ammit.prototype.changeState = function(newState){
 		this.states.transition = this.states.transitionTotal = 0.3 * Game.DELTASECOND;
 	}
 	if(newState == Ammit.STATE_BURST){
-		this.states.cooldown = Game.DELTASECOND * 1.5;
+		this.states.cooldown = Game.DELTASECOND * 1.0;
 		this.states.transition = this.states.transitionTotal = 0.0;
 	}
 }
@@ -307,10 +307,10 @@ Ammit.prototype.update = function(){
 			} else if(this.states.current == Ammit.STATE_BURST){
 				if(this.states.cooldown < 0){
 					for(var i=0; i < 5; i++){
-						var randomPosition = new Point(Math.random()-.5,Math.random()-.5).scale(32);
+						var randomPosition = new Point(Math.random()-.5,Math.random()-.8).normalize(32);
 						var slime = Spawn.addToList(this.position.add(randomPosition),this.slimes,Slime,5);
 						if(slime instanceof GameObject){
-							slime.force = new Point(Math.random()-0.5,Math.random()-0.8).normalize(8);
+							slime.force = randomPosition.normalize(8);
 						}
 					}
 					this.changeState(Ammit.STATE_HIDDEN);

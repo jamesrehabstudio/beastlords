@@ -373,7 +373,7 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	var camera = new Point(x,y);
 	
 	//var tileVerts = new Array();
-	var material = window.materials["default"].use();
+	var material = window.materials["tiles"].use();
 	var uvVerts = new Array();
 	var ts = this.frame_width;
 	
@@ -395,7 +395,6 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 		}
 		
 		this.getTileUVMap(tileData, uvVerts);
-		
 	}
 		
 	var campos = new Point(

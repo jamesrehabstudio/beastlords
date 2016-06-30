@@ -10,6 +10,7 @@ function game_start(g){
 	var shaders = window.shaders;
 	
 	new Material(g.g, "default", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "tiles", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "hurt", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"],"settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
 	new Material(g.g, "gold", {"fs":shaders["fragment-greytocolor"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
 	new Material(g.g, "color", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"]} );

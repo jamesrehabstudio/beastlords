@@ -63,6 +63,7 @@ function Item(x,y,d, ops){
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); }
+			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); }
 			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
@@ -292,6 +293,7 @@ Item.prototype.setName = function(n){
 	
 	//Special items
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; return; }
+	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; return; }
 	
 	//Charms
 	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}

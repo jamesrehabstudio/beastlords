@@ -69,6 +69,7 @@ CornerStone.prototype.update = function(){
 			
 			//For fun only
 			if(this.gateNumber == 1){
+				_player.keys = new Array();
 				var nextLevel = this.gateNumber + 1;
 				WorldLocale.loadMap("temple"+nextLevel+".tmx");
 			} else if (this.gateNumber == 2){
