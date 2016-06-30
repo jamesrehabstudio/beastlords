@@ -147,11 +147,7 @@ function Game( elm ) {
 	
 	//Per frame datastructures
 	this.time = new Date();
-	this.delta = 1;
-	this.deltaUnscaled = 1;
-	this.deltaScale = 1.0;
-	this.delta_tot = 0;
-	this.delta_avr = 0;
+	this.fps = 1;
 	
 	this.pause = false;
 	this.slowdown = 1.0;
@@ -290,133 +286,8 @@ Game.prototype.onmessage = function(data){
 	}
 }
 	
-	
-Game.prototype.update = function( ) {
-	//
-	
-	//this.g.viewport(0,0,this.g.drawingBufferWidth,this.g.drawingBufferHeight);
-	
-	//sprites.items.render(this.g, new Point(0,0), 0, 0);
-	
-	//Update logic
-	
-	var newTime = new Date();
-	this.delta = Math.min(newTime - this.time, 100.0) / 30.0;
-	this.deltaUnscaled = this.delta;
-	//FPS counter
-	if(this.delta_tot > 5000) this.delta_avr = this.delta_tot = 0;
-	this.delta_tot += newTime - this.time;
-	this.delta_avr ++;
-	
-	this.time = newTime;
-	
-	//Handle slowdown
-	if( this.pause ) {
-		this.delta = 0;
-	} else {
-		this.slowdown_time -= this.delta;
-		this.delta *= (this.slowdown_time > 0 ? this.slowdown : 1.0 );
-	}
-	
-	//this._pathfinder.postMessage(this.objects);
-	this.renderTree = [];
-	this.prerenderTree = [];
-	this.postrenderTree = [];
-	this.hudrenderTree = [];
-	//rebuild Interactive Objects
-	//this.renderTree = new BSPTree(this.bounds, 4);
-	var temp_interactive = new BSPTree(this.bounds, 4);
-
-	
-	for ( var i in this.objects ) {
-		if ( this.objects[i] instanceof GameObject ) {
-			var obj = this.objects[i];
-			obj.idle();
-			if( obj.awake ) {
-				var mods = obj.modules;
-				//Set any frame specific values
-				obj.delta = this.delta * obj.deltaScale;
-				obj.deltaUnscaled = this.delta;
-				
-				//Update Functions
-				if ( mods.length > 0 ) {
-					for ( var i = 0; i < mods.length; i++ ) {
-						if ( mods[i].beforeupdate instanceof Function ) {
-							mods[i].beforeupdate.apply(obj);
-						}
-					}
-					obj.update();
-					for ( var i = 0; i < mods.length; i++ ) {
-						if ( mods[i].update instanceof Function ) {
-							mods[i].update.apply(obj);
-						}
-					}
-				} else {
-					obj.update();
-				}
-			}
-			if( obj.shouldRender() ) {
-				if ( obj.prerender instanceof Function ) {
-					this.prerenderTree.push( obj );
-				}else{
-					for(var i=0; i < obj.modules.length; i++){
-						if("prerender" in obj.modules[i]){
-							this.prerenderTree.push( obj );
-							break;
-						}
-					}
-				}
-				if ( obj.postrender instanceof Function ) {
-					this.postrenderTree.push( obj );
-				}else{
-					for(var i=0; i < obj.modules.length; i++){
-						if("postrender" in obj.modules[i]){
-							this.postrenderTree.push( obj );
-							break;
-						}
-					}
-				}
-				
-				if ( obj.hudrender instanceof Function ) {
-					this.hudrenderTree.push( obj );
-				}else{
-					for(var i=0; i < obj.modules.length; i++){
-						if("hudrender" in obj.modules[i]){
-							this.hudrenderTree.push( obj );
-							break;
-						}
-					}
-				}
-				
-				this.renderTree.push( obj );
-			}
-			if ( obj.interactive ) {
-				temp_interactive.push ( obj );
-			}
-		}		
-	}
-	
-	window.__time++;
-	window.__wind = 0.2 * Math.abs( Math.sin( window.__time * 0.003 ) * Math.sin( window.__time * 0.007 ) );
-
-	//Cleanup
-	this.interactive = temp_interactive;
-	/*
-	for( var i = 0; i < this._objectsDeleteList.length; i++) {
-		var index = this.objects.indexOf( this._objectsDeleteList[i] );
-		this.objects.remove( index );
-	}
-	this._objectsDeleteList = new Array();
-	*/
-	
-	this.render();
-	
-	if ( input != undefined ) { input.update(); }
-}
 
 Game.prototype.renderObject = function(obj){
-	if ( input != undefined ) { input.update(); }
-	
 	try{
 		if(obj.type == 0){
 			//render sprite
@@ -445,7 +316,7 @@ Game.prototype.renderObject = function(obj){
 }
 
 Game.prototype.render = function( ) {
-	
+	if ( input != undefined ) { input.update(); }
 	var useLightBuffer = false;
 	
 	this.gameThread.postMessage({
@@ -547,6 +418,10 @@ Game.prototype.render = function( ) {
 		for(var i=0; i < this.objects["hudrender"].length; i++){
 			this.renderObject( this.objects["hudrender"][i] ); 
 		}
+		
+		//render FPS
+		this.renderFPS();
+		
 		this.hudBuffer.reset(this.g);
 	}
 	
@@ -650,6 +525,26 @@ Game.prototype.render = function( ) {
 	//this.g.renderImage(0,0,this.resolution.x,this.resolution.y, this.backBuffer.texture);
 	
 	this.g.flush();
+}
+Game.prototype.renderFPS = function(){
+	var frameTime = new Date() - this.time;
+	this.time = new Date();
+	
+	this.fps = Math.lerp(this.fps, frameTime,0.1);
+	var length = (1 / this.fps) * 400;
+	var clerp = length / 24;
+	
+	var start = this.resolution.x - 32;
+	var fps = this.delta;
+	
+	this.g.color = [1,1,1,1];
+	this.g.scaleFillRect(start-1, 240-17, 26, 10);
+	
+	this.g.color = [0,0,0,1];
+	this.g.scaleFillRect(start, 240-16, 24, 8);
+	
+	this.g.color = [1-clerp,clerp,.4,1,];
+	this.g.scaleFillRect(start, 240-16, length, 8);
 }
 Game.prototype.useMap = function( m ) {
 	this.gameThread.postMessage(m);

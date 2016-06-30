@@ -102,16 +102,28 @@ Material.prototype.set = function(name, args) {
 		this.gl.vertexAttribPointer(prop.location, 2, this.gl.FLOAT, false, 0, 0);
 	}
 }
-
+Material.prototype.setTexture = function(img){
+	if(img != Material.currentTexture){
+		Material.currentTexture = img;
+		this.gl.bindTexture(this.gl.TEXTURE_2D, img);
+	}
+}
 Material.prototype.use = function() {
+	if(this == Material.current){
+		return this;
+	}
 	game.shader = this;
 	this.gl.useProgram(this.program);
 	
 	for(var i = 0; i < this.settings.length; i++){
 		this.set.apply(this, this.settings[i]);
 	}
+	Material.current = this;
+	Material.currentTexture = null;
 	return this;
 }
+Material.current = null;
+Material.currentTexture = null;
 Material.SHADER_FRAGMENT = 0;
 Material.SHADER_FRAGMENT = 1;
 Material.prototype.getShader = function(gl, source, type) {	
@@ -279,7 +291,9 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
 	shader.set("a_texCoord");
 	
-	gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
+	shader.setTexture(this.gl_tex);
+	//gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
+	
 	if( !this.buffer ) this.buffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	

@@ -114,6 +114,7 @@ function Game(){
 	this.interval = 7;
 	this.tree = new BSPTree(new Line(0,0,256,240));
 	this.tileDelta = {};
+	this.mainThreadReady = true;
 	
 	this.deltaScaleReset = 0.0;
 	this.deltaScalePause = 0;
@@ -209,7 +210,10 @@ Game.prototype.update = function(){
 				this.tree.push(obj);
 			}
 		}
-		
+	}
+	
+	for(var i=0; i < this.objects.length; i++){
+		var obj = this.objects[i];
 		if(obj.shouldRender()){
 			for(var j=0; j < RENDER_STEPS.length; j++){
 				//try{
@@ -231,16 +235,18 @@ Game.prototype.update = function(){
 		}
 	}
 	
-	postMessage({
-		"audio" : audio.serialize(),
-		"render" : Renderer.serialize(),
-		"camera" : {"x":this.camera.x, "y":this.camera.y},
-		"tiles" : this.tileDelta
-	});
-	
-	this.tileDelta = {};
+	if(this.mainThreadReady){
+		this.mainThreadReady = false;
+		postMessage({
+			"audio" : audio.serialize(),
+			"render" : Renderer.serialize(),
+			"camera" : {"x":this.camera.x, "y":this.camera.y},
+			"tiles" : this.tileDelta
+		});
+		this.tileDelta = {};
+		audio.clear();
+	}
 	Renderer.clear();
-	audio.clear();
 }
 Game.prototype.useMap = function(m){
 	this.clearAll();
@@ -1081,6 +1087,7 @@ self.onmessage = function(event){
 		//general update
 		input.update(event.data.input);
 		if(game instanceof Game){
+			game.mainThreadReady = true;
 			game.resolution.x = event.data.resolution.x;
 			game.resolution.y = event.data.resolution.y;
 		}
