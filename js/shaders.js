@@ -72,3 +72,9 @@ window.shaders["fragment-heat"] = "precision mediump float;\nuniform sampler2D u
 
 window.shaders["fragment-shifthue"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_shift;\n\nvec3 rgb2hsv(vec3 c)\n{\n	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);\n	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));\n	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));\n\n	float d = q.x - min(q.w, q.y);\n	float e = 1.0e-10;\n	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);\n}\n\nvec3 hsv2rgb(vec3 c)\n{\n	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	vec3 hsv = rgb2hsv(color.rgb);\n	hsv.x = mod(hsv.x + u_shift, 1.0);\n	vec3 rgb = hsv2rgb(hsv);\n	gl_FragColor = vec4(rgb,color.a);\n}";
 
+
+
+ /* platformer\shaders\tile-vertex-shader.shader*/ 
+
+window.shaders["tile-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_tile;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvec2 tile(vec2 tile){\n	float size = 32.0;\n	float t = tile.x + 1.0;\n	float ts = 1.0 / size;\n	float x = mod(t, size) / size;\n	float y = floor(t / size) / size;\n	\n	if(tile.y >= 2.0){\n		y += ts;\n	}\n	if(tile.y == 1.0 || tile.y == 3.0){\n		x += ts;\n	}\n	\n	return vec2(x,y);\n}\n\n\nvoid main() {\n	//Adjust position with camera\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	\n	//Flip object\n	pos.y = pos.y*-1.0;\n	\n	//Set position\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	\n	//Get UV from tile information\n	vec2 a_texCoord = tile(a_tile);\n	\n	\n	//Store new position for fragment shader\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
+

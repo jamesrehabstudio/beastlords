@@ -16673,7 +16673,7 @@ Shop.prototype.postrender = function(g,c){
 	}
 }
 
- /* platformer\Spawn.js*/ 
+ /* platformer\spawn.js*/ 
 
 Spawn.prototype = new GameObject();
 Spawn.prototype.constructor = GameObject;

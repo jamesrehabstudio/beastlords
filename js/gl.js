@@ -408,7 +408,12 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 			}
 		}
 		
-		this.getTileUVMap(tileData, uvVerts);
+		uvVerts.push(tileData.tile); uvVerts.push(0); //topleft
+		uvVerts.push(tileData.tile); uvVerts.push(1); //topright
+		uvVerts.push(tileData.tile); uvVerts.push(2); //botleft
+		uvVerts.push(tileData.tile); uvVerts.push(2); //botleft
+		uvVerts.push(tileData.tile); uvVerts.push(1); //topright
+		uvVerts.push(tileData.tile); uvVerts.push(3); //botright
 	}
 		
 	var campos = new Point(
@@ -425,10 +430,11 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	gl.bufferData(gl.ARRAY_BUFFER, game._tileBuffer, gl.DYNAMIC_DRAW);
 	material.set("a_position");
 	
+	
 	var textBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, textBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvVerts), gl.DYNAMIC_DRAW);
-	material.set("a_texCoord");
+	material.set("a_tile");
 	
 	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
 }
