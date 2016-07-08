@@ -6,6 +6,8 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
+		_player.doubleJump = true;
+		_player.grabLedges = true;
 		WorldLocale.loadMap("temple3.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;

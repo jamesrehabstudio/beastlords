@@ -274,12 +274,13 @@ function load_sprites (){
 	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24});
 	sprites['bear'] = new Sprite(RT+"img/bear.gif", {offset:new Point(14, 16),width:32,height:32});
 	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56});
+	sprites['bombbowler'] = new Sprite(RT+"img/bombbowler.png", {offset:new Point(40, 50),width:80,height:80});
 	sprites['cape1'] = new Sprite(RT+"img/cape1.gif", {offset:new Point(24, 24),width:48,height:48});
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['characters2'] = new Sprite(RT+"img/characters2.gif", {offset:new Point(24, 32),width:48,height:48});
 	sprites['checkpoint'] = new Sprite(RT+"img/checkpoint.gif", {offset:new Point(8, 32),width:16,height:64});
 	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(18, 25),width:48,height:40});
-	sprites['chazbike'] = new Sprite(RT+"img/chazbike.gif", {offset:new Point(24, 32),width:48,height:48});
+	sprites['biker'] = new Sprite(RT+"img/biker.png", {offset:new Point(40, 52),width:80,height:80});
 	sprites['chickenchain'] = new Sprite(RT+"img/chickenchain.png", {offset:new Point(20, 32),width:48,height:48});
 	sprites['chickendrill'] = new Sprite(RT+"img/chickendrill.png", {offset:new Point(20, 33),width:56,height:56});
 	sprites['cryptkeeper'] = new Sprite(RT+"img/cryptkeeper.png", {offset:new Point(36, 36),width:64,height:64});
@@ -332,7 +333,7 @@ function load_sprites (){
 	sprites['megaknight'] = new Sprite(RT+"img/megaknight.gif", {offset:new Point(32, 32),width:96,height:64});
 	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80});
 	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64});
-	sprites['poseidon'] = new Sprite(RT+"img/poseidon.gif", {offset:new Point(52, 48),width:112,height:96});
+	sprites['poseidon'] = new Sprite(RT+"img/poseidon.png", {offset:new Point(84, 88),width:160,height:120});
 	sprites['zoder'] = new Sprite(RT+"img/zoder.gif", {offset:new Point(32, 32),width:80,height:64});
 	
 	sprites['prisoner'] = new Sprite(RT+"img/prisoner.gif", {offset:new Point(16, 24),width:32,height:48});	
@@ -416,6 +417,11 @@ function load_sprites (){
 		422 : {"frames":[422,423,424], "speed":9.0}
 	});
 	tiles["temple3"] = new Tileset(sprites["temple3"],tileRules["big"], {
+		385 : {"frames":[385,386,387,388,389], "speed":5.0},
+		
+		195 : {"frames":[195,196,197,197,196,195], "speed":3.0},
+		196 : {"frames":[196,197,197,196,195,195], "speed":3.0},
+		197 : {"frames":[197,197,196,195,195,196], "speed":3.0},
 	});
 	tiles["cave"] = new Tileset(sprites["cave"],tileRules["big"], {
 		321 : {"frames":[321,322,323], "speed":6.0}

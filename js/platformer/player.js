@@ -7,7 +7,7 @@ function Player(x, y){
 	this.position.y = y;
 	this.width = 18;
 	this.height = 30;
-	this.zIndex = 1;
+	this.zIndex = 10;
 	this.checkpoint = new Point(x,y);
 	
 	this.keys = [];
@@ -526,9 +526,12 @@ Player.prototype.update = function(){
 				this.position.y = this.states.ledge.y;
 			}
 			this.gravity = 0;
-			
+			if(game.t_unstick(this)){
+				this.trigger("dropLedge");
+			}
 			if(input.state("jump") == 1){
 				this.trigger("dropLedge");
+				this.grounded = true;
 				this.jump();
 				if(input.state("right")>0) { this.force.x = 3; }
 				if(input.state("left")>0) { this.force.x = -3; }
@@ -628,8 +631,8 @@ Player.prototype.update = function(){
 						if(under == 0 && tileTop<=0 && tileBot > 0 && !(tileBot in tilerules.currentrule())){
 							//Edge grabbed
 							var edge = new Point(
-								this.flip ? (Math.ceil(bottom.x/16) * 16) : (Math.floor(bottom.x/16) * 16),
-								Math.floor(bottom.y/16) * 16
+								this.flip ? (Math.ceil(bottom.x/16) * 16)+4 : (Math.floor(bottom.x/16) * 16)-4,
+								(Math.floor(bottom.y/16) * 16) - 1
 							);
 							this.trigger("catchLedge", edge, this.flip);
 						}
@@ -1176,7 +1179,21 @@ Player.prototype.render = function(g,c){
 			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
 		}
 		
-		GameObject.prototype.render.apply(this,[g,c]);
+		//adjust for ledge offset
+		if(_player.states.ledge){
+			g.renderSprite(
+				this.sprite,
+				this.position.subtract(c).add(new Point(0,19)),
+				this.zIndex,
+				this.frame,
+				this.flip,
+				{"shader":this.filter}
+			);
+		} else {
+			GameObject.prototype.render.apply(this,[g,c]);
+		}
+		
+		
 		//Render caps
 		if( this.cape.active ) {
 			this.cape.sprite.render(g, this.position.subtract(c), this.cape.frame, this.cape.frame_row, this.flip, this.filter);

@@ -35,11 +35,13 @@ function Item(x,y,d, ops){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
-			if( this.name == "life_up" ) { obj.lifeMax += 4; obj.heal += 4; }
+			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 4; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
+			if( this.name == "life_fruit") { obj.lifeMax += 6; obj.heal = 9999; audio.play("gulp"); }
+			if( this.name == "mana_fruit") { obj.manaMax += 6; obj.manaHeal = 999; audio.play("gulp"); }
 			
 			if( this.isWeapon ) {
 				obj.equip(this, obj.equip_shield);
@@ -113,8 +115,6 @@ function Item(x,y,d, ops){
 			if( this.name == "spiked_shield") { obj.on("block", function(o,p,d){ if(o.hurt instanceof Function) o.hurt(this,Math.floor(d/2)); }); this.pickupEffect(); }
 			if( this.name == "black_heart") { obj.stats.attack+=1; obj.stats.defence+=2; obj.stats.technique+=1; obj.lifeMax -= 20; obj.life = Math.min(obj.lifeMax,obj.life); this.pickupEffect(); }
 			if( this.name == "treasure_map") { game.getObject(PauseMenu).revealMap(2); audio.play("pickup1"); }
-			if( this.name == "life_fruit") { obj.lifeMax += 20; obj.heal = 9999; audio.play("gulp"); }
-			if( this.name == "mana_fruit") { obj.manaMax += 12; obj.manaHeal = 999; audio.play("gulp"); }
 			
 			if( this.name == "charm_sword") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_mana") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }

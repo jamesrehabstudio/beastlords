@@ -138,8 +138,8 @@ function Fire(x,y){
 	this.addModule( mod_rigidbody );
 	
 	this.sprite = "bullets";
-	this.frame = 0;
-	this.frame_row = 3;
+	this.frame.x = 0;
+	this.frame.y = 3;
 	this.life = Game.DELTASECOND * 8;
 	this.mass = 0;
 	this.friction = 1.0;
@@ -161,7 +161,7 @@ function Fire(x,y){
 	});
 }
 Fire.prototype.update = function(){
-	this.frame = (this.frame + (this.delta * 0.5)) % 3;
+	this.frame.x = (this.frame.x + (this.delta * 0.5)) % 3;
 	this.life -= this.delta;
 	if( this.life <= 0 ){
 		this.trigger("death");
@@ -184,8 +184,8 @@ function FallingRock(x,y){
 	this.sprite = "bullets";
 	this.gravity = 0.333;
 	this.pushable = false;
-	this.frame = 3;
-	this.frame_row = 0;
+	this.frame.x = 3;
+	this.frame.y = 0;
 	
 	this.on("struck", function(obj, pos, damage){
 		if( damage > 0 ) this.trigger("death");
@@ -302,8 +302,8 @@ Explosion.prototype.idle = function(){}
 Explosion.prototype.update = function(){
 	var progress = 1.0 - (this.time / this.totalTime);
 	
-	this.frame = Math.floor( progress * 8 ) % 4;
-	this.frame_row = Math.floor( progress * 2 );
+	this.frame.x = Math.floor( progress * 8 ) % 4;
+	this.frame.y = Math.floor( progress * 2 );
 	
 	this.time -= this.delta;
 	if( this.time <= 0 ){

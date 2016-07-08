@@ -131,6 +131,8 @@ function MovingBlock(x,y,d,ops){
 	this.speed = 1.0;
 	this.move = false;
 	this.loop = 0;
+	this.wait = 0.0;
+	this.waitTime = 0.0;
 	this.killStuck = 0;
 	this.sync = 0;
 	
@@ -155,6 +157,9 @@ function MovingBlock(x,y,d,ops){
 	}
 	if("loop" in ops){
 		this.loop = ops["loop"] * 1;
+	}
+	if("wait" in ops){
+		this.wait = ops["wait"] * Game.DELTASECOND;
 	}
 	if("killstuck" in ops){
 		this.killStuck = ops["killstuck"] * 1;
@@ -182,7 +187,10 @@ function MovingBlock(x,y,d,ops){
 			}
 		} else {
 			//fall off platform if obj hits a tile
-			if(obj.isStuck && obj instanceof Player && obj.states.ledgeObject == this){
+			//if(obj.isStuck && obj instanceof Player && obj.states.ledgeObject == this){
+			//	obj.trigger("dropLedge");
+			//}
+			if(obj instanceof Player && obj.states.ledgeObject != this){
 				obj.trigger("dropLedge");
 			}
 		}
@@ -221,7 +229,9 @@ MovingBlock.prototype.idle = function(){
 }
 
 MovingBlock.prototype.update = function(){
-	if(this.move){
+	if(this.waitTime > 0){
+		this.waitTime -= this.delta;
+	} else if(this.move){
 		var s = this.speed * this.delta;
 		var des = this.direction == 0 ? this.endPosition : this.startPosition;
 		var dif = des.subtract(this.position);
@@ -247,6 +257,7 @@ MovingBlock.prototype.destinationReached = function(){
 	this.position.x = des.x;
 	this.position.y = des.y;
 	this.direction = this.direction == 0 ? 1 : 0;
+	this.waitTime = this.wait;
 	if(!this.loop){
 		this.move = 0;
 	}

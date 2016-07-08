@@ -2508,7 +2508,7 @@
     <property name="trigger" value="bridge2"/>
    </properties>
   </object>
-  <object id="521" name="Player" x="64" y="3296" width="16" height="32"/>
+  <object id="521" name="Player" x="2368" y="176" width="16" height="32"/>
   <object id="527" name="BreakableTile" x="2512" y="768" width="16" height="16">
    <properties>
     <property name="broken" type="int" value="1"/>

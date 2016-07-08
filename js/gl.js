@@ -181,12 +181,12 @@ function Sprite(url, options) {
 }
 Sprite.prototype.isCorrectSize = function() {
 	if( this.img.width != this.img.height ) return false;
-	if( [1,2,4,8,16,32,64,128,256,512,1024,2048].indexOf(this.img.width) < 0 ) return false;
+	if( [1,2,4,8,16,32,64,128,256,512,1024,2048,4096].indexOf(this.img.width) < 0 ) return false;
 	return true;
 }
 Sprite.prototype.resize = function() {
 	//Create a canvas for resizing the images
-	var max = Math.min( Math.max( this.img.width, this.img.height ), 1024 );
+	var max = Math.min( Math.max( this.img.width, this.img.height ), 4096 );
 	var size = 2; while( size < max ) size = size * 2;
 //	console.log( size, this.name, max );
 
@@ -408,12 +408,14 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 			}
 		}
 		
-		uvVerts.push(tileData.tile); uvVerts.push(0); //topleft
-		uvVerts.push(tileData.tile); uvVerts.push(1); //topright
-		uvVerts.push(tileData.tile); uvVerts.push(2); //botleft
-		uvVerts.push(tileData.tile); uvVerts.push(2); //botleft
-		uvVerts.push(tileData.tile); uvVerts.push(1); //topright
-		uvVerts.push(tileData.tile); uvVerts.push(3); //botright
+		var flags = Math.abs(tile >> 28) << 2;
+		
+		uvVerts.push(tileData.tile); uvVerts.push(flags+0); //topleft
+		uvVerts.push(tileData.tile); uvVerts.push(flags+1); //topright
+		uvVerts.push(tileData.tile); uvVerts.push(flags+2); //botleft
+		uvVerts.push(tileData.tile); uvVerts.push(flags+2); //botleft
+		uvVerts.push(tileData.tile); uvVerts.push(flags+1); //topright
+		uvVerts.push(tileData.tile); uvVerts.push(flags+3); //botright
 	}
 		
 	var campos = new Point(

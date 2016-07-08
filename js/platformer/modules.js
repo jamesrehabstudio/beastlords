@@ -117,7 +117,7 @@ var mod_block = {
 						obj.position.x = d.left - dif;
 						obj.trigger( "collideHorizontal", 1);
 						if(d.top > c.top && obj.force.y > 0){
-							obj.trigger("catchLedge", new Point(d.left, d.top), obj.flip, this);
+							obj.trigger("catchLedge", new Point(d.left-3, d.top), obj.flip, this);
 						}
 					} else if(!this.blockTopOnly && c.right > d.right && c.bottom-fallspeed > d.top){
 						//right
@@ -125,7 +125,7 @@ var mod_block = {
 						obj.position.x = d.right + dif;
 						obj.trigger( "collideHorizontal", -1);
 						if(d.top > c.top && obj.force.y > 0){
-							obj.trigger("catchLedge", new Point(d.right, d.top), obj.flip, this);
+							obj.trigger("catchLedge", new Point(d.right+3, d.top), obj.flip, this);
 						}
 					} else if(obj.force.y >= 0){
 						//top
@@ -214,7 +214,7 @@ var mod_camera = {
 		game.camera.x = this.position.x - (game.resolution.x / 2);
 		var yCenter = this.position.y - (game.resolution.y / 2);
 		
-		if(this.grounded){
+		if(this.grounded || this.states.ledge){
 			if(this.cameraYTween){
 				game.camera.y = Math.lerp(game.camera.y, yCenter, this.delta * 0.3);
 				this.camera_unlockTime -= this.delta;
