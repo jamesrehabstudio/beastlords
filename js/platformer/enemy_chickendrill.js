@@ -15,12 +15,9 @@ function ChickenDrill(x, y, d, o){
 	this.states = {
 		"cooldown" : Game.DELTASECOND * 3,
 		"attack" : 0.0,
-		"attackwait" : 0.0,
 		"drilling" : 0,
-		"smoke" : 0
+		"spike" : 0
 	};
-	
-	this.drill = new Line(0,0,8,8);
 	
 	o = o || {};
 	
@@ -59,42 +56,33 @@ ChickenDrill.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		
 		if(this.states.drilling){
-			if(this.states.attack > 0 ){
-				this.states.attack -= this.delta;
-			} else if (this.states.attackwait > 0){
-				this.states.attackwait -= this.delta;
-				if(this.drill.overlaps(_player.bounds())){
-					_player.hurt(this, this.damage);
-				}
-			} else {
+			this.states.attack -= this.delta;
+			
+			if(this.states.attack <= 0 ){
 				this.states.drilling = 0;
+			} else if(this.grounded){
+				if (Timer.interval(this.states.attack,Game.DELTASECOND*0.2,this.delta)){
+					var spikes = new ChickenDrillSpike(
+						this.position.x + this.states.spike * 40 * (this.flip?-1:1), 
+						this.position.y + 8
+					);
+					spikes.damage = this.damage;
+					game.addObject(spikes);
+					this.states.spike++;
+				}
 			}
-			if(this.grounded && this.states.smoke <= 0){
-				this.smoke(new Line(this.position.x-6,this.position.y+10,this.position.x+8,this.position.y+15));
-				this.smoke(new Line(this.drill.start.x,this.drill.end.y-4,this.drill.end.x,this.drill.end.y));
-				this.states.smoke = Game.DELTASECOND * 0.1;
-			}
-			this.states.smoke -= this.delta;
 		} else {
 			//idle
 			this.states.cooldown -= this.delta;
 			
-			if(_player.grounded){
-				this.drill = new Line(
-					_player.position.x - 0,
-					_player.position.y - 0,
-					_player.position.x + 16,
-					_player.position.y + 16
-				);
-			}
-			
 			if(this.states.cooldown <= 0 ){
 				this.states.drilling = 1;
-				this.states.attack = Game.DELTASECOND * 2;
-				this.states.attackwait = Game.DELTASECOND;
+				this.states.attack = Game.DELTASECOND * 2.0;
 				this.states.cooldown = Game.DELTASECOND * 2;
+				this.states.spike = 1;
 				this.force.y = -9;
 				this.grounded = false;
+				this.flip = dir.x > 0;
 			}
 		}
 	}
@@ -130,10 +118,35 @@ ChickenDrill.prototype.smoke = function(spos){
 		}
 	));
 }
-ChickenDrill.prototype.render = function(g,c){
-	if(this.states.attack <= 0 && this.states.attackwait > 0 ){
-		var drill = Math.floor(new Date()/100)%2;
-		g.renderSprite(this.sprite,this.drill.start.add(new Point(2,0)).subtract(c),this.zIndex,new Point(3,1+drill));
+
+ChickenDrillSpike.prototype = new GameObject();
+ChickenDrillSpike.prototype.constructor = GameObject;
+function ChickenDrillSpike(x, y, d, o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 8;
+	this.sprite = "chickendrill";
+	this.damage = 1;
+	this.frame = new Point(0,3);
+	this.time = Game.DELTASECOND * 2.0;
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			var prelife = obj.life;
+			obj.hurt(this,this.damage);
+			if(obj.life != prelife){
+				this.destroy();
+			}
+		}
+	});
+}
+ChickenDrillSpike.prototype.update = function(){
+	this.frame.x = Math.min(this.frame.x + this.delta * 0.5, 2);
+	this.time -= this.delta;
+	
+	if(this.time <= 0){
+		this.destroy();
 	}
-	GameObject.prototype.render.apply(this,[g,c]);
 }

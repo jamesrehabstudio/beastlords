@@ -95,6 +95,12 @@ Timer.prototype.progress = function(delta){
 		return 1.0 - (this.time-this.nextInterval / this.interval);
 	}
 }
+Timer.interval = function(time,interval,delta){
+	return (time%interval)+delta > interval;
+}
+Timer.isAt = function(time,at,delta){
+	return (at >= time && at < time + delta);
+}
 
 Array.prototype.remove = function(from, to) {
   var rest = this.slice((to || from) + 1 || this.length);

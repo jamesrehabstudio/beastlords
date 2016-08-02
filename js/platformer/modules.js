@@ -10,6 +10,7 @@ var mod_rigidbody = {
 		this.friction = 0.1;
 		this.bounce = 0.0;
 		this.collisionReduction = 0.0;
+		this.rigidbodyActive = true;
 		this.preventPlatFormSnap = false;
 		this.pushable = true;
 		
@@ -54,9 +55,7 @@ var mod_rigidbody = {
 		});
 	},
 	'update' : function(){
-		if(this.delta <= 0){
-			//Character paused, do nothing
-		} else {
+		if(this.delta > 0 && this.rigidbodyActive){
 			var inair = !this.grounded;
 			this.force.y += this.gravity * this.delta;
 			//Max speed 
@@ -108,11 +107,15 @@ var mod_block = {
 					var fallspeed = Math.max(obj.force.y / obj.delta,4);
 					if(!this.blockTopOnly && c.bottom > d.bottom && (c.right-1>d.left&&c.left+1<d.right)){
 						//Below
+						this.trigger("collideBottom", obj);
+						
 						var dif = obj.position.y - c.top;
 						obj.position.y = d.bottom + dif;
 						obj.trigger( "collideVertical", -1);
 					} else if(!this.blockTopOnly && c.left < d.left && c.bottom-fallspeed > d.top){
 						//left
+						this.trigger("collideLeft", obj);
+						
 						var dif = c.right - obj.position.x;
 						obj.position.x = d.left - dif;
 						obj.trigger( "collideHorizontal", 1);
@@ -121,6 +124,8 @@ var mod_block = {
 						}
 					} else if(!this.blockTopOnly && c.right > d.right && c.bottom-fallspeed > d.top){
 						//right
+						this.trigger("collideRight", obj);
+						
 						var dif = obj.position.x - c.left;
 						obj.position.x = d.right + dif;
 						obj.trigger( "collideHorizontal", -1);
@@ -129,6 +134,8 @@ var mod_block = {
 						}
 					} else if(obj.force.y >= 0){
 						//top
+						this.trigger("collideTop", obj);
+						
 						var dif = c.bottom - obj.position.y;
 						obj.position.y = 1 + (d.top - dif);
 						obj.trigger( "collideVertical", 1);
@@ -631,6 +638,51 @@ var mod_combat = {
 					this.ttest.width(),this.ttest.height()
 				);
 			}
+		}
+	}
+}
+
+var Combat = {
+	"strike" : function(rect, ops){
+		var offset = new Line( 
+			this.position.add( new Point( rect.start.x * (this.flip ? -1.0 : 1.0), rect.start.y) ),
+			this.position.add( new Point( rect.end.x * (this.flip ? -1.0 : 1.0), rect.end.y) )
+		);
+		
+		offset.correct();
+		var hits = game.overlaps(offset);
+		for(var i=0; i < hits.length; i++){
+			Combat.hit.apply(this, [hits[i], ops]);
+		}
+	},	
+	"hit"  : function(obj, ops){
+		ops = ops || {};
+		var blockable = true;
+		var damage = this.damage;
+		var onidirectional = false;
+		
+		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
+			if( !blockable || !obj.hasModule(mod_combat) ) {
+				obj.hurt( this, damage );
+			} else {
+				var flip = obj.flip ? -1:1;
+				var shield = new Line(
+					obj.position.x + (obj.guard.x) * flip,
+					obj.position.y + (obj.guard.y),
+					obj.position.x + (obj.guard.x + obj.guard.w) * flip,
+					obj.position.y + (obj.guard.y + obj.guard.h)
+				);
+				
+				if( obj.guard.active && (onidirectional||(this.flip!=obj.flip)) && shield.overlaps(this.bounds()) ){
+					this.trigger("blocked",obj);
+					obj.trigger("block",this,this.position,damage);
+				} else {
+					this.trigger("hurt_other",obj);
+					obj.hurt( this, damage );
+				}
+				
+			}
+			this.trigger("struckTarget", obj);
 		}
 	}
 }

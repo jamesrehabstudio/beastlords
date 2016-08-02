@@ -795,6 +795,102 @@ MovingBlock.prototype.render = function(g,c){
 	}
 }
 
+LoopBlock.prototype = new GameObject();
+LoopBlock.prototype.constructor = GameObject;
+function LoopBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.startPosition = new Point(this.position.x, this.position.y);
+	this.endPosition = new Point(this.position.x, this.position.y);
+	this.direction = 0;
+	this.width = d[0];
+	this.height = d[1];
+	
+	this.force = new Point();
+	this.friction = 0.001;
+	this.appliedForceTop = 0.0125;
+	this.appliedForceBot = 0.25;
+	this.speedMax = 8;
+	this.loopArea = new Line(
+		this.position.x - 128, 
+		this.position.y - 120, 
+		this.position.x + 128, 
+		this.position.y + 120
+	);
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	if("looptop" in ops){
+		this.loopArea.start.y += ops["looptop"] * 1;
+	}
+	if("loopbottom" in ops){
+		this.loopArea.end.y += ops["loopbottom"] * 1;
+	}
+	
+	this.on("collideTop", function(obj){
+		this.force.y += Math.max(obj.force.y * this.appliedForceTop, 0);
+	});
+	this.on("collideBottom", function(obj){
+		this.force.y += Math.min(obj.force.y * this.appliedForceBot, 0);
+	});
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+LoopBlock.prototype.idle = function(){}
+
+LoopBlock.prototype.update = function(){
+	this.position.x += this.force.x * this.delta;
+	this.position.y += this.force.y * this.delta;
+	
+	this.force.x = Math.min(Math.max(this.force.x,-this.speedMax),this.speedMax);
+	this.force.y = Math.min(Math.max(this.force.y,-this.speedMax),this.speedMax);
+	
+	this.force.x *= 1 - (this.friction*this.delta);
+	this.force.y *= 1 - (this.friction*this.delta);
+	
+	if(this.position.x < this.loopArea.start.x){
+		this.position.x = this.loopArea.end.x// - (this.loopArea.start.x - this.position.x);
+	}
+	if(this.position.x > this.loopArea.end.x){
+		this.position.x = this.loopArea.start.x// + (this.loopArea.end.x - this.position.x);
+	}
+	if(this.position.y < this.loopArea.start.y){
+		this.position.y = this.loopArea.end.y// - (this.loopArea.start.y - this.position.y);
+	}
+	if(this.position.y > this.loopArea.end.y){
+		this.position.y = this.loopArea.start.y// + (this.loopArea.end.y - this.position.y);
+	}
+}
+
+LoopBlock.prototype.shouldRender = MovingBlock.prototype.shouldRender;
+LoopBlock.prototype.render = MovingBlock.prototype.render;
 
 
 Crusher.prototype = new GameObject();
@@ -2474,6 +2570,7 @@ function Poseidon(x,y,d,o){
 	this.life = Spawn.life(30,this.difficulty);
 	this.lifeMax = this.life;
 	this.collideDamage = 5;
+	this.damageReduction = 0.333;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
 	this.stun_time = 0;
@@ -2489,6 +2586,7 @@ function Poseidon(x,y,d,o){
 		"timer" : 0,
 		"timerTotal" : 0,
 		"targetX" : 0,
+		"startX" : this.position.x
 	}
 	
 	this.on("land", function(){
@@ -2504,6 +2602,16 @@ function Poseidon(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
+	});
+	this.on("downstabbed", function(obj,damage){
+		if(
+			this.states.current == Poseidon.IDLE_STATE ||
+			this.states.current == Poseidon.TOSS_STATE ||
+			this.states.current == Poseidon.FIRE_STATE ||
+			this.states.current == Poseidon.BASH_STATE
+		){
+			this.setState(Poseidon.ESCAPE_STATE);
+		}
 	});
 	this.on("death", function(){
 		this.destroy();
@@ -2560,14 +2668,15 @@ Poseidon.prototype.setState = function(s){
 		this.states.transition = this.states.transitionTotal = 0;
 		this.states.timer = this.states.timerTotal = 0.5 * Game.DELTASECOND;
 	} else if(s == Poseidon.ESCAPE_STATE){
+		this.flip = this.states.startX < this.position.x;
 		this.states.transition = this.states.transitionTotal = 0;
-		this.states.timer = this.states.timerTotal = 1.5 * Game.DELTASECOND;
+		this.states.timer = this.states.timerTotal = 1.0 * Game.DELTASECOND;
 	}
 }
 Poseidon.prototype.selectState = function(){
 	var dir = this.position.subtract(_player.position);
 	
-	if(Math.abs(dir) > 240){
+	if(Math.abs(dir.x) > 240){
 		var roll = Math.random();
 		if(roll < 0.4){
 			this.setState(Poseidon.JUMP_STATE);
@@ -2578,7 +2687,7 @@ Poseidon.prototype.selectState = function(){
 		} else {
 			this.setState(Poseidon.WALK_STATE);
 		}
-	} else if(Math.abs(dir) < 120){
+	} else if(Math.abs(dir.x) < 120){
 		var roll = Math.random();
 		if(roll < 0.5){
 			this.setState(Poseidon.BASH_STATE);
@@ -2604,6 +2713,7 @@ Poseidon.prototype.selectState = function(){
 }
 Poseidon.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
+	Background.pushLight(this.position,200);
 	
 	if(this.active && this.life > 0){
 		
@@ -2707,7 +2817,7 @@ Poseidon.prototype.update = function(){
 			} else if(this.states.current == Poseidon.BITE_STATE){
 				this.frame.x = Math.min(timerProgress*7, 6);
 				this.frame.y = 5;
-				if(timerProgress < 0.5){
+				if(timerProgress > 0.2 && timerProgress < 0.5){
 					this.strike(new Line(16,-8,64,24), "hurt");
 				}
 				if(this.states.timer <= 0){
@@ -2924,31 +3034,7 @@ function Bullet(x,y,d){
 	this.force.x = d * this.speed;
 	this.pushable = false;
 	
-	this.on("collideObject", function(obj){
-		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
-			if( !this.blockable || !obj.hasModule(mod_combat) ) {
-				obj.hurt( this, this.damage );
-			} else {
-				var flip = obj.flip ? -1:1;
-				var shield = new Line(
-					obj.position.x + (obj.guard.x) * flip,
-					obj.position.y + (obj.guard.y),
-					obj.position.x + (obj.guard.x + obj.guard.w) * flip,
-					obj.position.y + (obj.guard.y + obj.guard.h)
-				);
-				
-				if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
-					this.trigger("blocked",obj);
-					obj.trigger("block",this,this.position,this.damage);
-				} else {
-					this.trigger("hurt_other",obj);
-					obj.hurt( this, this.damage );
-				}
-				
-			}
-			this.trigger("death");
-		} 
-	});
+	this.on("collideObject", Bullet.hit);
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
@@ -2992,28 +3078,69 @@ Bullet.prototype.update = function(){
 	}
 }
 
+Bullet.hit = function(obj){
+	if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
+		if( !this.blockable || !obj.hasModule(mod_combat) ) {
+			obj.hurt( this, this.damage );
+		} else {
+			var flip = obj.flip ? -1:1;
+			var shield = new Line(
+				obj.position.x + (obj.guard.x) * flip,
+				obj.position.y + (obj.guard.y),
+				obj.position.x + (obj.guard.x + obj.guard.w) * flip,
+				obj.position.y + (obj.guard.y + obj.guard.h)
+			);
+			
+			if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
+				this.trigger("blocked",obj);
+				obj.trigger("block",this,this.position,this.damage);
+			} else {
+				this.trigger("hurt_other",obj);
+				obj.hurt( this, this.damage );
+			}
+			
+		}
+		this.trigger("death");
+	}
+}
+
 PhantomBullet.prototype = new GameObject();
 PhantomBullet.prototype.constructor = GameObject;
-function PhantomBullet(x,y){
+function PhantomBullet(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 10;
-	this.height = 10;
+	this.height = 6;
 	
 	this.sprite = "bullets";
-	this.frame = 0;
-	this.frame_row = 0;
+	this.frame = new Point(0,0);
 	
 	this.blockable = true;
 	this.force = new Point();
 	this.team = 0;
+	this.time = Game.DELTASECOND * 2;
+	this.damage = 1;
 	
+	this.on("collideObject", Bullet.hit);
 	this.on("sleep", function(){ this.destroy(); } );
+	this.on("death", function(){ this.destroy(); } );
+	
+	o = o || {};
+	if(d instanceof Array && d.length >= 2){
+		this.width = d[0] * 1;
+		this.width = d[1] * 1;
+	}
 }
 PhantomBullet.prototype.update = function(){
 	this.position.x += this.force.x * this.delta;
 	this.position.y += this.force.y * this.delta;
+	this.time -= this.delta;
+	this.flip = this.force.x < 0;
+	
+	if(this.time <= 0){
+		this.destroy();
+	}
 }
 	
 
@@ -4527,6 +4654,7 @@ function Amon(x,y,d,o){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
+	this.charged = false;
 	
 	this.speed = 2.5;
 	this.sprite = "lilghost";
@@ -4537,7 +4665,17 @@ function Amon(x,y,d,o){
 	this.on("hurt", function(obj,damage){
 		audio.play("hurt");
 	});
-	this.on("struck", EnemyStruck);
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player && this.isCharged){
+			obj.hurt(this,this.damage);
+		}
+	});
+	this.on("struck", function(obj,pos,damage){
+		EnemyStruck.apply(this,arguments);
+		if(obj instanceof Player && this.isCharged){
+			obj.hurt(this,this.damage);
+		}
+	});
 	this.on("hurt_other", function(obj){
 		this.force.x *= -1;
 	});
@@ -4554,28 +4692,51 @@ function Amon(x,y,d,o){
 	if("difficulty" in o){
 		this.difficulty = o["difficulty"] * 1;
 	}
+	this.charged = this.difficulty > 1;
+	if("charged" in o){
+		this.charged = o["charged"] * 1;
+	}
 	
 	this.life = Spawn.life(0,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
+	
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;
 	this.friction = 0.0;
-	this.stun_time = 30.0;
+	this.stun_time = Game.DELTASECOND * 3;
 	this.invincible_time = 30.0;
+	this.changeTime = 0.0;
+	this.isCharged = 0;
 	this.force.x = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.force.y = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.backupForce = new Point(this.force.x, this.force.y);
-	this.damage = Spawn.damage(2,this.difficulty);
+	
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
 	
-	SpecialEnemy(this);
 	this.calculateXP();
 }
 Amon.prototype.update = function(){
 	this.frame.x = ( this.frame.x + this.delta * 0.2 ) % 3;
 	
 	if( this.stun < 0 ) {
+		if(this.charged){
+			if(this.isCharged){
+				Background.pushLight(this.position,180,[.5,.7,1.0,1.0]);
+				this.damageReduction = 1.0;
+				this.changeTime -= this.delta;
+				if(this.changeTime <= 0) {
+					this.isCharged = 0;
+				}
+			} else{
+				this.changeTime += this.delta;
+				this.damageReduction = 0.0;
+				if(this.changeTime >= Game.DELTASECOND * 2) {
+					this.isCharged = 1;
+				}
+			}
+		}
 		if( Math.abs( this.force.x ) > 0.1 ) {
 			this.force.x = this.speed * (this.force.x > 0 ? 1 : -1);
 			this.force.y = this.speed * (this.force.y > 0 ? 1 : -1);
@@ -6086,12 +6247,9 @@ function ChickenDrill(x, y, d, o){
 	this.states = {
 		"cooldown" : Game.DELTASECOND * 3,
 		"attack" : 0.0,
-		"attackwait" : 0.0,
 		"drilling" : 0,
-		"smoke" : 0
+		"spike" : 0
 	};
-	
-	this.drill = new Line(0,0,8,8);
 	
 	o = o || {};
 	
@@ -6130,42 +6288,33 @@ ChickenDrill.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		
 		if(this.states.drilling){
-			if(this.states.attack > 0 ){
-				this.states.attack -= this.delta;
-			} else if (this.states.attackwait > 0){
-				this.states.attackwait -= this.delta;
-				if(this.drill.overlaps(_player.bounds())){
-					_player.hurt(this, this.damage);
-				}
-			} else {
+			this.states.attack -= this.delta;
+			
+			if(this.states.attack <= 0 ){
 				this.states.drilling = 0;
+			} else if(this.grounded){
+				if (Timer.interval(this.states.attack,Game.DELTASECOND*0.2,this.delta)){
+					var spikes = new ChickenDrillSpike(
+						this.position.x + this.states.spike * 40 * (this.flip?-1:1), 
+						this.position.y + 8
+					);
+					spikes.damage = this.damage;
+					game.addObject(spikes);
+					this.states.spike++;
+				}
 			}
-			if(this.grounded && this.states.smoke <= 0){
-				this.smoke(new Line(this.position.x-6,this.position.y+10,this.position.x+8,this.position.y+15));
-				this.smoke(new Line(this.drill.start.x,this.drill.end.y-4,this.drill.end.x,this.drill.end.y));
-				this.states.smoke = Game.DELTASECOND * 0.1;
-			}
-			this.states.smoke -= this.delta;
 		} else {
 			//idle
 			this.states.cooldown -= this.delta;
 			
-			if(_player.grounded){
-				this.drill = new Line(
-					_player.position.x - 0,
-					_player.position.y - 0,
-					_player.position.x + 16,
-					_player.position.y + 16
-				);
-			}
-			
 			if(this.states.cooldown <= 0 ){
 				this.states.drilling = 1;
-				this.states.attack = Game.DELTASECOND * 2;
-				this.states.attackwait = Game.DELTASECOND;
+				this.states.attack = Game.DELTASECOND * 2.0;
 				this.states.cooldown = Game.DELTASECOND * 2;
+				this.states.spike = 1;
 				this.force.y = -9;
 				this.grounded = false;
+				this.flip = dir.x > 0;
 			}
 		}
 	}
@@ -6201,12 +6350,37 @@ ChickenDrill.prototype.smoke = function(spos){
 		}
 	));
 }
-ChickenDrill.prototype.render = function(g,c){
-	if(this.states.attack <= 0 && this.states.attackwait > 0 ){
-		var drill = Math.floor(new Date()/100)%2;
-		g.renderSprite(this.sprite,this.drill.start.add(new Point(2,0)).subtract(c),this.zIndex,new Point(3,1+drill));
+
+ChickenDrillSpike.prototype = new GameObject();
+ChickenDrillSpike.prototype.constructor = GameObject;
+function ChickenDrillSpike(x, y, d, o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 8;
+	this.sprite = "chickendrill";
+	this.damage = 1;
+	this.frame = new Point(0,3);
+	this.time = Game.DELTASECOND * 2.0;
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			var prelife = obj.life;
+			obj.hurt(this,this.damage);
+			if(obj.life != prelife){
+				this.destroy();
+			}
+		}
+	});
+}
+ChickenDrillSpike.prototype.update = function(){
+	this.frame.x = Math.min(this.frame.x + this.delta * 0.5, 2);
+	this.time -= this.delta;
+	
+	if(this.time <= 0){
+		this.destroy();
 	}
-	GameObject.prototype.render.apply(this,[g,c]);
 }
 
  /* platformer\enemy_crusher.js*/ 
@@ -6694,6 +6868,141 @@ Father.prototype.update = function(){
 	this.frame_row = 0;
 }
 Father.prototype.idle = function(){}
+
+ /* platformer\enemy_fireman.js*/ 
+
+Fireman.prototype = new GameObject();
+Fireman.prototype.constructor = GameObject;
+function Fireman(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 56;
+	
+	this.sprite = "flameman";
+	this.paletteSwaps = ["t0","t0","t0","t0","t0"];
+	this.speed = 2;
+	this.bullet = null;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		//this.states.attack = 0;
+		audio.play("hurt");
+		if(this.states.current == 0 || this.states.current == 4){
+			for(var i=0; i < 2; i++){
+				var fire = new Fire(this.position.x, this.position.y-8);
+				fire.force.x = (i==0?-1:1) * 5;
+				fire.force.y = -5;
+				game.addObject(fire);
+			}
+		}
+	});
+	this.on("collideObject", function(obj){
+		if( this.states.current != 3 && obj instanceof Player ) {
+			obj.hurt(this,this.damage);
+		}
+	});
+	this.on("death", function(obj,pos,damage){
+		_player.addXP(this.xp_award);
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(2,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.death_time = Game.DELTASECOND * 1;
+	
+	//SpecialEnemy(this);
+	this.calculateXP();
+	
+	this.states = {
+		"current" : 0,
+		"cooldown" : 50
+	};
+	this.times = {
+		"alignTop" : 10,
+		"alignBot" : -10,
+		"cooldown" : Game.DELTASECOND * 1.5,
+		"attackCool" : Game.DELTASECOND * 1.0,
+	}
+}
+Fireman.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.life > 0 ) {
+		if(this.states.current == 0){
+			//idle
+			this.frame = new Point();
+			this.flip = dir.x > 0;
+			this.states.cooldown -= this.delta;
+			
+			if(this.states.cooldown <= 0){
+				var bulletAddPos = this.flip ? -40 : 40;
+				this.bullet = new PhantomBullet(this.position.x + bulletAddPos,this.position.y);
+				this.bullet.sprite = this.sprite;
+				this.bullet.frame = new Point(1,1);
+				this.bullet.damage = this.damage;
+				this.bullet.blockable = false;
+				this.bullet.time = Game.DELTASECOND * 5;
+				this.bullet.width = this.bullet.height = 32;
+				game.addObject(this.bullet);
+				
+				this.states.current = 1;
+				this.states.cooldown = Game.DELTASECOND * 2;
+			}
+		} else if(this.states.current == 1){
+			//charge
+			this.states.cooldown -= this.delta;
+			
+			if(this.states.cooldown <= 0){
+				this.bullet.force.x = this.flip ? -6 : 6;
+				this.states.current = 2;
+				this.states.cooldown = Game.DELTASECOND * 1;
+			}
+		} else if(this.states.current == 2){
+			//fire
+			this.frame = new Point(0,1);
+			this.states.cooldown -= this.delta;
+			
+			if(this.states.cooldown <= 0){
+				this.states.current = 3;
+				this.states.cooldown = Game.DELTASECOND * 1;
+			}
+		} else if(this.states.current == 3){
+			//nude
+			this.frame = new Point(0,2);
+			this.states.cooldown -= this.delta;
+			
+			if(this.states.cooldown <= 0){
+				this.states.current = 4;
+				this.states.cooldown = Game.DELTASECOND * 1;
+			}
+		} else if(this.states.current == 4){
+			//regrow
+			this.frame = new Point();
+			this.states.cooldown -= this.delta;
+			
+			if(this.states.cooldown <= 0){
+				this.states.current = 0;
+				this.states.cooldown = Game.DELTASECOND * 1;
+			}
+		}
+	}
+	
+	Background.pushLight( this.position, 200, [1,0.8,0,1] );
+}
 
  /* platformer\enemy_flederknife.js*/ 
 
@@ -9308,6 +9617,551 @@ Svarog.prototype.update = function(){
 	this.states.cooldown -= this.delta;
 }
 
+ /* platformer\enemy_wizzard.js*/ 
+
+WizzardBolter.prototype = new GameObject();
+WizzardBolter.prototype.constructor = GameObject;
+function WizzardBolter(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 48;
+	
+	this.sprite = "owlwizzard";
+	this.paletteSwaps = ["t0","t0","t0","t0","t0"];
+	this.speed = 2;
+	
+	this.addModule( mod_combat );
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		//this.states.attack = 0;
+		audio.play("hurt");
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+	});
+	this.on("collideHorizontal", function(dir){
+		this.states.backup = !this.states.backup;
+	});
+	this.on("death", function(obj,pos,damage){
+		_player.addXP(this.xp_award);
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(2,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.death_time = Game.DELTASECOND * 1;
+	
+	//SpecialEnemy(this);
+	this.calculateXP();
+	
+	this.states = {
+		"cooldown" : 50,
+		"attack" : Game.DELTASECOND,
+		"align" : 0
+	};
+	this.times = {
+		"alignTop" : 10,
+		"alignBot" : -10,
+		"cooldown" : Game.DELTASECOND * 1.5,
+		"attackCool" : Game.DELTASECOND * 1.0,
+	}
+}
+WizzardBolter.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.life > 0 ) {
+		if(this.states.attach > 0){
+			this.states.attach -= this.delta;
+		} else {
+			//Align with player
+			var ypos = _player.position.y + this.states.align;
+			var speed = this.speed * this.delta;
+			
+			if(Math.abs(this.position.y - ypos) <= speed){
+				this.position.y = ypos;
+			} else if(this.position.y > ypos){
+				this.position.y -= speed;
+			} else {
+				this.position.y += speed;
+			}
+			
+			if(Math.abs(dir.x) > 160){
+				if(this.flip){
+					this.position.x -= speed;
+				} else {
+					this.position.x += speed;
+				}
+			}
+			
+			if(Math.abs(dir.x) < 96){
+				if(this.flip){
+					this.position.x += speed;
+				} else {
+					this.position.x -= speed;
+				}
+			}
+			
+			
+			this.flip = dir.x > 0;
+			this.states.cooldown -= this.delta;
+			if(this.states.cooldown <= 0){
+				//Attack
+				this.states.attack = this.times.attackCool;
+				this.states.cooldown = this.times.cooldown;
+				this.states.align = Math.random() > 0.5 ? this.times.alignTop : this.times.alignBot;
+				
+				var bullet = new PhantomBullet(this.position.x, this.position.y);
+				bullet.damage = this.damage;
+				bullet.force.x = this.flip ? -4 : 4;
+				game.addObject(bullet);
+			}
+		}
+		this.frame = new Point();
+	}
+}
+
+
+WizzardFlamer.prototype = new GameObject();
+WizzardFlamer.prototype.constructor = GameObject;
+function WizzardFlamer(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 48;
+	
+	this.sprite = "owlwizzard";
+	this.paletteSwaps = ["t3","t3","t3","t3","t3"];
+	this.speed = 2;
+	
+	this.addModule( mod_combat );
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		//this.states.attack = 0;
+		audio.play("hurt");
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+	});
+	this.on("collideHorizontal", function(dir){
+		this.states.backup = !this.states.backup;
+	});
+	this.on("death", function(obj,pos,damage){
+		_player.addXP(this.xp_award);
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(2,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.death_time = Game.DELTASECOND * 1;
+	
+	//SpecialEnemy(this);
+	this.calculateXP();
+	
+	this.states = {
+		"cooldown" : 50,
+		"attack" : Game.DELTASECOND,
+		"align" : 0
+	};
+	this.times = {
+		"alignTop" : 10,
+		"alignBot" : -10,
+		"cooldown" : Game.DELTASECOND * 3.5,
+		"attackCool" : Game.DELTASECOND * 1.0,
+	}
+}
+WizzardFlamer.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.life > 0 ) {
+		if(this.states.attach > 0){
+			this.states.attach -= this.delta;
+		} else {
+			//Align with player
+			var ypos = _player.position.y + this.states.align;
+			var speed = this.speed * this.delta;
+			
+			if(Math.abs(this.position.y - ypos) <= speed){
+				this.position.y = ypos;
+			} else if(this.position.y > ypos){
+				this.position.y -= speed;
+			} else {
+				this.position.y += speed;
+			}
+			
+			if(Math.abs(dir.x) > 160){
+				if(this.flip){
+					this.position.x -= speed;
+				} else {
+					this.position.x += speed;
+				}
+			}
+			
+			if(Math.abs(dir.x) < 96){
+				if(this.flip){
+					this.position.x += speed;
+				} else {
+					this.position.x -= speed;
+				}
+			}
+			
+			
+			this.flip = dir.x > 0;
+			this.states.cooldown -= this.delta;
+			if(this.states.cooldown <= 0){
+				//Attack
+				this.states.attack = this.times.attackCool;
+				this.states.cooldown = this.times.cooldown;
+				this.states.align = Math.random() > 0.5 ? this.times.alignTop : this.times.alignBot;
+				
+				var xoff = 32;
+				for(var i=0; i < 3; i++){
+					var xpos = (this.flip?-1:1) * xoff;
+					var ftower = new FlameTower(xpos+this.position.x, this.position.y);
+					ftower.damage = this.damage;
+					ftower.time = Game.DELTASECOND * i * -0.6;
+					game.addObject(ftower);
+					xoff += Math.random()>0.5 ?  40 : 80;
+				}
+			}
+		}
+		this.frame = new Point();
+	}
+}
+
+WizzardSoldier.prototype = new GameObject();
+WizzardSoldier.prototype.constructor = GameObject;
+function WizzardSoldier(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 48;
+	
+	this.sprite = "owlwizzard";
+	this.paletteSwaps = ["t2","t2","t2","t2","t2"];
+	this.speed = 2;
+	
+	this.addModule( mod_combat );
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		//this.states.attack = 0;
+		audio.play("hurt");
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+	});
+	this.on("collideHorizontal", function(dir){
+		this.states.backup = !this.states.backup;
+	});
+	this.on("death", function(obj,pos,damage){
+		_player.addXP(this.xp_award);
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(2,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.death_time = Game.DELTASECOND * 1;
+	
+	//SpecialEnemy(this);
+	this.calculateXP();
+	
+	this.states = {
+		"cooldown" : Game.DELTASECOND * 6.0,
+		"attack" : Game.DELTASECOND * 3.0
+	};
+}
+WizzardSoldier.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.life > 0 ) {
+		if(this.states.cooldown <= 0){
+			//Attack			
+			this.states.attack -= this.delta;
+			if(this.states.attack <= 0){
+				for(var i=0; i < WizzardSoldier.enemyPlacement.length; i++){
+					var xpos = (this.flip?-1:1) * WizzardSoldier.enemyPlacement[i];
+					var enemy = new Flederknife(xpos+this.position.x, this.position.y, null, {"difficulty":this.difficulty});
+					game.addObject(enemy);
+				}
+				this.destroy();
+			}
+		} else {
+			this.flip = dir.x > 0;
+			this.states.cooldown -= this.delta;
+			
+			if(Math.abs(dir.x) < 80){
+				this.position.x += (this.flip?1:-1) * this.speed * this.delta;
+			}
+			if(Math.abs(dir.x) > 96){
+				this.position.x += (this.flip?-1:1) * this.speed * this.delta;
+			}
+			if(dir.y > -40){
+				this.position.y -= this.speed * this.delta;
+			}
+			if(dir.y < -64){
+				this.position.y += this.speed * this.delta;
+			}
+		}
+	this.frame = new Point();
+	}
+}
+WizzardSoldier.enemyPlacement = [-200,-128,80,128,200];
+
+WizzardLightning.prototype = new GameObject();
+WizzardLightning.prototype.constructor = GameObject;
+function WizzardLightning(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 48;
+	
+	this.sprite = "owlwizzard";
+	this.paletteSwaps = ["t1","t1","t1","t1","t1"];
+	this.speed = 1;
+	this.direction = 0;
+	
+	this.addModule( mod_combat );
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		//this.states.attack = 0;
+		audio.play("hurt");
+	});
+	this.on("collideObject", function(obj){
+		if( this.team == obj.team ) return;
+		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
+	});
+	this.on("collideHorizontal", function(dir){
+		this.states.backup = !this.states.backup;
+	});
+	this.on("death", function(obj,pos,damage){
+		_player.addXP(this.xp_award);
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(2,this.difficulty);
+	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.death_time = Game.DELTASECOND * 1;
+	
+	//SpecialEnemy(this);
+	this.calculateXP();
+	
+	this.states = {
+		"cooldown" : Game.DELTASECOND * 4.0,
+		"attack" : Game.DELTASECOND * 1.0
+	};
+}
+WizzardLightning.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.life > 0 ) {
+		if(this.states.cooldown <= 0){
+			//Attack			
+			this.states.attack -= this.delta;
+			if(this.states.attack <= 0){
+				var lightning1 = new LightningBolt(this.position.x,this.position.y);
+				var lightning2 = new LightningBolt(this.position.x,this.position.y);
+				lightning1.speed = -2;
+				lightning2.speed = 2;
+				lightning1.damage = lightning2.damage = this.damage;
+				game.addObject(lightning1);
+				game.addObject(lightning2);
+				
+				this.states.cooldown = Game.DELTASECOND * 3;
+				this.states.attack = Game.DELTASECOND * 1;
+			}
+		} else {
+			this.flip = dir.x > 0;
+			this.states.cooldown -= this.delta;
+			
+			this.direction += this.delta * 0.1;
+			this.position.x += Math.sin(this.direction) * this.speed * this.delta;
+			this.position.y += Math.cos(this.direction) * this.speed * this.delta;
+		}
+	this.frame = new Point();
+	}
+}
+
+
+//Wizzard attacks
+
+
+FlameTower.prototype = new GameObject();
+FlameTower.prototype.constructor = GameObject;
+function FlameTower(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.height = 8;
+	this.width = 32;
+	this.damage = 1;
+	this.time = 0;
+	
+	this.timers = {
+		"wait" : Game.DELTASECOND,
+		"active" : Game.DELTASECOND * 2.5,
+		"destroy" : Game.DELTASECOND * 2.9
+	};
+	
+	this.on("sleep", function(){
+		this.destroy();
+	});
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player && this.time > this.timers.active) {
+			obj.hurt(this,this.damage);
+		}
+	});
+	
+	this.addModule( mod_rigidbody );
+	this.pushable = false;
+}
+
+FlameTower.prototype.update = function(){
+	this.time += this.delta;
+	if(this.time < this.timers.wait){
+		
+	}else if(this.time < this.timers.active){
+		var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+		Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), [1,0.7,0,1] );
+	} else {
+		var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
+		var preh = this.height;
+		this.height = 88 * Math.min(prog*1.5,1);
+		this.rigidbodyActive = false;
+		this.position.y -= 0.5 * (this.height-preh);
+		Background.pushLight( this.position, this.height*2, [1,0.7,0,1] );
+	}
+	if(this.time > this.timers.destroy){
+		this.destroy();
+	}
+}
+	
+FlameTower.prototype.render = function(g,c){
+	if(this.time > this.timers.wait){
+		g.color = [1.0,0.7,0.0,1.0];
+		if(this.time < this.timers.active){
+			var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+			var w = 1.5 * this.width * prog;
+			var h = 16 * (1 - prog);
+			
+			g.scaleFillRect(
+				(this.position.x - w*0.5) - c.x,
+				(this.position.y - h*0.5) - c.y,
+				w, h
+			);
+		} else {
+			//active
+			g.scaleFillRect(
+				(this.position.x - this.width*0.5) - c.x,
+				(this.position.y - this.height*0.5) - c.y,
+				this.width, this.height
+			);
+		}
+	} 
+}
+
+
+LightningBolt.prototype = new GameObject();
+LightningBolt.prototype.constructor = GameObject;
+function LightningBolt(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.height = 8;
+	this.width = 8;
+	this.damage = 1;
+	this.time = 0;
+	this.speed = 0;
+	
+	this.on("sleep", function(){
+		this.destroy();
+	});
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player && !this.grounded) {
+			obj.hurt(this,this.damage);
+		}
+	});
+	this.on(["struckTarget","collideHorizontal"], function(dir){
+		this.destroy();
+	});
+	
+	this.addModule( mod_rigidbody );
+	this.pushable = false;
+}
+
+LightningBolt.prototype.update = function(){
+	this.time += this.delta;
+	
+	if(this.grounded){
+		this.force.x += this.speed * this.delta;
+		this.flip = this.force.x < 0; 
+		Combat.strike.apply(this,[new Line(0,0,8,4)]);
+	} else {
+		//fall
+	}
+	
+	Background.pushLight(this.position,48,[0.5,0.7,1.0,1.0]);
+	
+	if(this.time > Game.DELTASECOND * 3){
+		this.destroy();
+	}
+}
+	
+LightningBolt.prototype.render = function(g,c){
+	g.color = [0.5,0.7,1.0,1.0];
+	g.scaleFillRect(
+		(this.position.x - this.width*0.5) - c.x,
+		(this.position.y - this.height*0.5) - c.y,
+		this.width, this.height
+	);
+}
+
  /* platformer\enemy_yakseyo.js*/ 
 
 Yakseyo.prototype = new GameObject();
@@ -9643,6 +10497,8 @@ Weapon.prototype.cancel = function(){
 
 Weapon.prototype.hit = function(player,obj,damage){
 	if(this.playerState == "downstab"){
+		obj.trigger("downstabbed", player, damage);
+		player.trigger("downstabTarget", obj, damage);
 		this.cancel();
 		return;
 	}
@@ -12313,6 +13169,7 @@ var mod_rigidbody = {
 		this.friction = 0.1;
 		this.bounce = 0.0;
 		this.collisionReduction = 0.0;
+		this.rigidbodyActive = true;
 		this.preventPlatFormSnap = false;
 		this.pushable = true;
 		
@@ -12357,9 +13214,7 @@ var mod_rigidbody = {
 		});
 	},
 	'update' : function(){
-		if(this.delta <= 0){
-			//Character paused, do nothing
-		} else {
+		if(this.delta > 0 && this.rigidbodyActive){
 			var inair = !this.grounded;
 			this.force.y += this.gravity * this.delta;
 			//Max speed 
@@ -12411,11 +13266,15 @@ var mod_block = {
 					var fallspeed = Math.max(obj.force.y / obj.delta,4);
 					if(!this.blockTopOnly && c.bottom > d.bottom && (c.right-1>d.left&&c.left+1<d.right)){
 						//Below
+						this.trigger("collideBottom", obj);
+						
 						var dif = obj.position.y - c.top;
 						obj.position.y = d.bottom + dif;
 						obj.trigger( "collideVertical", -1);
 					} else if(!this.blockTopOnly && c.left < d.left && c.bottom-fallspeed > d.top){
 						//left
+						this.trigger("collideLeft", obj);
+						
 						var dif = c.right - obj.position.x;
 						obj.position.x = d.left - dif;
 						obj.trigger( "collideHorizontal", 1);
@@ -12424,6 +13283,8 @@ var mod_block = {
 						}
 					} else if(!this.blockTopOnly && c.right > d.right && c.bottom-fallspeed > d.top){
 						//right
+						this.trigger("collideRight", obj);
+						
 						var dif = obj.position.x - c.left;
 						obj.position.x = d.right + dif;
 						obj.trigger( "collideHorizontal", -1);
@@ -12432,6 +13293,8 @@ var mod_block = {
 						}
 					} else if(obj.force.y >= 0){
 						//top
+						this.trigger("collideTop", obj);
+						
 						var dif = c.bottom - obj.position.y;
 						obj.position.y = 1 + (d.top - dif);
 						obj.trigger( "collideVertical", 1);
@@ -12934,6 +13797,51 @@ var mod_combat = {
 					this.ttest.width(),this.ttest.height()
 				);
 			}
+		}
+	}
+}
+
+var Combat = {
+	"strike" : function(rect, ops){
+		var offset = new Line( 
+			this.position.add( new Point( rect.start.x * (this.flip ? -1.0 : 1.0), rect.start.y) ),
+			this.position.add( new Point( rect.end.x * (this.flip ? -1.0 : 1.0), rect.end.y) )
+		);
+		
+		offset.correct();
+		var hits = game.overlaps(offset);
+		for(var i=0; i < hits.length; i++){
+			Combat.hit.apply(this, [hits[i], ops]);
+		}
+	},	
+	"hit"  : function(obj, ops){
+		ops = ops || {};
+		var blockable = true;
+		var damage = this.damage;
+		var onidirectional = false;
+		
+		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
+			if( !blockable || !obj.hasModule(mod_combat) ) {
+				obj.hurt( this, damage );
+			} else {
+				var flip = obj.flip ? -1:1;
+				var shield = new Line(
+					obj.position.x + (obj.guard.x) * flip,
+					obj.position.y + (obj.guard.y),
+					obj.position.x + (obj.guard.x + obj.guard.w) * flip,
+					obj.position.y + (obj.guard.y + obj.guard.h)
+				);
+				
+				if( obj.guard.active && (onidirectional||(this.flip!=obj.flip)) && shield.overlaps(this.bounds()) ){
+					this.trigger("blocked",obj);
+					obj.trigger("block",this,this.position,damage);
+				} else {
+					this.trigger("hurt_other",obj);
+					obj.hurt( this, damage );
+				}
+				
+			}
+			this.trigger("struckTarget", obj);
 		}
 	}
 }
@@ -13797,6 +14705,7 @@ function Player(x, y){
 	this.lightRadius = 32.0;
 	this.grabLedges = false;
 	this.doubleJump = false;
+	this.dodgeFlash = false;
 	
 	this.states = {
 		"duck" : false,
@@ -13811,6 +14720,7 @@ function Player(x, y){
 		"rollPressCounter" : 0.0,
 		"roll" : 0,
 		"rollDirection" : 1.0,
+		"rollCooldown" : 0.0,
 		"effectTimer" : 0.0,
 		"downStab" : false,
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
@@ -14036,6 +14946,10 @@ function Player(x, y){
 			this.keys = new Array();
 		}*/
 	})
+	this.on("downstabTarget", function(obj, damage){
+		this.states.doubleJumpReady = true;
+		this.states.airSpin = false;
+	});
 	this.on("catchLedge", function(edge, flip, obj){
 		if(this.grabLedges){
 			this.states.doubleJumpReady = true;
@@ -14049,6 +14963,15 @@ function Player(x, y){
 			this.states.ledgeObject = obj;
 			if(this.states.ledgeObject){
 				this.states.ledge = this.states.ledge.subtract(this.states.ledgeObject.position);
+			}
+		}
+	});
+	this.on("collideObject", function(obj){
+		if( this.states.roll > 0  && this.dodgeFlash){
+			if("hurt" in obj && obj.hurt instanceof Function){
+				var damage = this.equip_weapon.baseDamage(this);
+				obj.hurt(this, damage);
+				this.doubleJumpReady = true;
 			}
 		}
 	});
@@ -14084,7 +15007,8 @@ function Player(x, y){
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = Game.DELTASECOND;
 	this.autoblock = true;
-	this.rollTime = Game.DELTASECOND * 0.5;
+	this.rollTime = Game.DELTASECOND * 0.75;
+	this.dodgeTime = this.rollTime * 0.33333;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -14316,8 +15240,18 @@ Player.prototype.update = function(){
 		} else if (this.knockedout > 0){
 			//Do nothing
 		} else if( this.states.roll > 0 ) {
-			this.force.x = this.states.rollDirection * 5;
+			if(this.dodgeFlash){
+				this.force.y -= (0.2 + this.gravity) * this.delta;
+				this.force.x = this.states.rollDirection * 15;
+			} else {
+				this.force.x = this.states.rollDirection * 5;
+			}
 			this.states.roll -= this.delta;
+			
+			if( this.states.roll <= 0 ) {
+				//End of roll
+				this.force.x = Math.min(Math.max(this.force.x,-6),6);
+			}
 			
 			//Create dust trail for roll
 			if( this.states.effectTimer > Game.DELTASECOND / 16 ){
@@ -14457,10 +15391,18 @@ Player.prototype.update = function(){
 					(this.states.rollDirection < 0 && input.state("left") == 1)
 				) && 
 				this.states.rollPressCounter > 0 &&
-				this.grounded
+				this.states.rollCooldown <= 0
 			) {
 				//Dodge roll
-				this.states.roll = this.invincible = this.rollTime;
+				if(this.dodgeFlash){
+					this.states.roll = this.invincible = this.dodgeTime;
+					this.force.y = 0;
+					this.position.y -= 1;
+					this.grounded = false;
+				} else if(this.grounded){
+					this.states.roll = this.invincible = this.rollTime;
+				}
+				this.states.rollCooldown = Game.DELTASECOND;
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
@@ -14626,6 +15568,7 @@ Player.prototype.update = function(){
 	//Timers
 	var attack_decrement_modifier = this.spellsCounters.haste > 0 ? 1.3 : 1.0;
 	this.states.attack -= this.delta * attack_decrement_modifier;
+	this.states.rollCooldown -= this.delta;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
@@ -14963,6 +15906,16 @@ Player.prototype.render = function(g,c){
 		}
 	} else {
 		//When rolling, ignore flip and shader
+		if(this.dodgeFlash){
+			var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
+			g.color = [1,1,1,1];
+			g.scaleFillRect(
+				(this.position.x - (this.flip?0:flashLength)) - c.x,
+				(this.position.y - 6) - c.y,
+				flashLength,
+				12
+			);
+		}
 		g.renderSprite(this.sprite, this.position.subtract(c), this.zIndex, this.frame, this.force.x < 0);
 	}
 	
@@ -17005,8 +17958,8 @@ function Spawn(x,y,d,ops){
 	this.position.x = x;
 	this.position.y = y;
 	this.visible = false;
-	this.width = 16;
-	this.height = 16;
+	this.width = d[0];
+	this.height = d[1];
 	this.difficulty = Spawn.difficulty;
 	this.specific = null;
 	this.autodestroy = 0;
@@ -17014,49 +17967,53 @@ function Spawn(x,y,d,ops){
 	this.active = false;
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
+	this.edgespawn = false;
 	
 	this.on("activate",function(obj){
 		this.spawn();
 		this.active = true;
 	});
 	
-	ops = ops || {};
+	this.options = ops || {};
 	var autospawn = 1;
 	
-	if("enemies" in ops){
-		this.specific = ops["enemies"].split(",");
+	if("enemies" in this.options){
+		this.specific = this.options["enemies"].split(",");
 	}
-	if("theme" in ops){
-		this.theme = ops.theme;
+	if("theme" in this.options){
+		this.theme = this.options.theme;
 	}
-	if("difficulty" in ops){
-		this.difficulty = ops.difficulty * 1;
+	if("difficulty" in this.options){
+		this.difficulty = this.options.difficulty * 1;
 	}
-	if("autodestroy" in ops){
-		this.autodestroy = ops.autodestroy * 1;
+	if("autodestroy" in this.options){
+		this.autodestroy = this.options.autodestroy * 1;
 	}
-	if("autospawn" in ops){
-		autospawn = ops.autospawn * 1;
+	if("autospawn" in this.options){
+		autospawn = this.options.autospawn * 1;
 		this.active = autospawn;
 	}
-	if("respawn" in ops){
+	if("edgespawn" in this.options){
+		this.edgespawn = this.options.edgespawn * 1;
+	}
+	if("respawn" in this.options){
 		this.on("wakeup",function(){
 			if(this.active && !this.isAlive()){
 				this.spawn();
 			}
 		});
 	}
-	if( "tags" in ops ){
-		this.tags = ops.tags.split(",");
+	if( "tags" in this.options ){
+		this.tags = this.options.tags.split(",");
 	} else { 
 		this.tags = new Array();
 	}
-	if("timer" in ops){
-		this.timerTotal = ops["timer"] * Game.DELTASECOND;
+	if("timer" in this.options){
+		this.timerTotal = this.options["timer"] * Game.DELTASECOND;
 		this.timer = this.timerTotal;
 	}
-	if("trigger" in ops){
-		this._tid = ops.trigger;
+	if("trigger" in this.options){
+		this._tid = this.options.trigger;
 	}
 	
 	if(autospawn){
@@ -17123,9 +18080,10 @@ Spawn.prototype.create = function(enemies){
 		var that = this;
 		var name = enemies[j];
 		try {
+			var sposition = this.spawnPosition(j);
 			var object = new self[ name ]( 
-				this.position.x + j * 24,
-				this.position.y,
+				sposition.x,
+				sposition.y,
 				null,
 				{"difficulty":this.difficulty}
 			);
@@ -17145,6 +18103,31 @@ Spawn.prototype.create = function(enemies){
 			console.error( "cannot create object: " + name );
 		}
 	}
+}
+Spawn.prototype.spawnPosition = function(i){
+	if(this.edgespawn){
+		var c = this.corners();
+		var leftPos = game.camera.x;
+		var rightPos = game.camera.x + game.resolution.x
+		var left = c.left < leftPos;
+		var right = c.right > rightPos;
+		if(left && right){
+			if(Math.random()>0.5){
+				return new Point(leftPos, this.position.y);
+			} else {
+				return new Point(rightPos, this.position.y);
+			}
+		} else {
+			if(left){
+				return new Point(leftPos, this.position.y);
+			} else{
+				return new Point(rightPos, this.position.y);
+			}
+		}
+	} else {
+		return new Point(this.position.x + i*24, this.position.y);
+	}
+	return new Point(this.position.x, this.position.y);
 }
 
 Spawn.addToList = function(pos,list, type, max, ops){
@@ -17425,11 +18408,14 @@ function game_start(g){
 	setTimeout(function(){
 		new Player(0,0);
 		_player.doubleJump = true;
+		_player.dodgeFlash = true;
 		_player.grabLedges = true;
-		WorldLocale.loadMap("temple3.tmx");
+		WorldLocale.loadMap("temple4.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
+			_player.addXP(1000);
+			_player.life = _player.lifeMax = 36;
 		}, 1000);
 	},100);
 	/**/

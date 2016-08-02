@@ -468,11 +468,12 @@ Game.prototype.collideObject = function(obj) {
 	if(obj.interactive){
 		var objs = this.tree.get(obj.bounds());
 		
-		for(var o=0; o < objs.length; o++ ){
-			if( objs[o] != obj ) {
-				if( obj.intersects( objs[o] ) ){
-					obj.trigger("collideObject", objs[o]);
-					objs[o].trigger("collideObject", obj);
+		for(var i=0; i < objs.length; i++ ){
+			if( objs[i] && objs[i] != obj ) {
+				var o = objs[i];
+				if( obj.intersects( o ) ){
+					obj.trigger("collideObject", o);
+					o.trigger("collideObject", obj);
 				}
 			}
 		}

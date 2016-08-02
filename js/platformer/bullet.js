@@ -30,31 +30,7 @@ function Bullet(x,y,d){
 	this.force.x = d * this.speed;
 	this.pushable = false;
 	
-	this.on("collideObject", function(obj){
-		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
-			if( !this.blockable || !obj.hasModule(mod_combat) ) {
-				obj.hurt( this, this.damage );
-			} else {
-				var flip = obj.flip ? -1:1;
-				var shield = new Line(
-					obj.position.x + (obj.guard.x) * flip,
-					obj.position.y + (obj.guard.y),
-					obj.position.x + (obj.guard.x + obj.guard.w) * flip,
-					obj.position.y + (obj.guard.y + obj.guard.h)
-				);
-				
-				if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
-					this.trigger("blocked",obj);
-					obj.trigger("block",this,this.position,this.damage);
-				} else {
-					this.trigger("hurt_other",obj);
-					obj.hurt( this, this.damage );
-				}
-				
-			}
-			this.trigger("death");
-		} 
-	});
+	this.on("collideObject", Bullet.hit);
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
@@ -98,28 +74,69 @@ Bullet.prototype.update = function(){
 	}
 }
 
+Bullet.hit = function(obj){
+	if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
+		if( !this.blockable || !obj.hasModule(mod_combat) ) {
+			obj.hurt( this, this.damage );
+		} else {
+			var flip = obj.flip ? -1:1;
+			var shield = new Line(
+				obj.position.x + (obj.guard.x) * flip,
+				obj.position.y + (obj.guard.y),
+				obj.position.x + (obj.guard.x + obj.guard.w) * flip,
+				obj.position.y + (obj.guard.y + obj.guard.h)
+			);
+			
+			if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
+				this.trigger("blocked",obj);
+				obj.trigger("block",this,this.position,this.damage);
+			} else {
+				this.trigger("hurt_other",obj);
+				obj.hurt( this, this.damage );
+			}
+			
+		}
+		this.trigger("death");
+	}
+}
+
 PhantomBullet.prototype = new GameObject();
 PhantomBullet.prototype.constructor = GameObject;
-function PhantomBullet(x,y){
+function PhantomBullet(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 10;
-	this.height = 10;
+	this.height = 6;
 	
 	this.sprite = "bullets";
-	this.frame = 0;
-	this.frame_row = 0;
+	this.frame = new Point(0,0);
 	
 	this.blockable = true;
 	this.force = new Point();
 	this.team = 0;
+	this.time = Game.DELTASECOND * 2;
+	this.damage = 1;
 	
+	this.on("collideObject", Bullet.hit);
 	this.on("sleep", function(){ this.destroy(); } );
+	this.on("death", function(){ this.destroy(); } );
+	
+	o = o || {};
+	if(d instanceof Array && d.length >= 2){
+		this.width = d[0] * 1;
+		this.width = d[1] * 1;
+	}
 }
 PhantomBullet.prototype.update = function(){
 	this.position.x += this.force.x * this.delta;
 	this.position.y += this.force.y * this.delta;
+	this.time -= this.delta;
+	this.flip = this.force.x < 0;
+	
+	if(this.time <= 0){
+		this.destroy();
+	}
 }
 	
 

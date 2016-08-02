@@ -5,8 +5,8 @@ function Spawn(x,y,d,ops){
 	this.position.x = x;
 	this.position.y = y;
 	this.visible = false;
-	this.width = 16;
-	this.height = 16;
+	this.width = d[0];
+	this.height = d[1];
 	this.difficulty = Spawn.difficulty;
 	this.specific = null;
 	this.autodestroy = 0;
@@ -14,49 +14,53 @@ function Spawn(x,y,d,ops){
 	this.active = false;
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
+	this.edgespawn = false;
 	
 	this.on("activate",function(obj){
 		this.spawn();
 		this.active = true;
 	});
 	
-	ops = ops || {};
+	this.options = ops || {};
 	var autospawn = 1;
 	
-	if("enemies" in ops){
-		this.specific = ops["enemies"].split(",");
+	if("enemies" in this.options){
+		this.specific = this.options["enemies"].split(",");
 	}
-	if("theme" in ops){
-		this.theme = ops.theme;
+	if("theme" in this.options){
+		this.theme = this.options.theme;
 	}
-	if("difficulty" in ops){
-		this.difficulty = ops.difficulty * 1;
+	if("difficulty" in this.options){
+		this.difficulty = this.options.difficulty * 1;
 	}
-	if("autodestroy" in ops){
-		this.autodestroy = ops.autodestroy * 1;
+	if("autodestroy" in this.options){
+		this.autodestroy = this.options.autodestroy * 1;
 	}
-	if("autospawn" in ops){
-		autospawn = ops.autospawn * 1;
+	if("autospawn" in this.options){
+		autospawn = this.options.autospawn * 1;
 		this.active = autospawn;
 	}
-	if("respawn" in ops){
+	if("edgespawn" in this.options){
+		this.edgespawn = this.options.edgespawn * 1;
+	}
+	if("respawn" in this.options){
 		this.on("wakeup",function(){
 			if(this.active && !this.isAlive()){
 				this.spawn();
 			}
 		});
 	}
-	if( "tags" in ops ){
-		this.tags = ops.tags.split(",");
+	if( "tags" in this.options ){
+		this.tags = this.options.tags.split(",");
 	} else { 
 		this.tags = new Array();
 	}
-	if("timer" in ops){
-		this.timerTotal = ops["timer"] * Game.DELTASECOND;
+	if("timer" in this.options){
+		this.timerTotal = this.options["timer"] * Game.DELTASECOND;
 		this.timer = this.timerTotal;
 	}
-	if("trigger" in ops){
-		this._tid = ops.trigger;
+	if("trigger" in this.options){
+		this._tid = this.options.trigger;
 	}
 	
 	if(autospawn){
@@ -123,9 +127,10 @@ Spawn.prototype.create = function(enemies){
 		var that = this;
 		var name = enemies[j];
 		try {
+			var sposition = this.spawnPosition(j);
 			var object = new self[ name ]( 
-				this.position.x + j * 24,
-				this.position.y,
+				sposition.x,
+				sposition.y,
 				null,
 				{"difficulty":this.difficulty}
 			);
@@ -145,6 +150,31 @@ Spawn.prototype.create = function(enemies){
 			console.error( "cannot create object: " + name );
 		}
 	}
+}
+Spawn.prototype.spawnPosition = function(i){
+	if(this.edgespawn){
+		var c = this.corners();
+		var leftPos = game.camera.x;
+		var rightPos = game.camera.x + game.resolution.x
+		var left = c.left < leftPos;
+		var right = c.right > rightPos;
+		if(left && right){
+			if(Math.random()>0.5){
+				return new Point(leftPos, this.position.y);
+			} else {
+				return new Point(rightPos, this.position.y);
+			}
+		} else {
+			if(left){
+				return new Point(leftPos, this.position.y);
+			} else{
+				return new Point(rightPos, this.position.y);
+			}
+		}
+	} else {
+		return new Point(this.position.x + i*24, this.position.y);
+	}
+	return new Point(this.position.x, this.position.y);
 }
 
 Spawn.addToList = function(pos,list, type, max, ops){

@@ -28,6 +28,7 @@ function Poseidon(x,y,d,o){
 	this.life = Spawn.life(30,this.difficulty);
 	this.lifeMax = this.life;
 	this.collideDamage = 5;
+	this.damageReduction = 0.333;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
 	this.stun_time = 0;
@@ -43,6 +44,7 @@ function Poseidon(x,y,d,o){
 		"timer" : 0,
 		"timerTotal" : 0,
 		"targetX" : 0,
+		"startX" : this.position.x
 	}
 	
 	this.on("land", function(){
@@ -58,6 +60,16 @@ function Poseidon(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
+	});
+	this.on("downstabbed", function(obj,damage){
+		if(
+			this.states.current == Poseidon.IDLE_STATE ||
+			this.states.current == Poseidon.TOSS_STATE ||
+			this.states.current == Poseidon.FIRE_STATE ||
+			this.states.current == Poseidon.BASH_STATE
+		){
+			this.setState(Poseidon.ESCAPE_STATE);
+		}
 	});
 	this.on("death", function(){
 		this.destroy();
@@ -114,14 +126,15 @@ Poseidon.prototype.setState = function(s){
 		this.states.transition = this.states.transitionTotal = 0;
 		this.states.timer = this.states.timerTotal = 0.5 * Game.DELTASECOND;
 	} else if(s == Poseidon.ESCAPE_STATE){
+		this.flip = this.states.startX < this.position.x;
 		this.states.transition = this.states.transitionTotal = 0;
-		this.states.timer = this.states.timerTotal = 1.5 * Game.DELTASECOND;
+		this.states.timer = this.states.timerTotal = 1.0 * Game.DELTASECOND;
 	}
 }
 Poseidon.prototype.selectState = function(){
 	var dir = this.position.subtract(_player.position);
 	
-	if(Math.abs(dir) > 240){
+	if(Math.abs(dir.x) > 240){
 		var roll = Math.random();
 		if(roll < 0.4){
 			this.setState(Poseidon.JUMP_STATE);
@@ -132,7 +145,7 @@ Poseidon.prototype.selectState = function(){
 		} else {
 			this.setState(Poseidon.WALK_STATE);
 		}
-	} else if(Math.abs(dir) < 120){
+	} else if(Math.abs(dir.x) < 120){
 		var roll = Math.random();
 		if(roll < 0.5){
 			this.setState(Poseidon.BASH_STATE);
@@ -158,6 +171,7 @@ Poseidon.prototype.selectState = function(){
 }
 Poseidon.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
+	Background.pushLight(this.position,200);
 	
 	if(this.active && this.life > 0){
 		
@@ -261,7 +275,7 @@ Poseidon.prototype.update = function(){
 			} else if(this.states.current == Poseidon.BITE_STATE){
 				this.frame.x = Math.min(timerProgress*7, 6);
 				this.frame.y = 5;
-				if(timerProgress < 0.5){
+				if(timerProgress > 0.2 && timerProgress < 0.5){
 					this.strike(new Line(16,-8,64,24), "hurt");
 				}
 				if(this.states.timer <= 0){

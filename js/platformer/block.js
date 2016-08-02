@@ -288,6 +288,102 @@ MovingBlock.prototype.render = function(g,c){
 	}
 }
 
+LoopBlock.prototype = new GameObject();
+LoopBlock.prototype.constructor = GameObject;
+function LoopBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.startPosition = new Point(this.position.x, this.position.y);
+	this.endPosition = new Point(this.position.x, this.position.y);
+	this.direction = 0;
+	this.width = d[0];
+	this.height = d[1];
+	
+	this.force = new Point();
+	this.friction = 0.001;
+	this.appliedForceTop = 0.0125;
+	this.appliedForceBot = 0.25;
+	this.speedMax = 8;
+	this.loopArea = new Line(
+		this.position.x - 128, 
+		this.position.y - 120, 
+		this.position.x + 128, 
+		this.position.y + 120
+	);
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	if("looptop" in ops){
+		this.loopArea.start.y += ops["looptop"] * 1;
+	}
+	if("loopbottom" in ops){
+		this.loopArea.end.y += ops["loopbottom"] * 1;
+	}
+	
+	this.on("collideTop", function(obj){
+		this.force.y += Math.max(obj.force.y * this.appliedForceTop, 0);
+	});
+	this.on("collideBottom", function(obj){
+		this.force.y += Math.min(obj.force.y * this.appliedForceBot, 0);
+	});
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+LoopBlock.prototype.idle = function(){}
+
+LoopBlock.prototype.update = function(){
+	this.position.x += this.force.x * this.delta;
+	this.position.y += this.force.y * this.delta;
+	
+	this.force.x = Math.min(Math.max(this.force.x,-this.speedMax),this.speedMax);
+	this.force.y = Math.min(Math.max(this.force.y,-this.speedMax),this.speedMax);
+	
+	this.force.x *= 1 - (this.friction*this.delta);
+	this.force.y *= 1 - (this.friction*this.delta);
+	
+	if(this.position.x < this.loopArea.start.x){
+		this.position.x = this.loopArea.end.x// - (this.loopArea.start.x - this.position.x);
+	}
+	if(this.position.x > this.loopArea.end.x){
+		this.position.x = this.loopArea.start.x// + (this.loopArea.end.x - this.position.x);
+	}
+	if(this.position.y < this.loopArea.start.y){
+		this.position.y = this.loopArea.end.y// - (this.loopArea.start.y - this.position.y);
+	}
+	if(this.position.y > this.loopArea.end.y){
+		this.position.y = this.loopArea.start.y// + (this.loopArea.end.y - this.position.y);
+	}
+}
+
+LoopBlock.prototype.shouldRender = MovingBlock.prototype.shouldRender;
+LoopBlock.prototype.render = MovingBlock.prototype.render;
 
 
 Crusher.prototype = new GameObject();

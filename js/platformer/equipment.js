@@ -106,6 +106,8 @@ Weapon.prototype.cancel = function(){
 
 Weapon.prototype.hit = function(player,obj,damage){
 	if(this.playerState == "downstab"){
+		obj.trigger("downstabbed", player, damage);
+		player.trigger("downstabTarget", obj, damage);
 		this.cancel();
 		return;
 	}

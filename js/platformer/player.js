@@ -34,6 +34,7 @@ function Player(x, y){
 	this.lightRadius = 32.0;
 	this.grabLedges = false;
 	this.doubleJump = false;
+	this.dodgeFlash = false;
 	
 	this.states = {
 		"duck" : false,
@@ -48,6 +49,7 @@ function Player(x, y){
 		"rollPressCounter" : 0.0,
 		"roll" : 0,
 		"rollDirection" : 1.0,
+		"rollCooldown" : 0.0,
 		"effectTimer" : 0.0,
 		"downStab" : false,
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
@@ -273,6 +275,10 @@ function Player(x, y){
 			this.keys = new Array();
 		}*/
 	})
+	this.on("downstabTarget", function(obj, damage){
+		this.states.doubleJumpReady = true;
+		this.states.airSpin = false;
+	});
 	this.on("catchLedge", function(edge, flip, obj){
 		if(this.grabLedges){
 			this.states.doubleJumpReady = true;
@@ -286,6 +292,15 @@ function Player(x, y){
 			this.states.ledgeObject = obj;
 			if(this.states.ledgeObject){
 				this.states.ledge = this.states.ledge.subtract(this.states.ledgeObject.position);
+			}
+		}
+	});
+	this.on("collideObject", function(obj){
+		if( this.states.roll > 0  && this.dodgeFlash){
+			if("hurt" in obj && obj.hurt instanceof Function){
+				var damage = this.equip_weapon.baseDamage(this);
+				obj.hurt(this, damage);
+				this.doubleJumpReady = true;
 			}
 		}
 	});
@@ -321,7 +336,8 @@ function Player(x, y){
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = Game.DELTASECOND;
 	this.autoblock = true;
-	this.rollTime = Game.DELTASECOND * 0.5;
+	this.rollTime = Game.DELTASECOND * 0.75;
+	this.dodgeTime = this.rollTime * 0.33333;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -553,8 +569,18 @@ Player.prototype.update = function(){
 		} else if (this.knockedout > 0){
 			//Do nothing
 		} else if( this.states.roll > 0 ) {
-			this.force.x = this.states.rollDirection * 5;
+			if(this.dodgeFlash){
+				this.force.y -= (0.2 + this.gravity) * this.delta;
+				this.force.x = this.states.rollDirection * 15;
+			} else {
+				this.force.x = this.states.rollDirection * 5;
+			}
 			this.states.roll -= this.delta;
+			
+			if( this.states.roll <= 0 ) {
+				//End of roll
+				this.force.x = Math.min(Math.max(this.force.x,-6),6);
+			}
 			
 			//Create dust trail for roll
 			if( this.states.effectTimer > Game.DELTASECOND / 16 ){
@@ -694,10 +720,18 @@ Player.prototype.update = function(){
 					(this.states.rollDirection < 0 && input.state("left") == 1)
 				) && 
 				this.states.rollPressCounter > 0 &&
-				this.grounded
+				this.states.rollCooldown <= 0
 			) {
 				//Dodge roll
-				this.states.roll = this.invincible = this.rollTime;
+				if(this.dodgeFlash){
+					this.states.roll = this.invincible = this.dodgeTime;
+					this.force.y = 0;
+					this.position.y -= 1;
+					this.grounded = false;
+				} else if(this.grounded){
+					this.states.roll = this.invincible = this.rollTime;
+				}
+				this.states.rollCooldown = Game.DELTASECOND;
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
@@ -863,6 +897,7 @@ Player.prototype.update = function(){
 	//Timers
 	var attack_decrement_modifier = this.spellsCounters.haste > 0 ? 1.3 : 1.0;
 	this.states.attack -= this.delta * attack_decrement_modifier;
+	this.states.rollCooldown -= this.delta;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
@@ -1200,6 +1235,16 @@ Player.prototype.render = function(g,c){
 		}
 	} else {
 		//When rolling, ignore flip and shader
+		if(this.dodgeFlash){
+			var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
+			g.color = [1,1,1,1];
+			g.scaleFillRect(
+				(this.position.x - (this.flip?0:flashLength)) - c.x,
+				(this.position.y - 6) - c.y,
+				flashLength,
+				12
+			);
+		}
 		g.renderSprite(this.sprite, this.position.subtract(c), this.zIndex, this.frame, this.force.x < 0);
 	}
 	
