@@ -115,7 +115,7 @@ PauseMenu.prototype.update = function(){
 		
 		if( _player.life > 0) {
 			//Close pause menu
-			if( input.state("pause") == 1 || input.state("select") == 1 ) {
+			if( input.state("pause") == 1 ) {
 				this.open = false;
 				game.pause = false;
 				audio.play("unpause");
@@ -128,7 +128,7 @@ PauseMenu.prototype.update = function(){
 			}
 		}
 	} else {
-		if( ( input.state("pause") == 1 || input.state("select") == 1 ) && _player instanceof Player && _player.life > 0 ) {
+		if( ( input.state("pause") == 1 ) && _player instanceof Player && _player.life > 0 ) {
 			this.open = true;
 			//_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
@@ -138,7 +138,6 @@ PauseMenu.prototype.update = function(){
 			this.page = 1;
 			this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
-			if( input.state("select") == 1 ) this.page = 4;
 			audio.play("pause");
 		}
 	}

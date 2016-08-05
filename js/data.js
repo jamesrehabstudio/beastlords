@@ -442,6 +442,7 @@ window.audio = new AudioPlayer({
 	"music_goodbye" : {"url":RT+"sounds/music_goodbye.mp3", "music":true},
 	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
 	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":24.0},
+	"music_temple4" : {"url":RT+"sounds/music_temple4.ogg","music":true,"loop":32.011},
 	"music_town" : {"url":RT+"sounds/music_intro.ogg","music":true,"loop":0.0},
 	//"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
 	"music_sleep" : {"url":RT+"sounds/music_sleep.mp3","music":true},

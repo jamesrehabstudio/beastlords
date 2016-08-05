@@ -35,7 +35,7 @@ function Item(x,y,d, ops){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
-			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 4; }
+			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
@@ -66,6 +66,7 @@ function Item(x,y,d, ops){
 			
 			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); }
 			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); }
+			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); }
 			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
@@ -73,7 +74,7 @@ function Item(x,y,d, ops){
 			
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); }
 			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); }
-			if( this.name == "seed_malphas") { obj.stats.technique+=1; this.pickupEffect(); }
+			if( this.name == "seed_malphas") { obj.stats.magic+=1; this.pickupEffect(); }
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; this.pickupEffect(); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; this.pickupEffect(); }
 			if( this.name == "seed_minotaur") { 
@@ -124,6 +125,7 @@ function Item(x,y,d, ops){
 			if( this.name == "charm_methuselah") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_soul") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "spell_fire") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "spell_flash") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
@@ -294,6 +296,7 @@ Item.prototype.setName = function(n){
 	//Special items
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; return; }
 	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; return; }
+	if(n == "dodgeflash") { this.frame.x = 5; this.frame.y = 6; return; }
 	
 	//Charms
 	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}
@@ -316,6 +319,7 @@ Item.prototype.setName = function(n){
 	if( this.name == "charm_methuselah") { this.frame.x = 5; this.frame.y = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
 	if( this.name == "charm_barter") { this.frame.x = 6; this.frame.y = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
 	if( this.name == "charm_elephant") { this.frame.x = 7; this.frame.y = 8; this.message = "Elephant Charm\nWounds open slowly.";}
+	if( this.name == "charm_soul") { this.frame.x = 8; this.frame.y = 8; this.message = "Soul Charm\nA magic seal will protect you.";}
 	
 	//All items below this point glow!
 	this.glowing=true;
@@ -357,12 +361,12 @@ Item.prototype.setName = function(n){
 	if( this.name == "life_fruit") { this.frame.x = 1; this.frame.y = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame.x = 2; this.frame.y = 6; this.message = "Mana fruit\nMana up.";}
 	
-	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
-	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
-	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
-	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
-	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
+	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.1; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
+	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.2; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
+	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.castTime = Game.DELTASECOND * 1.0; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
+	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
+	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.3; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
+	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
 	
 	if( this.name == "unique_wand"){
 		this.frame.x = 2;

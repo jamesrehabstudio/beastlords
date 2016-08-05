@@ -10,6 +10,7 @@ function WizzardBolter(x,y,d,o){
 	this.sprite = "owlwizzard";
 	this.paletteSwaps = ["t0","t0","t0","t0","t0"];
 	this.speed = 2;
+	this.offsetX = 0.0;
 	
 	this.addModule( mod_combat );
 	
@@ -19,7 +20,14 @@ function WizzardBolter(x,y,d,o){
 		audio.play("hurt");
 	});
 	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
+		if( obj instanceof WizzardBolter ) {
+			var dif = this.position.x - obj.position.x;
+			if(dif > 0){
+				this.offsetX = Game.DELTASECOND * 0.5;
+			} else {
+				this.offsetX = -Game.DELTASECOND * 0.5;
+			}
+		}
 		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("collideHorizontal", function(dir){
@@ -77,19 +85,35 @@ WizzardBolter.prototype.update = function(){
 				this.position.y += speed;
 			}
 			
-			if(Math.abs(dir.x) > 160){
-				if(this.flip){
-					this.position.x -= speed;
-				} else {
+			if(this.offsetX != 0){
+				if(this.offsetX > 0){
 					this.position.x += speed;
+					this.offsetX -= this.delta;
+					if(this.offsetX <= 0) {
+						this.offsetX = 0;
+					}
+				} else {
+					this.position.x -= speed;
+					this.offsetX += this.delta;
+					if(this.offsetX >= 0) {
+						this.offsetX = 0;
+					}
 				}
-			}
-			
-			if(Math.abs(dir.x) < 96){
-				if(this.flip){
-					this.position.x += speed;
-				} else {
-					this.position.x -= speed;
+			} else {
+				if(Math.abs(dir.x) > 160){
+					if(this.flip){
+						this.position.x -= speed;
+					} else {
+						this.position.x += speed;
+					}
+				}
+				
+				if(Math.abs(dir.x) < 96){
+					if(this.flip){
+						this.position.x += speed;
+					} else {
+						this.position.x -= speed;
+					}
 				}
 			}
 			
@@ -373,7 +397,7 @@ function WizzardLightning(x,y,d,o){
 	this.calculateXP();
 	
 	this.states = {
-		"cooldown" : Game.DELTASECOND * 4.0,
+		"cooldown" : Game.DELTASECOND * 2.0,
 		"attack" : Game.DELTASECOND * 1.0
 	};
 }
@@ -497,6 +521,7 @@ function LightningBolt(x,y,d,o){
 	this.damage = 1;
 	this.time = 0;
 	this.speed = 0;
+	this.team = 0;
 	
 	this.on("sleep", function(){
 		this.destroy();

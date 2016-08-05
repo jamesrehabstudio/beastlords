@@ -12,9 +12,9 @@ function Player(x, y){
 	
 	this.keys = [];
 	this.spells = [];
+	this.spellCursor = 0;
 	this.uniqueItems = [];
 	this.charm = false;
-	this.spell = false;
 	this.knockedout = false;
 	this.pause = false;
 	
@@ -59,6 +59,7 @@ function Player(x, y){
 		"turn" : 0.0,
 		"doubleJumpReady": true,
 		"airSpin" : false,
+		"spellCounter" : 0.0
 	};
 	
 	this.attackProperties = {
@@ -196,6 +197,7 @@ function Player(x, y){
 			this.force.x = knockback;
 		}
 		if(this.stun_time > 0 ){
+			this.states.spellCounter = 0.0;
 			this.states.attack = 0;
 			this.stun = this.stun_time;
 			game.slow(0,5.0);
@@ -341,6 +343,21 @@ function Player(x, y){
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
+		if(this.hasCharm("charm_soul") && this.mana > 0){
+			if(this.invincible > 0 ) return;
+			var manaReduction = (1 + this.stats.magic * 0.04);
+			var manaEffective = Math.round(this.mana * manaReduction);
+			
+			if(manaEffective >= damage){
+				this.mana = Math.max(this.mana - Math.floor(damage / manaReduction), 0);
+				this.invincible = this.invincible_time;
+				audio.play("spell");
+				return;
+			} else {
+				this.mana = 0;
+				damage -= manaEffective;
+			}
+		}
 		if( this.spellsCounters.thorns > 0 && obj.hurt instanceof Function)
 			obj.hurt(this,damage);
 		if( this.spellsCounters.magic_armour > 0 )
@@ -358,6 +375,7 @@ function Player(x, y){
 	
 	this.equip(this.equip_sword, this.equip_shield);
 	
+	/*
 	this.spellsUnlocked = {};
 	this.selectedSpell = "";
 	this.spellEffectLength = Game.DELTASECOND * 60;
@@ -433,7 +451,7 @@ function Player(x, y){
 					new Line(game.camera.x,game.camera.y,game.camera.x+256,game.camera.y+240)
 				);
 				for(var i=0; i<objs.length; i++) if( objs[i] instanceof Item){
-					if( objs[i].name.match(/coin_\d*/) ) objs[i].setName("waystone");
+					if( objs[i].name.match(/coin_\d* /) ) objs[i].setName("waystone");
 				}
 				audio.play("spell");
 			} else audio.play("negative");
@@ -466,6 +484,7 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 	};
+	*/
 	this.spellsCounters = {
 		"magic_strength" : 0,
 		"flight" : 0,
@@ -477,6 +496,7 @@ function Player(x, y){
 		"thorns" : 0,
 		"magic_song" : 0
 	};
+	
 	this.money_bonus = 1.0;
 	this.waystone_bonus = 0.1;
 	this.life_steal = 0.0;
@@ -566,14 +586,20 @@ Player.prototype.update = function(){
 				this.statusEffects.stun -= 2.0;
 				this.position.y -= 2;
 			}
+		} else if (this.states.spellCounter > 0){
+			this.states.spellCounter -= this.delta;
+			if(this.states.spellCounter <= 0){
+				//Cast Spell
+				this.castSpell();
+			}
 		} else if (this.knockedout > 0){
 			//Do nothing
 		} else if( this.states.roll > 0 ) {
 			if(this.dodgeFlash){
 				this.force.y -= (0.2 + this.gravity) * this.delta;
-				this.force.x = this.states.rollDirection * 15;
+				this.force.x = (this.flip?-1:1) * 15;
 			} else {
-				this.force.x = this.states.rollDirection * 5;
+				this.force.x = (this.flip?-1:1) * 5;
 			}
 			this.states.roll -= this.delta;
 			
@@ -607,16 +633,14 @@ Player.prototype.update = function(){
 			
 			this.states.guard = ( input.state('block') > 0 || this.autoblock );
 			
-			if( input.state('spell') == 1 ){
-				if( this.spell instanceof Item && this.spell.cast instanceof Function) {
-					//Cast spell
-					var cost = this.spell.cast(this);
-					this.mana = Math.max(this.mana - cost, 0);
-				}
-			}
 			if(this.states.turn > 0){
 				//Block disabled while turning
 				this.states.guard = false;
+			}
+			
+			if(input.state("select") == 1 && this.spells.length > 0){
+				audio.play("equip");
+				this.spellCursor = (this.spellCursor+1)%this.spells.length;
 			}
 			
 			if( !this.states.duck ) {
@@ -634,6 +658,12 @@ Player.prototype.update = function(){
 				this.states.downStab = true;
 				this.states.guard = false;
 				
+			} else if ( input.state('fire') == 1 && input.state("up") > 0 ) { 
+				//Cast Spell
+				if(this.spells.length > 0){
+					var spell = this.spells[this.spellCursor];
+					this.states.spellCounter = spell.castTime;
+				}
 			} else if ( input.state('fire') == 1 ) { 
 				this.equip_weapon.attack(this); 
 			} else if ( input.state('fire') > 0 ) { 
@@ -714,14 +744,7 @@ Player.prototype.update = function(){
 				this.stand(); 
 			}
 			
-			if ( 
-				(
-					(this.states.rollDirection > 0 && input.state("right") == 1) || 
-					(this.states.rollDirection < 0 && input.state("left") == 1)
-				) && 
-				this.states.rollPressCounter > 0 &&
-				this.states.rollCooldown <= 0
-			) {
+			if ( input.state("dodge") > 0 && this.states.rollCooldown <= 0 ) {
 				//Dodge roll
 				if(this.dodgeFlash){
 					this.states.roll = this.invincible = this.dodgeTime;
@@ -785,6 +808,9 @@ Player.prototype.update = function(){
 	} else if( this.states.ledge ) {
 		this.frame.x = 0;
 		this.frame.y = 6;
+	} else if( this.states.spellCounter > 0 ) {
+		this.frame.x = (1 - Math.min(this.states.spellCounter / Game.DELTASECOND, 1)) * 8;
+		this.frame.y = 7;
 	} else if( this.states.roll > 0 ) {
 		this.frame.y = 2;
 		this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
@@ -976,8 +1002,11 @@ Player.prototype.attack = function(){
 	}
 }
 Player.prototype.castSpell = function(name){
-	if( name in this.spells && name in this.spellsUnlocked ) {
-		this.spells[name].apply(this);
+	if(this.spells.length > 0){
+		this.spellCursor = Math.max(Math.min(this.spellCursor, this.spells.length-1),0);
+		var spell = this.spells[this.spellCursor];
+		var cost = spell.cast(this);
+		this.mana = Math.max(this.mana - cost, 0);
 	}
 }
 Player.prototype.addUniqueItem = function(item){
@@ -993,16 +1022,9 @@ Player.prototype.addUniqueItem = function(item){
 }
 
 Player.prototype.equipSpell = function(s){
-	if( this.spell instanceof Item ){
-		//Drop Item
-		this.spell.sleep = Game.DELTASECOND;
-		this.spell.position.x = this.position.x;
-		this.spell.position.y = this.position.y;
-		if(!this.spell.hasModule(mod_rigidbody)) this.spell.addModule(mod_rigidbody);
-		game.addObject(this.spell);
-		this.spell.trigger("unequip");
-	}
-	this.spell = s;
+	this.spellCursor = this.spells.length;
+	this.spells.push(s);
+	
 	s.trigger("equip");
 }
 Player.prototype.equipCharm = function(c){
@@ -1376,9 +1398,10 @@ Player.prototype.hudrender = function(g,c){
 		this.charm.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
 	}
-	if(this.spell instanceof Item){
-		this.spell.position.x = this.spell.position.y = 0;
-		this.spell.render(g,new Point(-item_pos,-15));
+	if(this.spells.length > 0){
+		var spell = this.spells[this.spellCursor];
+		spell.position.x = spell.position.y = 0;
+		spell.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
 	}
 	

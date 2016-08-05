@@ -795,6 +795,88 @@ MovingBlock.prototype.render = function(g,c){
 	}
 }
 
+FloatBlock.prototype = new GameObject();
+FloatBlock.prototype.constructor = GameObject;
+function FloatBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.startPosition = new Point(this.position.x, this.position.y);
+	this.endPosition = new Point(this.position.x, this.position.y);
+	this.direction = 0;
+	this.width = d[0];
+	this.height = d[1];
+	
+	this.speed = 1.0;
+	this.rubberband = 0;
+	this.stopwait = 0;
+	this.force = new Point();
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+FloatBlock.prototype.idle = function(){}
+
+FloatBlock.prototype.update = function(){
+	if(this.blockOnboard.length > 0){
+		//Someone on board
+		if(this.rubberband > 0){
+			this.force.y *= 1 - (0.1 * this.delta);
+			this.rubberband -= this.delta;
+		} else {
+			this.force.y = Math.min(this.force.y + this.speed * this.delta * 0.2, this.speed * 3);
+		}
+		var speed = this.force.y * this.delta;
+		this.position.y += speed;
+		this.stopwait = Game.DELTASECOND;
+	} else if (this.stopwait > 0){
+		this.stopwait -= this.delta;
+	} else {
+		//return to position
+		this.rubberband = Game.DELTASECOND * 0.6;
+		this.force.y = 2;
+		if(this.position.y > this.startPosition.y){
+			var speed = this.speed * this.delta;
+			if(this.position.y - speed <= this.startPosition.y){
+				this.position.y = this.startPosition.y;
+			} else {
+				this.position.y -= speed;
+			}
+		}
+	}
+}
+
+FloatBlock.prototype.shouldRender = MovingBlock.prototype.shouldRender;
+FloatBlock.prototype.render = MovingBlock.prototype.render;
+
 LoopBlock.prototype = new GameObject();
 LoopBlock.prototype.constructor = GameObject;
 function LoopBlock(x,y,d,ops){
@@ -9631,6 +9713,7 @@ function WizzardBolter(x,y,d,o){
 	this.sprite = "owlwizzard";
 	this.paletteSwaps = ["t0","t0","t0","t0","t0"];
 	this.speed = 2;
+	this.offsetX = 0.0;
 	
 	this.addModule( mod_combat );
 	
@@ -9640,7 +9723,14 @@ function WizzardBolter(x,y,d,o){
 		audio.play("hurt");
 	});
 	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
+		if( obj instanceof WizzardBolter ) {
+			var dif = this.position.x - obj.position.x;
+			if(dif > 0){
+				this.offsetX = Game.DELTASECOND * 0.5;
+			} else {
+				this.offsetX = -Game.DELTASECOND * 0.5;
+			}
+		}
 		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("collideHorizontal", function(dir){
@@ -9698,19 +9788,35 @@ WizzardBolter.prototype.update = function(){
 				this.position.y += speed;
 			}
 			
-			if(Math.abs(dir.x) > 160){
-				if(this.flip){
-					this.position.x -= speed;
-				} else {
+			if(this.offsetX != 0){
+				if(this.offsetX > 0){
 					this.position.x += speed;
+					this.offsetX -= this.delta;
+					if(this.offsetX <= 0) {
+						this.offsetX = 0;
+					}
+				} else {
+					this.position.x -= speed;
+					this.offsetX += this.delta;
+					if(this.offsetX >= 0) {
+						this.offsetX = 0;
+					}
 				}
-			}
-			
-			if(Math.abs(dir.x) < 96){
-				if(this.flip){
-					this.position.x += speed;
-				} else {
-					this.position.x -= speed;
+			} else {
+				if(Math.abs(dir.x) > 160){
+					if(this.flip){
+						this.position.x -= speed;
+					} else {
+						this.position.x += speed;
+					}
+				}
+				
+				if(Math.abs(dir.x) < 96){
+					if(this.flip){
+						this.position.x += speed;
+					} else {
+						this.position.x -= speed;
+					}
 				}
 			}
 			
@@ -9994,7 +10100,7 @@ function WizzardLightning(x,y,d,o){
 	this.calculateXP();
 	
 	this.states = {
-		"cooldown" : Game.DELTASECOND * 4.0,
+		"cooldown" : Game.DELTASECOND * 2.0,
 		"attack" : Game.DELTASECOND * 1.0
 	};
 }
@@ -10118,6 +10224,7 @@ function LightningBolt(x,y,d,o){
 	this.damage = 1;
 	this.time = 0;
 	this.speed = 0;
+	this.team = 0;
 	
 	this.on("sleep", function(){
 		this.destroy();
@@ -11290,7 +11397,7 @@ function Item(x,y,d, ops){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
-			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 4; }
+			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
@@ -11321,6 +11428,7 @@ function Item(x,y,d, ops){
 			
 			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); }
 			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); }
+			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); }
 			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
@@ -11328,7 +11436,7 @@ function Item(x,y,d, ops){
 			
 			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); }
 			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); }
-			if( this.name == "seed_malphas") { obj.stats.technique+=1; this.pickupEffect(); }
+			if( this.name == "seed_malphas") { obj.stats.magic+=1; this.pickupEffect(); }
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; this.pickupEffect(); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; this.pickupEffect(); }
 			if( this.name == "seed_minotaur") { 
@@ -11379,6 +11487,7 @@ function Item(x,y,d, ops){
 			if( this.name == "charm_methuselah") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "charm_soul") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "spell_fire") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "spell_flash") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
@@ -11549,6 +11658,7 @@ Item.prototype.setName = function(n){
 	//Special items
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; return; }
 	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; return; }
+	if(n == "dodgeflash") { this.frame.x = 5; this.frame.y = 6; return; }
 	
 	//Charms
 	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}
@@ -11571,6 +11681,7 @@ Item.prototype.setName = function(n){
 	if( this.name == "charm_methuselah") { this.frame.x = 5; this.frame.y = 8; this.message = "Methuselah's Charm\nImmune to all statuses.";}
 	if( this.name == "charm_barter") { this.frame.x = 6; this.frame.y = 8; this.message = "Barterer's Charm\nItems in shop are cheaper.";}
 	if( this.name == "charm_elephant") { this.frame.x = 7; this.frame.y = 8; this.message = "Elephant Charm\nWounds open slowly.";}
+	if( this.name == "charm_soul") { this.frame.x = 8; this.frame.y = 8; this.message = "Soul Charm\nA magic seal will protect you.";}
 	
 	//All items below this point glow!
 	this.glowing=true;
@@ -11612,12 +11723,12 @@ Item.prototype.setName = function(n){
 	if( this.name == "life_fruit") { this.frame.x = 1; this.frame.y = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame.x = 2; this.frame.y = 6; this.message = "Mana fruit\nMana up.";}
 	
-	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
-	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
-	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
-	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
-	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
+	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.1; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
+	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.2; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
+	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.castTime = Game.DELTASECOND * 1.0; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
+	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
+	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.3; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
+	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
 	
 	if( this.name == "unique_wand"){
 		this.frame.x = 2;
@@ -12563,7 +12674,7 @@ PauseMenu.prototype.update = function(){
 		
 		if( _player.life > 0) {
 			//Close pause menu
-			if( input.state("pause") == 1 || input.state("select") == 1 ) {
+			if( input.state("pause") == 1 ) {
 				this.open = false;
 				game.pause = false;
 				audio.play("unpause");
@@ -12576,7 +12687,7 @@ PauseMenu.prototype.update = function(){
 			}
 		}
 	} else {
-		if( ( input.state("pause") == 1 || input.state("select") == 1 ) && _player instanceof Player && _player.life > 0 ) {
+		if( ( input.state("pause") == 1 ) && _player instanceof Player && _player.life > 0 ) {
 			this.open = true;
 			//_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
@@ -12586,7 +12697,6 @@ PauseMenu.prototype.update = function(){
 			this.page = 1;
 			this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
-			if( input.state("select") == 1 ) this.page = 4;
 			audio.play("pause");
 		}
 	}
@@ -14683,9 +14793,9 @@ function Player(x, y){
 	
 	this.keys = [];
 	this.spells = [];
+	this.spellCursor = 0;
 	this.uniqueItems = [];
 	this.charm = false;
-	this.spell = false;
 	this.knockedout = false;
 	this.pause = false;
 	
@@ -14730,6 +14840,7 @@ function Player(x, y){
 		"turn" : 0.0,
 		"doubleJumpReady": true,
 		"airSpin" : false,
+		"spellCounter" : 0.0
 	};
 	
 	this.attackProperties = {
@@ -14867,6 +14978,7 @@ function Player(x, y){
 			this.force.x = knockback;
 		}
 		if(this.stun_time > 0 ){
+			this.states.spellCounter = 0.0;
 			this.states.attack = 0;
 			this.stun = this.stun_time;
 			game.slow(0,5.0);
@@ -15012,6 +15124,21 @@ function Player(x, y){
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
+		if(this.hasCharm("charm_soul") && this.mana > 0){
+			if(this.invincible > 0 ) return;
+			var manaReduction = (1 + this.stats.magic * 0.04);
+			var manaEffective = Math.round(this.mana * manaReduction);
+			
+			if(manaEffective >= damage){
+				this.mana = Math.max(this.mana - Math.floor(damage / manaReduction), 0);
+				this.invincible = this.invincible_time;
+				audio.play("spell");
+				return;
+			} else {
+				this.mana = 0;
+				damage -= manaEffective;
+			}
+		}
 		if( this.spellsCounters.thorns > 0 && obj.hurt instanceof Function)
 			obj.hurt(this,damage);
 		if( this.spellsCounters.magic_armour > 0 )
@@ -15029,6 +15156,7 @@ function Player(x, y){
 	
 	this.equip(this.equip_sword, this.equip_shield);
 	
+	/*
 	this.spellsUnlocked = {};
 	this.selectedSpell = "";
 	this.spellEffectLength = Game.DELTASECOND * 60;
@@ -15104,7 +15232,7 @@ function Player(x, y){
 					new Line(game.camera.x,game.camera.y,game.camera.x+256,game.camera.y+240)
 				);
 				for(var i=0; i<objs.length; i++) if( objs[i] instanceof Item){
-					if( objs[i].name.match(/coin_\d*/) ) objs[i].setName("waystone");
+					if( objs[i].name.match(/coin_\d* /) ) objs[i].setName("waystone");
 				}
 				audio.play("spell");
 			} else audio.play("negative");
@@ -15137,6 +15265,7 @@ function Player(x, y){
 			} else audio.play("negative");
 		},
 	};
+	*/
 	this.spellsCounters = {
 		"magic_strength" : 0,
 		"flight" : 0,
@@ -15148,6 +15277,7 @@ function Player(x, y){
 		"thorns" : 0,
 		"magic_song" : 0
 	};
+	
 	this.money_bonus = 1.0;
 	this.waystone_bonus = 0.1;
 	this.life_steal = 0.0;
@@ -15237,14 +15367,20 @@ Player.prototype.update = function(){
 				this.statusEffects.stun -= 2.0;
 				this.position.y -= 2;
 			}
+		} else if (this.states.spellCounter > 0){
+			this.states.spellCounter -= this.delta;
+			if(this.states.spellCounter <= 0){
+				//Cast Spell
+				this.castSpell();
+			}
 		} else if (this.knockedout > 0){
 			//Do nothing
 		} else if( this.states.roll > 0 ) {
 			if(this.dodgeFlash){
 				this.force.y -= (0.2 + this.gravity) * this.delta;
-				this.force.x = this.states.rollDirection * 15;
+				this.force.x = (this.flip?-1:1) * 15;
 			} else {
-				this.force.x = this.states.rollDirection * 5;
+				this.force.x = (this.flip?-1:1) * 5;
 			}
 			this.states.roll -= this.delta;
 			
@@ -15278,16 +15414,14 @@ Player.prototype.update = function(){
 			
 			this.states.guard = ( input.state('block') > 0 || this.autoblock );
 			
-			if( input.state('spell') == 1 ){
-				if( this.spell instanceof Item && this.spell.cast instanceof Function) {
-					//Cast spell
-					var cost = this.spell.cast(this);
-					this.mana = Math.max(this.mana - cost, 0);
-				}
-			}
 			if(this.states.turn > 0){
 				//Block disabled while turning
 				this.states.guard = false;
+			}
+			
+			if(input.state("select") == 1 && this.spells.length > 0){
+				audio.play("equip");
+				this.spellCursor = (this.spellCursor+1)%this.spells.length;
 			}
 			
 			if( !this.states.duck ) {
@@ -15305,6 +15439,12 @@ Player.prototype.update = function(){
 				this.states.downStab = true;
 				this.states.guard = false;
 				
+			} else if ( input.state('fire') == 1 && input.state("up") > 0 ) { 
+				//Cast Spell
+				if(this.spells.length > 0){
+					var spell = this.spells[this.spellCursor];
+					this.states.spellCounter = spell.castTime;
+				}
 			} else if ( input.state('fire') == 1 ) { 
 				this.equip_weapon.attack(this); 
 			} else if ( input.state('fire') > 0 ) { 
@@ -15385,14 +15525,7 @@ Player.prototype.update = function(){
 				this.stand(); 
 			}
 			
-			if ( 
-				(
-					(this.states.rollDirection > 0 && input.state("right") == 1) || 
-					(this.states.rollDirection < 0 && input.state("left") == 1)
-				) && 
-				this.states.rollPressCounter > 0 &&
-				this.states.rollCooldown <= 0
-			) {
+			if ( input.state("dodge") > 0 && this.states.rollCooldown <= 0 ) {
 				//Dodge roll
 				if(this.dodgeFlash){
 					this.states.roll = this.invincible = this.dodgeTime;
@@ -15456,6 +15589,9 @@ Player.prototype.update = function(){
 	} else if( this.states.ledge ) {
 		this.frame.x = 0;
 		this.frame.y = 6;
+	} else if( this.states.spellCounter > 0 ) {
+		this.frame.x = (1 - Math.min(this.states.spellCounter / Game.DELTASECOND, 1)) * 8;
+		this.frame.y = 7;
 	} else if( this.states.roll > 0 ) {
 		this.frame.y = 2;
 		this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
@@ -15647,8 +15783,11 @@ Player.prototype.attack = function(){
 	}
 }
 Player.prototype.castSpell = function(name){
-	if( name in this.spells && name in this.spellsUnlocked ) {
-		this.spells[name].apply(this);
+	if(this.spells.length > 0){
+		this.spellCursor = Math.max(Math.min(this.spellCursor, this.spells.length-1),0);
+		var spell = this.spells[this.spellCursor];
+		var cost = spell.cast(this);
+		this.mana = Math.max(this.mana - cost, 0);
 	}
 }
 Player.prototype.addUniqueItem = function(item){
@@ -15664,16 +15803,9 @@ Player.prototype.addUniqueItem = function(item){
 }
 
 Player.prototype.equipSpell = function(s){
-	if( this.spell instanceof Item ){
-		//Drop Item
-		this.spell.sleep = Game.DELTASECOND;
-		this.spell.position.x = this.position.x;
-		this.spell.position.y = this.position.y;
-		if(!this.spell.hasModule(mod_rigidbody)) this.spell.addModule(mod_rigidbody);
-		game.addObject(this.spell);
-		this.spell.trigger("unequip");
-	}
-	this.spell = s;
+	this.spellCursor = this.spells.length;
+	this.spells.push(s);
+	
 	s.trigger("equip");
 }
 Player.prototype.equipCharm = function(c){
@@ -16047,9 +16179,10 @@ Player.prototype.hudrender = function(g,c){
 		this.charm.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
 	}
-	if(this.spell instanceof Item){
-		this.spell.position.x = this.spell.position.y = 0;
-		this.spell.render(g,new Point(-item_pos,-15));
+	if(this.spells.length > 0){
+		var spell = this.spells[this.spellCursor];
+		spell.position.x = spell.position.y = 0;
+		spell.render(g,new Point(-item_pos,-15));
 		item_pos += 20;
 	}
 	
@@ -17964,6 +18097,7 @@ function Spawn(x,y,d,ops){
 	this.specific = null;
 	this.autodestroy = 0;
 	this.enemies = new Array();
+	this.enemiesLimit = 1;
 	this.active = false;
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
@@ -17979,6 +18113,9 @@ function Spawn(x,y,d,ops){
 	
 	if("enemies" in this.options){
 		this.specific = this.options["enemies"].split(",");
+	}
+	if("limit" in this.options){
+		this.enemiesLimit = this.options.limit * 1;
 	}
 	if("theme" in this.options){
 		this.theme = this.options.theme;
@@ -17998,7 +18135,7 @@ function Spawn(x,y,d,ops){
 	}
 	if("respawn" in this.options){
 		this.on("wakeup",function(){
-			if(this.active && !this.isAlive()){
+			if(this.active && this.count() < this.enemiesLimit){
 				this.spawn();
 			}
 		});
@@ -18027,7 +18164,7 @@ Spawn.prototype.update = function(){
 		this.timer -= this.delta;
 		if(this.timer <= 0){
 			this.timer = this.timerTotal;
-			if(!this.isAlive()){
+			if(this.count() < this.enemiesLimit){
 				this.spawn();
 			}
 		}
@@ -18064,16 +18201,16 @@ Spawn.prototype.spawn = function(){
 		console.error( "No valid enemy matching tags: " + this.tags );
 	}
 }
-Spawn.prototype.isAlive = function(enemies){
-	var alive = false;
+Spawn.prototype.count = function(enemies){
+	var count = 0;
 	for(i=0; i < this.enemies.length; i++){
 		if(game.objects.indexOf(this.enemies[i]) >= 0){
 			if(this.enemies[i].life > 0){
-				alive = true;
+				count++;
 			}
 		}
 	}
-	return alive;
+	return count;
 }
 Spawn.prototype.create = function(enemies){
 	for(var j=0; j < enemies.length; j++){
@@ -18408,14 +18545,17 @@ function game_start(g){
 	setTimeout(function(){
 		new Player(0,0);
 		_player.doubleJump = true;
-		_player.dodgeFlash = true;
+		//_player.dodgeFlash = true;
 		_player.grabLedges = true;
 		WorldLocale.loadMap("temple4.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			_player.addXP(1000);
-			_player.life = _player.lifeMax = 36;
+			_player.addXP(1600);
+			_player.life = _player.lifeMax = 48;
+			_player.mana = _player.manaMax = 36;
+			audio.playAs("music_temple4");
+			//audio.playAs("music_temple4","music");
 		}, 1000);
 	},100);
 	/**/

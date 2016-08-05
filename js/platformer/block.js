@@ -288,6 +288,88 @@ MovingBlock.prototype.render = function(g,c){
 	}
 }
 
+FloatBlock.prototype = new GameObject();
+FloatBlock.prototype.constructor = GameObject;
+function FloatBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.startPosition = new Point(this.position.x, this.position.y);
+	this.endPosition = new Point(this.position.x, this.position.y);
+	this.direction = 0;
+	this.width = d[0];
+	this.height = d[1];
+	
+	this.speed = 1.0;
+	this.rubberband = 0;
+	this.stopwait = 0;
+	this.force = new Point();
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	if("trigger" in ops){
+		this._tid = ops.trigger;
+	}
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+FloatBlock.prototype.idle = function(){}
+
+FloatBlock.prototype.update = function(){
+	if(this.blockOnboard.length > 0){
+		//Someone on board
+		if(this.rubberband > 0){
+			this.force.y *= 1 - (0.1 * this.delta);
+			this.rubberband -= this.delta;
+		} else {
+			this.force.y = Math.min(this.force.y + this.speed * this.delta * 0.2, this.speed * 3);
+		}
+		var speed = this.force.y * this.delta;
+		this.position.y += speed;
+		this.stopwait = Game.DELTASECOND;
+	} else if (this.stopwait > 0){
+		this.stopwait -= this.delta;
+	} else {
+		//return to position
+		this.rubberband = Game.DELTASECOND * 0.6;
+		this.force.y = 2;
+		if(this.position.y > this.startPosition.y){
+			var speed = this.speed * this.delta;
+			if(this.position.y - speed <= this.startPosition.y){
+				this.position.y = this.startPosition.y;
+			} else {
+				this.position.y -= speed;
+			}
+		}
+	}
+}
+
+FloatBlock.prototype.shouldRender = MovingBlock.prototype.shouldRender;
+FloatBlock.prototype.render = MovingBlock.prototype.render;
+
 LoopBlock.prototype = new GameObject();
 LoopBlock.prototype.constructor = GameObject;
 function LoopBlock(x,y,d,ops){

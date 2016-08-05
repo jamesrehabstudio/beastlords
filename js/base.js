@@ -197,6 +197,9 @@ Game.prototype.update = function(){
 					}
 				}
 				obj.update();
+				if(obj.interactive){
+					this.collideObject(obj);
+				}
 				for ( var j = 0; j < mods.length; j++ ) {
 					if ( mods[j].update instanceof Function ) {
 						mods[j].update.apply(obj);
@@ -460,8 +463,6 @@ Game.prototype.t_move = function(obj, x, y) {
 		}
 	
 	}
-	
-	this.collideObject(obj);
 	return limits;
 }
 Game.prototype.collideObject = function(obj) {

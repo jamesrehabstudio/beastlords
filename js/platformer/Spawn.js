@@ -11,6 +11,7 @@ function Spawn(x,y,d,ops){
 	this.specific = null;
 	this.autodestroy = 0;
 	this.enemies = new Array();
+	this.enemiesLimit = 1;
 	this.active = false;
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
@@ -26,6 +27,9 @@ function Spawn(x,y,d,ops){
 	
 	if("enemies" in this.options){
 		this.specific = this.options["enemies"].split(",");
+	}
+	if("limit" in this.options){
+		this.enemiesLimit = this.options.limit * 1;
 	}
 	if("theme" in this.options){
 		this.theme = this.options.theme;
@@ -45,7 +49,7 @@ function Spawn(x,y,d,ops){
 	}
 	if("respawn" in this.options){
 		this.on("wakeup",function(){
-			if(this.active && !this.isAlive()){
+			if(this.active && this.count() < this.enemiesLimit){
 				this.spawn();
 			}
 		});
@@ -74,7 +78,7 @@ Spawn.prototype.update = function(){
 		this.timer -= this.delta;
 		if(this.timer <= 0){
 			this.timer = this.timerTotal;
-			if(!this.isAlive()){
+			if(this.count() < this.enemiesLimit){
 				this.spawn();
 			}
 		}
@@ -111,16 +115,16 @@ Spawn.prototype.spawn = function(){
 		console.error( "No valid enemy matching tags: " + this.tags );
 	}
 }
-Spawn.prototype.isAlive = function(enemies){
-	var alive = false;
+Spawn.prototype.count = function(enemies){
+	var count = 0;
 	for(i=0; i < this.enemies.length; i++){
 		if(game.objects.indexOf(this.enemies[i]) >= 0){
 			if(this.enemies[i].life > 0){
-				alive = true;
+				count++;
 			}
 		}
 	}
-	return alive;
+	return count;
 }
 Spawn.prototype.create = function(enemies){
 	for(var j=0; j < enemies.length; j++){

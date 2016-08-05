@@ -1,7 +1,7 @@
 function Input() {
-	this.INPUT_KEYS = ["block","click","down","fire","left","jump","pause","right","select","space","up","spell"];
-	this.CHROME_MAP = { "-1":'click', 16:"block", 74:"fire", 75:"jump", 65:'left', 68:'right', 83:'down', 69:'spell', 87:'up', 32:'space', 13:'pause',81:'select' };
-	this.XBOX_MAP = {14:"left",15:"right",12:"up",13:"down",0:"jump",2:"fire",3:"spell",5:"block",8:"select",9:"pause"};
+	this.INPUT_KEYS = ["block","click","down","fire","left","jump","pause","right","select","dodge","up","spell"];
+	this.CHROME_MAP = { "-1":'click', 16:"block", 74:"fire", 75:"jump", 65:'left', 68:'right', 83:'down', 69:'spell', 87:'up', 32:'dodge', 13:'pause',81:'select' };
+	this.XBOX_MAP = {14:"left",15:"right",12:"up",13:"down",0:"jump",2:"fire",3:"spell",5:"block",8:"select",9:"pause",1:"dodge"};
 	this.AXIS_THRESHOLD = 0.3;
 
 	this.states = {};
