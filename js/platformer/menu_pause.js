@@ -5,7 +5,6 @@ function PauseMenu(){
 	this.sprite = game.tileSprite;
 	this.zIndex = 999;
 	
-	this.open = false;
 	this.page = 1;
 	this.pageCount = 5;
 	this.cursor = 0;
@@ -24,11 +23,14 @@ function PauseMenu(){
 	this.message_time = 0;
 }
 
+PauseMenu.open = false;
 PauseMenu.questScrollLimit = 12;
 
 PauseMenu.prototype.idle = function(){}
-PauseMenu.prototype.update = function(){	
-	if( this.open ) {
+PauseMenu.prototype.update = function(){
+	DemoThanks.time += this.delta;
+	
+	if( PauseMenu.open ) {
 		game.pause = true;
 		this.message_time = 0;
 		
@@ -91,7 +93,7 @@ PauseMenu.prototype.update = function(){
 			}
 			if( input.state("fire") == 1 ) { 
 				_player.unique_item = _player.uniqueItems[this.cursor];
-				this.open = false;
+				PauseMenu.open = false;
 				game.pause = false;
 				audio.play("spell");
 			}
@@ -116,7 +118,7 @@ PauseMenu.prototype.update = function(){
 		if( _player.life > 0) {
 			//Close pause menu
 			if( input.state("pause") == 1 ) {
-				this.open = false;
+				PauseMenu.open = false;
 				game.pause = false;
 				audio.play("unpause");
 			}
@@ -129,7 +131,7 @@ PauseMenu.prototype.update = function(){
 		}
 	} else {
 		if( ( input.state("pause") == 1 ) && _player instanceof Player && _player.life > 0 ) {
-			this.open = true;
+			PauseMenu.open = true;
 			//_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
 			this.mapCursor.x = 11 - Math.floor(_player.position.x / 256);
@@ -197,7 +199,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 		textArea(g,this.message_text,left+16,32,192);
 	}
 	var leftx = 0;
-	if( this.open && _player instanceof Player ) {
+	if( PauseMenu.open && _player instanceof Player ) {
 		if( _player.life <= 0 ) {
 			g.color = [0,0,0,1.0];
 			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
@@ -396,11 +398,11 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		//Draw player
 		var pos = new Point(
 			1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
-			2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
+			(cursor.y*8) + Math.floor(_player.position.y/240)*8 -Math.abs(Math.sin(game.time*0.1)*2)
 		);
 		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 			g.color = [1.0,0.0,0.0,1.0];
-			g.scaleFillRect(1 + pos.x + offset.x, 1 + pos.y + offset.y, 4, 3 );
+			g.renderSprite("map",pos.add(offset),this.zIndex+1,new Point(9,0),false);
 		}
 	} catch (err) {
 		var r = 0;

@@ -418,13 +418,47 @@ Background.presets = {
 	"sky" : function(g,c){
 		var inc = Math.ceil(game.resolution.y/16);
 		for(var y=0; y < game.resolution.y; y += inc){
+			var p = Math.pow(y / game.resolution.y,2);
 			g.color = [
-				y*0.001+0.2,
-				y*0.001+0.5,
-				1.0,
+				Math.lerp(0.5,0.9,p),
+				Math.lerp(0.7,0.9,p),
+				0.9,
 				1.0
 			];
 			g.scaleFillRect(0,y,game.resolution.x, y+inc);
+		}
+		//Render horizon
+		for(var i=0; i < 5; i++){
+			g.renderSprite("bgclouds",new Point(64+i*128,200),1,new Point(), false);
+		}
+		
+		var carea = new Line(-64,-32,game.resolution.x+64,game.resolution.y+32);
+		g.renderSprite("bgclouds",new Point(this.time*0.1,64).subtract(c.scale(0.1)).mod(carea),1,new Point(0,1), false,{"u_color":[0.85,0.92,1.0,1.0],"scale":0.8});
+		g.renderSprite("bgclouds",new Point(120+this.time*0.2,80).subtract(c.scale(0.2)).mod(carea),1,new Point(0,1), false,{"u_color":[0.9,0.95,1.0,1.0]});
+	},
+	"darksky" : function(g,c){
+		var inc = Math.ceil(game.resolution.y/16);
+		for(var y=0; y < game.resolution.y; y += inc){
+			var p = Math.pow(y / game.resolution.y,2);
+			g.color = [
+				Math.lerp(0.1,0.4,p),
+				Math.lerp(0.15,0.3,p),
+				Math.lerp(0.2,0.4,p),
+				1.0
+			];
+			g.scaleFillRect(0,y,game.resolution.x, inc);
+		}
+		
+		var carea = new Line(-96,-32,game.resolution.x+96,game.resolution.y+32);
+		var space = 100;
+		for(var i=0; i < 5; i++){
+			var flip = Math.log(2)&1;
+			g.renderSprite("bgclouds",new Point(i*space+this.time*0.3,100).mod(carea),1,new Point(0,1), flip,{"scale":1.25,"u_color":[0.7,0.7,0.7,1.0]});
+			
+			g.renderSprite("bgclouds",new Point(i*space+this.time*0.45,80).mod(carea),2,new Point(0,1), flip,{"scale":1.5,"u_color":[0.65,0.65,0.65,1.0]});
+			
+			g.renderSprite("bgclouds",new Point(i*space+this.time*0.7,40).mod(carea),3,new Point(0,1), flip,{"scale":1.7,"u_color":[0.6,0.6,0.6,1.0]});
+		
 		}
 	},
 	"cavefire" : function(g,c){
@@ -846,7 +880,7 @@ function FloatBlock(x,y,d,ops){
 FloatBlock.prototype.idle = function(){}
 
 FloatBlock.prototype.update = function(){
-	if(this.blockOnboard.length > 0){
+	if(this.blockOnboard.indexOf(_player) >= 0){
 		//Someone on board
 		if(this.rubberband > 0){
 			this.force.y *= 1 - (0.1 * this.delta);
@@ -1199,7 +1233,7 @@ function Ammit(x,y,d,o){
 		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
-		Item.drop(this,35);
+		Item.drop(this,65);
 		this.destroy();
 	});
 	this.calculateXP();
@@ -2052,41 +2086,41 @@ FrogBoss.pos = {
 
 Garmr.prototype = new GameObject();
 Garmr.prototype.constructor = GameObject;
-function Garmr(x,y){
+function Garmr(x,y,d,ops){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 16;
 	this.height = 32;
 	this.sprite = "garmr";
-	this.speed = 1.8;
+	this.speed = 3.8;
 	
 	this.active = false;
 	this.closeToBoss = false;
+	this.track = null;
 	
 	this.projection = new Point(x,y);
-	this.projection_frame = 0;
-	this.projection_frame_row = 0;
-	this.projection_flip = false;
-	this.projection_goto = new Point(x,y);
+	this.projectionFrame = new Point(2,0);
+	this.projectionFlip = false;
+	
+	this.frame.x = 0;
+	this.frame.y = 3;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	this.addModule( mod_boss );
 	
-	this.bossface_frame = 2;
-	this.bossface_frame_row = 0;
+	ops = ops || {};
 	
-	this.states = {
-		"troll_cooldown" : Game.DELTASECOND * 16,
-		"troll_timer" : 0,
-		"troll_release" : false,
-		"cooldown" : 0,
-		"attack_type" : 1,
-		"fireballCount" : new Timer(0, Game.DELTASECOND * 0.1)
+	if("trigger" in ops){
+		this._tid = ops["trigger"];
+	}
+	if("difficulty" in ops){
+		this.difficulty = ops["difficulty"] * 1;
 	}
 	
 	this.life = Spawn.life(0,this.difficulty);
+	this.lifeMax = this.life;
 	this.mass = 5.0;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
@@ -2099,8 +2133,7 @@ function Garmr(x,y){
 		audio.play("hurt");
 	});
 	this.on("activate", function() {
-		var dir = this.position.subtract( _player.position );
-		_player.force.x = (dir.x > 0 ? -1 : 1) * 4;
+		this.treads = Trigger.getTargets("bosstrack")[0];
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
@@ -2110,89 +2143,210 @@ function Garmr(x,y){
 		this.destroy();
 	});
 	this.calculateXP();
-}
-Garmr.prototype.update = function(){	
-	if ( this.stun <= 0  && this.life > 0) {
-		var dir = this.position.subtract( _player.position );
-		this.closeToBoss = false;
-		
-		if( this.active ) {
+	
+	this._boss_is_active = function(){
+		if( !this.active ) {
+			this.interactive = false;
+			var area = new Line(
+				this.position.x - 160,
+				this.position.y,
+				this.position.x + 160,
+				this.position.y + 960
+			);
 			
-			if( this.states.attack_type == 0 ) {
-				//Fire missiles at player
-				
-			} else if ( this.states.attack_type == 1 ) {
-				//Fire wall of bullets at player
-				
-				if( this.states.fireballCount.time <= 0 ) {
-					//Break cycle
-					this.states.fireballCount.set( Game.DELTASECOND * 10 );
-					this.projection_goto.y = _player.position.y - 16;
-					this.projection_flip = dir.x > 0;
-				} else if( this.states.fireballCount.status(this.delta) ) {
-					for(var i= 0; i < 2; i++){
-						var pos = Math.sin( this.states.fireballCount.time * 0.075 );
-						var bullet = new PhantomBullet(this.projection.x, pos*32 + this.projection.y + i * 72 - 36);
-						
-						bullet.force.x = this.projection_flip ? -4 : 4;
-						bullet.force.y = 0;
-						game.addObject( bullet );
-						
-					}
-				}
-				
-			} else if ( this.states.attack_type == 2 ) {
-				//Fire rods down at player
-				
-			}
-			
-			this.projection = Point.lerp(this.projection, this.projection_goto, this.delta * 0.01);
-		} else {
-			//Troll player
-			if( Math.abs( dir.x ) < 240 && Math.floor(_player.position.y/256) == Math.floor(this.position.y/256)){
-				this.projection.x = this.position.x;
-				this.projection.y = this.position.y - 80;
-				this.closeToBoss = true;
-			} else if( this.states.troll_timer > 0 ){
-				if( this.states.troll_timer < Game.DELTASECOND * 3 && !this.states.troll_release ){
-					this.states.troll_release = true;
-					var bullet = new Bullet(this.projection.x, this.projection.y);
-					bullet.force = _player.position.subtract(this.projection).normalize(8);
-					bullet.blockable = false;
-					bullet.damage = this.damage;
-					bullet.effect = EffectSmoke;
-					bullet.team = this.team;
-					game.addObject(bullet);
-				}
-				this.states.troll_timer -= this.delta;
-				this.states.troll_cooldown = Game.DELTASECOND * (15+Math.random()*10);
-			} else {
-				if( this.states.troll_cooldown <= 0 ) {
-					this.states.troll_release = false;
-					this.states.troll_timer = Game.DELTASECOND * 6;
-					this.projection.x = _player.position.x + (_player.flip ? -80 : 80);
-					this.projection.y = Math.floor(this.position.y/256)*256 + 80;
-				}
-				this.states.troll_cooldown -= this.delta;
+			if( area.overlaps(_player.position) ){
+				game.slow(0.1, Game.DELTASECOND * 3);
+				this.active = true;
+				this.trigger("activate");
 			}
 		}
 	}
 	
-	/* Animation */
-	this.frame = 0;
-	this.frame_row = 3;
-	if( this.active ) {
-		this.projection_frame = Math.max( (this.projection_frame + this.delta * 0.3) % 3, 1);
-		this.projection_frame_row = 2;
-	} else if( this.closeToBoss ){
-		this.projection_frame = 0;
-		this.projection_frame_row = 2;
-	} else if( this.states.troll_timer > Game.DELTASECOND * 3 && this.states.troll_timer < Game.DELTASECOND * 4 ) {
-		this.projection_frame = 0;
-		this.projection_frame_row = 1;
-	} else {
-		this.projection_frame = (this.projection_frame + (this.delta * 0.2)) % 3;
-		this.projection_frame_row = 0;
+	this.states = {
+		"current" : Garmr.STATE_FIRECOLUMN,
+		"time" : 0.0,
+		"transition" : 0.0,
+		"goto" : new Point(x,y)
+	}
+}
+
+Garmr.STATE_FIRECOLUMN = 0;
+Garmr.STATE_LIGHTNING = 1;
+Garmr.STATE_ZOOMATTACK = 2;
+Garmr.STATE_SMASHPLATFORM = 3;
+Garmr.STATE_GUST = 4;
+Garmr.STATE_BULLETHELL = 5;
+
+
+Garmr.prototype.setState = function(s){
+	this.states.current = s;
+	
+	if(this.states.current == Garmr.STATE_FIRECOLUMN){
+		this.states.time = Game.DELTASECOND * 3;
+		this.states.transition = Game.DELTASECOND * 0.5;
+		this.states.goto.x = this.position.x + (this.position.x > _player.position.x ? -120 : 120 );
+		this.states.goto.y = _player.position.y - 80;
+		this.projectionFlip = this.states.goto.x > this.position.x;
+	}
+	if(this.states.current == Garmr.STATE_LIGHTNING){
+		this.states.time = Game.DELTASECOND * 3;
+		this.states.transition = Game.DELTASECOND * 0.5;
+		this.states.goto.x = this.position.x;
+		this.states.goto.y = _player.position.y - 80;
+	}
+	if(this.states.current == Garmr.STATE_ZOOMATTACK){
+		this.states.time = Game.DELTASECOND * 3;
+		this.states.transition = Game.DELTASECOND * 0.5;
+		this.states.goto.x = this.position.x + (this.position.x > _player.position.x ? -120 : 120 );
+		this.states.goto.y = _player.position.y;
+		this.projectionFlip = this.states.goto.x > this.position.x;
+	}
+	if(this.states.current == Garmr.STATE_SMASHPLATFORM){
+		this.states.time = Game.DELTASECOND * 3;
+		this.states.transition = Game.DELTASECOND * 0.5;
+	}
+	if(this.states.current == Garmr.STATE_GUST){
+		this.states.time = Game.DELTASECOND * 3;
+		this.states.transition = Game.DELTASECOND * 0.5;
+	}
+	if(this.states.current == Garmr.STATE_BULLETHELL){
+		this.states.time = Game.DELTASECOND * 4;
+		this.states.transition = Game.DELTASECOND * 0.5;
+		this.states.goto.x = this.position.x + (this.position.x > _player.position.x ? -120 : 120 );
+		this.states.goto.y = _player.position.y;
+		this.projectionFlip = this.states.goto.x > this.position.x;
+	}
+}
+Garmr.prototype.update = function(){
+	if ( this.life > 0 && this.active ) {
+		var dir = this.position.subtract( _player.position );
+		
+		if(this.states.transition > 0){
+			this.projectionFrame.x = (this.projectionFrame.x + this.delta * 0.1) % 4;
+			this.projectionFrame.y = 0;
+			
+			this.projection.x = Math.lerp(this.projection.x,this.states.goto.x,this.delta*0.1);
+			this.projection.y = Math.lerp(this.projection.y,this.states.goto.y,this.delta*0.1);
+			this.states.transition -= this.delta;
+		} else {
+			if(this.states.current == Garmr.STATE_FIRECOLUMN){
+				if(this.states.time > 0 ){
+					//Drop flames
+					if(Timer.isAt(this.states.time,Game.DELTASECOND,this.delta)){
+						var xoff = 32;
+						for(var i=0; i < 6; i++){
+							var xpos = (this.projectionFlip?-1:1) * xoff;
+							var ftower = new FlameTower(xpos+this.projection.x, this.projection.y);
+							ftower.damage = this.damage;
+							ftower.time = Game.DELTASECOND * i * -0.4;
+							game.addObject(ftower);
+							xoff += Math.random()>0.5 ?  40 : 80;
+						}
+					}
+				} else {
+					//Next state
+					this.setState(Garmr.STATE_LIGHTNING);
+				}
+			}
+			if(this.states.current == Garmr.STATE_LIGHTNING){
+				if(this.states.time > Game.DELTASECOND){
+					//Move to center of the screen
+					this.projection.y = this.treads.position.y - 40;
+					this.projectionFrame.x = 0;
+					this.projectionFrame.y = 1;
+				} else if(this.states.time > 0 ){
+					//Drop lightening
+					this.projectionFrame.x = 4;
+					this.projectionFrame.y = 1;
+					
+					var xoff = this.position.x - 160;
+					for(var i=0; i < 4; i++){
+						if(Timer.isAt(this.states.time,Game.DELTASECOND,this.delta)){
+							var lightning1 = new LightningBolt(xoff,this.projection.y);
+							var lightning2 = new LightningBolt(xoff,this.projection.y);
+							lightning1.speed = -2;
+							lightning2.speed = 2;
+							lightning1.damage = lightning2.damage = this.damage;
+							game.addObject(lightning1);
+							game.addObject(lightning2);
+							xoff += 80;
+						}
+					}
+				} else {
+					//Next state
+					this.setState(Garmr.STATE_ZOOMATTACK);
+				}
+			}
+			if(this.states.current == Garmr.STATE_ZOOMATTACK){
+				if(this.states.time > Game.DELTASECOND){
+					//Move to edge of the screen
+					this.projection.y = this.treads.position.y - 40;
+				} else if(this.states.time > 0 ){
+					//Zoom across
+					var flytoright = this.states.goto.x < this.position.x;
+					var flyto = this.position.x + (flytoright ? 160 : -160);
+					if((flytoright && this.projection.x < flyto) || (!flytoright && this.projection.x > flyto)){
+						this.projection.x += this.speed * this.delta * 5 * (flytoright?1:-1);
+						var hits = game.overlaps(new Line(
+							this.projection.x - 32,
+							this.projection.y - 32,
+							this.projection.x + 32,
+							this.projection.y + 32
+						));
+						var playerIndexhits = hits.indexOf(_player);
+						if(playerIndexhits>=0){
+							hits[playerIndexhits].hurt(this,this.damage);
+						}
+					}
+				} else {
+					//Next state
+					this.setState(Garmr.STATE_GUST);
+				}
+			}
+			if(this.states.current == Garmr.STATE_GUST){
+				if(this.states.time > 0 ){
+					//blow player back
+					this.projectionFrame.x = Math.max((this.projectionFrame.x+this.delta)%3,1);
+					this.projectionFrame.y = 2;
+					
+					if(_player.position.x > this.projection.x){
+						this.projectionFlip = false;
+						_player.force.x += this.delta * 0.7;
+					} else {
+						this.projectionFlip = true;
+						_player.force.x += this.delta * -0.7;
+					}
+					this.projection.y = _player.position.y - 40;
+				} else {
+					//Next state
+					this.setState(Garmr.STATE_BULLETHELL);
+				}
+			}
+			if(this.states.current == Garmr.STATE_BULLETHELL){
+				if(this.states.time > 0 ){
+					//Fire wave of bullets
+					this.projection.y = this.treads.position.y - 40;
+					this.projectionFrame.x = Math.max((this.projectionFrame.x+this.delta)%3,1);
+					this.projectionFrame.y = 2;
+					
+					if(Timer.interval(this.states.time, Game.DELTASECOND*0.3, this.delta)){
+						var xoff = 64 * this.projectionFlip ? -1 : 1;
+						var yoff = Math.random() < 0.333  ? -8 : (Math.random() < 0.5 ? 14 : -32 );
+						var bullet = new PhantomBullet(this.projection.x + xoff, this.projection.y + yoff);
+						bullet.damage = Math.ceil(0.7 * this.damage);
+						bullet.force.x = this.projectionFlip ? -4 : 4;
+						game.addObject(bullet);
+					}
+				} else {
+					//Next state
+					this.setState(Garmr.STATE_FIRECOLUMN);
+				}
+			}
+			
+			this.states.time -= this.delta;
+		}
+		
+		Background.pushLight(this.projection, 240);
 	}
 }
 Garmr.prototype.render = function(g,c){
@@ -2201,7 +2355,7 @@ Garmr.prototype.render = function(g,c){
 	try {
 		if( (this.closeToBoss || this.states.troll_timer > 0 || this.active) && this.life > 0 ) {
 			var flip = this.projection.x - _player.position.x > 0;
-			this.sprite.render(g,this.projection.subtract(c),this.projection_frame,this.projection_frame_row, this.projection_flip);
+			g.renderSprite(this.sprite,this.projection.subtract(c),this.zIndex+1,this.projectionFrame, this.projectionFlip);
 		}
 	} catch (err){}
 }
@@ -2696,6 +2850,7 @@ function Poseidon(x,y,d,o){
 		}
 	});
 	this.on("death", function(){
+		Item.drop(this,50);
 		this.destroy();
 	});
 }
@@ -3421,134 +3576,6 @@ Explosion.prototype.render = function(g,c){
 	Background.pushLight( this.position.subtract(c), 360 * progress );
 }
 
- /* platformer\chancellor.js*/ 
-
-Chancellor.prototype = new GameObject();
-Chancellor.prototype.constructor = GameObject;
-function Chancellor(x, y){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y+8;
-	this.sprite = "characters2";
-	
-	this.frame = 0;
-	this.frame_row = 0;
-	
-	this.width = this.height = 48;
-	
-	this.addModule( mod_talk );
-	this.text = i18n("chancellor_intro");
-	this.text_progress = 0;
-	
-	this.money = 0;
-	this.moneyMax = 0;
-	this.rate = 1;
-	this.pay_timer = 0;
-	this.rate_timer = 0;
-	
-	this.on("open", function(){
-		this.money = 0;
-		this.moneyMax = 0;
-		game.pause = true;
-		audio.play("pause");
-	});
-	this.on("close", function(){
-		game.pause = false;
-	});
-}
-
-Chancellor.prototype.update = function(){
-	if( this.open ) {
-		if( Chancellor.introduction ) {
-			if( input.state("fire") == 1 ) {
-				this.text_progress++;
-				if( this.text_progress >= this.text.length){
-					this.close();
-					Chancellor.introduction = false;
-				}
-			}
-		} else {
-			if( input.state("jump") == 1 || input.state("pause") == 1 ) {
-				this.close();
-				audio.play("negative");
-			} else if( input.state("fire") == 1 ) {
-				_world.town.money += this.money;
-				_player.money -= this.money;
-				this.money = 0;
-				this.close();
-				audio.play("unpause");
-			} else if ( input.state("up") > 0 ) {
-				if( this.pay_timer <= 0 || input.state("up") == 1) {
-					this.money = Math.min( this.money + this.rate, _player.money);
-					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
-					audio.play("coin");
-				}
-				if( this.rate_timer <= 0 ) {
-					this.rate *= 2;
-					this.rate_timer = Game.DELTASECOND;
-				}
-				this.pay_timer -= game.deltaUnscaled;
-				this.rate_timer -= game.deltaUnscaled;
-			} else if ( input.state("down") > 0 ) {
-				if( this.pay_timer <= 0 || input.state("down") == 1 ) {
-					this.money = Math.max( this.money - this.rate, 0);
-					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
-					audio.play("coin");
-				}
-				if( this.rate_timer <= 0 ) {
-					this.rate *= 2;
-					this.rate_timer = Game.DELTASECOND;
-				}
-				this.pay_timer -= game.deltaUnscaled;
-				this.rate_timer -= game.deltaUnscaled;
-			} else {
-				this.pay_timer = Game.DELTASECOND * 0.5;
-				this.rate_timer = Game.DELTASECOND;
-				this.rate = 1;
-			}
-		}
-		this.moneyMax = Math.max(this.moneyMax, this.money);
-	}
-	
-	//Animation
-	if( this.open ) {
-		if( this.money > 99 ) {
-			//Jump excitedly
-			this.frame = (this.frame + game.deltaUnscaled * 0.3) % 3;
-			this.frame_row = 2;
-		} else if( this.moneyMax > 99 ) {
-			//Look disappointed
-			this.frame = 4;
-			this.frame_row = 2;
-		} else {
-			if( this.money > 10 ) {
-				this.frame = 4;
-				this.frame_row = 1;
-			} else {
-				this.frame = 0;
-				this.frame_row = 1;				
-			}
-		}
-	} else {
-		this.frame = (this.frame + this.delta * 0.125) % 4;
-		this.frame_row = 1;
-	}
-}
-
-Chancellor.prototype.postrender = function(g,c){
-	if( this.open ) {
-		if( Chancellor.introduction ) {
-			renderDialog(g, this.text[this.text_progress]);
-		} else {
-			var left = game.resolution.x / 2 - 112;
-			renderDialog(g, i18n("chancellor_howmuch"));
-			textBox(g, "$"+this.money, left, 120, 128, 40);
-		}
-	}
-}
-
-Chancellor.introduction = true;
-
  /* platformer\checkpoint.js*/ 
 
 Checkpoint.prototype = new GameObject();
@@ -3666,14 +3693,15 @@ CornerStone.prototype.update = function(){
 			game.pause = false;
 			_player.addXP(40);
 			
-			//For fun only
-			if(this.gateNumber == 1){
-				_player.keys = new Array();
-				var nextLevel = this.gateNumber + 1;
-				WorldLocale.loadMap("temple"+nextLevel+".tmx");
-			} else if (this.gateNumber == 2){
+			//For demo only
+			if(this.gateNumber >= 4){
 				game.clearAll();
 				game.addObject(new DemoThanks(0,0));
+				
+			} else {
+				_player.keys = new Array();
+				NPC.set("templeCompleted", this.gateNumber);
+				WorldLocale.loadMap("townhub.tmx");
 			}
 			
 			//WorldMap.open()
@@ -3887,12 +3915,31 @@ DemoThanks.prototype.render = function(g,c){
 
 DemoThanks.prototype.hudrender = function(g,c){	
 	if( this.progress >= 8 ) {
-		var y_pos = Math.lerp(240,152, Math.min( (this.progress-8)/2, 1) );
+		var y_pos = Math.lerp(240,20, Math.min( (this.progress-8)/2, 1) );
 		var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
-		textBox(g,"Thank you for playing!\n\nPress start to play again",x_pos,y_pos,256,64);
+		
+		var timeMinutes = Math.floor(DemoThanks.time / Game.DELTAMINUTE);
+		var timeSeconds = Math.floor((DemoThanks.time - timeMinutes*Game.DELTAMINUTE)/ Game.DELTASECOND);
+		if(timeSeconds < 10) timeSeconds = "0"+timeSeconds;
+		
+		boxArea(g,x_pos,y_pos,256,200);
+		
+		textArea(g,"Thank you for playing!",x_pos+16,y_pos+16);
+		
+		textArea(g,"Kills: "+DemoThanks.kills ,x_pos+16,y_pos+40);
+		textArea(g,"Items: "+DemoThanks.items ,x_pos+16,y_pos+64);
+		textArea(g,"Deaths: "+DemoThanks.deaths ,x_pos+16,y_pos+88);
+		textArea(g,"Time: "+timeMinutes+":"+timeSeconds ,x_pos+16,y_pos+112);
+		
+		textArea(g,"Press start to play again",x_pos+16,y_pos+176);
 	}	
 }
 DemoThanks.prototype.idle = function(){}
+
+DemoThanks.deaths = 0;
+DemoThanks.kills = 0;
+DemoThanks.items = 0;
+DemoThanks.time = 0;
 
  /* platformer\detritus.js*/ 
 
@@ -4311,7 +4358,7 @@ function EffectExplosion(x, y, sound){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.zIndex = 2;
+	this.zIndex = 99;
 	this.sprite = "bullets";
 	
 	this.speed = 0.3;	
@@ -6961,6 +7008,7 @@ function Fireman(x,y,d,o){
 	this.position.y = y;
 	this.width = 32;
 	this.height = 56;
+	this.zIndex = 1;
 	
 	this.sprite = "flameman";
 	this.paletteSwaps = ["t0","t0","t0","t0","t0"];
@@ -6972,21 +7020,7 @@ function Fireman(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
-		//this.states.attack = 0;
 		audio.play("hurt");
-		if(this.states.current == 0 || this.states.current == 4){
-			for(var i=0; i < 2; i++){
-				var fire = new Fire(this.position.x, this.position.y-8);
-				fire.force.x = (i==0?-1:1) * 5;
-				fire.force.y = -5;
-				game.addObject(fire);
-			}
-		}
-	});
-	this.on("collideObject", function(obj){
-		if( this.states.current != 3 && obj instanceof Player ) {
-			obj.hurt(this,this.damage);
-		}
 	});
 	this.on("death", function(obj,pos,damage){
 		_player.addXP(this.xp_award);
@@ -7002,9 +7036,9 @@ function Fireman(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life =  Spawn.life(2,this.difficulty);
+	this.life =  Spawn.life(5,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
-	this.damage = Spawn.damage(4,this.difficulty);
+	this.damage = Spawn.damage(5,this.difficulty);
 	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
@@ -7031,14 +7065,10 @@ Fireman.prototype.update = function(){
 			this.states.cooldown -= this.delta;
 			
 			if(this.states.cooldown <= 0){
-				var bulletAddPos = this.flip ? -40 : 40;
-				this.bullet = new PhantomBullet(this.position.x + bulletAddPos,this.position.y);
-				this.bullet.sprite = this.sprite;
-				this.bullet.frame = new Point(1,1);
+				this.bullet = new FiremanFlame(this.position.x,this.position.y + this.height*0.5);
+				this.bullet.flip = this.flip;
 				this.bullet.damage = this.damage;
-				this.bullet.blockable = false;
 				this.bullet.time = Game.DELTASECOND * 5;
-				this.bullet.width = this.bullet.height = 32;
 				game.addObject(this.bullet);
 				
 				this.states.current = 1;
@@ -7049,22 +7079,24 @@ Fireman.prototype.update = function(){
 			this.states.cooldown -= this.delta;
 			
 			if(this.states.cooldown <= 0){
-				this.bullet.force.x = this.flip ? -6 : 6;
+				this.bullet.phase = 1;
 				this.states.current = 2;
-				this.states.cooldown = Game.DELTASECOND * 1;
+				this.states.cooldown = Game.DELTASECOND * 2;
+				this.bullet.time = Game.DELTASECOND * 3;
 			}
 		} else if(this.states.current == 2){
-			//fire
-			this.frame = new Point(0,1);
+			//move ahead
 			this.states.cooldown -= this.delta;
 			
 			if(this.states.cooldown <= 0){
+				this.bullet.phase = 2;
+				this.bullet.force.x = 9 * (this.bullet.flip ? -1 : 1);
 				this.states.current = 3;
 				this.states.cooldown = Game.DELTASECOND * 1;
+				this.bullet.time = Game.DELTASECOND * 2;
 			}
 		} else if(this.states.current == 3){
-			//nude
-			this.frame = new Point(0,2);
+			//fire
 			this.states.cooldown -= this.delta;
 			
 			if(this.states.cooldown <= 0){
@@ -7072,6 +7104,15 @@ Fireman.prototype.update = function(){
 				this.states.cooldown = Game.DELTASECOND * 1;
 			}
 		} else if(this.states.current == 4){
+			//nude
+			this.frame = new Point(0,2);
+			this.states.cooldown -= this.delta;
+			
+			if(this.states.cooldown <= 0){
+				this.states.current = 5;
+				this.states.cooldown = Game.DELTASECOND * 1;
+			}
+		} else if(this.states.current == 5){
 			//regrow
 			this.frame = new Point();
 			this.states.cooldown -= this.delta;
@@ -7084,6 +7125,68 @@ Fireman.prototype.update = function(){
 	}
 	
 	Background.pushLight( this.position, 200, [1,0.8,0,1] );
+}
+
+ 
+
+FiremanFlame.prototype = new GameObject();
+FiremanFlame.prototype.constructor = GameObject;
+function FiremanFlame(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 32;
+	this.height = 56;
+	this.zIndex = 0;
+	
+	this.phase = 0;
+	this.basePosition = new Point(x,y);
+	this.transformSpeed = 0.05;
+	this.time = Game.DELTASECOND * 5;
+	this.damage = 1;
+	this.force = new Point();
+	this.extraLift = 0;
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			obj.hurt(this, this.damage);
+		}
+	});
+}
+
+FiremanFlame.prototype.update = function(){
+	if(this.phase == 0){
+		this.width = Math.lerp(this.width, 64, this.delta * this.transformSpeed);
+		this.height = Math.lerp(this.height, 144, this.delta * this.transformSpeed);
+		this.position.y = this.basePosition.y - (this.height / 2);
+	} else if(this.phase == 1){
+		this.width = Math.lerp(this.width, 32, this.delta * this.transformSpeed);
+		this.height = Math.lerp(this.height, 32, this.delta * this.transformSpeed);
+		this.extraLift = Math.lerp(this.extraLift, -12, this.delta * this.transformSpeed);
+		this.position.y = this.extraLift + (this.basePosition.y - (this.height / 2));
+		
+		var front = this.basePosition.x + (this.flip ? -48 : 48);
+		this.position.x = Math.lerp(this.position.x, front, this.delta * this.transformSpeed);
+	}
+	
+	this.time -= this.delta;
+	this.position.x += this.force.x * this.delta;
+	this.position.y += this.force.y * this.delta;
+	
+	if(this.time <= 0){
+		this.destroy();
+	}
+	
+	Background.pushLight( this.position, Math.max(this.width,this.height)*2, [1,0.7,0,1] );
+}
+	
+FiremanFlame.prototype.render = function(g,c){
+	g.color = [1.0,0.7,0.0,1.0];
+	g.scaleFillRect(
+		(this.position.x - this.width*0.5) - c.x,
+		(this.position.y - this.height*0.5) - c.y,
+		this.width, this.height
+	);
 }
 
  /* platformer\enemy_flederknife.js*/ 
@@ -8014,6 +8117,147 @@ Laughing.prototype.update = function(){
 	
 	//Animation
 	this.frame = (this.frame + this.delta * 0.2 ) % 3;
+}
+
+ /* platformer\enemy_librarian.js*/ 
+
+Librarian.prototype = new GameObject();
+Librarian.prototype.constructor = GameObject;
+function Librarian(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.basePosition = new Point(x,y);
+	this.width = 24;
+	this.height = 56;
+	this.zIndex = 1;
+	
+	this.sprite = "librarian";
+	this.paletteSwaps = ["t0","t0","t0","t0","t0"];
+	this.speed = 0.4;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(obj,damage){
+		audio.play("hurt");
+	});
+	this.on("death", function(obj,pos,damage){
+		_player.addXP(this.xp_award);
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.life =  Spawn.life(6,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	this.death_time = Game.DELTASECOND * 1;
+	this.friction = 0.2;
+	
+	//SpecialEnemy(this);
+	this.calculateXP();
+	
+	this.states = {
+		"attackpause" : 0,
+		"attackpausecooldown" : 0,
+		"attackcooldown" : 0,
+		"jumpcooldown" : 50,
+		"direction" : 0
+	};
+	this.times = {
+		"alignTop" : 10,
+		"alignBot" : -10,
+		"cooldown" : Game.DELTASECOND * 1.5,
+		"attackCool" : Game.DELTASECOND * 1.0,
+	}
+}
+Librarian.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	if( this.life > 0 ) {		
+		if(this.states.direction){
+			this.force.x -= this.speed * this.delta;
+			if(this.position.x - this.basePosition.x < -64){
+				this.states.direction = 0;
+			}
+		} else {
+			this.force.x += this.speed * this.delta;
+			if(this.position.x - this.basePosition.x > 64){
+				this.states.direction = 1;
+			}
+		}
+		
+		if(this.states.attackpause <= 0){
+			this.states.attackcooldown -= this.delta;
+		}
+		
+		if(this.states.attackpausecooldown <= 0){
+			this.states.attackpause = Game.DELTASECOND;
+			this.states.attackpausecooldown = Game.DELTASECOND * 2 + (Math.random() * 2 * Game.DELTASECOND);
+		}
+		if(this.states.jumpcooldown <= 0){
+			this.force.y = -11;
+			this.grounded = false;
+			this.states.jumpcooldown = Game.DELTASECOND * 2 + (Math.random() * 2 * Game.DELTASECOND);
+		}
+		if(this.states.attackcooldown <= 0){
+			//throw book
+			this.states.attackcooldown = Game.DELTASECOND * 0.333;
+			this.flip = dir.x > 0;
+			var book = new LibrarianBook(this.position.x, this.position.y);
+			book.force.y = -12;
+			book.force.x = (this.flip ? -1 : 1) * 5;
+			book.damage = this.damage;
+			game.addObject(book);
+		}
+		
+		this.states.attackpausecooldown -= this.delta;
+		this.states.attackpause -= this.delta;
+		this.states.jumpcooldown -= this.delta;
+		
+	}
+}
+
+ 
+
+LibrarianBook.prototype = new GameObject();
+LibrarianBook.prototype.constructor = GameObject;
+function LibrarianBook(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.gravity = 0.8;
+	this.sprite = "librarian";
+	
+	this.damage = 1;
+	this.force = new Point(0,0);
+	this.frame.y = 1;
+	
+	this.on("sleep", function(obj){
+		this.destroy();
+	});
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			obj.hurt(this, this.damage);
+			this.destroy();
+		}
+	});
+}
+
+LibrarianBook.prototype.update = function(){
+	this.force.y += this.gravity * this.delta;
+	//this.force.x = this.force.x * (1 - 0.08 * this.delta);
+	this.position.x += this.force.x * this.delta;
+	this.position.y += this.force.y * this.delta;
 }
 
  /* platformer\enemy_lilghost.js*/ 
@@ -9753,7 +9997,6 @@ function WizzardBolter(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -9884,7 +10127,6 @@ function WizzardFlamer(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -10003,7 +10245,6 @@ function WizzardSoldier(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -10094,7 +10335,6 @@ function WizzardLightning(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -10797,9 +11037,9 @@ var WeaponStats = {
 
 WeaponStats.short_sword.standing.alwaysqueue = 1;
 
-WeaponStats.long_sword.damage = 5;
+WeaponStats.long_sword.damage = 4;
 
-WeaponStats.broad_sword.damage = 7;
+WeaponStats.broad_sword.damage = 5;
 
  /* platformer\exit.js*/ 
 
@@ -10839,6 +11079,30 @@ function Exit(x,y,d,o){
 	});
 }
 Exit.prototype.idle = function(){}
+
+DemoExit.prototype = new GameObject();
+DemoExit.prototype.constructor = GameObject;
+function DemoExit(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = d[0] * 1;
+	this.height = d[1] * 1;
+	
+	var options = o || {};
+	this.visible = false;
+	
+	this.on("collideObject",function(obj){
+		if( obj instanceof Player ) {
+			audio.stopAs("music");
+			
+			var completed = NPC.get("templeCompleted") * 1;
+			var next = completed + 1;
+			
+			WorldLocale.loadMap("temple"+next+".tmx");
+		}
+	});
+}
 
  /* platformer\gate.js*/ 
 
@@ -11203,6 +11467,9 @@ i18n_messages = {
 			"Donate to make the construction into a new with my assistant."
 		]
 	},
+	"smith_intro" : {
+		"english" : "You there. Did you know you can only hold one weapon at a time? Don't worry, any weapon you leave behind I'll store it here for you. It'll be free of charge, because I'm kind like that."
+	},
 	"builder0" : {
 		"english" : "We're just just gettin' started on this one, buddy.",
 		"engrish" : "Play the game. Please note, death is permanent."
@@ -11379,11 +11646,18 @@ function Item(x,y,d, ops){
 	this.animation_frame = Math.random() * 3;
 	this.animation_speed = 0.25;
 	this.enchantChance = 0.8;
+	this.itemid = null;
 	
 	ops = ops || {};	
 	
 	if( "enchantChance" in ops ) {
 		this.enchantChance = ops["this.enchantChance"];
+	}
+	if( "id" in ops ) {
+		this.itemid = "item_" + ops["id"];
+		if(NPC.get(this.itemid)){
+			this.on("added", function(){ this.destroy();});
+		}
 	}
 	if( "name" in ops ) {
 		if(ops["name"] == "random"){
@@ -11397,16 +11671,18 @@ function Item(x,y,d, ops){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
-			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; }
+			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; DemoThanks.items++; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
-			if( this.name == "life_fruit") { obj.lifeMax += 6; obj.heal = 9999; audio.play("gulp"); }
-			if( this.name == "mana_fruit") { obj.manaMax += 6; obj.manaHeal = 999; audio.play("gulp"); }
+			if( this.name == "life_fruit") { obj.lifeMax += 6; obj.heal = 9999; audio.play("gulp"); DemoThanks.items++; }
+			if( this.name == "mana_fruit") { obj.manaMax += 6; obj.manaHeal = 999; audio.play("gulp"); DemoThanks.items++; }
 			
 			if( this.isWeapon ) {
+				var currentWeapon = _player.equip_weapon;
 				obj.equip(this, obj.equip_shield);
+				game.addObject(currentWeapon);
 				audio.play("equip");
 			}
 			
@@ -11415,7 +11691,9 @@ function Item(x,y,d, ops){
 					//Cant equip shield with a two handed weapon
 					return false;
 				}
+				var currentShield = _player.equip_shield;
 				obj.equip(obj.equip_sword, this); 
+				game.addObject(currentShield);
 				audio.play("equip");
 			}
 			
@@ -11426,17 +11704,17 @@ function Item(x,y,d, ops){
 			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
-			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); }
-			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); }
-			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); }
+			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); DemoThanks.items++;}
 			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
 			
 			
-			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); }
-			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); }
-			if( this.name == "seed_malphas") { obj.stats.magic+=1; this.pickupEffect(); }
+			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "seed_malphas") { obj.stats.magic+=1; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; this.pickupEffect(); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; this.pickupEffect(); }
 			if( this.name == "seed_minotaur") { 
@@ -11508,6 +11786,9 @@ function Item(x,y,d, ops){
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
 				pm.message( this.getMessage() );
+			}
+			if(this.itemid){
+				NPC.set(this.itemid,1)
 			}
 			this.interactive = false;
 			this.destroy();
@@ -12285,148 +12566,6 @@ MapDebug.prototype.hudrender = function(g,c){
 }
 MapDebug.prototype.idle = function(){}
 
- /* platformer\mayor.js*/ 
-
-Mayor.prototype = new GameObject();
-Mayor.prototype.constructor = GameObject;
-function Mayor(x, y){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y+8;
-	this.sprite = "characters2";
-	
-	this.frame = 0;
-	this.frame_row = 0;
-	
-	this.width = this.height = 48;
-	
-	this.addModule( mod_talk );
-	this.text = i18n("mayor_intro");
-	this.text_progress = 0;
-	this.cursor = 0;
-	this.peopleFree = 0;
-	
-	this.projects = {};
-	this.projectCount = 0;
-	this.fetchProjects();
-	
-	this.on("open", function(){
-		game.pause = true;
-		audio.play("pause")
-	});
-	this.on("close", function(){
-		game.pause = false;
-		audio.play("unpause")
-	});
-}
-
-Mayor.prototype.fetchProjects = function(){
-	this.projects = {};
-	this.projectCount = 0;
-	
-	if( _world instanceof WorldMap ) {
-		this.peopleFree = _world.town.people;
-		
-		for(var i in _world.town.buildings ){
-			var building = _world.town.buildings[i];
-			this.peopleFree -= building.people;
-			
-			if( building.complete && Mayor.ongoingProjects.indexOf(i) >= 0 ){
-				this.projects[i] = building;
-				this.projectCount++;
-			} else if ( !building.complete && building.unlocked ) {
-				this.projects[i] = building;
-				this.projectCount++;
-			}
-		}
-	}
-}
-
-Mayor.prototype.update = function(){
-	this.frame = (this.frame + this.delta * 0.2) % 4;
-	
-	if( this.open ) {
-		game.pause = true;
-		if( Mayor.disabled ) {
-			if( input.state("fire") == 1 || input.state("pause") == 1 || input.state("jump") == 1 ) {
-				this.close();
-			}
-		} else if( Mayor.introduction ) {
-			if( input.state("fire") == 1 ) {
-				this.text_progress++;
-				if( this.text_progress >= this.text.length){
-					this.close();
-					Mayor.introduction = false;
-				}
-			}
-		} else { 
-			var selected = null;
-			var j = 0;
-			for(var i in this.projects ) {
-				if( j == this.cursor ) {
-					selected = this.projects[i]; break;
-				}
-				j++
-			}
-			if( input.state("pause") == 1 || input.state("jump") == 1 ) {
-				this.close();
-			}
-			if( input.state("up") == 1 ) {
-				this.cursor = Math.max(this.cursor-1, 0);
-				audio.play("cursor")
-			}
-			if( input.state("down") == 1 ) {
-				this.cursor = Math.min(this.cursor+1, this.projectCount-1);
-				audio.play("cursor")
-			}
-			if( selected ) {
-				if( input.state("left") == 1 && selected.people > 0) {
-					selected.people--;
-					this.peopleFree++;
-					audio.play("cursor")
-				}
-				if( input.state("right") == 1 && this.peopleFree > 0) {
-					selected.people++;
-					this.peopleFree--;
-					audio.play("cursor")
-				}
-			}
-		}
-	}
-}
-
-Mayor.prototype.postrender = function(g,c){
-	if( this.open ) {
-		if( Mayor.disabled ) {
-			renderDialog(g, "Sorry, you cannot build your town in this demo.");
-		} else if( Mayor.introduction ) {
-			renderDialog(g, this.text[this.text_progress]);
-		} else {
-			var left = game.resolution.x / 2 - 128;
-			boxArea(g, left-16, 8, 256+32, 224);
-			textArea(g, "$"+_world.town.money, left, 24);
-			textArea(g, "People: "+ this.peopleFree, left, 36);
-			
-			var j = 0;
-			for(var i in this.projects ) {
-				//List projects
-				var name = i18n("building_names")[i];
-				
-				textArea(g, name, left+16, j*12+56);
-				textArea(g, "People: "+ this.projects[i].people, left+160, j*12+56);
-				j++;
-			}
-			//Draw cursor
-			textArea(g, "@", left, this.cursor*12+56);
-		}
-	}
-}
-
-
-Mayor.ongoingProjects = ["farm", "mine"];
-Mayor.introduction = true;
-Mayor.disabled = true;
-
  /* platformer\menu_item.js*/ 
 
 ItemMenu.prototype = new GameObject();
@@ -12564,7 +12703,6 @@ function PauseMenu(){
 	this.sprite = game.tileSprite;
 	this.zIndex = 999;
 	
-	this.open = false;
 	this.page = 1;
 	this.pageCount = 5;
 	this.cursor = 0;
@@ -12583,11 +12721,14 @@ function PauseMenu(){
 	this.message_time = 0;
 }
 
+PauseMenu.open = false;
 PauseMenu.questScrollLimit = 12;
 
 PauseMenu.prototype.idle = function(){}
-PauseMenu.prototype.update = function(){	
-	if( this.open ) {
+PauseMenu.prototype.update = function(){
+	DemoThanks.time += this.delta;
+	
+	if( PauseMenu.open ) {
 		game.pause = true;
 		this.message_time = 0;
 		
@@ -12650,7 +12791,7 @@ PauseMenu.prototype.update = function(){
 			}
 			if( input.state("fire") == 1 ) { 
 				_player.unique_item = _player.uniqueItems[this.cursor];
-				this.open = false;
+				PauseMenu.open = false;
 				game.pause = false;
 				audio.play("spell");
 			}
@@ -12675,7 +12816,7 @@ PauseMenu.prototype.update = function(){
 		if( _player.life > 0) {
 			//Close pause menu
 			if( input.state("pause") == 1 ) {
-				this.open = false;
+				PauseMenu.open = false;
 				game.pause = false;
 				audio.play("unpause");
 			}
@@ -12688,7 +12829,7 @@ PauseMenu.prototype.update = function(){
 		}
 	} else {
 		if( ( input.state("pause") == 1 ) && _player instanceof Player && _player.life > 0 ) {
-			this.open = true;
+			PauseMenu.open = true;
 			//_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
 			this.mapCursor.x = 11 - Math.floor(_player.position.x / 256);
@@ -12756,7 +12897,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 		textArea(g,this.message_text,left+16,32,192);
 	}
 	var leftx = 0;
-	if( this.open && _player instanceof Player ) {
+	if( PauseMenu.open && _player instanceof Player ) {
 		if( _player.life <= 0 ) {
 			g.color = [0,0,0,1.0];
 			g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
@@ -12955,11 +13096,11 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		//Draw player
 		var pos = new Point(
 			1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
-			2+(cursor.y*8) + Math.floor(_player.position.y/240)*8
+			(cursor.y*8) + Math.floor(_player.position.y/240)*8 -Math.abs(Math.sin(game.time*0.1)*2)
 		);
 		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 			g.color = [1.0,0.0,0.0,1.0];
-			g.scaleFillRect(1 + pos.x + offset.x, 1 + pos.y + offset.y, 4, 3 );
+			g.renderSprite("map",pos.add(offset),this.zIndex+1,new Point(9,0),false);
 		}
 	} catch (err) {
 		var r = 0;
@@ -14071,6 +14212,23 @@ var mod_talk = {
 			this.trigger("close");
 		}
 		
+		this.talkMovePlayer = function(distance){
+			var speed = 0.1;
+			if(distance == undefined){
+				distance = 40;
+			}
+			
+			if(this.position.x > _player.position.x){
+				this.flip = true;
+				_player.flip = false;
+				_player.position.x = Math.lerp(_player.position.x, this.position.x - distance, game.deltaUnscaled * speed);
+			} else {
+				this.flip = false;
+				_player.flip = true;
+				_player.position.x = Math.lerp(_player.position.x, this.position.x + distance, game.deltaUnscaled * speed);
+			}
+		}
+		
 		this.on("collideObject", function(obj){
 			if( obj instanceof Player ){
 				this._talk_is_over = 2;
@@ -14610,8 +14768,553 @@ NPC.unpackTokens = function(line){
 	}
 	return out;
 }
+NPC.set = function(name,value){NPC.variables[name] = value;}
+NPC.get = function(name){if(name in NPC.variables){return NPC.variables[name];} return null; }
+
 NPC.operators = ["/","*","+","-","==",">","<"];
 NPC.variables = {};
+
+ /* platformer\npc_chancellor.js*/ 
+
+Chancellor.prototype = new GameObject();
+Chancellor.prototype.constructor = GameObject;
+function Chancellor(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = "characters2";
+	
+	this.frame.x = 0;
+	this.frame.y = 0;
+	
+	this.width = this.height = 48;
+	
+	this.addModule( mod_talk );
+	this.text = i18n("chancellor_intro");
+	this.text_progress = 0;
+	
+	this.money = 0;
+	this.moneyMax = 0;
+	this.rate = 1;
+	this.pay_timer = 0;
+	this.rate_timer = 0;
+	
+	this.on("open", function(){
+		this.money = 0;
+		this.moneyMax = 0;
+		game.pause = true;
+		audio.play("pause");
+	});
+	this.on("close", function(){
+		game.pause = false;
+	});
+}
+
+Chancellor.prototype.update = function(){
+	if( this.open ) {
+		//Move player into position
+		this.talkMovePlayer();
+		
+		if( Chancellor.introduction ) {
+			if( input.state("fire") == 1 ) {
+				this.text_progress++;
+				if( this.text_progress >= this.text.length){
+					this.close();
+					Chancellor.introduction = false;
+				}
+			}
+		} else {
+			if( input.state("jump") == 1 || PauseMenu.open ) {
+				this.close();
+			} else if( input.state("fire") == 1 ) {
+				//_world.town.money += this.money;
+				_player.money -= this.money;
+				this.money = 0;
+				this.close();
+				audio.play("unpause");
+			} else if ( input.state("up") > 0 ) {
+				if( this.pay_timer <= 0 || input.state("up") == 1) {
+					this.money = Math.min( this.money + this.rate, _player.money);
+					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
+					audio.play("coin");
+				}
+				if( this.rate_timer <= 0 ) {
+					this.rate *= 2;
+					this.rate_timer = Game.DELTASECOND;
+				}
+				this.pay_timer -= game.deltaUnscaled;
+				this.rate_timer -= game.deltaUnscaled;
+			} else if ( input.state("down") > 0 ) {
+				if( this.pay_timer <= 0 || input.state("down") == 1 ) {
+					this.money = Math.max( this.money - this.rate, 0);
+					this.pay_timer = Math.max(Game.DELTASECOND * 0.125, this.pay_timer);
+					audio.play("coin");
+				}
+				if( this.rate_timer <= 0 ) {
+					this.rate *= 2;
+					this.rate_timer = Game.DELTASECOND;
+				}
+				this.pay_timer -= game.deltaUnscaled;
+				this.rate_timer -= game.deltaUnscaled;
+			} else {
+				this.pay_timer = Game.DELTASECOND * 0.5;
+				this.rate_timer = Game.DELTASECOND;
+				this.rate = 1;
+			}
+		}
+		this.moneyMax = Math.max(this.moneyMax, this.money);
+	}
+	
+	//Animation
+	if( this.open ) {
+		if( this.money > 99 ) {
+			//Jump excitedly
+			this.frame.x = (this.frame.x + game.deltaUnscaled * 0.3) % 3;
+			this.frame.y = 2;
+		} else if( this.moneyMax > 99 ) {
+			//Look disappointed
+			this.frame.x = 4;
+			this.frame.y = 2;
+		} else {
+			if( this.money > 10 ) {
+				this.frame.x = 4;
+				this.frame.y = 1;
+			} else {
+				this.frame.x = 0;
+				this.frame.y = 1;				
+			}
+		}
+	} else {
+		this.frame.x = (this.frame.x + this.delta * 0.125) % 4;
+		this.frame.y = 1;
+	}
+}
+
+Chancellor.prototype.postrender = function(g,c){
+	if( this.open ) {
+		if( Chancellor.introduction ) {
+			renderDialog(g, this.text[this.text_progress]);
+		} else {
+			var left = game.resolution.x / 2 - 112;
+			renderDialog(g, i18n("chancellor_howmuch"));
+			textBox(g, "$"+this.money, left, 120, 128, 40);
+		}
+	}
+}
+
+Chancellor.introduction = true;
+
+ /* platformer\npc_mayor.js*/ 
+
+Mayor.prototype = new GameObject();
+Mayor.prototype.constructor = GameObject;
+function Mayor(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y+8;
+	this.sprite = "characters2";
+	
+	this.frame = 0;
+	this.frame_row = 0;
+	
+	this.width = this.height = 48;
+	
+	this.addModule( mod_talk );
+	this.text = i18n("mayor_intro");
+	this.text_progress = 0;
+	this.cursor = 0;
+	this.peopleFree = 0;
+	
+	this.projects = {};
+	this.projectCount = 0;
+	this.fetchProjects();
+	
+	this.on("open", function(){
+		game.pause = true;
+		audio.play("pause")
+	});
+	this.on("close", function(){
+		game.pause = false;
+		audio.play("unpause")
+	});
+}
+
+Mayor.prototype.fetchProjects = function(){
+	this.projects = {};
+	this.projectCount = 0;
+	
+	if( _world instanceof WorldMap ) {
+		this.peopleFree = _world.town.people;
+		
+		for(var i in _world.town.buildings ){
+			var building = _world.town.buildings[i];
+			this.peopleFree -= building.people;
+			
+			if( building.complete && Mayor.ongoingProjects.indexOf(i) >= 0 ){
+				this.projects[i] = building;
+				this.projectCount++;
+			} else if ( !building.complete && building.unlocked ) {
+				this.projects[i] = building;
+				this.projectCount++;
+			}
+		}
+	}
+}
+
+Mayor.prototype.update = function(){
+	this.frame = (this.frame + this.delta * 0.2) % 4;
+	
+	if( this.open ) {
+		game.pause = true;
+		if( Mayor.disabled ) {
+			if( input.state("fire") == 1 || input.state("pause") == 1 || input.state("jump") == 1 ) {
+				this.close();
+			}
+		} else if( Mayor.introduction ) {
+			if( input.state("fire") == 1 ) {
+				this.text_progress++;
+				if( this.text_progress >= this.text.length){
+					this.close();
+					Mayor.introduction = false;
+				}
+			}
+		} else { 
+			var selected = null;
+			var j = 0;
+			for(var i in this.projects ) {
+				if( j == this.cursor ) {
+					selected = this.projects[i]; break;
+				}
+				j++
+			}
+			if( input.state("pause") == 1 || input.state("jump") == 1 ) {
+				this.close();
+			}
+			if( input.state("up") == 1 ) {
+				this.cursor = Math.max(this.cursor-1, 0);
+				audio.play("cursor")
+			}
+			if( input.state("down") == 1 ) {
+				this.cursor = Math.min(this.cursor+1, this.projectCount-1);
+				audio.play("cursor")
+			}
+			if( selected ) {
+				if( input.state("left") == 1 && selected.people > 0) {
+					selected.people--;
+					this.peopleFree++;
+					audio.play("cursor")
+				}
+				if( input.state("right") == 1 && this.peopleFree > 0) {
+					selected.people++;
+					this.peopleFree--;
+					audio.play("cursor")
+				}
+			}
+		}
+	}
+}
+
+Mayor.prototype.postrender = function(g,c){
+	if( this.open ) {
+		if( Mayor.disabled ) {
+			renderDialog(g, "Sorry, you cannot build your town in this demo.");
+		} else if( Mayor.introduction ) {
+			renderDialog(g, this.text[this.text_progress]);
+		} else {
+			var left = game.resolution.x / 2 - 128;
+			boxArea(g, left-16, 8, 256+32, 224);
+			textArea(g, "$"+_world.town.money, left, 24);
+			textArea(g, "People: "+ this.peopleFree, left, 36);
+			
+			var j = 0;
+			for(var i in this.projects ) {
+				//List projects
+				var name = i18n("building_names")[i];
+				
+				textArea(g, name, left+16, j*12+56);
+				textArea(g, "People: "+ this.projects[i].people, left+160, j*12+56);
+				j++;
+			}
+			//Draw cursor
+			textArea(g, "@", left, this.cursor*12+56);
+		}
+	}
+}
+
+
+Mayor.ongoingProjects = ["farm", "mine"];
+Mayor.introduction = true;
+Mayor.disabled = true;
+
+ /* platformer\npc_shop.js*/ 
+
+Shop.prototype = new GameObject();
+Shop.prototype.constructor = GameObject;
+function Shop(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = "shops";
+	this.width = 16;
+	this.height = 32;
+	this.zIndex = -1;
+	this.life = 1;
+	this.idleMargin = 72;
+	
+	this.keeperFrame = new Point(0,0);
+	
+	this.addModule(mod_talk);
+	
+	this.items = [];
+	this.prices = [];
+	
+	this.on("open",function(obj){
+		game.pause = true;
+		audio.playLock("pause",0.3);
+	});
+	this.message = [
+		"This is all we got. Don't like go some place else!",
+		"I sold my entire stock. Nice doing business with you."
+	];
+	this.cursor = 0;	
+}
+
+Shop.prototype.update = function(g,c){
+	if( this.open > 0 ) {
+		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
+			audio.playLock("unpause",0.3);
+			this.close();
+			game.pause = false;
+		}
+		
+		if( input.state("right") == 1 ){
+			this.cursor = Math.min(this.cursor+1, 2);
+			audio.play("cursor"); 
+		}
+		if( input.state("left") == 1){
+			this.cursor = Math.max(this.cursor-1, 0);
+			audio.play("cursor"); 
+		}
+		if( input.state("fire") == 1){
+			this.purchase();
+		}
+	}
+	
+	/* animation */
+	this.keeperFrame.x = (this.keeperFrame.x + this.delta * 0.2 ) % 3;
+}
+Shop.itemnames = ["seed_oriax", "seed_bear", "seed_malphas"];
+Shop.itemposition = [new Point(-40,-80),new Point(-8,-80), new Point(24,-80)];
+Shop.prototype.price = function(){
+	var sales = NPC.get("shopsales");
+	if(sales){
+		return Math.round(Math.pow(sales * 20, 1.3)); 
+	}
+	return 20;
+}
+Shop.prototype.purchase = function(){
+	var price = this.price();
+	
+	if( _player.money >= price ) {
+		var itemname = Shop.itemnames[this.cursor];
+		var itempos = Shop.itemposition[this.cursor].add(this.position);
+		var item = new Item(itempos.x, itempos.y, false, {"name":itemname});
+		item.addModule(mod_rigidbody);
+		item.gravity = 1.0;
+		item.interactive = true;
+		_player.money -= price;
+		audio.play("equip");
+		
+		game.addObject(item);
+		
+		var sales = NPC.get("shopsales") * 1;
+		NPC.set("shopsales", sales + 1);
+		
+		return true;
+	} else {
+		audio.play("negative");
+	}
+	return false;
+}
+
+	
+Shop.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this,[g,c]);
+	g.renderSprite("retailers",this.position.subtract(c),this.zIndex+1,this.keeperFrame,false);
+	
+	for(var i=0; i < Shop.itemnames.length; i++){
+		var itempos = Shop.itemposition[i].add(this.position);
+		g.renderSprite("items", itempos.subtract(c), this.zIndex+1, new Point(i,4), false);
+	}
+}
+
+Shop.prototype.postrender = function(g,c){	
+	if( this.open > 0 ){		
+		
+		var p = Shop.itemposition[this.cursor].add(this.position).subtract(c);
+		
+		cursorArea(g, p.x-16,p.y-16,32,32);
+		textArea(g, "$"+this.price(), p.x-16, p.y+24);
+	}
+}
+
+ /* platformer\npc_smith.js*/ 
+
+Smith.prototype = new GameObject();
+Smith.prototype.constructor = GameObject;
+function Smith(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = "characters2";
+	
+	this.frame.x = 0;
+	this.frame.y = 0;
+	
+	this.width = this.height = 48;
+	
+	this.addModule( mod_talk );
+	this.text = i18n("smith_intro");
+	
+	
+	this.slackCooldown = Game.DELTASECOND * 3;
+	
+	this.weapons = new Array();
+	this.cursor = new Point();
+	this.columns = 8;
+	this.rows = 0;
+	
+	this.on("open", function(){
+		this.cursor = new Point();
+		this.weapons = this.gatherWeapons();
+		DialogManger.set(this.text);
+		
+		game.pause = true;
+		audio.play("pause");
+	});
+	this.on("close", function(){
+		game.pause = false;
+	});
+}
+
+Smith.prototype.gatherWeapons = function(){
+	var out = new Array();
+	
+	for(var i=0; i < Smith.weapons.length; i++){
+		var name = Smith.weapons[i];
+		var hasWeapon = NPC.get(name);
+		if(hasWeapon){
+			out.push( new Item(0,0,0,{"name" : name}));
+		}
+	}
+	this.rows = Math.ceil(out.length / this.columns);
+	return out;
+}
+Smith.prototype.cursorIndex = function(){
+	return this.cursor.x+this.cursor.y*this.columns;
+}
+	
+Smith.prototype.update = function(){
+	if( this.open ) {
+		//Move player into position
+		this.talkMovePlayer();
+		
+		if( Smith.introduction ) {
+			if(!DialogManger.show){
+				Smith.introduction = false;
+				this.close();
+			}
+		} else {
+			if(input.state("left") == 1){
+				this.cursor.x = Math.max(this.cursor.x-1,0);
+				audio.play("cursor");
+			}
+			if(input.state("right") == 1){
+				this.cursor.x = Math.min(this.cursor.x+1,this.columns-1);
+				audio.play("cursor");
+			}
+			if(input.state("up") == 1){
+				this.cursor.y = Math.max(this.cursor.y-1,0);
+				audio.play("cursor");
+			}
+			if(input.state("down") == 1){
+				this.cursor.y = Math.min(this.cursor.y+1,this.rows-1);
+				audio.play("cursor");
+			}
+			
+			if(this.cursorIndex() > this.weapons.length-1){
+				//Out of range, set to last item
+				this.cursor.x = (this.weapons.length-1) % this.columns;
+				this.cursor.y = this.rows-1;
+			}
+			
+			if(input.state("fire") == 1){
+				var index = this.cursorIndex();
+				var weapon = this.weapons[index];
+				if(weapon.isWeapon){
+					_player.equip(weapon, _player.equip_shield);
+				} else if (weapon.isShield) {
+					_player.equip(_player.equip_sword, weapon);
+				}
+				audio.play("equip");
+			}
+			
+			if(input.state("jump") == 1 || PauseMenu.open){
+				this.close();
+			}
+		}
+	}
+	
+	//Animation
+	if(this.slackCooldown <= 0){
+		this.frame.x = this.frame.x + this.delta * 0.2;
+		this.frame.y = 4;
+		
+		if(this.frame.x >= 3){
+			this.slackCooldown = Game.DELTASECOND * 3;
+			this.frame.x = 0;
+			this.frame.y = 3;
+		}
+	} else {
+		this.frame.x = (this.frame.x + this.delta * 0.1) % 3;
+		this.frame.y = 3;
+		
+		this.slackCooldown -= this.delta;
+		if(this.slackCooldown <= 0){
+			this.frame.x = 0;
+			this.frame.y = 4;
+		}
+	}
+}
+
+Smith.prototype.hudrender = function(g,c){
+	if( this.open ) {
+		if( Smith.introduction ) {
+			DialogManger.render(g);
+		} else {
+			var width = 224;
+			var left = game.resolution.x / 2 - width * 0.5;
+			var top = 24;
+			
+			boxArea(g,left,top,width,120);
+			
+			for(var i=0; i < this.weapons.length; i++){
+				var item = this.weapons[i];
+				var x = i % this.columns;
+				var y = Math.floor(i / this.columns);
+				
+				g.renderSprite("items", new Point(24+left+x*24, 24+top+y*24), this.zIndex, item.frame, false);
+			}
+			
+			cursorArea(g, 12+left+this.cursor.x*24, 12+top+this.cursor.y*24,24,24);
+		}
+	}
+}
+Smith.weapons = [
+	"short_sword", "long_sword", "broad_sword", "spear", "warhammer",
+	"small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"
+];
+Smith.introduction = true;
 
  /* platformer\phantom.js*/ 
 
@@ -14839,7 +15542,6 @@ function Player(x, y){
 		"ledgeObject" : null,
 		"turn" : 0.0,
 		"doubleJumpReady": true,
-		"airSpin" : false,
 		"spellCounter" : 0.0
 	};
 	
@@ -14866,6 +15568,7 @@ function Player(x, y){
 		"inertiaAir" : 0.2,
 		"frictionGrounded" : 0.1,
 		"frictionAir" : 0.05,
+		"rollCooldown" : Game.DELTASECOND * 1.2,
 		"jump" : 9.0,
 		"airBoost" : 1.0,
 		"airGlide" : 0.0,
@@ -14893,9 +15596,11 @@ function Player(x, y){
 	this.on("pre_death", function(){
 		this.heal = 0;
 		game.slow(0,this.death_time);
-		audio.stopAs("music");
+		//audio.stopAs("music");
 	});
 	this.on("death", function(){
+		DemoThanks.deaths++;
+		
 		this.position.x = 128;
 		this.position.y = 200;
 		
@@ -14905,14 +15610,13 @@ function Player(x, y){
 		
 		for(var i=0; i < game.objects.length; i++ )
 			game.objects[i].trigger("player_death");
-		game.getObject(PauseMenu).open = true;
+		PauseMenu.open = true;
 		audio.play("playerdeath");
 		this.destroy();
 	});
 	this.on("land", function(){
 		//Land from a height
 		this.states.doubleJumpReady = true;
-		this.states.airSpin = false;
 		
 		audio.play("land");
 		var dust = Math.floor(2 + Math.random() * 3);
@@ -14966,9 +15670,11 @@ function Player(x, y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(obj, damage){
+		shakeCamera(Game.DELTASECOND*0.5,str);
+		this.states.ledge = null;
+		
 		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
 		var dir = this.position.subtract(obj.position);
-		shakeCamera(Game.DELTASECOND*0.5,str);
 		this.equip_weapon.cancel(this);
 		
 		var knockback = this.grounded ? 7 : 3;
@@ -15042,7 +15748,6 @@ function Player(x, y){
 		this.checkpoint = new Point(this.position.x, this.position.y);
 		this.force.x = this.force.y = 0;
 		this.states.doubleJumpReady = true;
-		this.states.airSpin = false;
 		
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
@@ -15060,12 +15765,10 @@ function Player(x, y){
 	})
 	this.on("downstabTarget", function(obj, damage){
 		this.states.doubleJumpReady = true;
-		this.states.airSpin = false;
 	});
 	this.on("catchLedge", function(edge, flip, obj){
 		if(this.grabLedges){
 			this.states.doubleJumpReady = true;
-			this.states.airSpin = false;
 			this.force.x = this.force.y = 0;
 			if(flip){
 				this.states.ledge = edge.add(new Point(this.width*0.5,this.height*0.5));
@@ -15535,7 +16238,7 @@ Player.prototype.update = function(){
 				} else if(this.grounded){
 					this.states.roll = this.invincible = this.rollTime;
 				}
-				this.states.rollCooldown = Game.DELTASECOND;
+				this.states.rollCooldown = this.speeds.rollCooldown;
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
@@ -15605,7 +16308,7 @@ Player.prototype.update = function(){
 			this.equip_weapon.animate(this);
 		} else if( !this.grounded ) {
 			//In air
-			if(this.states.airSpin){
+			if(!this.states.doubleJumpReady){
 				this.frame.y = 2;
 				this.frame.x = Math.max(1,(this.frame.x + this.delta * 0.3)%5);
 			} else {
@@ -15824,6 +16527,7 @@ Player.prototype.equipCharm = function(c){
 Player.prototype.equip = function(sword, shield){
 	try {	
 		if( sword.isWeapon && "stats" in sword ){
+			NPC.set(sword.name, 1);
 			this.equip_weapon = new Weapon(sword.name);
 		} else {
 			throw "No valid weapon";
@@ -15832,6 +16536,8 @@ Player.prototype.equip = function(sword, shield){
 		//Shields
 		if( shield != null ) {
 			if( "stats" in shield){
+				NPC.set(shield.name, 1);
+				
 				this.attackProperties.warm *= shield.stats.speed;
 				this.attackProperties.strike *= shield.stats.speed;
 				this.attackProperties.rest *= shield.stats.speed;
@@ -15858,7 +16564,7 @@ Player.prototype.equip = function(sword, shield){
 			this.equip_sword.sleep = Game.DELTASECOND * 2;
 			this.equip_sword.position.x = this.position.x;
 			this.equip_sword.position.y = this.position.y;
-			game.addObject( this.equip_sword );
+			//game.addObject( this.equip_sword );
 		}
 		
 		//Drop old shield
@@ -15867,7 +16573,7 @@ Player.prototype.equip = function(sword, shield){
 			this.equip_shield.sleep = Game.DELTASECOND * 2;
 			this.equip_shield.position.x = this.position.x;
 			this.equip_shield.position.y = this.position.y;
-			game.addObject( this.equip_shield );
+			//game.addObject( this.equip_shield );
 		}
 		
 		if( this.equip_sword != sword && sword instanceof Item ) sword.trigger("equip", this);
@@ -15948,6 +16654,9 @@ Player.prototype.addMoney = function(value){
 	this.trigger("money", value);
 }
 Player.prototype.addXP = function(value){
+	DemoThanks.kills++;
+	
+	return;
 	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 50 );
 	this.prevLevel = Math.floor( Math.pow( this.level-1,1.8 ) * 50 );
 	
@@ -15990,7 +16699,7 @@ Player.prototype.respawn = function(g,c){
 	//audio.playAs(audio.alias["music"],"music");
 	try{ 
 		game.pause = false;
-		game.getObject(PauseMenu).open = false; 
+		PauseMenu.open = false; 
 	} catch(err){}
 }
 Player.prototype.render = function(g,c){	
@@ -16153,7 +16862,9 @@ Player.prototype.hudrender = function(g,c){
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,26,24,2);
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
+	var rollprogress = Math.min(1 - (this.states.rollCooldown / this.speeds.rollCooldown), 1);
+	g.scaleFillRect(8,26,Math.floor( rollprogress*24 ),2);
+	//g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
 	
 	textArea(g,"$"+this.money,8, 228 );
 	//textArea(g,"#"+this.waystones,8, 216+12 );
@@ -17734,6 +18445,24 @@ var textLookup = [
 var text_size = 8;
 var text_height = 12;
 
+function cursorArea(g,x,y,w,h){
+	g.color = [0.0,0.0,0.0,1.0];
+	
+	g.scaleFillRect(x-1, y-1, 18, 6 );
+	g.scaleFillRect(x+w-17, y-1, 18, 6 );
+	
+	g.scaleFillRect(x-1, y+h-5, 18, 6 );
+	g.scaleFillRect(x+w-17, y+h-5, 18, 6 );
+	
+	g.color = [1.0,1.0,1.0,1.0];
+	
+	g.scaleFillRect(x, y, 16, 4 );
+	g.scaleFillRect(x+w-16, y, 16, 4 );
+	
+	g.scaleFillRect(x, y+h-4, 16, 4 );
+	g.scaleFillRect(x+w-16, y+h-4, 16, 4 );
+}
+
 function boxArea(g,x,y,w,h){
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x, y, w, h );
@@ -17891,197 +18620,6 @@ DialogManger = {
 	}
 }
 
- /* platformer\shop.js*/ 
-
-Shop.prototype = new GameObject();
-Shop.prototype.constructor = GameObject;
-function Shop(x,y){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.sprite = "shops";
-	this.width = 16;
-	this.height = 32;
-	this.zIndex = -1;
-	this.life = 1;
-	
-	this.anim_character = 0;
-	
-	this.addModule(mod_talk);
-	window._shop = this;
-	
-	this.items = [];
-	this.prices = [];
-	
-	this.on("open",function(obj){
-		game.pause = true;
-		audio.playLock("pause",0.3);
-	});
-	this.message = [
-		"This is all we got. Don't like go some place else!",
-		"I sold my entire stock. Nice doing business with you."
-	];
-	this.cursor = 0;	
-	
-	if( window.dataManager.currentTown >= 0 ){
-		this.restockTown(window.dataManager);
-		this.frame_row = 1;
-	} else {
-		this.restock(window.dataManager);
-	}
-}
-Shop.prototype.update = function(g,c){
-	if( this.open > 0 ) {
-		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
-			audio.playLock("unpause",0.3);
-			this.close();
-			game.pause = false;
-		}
-		
-		if( input.state("left") == 1 ){
-			for(var i=0; i < this.items.length; i++ ){
-				this.cursor = ( this.cursor == 0 ? this.cursor = this.items.length : this.cursor )-1;
-				if( this.items[ this.cursor ] instanceof Item ) break;
-			}
-			audio.play("cursor"); 
-		}
-		if( input.state("right") == 1){
-			for(var i=0; i < this.items.length; i++ ){
-				this.cursor = (this.cursor+1) % this.items.length;
-				if( this.items[ this.cursor ] instanceof Item ) break;
-			}
-			audio.play("cursor"); 
-		}
-		if( input.state("fire") == 1){
-			this.purchase();
-		}
-	}
-	
-	/* animation */
-	this.anim_character = (this.anim_character + this.delta * 0.2 ) % 3;
-}
-Shop.prototype.purchase = function(){
-	if( this.items[ this.cursor ] instanceof Item ){
-		if( _player.money >= this.getPrice(this.cursor) ) {
-			var item = this.items[ this.cursor ];
-			item.gravity = 1.0;
-			item.interactive = true;
-			this.items[ this.cursor ] = null;
-			_player.money -= this.getPrice(this.cursor);
-			audio.play("equip");
-			
-			for(var i=0; i < this.items.length; i++ ){
-				this.cursor = (this.cursor+1) % this.items.length;
-				if( this.items[ this.cursor ] instanceof Item ) break;
-			}
-			
-			return true;
-		} else {
-			audio.play("negative");
-		}
-	}
-	return false;
-}
-Shop.prototype.restock = function(){
-	this.items = new Array(3);
-	this.prices = new Array(3);
-	
-	for(var i=0; i < this.items.length; i++) {
-		tags = ["shop"];
-		if(i==1) tags = ["goods"];
-		if(i==2) tags = ["stone"];
-		
-		var treasure = Item.randomTreasure(Math.random(),tags);
-		treasure.remaining--;
-		var x = this.position.x + (i*32) + -40;
-		
-		this.items[i] = new Item(x, this.position.y-80, false, {"name":treasure.name});
-		this.prices[i] = treasure.price;
-	
-		if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
-		this.items[i].gravity = 0;
-		this.items[i].interactive = false;
-		game.addObject(this.items[i]);
-	}
-}
-Shop.prototype.restockTown = function(){
-	this.items = new Array(3);
-	this.prices = new Array(3);
-	var s = new Seed(_world.towns[dataManager.currentTown].seed);
-	
-	for(var i=0; i < this.items.length; i++) {
-		tags = ["weapon"];
-		
-		var treasure = Item.randomTreasure(s.random(),tags);
-		var x = this.position.x + (i*32) + -40;
-		
-		/*
-		for(var j=0; j<_player.equipment.length; j++){
-			if( treasure != null ) {
-				if( _player.equipment[j].name == treasure.name ){
-					treasure = null;
-					break;
-				} else {
-					for(var k=0; k<i; k++){
-						if(this.items[k] != null && treasure.name == this.items[k].name){
-							treasure = null;
-							break;
-						}
-					}
-				}
-			}
-		}
-		*/
-		
-		//treasure.remaining--;
-		if( treasure != null ) {
-			this.items[i] = new Item(x, this.position.y-80, treasure.name);
-			this.prices[i] = treasure.price;
-		
-			if( !this.items[i].hasModule(mod_rigidbody) ) this.items[i].addModule(mod_rigidbody);
-			this.items[i].gravity = 0;
-			this.items[i].interactive = false;
-			game.addObject(this.items[i]);
-		} else {
-			this.items[i] = null;
-		}
-	}
-}
-Shop.prototype.getPrice = function(i){
-	var price_adjust = 1.0;
-	if( _player.hasCharm("charm_barter") ) price_adjust *= 0.7;
-	return Math.max( Math.floor( this.prices[i] * price_adjust ), 1);
-}
-	
-Shop.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	"retailers".render(g,this.position.subtract(c),this.anim_character,0,false);
-}
-
-Shop.prototype.postrender = function(g,c){	
-	if( this.open > 0 ){		
-		this.soldout = true;
-		for(var i=0; i < this.items.length; i++ ){
-			if( this.items[i] instanceof Item ) {
-				this.soldout = false;
-				var p = this.items[i].position.subtract(c);
-				if( i == this.cursor ) boxArea(g, p.x-16,p.y-16,32,32);
-				textArea(g, "$"+this.getPrice(i), p.x-16, p.y+12);
-			}
-		}
-		
-		if( this.soldout ) {
-			renderDialog(g,this.message[1],16);
-		} else {
-			if( this.items[this.cursor] instanceof Item && "message" in this.items[this.cursor] ){
-				renderDialog(g,this.items[this.cursor].getMessage(),16);
-			} else {
-				renderDialog(g,this.message[0],16);
-			}
-		}
-	}
-}
-
  /* platformer\spawn.js*/ 
 
 Spawn.prototype = new GameObject();
@@ -18102,8 +18640,10 @@ function Spawn(x,y,d,ops){
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
 	this.edgespawn = false;
+	this.idleMargin = 0;
 	
 	this.on("activate",function(obj){
+		this.clear();
 		this.spawn();
 		this.active = true;
 	});
@@ -18265,6 +18805,14 @@ Spawn.prototype.spawnPosition = function(i){
 		return new Point(this.position.x + i*24, this.position.y);
 	}
 	return new Point(this.position.x, this.position.y);
+}
+Spawn.prototype.clear = function(){
+	for(var i=0; i < this.enemies.length; i++){
+		if(this.enemies[i] instanceof GameObject){
+			this.enemies[i].destroy();
+		}
+	}
+	this.enemies = new Array();
 }
 
 Spawn.addToList = function(pos,list, type, max, ops){
@@ -18537,6 +19085,11 @@ spell_teleport = function(player){
  /* platformer\start.js*/ 
 
 function game_start(g){
+	DemoThanks.deaths = 0;
+	DemoThanks.kills = 0;
+	DemoThanks.items = 0;
+	DemoThanks.time = 0;
+	
 	//g.addObject( new TitleMenu() );
 	//g.addObject( new DemoThanks() );
 	//dataManager.randomLevel(game,0);
@@ -18544,17 +19097,18 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
-		_player.doubleJump = true;
+		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
-		_player.grabLedges = true;
-		WorldLocale.loadMap("temple4.tmx");
+		//_player.grabLedges = true;
+		//WorldLocale.loadMap("temple4.tmx");
+		WorldLocale.loadMap("townhub.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			_player.addXP(1600);
-			_player.life = _player.lifeMax = 48;
-			_player.mana = _player.manaMax = 36;
-			audio.playAs("music_temple4");
+			//_player.addXP(1600);
+			//_player.life = _player.lifeMax = 48;
+			//_player.mana = _player.manaMax = 36;
+			//audio.playAs("music_temple4");
 			//audio.playAs("music_temple4","music");
 		}, 1000);
 	},100);
@@ -18992,6 +19546,122 @@ TitleCard.prototype.postrender = function(g,c){
 	}
 }
 
+ /* platformer\treads.js*/ 
+
+Treads.prototype = new GameObject();
+Treads.prototype.constructor = GameObject;
+function Treads(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.originalPosition = new Point(this.position.x,this.position.y);
+	this.maxy = Number.MAX_SAFE_INTEGER;
+	this.width = d[0];
+	this.height = d[1];
+	this.speed = 0.06;
+	this.maxSpeed = 3.0;
+	this.sprite = "treads";
+	
+	this.addModule(mod_block);
+	
+	this.force = 0.0;
+	
+	ops = ops || {};
+	
+	if("trigger" in ops){
+		this._tid = ops["trigger"];
+	}
+	if("maxy" in ops){
+		this.maxy = ops["maxy"] * 1;
+	}
+	if("speed" in ops){
+		this.speed = ops["speed"] * 1;
+	}
+	if("maxspeed" in ops && ops["maxspeed"]){
+		this.maxSpeed = ops["maxspeed"] * 1;
+	}
+	if(this.resetOnSleep){
+		this.on("sleep", function(){
+			this.position.x = this.originalPosition.x;
+			this.position.y = this.originalPosition.y;
+			this.sink = false;
+		});
+	}
+	
+	//Gather tiles
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+Treads.prototype.update = function(){
+	if(this.blockOnboard.indexOf(_player) >= 0){
+		if(_player.grounded) {
+			this.force += _player.force.x * this.delta * this.speed;
+			_player.position.x -= this.force * this.delta;
+			
+			if(_player.isStuck){
+				this.force = -this.force;
+			}
+		}
+	}
+	
+	this.position.y -= this.force * this.delta;
+	
+	if(this.position.y < this.originalPosition.y - this.maxy){
+		this.position.y = this.originalPosition.y - this.maxy;
+		this.force = 0;
+	}
+	if(this.position.y > this.originalPosition.y){
+		this.position.y = this.originalPosition.y;
+		this.force = 0;
+	}
+	
+	
+	this.force -= this.delta * this.speed * 0.5;
+	this.force = Math.min(Math.max(this.force, -this.maxSpeed), this.maxSpeed);
+	
+	this.frame.y = ((this.originalPosition.y-this.position.y) * 0.2 ) % 4;
+}
+
+Treads.prototype.render = function(g,c){
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = 0;
+			
+			if(x>0) tile += 1;
+			if(x+1>=this.tileWidth) tile += 1;
+			if(y+1>=this.tileHeight) tile += 3;
+			
+			var pos = new Point(
+				this.position.x + x * 16,
+				this.position.y + y * 16
+			);
+				
+			g.renderSprite(this.sprite,pos.subtract(c),this.zIndex,new Point(tile,this.frame.y));
+		}
+	}
+}
+Treads.prototype.shouldRender = MovingBlock.prototype.shouldRender;
+Treads.prototype.idle = function(){}
+
  /* platformer\trigger.js*/ 
 
 Trigger.prototype = new GameObject();
@@ -19019,6 +19689,7 @@ function Trigger(x,y,d,o){
 	this.retriggertime = Game.DELTASECOND;
 	this.retriggertimeCooldown = 0;
 	this.mustwaitinside = false;
+	this.music = false;
 	
 	this.countdown = 0;
 	this.timer = 0;
@@ -19066,6 +19737,9 @@ function Trigger(x,y,d,o){
 	if("mustwaitinside" in o){
 		this.mustwaitinside = o["mustwaitinside"];
 	}
+	if("music" in o){
+		this.music = o["music"];
+	}
 	
 	this.on("activate", function(obj){
 		if(this.retrigger || this.triggerCount == 0){
@@ -19100,6 +19774,9 @@ function Trigger(x,y,d,o){
 					}
 				}
 				
+				if(this.music){
+					audio.playAs(this.music,"music");
+				}
 				//trigger connected objects
 				if(this.targets.length > 0){
 					for(var i=0; i < this.targets.length; i++){

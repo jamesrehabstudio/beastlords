@@ -93,9 +93,28 @@ DemoThanks.prototype.render = function(g,c){
 
 DemoThanks.prototype.hudrender = function(g,c){	
 	if( this.progress >= 8 ) {
-		var y_pos = Math.lerp(240,152, Math.min( (this.progress-8)/2, 1) );
+		var y_pos = Math.lerp(240,20, Math.min( (this.progress-8)/2, 1) );
 		var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
-		textBox(g,"Thank you for playing!\n\nPress start to play again",x_pos,y_pos,256,64);
+		
+		var timeMinutes = Math.floor(DemoThanks.time / Game.DELTAMINUTE);
+		var timeSeconds = Math.floor((DemoThanks.time - timeMinutes*Game.DELTAMINUTE)/ Game.DELTASECOND);
+		if(timeSeconds < 10) timeSeconds = "0"+timeSeconds;
+		
+		boxArea(g,x_pos,y_pos,256,200);
+		
+		textArea(g,"Thank you for playing!",x_pos+16,y_pos+16);
+		
+		textArea(g,"Kills: "+DemoThanks.kills ,x_pos+16,y_pos+40);
+		textArea(g,"Items: "+DemoThanks.items ,x_pos+16,y_pos+64);
+		textArea(g,"Deaths: "+DemoThanks.deaths ,x_pos+16,y_pos+88);
+		textArea(g,"Time: "+timeMinutes+":"+timeSeconds ,x_pos+16,y_pos+112);
+		
+		textArea(g,"Press start to play again",x_pos+16,y_pos+176);
 	}	
 }
 DemoThanks.prototype.idle = function(){}
+
+DemoThanks.deaths = 0;
+DemoThanks.kills = 0;
+DemoThanks.items = 0;
+DemoThanks.time = 0;

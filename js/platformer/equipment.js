@@ -299,6 +299,6 @@ var WeaponStats = {
 
 WeaponStats.short_sword.standing.alwaysqueue = 1;
 
-WeaponStats.long_sword.damage = 5;
+WeaponStats.long_sword.damage = 4;
 
-WeaponStats.broad_sword.damage = 7;
+WeaponStats.broad_sword.damage = 5;

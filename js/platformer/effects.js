@@ -7,7 +7,7 @@ function EffectExplosion(x, y, sound){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.zIndex = 2;
+	this.zIndex = 99;
 	this.sprite = "bullets";
 	
 	this.speed = 0.3;	

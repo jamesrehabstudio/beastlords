@@ -67,14 +67,15 @@ CornerStone.prototype.update = function(){
 			game.pause = false;
 			_player.addXP(40);
 			
-			//For fun only
-			if(this.gateNumber == 1){
-				_player.keys = new Array();
-				var nextLevel = this.gateNumber + 1;
-				WorldLocale.loadMap("temple"+nextLevel+".tmx");
-			} else if (this.gateNumber == 2){
+			//For demo only
+			if(this.gateNumber >= 4){
 				game.clearAll();
 				game.addObject(new DemoThanks(0,0));
+				
+			} else {
+				_player.keys = new Array();
+				NPC.set("templeCompleted", this.gateNumber);
+				WorldLocale.loadMap("townhub.tmx");
 			}
 			
 			//WorldMap.open()

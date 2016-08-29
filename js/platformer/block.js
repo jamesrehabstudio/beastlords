@@ -339,7 +339,7 @@ function FloatBlock(x,y,d,ops){
 FloatBlock.prototype.idle = function(){}
 
 FloatBlock.prototype.update = function(){
-	if(this.blockOnboard.length > 0){
+	if(this.blockOnboard.indexOf(_player) >= 0){
 		//Someone on board
 		if(this.rubberband > 0){
 			this.force.y *= 1 - (0.1 * this.delta);

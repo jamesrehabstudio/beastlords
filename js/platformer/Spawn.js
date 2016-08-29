@@ -16,8 +16,10 @@ function Spawn(x,y,d,ops){
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
 	this.edgespawn = false;
+	this.idleMargin = 0;
 	
 	this.on("activate",function(obj){
+		this.clear();
 		this.spawn();
 		this.active = true;
 	});
@@ -179,6 +181,14 @@ Spawn.prototype.spawnPosition = function(i){
 		return new Point(this.position.x + i*24, this.position.y);
 	}
 	return new Point(this.position.x, this.position.y);
+}
+Spawn.prototype.clear = function(){
+	for(var i=0; i < this.enemies.length; i++){
+		if(this.enemies[i] instanceof GameObject){
+			this.enemies[i].destroy();
+		}
+	}
+	this.enemies = new Array();
 }
 
 Spawn.addToList = function(pos,list, type, max, ops){

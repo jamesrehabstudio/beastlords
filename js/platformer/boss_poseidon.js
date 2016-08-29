@@ -72,6 +72,7 @@ function Poseidon(x,y,d,o){
 		}
 	});
 	this.on("death", function(){
+		Item.drop(this,50);
 		this.destroy();
 	});
 }

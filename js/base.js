@@ -123,6 +123,7 @@ function Game(){
 	this.deltaUnscaled = 1;
 	this.deltaScale = 1.0;
 	this.pause = false;
+	this.time = 0.0;
 	
 	this.newmap = false;
 	this._newmapCallback = false;
@@ -137,7 +138,9 @@ function Game(){
 //constants
 
 Game.DELTASECOND = 30.0;
-Game.DELTADAY = 60 * 60 * 24 * Game.DELTASECOND;
+Game.DELTAMINUTE = 60 * Game.DELTASECOND;
+Game.DELTAHOUR = 60 * Game.DELTAMINUTE;
+Game.DELTADAY = 24 * Game.DELTAHOUR;
 Game.DELTAYEAR = Game.DELTADAY * 365.25;
 
 Game.prototype.slow = function(s,d) {
@@ -162,6 +165,7 @@ Game.prototype.update = function(){
 	this.deltaUnscaled = baseDelta;
 	this.delta = this.deltaUnscaled * this.deltaScale * (this.pause?0:1);
 	this.deltaScaleReset -= this.deltaUnscaled;
+	this.time += this.deltaUnscaled;
 	if(this.deltaScaleReset <= 0){
 		this.deltaScale = 1.0;
 	}
@@ -873,6 +877,7 @@ function GameObject() {
 	this.deltaScale = 1.0;
 	this.filter = false;
 	this.isStuck = false;
+	this.idleMargin = 32;
 	
 	this.visible = true;
 	this.modules = new Array();
@@ -980,13 +985,12 @@ GameObject.prototype.update = function(){ }
 GameObject.prototype.idle = function(){
 	var current = this.awake;
 	var corners = this.corners();
-	var margin = 32;
 	
 	this.awake = (
-		corners.right + margin > game.camera.x &&
-		corners.left - margin < game.camera.x + game.resolution.x &&
-		corners.bottom + margin > game.camera.y &&
-		corners.top - margin < game.camera.y + game.resolution.y
+		corners.right + this.idleMargin > game.camera.x &&
+		corners.left - this.idleMargin < game.camera.x + game.resolution.x &&
+		corners.bottom + this.idleMargin > game.camera.y &&
+		corners.top - this.idleMargin < game.camera.y + game.resolution.y
 	);
 	
 	if( current != this.awake ){

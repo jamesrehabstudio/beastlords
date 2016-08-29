@@ -517,6 +517,11 @@ Point.prototype.dot = function(b){
 	//dot is the sum of each axis multiplied together.
 	return (this.x * b.x) + (this.y * b.y);
 }
+Point.prototype.mod = function(l){
+	this.x = l.start.x + Math.mod(this.x - l.start.x,l.width());
+	this.y = l.start.y + Math.mod(this.y - l.start.y,l.height());
+	return this;
+}
 Point.fromAngle = function(a,scale){
 	scale = scale || 1;
 	return new Point(

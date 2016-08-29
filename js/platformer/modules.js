@@ -802,6 +802,23 @@ var mod_talk = {
 			this.trigger("close");
 		}
 		
+		this.talkMovePlayer = function(distance){
+			var speed = 0.1;
+			if(distance == undefined){
+				distance = 40;
+			}
+			
+			if(this.position.x > _player.position.x){
+				this.flip = true;
+				_player.flip = false;
+				_player.position.x = Math.lerp(_player.position.x, this.position.x - distance, game.deltaUnscaled * speed);
+			} else {
+				this.flip = false;
+				_player.flip = true;
+				_player.position.x = Math.lerp(_player.position.x, this.position.x + distance, game.deltaUnscaled * speed);
+			}
+		}
+		
 		this.on("collideObject", function(obj){
 			if( obj instanceof Player ){
 				this._talk_is_over = 2;

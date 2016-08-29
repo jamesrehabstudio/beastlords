@@ -50,7 +50,6 @@ function WizzardBolter(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -181,7 +180,6 @@ function WizzardFlamer(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -300,7 +298,6 @@ function WizzardSoldier(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -391,7 +388,6 @@ function WizzardLightning(x,y,d,o){
 	this.life =  Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);
 	this.calculateXP();

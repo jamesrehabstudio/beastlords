@@ -9,6 +9,24 @@ var textLookup = [
 var text_size = 8;
 var text_height = 12;
 
+function cursorArea(g,x,y,w,h){
+	g.color = [0.0,0.0,0.0,1.0];
+	
+	g.scaleFillRect(x-1, y-1, 18, 6 );
+	g.scaleFillRect(x+w-17, y-1, 18, 6 );
+	
+	g.scaleFillRect(x-1, y+h-5, 18, 6 );
+	g.scaleFillRect(x+w-17, y+h-5, 18, 6 );
+	
+	g.color = [1.0,1.0,1.0,1.0];
+	
+	g.scaleFillRect(x, y, 16, 4 );
+	g.scaleFillRect(x+w-16, y, 16, 4 );
+	
+	g.scaleFillRect(x, y+h-4, 16, 4 );
+	g.scaleFillRect(x+w-16, y+h-4, 16, 4 );
+}
+
 function boxArea(g,x,y,w,h){
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(x, y, w, h );

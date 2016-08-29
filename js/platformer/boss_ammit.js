@@ -80,7 +80,7 @@ function Ammit(x,y,d,o){
 		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
-		Item.drop(this,35);
+		Item.drop(this,65);
 		this.destroy();
 	});
 	this.calculateXP();

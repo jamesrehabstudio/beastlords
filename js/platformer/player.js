@@ -58,7 +58,6 @@ function Player(x, y){
 		"ledgeObject" : null,
 		"turn" : 0.0,
 		"doubleJumpReady": true,
-		"airSpin" : false,
 		"spellCounter" : 0.0
 	};
 	
@@ -85,6 +84,7 @@ function Player(x, y){
 		"inertiaAir" : 0.2,
 		"frictionGrounded" : 0.1,
 		"frictionAir" : 0.05,
+		"rollCooldown" : Game.DELTASECOND * 1.2,
 		"jump" : 9.0,
 		"airBoost" : 1.0,
 		"airGlide" : 0.0,
@@ -112,9 +112,11 @@ function Player(x, y){
 	this.on("pre_death", function(){
 		this.heal = 0;
 		game.slow(0,this.death_time);
-		audio.stopAs("music");
+		//audio.stopAs("music");
 	});
 	this.on("death", function(){
+		DemoThanks.deaths++;
+		
 		this.position.x = 128;
 		this.position.y = 200;
 		
@@ -124,14 +126,13 @@ function Player(x, y){
 		
 		for(var i=0; i < game.objects.length; i++ )
 			game.objects[i].trigger("player_death");
-		game.getObject(PauseMenu).open = true;
+		PauseMenu.open = true;
 		audio.play("playerdeath");
 		this.destroy();
 	});
 	this.on("land", function(){
 		//Land from a height
 		this.states.doubleJumpReady = true;
-		this.states.airSpin = false;
 		
 		audio.play("land");
 		var dust = Math.floor(2 + Math.random() * 3);
@@ -185,9 +186,11 @@ function Player(x, y){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(obj, damage){
+		shakeCamera(Game.DELTASECOND*0.5,str);
+		this.states.ledge = null;
+		
 		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
 		var dir = this.position.subtract(obj.position);
-		shakeCamera(Game.DELTASECOND*0.5,str);
 		this.equip_weapon.cancel(this);
 		
 		var knockback = this.grounded ? 7 : 3;
@@ -261,7 +264,6 @@ function Player(x, y){
 		this.checkpoint = new Point(this.position.x, this.position.y);
 		this.force.x = this.force.y = 0;
 		this.states.doubleJumpReady = true;
-		this.states.airSpin = false;
 		
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
@@ -279,12 +281,10 @@ function Player(x, y){
 	})
 	this.on("downstabTarget", function(obj, damage){
 		this.states.doubleJumpReady = true;
-		this.states.airSpin = false;
 	});
 	this.on("catchLedge", function(edge, flip, obj){
 		if(this.grabLedges){
 			this.states.doubleJumpReady = true;
-			this.states.airSpin = false;
 			this.force.x = this.force.y = 0;
 			if(flip){
 				this.states.ledge = edge.add(new Point(this.width*0.5,this.height*0.5));
@@ -754,7 +754,7 @@ Player.prototype.update = function(){
 				} else if(this.grounded){
 					this.states.roll = this.invincible = this.rollTime;
 				}
-				this.states.rollCooldown = Game.DELTASECOND;
+				this.states.rollCooldown = this.speeds.rollCooldown;
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
@@ -824,7 +824,7 @@ Player.prototype.update = function(){
 			this.equip_weapon.animate(this);
 		} else if( !this.grounded ) {
 			//In air
-			if(this.states.airSpin){
+			if(!this.states.doubleJumpReady){
 				this.frame.y = 2;
 				this.frame.x = Math.max(1,(this.frame.x + this.delta * 0.3)%5);
 			} else {
@@ -1043,6 +1043,7 @@ Player.prototype.equipCharm = function(c){
 Player.prototype.equip = function(sword, shield){
 	try {	
 		if( sword.isWeapon && "stats" in sword ){
+			NPC.set(sword.name, 1);
 			this.equip_weapon = new Weapon(sword.name);
 		} else {
 			throw "No valid weapon";
@@ -1051,6 +1052,8 @@ Player.prototype.equip = function(sword, shield){
 		//Shields
 		if( shield != null ) {
 			if( "stats" in shield){
+				NPC.set(shield.name, 1);
+				
 				this.attackProperties.warm *= shield.stats.speed;
 				this.attackProperties.strike *= shield.stats.speed;
 				this.attackProperties.rest *= shield.stats.speed;
@@ -1077,7 +1080,7 @@ Player.prototype.equip = function(sword, shield){
 			this.equip_sword.sleep = Game.DELTASECOND * 2;
 			this.equip_sword.position.x = this.position.x;
 			this.equip_sword.position.y = this.position.y;
-			game.addObject( this.equip_sword );
+			//game.addObject( this.equip_sword );
 		}
 		
 		//Drop old shield
@@ -1086,7 +1089,7 @@ Player.prototype.equip = function(sword, shield){
 			this.equip_shield.sleep = Game.DELTASECOND * 2;
 			this.equip_shield.position.x = this.position.x;
 			this.equip_shield.position.y = this.position.y;
-			game.addObject( this.equip_shield );
+			//game.addObject( this.equip_shield );
 		}
 		
 		if( this.equip_sword != sword && sword instanceof Item ) sword.trigger("equip", this);
@@ -1167,6 +1170,9 @@ Player.prototype.addMoney = function(value){
 	this.trigger("money", value);
 }
 Player.prototype.addXP = function(value){
+	DemoThanks.kills++;
+	
+	return;
 	this.nextLevel = Math.floor( Math.pow( this.level,1.8 ) * 50 );
 	this.prevLevel = Math.floor( Math.pow( this.level-1,1.8 ) * 50 );
 	
@@ -1209,7 +1215,7 @@ Player.prototype.respawn = function(g,c){
 	//audio.playAs(audio.alias["music"],"music");
 	try{ 
 		game.pause = false;
-		game.getObject(PauseMenu).open = false; 
+		PauseMenu.open = false; 
 	} catch(err){}
 }
 Player.prototype.render = function(g,c){	
@@ -1372,7 +1378,9 @@ Player.prototype.hudrender = function(g,c){
 	g.color = [0.0,0.0,0.0,1.0];
 	g.scaleFillRect(8,26,24,2);
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
+	var rollprogress = Math.min(1 - (this.states.rollCooldown / this.speeds.rollCooldown), 1);
+	g.scaleFillRect(8,26,Math.floor( rollprogress*24 ),2);
+	//g.scaleFillRect(8,26,Math.floor( ((this.experience-this.prevLevel)/(this.nextLevel-this.prevLevel))*24 ),2);
 	
 	textArea(g,"$"+this.money,8, 228 );
 	//textArea(g,"#"+this.waystones,8, 216+12 );

@@ -237,6 +237,7 @@ var tileRules = {
 
 function load_sprites (){	
 	sprites['bgcave1'] = new Sprite(RT+"img/background/cave1.png", {offset:new Point(0, 0),width:256,height:64});
+	sprites['bgclouds'] = new Sprite(RT+"img/background/clouds.png", {offset:new Point(64, 32),width:128,height:64});
 	
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['numbers'] = new Sprite(RT+"img/numbers.gif", {offset:new Point(0, 0),width:8,height:8});
@@ -299,6 +300,7 @@ function load_sprites (){
 	sprites['lamps'] = new Sprite(RT+"img/lamps.gif", {offset:new Point(8, 16),width:16,height:32});
 	sprites['laughing'] = new Sprite(RT+"img/laughing.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['lilghost'] = new Sprite(RT+"img/lilghost.gif", {offset:new Point(16, 16),width:32,height:32});
+	sprites['librarian'] = new Sprite(RT+"img/librarian.png", {offset:new Point(24, 37),width:48,height:64});
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(32, 40),width:64,height:64});
 	sprites['phantom'] = new Sprite(RT+"img/phantom.png", {offset:new Point(32, 32),width:64,height:64});
@@ -321,6 +323,7 @@ function load_sprites (){
 	sprites['statues'] = new Sprite(RT+"img/statues.gif", {offset:new Point(32, 56),width:64,height:64});
 	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48});
 	sprites['switch'] = new Sprite(RT+"img/switch.gif", {offset:new Point(0, 4),width:16,height:40});
+	sprites['treads'] = new Sprite(RT+"img/treads.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['owlwizzard'] = new Sprite(RT+"img/owlwizzard.png", {offset:new Point(24, 24),width:48,height:48});
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
@@ -441,9 +444,11 @@ window.audio = new AudioPlayer({
 	"music_goeson" : {"url":RT+"sounds/music_goeson.mp3", "music":true},
 	"music_goodbye" : {"url":RT+"sounds/music_goodbye.mp3", "music":true},
 	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
-	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":24.0},
+	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":73.205},
+	"music_temple2" : {"url":RT+"sounds/music_temple2.ogg","music":true,"loop":72.077},
+	"music_temple3" : {"url":RT+"sounds/music_temple3.ogg","music":true,"loop":0},
 	"music_temple4" : {"url":RT+"sounds/music_temple4.ogg","music":true,"loop":32.011},
-	"music_town" : {"url":RT+"sounds/music_intro.ogg","music":true,"loop":0.0},
+	"music_town" : {"url":RT+"sounds/music_town.ogg","music":true,"loop":0.0},
 	//"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
 	"music_sleep" : {"url":RT+"sounds/music_sleep.mp3","music":true},
 	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},

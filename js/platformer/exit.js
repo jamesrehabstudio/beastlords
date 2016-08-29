@@ -34,3 +34,27 @@ function Exit(x,y,d,o){
 	});
 }
 Exit.prototype.idle = function(){}
+
+DemoExit.prototype = new GameObject();
+DemoExit.prototype.constructor = GameObject;
+function DemoExit(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = d[0] * 1;
+	this.height = d[1] * 1;
+	
+	var options = o || {};
+	this.visible = false;
+	
+	this.on("collideObject",function(obj){
+		if( obj instanceof Player ) {
+			audio.stopAs("music");
+			
+			var completed = NPC.get("templeCompleted") * 1;
+			var next = completed + 1;
+			
+			WorldLocale.loadMap("temple"+next+".tmx");
+		}
+	});
+}

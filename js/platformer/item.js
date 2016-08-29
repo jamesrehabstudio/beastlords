@@ -17,11 +17,18 @@ function Item(x,y,d, ops){
 	this.animation_frame = Math.random() * 3;
 	this.animation_speed = 0.25;
 	this.enchantChance = 0.8;
+	this.itemid = null;
 	
 	ops = ops || {};	
 	
 	if( "enchantChance" in ops ) {
 		this.enchantChance = ops["this.enchantChance"];
+	}
+	if( "id" in ops ) {
+		this.itemid = "item_" + ops["id"];
+		if(NPC.get(this.itemid)){
+			this.on("added", function(){ this.destroy();});
+		}
 	}
 	if( "name" in ops ) {
 		if(ops["name"] == "random"){
@@ -35,16 +42,18 @@ function Item(x,y,d, ops){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
-			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; }
+			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; DemoThanks.items++; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
 			if( this.name == "xp_big" ) { obj.addXP(50); audio.play("pickup1"); }
-			if( this.name == "life_fruit") { obj.lifeMax += 6; obj.heal = 9999; audio.play("gulp"); }
-			if( this.name == "mana_fruit") { obj.manaMax += 6; obj.manaHeal = 999; audio.play("gulp"); }
+			if( this.name == "life_fruit") { obj.lifeMax += 6; obj.heal = 9999; audio.play("gulp"); DemoThanks.items++; }
+			if( this.name == "mana_fruit") { obj.manaMax += 6; obj.manaHeal = 999; audio.play("gulp"); DemoThanks.items++; }
 			
 			if( this.isWeapon ) {
+				var currentWeapon = _player.equip_weapon;
 				obj.equip(this, obj.equip_shield);
+				game.addObject(currentWeapon);
 				audio.play("equip");
 			}
 			
@@ -53,7 +62,9 @@ function Item(x,y,d, ops){
 					//Cant equip shield with a two handed weapon
 					return false;
 				}
+				var currentShield = _player.equip_shield;
 				obj.equip(obj.equip_sword, this); 
+				game.addObject(currentShield);
 				audio.play("equip");
 			}
 			
@@ -64,17 +75,17 @@ function Item(x,y,d, ops){
 			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
-			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); }
-			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); }
-			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); }
+			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); DemoThanks.items++;}
 			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
 			
 			
-			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); }
-			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); }
-			if( this.name == "seed_malphas") { obj.stats.magic+=1; this.pickupEffect(); }
+			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "seed_malphas") { obj.stats.magic+=1; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; this.pickupEffect(); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; this.pickupEffect(); }
 			if( this.name == "seed_minotaur") { 
@@ -146,6 +157,9 @@ function Item(x,y,d, ops){
 			var pm = game.getObject(PauseMenu);
 			if( pm != null && this.message != undefined ) {
 				pm.message( this.getMessage() );
+			}
+			if(this.itemid){
+				NPC.set(this.itemid,1)
 			}
 			this.interactive = false;
 			this.destroy();

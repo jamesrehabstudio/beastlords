@@ -23,6 +23,7 @@ function Trigger(x,y,d,o){
 	this.retriggertime = Game.DELTASECOND;
 	this.retriggertimeCooldown = 0;
 	this.mustwaitinside = false;
+	this.music = false;
 	
 	this.countdown = 0;
 	this.timer = 0;
@@ -70,6 +71,9 @@ function Trigger(x,y,d,o){
 	if("mustwaitinside" in o){
 		this.mustwaitinside = o["mustwaitinside"];
 	}
+	if("music" in o){
+		this.music = o["music"];
+	}
 	
 	this.on("activate", function(obj){
 		if(this.retrigger || this.triggerCount == 0){
@@ -104,6 +108,9 @@ function Trigger(x,y,d,o){
 					}
 				}
 				
+				if(this.music){
+					audio.playAs(this.music,"music");
+				}
 				//trigger connected objects
 				if(this.targets.length > 0){
 					for(var i=0; i < this.targets.length; i++){

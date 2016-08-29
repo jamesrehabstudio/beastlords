@@ -70,6 +70,9 @@ i18n_messages = {
 			"Donate to make the construction into a new with my assistant."
 		]
 	},
+	"smith_intro" : {
+		"english" : "You there. Did you know you can only hold one weapon at a time? Don't worry, any weapon you leave behind I'll store it here for you. It'll be free of charge, because I'm kind like that."
+	},
 	"builder0" : {
 		"english" : "We're just just gettin' started on this one, buddy.",
 		"engrish" : "Play the game. Please note, death is permanent."

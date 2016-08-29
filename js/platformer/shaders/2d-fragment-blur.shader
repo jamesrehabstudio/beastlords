@@ -1,6 +1,7 @@
 precision mediump float;
 uniform sampler2D u_image;
 uniform float blur;
+uniform vec4 u_color;
 
 varying vec2 v_texCoord;
 varying vec2 v_position;
@@ -30,5 +31,5 @@ void main() {
 	color.a = (color.a + u.a + d.a + l.a + r.a) / 5.0;
 	
 	//color.a = 1.0; color.r = v_position.x/16.0; color.g = v_position.y/16.0; color.b = 0.0;
-	gl_FragColor = color;
+	gl_FragColor = color * u_color;
 }

@@ -192,13 +192,47 @@ Background.presets = {
 	"sky" : function(g,c){
 		var inc = Math.ceil(game.resolution.y/16);
 		for(var y=0; y < game.resolution.y; y += inc){
+			var p = Math.pow(y / game.resolution.y,2);
 			g.color = [
-				y*0.001+0.2,
-				y*0.001+0.5,
-				1.0,
+				Math.lerp(0.5,0.9,p),
+				Math.lerp(0.7,0.9,p),
+				0.9,
 				1.0
 			];
 			g.scaleFillRect(0,y,game.resolution.x, y+inc);
+		}
+		//Render horizon
+		for(var i=0; i < 5; i++){
+			g.renderSprite("bgclouds",new Point(64+i*128,200),1,new Point(), false);
+		}
+		
+		var carea = new Line(-64,-32,game.resolution.x+64,game.resolution.y+32);
+		g.renderSprite("bgclouds",new Point(this.time*0.1,64).subtract(c.scale(0.1)).mod(carea),1,new Point(0,1), false,{"u_color":[0.85,0.92,1.0,1.0],"scale":0.8});
+		g.renderSprite("bgclouds",new Point(120+this.time*0.2,80).subtract(c.scale(0.2)).mod(carea),1,new Point(0,1), false,{"u_color":[0.9,0.95,1.0,1.0]});
+	},
+	"darksky" : function(g,c){
+		var inc = Math.ceil(game.resolution.y/16);
+		for(var y=0; y < game.resolution.y; y += inc){
+			var p = Math.pow(y / game.resolution.y,2);
+			g.color = [
+				Math.lerp(0.1,0.4,p),
+				Math.lerp(0.15,0.3,p),
+				Math.lerp(0.2,0.4,p),
+				1.0
+			];
+			g.scaleFillRect(0,y,game.resolution.x, inc);
+		}
+		
+		var carea = new Line(-96,-32,game.resolution.x+96,game.resolution.y+32);
+		var space = 100;
+		for(var i=0; i < 5; i++){
+			var flip = Math.log(2)&1;
+			g.renderSprite("bgclouds",new Point(i*space+this.time*0.3,100).mod(carea),1,new Point(0,1), flip,{"scale":1.25,"u_color":[0.7,0.7,0.7,1.0]});
+			
+			g.renderSprite("bgclouds",new Point(i*space+this.time*0.45,80).mod(carea),2,new Point(0,1), flip,{"scale":1.5,"u_color":[0.65,0.65,0.65,1.0]});
+			
+			g.renderSprite("bgclouds",new Point(i*space+this.time*0.7,40).mod(carea),3,new Point(0,1), flip,{"scale":1.7,"u_color":[0.6,0.6,0.6,1.0]});
+		
 		}
 	},
 	"cavefire" : function(g,c){
