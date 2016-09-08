@@ -513,16 +513,34 @@ Game.prototype.save = function(data){
 
 
 function Sequence(d){
-	this.data = d;
+	if(d instanceof Array){
+		this.data = {};
+		this.total = 0.0;
+		
+		for(var i=0; i<d.length; i++) this.total += d[i][2];
+		
+		var cursor = 0.0;
+		for(var i=0; i<d.length; i++){
+			this.data[cursor] = d[i];
+			cursor += d[i][2] / this.total;
+		}
+	} else {
+		this.data = d;
+		this.total = 1.0;
+	}
 }
 Sequence.prototype.frame = function(progress){
-	var i = 0;
+	var out;
+	progress = Math.min(Math.max(progress,0),1);
 	for(var i in this.data){
-		if(progress <= i){
-			return new Point(this.data[i][0], this.data[i][1]);
+		if(progress >= i){
+			out = this.data[i];
 		}
 	}
-	return new Point(this.data[i][0], this.data[i][1]);
+	if(out){
+		return new Point(out[0], out[1]);
+	}
+	return new Point();
 }
 
 function BSPTree(bounds, levels) {
@@ -1021,6 +1039,9 @@ GameObject.prototype.render = function( g, camera ){
 }
 GameObject.prototype.assignParent = function ( parent ) {
 	this.parent = parent;
+}
+GameObject.prototype.forward = function() {
+	return this.flip ? -1 : 1;
 }
 GameObject.prototype.destroy = function() {
 	this.trigger("destroy");

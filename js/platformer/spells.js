@@ -13,6 +13,7 @@ spell_fire = function(player){
 	bullet.frames = [5,6,7];
 	bullet.frame.y = 1;
 	bullet.blockable = 0;
+	bullet.ignoreInvincibility = true;
 	bullet.damage = 10 + player.stats.magic * 5;
 	game.addObject(bullet);
 	
@@ -56,6 +57,8 @@ spell_flash = function(player){
 	}
 	
 	audio.play("spell");
+	game.addObject(new EffectFlash(player.position.x,player.position.y));
+	
 	var area = new Line(game.camera, game.camera.add(game.resolution));
 	var objs = game.overlaps(area);
 	var damage = Math.floor(8 + player.stats.magic*2);
@@ -64,7 +67,8 @@ spell_flash = function(player){
 		var obj = objs[i];
 		if(obj.hasModule(mod_combat) && obj.team != player.team && area.overlaps(obj.position)){
 			obj.hurt(player,damage);
-			heal += 2;
+			heal += Math.round(damage*0.2);
+			game.addObject(new EffectAbsorb(obj.position.x,obj.position.y));
 		}
 	}
 	player.heal += heal;

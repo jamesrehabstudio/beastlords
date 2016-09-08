@@ -422,6 +422,8 @@ Item.prototype.setName = function(n){
 			}
 		}
 	}
+	
+	this.physicsLayer = physicsLayer.item;
 }
 Item.prototype.getMessage = function(){
 	if( "message" in this ) {

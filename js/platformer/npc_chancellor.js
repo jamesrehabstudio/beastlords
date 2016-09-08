@@ -24,6 +24,9 @@ function Chancellor(x, y){
 	this.on("open", function(){
 		this.money = 0;
 		this.moneyMax = 0;
+		
+		DialogManger.set(this.text);
+		
 		game.pause = true;
 		audio.play("pause");
 	});
@@ -38,12 +41,9 @@ Chancellor.prototype.update = function(){
 		this.talkMovePlayer();
 		
 		if( Chancellor.introduction ) {
-			if( input.state("fire") == 1 ) {
-				this.text_progress++;
-				if( this.text_progress >= this.text.length){
-					this.close();
-					Chancellor.introduction = false;
-				}
+			if(!DialogManger.show){
+				Chancellor.introduction = false;
+				this.close();
 			}
 		} else {
 			if( input.state("jump") == 1 || PauseMenu.open ) {
@@ -112,10 +112,10 @@ Chancellor.prototype.update = function(){
 	}
 }
 
-Chancellor.prototype.postrender = function(g,c){
+Chancellor.prototype.hudrender = function(g,c){
 	if( this.open ) {
 		if( Chancellor.introduction ) {
-			renderDialog(g, this.text[this.text_progress]);
+			DialogManger.render(g);
 		} else {
 			var left = game.resolution.x / 2 - 112;
 			renderDialog(g, i18n("chancellor_howmuch"));

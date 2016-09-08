@@ -4,25 +4,22 @@ function Deckard(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 24;
-	this.height = 36;
+	this.width = 32;
+	this.height = 56;
 	this.sprite = "deckard";
-	this.speed = 0.1;
+	this.speed = 0.9;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
 	this.states = {
-		"cooldown" : Game.DELTASECOND * 3,
+		"transition" : 0.0,
+		"current" : 0,
+		"time" : 0.0,
+		"timeTotal" : 0.0,
 		"combo": 0,
-		"fly" : 0,
-		"attack" : 0,
-		"attack_counter":0,
-		"attack_lower" : false,
-		"direction" : 1
+		"attack" : 0
 	}
-	this.attack_time = Game.DELTASECOND * 0.6;
-	this.jump_start_y = 0;
 	
 	o = o || {};
 	
@@ -35,25 +32,8 @@ function Deckard(x,y,d,o){
 	this.lifeMax = Spawn.life(6,this.difficulty);
 	this.mass = 4;
 	this.damage = Spawn.damage(3,this.difficulty);
-	this.collideDamage = Spawn.damage(1,this.difficulty);
-	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 2;
 	
-	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) {
-			//obj.hurt( this, this.collideDamage );
-			//this.states.attack = 0;
-		}
-	});
-	this.on("collideHorizontal", function(x){
-	});
-	this.on("collideVertical", function(x){
-		if( x < 0 ) {
-			this.gravity = 0;
-			this.force.y = 0;
-		}
-	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
@@ -78,99 +58,156 @@ function Deckard(x,y,d,o){
 			game.addObject(batty);
 		}
 	});
-	
-	this.calculateXP();
 }
+
+Deckard.STATE_IDLE = 0;
+Deckard.STATE_CHARGE = 1;
+Deckard.STATE_PUNCH = 2;
+Deckard.STATE_FIRE = 3;
+Deckard.STATE_LEAP = 4;
+
+Deckard.prototype.setState = function(s){
+	var dir = this.position.subtract(_player.position);
+	this.states.current = s;
+	
+	if(this.states.current == Deckard.STATE_IDLE){
+		this.states.timeTotal = this.states.time = Game.DELTASECOND;
+	} else if(this.states.current == Deckard.STATE_CHARGE){
+		this.states.timeTotal = this.states.time = Game.DELTASECOND;
+		this.flip = dir.x > 0;
+	} else if(this.states.current == Deckard.STATE_PUNCH){
+		this.states.combo = 3;
+	} else if(this.states.current == Deckard.STATE_FIRE){
+		this.states.timeTotal = this.states.time = Game.DELTASECOND;
+		this.flip = dir.x > 0;
+	} else if(this.states.current == Deckard.STATE_LEAP){
+		this.states.timeTotal = this.states.time = Game.DELTASECOND * 0.2;
+		this.flip = dir.x > 0;
+	}
+}
+
 Deckard.prototype.update = function(){
-	if ( this.stun <= 0 && this.life > 0 ) {
+	if ( this.life > 0 ) {
 		var dir = this.position.subtract(_player.position);
 		
-		if( this.states.combo > 0 ) {
-			if( this.states.attack < 0 ) {
-				this.states.attack = this.attack_time;
-				this.states.attack_lower = Math.random() >= 0.5;
-			}
+		if(this.states.transition > 0){
 			
-			if( this.states.attack < this.attack_time * 0.3 ) {
-				if( this.states.attack_counter == 0 ) {
-					this.states.attack_counter = 1;
-					this.force.x += this.speed * 10.0 * this.states.direction;
-					audio.play("swing");
+		} else{
+			if(this.states.current == Deckard.STATE_IDLE){
+				this.states.time -= this.delta;
+				this.frame.x = (this.frame.x + this.delta * 0.2) % 5;
+				this.frame.y = 0;
+				
+				if(this.states.time <= 0){
+					if(Math.abs(dir.x > 168)){
+						if(Math.random() < 0.5){
+							this.setState(Deckard.STATE_IDLE);
+						} else {
+							this.setState(Deckard.STATE_LEAP);
+						}
+					} else {
+						if(Math.random() < 0.5){
+							this.setState(Deckard.STATE_CHARGE);
+						} else {
+							this.setState(Deckard.STATE_FIRE);
+						}
+					}
+					
 				}
-			} else {
-				this.states.attack_counter = 0;
-			}
-			
-			this.states.combo -= this.delta;
-			this.states.attack -= this.delta;
-		} else if ( this.states.fly > 0 ) {
-			this.states.fly -= this.delta;
-			if( this.states.fly < this.states.attack_counter ) {
-				//Fire fireball
-				this.states.attack_counter = this.states.fly - Game.DELTASECOND * .5;
-				var bullet = new Bullet(this.position.x, this.position.y);
-				bullet.force = _player.position.subtract(this.position).normalize(6);
-				bullet.blockable = false;
-				bullet.damage = this.damage;
-				bullet.effect = EffectSmoke;
-				bullet.team = this.team;
-				game.addObject(bullet);
-			}
-			if( this.position.y - this.jump_start_y < -64 ) {
-				this.gravity = 0;
-				this.force.y = 0;
-				this.force.x += this.speed * this.delta * this.states.direction;
-			}
-		} else {
-			//walk towards player
-			this.states.cooldown -= this.delta;
-			this.states.attack = 0;
-			this.flip = dir.x > 0;
-			this.states.direction = (dir.x < 0 ? 1 : -1) * (this.states.cooldown<Game.DELTASECOND?1:-1);
-			this.gravity = 1.0;
-			this.jump_start_y = this.position.y;
-			
-			if( Math.abs(dir.x) > 48 ) {
-				this.force.x += this.speed * this.delta * this.states.direction;
-			}
-			
-			if( this.states.cooldown <= 0 ) {
-				if( Math.abs(dir.x) > 64 || Math.random() < 0.2 ) {
-					this.states.fly = Game.DELTASECOND * 5;
-					this.states.attack_counter = this.states.fly - Game.DELTASECOND;
-					this.states.direction = (dir.x < 0 ? 1 : -1);
-					this.gravity = 0.4;
-					this.force.y = -8;
-					this.force.x = this.states.direction * -8;
+			} else if(this.states.current == Deckard.STATE_CHARGE){
+				this.force.x += this.forward() * this.speed * this.delta;
+				this.states.time -= this.delta;
+				this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.1) % 4;
+				this.frame.y = 4;
+				
+				if(this.states.time <= 0 || Math.abs(dir.x) < 64){
+					if((dir.x < 0 && this.forward() < 0) || (dir.x > 0 && this.forward() > 0)){
+						this.setState(Deckard.STATE_IDLE);
+					} else if( Math.random() < 0.25 ){
+						this.setState(Deckard.STATE_LEAP);
+					} else {
+						this.setState(Deckard.STATE_PUNCH);
+					}
+				}
+			} else if(this.states.current == Deckard.STATE_PUNCH){
+				this.states.time -= this.delta;
+				this.frame = Deckard.anim_attack.frame(1 - this.states.time/this.states.timeTotal);
+				
+				if(this.frame.x == 1){
+					this.grounded = false;
+					this.force.x += this.forward() * this.speed * this.delta;
+					this.force.y = Math.min(this.force.y - this.delta, -1);
+				} else if(this.frame.x == 2){
+					this.strike(Deckard.attack_rect);
+				}
+				
+				if(this.states.time <= 0){
+					if(this.states.combo <= 0){
+						this.setState(Deckard.STATE_IDLE);
+					} else {
+						this.states.combo--;
+						this.states.time = Game.DELTASECOND * 1.2;
+						this.flip = dir.x > 0;
+					}
+				}
+			} else if(this.states.current == Deckard.STATE_FIRE){
+				this.flip = dir.x > 0;
+				this.states.time -= this.delta;
+				this.frame = Deckard.anim_fire.frame(1 - this.states.time/this.states.timeTotal);
+				
+				if(Timer.isAt(this.states.time,Game.DELTASECOND*0.2,this.delta)){
+					var bullet = new Bullet(this.position.x, this.position.y);
+					bullet.force = _player.position.subtract(this.position).normalize(6);
+					bullet.blockable = false;
+					bullet.damage = this.damage;
+					bullet.effect = EffectSmoke;
+					bullet.team = this.team;
+					game.addObject(bullet);
+				}
+				
+				if(this.states.time <= 0){
+					this.setState(Deckard.STATE_IDLE);
+				}
+			} else if(this.states.current == Deckard.STATE_LEAP){
+				this.states.time -= this.delta;
+				if(this.grounded){
+					this.frame.x = 0;
+					this.frame.y = 3;
+					if(this.states.time <= 0){
+						this.setState(Deckard.STATE_IDLE);
+					} else if(Timer.isAt(this.states.time,this.states.timeTotal*0.1,this.delta)){
+						this.grounded = false;
+						this.force.y = -12;
+					}
 				} else {
-					this.states.direction = (dir.x < 0 ? 1 : -1);
-					this.states.combo = this.attack_time * 5;
-					this.force.x = 0;
-					this.states.attack_counter = 0;
+					Combat.strike.apply(this,[Deckard.attack_rect, {"blockable":false}]);
+					this.frame.x = (this.force.y < -0.1 ? 1 : (this.force.y > 0.1 ? 3 : 2));
+					this.frame.y = 1;
+					if((Math.abs(dir.x) < 32) ||(dir.x < 0 && this.forward() < 0) || (dir.x > 0 && this.forward() > 0)){
+						
+					} else {
+						this.force.x += this.forward() * this.speed * this.delta * 1.2;
+					}
+					this.force.y -= 0.2 * this.delta;
 				}
-				this.states.cooldown = Game.DELTASECOND * 3;
 			}
 		}
-	} 
-	
-	if( this.states.attack > 0 && this.states.attack < this.attack_time * 0.3 ) {
-		this.strike( new Line(
-			0, this.states.attack_lower ? 8 : -4,
-			40, this.states.attack_lower ? 12 : 0
-		) );
-	}
-	
-	/* Animation */
-	if( this.states.attack > 0 ){
-		this.frame.x = this.states.attack < this.attack_time * 0.3 ? 1 : 0;
-		this.frame.y = this.states.attack_lower ? 2 : 1;
 	} else {
-		if( this.grounded ) {
-			this.frame.x = 0;
-			this.frame.y = 0;
-		} else {
-			this.frame.x = (this.frame.x + (this.delta * Math.abs(this.force.x) * 0.2)) % 2;
-			this.frame.y = 3;
-		}
+		this.frame.x = 1;
+		this.frame.y = 3;
 	}
 }
+Deckard.attack_rect = new Line(8,-8,32,24);
+Deckard.anim_attack = new Sequence([
+	[0,1,0.5],
+	[1,1,0.5],
+	[2,1,0.1],
+	[3,1,0.5],
+]);
+Deckard.anim_fire = new Sequence([
+	[0,2,0.1],
+	[1,2,0.1],
+	[2,2,0.4],
+	[3,2,0.1],
+	[4,2,0.5],
+]);

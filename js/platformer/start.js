@@ -11,11 +11,11 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
-		//_player.doubleJump = true;
+		_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		//WorldLocale.loadMap("temple4.tmx");
-		WorldLocale.loadMap("townhub.tmx");
+		WorldLocale.loadMap("temple3.tmx");
+		//WorldLocale.loadMap("test.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;

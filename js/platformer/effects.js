@@ -399,6 +399,63 @@ EffectItemPickup.prototype.render = function(g,c){
 	}
 }
 
+EffectFlash.prototype = new GameObject();
+EffectFlash.prototype.constructor = GameObject;
+function EffectFlash(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.zIndex = 99;
+	this.sprite = "ring";
+	
+	this.time = 0.0;
+	this.timeMax = Game.DELTASECOND * 0.5;
+}
+
+EffectFlash.prototype.render = function(g,c){
+	this.time += this.delta;
+	
+	var scale = 5 * this.time / this.timeMax;
+	
+	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":scale});
+	
+	if(this.time >= this.timeMax){
+		this.destroy();
+	}
+}
+
+EffectAbsorb.prototype = new GameObject();
+EffectAbsorb.prototype.constructor = GameObject;
+function EffectAbsorb(x, y){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.zIndex = 99;
+	this.sprite = "bullets";
+	this.frame = new Point(4,1);
+	
+	this.speed = 10.0;
+}
+
+EffectAbsorb.prototype.render = function(g,c){
+	var dir = this.position.subtract(_player.position);
+	var speed = this.speed * this.delta;
+	
+	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false);
+	
+	if(dir.magnitude() < speed){
+		this.destroy();
+	} else {
+		this.position = this.position.subtract(dir.normalize(speed));
+	}
+}
+
 var EffectList = {
 	"charge" : function(g,p,d){
 		if(d < Game.DELTASECOND * 0.2) return;

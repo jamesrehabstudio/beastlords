@@ -103,23 +103,23 @@ Material.prototype.set = function(name, args) {
 	}
 }
 Material.prototype.setTexture = function(img){
-	if(img != Material.currentTexture){
+	//if(img != Material.currentTexture){
 		Material.currentTexture = img;
 		this.gl.bindTexture(this.gl.TEXTURE_2D, img);
-	}
+	//}
 }
 Material.prototype.use = function() {
-	if(this == Material.current){
+	/*if(this == Material.current){
 		return this;
-	}
+	}*/
 	game.shader = this;
 	this.gl.useProgram(this.program);
 	
 	for(var i = 0; i < this.settings.length; i++){
 		this.set.apply(this, this.settings[i]);
 	}
-	Material.current = this;
-	Material.currentTexture = null;
+	//Material.current = this;
+	//Material.currentTexture = null;
 	return this;
 }
 Material.current = null;

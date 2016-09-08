@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="544" height="255" tilewidth="16" tileheight="16" nextobjectid="421">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="544" height="255" tilewidth="16" tileheight="16" nextobjectid="425">
  <tileset firstgid="1" name="map" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="../img/tiles/maptiles.gif" width="256" height="256"/>
  </tileset>
@@ -1173,22 +1173,6 @@
     <property name="respawn" type="int" value="1"/>
    </properties>
   </object>
-  <object id="30" name="Spawn" x="5888" y="3760" width="32" height="48">
-   <properties>
-    <property name="autospawn" type="int" value="1"/>
-    <property name="difficulty" type="int" value="3"/>
-    <property name="enemies" value="Fireman"/>
-    <property name="respawn" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="32" name="Spawn" x="5968" y="3680" width="32" height="32">
-   <properties>
-    <property name="autospawn" type="int" value="1"/>
-    <property name="difficulty" type="int" value="3"/>
-    <property name="enemies" value="WizzardSoldier"/>
-    <property name="respawn" type="int" value="1"/>
-   </properties>
-  </object>
   <object id="34" name="Spawn" x="4368" y="3760" width="32" height="48">
    <properties>
     <property name="autospawn" type="int" value="1"/>
@@ -1303,15 +1287,6 @@
     <property name="respawn" type="int" value="1"/>
    </properties>
   </object>
-  <object id="51" name="Spawn" x="5056" y="3664" width="32" height="32">
-   <properties>
-    <property name="autodestroy" type="int" value="1"/>
-    <property name="autospawn" type="int" value="1"/>
-    <property name="difficulty" type="int" value="3"/>
-    <property name="enemies" value="WizzardFlamer"/>
-    <property name="respawn" type="int" value="1"/>
-   </properties>
-  </object>
   <object id="52" name="Spawn" x="3808" y="3552" width="32" height="32">
    <properties>
     <property name="autospawn" type="int" value="1"/>
@@ -1332,7 +1307,7 @@
    <properties>
     <property name="autospawn" type="int" value="1"/>
     <property name="difficulty" type="int" value="3"/>
-    <property name="enemies" value="Fireman"/>
+    <property name="enemies" value="Samrat"/>
     <property name="respawn" type="int" value="1"/>
    </properties>
   </object>
@@ -1369,14 +1344,6 @@
    </properties>
   </object>
   <object id="59" name="Spawn" x="2512" y="3760" width="32" height="32">
-   <properties>
-    <property name="autospawn" type="int" value="1"/>
-    <property name="difficulty" type="int" value="3"/>
-    <property name="enemies" value="WizzardBolter"/>
-    <property name="respawn" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="60" name="Spawn" x="1632" y="3520" width="32" height="32">
    <properties>
     <property name="autospawn" type="int" value="1"/>
     <property name="difficulty" type="int" value="3"/>
@@ -1990,15 +1957,6 @@
     <property name="target" value="oriaxtrap"/>
    </properties>
   </object>
-  <object id="197" name="Spawn" x="1472" y="3488" width="32" height="32">
-   <properties>
-    <property name="autodestroy" type="int" value="1"/>
-    <property name="autospawn" type="int" value="1"/>
-    <property name="difficulty" type="int" value="3"/>
-    <property name="enemies" value="WizzardBolter"/>
-    <property name="respawn" type="int" value="1"/>
-   </properties>
-  </object>
   <object id="198" name="Spawn" x="1360" y="3504" width="32" height="32">
    <properties>
     <property name="autodestroy" type="int" value="1"/>
@@ -2501,14 +2459,6 @@
     <property name="trigger" value="wizzardspawn2"/>
    </properties>
   </object>
-  <object id="321" name="Spawn" x="4368" y="3760" width="32" height="48">
-   <properties>
-    <property name="autospawn" type="int" value="1"/>
-    <property name="difficulty" type="int" value="3"/>
-    <property name="enemies" value="Fireman"/>
-    <property name="respawn" type="int" value="1"/>
-   </properties>
-  </object>
   <object id="322" name="BreakableTile" x="8176" y="3472" width="16" height="16"/>
   <object id="323" name="BreakableTile" x="8176" y="3408" width="16" height="16"/>
   <object id="324" name="BreakableTile" x="8176" y="3392" width="16" height="16"/>
@@ -2926,5 +2876,37 @@
   <object id="418" name="Lamp" x="2288" y="176" width="16" height="16"/>
   <object id="419" name="Lamp" x="2912" y="64" width="16" height="16"/>
   <object id="420" name="Lamp" x="3152" y="64" width="16" height="16"/>
+  <object id="421" name="Spawn" x="4704" y="3760" width="32" height="48">
+   <properties>
+    <property name="autospawn" type="int" value="1"/>
+    <property name="difficulty" type="int" value="3"/>
+    <property name="enemies" value="Samrat"/>
+    <property name="respawn" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="422" name="Spawn" x="3296" y="3760" width="32" height="48">
+   <properties>
+    <property name="autospawn" type="int" value="1"/>
+    <property name="difficulty" type="int" value="3"/>
+    <property name="enemies" value="Samrat"/>
+    <property name="respawn" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="423" name="Spawn" x="1520" y="3520" width="32" height="48">
+   <properties>
+    <property name="autospawn" type="int" value="1"/>
+    <property name="difficulty" type="int" value="3"/>
+    <property name="enemies" value="Samrat"/>
+    <property name="respawn" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="424" name="Spawn" x="5872" y="3760" width="32" height="48">
+   <properties>
+    <property name="autospawn" type="int" value="1"/>
+    <property name="difficulty" type="int" value="3"/>
+    <property name="enemies" value="Samrat"/>
+    <property name="respawn" type="int" value="1"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>

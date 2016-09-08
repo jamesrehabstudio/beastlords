@@ -1,3 +1,13 @@
+var physicsLayer = {
+	"default" : 0,
+	"item" : 1,
+	"particles" : 2,
+	"groups" : {
+		0 : [0],
+		1 : [1],
+		2 : [2]
+	}
+}
 var mod_rigidbody = {
 	'init' : function(){
 		this.interactive = true;
@@ -13,6 +23,7 @@ var mod_rigidbody = {
 		this.rigidbodyActive = true;
 		this.preventPlatFormSnap = false;
 		this.pushable = true;
+		this.physicsLayer = physicsLayer.default;
 		
 		this.on("collideHorizontal", function(dir){
 			this.force.x *= this.collisionReduction;
@@ -28,28 +39,30 @@ var mod_rigidbody = {
 		});
 		this.on("collideObject", function(obj){
 			if( obj.hasModule(mod_rigidbody) && this.pushable && obj.pushable ) {
-				var dir = this.position.subtract( obj.position ).normalize();
-				/*
-				var b = this.bounds();
-				var c = obj.bounds();
-				var overlap = new Point(
-					dir.x > 0 ? (c.end.x-b.start.x) : (b.end.x-c.start.x),
-					dir.y > 0 ? (c.end.y-b.start.y) : (b.end.y-c.start.y)
-				);
-				var percent = new Point(
-					Math.min(Math.abs(overlap.x) / Math.max(this.width*0.5,0.0001),1.0),
-					Math.min(Math.abs(overlap.y) / Math.max(this.height*0.5,0.0001),1.0)
-				);
-				*/
-				if( this.mass - obj.mass > 1.0 ){
-					obj.force.x += this.force.x * 0.8;
-				} else if( obj.mass > 0.5 ) {
-					if( (this.force.x < 0 && dir.x > 0) || (this.force.x > 0 && dir.x < 0) ){
-						this.force.x = dir.x;
+				if(physicsLayer.groups[this.physicsLayer].indexOf(obj.physicsLayer) >= 0){
+					var dir = this.position.subtract( obj.position ).normalize();
+					/*
+					var b = this.bounds();
+					var c = obj.bounds();
+					var overlap = new Point(
+						dir.x > 0 ? (c.end.x-b.start.x) : (b.end.x-c.start.x),
+						dir.y > 0 ? (c.end.y-b.start.y) : (b.end.y-c.start.y)
+					);
+					var percent = new Point(
+						Math.min(Math.abs(overlap.x) / Math.max(this.width*0.5,0.0001),1.0),
+						Math.min(Math.abs(overlap.y) / Math.max(this.height*0.5,0.0001),1.0)
+					);
+					*/
+					if( this.mass - obj.mass > 1.0 ){
+						obj.force.x += this.force.x * 0.8;
+					} else if( obj.mass > 0.5 ) {
+						if( (this.force.x < 0 && dir.x > 0) || (this.force.x > 0 && dir.x < 0) ){
+							this.force.x = dir.x;
+						}
+					} else { 
+						this.force.x += dir.x * 0.2 * this.delta;
+						this.force.y += dir.y * 0.2 * this.delta;
 					}
-				} else { 
-					this.force.x += dir.x * 0.2 * this.delta;
-					this.force.y += dir.y * 0.2 * this.delta;
 				}
 			}
 		});
@@ -299,6 +312,7 @@ var mod_combat = {
 		this.xp_award = 0;
 		this.showDamage = true;
 		this._damageCounter = new EffectNumber(0,0,0);
+		this.buffs = new Array();
 		
 		this.attackEffects = {
 			"slow" : [0,10],
@@ -340,6 +354,11 @@ var mod_combat = {
 			"restore" : 0.5,
 			"invincible" : 0.0
 		};
+		
+		this.addBuff = function(buff){
+			this.buffs.push(buff);
+			this.trigger("addbuff", buff);
+		}
 			
 		this.strike = function(l,trigger,damage){
 			trigger = trigger == undefined ? "struck" : trigger;
@@ -536,7 +555,7 @@ var mod_combat = {
 			this.combat_stuncount = 0;
 		}
 		
-		this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
+		//this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
 		
 		//Status Effects timers
 		var interval = Game.DELTASECOND * 0.5;
@@ -660,6 +679,16 @@ var Combat = {
 		var blockable = true;
 		var damage = this.damage;
 		var onidirectional = false;
+		
+		if("blockable" in ops){
+			blockable = ops["blockable"] * 1;
+		}
+		if("damage" in ops){
+			damage = ops["damage"] * 1;
+		}
+		if("onidirectional" in ops){
+			onidirectional = ops["onidirectional"] * 1;
+		}
 		
 		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
 			if( !blockable || !obj.hasModule(mod_combat) ) {

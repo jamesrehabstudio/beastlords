@@ -1081,6 +1081,7 @@
     <property name="darkness" value="c.y-3150"/>
     <property name="darknesscolor" value="0.25,0.4,0.2"/>
     <property name="music" value="music_temple2"/>
+    <property name="retrigger" type="int" value="0"/>
     <property name="sealevel" value="3150"/>
    </properties>
   </object>

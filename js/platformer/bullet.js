@@ -7,6 +7,7 @@ function Bullet(x,y,d){
 	this.width = 10;
 	this.height = 6;
 	this.blockable = true;
+	this.ignoreInvincibility = false;
 	this.range = 512;
 	
 	this.delay = 0;
@@ -77,6 +78,9 @@ Bullet.prototype.update = function(){
 Bullet.hit = function(obj){
 	if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
 		if( !this.blockable || !obj.hasModule(mod_combat) ) {
+			if(this.ignoreInvincibility){
+				obj.invincible = 0.0;
+			}
 			obj.hurt( this, this.damage );
 		} else {
 			var flip = obj.flip ? -1:1;
@@ -91,6 +95,9 @@ Bullet.hit = function(obj){
 				this.trigger("blocked",obj);
 				obj.trigger("block",this,this.position,this.damage);
 			} else {
+				if(this.ignoreInvincibility){
+					obj.invincible = 0.0;
+				}
 				this.trigger("hurt_other",obj);
 				obj.hurt( this, this.damage );
 			}
@@ -160,6 +167,7 @@ function Fire(x,y){
 	this.life = Game.DELTASECOND * 8;
 	this.mass = 0;
 	this.friction = 1.0;
+	this.physicsLayer = physicsLayer.particles;
 	
 	this.on("struck", function(obj, pos, damage){
 		if( damage > 0 ) this.life = 0;
