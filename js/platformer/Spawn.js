@@ -17,6 +17,8 @@ function Spawn(x,y,d,ops){
 	this.timerTotal = 0.0;
 	this.edgespawn = false;
 	this.idleMargin = 0;
+	this.spawnRest = 0;
+	this.lastSpawn = 0;
 	
 	this.on("activate",function(obj){
 		this.clear();
@@ -65,6 +67,9 @@ function Spawn(x,y,d,ops){
 		this.timerTotal = this.options["timer"] * Game.DELTASECOND;
 		this.timer = this.timerTotal;
 	}
+	if("spawnrest" in this.options){
+		this.spawnRest = this.options.spawnrest * 1000;
+	}
 	if("trigger" in this.options){
 		this._tid = this.options.trigger;
 	}
@@ -89,6 +94,14 @@ Spawn.prototype.update = function(){
 
 Spawn.prototype.spawn = function(){
 	try{
+		var date = new Date() * 1;
+		
+		if(this.lastSpawn + this.spawnRest > date){
+			console.log("previous spawn")
+			return;
+		}
+		this.lastSpawn = date;
+		
 		if(this.specific instanceof Array){
 			this.create(this.specific);
 		}else {
@@ -138,7 +151,8 @@ Spawn.prototype.create = function(enemies){
 				sposition.x,
 				sposition.y,
 				null,
-				{"difficulty":this.difficulty}
+				this.options
+				//{"difficulty":this.difficulty}
 			);
 			object.on("swap", function(obj){
 				that.enemies.remove(that.enemies.indexOf(this));

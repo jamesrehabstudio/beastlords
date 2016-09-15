@@ -87,25 +87,26 @@ Axedog.prototype.update = function(){
 				this.flip = dir.x > 0;
 			}
 		}
-	}
-	
-	/* Animation */
-	if( this.stun > 0 ) {
+		
+		/* Animation */
+		if( this.states.attack > 0 ) {
+			if( this.states.attack < this.attacks.rest ) {
+				this.frame.x = 2;
+				this.frame.y = 2;
+			} else if (this.states.attack < this.attacks.release ){
+				this.frame.x = 1;
+				this.frame.y = 2;
+			} else {
+				this.frame.x = 0;
+				this.frame.y = 2;
+			}
+		} else {
+			this.frame.y = 1;
+			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+		}
+	} else{
+		//Stun or dead
 		this.frame.x = 3;
 		this.frame.y = 2;
-	} else if( this.states.attack > 0 ) {
-		if( this.states.attack < this.attacks.rest ) {
-			this.frame.x = 2;
-			this.frame.y = 2;
-		} else if (this.states.attack < this.attacks.release ){
-			this.frame.x = 1;
-			this.frame.y = 2;
-		} else {
-			this.frame.x = 0;
-			this.frame.y = 2;
-		}
-	} else {
-		this.frame.y = 1;
-		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
-	}
+	} 
 }

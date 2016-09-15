@@ -13,15 +13,15 @@ function DonkeyKnife(x, y, d, o){
 	this.addModule( mod_combat );
 	
 	this.states = {
-		"cooldown" : Game.DELTASECOND * 3,
+		"cooldown" : Game.DELTASECOND * 1,
 		"attack" : 0.0,
 		"throwing" : 0.0,
 		"throwingCool" : 0.0,
 		"smoke" : 0
 	};
 	this.times = {
-		"cooldown" : Game.DELTASECOND * 3.0,
-		"attack" : Game.DELTASECOND * 1.0,
+		"cooldown" : Game.DELTASECOND * 2.0,
+		"attack" : Game.DELTASECOND * 0.6,
 		"throwingCool" : Game.DELTASECOND * 0.66,
 	}
 	
@@ -38,6 +38,7 @@ function DonkeyKnife(x, y, d, o){
 	this.lifeMax = Spawn.life(4,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.5;
+	this.death_time = Game.DELTASECOND * 0.5;
 	
 	this.on("struck", EnemyStruck);
 	this.on("wakeup", function(){
@@ -65,13 +66,9 @@ DonkeyKnife.prototype.update = function(){
 		
 		if(this.states.throwing > 0 ){
 			var progress = Math.min(1 - this.states.throwingCool / this.times.throwingCool, 0.999);
-			this.frame.y = 1;
-			this.frame.x = progress * 4;
+			this.frame = DonkeyKnife.anim_throw.frame(progress);
 			
-			if(this.states.throwingCool <= 0){
-				this.states.throwing--;
-				this.states.throwingCool = this.times.throwingCool;
-				
+			if(Timer.isAt(this.states.throwingCool,this.times.throwingCool*0.4,this.delta)){
 				//Throw knife
 				var missle;
 				if( Math.random() > 0.5 ) {
@@ -86,6 +83,11 @@ DonkeyKnife.prototype.update = function(){
 				missle.frame.x = 4;
 				missle.frame.y = 0;
 				game.addObject( missle ); 
+			}
+			
+			if(this.states.throwingCool <= 0){
+				this.states.throwing--;
+				this.states.throwingCool = this.times.throwingCool;
 			}
 			this.states.throwingCool -= this.delta;
 		} else if(this.states.attack > 0) {
@@ -103,7 +105,10 @@ DonkeyKnife.prototype.update = function(){
 				//move away from player
 				this.frame.y = 2;
 				this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.2) % 4;
-				this.force.x = this.speed * (this.flip ? 1 : -1);
+				
+				if(!this.atLedge(-this.forward())){
+					this.force.x = this.speed * -this.forward();
+				}
 				
 				if(this.states.cooldown <= 0){
 					this.states.cooldown = this.times.cooldown;
@@ -126,3 +131,19 @@ DonkeyKnife.prototype.update = function(){
 		}
 	}
 }
+DonkeyKnife.prototype.atLedge = function(dir){
+	var corners = this.corners();
+	if(dir > 0){
+		var pos = new Point(corners.right + 8, corners.bottom + 8);
+		return game.getTile(pos) == 0;
+	} else {
+		var pos = new Point(corners.left - 8, corners.bottom + 8);
+		return game.getTile(pos) == 0;
+	}
+}
+DonkeyKnife.anim_throw = new Sequence([
+	[0,1,0.4],
+	[1,1,0.1],
+	[2,1,0.1],
+	[3,1,0.4],
+]);

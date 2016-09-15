@@ -198,6 +198,11 @@ function ArmWrestler(x,y,d,o){
 	
 	
 	
+	this.on("sleep", function(){
+		if(this.defeated){
+			this.destroy();
+		}
+	});
 	this.on("wakeup", function(){
 		var dir = this.position.subtract(_player.position);
 		this.flip = dir.x > 0;

@@ -11,7 +11,7 @@ function Spearbe(x,y,d,o){
 	this.start = new Point(x,y);
 	this.range = 80;
 	
-	this.speed = 0.6;
+	this.speed = 0.4;
 	this.sprite = "spearbe";
 	
 	this.addModule( mod_rigidbody );
@@ -31,6 +31,10 @@ function Spearbe(x,y,d,o){
 			obj.hurt(this,this.damage);
 		}
 	});
+	this.on("blockOther", function(obj){
+		var dir = this.position.subtract(obj.position);
+		this.force.x = (dir.x>0?1:-1) * 4;
+	});
 	this.on("hurt_other", function(obj){
 		this.force.x *= -1;
 	});
@@ -48,8 +52,9 @@ function Spearbe(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(6,this.difficulty);
-	this.damage = Spawn.damage(4,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.pushable = false;
 	
 	this.states = {
 		"turn" : 0,
@@ -58,14 +63,15 @@ function Spearbe(x,y,d,o){
 		"chargewait" : 0
 	};
 	this.times = {
-		"turn" : Game.DELTASECOND * 0.8,
+		"turn" : Game.DELTASECOND * 1.3,
 		"cooldown" : Game.DELTASECOND * 3.0,
 		"charge" : Game.DELTASECOND * 1.2,
 		"chargewait" : Game.DELTASECOND * 0.5
 	}
 }
 Spearbe.prototype.update = function(){
-	dir = this.position.subtract(_player.position);
+	var dir = this.position.subtract(_player.position);
+	var startdir = this.position.subtract(this.start);
 	
 	if(this.life > 0){
 		if(this.states.turn > 0){
@@ -79,21 +85,25 @@ Spearbe.prototype.update = function(){
 				this.force.x = 0;
 				this.states.chargewait -= this.delta;
 			} else {
-				this.force.x += (this.flip ? -1:1) * this.speed * this.delta * 2;
+				this.force.x += this.forward() * this.speed * this.delta * 2;
 				this.states.charge -= this.delta;
 			}
 			
-			if(this.states.charge <= 0){
+			if(this.states.charge <= 0 || Math.abs(this.position.x-this.start.x) > this.range*2){
 				this.states.cooldown = this.times.cooldown;
+				this.states.charge = 0;
 			}
 			
 			this.strike(Spearbe.strikerect);
 		} else if(Math.abs(dir.x) < 128){
 			//Approach player
 			if(this.position.x < this.start.x + this.range && this.position.x > this.start.x - this.range){
-				this.force.x += (this.flip?-1:1) * this.speed * this.delta;
+				//Spearbe is inside his range, approach
+				this.force.x += this.forward() * this.speed * this.delta;
 			} else {
-				this.force.x += (this.flip?1:-1) * this.speed * this.delta;
+				//Spearbe is outside his range, move back toward his range
+				
+				this.force.x += (startdir.x>0?-1:1) * this.speed * this.delta * 0.6;
 			}
 			
 			if((this.flip && dir.x < 0) || (!this.flip && dir.x > 0)){

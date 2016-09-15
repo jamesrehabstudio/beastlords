@@ -18,7 +18,6 @@ function Player(x, y){
 	this.knockedout = false;
 	this.pause = false;
 	
-	this.equip_weapon = new Weapon("short_sword");
 	this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 	this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 	this.unique_item = false;
@@ -39,7 +38,6 @@ function Player(x, y){
 	this.states = {
 		"duck" : false,
 		"guard" : true,
-		"attack" : 0.0,
 		"stun" : 0.0,
 		"start_attack" : false,
 		"death_clock" : Game.DELTASECOND,
@@ -54,21 +52,24 @@ function Player(x, y){
 		"downStab" : false,
 		"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
 		"manaRegenTime" : 0.0,
-		"ledge" : false,
-		"ledgeObject" : null,
+		"againstwall" : 0,
 		"turn" : 0.0,
 		"doubleJumpReady": true,
 		"spellCounter" : 0.0
 	};
 	
-	this.attackProperties = {
-		"charge_start" : 0.2 * Game.DELTASECOND,
-		"charge_end" : 0.5 * Game.DELTASECOND,
-		"warm" : 8.5,
-		"strike" : 8.5,
-		"rest" : 5.0,
-		"range" : 8.0,
-		"sprite" : "sword1"
+	this.attstates = {
+		"stats" : WeaponStats["short_sword"],
+	
+		"currentAttack" : null,
+		"currentQueue" : null,
+		"currentQueuePosition" : 0,
+		"currentQueueState" : null,
+		"attackEndTime" : 0.0,
+		"charge" : 0.0,
+		
+		"timer" : 0.0,
+		"autostartNextAttack" : false
 	};
 	
 	this.shieldProperties = {
@@ -90,24 +91,9 @@ function Player(x, y){
 		"airGlide" : 0.0,
 		"breaks": 0.4,
 		"manaRegen" : Game.DELTASECOND * 60,
-		"turn" : Game.DELTASECOND * 0.5
+		"turn" : Game.DELTASECOND * 0.5,
+		"charge" : Game.DELTASECOND * 0.4
 	};
-	
-	this.weapon = {
-		"frame" : new Point(0,0),
-		"combo" : 0,
-		"charge" : 0,
-		"charge_ready" : false,
-		"width" : 4
-	};
-	this.cape = {
-		"active" : false,
-		"frame" : 0,
-		"frame_row" : 0,
-		"sprite" : "cape1",
-		"cape" : null,
-		"flip" : this.flip
-	}
 	
 	this.on("pre_death", function(){
 		this.heal = 0;
@@ -153,17 +139,13 @@ function Player(x, y){
 			));
 		}
 	});
+	this.on("collideHorizontal", function(h){
+		if(this.grabLedges){
+			this.states.againstwall = (h>0?1:-1) * Game.DELTASECOND * 0.1;
+		}
+	});
 	this.on("collideVertical", function(v){
 		if(v>0) this.knockedout = false;
-	});
-	this.on("guardbreak", function(obj,position,damage){
-		dir = this.position.subtract(obj.position);
-		this.knockedout = true;
-		this.grounded = false;
-		this.force.y = -8;
-		this.force.x = 12 * (dir.x > 0 ? 1.0 : -1.0);
-		
-		this.guard.life = this.guard.lifeMax;
 	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
@@ -179,19 +161,15 @@ function Player(x, y){
 		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
 		audio.playLock("block",0.1);
 	});
-	this.on("struck", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		if( this.invincible > 0 ) return;
-		
-		this.hurt(obj,damage);
-	});
 	this.on("hurt", function(obj, damage){
 		shakeCamera(Game.DELTASECOND*0.5,str);
-		this.states.ledge = null;
+		//this.states.ledge = null;
 		
 		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
 		var dir = this.position.subtract(obj.position);
-		this.equip_weapon.cancel(this);
+		
+		this.cancelAttack(this);
+		this.attstates.charge = 0.0;
 		
 		var knockback = this.grounded ? 7 : 3;
 		if(dir.x < 0){
@@ -201,7 +179,6 @@ function Player(x, y){
 		}
 		if(this.stun_time > 0 ){
 			this.states.spellCounter = 0.0;
-			this.states.attack = 0;
 			this.stun = this.stun_time;
 			game.slow(0,5.0);
 		}
@@ -221,7 +198,28 @@ function Player(x, y){
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
-		this.equip_weapon.hit(this,obj,damage);
+		
+		if(this.attstates.currentAttack){
+			this.attstates.attackEndTime = this.attstates.currentAttack.time + this.attstates.currentAttack.rest;
+			this.hitIgnoreList.push(obj);
+			
+			if("pause" in this.attstates.currentAttack){
+				game.slow(0.0, this.attstates.currentAttack.pause);
+			}
+			if("shake" in this.attstates.currentAttack){
+				shakeCamera(Game.DELTASECOND*0.25, this.attstates.currentAttack.shake);
+			}
+			
+			if("stun" in this.attstates.currentAttack){
+				obj.stun = this.attstates.currentAttack.stun;
+			}
+			
+			if("knockback" in this.attstates.currentAttack && obj.hasModule(mod_rigidbody)){
+				var dir = obj.position.subtract( this.position ).normalize();
+				var scale = 1.0 / Math.max(obj.mass, 1.0);
+				obj.force.x += dir.x * this.attstates.currentAttack.knockback * scale;
+			}
+		}
 		
 		if( "life" in obj && obj.life <= 0 ) {
 			//Glow after a kill
@@ -234,25 +232,26 @@ function Player(x, y){
 		}
 		
 		//Charge kill explosion!
-		if( this.equip_weapon.charge ){
+		if( this.attstates.currentQueueState == Weapon.STATE_CHARGED ){
 			//A little shake
-			shakeCamera(Game.DELTASECOND*0.1,5);
+			shakeCamera(Game.DELTASECOND*0.3,5);
 			
-			if( obj.mass < 2.0 && obj.life <= 0 ) {
+			if( obj.ragdoll ) {
 				//Send the enemy flying
 				var dir = obj.position.subtract(this.position);
 				game.slow(0.1, Game.DELTASECOND * 0.5);
 				audio.playLock("explode3", 0.5);
+				obj.destroy();
 				game.addObject( new ExplodingEnemy( 
 					obj.position.x,
 					obj.position.y,
-					dir.add(new Point(0, -2)),
+					false,
 					{
-						"damage" : this.equip_weapon.baseDamage(this) * 4,
+						"direction" : dir,
+						"damage" : this.currentDamage(),
 						"sprite" : obj.sprite,
 						"flip" : obj.flip,
-						"frame" : obj.frame,
-						"frame_row" : obj.frame_row
+						"frame" : obj.frame
 					}
 				));
 			}
@@ -282,25 +281,10 @@ function Player(x, y){
 	this.on("downstabTarget", function(obj, damage){
 		this.states.doubleJumpReady = true;
 	});
-	this.on("catchLedge", function(edge, flip, obj){
-		if(this.grabLedges){
-			this.states.doubleJumpReady = true;
-			this.force.x = this.force.y = 0;
-			if(flip){
-				this.states.ledge = edge.add(new Point(this.width*0.5,this.height*0.5));
-			} else {
-				this.states.ledge = edge.add(new Point(this.width*-0.5,this.height*0.5));
-			}
-			this.states.ledgeObject = obj;
-			if(this.states.ledgeObject){
-				this.states.ledge = this.states.ledge.subtract(this.states.ledgeObject.position);
-			}
-		}
-	});
 	this.on("collideObject", function(obj){
-		if( this.states.roll > 0  && this.dodgeFlash){
+		if( this.states.roll > 0 && this.dodgeFlash){
 			if("hurt" in obj && obj.hurt instanceof Function){
-				var damage = this.equip_weapon.baseDamage(this);
+				var damage = 10;
 				obj.hurt(this, damage);
 				this.doubleJumpReady = true;
 			}
@@ -336,7 +320,7 @@ function Player(x, y){
 	this.mass = 1;
 	this.stun_time = Game.DELTASECOND * 0.33333333;
 	this.death_time = Game.DELTASECOND * 2;
-	this.invincible_time = Game.DELTASECOND;
+	this.invincible_time = Game.DELTASECOND * 1.5;
 	this.autoblock = true;
 	this.rollTime = Game.DELTASECOND * 0.75;
 	this.dodgeTime = this.rollTime * 0.33333;
@@ -375,116 +359,6 @@ function Player(x, y){
 	
 	this.equip(this.equip_sword, this.equip_shield);
 	
-	/*
-	this.spellsUnlocked = {};
-	this.selectedSpell = "";
-	this.spellEffectLength = Game.DELTASECOND * 60;
-	this.spells = {
-		"magic_strength" : function(){ 
-			if( this.mana >= 1 && this.spellsCounters.magic_strength <= 0 ){
-				this.mana -= 1;
-				this.spellsCounters.magic_strength = this.spellEffectLength; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"invincibility" : function(){ 
-			if( this.mana >= 2 && this.spellsCounters.invincibility <= 0 ){
-				this.mana -= 2;
-				this.invincible = Game.DELTASECOND * 20; 
-				this.spellsCounters.invincibility = this.invincible; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"flight" : function(){ 
-			if( this.mana >= 1 && this.spellsCounters.flight <= 0 ){
-				this.mana -= 1;
-				this.spellsCounters.flight = Game.DELTAYEAR; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"haste" : function(){ 
-			if( this.mana >= 1 && this.spellsCounters.haste <= 0 ){
-				this.mana -= 1;
-				this.spellsCounters.haste = this.spellEffectLength; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"magic_sword" : function(){
-			if( this.mana >= 1 && this.spellsCounters.magic_sword <= 0 ){
-				this.mana -= 1;
-				this.spellsCounters.magic_sword = this.spellEffectLength; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"magic_armour" : function(){
-			if( this.mana >= 1 && this.spellsCounters.magic_armour <= 0 ){
-				this.mana -= 1;
-				this.spellsCounters.magic_armour = this.spellEffectLength; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"feather_foot" : function(){
-			if( this.mana >= 1 && this.spellsCounters.feather_foot <= 0){
-				this.mana -= 1;
-				this.spellsCounters.feather_foot = Game.DELTAYEAR; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"thorns" : function(){
-			if( this.mana > 1 && this.spellsCounters.thorns <= 0 ){
-				this.mana -= 1;
-				this.spellsCounters.thorns = this.spellEffectLength; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"recover" : function(){
-			if( this.mana >= 1 && this.hasStatusEffect() ){
-				this.mana -= 1;
-				for( var i in this.statusEffects ) this.statusEffects[i]=-1;
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"transmute" : function(){
-			if( this.mana >= 2 ){
-				this.mana -= 2;
-				var objs = game.overlaps(
-					new Line(game.camera.x,game.camera.y,game.camera.x+256,game.camera.y+240)
-				);
-				for(var i=0; i<objs.length; i++) if( objs[i] instanceof Item){
-					if( objs[i].name.match(/coin_\d* /) ) objs[i].setName("waystone");
-				}
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-		"magic_song" : function(){
-			if( this.mana >= 3 && this.spellsCounters.magic_song <= 0 ){
-				this.mana -= 3;
-				var roll = Math.random();
-				if(roll < 0.04){
-					for(var i=0; i < game.objects.length; i++ ) 
-						if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) )
-							game.objects[i].statusEffectsTimers.slow = game.objects[i].statusEffects.slow = Game.DELTASECOND * 30;
-				} else if(roll < 0.1) {
-					for(var i=0; i < game.objects.length; i++ ) 
-						if( game.objects[i].hasModule(mod_combat) && !(game.objects[i] instanceof Player) && game.objects[i]._magic_drop == undefined){
-							game.objects[i].on("death",function(){ game.addObject(new Item(this.position.x, this.position.y, "waystone")); });
-							game.objects[i]._magic_drop = true;
-						}
-				} else if(roll < 0.2){
-					this.spellsCounters.magic_armour = Game.DELTAYEAR; 
-					this.spellsCounters.thorns = Game.DELTAYEAR;
-				} else if(roll < 0.5) {
-					this.heal = 999;
-				} else {
-					var map = game.getObject(PauseMenu);
-					if( map instanceof PauseMenu) map.revealMap(1);
-				}
-				this.spellsCounters.magic_song = this.spellEffectLength * 2; 
-				audio.play("spell");
-			} else audio.play("negative");
-		},
-	};
-	*/
 	this.spellsCounters = {
 		"magic_strength" : 0,
 		"flight" : 0,
@@ -537,9 +411,7 @@ Player.prototype.update = function(){
 		for(var i in _player.statusEffects)
 			_player.statusEffects[i] = 0;
 	}
-	if( this.statusEffects.cursed > 0 ){
-		this.heal = 0;
-	}
+	
 	if( this.heal > 0 ){
 		audio.play("heal");
 		this.life += 1;
@@ -554,29 +426,33 @@ Player.prototype.update = function(){
 	if ( this.life > 0 ) {
 		var strafe = input.state('block') > 0;
 		
-		if( this.states.ledge){
-			if(this.states.ledgeObject){
-				this.position = this.states.ledgeObject.position.add(this.states.ledge);
-			} else {
-				this.position.x = this.states.ledge.x;
-				this.position.y = this.states.ledge.y;
+		//Update attack animation
+		if(this.attstates.currentAttack){
+			this.attstates.timer += this.delta;
+			
+			if(Timer.isAt(this.attstates.timer,0,this.delta)){
+				if("force" in this.attstates.currentAttack){
+					this.force.x += this.attstates.currentAttack.force.x * this.forward();
+					this.force.y += this.attstates.currentAttack.force.y;
+				}
+				audio.play("swing");
 			}
-			this.gravity = 0;
-			if(game.t_unstick(this)){
-				this.trigger("dropLedge");
+			
+			if(this.attstates.timer >= this.attstates.attackEndTime){
+				if(this.attstates.autostartNextAttack){
+					this.attack();
+					this.attstates.autostartNextAttack = false;
+				} else {
+					//No more attacks, end queue
+					this.cancelAttack();
+				}
+				
 			}
-			if(input.state("jump") == 1){
-				this.trigger("dropLedge");
-				this.grounded = true;
-				this.jump();
-				if(input.state("right")>0) { this.force.x = 3; }
-				if(input.state("left")>0) { this.force.x = -3; }
-			}
-			if(input.state("down") == 1){
-				this.trigger("dropLedge");
-			}
-		} else if (this.stun > 0 ){
+		}
+		
+		if (this.stun > 0 ){
 			//Try to escape stun effect
+			/*
 			if(
 				input.state("left") == 1 ||
 				input.state("right") == 1 ||
@@ -586,6 +462,7 @@ Player.prototype.update = function(){
 				this.statusEffects.stun -= 2.0;
 				this.position.y -= 2;
 			}
+			*/
 		} else if (this.states.spellCounter > 0){
 			this.states.spellCounter -= this.delta;
 			if(this.states.spellCounter <= 0){
@@ -616,18 +493,34 @@ Player.prototype.update = function(){
 					{"frame":1, "speed":0.4,"time":Game.DELTASECOND*0.4}
 				));
 			}
-		} else if( this.equip_weapon.time > 0 ){
+		} else if( this.attstates.timer > 0 ){
 			//Player in attack animation
-			this.equip_weapon.update(this);
+			
+			if(this.attstates.currentAttack){
+				var attackMovementSpeed = this.deltaSpeed() * this.attstates.currentAttack.movement;
+				if ( input.state('left') > 0 ) { this.force.x -= attackMovementSpeed; }
+				if ( input.state('right') > 0 ) { this.force.x += attackMovementSpeed; }
+			}
 			
 			if ( input.state('fire') == 1 ) { 
 				//Let the player queue more attacks
-				this.equip_weapon.attack(this); 
+				this.attack(this); 
+			} else if (input.state('fire') > 1){
+				//Keep building up the charge
+				this.attstates.charge += game.deltaUnscaled;
+			} else {
+				this.attstates.charge = 0.0;
 			}
 			
-			this.equip_weapon.strike(this);
-			
-			//Determine range and damage
+			if(this.attstates.currentAttack){
+				//Strike ahead
+				if(this.attstates.timer < this.attstates.currentAttack.time){
+					this.strike(
+						this.attstates.currentAttack.strike,
+						{"damage" : this.currentDamage()}
+					);
+				}
+			}
 		} else if( this.delta > 0) {
 			//Player is in move/idle state
 			
@@ -652,11 +545,22 @@ Player.prototype.update = function(){
 					this.force.x -= this.force.x * Math.min(this.speeds.breaks*this.delta);
 				}
 			}
+			
+			if(this.states.againstwall && !this.grounded && input.state("down") <= 0){
+				//Wall slide
+				if(this.force.y > 0){
+					this.force.y = Math.min(this.force.y, 4);
+				}
+			}
 						
 			if ( input.state("down") > 0 && !this.grounded) { 
-				//Down spike
+				//Down strike
 				this.states.downStab = true;
 				this.states.guard = false;
+				
+				if(this.force.y > 0){
+					this.strike(new Line( -4, 8, 4, 20), {"damage":this.baseDamage()});
+				}
 				
 			} else if ( input.state('fire') == 1 && input.state("up") > 0 ) { 
 				//Cast Spell
@@ -665,49 +569,16 @@ Player.prototype.update = function(){
 					this.states.spellCounter = spell.castTime;
 				}
 			} else if ( input.state('fire') == 1 ) { 
-				this.equip_weapon.attack(this); 
+				//Attack and start combo
+				this.attack(this); 
 			} else if ( input.state('fire') > 0 ) { 
-			/*
-				this.states.attack_charge += this.delta; 
-				if( this.states.attack_charge >= this.attackProperties.charge_start){
-					strafe = true;
-				}
-			*/
-			} else {
-				if(!this.grounded && this.force.y > 0){
-					//Try to catch a ledge
-					var forwardDir = this.flip?-1:1;
-					if((forwardDir>0&&input.state("right")>0)||(forwardDir<0&&input.state("left")>0)){
-						var forward = this.position.add(new Point(16*forwardDir,0));
-						var bottom = forward.add(new Point(0,8));
-						var tileTop = game.getTile(forward.add(new Point(0,-8)));
-						var tileBot = game.getTile(bottom);
-						var under = game.getTile(this.position.add(new Point(0,20)));
-						
-						if(under == 0 && tileTop<=0 && tileBot > 0 && !(tileBot in tilerules.currentrule())){
-							//Edge grabbed
-							var edge = new Point(
-								this.flip ? (Math.ceil(bottom.x/16) * 16)+4 : (Math.floor(bottom.x/16) * 16)-4,
-								(Math.floor(bottom.y/16) * 16) - 1
-							);
-							this.trigger("catchLedge", edge, this.flip);
-						}
-					}
-				}
-			/*
-				this.states.charge_multiplier = false;
-				
-				//Release charge if it has built up
-				if( this.states.attack_charge > this.attackProperties.charge_end ){
-					this.states.charge_multiplier = true;
-					this.attack();
-					strafe = true;
-					if( !this.states.duck ) {
-						this.force.x = 5.0 * (this.flip ? -1.0 : 1.0);
-					}
-				}
-				this.states.attack_charge = 0; 
-			*/
+				//Charge attack
+				this.attstates.charge += game.deltaUnscaled;
+			} else if( this.attstates.charge >= this.speeds.charge){
+				//Release Charge
+				this.cancelAttack();
+				this.attack();
+				this.attstates.charge = 0.0;
 			}
 			
 			
@@ -734,7 +605,7 @@ Player.prototype.update = function(){
 			}
 			
 			if ( input.state('block') <= 0 && input.state('jump') == 1 ) { 
-				if(this.grounded || (this.states.doubleJumpReady && this.doubleJump)){
+				if(this.grounded || (this.states.doubleJumpReady && this.doubleJump) || this.states.againstwall){
 					this.jump(); 
 				}
 			}
@@ -785,11 +656,6 @@ Player.prototype.update = function(){
 		this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 		this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 		this.height = this.states.duck ? 24 : 30;
-		
-		
-		if ( this.states.downStab ) {
-			this.equip_weapon.downstab(this);
-		}
 	}
 	//Shield
 	this.states.guard_down = this.states.duck;
@@ -819,12 +685,19 @@ Player.prototype.update = function(){
 		this.frame.x = Math.min(this.frame.x + this.delta * 0.2,2);
 		this.frame.y = 3; 
 	} else {
-		if(this.equip_weapon.time > 0){
+		if(this.attstates.timer > 0){
 			//Attack
-			this.equip_weapon.animate(this);
+			if(this.attstates.currentAttack){
+				var sequence = Weapon.animations[this.attstates.currentAttack.animation];
+				var progress = Math.max(Math.min(this.attstates.timer / this.attstates.currentAttack.time,1),0);
+				this.frame = sequence.frame(progress);
+			}
 		} else if( !this.grounded ) {
 			//In air
-			if(!this.states.doubleJumpReady){
+			if(this.states.againstwall && this.force.y > 0){
+				this.frame.x = 7;
+				this.frame.y = 6;
+			} else if(!this.states.doubleJumpReady){
 				this.frame.y = 2;
 				this.frame.x = Math.max(1,(this.frame.x + this.delta * 0.3)%5);
 			} else {
@@ -840,13 +713,9 @@ Player.prototype.update = function(){
 		} else if( this.states.duck ) {
 			//Duck
 			this.frame.x = Math.max(Math.min(this.frame.x + this.delta * 0.4,10),8);
-			this.frame.y = 0;
-			
-			if( this.states.attack > 0 ) this.frame.x = 4;
-			if( this.states.attack > this.attackProperties.rest ) this.frame.x = 6;
-			if( this.states.attack > this.attackProperties.strike ) this.frame.x = 5;		
+			this.frame.y = 0;	
 		} else {
-			if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame.y = 2;
+			//if( this.states.attack_charge > this.attackProperties.charge_start || this.states.attack > 0 ) this.frame.y = 2;
 			if(this.states.turn > 0){
 				//Turn animation
 				this.frame.y = 3;
@@ -865,70 +734,20 @@ Player.prototype.update = function(){
 		//if( this.states.attack_charge > this.attackProperties.charge_start ) this.frame.x = 0;
 	}
 	
-	//Animation Sword
-	if(this.equip_weapon.time > 0){
-		this.weapon.frame.x = this.frame.x;
-		this.weapon.frame.y = this.frame.y;
-	} else if (this.states.downStab) {
-		this.weapon.frame.x = 5;
-		this.weapon.frame.y = 0;
-	} else if( this.states.attack_charge > 0 ){ 
-		this.weapon.frame.x = 0;
-		this.weapon.frame.y = 2;
-	} else { 
-		this.weapon.frame.x = this.frame.x;
-		this.weapon.frame.y = this.frame.y;
-	}
-	
-	//Animation Cape
-	if( this.cape.active ) {
-		if( this.flip != this.cape.flip ){
-			this.cape.flip = this.flip;
-			this.cape.frame_row = 4;
-			this.cape.frame.x = 0;
-		}
-		if( this.grounded || Math.abs(this.force.y) < 0.4) {
-			if(this.states.duck) {
-				//Ducking
-				if( this.cape.frame_row != 1 ) this.cape.frame = 0;
-				this.cape.frame = Math.min( this.cape.frame + this.delta * 0.2, 2);
-				this.cape.frame_row = 1;
-			} else if(this.cape.frame_row == 4) {
-				//Turning
-				this.cape.frame += this.delta * 0.2;
-				if( this.cape.frame >= 2 ) {
-					this.cape.frame = 0;
-					this.cape.frame_row = 0;
-				}
-			} else if( input.state("left") > -0 || input.state("right") > 0 ) {
-				//Running
-				this.cape.frame = (this.cape.frame + this.delta * Math.abs(this.force.x) * 0.05 ) % 3;
-				this.cape.frame_row = 0;
-			} else {
-				//Stopped or stopping
-				this.cape.frame_row = 0;
-				if( Math.abs( this.force.x ) > 0.3 ) {
-					this.cape.frame = Math.abs( this.force.x ) > 1.0 ? 3 : 4;
-				} else {
-					this.cape.frame = 0;
-				}
-			}
-		} else {
-			//In air
-			this.cape.frame = Math.abs(this.force.y) > 2.5 ? 1 : 0;
-			this.cape.frame_row = this.force.y > 0 ? 3 : 2;
-		}
-	}
-	
 	//Timers
 	var attack_decrement_modifier = this.spellsCounters.haste > 0 ? 1.3 : 1.0;
-	this.states.attack -= this.delta * attack_decrement_modifier;
 	this.states.rollCooldown -= this.delta;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
 	this.states.effectTimer += this.delta;
 	this.states.turn -= this.delta;
+	
+	if(Math.abs(this.states.againstwall) <= this.delta){
+		this.states.againstwall = 0;
+	} else {
+		this.states.againstwall -= (this.states.againstwall>0?1:-1) * this.delta;
+	}
 	
 	if( this.states.afterImage.status(this.delta) ){
 		game.addObject( new EffectAfterImage(this.position.x, this.position.y, this) );
@@ -956,6 +775,8 @@ Player.prototype.duck = function(){
 	}
 }
 Player.prototype.jump = function(){ 
+	var force = this.speeds.jump;
+	
 	if(this.states.duck){
 		//Fall through floor
 		var standingTile = game.getTile(
@@ -969,11 +790,14 @@ Player.prototype.jump = function(){
 		}
 	}
 	if(!this.grounded){
-		this.states.airSpin = true;
 		this.states.doubleJumpReady = false;
+		
+		if(this.states.againstwall){
+			force *= 1.2;
+			this.force.x = (this.states.againstwall>0?-1:1) * 3;
+		}
 	}
 	
-	var force = this.speeds.jump;
 	
 	if( this.spellsCounters.flight > 0 ) force = 2;
 	
@@ -983,24 +807,69 @@ Player.prototype.jump = function(){
 	this.stand(); 
 	audio.play("jump");
 }
+
 Player.prototype.attack = function(){
-	if( this.states.attack <= 0 ) {
-		if( this.grounded ) {
-			this.force.x = 0;
-			if( this.states.attack > Game.DELTASECOND * -0.3 ) {
-				//Next combo level
-				this.weapon.combo = (this.weapon.combo + 1) % 2;
+	//Player has pressed the attack button or an attack has been queued
+	
+	if(this.attstates.currentQueue){
+		//Chain up next attack
+		if(this.attstates.timer >= this.attstates.attackEndTime){
+			//Previous attack complete, start next attack
+			var state = Weapon.playerState(this);
+			if(this.attstates.currentQueueState == state && this.attstates.currentQueuePosition+1 < this.attstates.currentQueue.length){
+				this.attstates.currentQueuePosition++;
+				
+				this.hitIgnoreList = new Array();
+				this.attstates.currentAttack = this.attstates.currentQueue[this.attstates.currentQueuePosition];
+				this.attstates.timer = -this.attstates.currentAttack["warm"];
+				this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
+				
+				return;
 			} else {
-				//Reset combo
-				this.weapon.combo = 0;
+				this.cancelAttack();
+				return;
 			}
 		} else {
-			this.weapon.combo = 2;
+			this.attstates.autostartNextAttack = true;
+			return;
 		}
-		this.weapon.width = this.weapon.combo == 2 ? 18 : 4;
-		this.states.attack = this.attackProperties.warm;
+	}
+	
+	//Start new queue
+	var state = Weapon.playerState(this);
+	
+	this.hitIgnoreList = new Array();
+	this.attstates.currentQueuePosition = 0;
+	this.attstates.currentQueueState = state;
+	this.attstates.currentQueue = this.attstates.stats[this.attstates.currentQueueState];
+	this.attstates.currentAttack = this.attstates.currentQueue[this.attstates.currentQueuePosition];
+	
+	//Attack ends after the attack + miss
+	this.attstates.timer = -this.attstates.currentAttack["warm"]
+	this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
+}
+Player.prototype.cancelAttack = function(){
+	this.attstates.currentAttack = null;
+	this.attstates.currentQueue = null;
+	this.attstates.currentQueuePosition = 0;
+	this.attstates.currentQueueState = null;
+	this.hitIgnoreList = new Array();
+	
+	this.attstates.timer = 0.0;
+}
+Player.prototype.baseDamage = function(){
+	return Math.round(2 + this.stats.attack) * this.attstates.stats.damage;
+}
+
+Player.prototype.currentDamage = function(){
+	if(this.attstates.currentAttack) {
+		return Math.round(this.baseDamage() * this.attstates.currentAttack["damage"]);
+	} else {
+		return this.baseDamage();
 	}
 }
+
+
 Player.prototype.castSpell = function(name){
 	if(this.spells.length > 0){
 		this.spellCursor = Math.max(Math.min(this.spellCursor, this.spells.length-1),0);
@@ -1044,7 +913,7 @@ Player.prototype.equip = function(sword, shield){
 	try {	
 		if( sword.isWeapon && "stats" in sword ){
 			NPC.set(sword.name, 1);
-			this.equip_weapon = new Weapon(sword.name);
+			this.attstates.stats = WeaponStats[sword.name];
 		} else {
 			throw "No valid weapon";
 		}
@@ -1054,9 +923,6 @@ Player.prototype.equip = function(sword, shield){
 			if( "stats" in shield){
 				NPC.set(shield.name, 1);
 				
-				this.attackProperties.warm *= shield.stats.speed;
-				this.attackProperties.strike *= shield.stats.speed;
-				this.attackProperties.rest *= shield.stats.speed;
 				this.shieldProperties.duck = -12.0 + (15 - (shield.stats.height/2));
 				this.shieldProperties.stand = -12.0;
 				this.guard.x = 0;
@@ -1126,9 +992,6 @@ Player.prototype.equip = function(sword, shield){
 		
 		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
 		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
-		this.attackProperties.rest = Math.max( this.attackProperties.rest - tech*1.4, 0);
-		this.attackProperties.strike = Math.max( this.attackProperties.strike - tech*1.4, 3.5);
-		this.attackProperties.warm = Math.max( this.attackProperties.warm - tech*1.8, this.attackProperties.strike);
 		this.speeds.manaRegen = Game.DELTASECOND * (10 - magic * (9/19));
 		
 	} catch(e) {
@@ -1255,12 +1118,6 @@ Player.prototype.render = function(g,c){
 		} else {
 			GameObject.prototype.render.apply(this,[g,c]);
 		}
-		
-		
-		//Render caps
-		if( this.cape.active ) {
-			this.cape.sprite.render(g, this.position.subtract(c), this.cape.frame, this.cape.frame_row, this.flip, this.filter);
-		}
 	} else {
 		//When rolling, ignore flip and shader
 		if(this.dodgeFlash){
@@ -1318,17 +1175,27 @@ Player.prototype.render = function(g,c){
 					shieldFlip
 				);
 			}
+			
+			if(this.attstates.charge > 0){
+				EffectList.charge.apply(this, [g,
+					this.position.subtract(c).add(sposition),
+					this.attstates.charge / this.speeds.charge
+				]);
+			}
 		}catch(e){}
 	}
 	
 	//Charge effect
+	/*
 	var chargeProgress = this.equip_weapon.chargeTime.time - Game.DELTASECOND*0.5;
 	if( chargeProgress > 0 ) {
 		var effectPos = new Point(this.position.x, this.position.y - 16);
 		EffectList.charge(g, effectPos.subtract(c), chargeProgress);
 	}
+	*/
 	
 	//Strike effect
+	/*
 	if( this.states.attack < this.attackProperties.strike && this.states.attack > this.attackProperties.rest ){
 		//var spos = new Point(this.attackProperties.range,0);
 		var spos = new Point(24,-2);
@@ -1341,6 +1208,7 @@ Player.prototype.render = function(g,c){
 		if(this.states.duck) spos.y = 4;
 		"bullets".render(g,this.position.add(spos).subtract(c),sframe,slength,this.flip);
 	}
+	*/
 }
 
 Player.prototype.hudrender = function(g,c){

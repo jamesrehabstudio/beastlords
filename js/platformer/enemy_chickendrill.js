@@ -30,6 +30,7 @@ function ChickenDrill(x, y, d, o){
 	this.lifeMax = Spawn.life(4,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.5;
+	this.death_time = Game.DELTASECOND * 0.5;
 	
 	this.on("struck", EnemyStruck);
 	this.on("wakeup", function(){
@@ -132,8 +133,11 @@ function ChickenDrillSpike(x, y, d, o){
 	this.frame = new Point(0,3);
 	this.time = Game.DELTASECOND * 2.0;
 	
+	this.on("sleep", function(obj){
+		this.destroy();
+	});
 	this.on("collideObject", function(obj){
-		if(obj instanceof Player){
+		if(this.frame.x >= 1 && obj instanceof Player){
 			var prelife = obj.life;
 			obj.hurt(this,this.damage);
 			if(obj.life != prelife){
@@ -143,10 +147,14 @@ function ChickenDrillSpike(x, y, d, o){
 	});
 }
 ChickenDrillSpike.prototype.update = function(){
-	this.frame.x = Math.min(this.frame.x + this.delta * 0.5, 2);
 	this.time -= this.delta;
 	
 	if(this.time <= 0){
-		this.destroy();
+		this.frame.x = Math.min(this.frame.x - this.delta * 0.5, 2);
+		if(this.frame.x < 0){
+			this.destroy();
+		}
+	} else {
+		this.frame.x = Math.min(this.frame.x + this.delta * 0.5, 2);
 	}
 }

@@ -169,6 +169,9 @@ function Fire(x,y){
 	this.friction = 1.0;
 	this.physicsLayer = physicsLayer.particles;
 	
+	this.on("sleep", function(){
+		this.destroy();
+	});
 	this.on("struck", function(obj, pos, damage){
 		if( damage > 0 ) this.life = 0;
 	});
@@ -186,6 +189,8 @@ function Fire(x,y){
 	});
 }
 Fire.prototype.update = function(){
+	Background.pushLight( this.position, 48, [1,0.8,0,1] );
+	
 	this.frame.x = (this.frame.x + (this.delta * 0.5)) % 3;
 	this.life -= this.delta;
 	if( this.life <= 0 ){
@@ -232,7 +237,7 @@ FallingRock.prototype.idle = function(){}
 
 ExplodingEnemy.prototype = new GameObject();
 ExplodingEnemy.prototype.constructor = GameObject;
-function ExplodingEnemy(x,y, direction, ops){
+function ExplodingEnemy(x,y, d, ops){
 	this.constructor();
 	ops = ops || {};
 	
@@ -245,10 +250,10 @@ function ExplodingEnemy(x,y, direction, ops){
 	this.damage = ops.damage || 0;
 	this.speed = ops.speed || 20;
 	this.sprite = ops.sprite || "bullets";
-	this.frame = ops.frame || 0;
-	this.frame_row = ops.frame_row || 0;
+	this.frame = ops.frame || new Point(0,0);
 	this.flip = ops.flip || false;
 	this.filter = ops.filter || "hurt";
+	this.direction = ops.direction || new Point(1,0);
 	
 	this.addModule( mod_rigidbody );
 	
@@ -256,7 +261,7 @@ function ExplodingEnemy(x,y, direction, ops){
 	this.friction = 0;
 	this.pushable = false;
 	this.launch = false;
-	this.force = direction.normalize(this.speed);
+	this.force = this.direction.normalize(this.speed);
 	
 	this.life = Game.DELTASECOND * 0.5;
 

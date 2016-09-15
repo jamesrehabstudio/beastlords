@@ -1,3 +1,63 @@
+Block.prototype = new GameObject();
+Block.prototype.constructor = GameObject;
+function Block(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.originalPosition = new Point(this.position.x,this.position.y);
+	this.width = d[0];
+	this.height = d[1];
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	this.gatherTiles();
+}
+
+Block.prototype.gatherTiles = function(){
+	this.tiles = new Array();
+	this.tileWidth = Math.ceil(this.width / 16);
+	this.tileHeight = Math.ceil(this.height / 16);
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = game.getTile(
+				this.position.x + x*16,
+				this.position.y + y*16
+			);
+			this.tiles.push(tile);
+			game.setTile(
+				this.position.x + x*16,
+				this.position.y + y*16,
+				game.tileCollideLayer,
+				0
+			);
+		}
+	}
+}
+
+Block.prototype.render = function(g,c){
+	var i = 0;
+	for(var x=0; x < this.tileWidth; x++){
+		for(var y=0; y < this.tileHeight; y++){
+			var tile = this.tiles[i];
+			
+			var pos = new Point(
+				this.position.x + x * 16,
+				this.position.y + y * 16
+			);
+				
+			if(tile > 0){
+				var t = tile-1;
+				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32));
+			}
+			i++;
+		}
+	}
+}
+
 SinkingBlock.prototype = new GameObject();
 SinkingBlock.prototype.constructor = GameObject;
 function SinkingBlock(x,y,d,ops){
@@ -44,9 +104,9 @@ function SinkingBlock(x,y,d,ops){
 	}
 	
 	this.on("activate", function(obj){
-		if(this.triggerType == 0){
+		if(this.triggerType == SinkingBlock.TRIGGERTYPE_DESTROY){
 			this.destroy();
-		} else if (this.triggerType == 1){
+		} else if (this.triggerType == SinkingBlock.TRIGGERTYPE_SINK){
 			this.sink = 1;
 		}
 		
@@ -64,25 +124,7 @@ function SinkingBlock(x,y,d,ops){
 		});
 	}
 	
-	//Gather tiles
-	this.tiles = new Array();
-	this.tileWidth = Math.ceil(this.width / 16);
-	this.tileHeight = Math.ceil(this.height / 16);
-	for(var x=0; x < this.tileWidth; x++){
-		for(var y=0; y < this.tileHeight; y++){
-			var tile = game.getTile(
-				this.position.x + x*16,
-				this.position.y + y*16
-			);
-			this.tiles.push(tile);
-			game.setTile(
-				this.position.x + x*16,
-				this.position.y + y*16,
-				game.tileCollideLayer,
-				0
-			);
-		}
-	}
+	this.gatherTiles();
 }
 
 SinkingBlock.prototype.update = function(){
@@ -95,25 +137,10 @@ SinkingBlock.prototype.update = function(){
 	}
 }
 
-SinkingBlock.prototype.render = function(g,c){
-	var i = 0;
-	for(var x=0; x < this.tileWidth; x++){
-		for(var y=0; y < this.tileHeight; y++){
-			var tile = this.tiles[i];
-			
-			var pos = new Point(
-				this.position.x + x * 16,
-				this.position.y + y * 16
-			);
-				
-			if(tile > 0){
-				var t = tile-1;
-				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32));
-			}
-			i++;
-		}
-	}
-}
+SinkingBlock.prototype.gatherTiles = Block.prototype.gatherTiles;
+SinkingBlock.prototype.render = Block.prototype.render;
+SinkingBlock.TRIGGERTYPE_DESTROY = 0;
+SinkingBlock.TRIGGERTYPE_SINK = 1;
 
 MovingBlock.prototype = new GameObject();
 MovingBlock.prototype.constructor = GameObject;
@@ -196,25 +223,7 @@ function MovingBlock(x,y,d,ops){
 		}
 	});
 	
-	//Gather tiles
-	this.tiles = new Array();
-	this.tileWidth = Math.ceil(this.width / 16);
-	this.tileHeight = Math.ceil(this.height / 16);
-	for(var x=0; x < this.tileWidth; x++){
-		for(var y=0; y < this.tileHeight; y++){
-			var tile = game.getTile(
-				this.position.x + x*16,
-				this.position.y + y*16
-			);
-			this.tiles.push(tile);
-			game.setTile(
-				this.position.x + x*16,
-				this.position.y + y*16,
-				game.tileCollideLayer,
-				0
-			);
-		}
-	}
+	this.gatherTiles();
 	
 	if("sync" in ops){
 		this.sync = true;
@@ -267,26 +276,8 @@ MovingBlock.prototype.shouldRender = function(){
 	var l = new Line(c.left,c.top,c.right,c.bottom).transpose(game.camera.scale(-1));
 	return l.overlaps(new Line(0,0,game.resolution.x,game.resolution.y));
 }
-
-MovingBlock.prototype.render = function(g,c){
-	var i = 0;
-	for(var x=0; x < this.tileWidth; x++){
-		for(var y=0; y < this.tileHeight; y++){
-			var tile = this.tiles[i];
-			
-			var pos = new Point(
-				this.position.x + x * 16,
-				this.position.y + y * 16
-			);
-				
-			if(tile > 0){
-				var t = tile-1;
-				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32));
-			}
-			i++;
-		}
-	}
-}
+MovingBlock.prototype.gatherTiles = Block.prototype.gatherTiles;
+MovingBlock.prototype.render = Block.prototype.render;
 
 FloatBlock.prototype = new GameObject();
 FloatBlock.prototype.constructor = GameObject;
@@ -315,25 +306,7 @@ function FloatBlock(x,y,d,ops){
 		this._tid = ops.trigger;
 	}
 	
-	//Gather tiles
-	this.tiles = new Array();
-	this.tileWidth = Math.ceil(this.width / 16);
-	this.tileHeight = Math.ceil(this.height / 16);
-	for(var x=0; x < this.tileWidth; x++){
-		for(var y=0; y < this.tileHeight; y++){
-			var tile = game.getTile(
-				this.position.x + x*16,
-				this.position.y + y*16
-			);
-			this.tiles.push(tile);
-			game.setTile(
-				this.position.x + x*16,
-				this.position.y + y*16,
-				game.tileCollideLayer,
-				0
-			);
-		}
-	}
+	this.gatherTiles();
 }
 
 FloatBlock.prototype.idle = function(){}
@@ -368,7 +341,8 @@ FloatBlock.prototype.update = function(){
 }
 
 FloatBlock.prototype.shouldRender = MovingBlock.prototype.shouldRender;
-FloatBlock.prototype.render = MovingBlock.prototype.render;
+FloatBlock.prototype.gatherTiles = Block.prototype.gatherTiles;
+FloatBlock.prototype.render = Block.prototype.render;
 
 LoopBlock.prototype = new GameObject();
 LoopBlock.prototype.constructor = GameObject;
@@ -417,25 +391,7 @@ function LoopBlock(x,y,d,ops){
 		this.force.y += Math.min(obj.force.y * this.appliedForceBot, 0);
 	});
 	
-	//Gather tiles
-	this.tiles = new Array();
-	this.tileWidth = Math.ceil(this.width / 16);
-	this.tileHeight = Math.ceil(this.height / 16);
-	for(var x=0; x < this.tileWidth; x++){
-		for(var y=0; y < this.tileHeight; y++){
-			var tile = game.getTile(
-				this.position.x + x*16,
-				this.position.y + y*16
-			);
-			this.tiles.push(tile);
-			game.setTile(
-				this.position.x + x*16,
-				this.position.y + y*16,
-				game.tileCollideLayer,
-				0
-			);
-		}
-	}
+	this.gatherTiles();
 }
 
 LoopBlock.prototype.idle = function(){}
@@ -465,7 +421,8 @@ LoopBlock.prototype.update = function(){
 }
 
 LoopBlock.prototype.shouldRender = MovingBlock.prototype.shouldRender;
-LoopBlock.prototype.render = MovingBlock.prototype.render;
+LoopBlock.prototype.gatherTiles = Block.prototype.gatherTiles;
+LoopBlock.prototype.render = Block.prototype.render;
 
 
 Crusher.prototype = new GameObject();
@@ -521,25 +478,7 @@ function Crusher(x,y,d,ops){
 		}
 	});
 	
-	//Gather tiles
-	this.tiles = new Array();
-	this.tileWidth = Math.ceil(this.width / 16);
-	this.tileHeight = Math.ceil(this.height / 16);
-	for(var x=0; x < this.tileWidth; x++){
-		for(var y=0; y < this.tileHeight; y++){
-			var tile = game.getTile(
-				this.position.x + x*16,
-				this.position.y + y*16
-			);
-			this.tiles.push(tile);
-			game.setTile(
-				this.position.x + x*16,
-				this.position.y + y*16,
-				game.tileCollideLayer,
-				0
-			);
-		}
-	}
+	this.gatherTiles();
 }
 
 Crusher.prototype.lowest = function(){
@@ -606,4 +545,5 @@ Crusher.prototype.getDirection = function(){
 };
 Crusher.prototype.shouldRender = MovingBlock.prototype.shouldRender;
 Crusher.prototype.dotDirection = MovingBlock.prototype.dotDirection;
-Crusher.prototype.render = MovingBlock.prototype.render;
+Crusher.prototype.gatherTiles = Block.prototype.gatherTiles;
+Crusher.prototype.render = Block.prototype.render;

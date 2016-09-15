@@ -195,7 +195,7 @@ function EffectNumber(x, y, value){
 	this.position.y = y;
 	this.width = 8;
 	this.height = 8;
-	this.zIndex = 2;
+	this.zIndex = 12;
 	this.sprite = "numbers";
 	this.value = Math.floor(value);
 	this.progress = 0.0;
@@ -457,24 +457,15 @@ EffectAbsorb.prototype.render = function(g,c){
 }
 
 var EffectList = {
-	"charge" : function(g,p,d){
-		if(d < Game.DELTASECOND * 0.2) return;
-		
-		var progress = (d - Game.DELTASECOND * 0.2) / (Game.DELTASECOND * 0.3);
-		var r = 10.0 * (1.0-progress);
-		
-		if( progress < 1.0 ) {
-			audio.playLock("charge",0.5);
+	"charge" : function(g,p,progress){		
+		if( progress > 0.2 && progress < 1.0 ) {
+			
+			var r = 12.0 * (1.0-progress);
+			
 			for(var i=0; i < 5; i++) {
 				var off = new Point(r*Math.sin(i), r*Math.cos(i));
-				g.renderSprite("bullets",p.add(off),this.zIndex,new Point(3,2));
+				g.renderSprite("bullets",p.add(off),this.zIndex+1,new Point(3,2));
 			}
-		}
-		
-		if( progress > 1.0 && progress < 1.2 ) {
-			audio.playLock("chargeready",0.5);
-			var flashprogress = Math.floor((progress - 1.0) * 10);
-			g.renderSprite("bullets",p,this.zIndex,new Point(flashprogress,1));
 		}
 	}
 };

@@ -71,8 +71,9 @@ function Amon(x,y,d,o){
 }
 Amon.prototype.update = function(){
 	this.frame.x = ( this.frame.x + this.delta * 0.2 ) % 3;
-	
-	if( this.stun < 0 ) {
+	if(this.life <= 0){
+		this.gravity = 0.4;
+	} else if( this.stun < 0 ) {
 		if(this.charged){
 			if(this.isCharged){
 				Background.pushLight(this.position,180,[.5,.7,1.0,1.0]);

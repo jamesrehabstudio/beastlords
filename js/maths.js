@@ -192,6 +192,9 @@ Math.mod = function(x,n){
 Math.lerp = function(x,y,delta){
 	return x + (y-x) * delta;
 }
+Math.roundTo = function(x,n){
+	return Math.floor(x/n)*n; 
+}
 
 function Polygon(){
 	this.points = new Array();

@@ -59,7 +59,7 @@ function Chaz(x,y,d,o){
 }
 Chaz.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
-	if( this.stun < 0 ) {
+	if( this.stun < 0 && this.life > 0) {
 		if( this.states.attack < 0 ){
 			var direction = (this.states.backup ? -1 : 1);
 			this.force.x += this.speed * this.delta * direction;
@@ -94,13 +94,8 @@ Chaz.prototype.update = function(){
 		
 		this.states.cooldown -= this.delta;
 		this.states.attack -= this.delta;
-	}
-	
-	/* Animate */
-	if( this.stun > 0 ) {
-		this.frame.x = 0;
-		this.frame.y = 3;
-	} else {
+		
+		/* Animate */
 		if( this.states.attack > 0 ) {
 			var progress = this.states.attack / (this.attack.warm-this.attack.release);
 			if(this.states.attack_lower){
@@ -125,5 +120,8 @@ Chaz.prototype.update = function(){
 			} 
 			this.frame.y = 0;
 		}
+	} else {
+		this.frame.x = 0;
+		this.frame.y = 3;
 	}
 }

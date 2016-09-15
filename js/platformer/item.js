@@ -19,6 +19,13 @@ function Item(x,y,d, ops){
 	this.enchantChance = 0.8;
 	this.itemid = null;
 	
+	this.addModule(mod_rigidbody);
+	this.pushable = false;
+	this.physicsLayer = physicsLayer.item;
+	this.collisionReduction = -0.8;
+	this.resistObjects = 0.3;
+	this.gravity = 0;
+	
 	ops = ops || {};	
 	
 	if( "enchantChance" in ops ) {
@@ -297,15 +304,15 @@ Item.prototype.setName = function(n){
 	if(n == "life") { this.frame.x = 0; this.frame.y = 1; return; }
 	if(n == "map") { this.frame.x = 3; this.frame.y = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
 	
-	if(n == "life_small") { this.frame.x = 1; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "mana_small") { this.frame.x = 4; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "money_bag") { this.frame.x = 5; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
-	if(n == "xp_big") { this.frame.x = 2; this.frame.y = 1; this.addModule(mod_rigidbody); this.pushable=false; return; }
+	if(n == "life_small") { this.frame.x = 1; this.frame.y = 1; this.gravity = 0.5; return; }
+	if(n == "mana_small") { this.frame.x = 4; this.frame.y = 1; this.gravity = 0.5; return; }
+	if(n == "money_bag") { this.frame.x = 5; this.frame.y = 1; this.gravity = 0.5; return; }
+	if(n == "xp_big") { this.frame.x = 2; this.frame.y = 1; this.gravity = 0.5; return; }
 	
-	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.5; return; }
-	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.frame.y = 0; this.addModule(mod_rigidbody); this.mass = 0.4; this.bounce = 0.0; return; }
+	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
+	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
+	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; return; }
 	
 	//Special items
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; return; }
@@ -422,8 +429,6 @@ Item.prototype.setName = function(n){
 			}
 		}
 	}
-	
-	this.physicsLayer = physicsLayer.item;
 }
 Item.prototype.getMessage = function(){
 	if( "message" in this ) {

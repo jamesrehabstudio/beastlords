@@ -18,10 +18,10 @@ function SnakeBullet(x,y,d,o){
 	this.on("sleep",function(){
 		this.destroy();
 	})
-	this.on("hurt_other",function(obj, damage){
+	this.on(["blocked","hurt_other"],function(){
 		this.trigger("death");
 	});
-	this.on("death", function(obj,pos,damage){
+	this.on(["pre_death","death"], function(){
 		this.destroy();
 	});
 	

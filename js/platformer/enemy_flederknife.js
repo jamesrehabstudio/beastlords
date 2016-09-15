@@ -108,22 +108,24 @@ Flederknife.prototype.update = function(){
 			this.states.jump_tick = 2 + Math.floor(Math.random()*3);
 		}
 		this.turndelay -= this.delta; 
-	}
-	
-	/* Animation */
-	if( this.stun > 0 ) {
+		
+		/* Animation */
+		
+		if( this.states.jump ){
+			this.frame.x = (this.frame.x + this.delta * 0.4) % 3;
+			this.frame.y = 2;
+		} else {
+			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+			if(this.states.duck){
+				this.frame.y  = 0;
+			} else {
+				this.frame.y  = 1;
+			}
+		}
+		
+	} else {
 		this.frame.x = 3;
 		this.frame.y  = 2;
-	} else if( this.states.jump ){
-		this.frame.x = (this.frame.x + this.delta * 0.4) % 3;
-		this.frame.y = 2;
-	} else {
-		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
-		if(this.states.duck){
-			this.frame.y  = 0;
-		} else {
-			this.frame.y  = 1;
-		}
 	}
 }
 

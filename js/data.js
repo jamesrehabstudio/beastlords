@@ -270,6 +270,7 @@ function load_sprites (){
 	
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['axedog'] = new Sprite(RT+"img/axedog.gif", {offset:new Point(20, 26),width:40,height:40});
+	sprites['axesub'] = new Sprite(RT+"img/axesub.png", {offset:new Point(26, 49),width:64,height:64});
 	sprites['baller'] = new Sprite(RT+"img/baller.gif", {offset:new Point(40, 60),width:80,height:96});
 	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48});
 	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24});
@@ -438,9 +439,9 @@ function load_sprites (){
 		321 : {"frames":[321,322,323], "speed":6.0}
 	});
 	tiles["planes"] = new Tileset(sprites["planes"],tileRules["big"], {
-		321 : {"frames":[321,322,323], "speed":6.0},
-		322 : {"frames":[322,323,321], "speed":6.0},
-		323 : {"frames":[323,321,322], "speed":6.0}
+		321 : {"frames":[321,322,323], "speed":4.0},
+		322 : {"frames":[322,323,321], "speed":4.0},
+		323 : {"frames":[323,321,322], "speed":4.0}
 	});
 }
 

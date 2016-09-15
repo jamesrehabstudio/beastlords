@@ -178,10 +178,9 @@ AttackTrigger.prototype.constructor = GameObject;
 function AttackTrigger(x,y,d,o){
 	Trigger.apply(this,[x,y,d,o]);
 	this.clearEvents("collideObject");
-	
-	this.addModule(mod_combat);
-	
+		
 	o = o || {};
+	this.team = 0;
 	this.lifeMax = this.life = 1;
 	
 	if(!("retrigger" in o)){
@@ -206,6 +205,15 @@ function AttackTrigger(x,y,d,o){
 			this.destroy();
 		}
 	});
+}
+AttackTrigger.prototype.hurt = function(obj,damage){
+	if(this.life > 0){
+		this.life -= damage;
+		this.trigger("hurt", obj, damage);
+		if(this.life <= 0){
+			this.trigger("death");
+		}
+	}
 }
 
 Switch.prototype = Trigger.prototype;

@@ -34,8 +34,7 @@ function ChickenChain(x, y, d, o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(4,this.difficulty);
-	this.lifeMax = Spawn.life(4,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.0;
 	
@@ -44,10 +43,15 @@ function ChickenChain(x, y, d, o){
 		this.states.direction *= -1.0;
 	});
 	this.on("struck", EnemyStruck);
-	this.on("wakeup", function(){
+	this.on(["wakeup","added"], function(){
 		this.states.attack = 0.0;
 		this.states.attackstage = 0;
 		this.states.cooldown = this.attacks.cooldown;
+		
+		if(_player instanceof Player){
+			var dir = this.position.subtract(_player.position);
+			this.states.direction = dir.x > 0 ? -1 : 1;
+		}
 	});
 	
 	this.on("struckTarget", function(obj){
@@ -59,8 +63,11 @@ function ChickenChain(x, y, d, o){
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
+	
+	this.on("pre_death", function(){
+		this.states.attackstage = 0;
+	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
 		audio.play("kill");
 		Item.drop(this);
 		this.destroy();
@@ -76,7 +83,9 @@ ChickenChain.prototype.update = function(){
 		
 		if( this.states.attackstage ) {
 			this.force.x = this.force.y = 0;
-			if(this.states.attackstage == 1){
+			var fireForward = this.states.attackstage == 1;
+			
+			if(fireForward){
 				//Chain flies forward
 				this.states.attack += this.attacks.speed * this.delta;
 				if(this.states.attack >= this.attacks.distance){
@@ -93,9 +102,25 @@ ChickenChain.prototype.update = function(){
 			}
 			this.ball = new Point(this.states.attack, (-4 + this.states.duck*16));
 			if(this.attacks.rest <= 0){
-				this.strike(new Line(this.ball,this.ball.add(new Point(4,4))));
+				this.strike(
+					new Line(this.ball,this.ball.add(new Point(4,4))),
+					{"direction" : fireForward?this.flip:!this.flip}
+				);
 			}
+			
+			if( this.states.duck ) {
+				var maxFrame = this.states.attackstage > 1 ? 5 : 3;
+				this.frame.x = Math.min(this.frame.x + this.delta * 0.2, maxFrame);
+				this.frame.y = 4;
+			} else {
+				var maxFrame = this.states.attackstage > 1 ? 4 : 2;
+				this.frame.x = Math.min(this.frame.x + this.delta * 0.2, maxFrame);
+				this.frame.y = 3;
+			}
+			
 		} else {
+			//Walk back and forth
+			
 			if( game.getTile( 
 				16 * this.states.direction + this.position.x, 
 				this.position.y + 28, game.tileCollideLayer) == 0 
@@ -111,6 +136,9 @@ ChickenChain.prototype.update = function(){
 			this.states.cooldown -= this.delta;
 			this.flip = this.states.direction < 0;
 			
+			this.frame.y = 0;
+			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+			
 			if( this.states.cooldown <= 0 && Math.abs( dir.x ) < this.attacks.distance ) {
 				this.states.duck = Math.round(Math.random());
 				this.states.attackstage = 1;
@@ -120,25 +148,9 @@ ChickenChain.prototype.update = function(){
 				
 			}
 		}
-	}
-	
-	/* Animation */
-	if( this.stun > 0 ) {
+	} else {
 		this.frame.x = 2;
 		this.frame.y = 1;
-	} else if( this.states.attackstage > 0 ) {
-		if( this.states.duck ) {
-			var maxFrame = this.states.attackstage > 1 ? 5 : 3;
-			this.frame.x = Math.min(this.frame.x + this.delta * 0.2, maxFrame);
-			this.frame.y = 4;
-		} else {
-			var maxFrame = this.states.attackstage > 1 ? 4 : 2;
-			this.frame.x = Math.min(this.frame.x + this.delta * 0.2, maxFrame);
-			this.frame.y = 3;
-		}
-	} else {
-		this.frame.y = 0;
-		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
 	}
 }
 ChickenChain.prototype.render = function(g,c){

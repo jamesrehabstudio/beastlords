@@ -181,17 +181,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 	*/
 	/* mini map */
 	
-	if( _player instanceof Player ) {
-		g.color = [1.0,1.0,1.0,1.0];
-		g.scaleFillRect(game.resolution.x-41,7,34,26);
-		g.color = [0.0,0.0,0.0,1.0];
-		g.scaleFillRect(game.resolution.x-40,8,32,24);
-		this.renderMap(g,
-			new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
-			new Point(game.resolution.x-24,24), 
-			new Line(-16,-16,16,8)
-		);
-	}
+	
 	
 	if( this.message_time > 0 ) {
 		var left = game.resolution.x * 0.5 - 224 * 0.5;
@@ -282,10 +272,10 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,"Speed",leftx+120,60+84);
 			textArea(g,"MP Regen",leftx+120,60+112);
 			
-			textArea(g,""+_player.equip_weapon.baseDamage(_player),leftx+120,72);
+			textArea(g,""+_player.baseDamage(),leftx+120,72);
 			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
 			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
-			textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
+			//textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
 			textArea(g,regenTime+"p/m",leftx+120,72+112);
 		} else if ( this.page == 3 ) {
 			//Unique Items
@@ -334,6 +324,18 @@ PauseMenu.prototype.hudrender = function(g,c){
 				y_pos += 12;
 			}
 			
+		}
+	} else {
+		if( _player instanceof Player ) {
+			g.color = [1.0,1.0,1.0,1.0];
+			g.scaleFillRect(game.resolution.x-41,7,34,26);
+			g.color = [0.0,0.0,0.0,1.0];
+			g.scaleFillRect(game.resolution.x-40,8,32,24);
+			this.renderMap(g,
+				new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
+				new Point(game.resolution.x-24,24), 
+				new Line(-16,-16,16,8)
+			);
 		}
 	}
 }

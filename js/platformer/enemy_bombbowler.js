@@ -126,8 +126,10 @@ BombBowl.prototype.explode = function(){
 	list = game.overlaps(l);
 	for(var i=0; i < list.length; i++){
 		var obj = list[i];
-		if(obj.hasModule(mod_combat)){
+		if(obj instanceof Player){
 			obj.hurt(this, this.damage);
+		} else if(obj.hasModule(mod_combat)){
+			obj.hurt(this, this.damage * 5);
 		}
 	}
 	shakeCamera(Game.DELTASECOND * 0.5, 4);

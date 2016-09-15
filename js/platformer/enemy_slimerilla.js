@@ -13,7 +13,7 @@ function Slimerilla(x,y,d,o){
 	this.addModule(mod_combat);
 	this.sprite = "slimerilla";
 	this.speed = 0.3;
-	this.visible = false;
+	this.interactive = this.visible = false;
 	this.pushable = false;
 	this.startactive = true;
 	this.gravity = 0.5;
@@ -52,26 +52,22 @@ function Slimerilla(x,y,d,o){
 		audio.play("kill");
 		this.destroy();
 	});
-	this.on("collideObject", function(obj){
-		if(obj instanceof Player && !this.visible){
-			this.times.reappearTime = Game.DELTASECOND * 1;
-			this.times.reappear = 1;
-		}
-	});
 	
 	if(this.startactive){
-		this.visible = true;
+		this.interactive = this.visible = true;
 		this.pushable = true;
 		this.faceTarget();
 	}
 	
 	this.life = Spawn.life(8, this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
+	this.death_time = Game.DELTASECOND * 0.5;
 	this.calculateXP();
 }
 Slimerilla.prototype.update = function(){
+	var dir = _player.position.subtract(this.position);
+	
 	if(this.visible){
-		var dir = _player.position.subtract(this);
 		if(this.times.attack > 0){
 			//once warming up for an attack, there's no stoping him!
 			if(this.times.attack < this.times.attackRest ){
@@ -120,10 +116,13 @@ Slimerilla.prototype.update = function(){
 		if(this.times.reappear){
 			this.times.reappearTime -= this.delta;
 			if(this.times.reappearTime <= 0){
-				this.visible = true;
+				this.interactive = this.visible = true;
 				this.pushable = true;
 				this.faceTarget();
 			}
+		} else if(dir.length() < 32) {
+			this.times.reappearTime = Game.DELTASECOND * 1;
+			this.times.reappear = 1;
 		}
 	}
 }

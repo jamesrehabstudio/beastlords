@@ -7,7 +7,7 @@ function Deckard(x,y,d,o){
 	this.width = 32;
 	this.height = 56;
 	this.sprite = "deckard";
-	this.speed = 0.9;
+	this.speed = 0.7;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -55,6 +55,7 @@ function Deckard(x,y,d,o){
 			batty.fuse = false;
 			batty.invincible = batty.invincible_time;
 			batty.force.x = i <= 0 ? -8 : 8;
+			batty.on("sleep", function(){this.destroy();});
 			game.addObject(batty);
 		}
 	});
@@ -180,7 +181,9 @@ Deckard.prototype.update = function(){
 						this.force.y = -12;
 					}
 				} else {
-					Combat.strike.apply(this,[Deckard.attack_rect, {"blockable":false}]);
+					if(this.force.y > 0){
+						Combat.strike.apply(this,[Deckard.attack_rect, {"blockable":false}]);
+					}
 					this.frame.x = (this.force.y < -0.1 ? 1 : (this.force.y > 0.1 ? 3 : 2));
 					this.frame.y = 1;
 					if((Math.abs(dir.x) < 32) ||(dir.x < 0 && this.forward() < 0) || (dir.x > 0 && this.forward() > 0)){

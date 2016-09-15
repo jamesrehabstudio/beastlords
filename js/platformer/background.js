@@ -116,12 +116,12 @@ Background.prototype.renderDust = function(g,c){
 				Math.mod( dust.position.x - c.x * dust.scale, game.resolution.x+16 ),
 				Math.mod( dust.position.y - c.y * dust.scale,  game.resolution.y+16 ) 
 			),
-			this.zIndex = 0,
+			this.zIndex,
 			new Point(0, 31), 
 			false, 
 			{
-				"shader":"blur",
-				"blur":Math.min(0.004 * dust.scale, 0.008), 
+				//"shader":"blur",
+				//"blur":Math.min(0.004 * dust.scale, 0.008), 
 				"scale": 0.3*dust.scale
 			}
 		);

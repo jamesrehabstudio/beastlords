@@ -29,6 +29,7 @@ function SlimeGrenadier(x,y,d,o){
 	this.life = Spawn.life(6, this.difficulty);
 	this.damage = Spawn.damage(3, this.difficulty);
 	this.mass = 3.0;
+	this.death_time = Game.DELTASECOND * 0.5;
 	
 	
 	this.on("struck", EnemyStruck);
@@ -112,6 +113,7 @@ function Gernade(x,y,d,o){
 	this.gravity = 0.5;
 	this.bounce = 0.9;
 	this.collisionReduction = -0.9;
+	this.pushable = false;
 	
 	this.on("collideObject", function(obj){
 		if(obj.hasModule(mod_combat) && this.team != obj.team){

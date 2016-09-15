@@ -1,6 +1,6 @@
 Lamp.prototype = new GameObject();
 Lamp.prototype.constructor = GameObject;
-function Lamp(x,y,t,o){
+function Lamp(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -16,6 +16,9 @@ function Lamp(x,y,t,o){
 	this.frame_row = 0;
 	
 	o = o || {};
+	if(d instanceof Array){
+		this.size = Math.max(Math.max(d[0],d[1]) * 2, this.size);
+	}
 	if("size" in o){
 		this.size = o.size * 1;
 	}

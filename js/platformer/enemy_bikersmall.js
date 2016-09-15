@@ -25,14 +25,14 @@ function BikerSmall(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.mass = 1;
 	this.friction = 0.01;
 	this.pushable = false;
 	this.damage = Spawn.damage(3,this.difficulty);
 	
 	this.on("collideObject", function(obj){
-		if(obj instanceof Player){
+		if(this.life > 0 && obj instanceof Player){
 			obj.hurt(this,this.damage);
 		}
 	});
