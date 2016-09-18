@@ -107,7 +107,7 @@ WizzardBolter.prototype.update = function(){
 					}
 				}
 				
-				if(Math.abs(dir.x) < 96){
+				if(Math.abs(dir.x) < 32){
 					if(this.flip){
 						this.position.x += speed;
 					} else {
@@ -467,14 +467,14 @@ FlameTower.prototype.update = function(){
 		
 	}else if(this.time < this.timers.active){
 		var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
-		Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), [1,0.7,0,1] );
+		Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), COLOR_FIRE );
 	} else {
 		var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
 		var preh = this.height;
 		this.height = 88 * Math.min(prog*1.5,1);
 		this.rigidbodyActive = false;
 		this.position.y -= 0.5 * (this.height-preh);
-		Background.pushLight( this.position, this.height*2, [1,0.7,0,1] );
+		Background.pushLight( this.position, this.height*2, COLOR_FIRE );
 	}
 	if(this.time > this.timers.destroy){
 		this.destroy();
@@ -546,7 +546,7 @@ LightningBolt.prototype.update = function(){
 		//fall
 	}
 	
-	Background.pushLight(this.position,48,[0.5,0.7,1.0,1.0]);
+	Background.pushLight(this.position,48,COLOR_LIGHTNING);
 	
 	if(this.time > Game.DELTASECOND * 3){
 		this.destroy();

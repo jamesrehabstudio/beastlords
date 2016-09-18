@@ -108,7 +108,7 @@ Poseidon.prototype.setState = function(s){
 		this.states.targetX = _player.position.x;
 		this.flip = dir.x > 0;
 	} else if(s == Poseidon.FIRE_STATE){
-		this.states.transition = this.states.transitionTotal = 1.5 * Game.DELTASECOND;
+		this.states.transition = this.states.transitionTotal = 1.0 * Game.DELTASECOND;
 		this.states.timer = this.states.timerTotal = 0.6 * Game.DELTASECOND;
 		this.flip = dir.x > 0;
 	} else if(s == Poseidon.BASH_STATE){
@@ -116,7 +116,7 @@ Poseidon.prototype.setState = function(s){
 		this.states.timer = this.states.timerTotal = 0.5 * Game.DELTASECOND;
 		this.flip = dir.x > 0;
 	} else if(s == Poseidon.RUSH_STATE){
-		this.states.transition = this.states.transitionTotal = 1.0 * Game.DELTASECOND;
+		this.states.transition = this.states.transitionTotal = 0.6 * Game.DELTASECOND;
 		this.states.timer = this.states.timerTotal = 1.0 * Game.DELTASECOND;
 		this.flip = dir.x > 0;
 	} else if(s == Poseidon.BITE_STATE){
@@ -249,7 +249,10 @@ Poseidon.prototype.update = function(){
 					bullet.frames = [5,6,7];
 					bullet.frame.y = 1;
 					bullet.blockable = 0;
-					bullet.damage = this.damage;
+					bullet.damage = Math.round(this.damage*1.5);
+					bullet.explode = true;
+					bullet.frames = [5,6,7];
+					bullet.frame.y = 1;
 					game.addObject(bullet);
 				}
 				this.frame.x = Math.min(4 + timerProgress*6, 7);
@@ -277,7 +280,7 @@ Poseidon.prototype.update = function(){
 				this.frame.x = Math.min(timerProgress*7, 6);
 				this.frame.y = 5;
 				if(timerProgress > 0.2 && timerProgress < 0.5){
-					this.strike(new Line(16,-8,64,24), "hurt");
+					this.strike(new Line(16,-8,64,24), {"blockable":false});
 				}
 				if(this.states.timer <= 0){
 					this.selectState();

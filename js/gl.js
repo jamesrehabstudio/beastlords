@@ -66,6 +66,9 @@ Material.prototype.addProperty = function(prop) {
 				location = this.gl.getAttribLocation(this.program, name);
 				this.gl.enableVertexAttribArray(location);
 			}
+			if(type == "mat3"){
+				console.log(prop);
+			}
 			this.properties[name] = {
 				"uniform" : isUniform,
 				"type" : Material.propertyTypes.indexOf(type),
@@ -80,7 +83,9 @@ Material.prototype.addProperty = function(prop) {
 Material.propertyTypes = [
 	"float",
 	"vec2",
-	"vec4"
+	"vec4",
+	"mat3",
+	"mat4"
 ];
 Material.prototype.set = function(name, args) {
 	if(!(name in this.properties )) return;
@@ -97,6 +102,10 @@ Material.prototype.set = function(name, args) {
 			this.gl.uniform2f(prop.location, args[0], args[1]);
 		} else if( prop.type == 2 ){
 			this.gl.uniform4f(prop.location, args[0], args[1], args[2], args[3]);
+		} else if( prop.type == 3 ){
+			this.gl.uniformMatrix3fv(prop.location, false, args[0]);
+		} else if( prop.type == 4 ){
+			this.gl.uniformMatrix4fv(prop.location, false, args[0]);
 		}
 	} else {
 		this.gl.vertexAttribPointer(prop.location, 2, this.gl.FLOAT, false, 0, 0);
@@ -143,7 +152,6 @@ Material.prototype.getShader = function(gl, source, type) {
 	return shader;
 }
 
-
 /* Object for wrapping sprites */
 function Sprite(url, options) {
 	options = options || {};
@@ -160,24 +168,28 @@ function Sprite(url, options) {
 			this.sprite.resize(); 
 		}
 	}
-	this.offset = offset;
 	this.loaded = false;
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
 	
-	//Create buffers
-	this.bufferData = new Float32Array([
-		0, 0,
-		this.frame_width, 0,
-		0,  this.frame_height,
-		0,  this.frame_height,
-		this.frame_width, 0,
-		this.frame_width, this.frame_height
-	]);
+	this.setOffset(offset);
+	
 	this.buffer = false;	
 	
 	this.name = "";
+}
+Sprite.prototype.setOffset = function(os) {
+	//Set offset and create mesh
+	this.offset = os;
+	this.mesh = new Float32Array([
+		-this.offset.x, -this.offset.y,
+		this.frame_width-this.offset.x, -this.offset.y,
+		-this.offset.x,  this.frame_height-this.offset.y,
+		-this.offset.x,  this.frame_height-this.offset.y,
+		this.frame_width-this.offset.x, -this.offset.y,
+		this.frame_width-this.offset.x, this.frame_height-this.offset.y
+	]);
 }
 Sprite.prototype.isCorrectSize = function() {
 	if( this.img.width != this.img.height ) return false;
@@ -254,7 +266,8 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 		scale = shaderOps["scale"] * 1;
 	}
 	if("rotate" in shaderOps){
-		rotate = shaderOps["rotate"] * 1;
+		rotate = shaderOps["rotate"] / 180 * Math.PI;
+		//r = r / 180 * Math.PI;
 	}
 	
 	shader.use();
@@ -297,90 +310,18 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 	if( !this.buffer ) this.buffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	
-	var geodata = Sprite.RectBuffer(new Point(), this.frame_width*scale,this.frame_height*scale,rotate,this.offset);
+	//var geodata = Sprite.RectBuffer(new Point(), this.frame_width*scale,this.frame_height*scale,rotate,this.offset);
 	
-	gl.bufferData(gl.ARRAY_BUFFER, geodata, gl.DYNAMIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, this.mesh, gl.DYNAMIC_DRAW);
 	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 	shader.set("a_position");
-	shader.set("u_resolution",game.resolution.x, game.resolution.y);
-	shader.set("u_camera", Math.round(p.x-offset.x), Math.round(p.y-offset.y));
-	//shader.set("u_camera", p.x-offset.x, p.y-offset.y);
+	//shader.set("u_resolution",game.resolution.x, game.resolution.y);
+	//shader.set("u_camera", Math.round(p.x-offset.x), Math.round(p.y-offset.y));
+	shader.set("u_world", new Matrix2D().scale(scale,scale).transition(p.x,p.y).rotate(rotate).toFloatArray());
+	shader.set("u_camera", game.cameraMatrix.toFloatArray());
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
 }
-Sprite.prototype.renderSize = function( gl, x,y,w,h, frame, row, flip, shader, shaderOps ) {
-if( !this.loaded  ) return;
-	
-	if(frame == undefined ){
-		frame = row = 0;
-	} else if ( row == undefined ) {
-		var f = Math.floor(frame);
-		frame = f % Math.floor(this.width/this.frame_width);
-		row = Math.floor(f / Math.floor(this.width/this.frame_width));
-	} else {
-		frame = ~~frame;
-		row = ~~row;
-	}
-	
-	if( shader instanceof Material ){
-		//Correct shader already selected
-	} else if( shader in window.materials ){
-		shader = window.materials[shader].use();
-	} else { 
-		shader = window.materials["default"].use();
-	}
-	
-	shaderOps = shaderOps || {};
-	for(var i in shaderOps){
-		shader.set(i, shaderOps[i]);
-	}
-	
-	var xinc = this.frame_width / (this.img.width * 1.0);
-	var yinc = this.frame_height / (this.img.height * 1.0);
-	
-	var x1 = frame * xinc;
-	var x2 = (frame+1) * xinc;
-	var y1 = row * yinc;
-	var y2 = (row+1) * yinc;
-	
-	if( flip ) {
-		var temp = x1;
-		x1 = x2;
-		x2 = temp;
-	}
-	
-	var texbuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, texbuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-		x1, y1,
-		x2, y1,
-		x1, y2,
-		x1, y2,
-		x2, y1,
-		x2, y2
-	]), gl.DYNAMIC_DRAW);
-	shader.set("a_texCoord");
-	
-	gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
-	if( !this.buffer ) this.buffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-	
-	var bufferData = new Float32Array([
-		x, y,
-		x+w, y,
-		x, y+h,
-		x, y+h,
-		x+w, y,
-		x+w, y+h
-	]);
-	gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.DYNAMIC_DRAW);
-	shader.set("a_position");
-	shader.set("u_resolution",game.resolution.x, game.resolution.y);
-	shader.set("u_camera", 0, 0);
-	
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
-}
-
 Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	if( !this.loaded ) return;
 	

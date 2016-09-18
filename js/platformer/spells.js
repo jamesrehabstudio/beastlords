@@ -15,6 +15,7 @@ spell_fire = function(player){
 	bullet.blockable = 0;
 	bullet.ignoreInvincibility = true;
 	bullet.damage = 10 + player.stats.magic * 5;
+	bullet.explode = true;
 	game.addObject(bullet);
 	
 	return cost;

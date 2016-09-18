@@ -124,6 +124,7 @@ function Game(){
 	this.deltaScale = 1.0;
 	this.pause = false;
 	this.time = 0.0;
+	this.timeScaled = 0.0;
 	
 	this.newmap = false;
 	this._newmapCallback = false;
@@ -166,6 +167,7 @@ Game.prototype.update = function(){
 	this.delta = this.deltaUnscaled * this.deltaScale * (this.pause?0:1);
 	this.deltaScaleReset -= this.deltaUnscaled;
 	this.time += this.deltaUnscaled;
+	this.timeScaled += this.delta;
 	if(this.deltaScaleReset <= 0){
 		this.deltaScale = 1.0;
 	}

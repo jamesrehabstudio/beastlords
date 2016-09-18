@@ -38,6 +38,12 @@ window.shaders["2d-fragment-solid"] = "precision mediump float;\nuniform vec4 u_
 
 
 
+ /* platformer\shaders\2d-vertex-default.shader*/ 
+
+window.shaders["2d-vertex-default"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform mat3 u_world;\nuniform mat3 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec3 pos = u_camera * u_world * vec3(a_position,1);\n	gl_Position = vec4(pos,1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
+
+
+
  /* platformer\shaders\2d-vertex-scale.shader*/ 
 
 window.shaders["2d-vertex-scale"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 scale;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position * scale + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";

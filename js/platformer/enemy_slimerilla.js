@@ -67,26 +67,24 @@ function Slimerilla(x,y,d,o){
 Slimerilla.prototype.update = function(){
 	var dir = _player.position.subtract(this.position);
 	
-	if(this.visible){
+	if(this.interactive){
 		if(this.times.attack > 0){
 			//once warming up for an attack, there's no stoping him!
 			if(this.times.attack < this.times.attackRest ){
-				this.frame.x = 0
-				this.frame.y = 0;
+				this.frame.x = 3
+				this.frame.y = 1;
 			} else if(this.times.attack < this.times.attackRelease ){
 				this.strike(new Line(new Point(0,-24),new Point(48,24)));
-				this.frame.x = 1
+				this.frame.x = Math.min(this.frame.x+this.delta*0.5,3);
 				this.frame.y = 1;
 			} else {
 				this.force.x = 0;
-				this.frame.x = 0
+				this.frame.x = 0;
 				this.frame.y = 1;
 			}
 			this.times.attack -= this.delta;
 		} else if(this.stun > 0){
 			//Do nothing
-			this.frame.x = 0;
-			this.frame.y = 0;
 		} else if(this.times.jumpback){
 			//jump away from player
 			this.force.y = -6;
@@ -110,15 +108,40 @@ Slimerilla.prototype.update = function(){
 			}
 			this.times.turnTimer -= this.delta;
 			this.times.cooldown -= this.delta;
+			
+			if(this.grounded){
+				if(Math.abs(this.force.x) > 0.2){
+					this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.1) % 4;
+					this.frame.y = 2;
+				} else {
+					this.frame.x = (this.frame.x+this.delta*0.15) % 3;
+					this.frame.y = 0;
+				}
+			} else {				
+				this.frame.x = (this.force.y < -1 ? 0 : (this.force.y > 1 ? 2 : 1));
+				this.frame.y = 3;
+			}
+			
 		}
 		
 	} else {
-		if(this.times.reappear){
+		if(this.life <= 0){
+			//Do nothing, dying
+		} else if(this.times.reappear){
 			this.times.reappearTime -= this.delta;
+			var progress = this.times.reappearTime / (Game.DELTASECOND * 0.2);
+			if(progress <= 1){
+				this.visible = true;
+				this.frame.x = Math.min((1 - progress) * 3, 2);
+				this.frame.y = 4;
+			}
+			
 			if(this.times.reappearTime <= 0){
-				this.interactive = this.visible = true;
+				this.interactive = true;
 				this.pushable = true;
 				this.faceTarget();
+				this.force.y = -5;
+				this.grounded = false;
 			}
 		} else if(dir.length() < 32) {
 			this.times.reappearTime = Game.DELTASECOND * 1;

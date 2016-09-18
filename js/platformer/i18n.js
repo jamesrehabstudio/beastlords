@@ -1,7 +1,8 @@
+//♡
 i18n_language = "english";
 i18n_messages = {
 	"intro_text" : {
-		"english" : "A distant war has torn the land to pieces. Forced from their homes your people search for a new land to settle far away from the conflict. Though peace reigns so too does poverty. To save your new homeland you journey to the castles of the mysterious Beast Lords who want for nothing to take what you need for your people to survive.",
+		"english" : "This is a closed alpha of game. This version is for 'first impressions' of Beast Lords, to get some early feedback about the game. Is it too hard, too easy, no fun, too fun? Is there a part you found frustrating or something you think needs changed? This is what this demo is meant to assess. If you weren't explictly given this demo, then someone was a naughty boy.",
 		"engrish" : "Distant war has hurt the land. The people will search for their home to a new land is safe from a distance dispute. Look out for poverty. In the castle of a mysterious Beast Lords take what is necessary for what is needed to survive. You will save the new home."
 	},
 	"introduction" : {
@@ -17,11 +18,11 @@ i18n_messages = {
 		"engrish" : "Start button"
 	},
 	"introduction_help" : {
-		"english" : "See how this story began.",
+		"english" : "For developers only.",
 		"engrish" : "You will learn How to play. Please enjoy to the story of origin."
 	},
 	"start_help" : {
-		"english" : "Enter the world of Beast Lords. Beware, death will end the game.",
+		"english" : "Enter the world of Beast Lords. Play the closed alpha demo.",
 		"engrish" : "Play the game. Please note, death is permanent."
 	},
 	"templenames" : {
@@ -57,6 +58,12 @@ i18n_messages = {
 	"chancellor_intro" : {
 		"english" : "I'm the chancellor of this town. I manage the money. It turns out I don't manage it very well at all. Say, you wouldn't want to donate a little to our good town? I promise, every single penny will go to good projects!",
 		"engrish" : "My name is Chancellor. I make good with the money. The money is trouble. You can donate your money to the town through me. I'll spend your money correctly. Press people to other construction. Donate to make the construction into a new with my assistant."
+	},
+	"npc_dodgeman" : {
+		"english" : "Did you know you can perform a dodge roll by pressing %dodge%?"
+	},
+	"npc_downstabman" : {
+		"english" : "Did you know you can perform a downstab while jumping? Just hold down while you are in the air"
 	},
 	"smith_intro" : {
 		"english" : "You there. Did you know you can only hold one weapon at a time? Don't worry, any weapon you leave behind I'll store it here for you. It'll be free of charge, because I'm kind like that."

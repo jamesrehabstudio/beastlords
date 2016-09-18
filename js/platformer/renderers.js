@@ -100,7 +100,7 @@ DialogManger = {
 	"set" : function(text){
 		if(DialogManger.text != text){
 			DialogManger.text = text;
-			DialogManger.parsedtext = DialogManger.parse(text);
+			DialogManger.parsedtext = DialogManger.parse(DialogManger.substitute(text));
 			DialogManger.show = true;
 			DialogManger.progress = 0.0;
 			DialogManger.line = 0;
@@ -113,6 +113,18 @@ DialogManger = {
 		DialogManger.show = false;
 		DialogManger.progress = 0.0;
 		DialogManger.line = 0;
+	},
+	"substitute" : function(s){
+		var rep = {
+			"%jump%" : "'K'",
+			"%fire%" : "'J'",
+			"%dodge%" : "'Space'"
+		};
+		
+		for(var i in rep){
+			s = s.replace(i,rep[i]);
+		}
+		return s;
 	},
 	"render" : function(g){
 		var charcount = 0;

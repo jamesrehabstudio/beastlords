@@ -377,7 +377,7 @@ var mod_combat = {
 		this.shieldArea = Combat.shieldArea;
 		
 		this.isDead = function(){
-			if( this.life <= 0 ){
+			if(!(this.life > 0)){
 				//Remove effects
 				this.buffs = new Array();
 				this.buffer_damage = 0;
@@ -388,7 +388,7 @@ var mod_combat = {
 					this.trigger("pre_death");
 					this._death_clock.set(this.death_time);
 					this.interactive = false;
-				} else {					
+				} else if( this.hasModule(mod_rigidbody)){
 					if( !this.ragdoll ){
 						//Rag doll and explode
 						this.trigger("pre_death");
@@ -396,6 +396,9 @@ var mod_combat = {
 						this.physicsLayer = physicsLayer.particles;
 						this.ragdoll = true;
 					}
+				} else {
+					this.trigger("death");
+					game.addObject(new EffectExplosion(this.position.x,this.position.y));
 				}
 			} else {
 				this.ragdoll = false;
@@ -561,9 +564,11 @@ var Combat = {
 		}
 	},	
 	"hit"  : function(obj, ops, rect){
-		if(this.hitIgnoreList.indexOf(obj) >= 0){
-			//Object is ignore list, terminate hit
-			return false;
+		if(this.hitIgnoreList instanceof Array){
+			if(this.hitIgnoreList.indexOf(obj) >= 0){
+				//Object is ignore list, terminate hit
+				return false;
+			}
 		}
 		
 		ops = ops || {};

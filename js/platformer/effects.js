@@ -26,6 +26,54 @@ EffectExplosion.prototype.update = function(){
 	}
 }
 
+EffectBang.prototype = new GameObject();
+EffectBang.prototype.constructor = GameObject;
+function EffectBang(x, y, d){	
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 16;
+	this.height = 16;
+	this.zIndex = 99;
+	this.spread = 16;
+	this.sprite = "bullets";
+	
+	shakeCamera(Game.DELTASECOND*0.3,8);
+	audio.play("explode4", this.position);
+	
+	this.timeTotal = this.time = Game.DELTASECOND * 0.5;
+	this.on("sleep",function(){ this.destroy(); } );
+}
+
+EffectBang.prototype.render = function(g,c){
+	var progress = 1 - this.time / this.timeTotal;
+	this.frame.x = progress * 5;
+	this.frame.y = 5;
+	
+	Background.pushLight(this.position, (this.time/this.timeTotal)*160, COLOR_FIRE);
+	
+	for(var i=0; i < 4; i++){
+		var pos = new Point(
+			this.spread * (i == 0 || i == 3 ? -1 : 1),
+			this.spread * (i < 2 ? -1 : 1)
+		);
+		g.renderSprite(
+			this.sprite,
+			this.position.add(pos).subtract(c),
+			this.zIndex,
+			this.frame,
+			false,
+			{"rotate" : i * 90}
+		);
+	}
+	
+	this.time -= this.delta;
+	if(this.time <= 0){
+		this.destroy();
+	}
+}
+
 EffectSmoke.prototype = new GameObject();
 EffectSmoke.prototype.constructor = GameObject;
 function EffectSmoke(x, y, d, ops){	
@@ -469,3 +517,6 @@ var EffectList = {
 		}
 	}
 };
+
+COLOR_LIGHTNING = [0.5,0.7,1.0,1.0];
+COLOR_FIRE = [1,0.8,0,1];

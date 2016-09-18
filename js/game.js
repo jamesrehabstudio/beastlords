@@ -164,6 +164,7 @@ function Game( elm ) {
 		//0 : function(c){ return new Point(c.x*0.9375, c.y); }
 	}
 	this.resolution = new Point(256,240);
+	this.cameraMatrix = new Matrix2D().scale(2/this.resolution.x,2/this.resolution.y);
 	
 	this.g.pixelStorei(this.g.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA);
@@ -213,6 +214,8 @@ Game.prototype.resize = function(x,y) {
 	this.g.viewport(0,0,this.element.width,this.element.height);
 	this.resolution.x = Math.ceil(240 * ratio);
 	this.resolution.y = 240;
+	
+	this.cameraMatrix = new Matrix2D().scale(2/this.resolution.x,-2/this.resolution.y).transition(this.resolution.x*-0.5,this.resolution.y*-0.5);
 }
 Game.prototype.avr = function( obj ) {
 	return 1 / ((this.delta_tot / this.delta_avr) / 1000.0);

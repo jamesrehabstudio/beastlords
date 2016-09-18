@@ -44,7 +44,7 @@ function Amon(x,y,d,o){
 	if("difficulty" in o){
 		this.difficulty = o["difficulty"] * 1;
 	}
-	this.charged = this.difficulty > 1;
+	//this.charged = this.difficulty > 1;
 	if("charged" in o){
 		this.charged = o["charged"] * 1;
 	}
@@ -62,6 +62,7 @@ function Amon(x,y,d,o){
 	this.force.x = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.force.y = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.backupForce = new Point(this.force.x, this.force.y);
+	this.pushable = false;
 	
 	
 	this.mass = 1.0;

@@ -122,7 +122,7 @@ Fireman.prototype.update = function(){
 		}
 	}
 	
-	Background.pushLight( this.position, 200, [1,0.8,0,1] );
+	Background.pushLight( this.position, 200, COLOR_FIRE );
 }
 
  

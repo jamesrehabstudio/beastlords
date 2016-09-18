@@ -66,6 +66,7 @@ function Player(x, y){
 		"currentQueuePosition" : 0,
 		"currentQueueState" : null,
 		"attackEndTime" : 0.0,
+		"hit" : false,
 		"charge" : 0.0,
 		
 		"timer" : 0.0,
@@ -201,6 +202,7 @@ function Player(x, y){
 		
 		if(this.attstates.currentAttack){
 			this.attstates.attackEndTime = this.attstates.currentAttack.time + this.attstates.currentAttack.rest;
+			this.attstates.hit = true;
 			this.hitIgnoreList.push(obj);
 			
 			if("pause" in this.attstates.currentAttack){
@@ -226,9 +228,14 @@ function Player(x, y){
 			this.states.afterImage.set(Game.DELTASECOND * 3);
 		}
 		
-		if( !this.grounded && !this.states.downStab ) {
-			//Add extra float
-			this.force.y -= this.speeds.jump * this.speeds.airGlide;
+		if(this.states.downStab){
+			this.trigger("downstabTarget", this, damage);
+			obj.trigger("downstabbed", this, damage);
+		} else {
+			if( !this.grounded ) {
+				//Add extra float
+				this.force.y -= this.speeds.jump * this.speeds.airGlide;
+			}
 		}
 		
 		//Charge kill explosion!
@@ -239,15 +246,16 @@ function Player(x, y){
 			if( obj.ragdoll ) {
 				//Send the enemy flying
 				var dir = obj.position.subtract(this.position);
+				var aim = dir.normalize().add(new Point(dir.x>0?1:-1,0));
 				game.slow(0.1, Game.DELTASECOND * 0.5);
 				audio.playLock("explode3", 0.5);
 				obj.destroy();
 				game.addObject( new ExplodingEnemy( 
 					obj.position.x,
-					obj.position.y,
+					this.position.y,
 					false,
 					{
-						"direction" : dir,
+						"direction" : aim,
 						"damage" : this.currentDamage(),
 						"sprite" : obj.sprite,
 						"flip" : obj.flip,
@@ -284,7 +292,7 @@ function Player(x, y){
 	this.on("collideObject", function(obj){
 		if( this.states.roll > 0 && this.dodgeFlash){
 			if("hurt" in obj && obj.hurt instanceof Function){
-				var damage = 10;
+				var damage = this.baseDamage();
 				obj.hurt(this, damage);
 				this.doubleJumpReady = true;
 			}
@@ -322,7 +330,7 @@ function Player(x, y){
 	this.death_time = Game.DELTASECOND * 2;
 	this.invincible_time = Game.DELTASECOND * 1.5;
 	this.autoblock = true;
-	this.rollTime = Game.DELTASECOND * 0.75;
+	this.rollTime = Game.DELTASECOND * 0.5;
 	this.dodgeTime = this.rollTime * 0.33333;
 	
 	this.superHurt = this.hurt;
@@ -474,11 +482,16 @@ Player.prototype.update = function(){
 		} else if( this.states.roll > 0 ) {
 			if(this.dodgeFlash){
 				this.force.y -= (0.2 + this.gravity) * this.delta;
-				this.force.x = (this.flip?-1:1) * 15;
+				this.force.x = this.forward() * 15;
 			} else {
-				this.force.x = (this.flip?-1:1) * 5;
+				this.force.x = this.forward() * 6;
 			}
 			this.states.roll -= this.delta;
+			if( input.state("jump") == 1 ){
+				//Jump cancelAttack
+				this.invincible = this.states.roll = 0;
+				this.jump();
+			}
 			
 			if( this.states.roll <= 0 ) {
 				//End of roll
@@ -816,6 +829,7 @@ Player.prototype.attack = function(){
 		if(this.attstates.timer >= this.attstates.attackEndTime){
 			//Previous attack complete, start next attack
 			var state = Weapon.playerState(this);
+			this.attstates.hit = false;
 			if(this.attstates.currentQueueState == state && this.attstates.currentQueuePosition+1 < this.attstates.currentQueue.length){
 				this.attstates.currentQueuePosition++;
 				
@@ -830,7 +844,9 @@ Player.prototype.attack = function(){
 				return;
 			}
 		} else {
-			this.attstates.autostartNextAttack = true;
+			if(this.attstates.hit || this.attstates.currentQueue.alwaysqueue){
+				this.attstates.autostartNextAttack = true;
+			}
 			return;
 		}
 	}
@@ -854,6 +870,7 @@ Player.prototype.cancelAttack = function(){
 	this.attstates.currentQueuePosition = 0;
 	this.attstates.currentQueueState = null;
 	this.hitIgnoreList = new Array();
+	this.attstates.hit = false;
 	
 	this.attstates.timer = 0.0;
 }

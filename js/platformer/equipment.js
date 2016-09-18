@@ -126,8 +126,11 @@ var WeaponStats = {
 	"broad_sword" : createWeaponTemplate(0.25,0.4,0.1,0.3,42)
 }
 
+WeaponStats.short_sword.damage = 3;
 WeaponStats.short_sword.standing.alwaysqueue = 1;
 
 WeaponStats.long_sword.damage = 4;
+WeaponStats.long_sword.standing.alwaysqueue = 0;
 
 WeaponStats.broad_sword.damage = 5;
+WeaponStats.broad_sword.standing.alwaysqueue = 0;

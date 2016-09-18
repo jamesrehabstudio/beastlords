@@ -128,7 +128,7 @@ function Molotov(x,y,d,o){
 	});
 }
 Molotov.prototype.explode = function(){
-	audio.play("explode3");
+	game.addObject(new EffectBang(this.position.x, this.position.y));
 	
 	for(var i=0; i < 6; i++){
 		var pos = new Point(i*12+this.position.x-36,this.position.y);

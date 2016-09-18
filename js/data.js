@@ -9,7 +9,7 @@ function DataManager() {
 function game_start(g){
 	var shaders = window.shaders;
 	
-	new Material(g.g, "default", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "default", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-default"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "tiles", {"fs":shaders["2d-fragment-shader"],"vs":shaders["tile-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "hurt", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"],"settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
 	new Material(g.g, "gold", {"fs":shaders["fragment-greytocolor"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
@@ -431,6 +431,8 @@ function load_sprites (){
 		195 : {"frames":[195,196,197,197,196,195], "speed":3.0},
 		196 : {"frames":[196,197,197,196,195,195], "speed":3.0},
 		197 : {"frames":[197,197,196,195,195,196], "speed":3.0},
+		
+		203 : {"frames":[1024], "speed":0.0},
 	});
 	tiles["temple4"] = new Tileset(sprites["temple4"],tileRules["big"], {
 		1023 : {"frames":[1024], "speed":0.0}
@@ -475,6 +477,7 @@ window.audio = new AudioPlayer({
 	"explode1" : {"url":RT+"sounds/explode1.wav"},
 	"explode2" : {"url":RT+"sounds/explode2.wav"},
 	"explode3" : {"url":RT+"sounds/explode3.wav"},
+	"explode4" : {"url":RT+"sounds/explode4.wav"},
 	"gulp" : {"url":RT+"sounds/gulp.wav"},
 	"heal" : {"url":RT+"sounds/heal.wav"},
 	"hurt" : {"url":RT+"sounds/hurt.wav"},

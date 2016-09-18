@@ -8,6 +8,7 @@ function Bullet(x,y,d){
 	this.height = 6;
 	this.blockable = true;
 	this.ignoreInvincibility = false;
+	this.explode = false;
 	this.range = 512;
 	
 	this.delay = 0;
@@ -35,7 +36,13 @@ function Bullet(x,y,d){
 	this.on("collideVertical", function(dir){ this.trigger("death"); });
 	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
 	this.on("sleep", function(){ this.trigger("death"); });
-	this.on("death", function(){ this.destroy();});
+	this.on("death", function(){ this.destroy(); });
+	this.on("hurt_other", function(obj, damage){
+		if(this.explode){
+			game.addObject(new EffectBang(this.position.x, this.position.y));
+			this.explode = false;
+		}
+	});
 	this.on("struck", function(obj){ 
 		if(this.blockable && obj.team!=this.team) {
 			this.trigger("death");

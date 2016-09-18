@@ -71,45 +71,49 @@ function Bear(x,y,d,o){
 }
 Bear.prototype.update = function(){	
 	//this.sprite = "knight";
-	if ( this.stun <= 0 ) {
-		var dir = this.position.subtract( _player.position );
-		this.active = this.active || Math.abs( dir.x ) < 120;
+	if(this.life > 0){
+		if ( this.stun <= 0 ) {
+			var dir = this.position.subtract( _player.position );
+			this.active = this.active || Math.abs( dir.x ) < 120;
+			
+			if( this.active && this.states.attack <= 0 ) {
+				var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
+				this.force.x += direction * this.delta * this.speed;
+				this.flip = dir.x > 0;
+				this.states.cooldown -= this.delta;
+			}
 		
-		if( this.active && this.states.attack <= 0 ) {
-			var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
-			this.force.x += direction * this.delta * this.speed;
-			this.flip = dir.x > 0;
-			this.states.cooldown -= this.delta;
+			if( this.states.cooldown < 0 ){
+				this.states.attack_down = Math.random() > 0.5;
+				this.states.guard = 0;
+				this.states.attack = this.attack_warm;
+				this.states.cooldown = 70.0;
+			}
+			
+			if( this.states.guard == 0 && this.states.attack <= 0 ){
+				this.states.guard = Math.random() > 0.5 ? 1 : 2;
+			}
+			
+			if ( this.states.attack > 0 && this.states.attack < this.attack_time && this.states.attack > this.attack_rest ){
+				this.strike(new Line(
+					new Point( 15, (this.states.attack_down ? 8 : -8) ),
+					new Point( 27, (this.states.attack_down ? 8 : -8)+4 )
+				) );
+			}
 		}
-	
-		if( this.states.cooldown < 0 ){
-			this.states.attack_down = Math.random() > 0.5;
-			this.states.guard = 0;
-			this.states.attack = this.attack_warm;
-			this.states.cooldown = 70.0;
-		}
+		/* counters */
+		this.states.attack -= this.delta;
 		
-		if( this.states.guard == 0 && this.states.attack <= 0 ){
-			this.states.guard = Math.random() > 0.5 ? 1 : 2;
-		}
-		
-		if ( this.states.attack > 0 && this.states.attack < this.attack_time && this.states.attack > this.attack_rest ){
-			this.strike(new Line(
-				new Point( 15, (this.states.attack_down ? 8 : -8) ),
-				new Point( 27, (this.states.attack_down ? 8 : -8)+4 )
-			) );
-		}
+		/* guard */
+		this.guard.active = this.states.guard != 0;
+		this.guard.x = 8;
+		this.guard.y = this.states.guard == 1 ? 6 : -5;
+	} else {
+		this.guard.active = 0;
 	}
-	/* counters */
-	this.states.attack -= this.delta;
-	
-	/* guard */
-	this.guard.active = this.states.guard != 0;
-	this.guard.x = 8;
-	this.guard.y = this.states.guard == 1 ? 6 : -5;
 	
 	/* Animation */
-	if ( this.stun > 0 ) {
+	if ( this.stun > 0 || this.life <= 0 ) {
 		this.frame.x = 0;
 		this.frame.y = 2;
 	} else { 

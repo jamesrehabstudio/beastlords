@@ -33,16 +33,14 @@ function DamageTrigger(x,y,d,o){
 				obj.invincible = -1;
 				obj.life = 0;
 				obj.hurt(this,0);
-			} else if( this.restTimer <= 0 ){
+			} else if( game.time > DamageTrigger.rest ){
 				if(this.alwaysHurt){
 					obj.invincible = -1;
 				}
 				obj.hurt( this, Math.floor( this.damage ) );
-				this.restTimer = Game.DELTASECOND * 2;
+				DamageTrigger.rest = game.time + Game.DELTASECOND * 2;
 			}
 		}
 	});
 }
-DamageTrigger.prototype.update = function(){
-	this.restTimer -= this.delta;
-}
+DamageTrigger.rest = 0;

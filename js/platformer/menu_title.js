@@ -210,7 +210,10 @@ TitleMenu.prototype.startGame = function(){
 	if(this.cursor == 1) {
 		this.start = true;
 		audio.play("pause");
-		WorldMap.newgame();
+		//WorldMap.newgame();
+		new Player(0,0);
+		_player.lightRadius = 240;
+		WorldLocale.loadMap("townhub.tmx");
 	} else { 
 		audio.play("negative");
 		//ga("send","event","start_intro");

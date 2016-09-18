@@ -7,10 +7,12 @@ function Ocean(x,y,d,o){
 	this.width = d[0];
 	this.height = d[1];
 	
-	this.inc = 1;
+	this.inc = 2;
 	this.waveheight = 32;
 	this.wavelength = 0.025;
 	this.speed = 0.1;
+	this.turbulence = 5.5;
+	this.turbulenceScale = 0.2;
 	
 	this.blocks = null;
 	
@@ -37,6 +39,7 @@ Ocean.prototype.update = function(){
 }
 
 Ocean.prototype.topOfWave = function(x){
+	x = x + Math.sin(x*this.turbulenceScale)*this.turbulence;
 	var wave = x*this.wavelength + game.time*this.speed;
 	var height = (this.height - this.waveheight) + (this.waveheight * 0.5 * (1+Math.sin(wave)));
 	return height;

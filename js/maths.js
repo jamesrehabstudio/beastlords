@@ -196,6 +196,100 @@ Math.roundTo = function(x,n){
 	return Math.floor(x/n)*n; 
 }
 
+function Matrix2D() {
+	this.data = [1,0,0,0,1,0,0,0,1];
+}
+Matrix2D.M00 = 0;
+Matrix2D.M10 = 3;
+Matrix2D.M20 = 6;
+Matrix2D.M01 = 1;
+Matrix2D.M11 = 4;
+Matrix2D.M21 = 7;
+Matrix2D.M02 = 2;
+Matrix2D.M12 = 5;
+Matrix2D.M22 = 8;
+
+Matrix2D.prototype.multiply = function (m){
+	var out = new Matrix2D();
+	
+	out.data = [
+		m.data[Matrix2D.M00] * this.data[Matrix2D.M00] + m.data[Matrix2D.M01] * this.data[Matrix2D.M10] + m.data[Matrix2D.M02] * this.data[Matrix2D.M20],
+		m.data[Matrix2D.M00] * this.data[Matrix2D.M01] + m.data[Matrix2D.M01] * this.data[Matrix2D.M11] + m.data[Matrix2D.M02] * this.data[Matrix2D.M21],
+		m.data[Matrix2D.M00] * this.data[Matrix2D.M02] + m.data[Matrix2D.M01] * this.data[Matrix2D.M12] + m.data[Matrix2D.M02] * this.data[Matrix2D.M22],
+		
+		m.data[Matrix2D.M10] * this.data[Matrix2D.M00] + m.data[Matrix2D.M11] * this.data[Matrix2D.M10] + m.data[Matrix2D.M12] * this.data[Matrix2D.M20],
+		m.data[Matrix2D.M10] * this.data[Matrix2D.M01] + m.data[Matrix2D.M11] * this.data[Matrix2D.M11] + m.data[Matrix2D.M12] * this.data[Matrix2D.M21],
+		m.data[Matrix2D.M10] * this.data[Matrix2D.M02] + m.data[Matrix2D.M11] * this.data[Matrix2D.M12] + m.data[Matrix2D.M12] * this.data[Matrix2D.M22],
+		
+		m.data[Matrix2D.M20] * this.data[Matrix2D.M00] + m.data[Matrix2D.M21] * this.data[Matrix2D.M10] + m.data[Matrix2D.M22] * this.data[Matrix2D.M20],
+		m.data[Matrix2D.M20] * this.data[Matrix2D.M01] + m.data[Matrix2D.M21] * this.data[Matrix2D.M11] + m.data[Matrix2D.M22] * this.data[Matrix2D.M21],
+		m.data[Matrix2D.M20] * this.data[Matrix2D.M02] + m.data[Matrix2D.M21] * this.data[Matrix2D.M12] + m.data[Matrix2D.M22] * this.data[Matrix2D.M22]
+	];
+	return out;
+}
+Matrix2D.prototype.toFloatArray = function(){
+	//return new Float32Array(this.data);
+	return new Float32Array(this.data);
+}
+Matrix2D.prototype.transition = function(x,y){
+	if(x instanceof Point){
+		x = x.x;
+		y = x.y;
+	}
+	var out = new Matrix2D();
+	out.data[Matrix2D.M00] = this.data[Matrix2D.M00];
+	out.data[Matrix2D.M01] = this.data[Matrix2D.M01];
+	out.data[Matrix2D.M02] = this.data[Matrix2D.M02];
+	
+	out.data[Matrix2D.M10] = this.data[Matrix2D.M10];
+	out.data[Matrix2D.M11] = this.data[Matrix2D.M11];
+	out.data[Matrix2D.M12] = this.data[Matrix2D.M12];
+	
+	out.data[Matrix2D.M20] = x * this.data[Matrix2D.M00] + y * this.data[Matrix2D.M10] + this.data[Matrix2D.M20];
+	out.data[Matrix2D.M21] = x * this.data[Matrix2D.M01] + y * this.data[Matrix2D.M11] + this.data[Matrix2D.M21];
+	out.data[Matrix2D.M22] = x * this.data[Matrix2D.M02] + y * this.data[Matrix2D.M12] + this.data[Matrix2D.M22];
+	
+	return out;
+}
+Matrix2D.prototype.scale = function(x,y){
+	if(x instanceof Point){
+		y = x.y;
+		x = x.x;
+	}
+	var out = new Matrix2D();
+	out.data[Matrix2D.M00] = x * this.data[Matrix2D.M00];
+	out.data[Matrix2D.M01] = x * this.data[Matrix2D.M01];
+	out.data[Matrix2D.M02] = x * this.data[Matrix2D.M02];
+	
+	out.data[Matrix2D.M10] = y * this.data[Matrix2D.M10];
+	out.data[Matrix2D.M11] = y * this.data[Matrix2D.M11];
+	out.data[Matrix2D.M12] = y * this.data[Matrix2D.M12];
+	
+	out.data[Matrix2D.M20] = out.data[Matrix2D.M20]
+	out.data[Matrix2D.M21] = out.data[Matrix2D.M21]
+	out.data[Matrix2D.M22] = out.data[Matrix2D.M22]
+	return out;
+}
+Matrix2D.prototype.rotate = function(a){
+	var out = new Matrix2D();
+	var s = Math.sin(a);
+	var c = Math.cos(a);
+	
+	out.data[Matrix2D.M00] = c * this.data[Matrix2D.M00] + s * this.data[Matrix2D.M10];
+	out.data[Matrix2D.M01] = c * this.data[Matrix2D.M01] + s * this.data[Matrix2D.M11];
+	out.data[Matrix2D.M02] = c * this.data[Matrix2D.M02] + s * this.data[Matrix2D.M12];
+	
+	out.data[Matrix2D.M10] = c * this.data[Matrix2D.M10] - s * this.data[Matrix2D.M00];
+	out.data[Matrix2D.M11] = c * this.data[Matrix2D.M11] - s * this.data[Matrix2D.M01];
+	out.data[Matrix2D.M12] = c * this.data[Matrix2D.M12] - s * this.data[Matrix2D.M02];
+	
+	out.data[Matrix2D.M20] = this.data[Matrix2D.M20];
+	out.data[Matrix2D.M21] = this.data[Matrix2D.M21];
+	out.data[Matrix2D.M22] = this.data[Matrix2D.M22];
+	
+	return out;
+}
+
 function Polygon(){
 	this.points = new Array();
 	this._lines = new Array();

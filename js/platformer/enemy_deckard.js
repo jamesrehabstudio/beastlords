@@ -163,6 +163,9 @@ Deckard.prototype.update = function(){
 					bullet.damage = this.damage;
 					bullet.effect = EffectSmoke;
 					bullet.team = this.team;
+					bullet.explode = true;
+					bullet.frames = [5,6,7];
+					bullet.frame.y = 1;
 					game.addObject(bullet);
 				}
 				
