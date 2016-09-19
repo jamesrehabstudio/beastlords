@@ -2,7 +2,7 @@
 i18n_language = "english";
 i18n_messages = {
 	"intro_text" : {
-		"english" : "This is a closed alpha of game. This version is for 'first impressions' of Beast Lords, to get some early feedback about the game. Is it too hard, too easy, no fun, too fun? Is there a part you found frustrating or something you think needs changed? This is what this demo is meant to assess. If you weren't explictly given this demo, then someone was a naughty boy.",
+		"english" : "This is a closed alpha released on the 19th of June, 2016. This version is to be shared with close friends for a 'first impression' and to gather some feedback about the game. Is it too hard, too easy, no fun, too fun? Is there a part you found frustrating or something you think needs changed? This is what this demo is meant to assess. If you weren't explictly given this demo, then someone was naughty.",
 		"engrish" : "Distant war has hurt the land. The people will search for their home to a new land is safe from a distance dispute. Look out for poverty. In the castle of a mysterious Beast Lords take what is necessary for what is needed to survive. You will save the new home."
 	},
 	"introduction" : {
@@ -58,6 +58,9 @@ i18n_messages = {
 	"chancellor_intro" : {
 		"english" : "I'm the chancellor of this town. I manage the money. It turns out I don't manage it very well at all. Say, you wouldn't want to donate a little to our good town? I promise, every single penny will go to good projects!",
 		"engrish" : "My name is Chancellor. I make good with the money. The money is trouble. You can donate your money to the town through me. I'll spend your money correctly. Press people to other construction. Donate to make the construction into a new with my assistant."
+	},
+	"npc_chargeattackman" : {
+		"english" : "Hold down the attack button with %fire% to unlease a powerful slash!"
 	},
 	"npc_dodgeman" : {
 		"english" : "Did you know you can perform a dodge roll by pressing %dodge%?"

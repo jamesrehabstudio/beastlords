@@ -122,8 +122,8 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 
 var WeaponStats = {
 	"short_sword" : createWeaponTemplate(0.05,0.30,0.08,0.15,38),
-	"long_sword" : createWeaponTemplate(0.15,0.333,0.1,0.2,42),
-	"broad_sword" : createWeaponTemplate(0.25,0.4,0.1,0.3,42)
+	"long_sword" : createWeaponTemplate(0.10,0.333,0.1,0.2,42),
+	"broad_sword" : createWeaponTemplate(0.20,0.35,0.1,0.3,42)
 }
 
 WeaponStats.short_sword.damage = 3;

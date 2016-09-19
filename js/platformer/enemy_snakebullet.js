@@ -47,11 +47,11 @@ SnakeBullet.prototype.update = function(){
 	if(this.grounded){
 		this.force.x += this.speed * (this.flip ? -1 : 1) * this.delta;
 		this.strike(new Line(new Point(0,-3),new Point(12,3)));
-		this.frame = (this.frame + this.delta * 0.2) % 4;
-		this.frame_row = 0;
+		this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+		this.frame.y = 0;
 	} else {
-		this.frame = (this.frame + this.delta * 0.3) % 4;
-		this.frame_row = 1;
+		this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+		this.frame.y = 1;
 	}
 	
 	if(this.timeCounter <= 0){

@@ -17,7 +17,7 @@ function Spawn(x,y,d,ops){
 	this.timerTotal = 0.0;
 	this.edgespawn = false;
 	this.idleMargin = 0;
-	this.spawnRest = 0;
+	this.spawnRest = Game.DELTASECOND * 20;
 	this.lastSpawn = 0;
 	
 	this.on("activate",function(obj){
@@ -68,7 +68,7 @@ function Spawn(x,y,d,ops){
 		this.timer = this.timerTotal;
 	}
 	if("spawnrest" in this.options){
-		this.spawnRest = this.options.spawnrest * 1000;
+		this.spawnRest = this.options.spawnrest * Game.DELTASECOND;
 	}
 	if("trigger" in this.options){
 		this._tid = this.options.trigger;
@@ -94,13 +94,11 @@ Spawn.prototype.update = function(){
 
 Spawn.prototype.spawn = function(){
 	try{
-		var date = new Date() * 1;
-		
-		if(this.lastSpawn + this.spawnRest > date){
+		if(this.lastSpawn + this.spawnRest > game.timeScaled){
 			console.log("previous spawn")
 			return;
 		}
-		this.lastSpawn = date;
+		this.lastSpawn = game.timeScaled;
 		
 		if(this.specific instanceof Array){
 			this.create(this.specific);

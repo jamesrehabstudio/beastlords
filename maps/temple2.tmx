@@ -1038,6 +1038,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="49" name="Spawn" x="5312" y="1504" width="32" height="32">
@@ -1047,6 +1048,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="50" name="Spawn" x="5232" y="1520" width="32" height="32">
@@ -1056,6 +1058,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="54" name="Spawn" x="3904" y="1504" width="32" height="32">
@@ -1065,6 +1068,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="56" name="Spawn" x="3712" y="1504" width="32" height="32">
@@ -1074,6 +1078,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="58" name="Trigger" x="16" y="3264" width="80" height="64">
@@ -1235,6 +1240,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="209" name="Spawn" x="3680" y="2032" width="32" height="32">
@@ -1244,6 +1250,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="210" name="Spawn" x="3760" y="2032" width="32" height="32">
@@ -1253,6 +1260,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="212" name="DamageTrigger" x="3536" y="2128" width="464" height="16"/>
@@ -1412,6 +1420,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="251" name="Spawn" x="3328" y="1488" width="32" height="32">
@@ -1421,6 +1430,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="256" name="SinkingBlock" x="3920" y="1648" width="48" height="32">
@@ -1581,6 +1591,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
     <property name="trigger" value="bridge1"/>
    </properties>
   </object>
@@ -2024,6 +2035,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
     <property name="trigger" value="bridge1"/>
    </properties>
   </object>
@@ -2033,6 +2045,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
     <property name="trigger" value="bridge1"/>
    </properties>
   </object>
@@ -2042,6 +2055,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
     <property name="trigger" value="bridge1"/>
    </properties>
   </object>
@@ -2713,6 +2727,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="553" name="Spawn" x="3312" y="3264" width="32" height="32">
@@ -2722,6 +2737,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="554" name="Spawn" x="3392" y="3248" width="32" height="32">
@@ -2731,6 +2747,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="555" name="Spawn" x="3344" y="3504" width="32" height="32">
@@ -2740,6 +2757,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="556" name="Spawn" x="3072" y="3520" width="32" height="32">
@@ -2749,6 +2767,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="557" name="Spawn" x="2992" y="3504" width="32" height="32">
@@ -2758,6 +2777,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="558" name="Spawn" x="2688" y="3520" width="32" height="32">
@@ -2767,6 +2787,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="559" name="Spawn" x="2592" y="3520" width="32" height="32">
@@ -2776,6 +2797,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="560" name="Spawn" x="2224" y="3520" width="32" height="32">
@@ -2785,6 +2807,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="561" name="Spawn" x="2320" y="3520" width="32" height="32">
@@ -2794,6 +2817,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="562" name="Spawn" x="2128" y="3520" width="32" height="32">
@@ -2803,6 +2827,7 @@
     <property name="difficulty" value="1"/>
     <property name="enemies" value="FlyingSlime"/>
     <property name="respawn" value="1"/>
+    <property name="spawnrest" type="int" value="0"/>
    </properties>
   </object>
   <object id="563" name="Drain" x="1856" y="3296" width="160" height="160">

@@ -105,11 +105,12 @@ Smith.prototype.update = function(){
 	
 	//Animation
 	if(this.slackCooldown <= 0){
-		this.frame.x = this.frame.x + this.delta * 0.2;
-		this.frame.y = 4;
+		var progress = this.slackCooldown / -Game.DELTASECOND * 1.5;
+		this.frame = Smith.anim_braces.frame(progress);
 		
-		if(this.frame.x >= 3){
-			this.slackCooldown = Game.DELTASECOND * 3;
+		this.slackCooldown -= this.delta
+		if(this.slackCooldown <= -Game.DELTASECOND * 1.5){
+			this.slackCooldown = Game.DELTASECOND * 4;
 			this.frame.x = 0;
 			this.frame.y = 3;
 		}
@@ -148,6 +149,12 @@ Smith.prototype.hudrender = function(g,c){
 		}
 	}
 }
+Smith.anim_braces = new Sequence([
+	[0,4,0.1],
+	[1,4,1.0],
+	[2,4,0.2],
+	[0,3,0.5],
+]);
 Smith.weapons = [
 	"short_sword", "long_sword", "broad_sword", "spear", "warhammer",
 	"small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"

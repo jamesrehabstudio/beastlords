@@ -66,9 +66,6 @@ Material.prototype.addProperty = function(prop) {
 				location = this.gl.getAttribLocation(this.program, name);
 				this.gl.enableVertexAttribArray(location);
 			}
-			if(type == "mat3"){
-				console.log(prop);
-			}
 			this.properties[name] = {
 				"uniform" : isUniform,
 				"type" : Material.propertyTypes.indexOf(type),
@@ -224,8 +221,8 @@ Sprite.prototype.imageLoaded = function() {
 	//Create WebGL context for texture
 	this.gl_tex = gl.createTexture();
 	gl.bindTexture( gl.TEXTURE_2D, this.gl_tex );
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	//gl.generateMipmap(gl.TEXTURE_2D);
@@ -234,26 +231,17 @@ Sprite.prototype.imageLoaded = function() {
 	//gl.bindTexture( gl.TEXTURE_2D, null );
 }
 	
-Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
+Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 	if( !this.loaded  ) return;
-	
-	if(frame == undefined ){
-		frame = row = 0;
-	} else if ( row == undefined ) {
-		var f = Math.floor(frame);
-		frame = f % Math.floor(this.width/this.frame_width);
-		row = Math.floor(f / Math.floor(this.width/this.frame_width));
-	} else {
-		frame = ~~frame;
-		row = ~~row;
-	}
 	
 	shaderOps = shaderOps || {};
 	
+	//Set default shader, scale and rotation
 	var shader = window.materials["default"];
 	var scale = 1.0;
 	var rotate = 0.0;
 	
+	//Choose shader
 	if( "shader" in shaderOps){
 		if( shaderOps["shader"] instanceof Material ){
 			//Correct shader already selected
@@ -262,6 +250,10 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 		}
 		delete shaderOps.shader;
 	}
+	
+	shader.use();
+	
+	//Set shader options
 	if("scale" in shaderOps){
 		scale = shaderOps["scale"] * 1;
 	}
@@ -269,55 +261,34 @@ Sprite.prototype.render = function( gl, p, frame, row, flip, shaderOps ) {
 		rotate = shaderOps["rotate"] / 180 * Math.PI;
 		//r = r / 180 * Math.PI;
 	}
-	
-	shader.use();
-	
 	for(var i in shaderOps){
 		shader.set(i, shaderOps[i]);
 	}
 	
-	var xinc = this.frame_width / (this.img.width * 1.0);
-	var yinc = this.frame_height / (this.img.height * 1.0);
-	
-	var x1 = frame * xinc;
-	var x2 = (frame+1) * xinc;
-	var y1 = row * yinc;
-	var y2 = (row+1) * yinc;
-	var offset = new Point(this.offset.x*scale, this.offset.y*scale);
+	//texture is mirrored in negative index, flip inverts UVs
 	if( flip ) {
-		var temp = x1;
-		x1 = x2;
-		x2 = temp;
-		offset.x = this.frame_width * scale - offset.x;
+		frame_x = -(frame_x + 1);
+		p.x += this.offset.x * 2 - this.frame_width;
 	}
 	
+	//Set UVs
 	var texbuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, texbuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-		x1, y1,
-		x2, y1,
-		x1, y2,
-		x1, y2,
-		x2, y1,
-		x2, y2
-	]), gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);
+	gl.bufferData(gl.ARRAY_BUFFER, Sprite.UV, gl.DYNAMIC_DRAW);
 	shader.set("a_texCoord");
 	
+	//Set texture image
 	shader.setTexture(this.gl_tex);
-	//gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
 	
+	//Set geometry
 	if( !this.buffer ) this.buffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-	
-	//var geodata = Sprite.RectBuffer(new Point(), this.frame_width*scale,this.frame_height*scale,rotate,this.offset);
-	
 	gl.bufferData(gl.ARRAY_BUFFER, this.mesh, gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 	shader.set("a_position");
-	//shader.set("u_resolution",game.resolution.x, game.resolution.y);
-	//shader.set("u_camera", Math.round(p.x-offset.x), Math.round(p.y-offset.y));
-	shader.set("u_world", new Matrix2D().scale(scale,scale).transition(p.x,p.y).rotate(rotate).toFloatArray());
+	
+	//Set transformation matrices for vertex shader
+	shader.set("u_frame", frame_x, frame_y, this.frame_width/this.img.width, this.frame_height/this.img.height);
+	shader.set("u_world", new Matrix2D().transition(p.x,p.y).rotate(rotate).multiply(new Matrix2D().scale(scale,scale)).toFloatArray());
 	shader.set("u_camera", game.cameraMatrix.toFloatArray());
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
@@ -382,23 +353,14 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
 }
 
-Sprite.prototype.uv = function( frame, row ) {
-	if(frame == undefined ){
-		frame = row = 0;
-	} else if ( row == undefined ) {
-		var f = Math.floor(frame);
-		frame = f % Math.floor(this.width/this.frame_width);
-		row = Math.floor(f / Math.floor(this.width/this.frame_width));
-	} else {
-		frame = ~~frame;
-		row = ~~row;
-	}
-	
-	var xinc = this.frame_width / (this.width * 1.0);
-	var yinc = this.frame_height / (this.height * 1.0);
-	
-	return [frame * xinc, row * yinc, (frame+1) * xinc, (row+1) * yinc];
-}
+Sprite.UV = new Float32Array([
+	0, 0,
+	1, 0,
+	0, 1,
+	0, 1,
+	1, 0,
+	1, 1
+]);
 
 Sprite.prototype.getTileUVMap = function(tileData, uvVerts){
 	var tileUV = this.uv(tileData.tile-1);
@@ -473,16 +435,6 @@ Sprite.RectBuffer = function(p, w, h, r, o){
 	var botLeft = p.add(new Point(0,h).rotate(r,o));
 	var botRight = p.add(new Point(w,h).rotate(r,o));
 	
-	/*
-	return new Float32Array([
-		p.x, p.y,
-		p.x+(w*c), p.y+(w*s),
-		p.x-(h*s), p.y+(h*c),
-		p.x-(h*s), p.y+(h*c),
-		p.x+(w*c), p.y+(w*s),
-		p.x+(w*c)-(h*s), p.y+(w*s)+(h*c),
-	]);
-	*/
 	return new Float32Array([
 		topleft.x, topleft.y,
 		topRight.x, topRight.y,

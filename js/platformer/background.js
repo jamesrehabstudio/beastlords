@@ -71,34 +71,6 @@ Background.prototype.postrender = function(g,c){
 		Background.flash = false;
 	}
 }
-
-Background.prototype.renderLightbeam = function(g,p,r,a){
-	g.blendEquation( g.FUNC_ADD );
-	g.blendFunc( g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );
-	
-	var shader = window.materials["lightbeam"].use();
-	
-	var data = Sprite.RectBuffer(new Point(p, 0), 32, 128, r);
-	var tdata = Sprite.RectBuffer(new Point(), 1, 1);
-	
-	var buffer = g.createBuffer();
-	var tbuffer = g.createBuffer();
-	
-	g.bindBuffer( g.ARRAY_BUFFER, buffer);
-	g.bufferData( g.ARRAY_BUFFER, data, g.DYNAMIC_DRAW );
-	shader.set("a_position");
-	g.bindBuffer( g.ARRAY_BUFFER, tbuffer);
-	g.bufferData( g.ARRAY_BUFFER, tdata, g.DYNAMIC_DRAW );
-	shader.set("a_texCoord");
-	shader.set("u_resolution", game.resolution.x, game.resolution.y);
-	shader.set("u_camera", 0, 0);
-	
-	shader.set("u_color", 1.0, 1.0, 0.8, a);
-	
-	g.drawArrays(g.TRIANGLE_STRIP, 0, 6);
-	
-	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
-}
 Background.prototype.renderDust = function(g,c){
 	
 	for(var i=0; i < Math.min(this.dustAmount, this.dust.length); i++){
@@ -122,7 +94,8 @@ Background.prototype.renderDust = function(g,c){
 			{
 				//"shader":"blur",
 				//"blur":Math.min(0.004 * dust.scale, 0.008), 
-				"scale": 0.3*dust.scale
+				"scale": 0.3*dust.scale,
+				"rotate" : 360 * Math.sin(dust.lapse)
 			}
 		);
 	}

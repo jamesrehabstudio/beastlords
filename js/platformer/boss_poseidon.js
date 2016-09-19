@@ -68,7 +68,11 @@ function Poseidon(x,y,d,o){
 			this.states.current == Poseidon.FIRE_STATE ||
 			this.states.current == Poseidon.BASH_STATE
 		){
-			this.setState(Poseidon.ESCAPE_STATE);
+			if(Math.random() < 0.6){
+				this.setState(Poseidon.ESCAPE_STATE);
+			} else {
+				this.setState(Poseidon.JUMP_STATE);
+			}
 		}
 	});
 	this.on("death", function(){
@@ -209,8 +213,6 @@ Poseidon.prototype.update = function(){
 				if(this.states.timer + this.delta >= this.states.timerTotal){
 					var bullet = new Bullet(this.position.x, this.position.y+8, (this.flip?-1:1));
 					bullet.team = 0;
-					bullet.frames = 4;
-					bullet.frame.y = 0;
 					bullet.blockable = 1;
 					bullet.force.x *= 2;
 					bullet.damage = this.damage;
@@ -251,8 +253,6 @@ Poseidon.prototype.update = function(){
 					bullet.blockable = 0;
 					bullet.damage = Math.round(this.damage*1.5);
 					bullet.explode = true;
-					bullet.frames = [5,6,7];
-					bullet.frame.y = 1;
 					game.addObject(bullet);
 				}
 				this.frame.x = Math.min(4 + timerProgress*6, 7);

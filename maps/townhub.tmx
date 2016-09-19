@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="80" height="30" tilewidth="16" tileheight="16" nextobjectid="18">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="80" height="30" tilewidth="16" tileheight="16" nextobjectid="21">
  <tileset firstgid="1" name="planes" tilewidth="16" tileheight="16" tilecount="1024" columns="32">
   <image source="../img/tiles/planes.png" trans="ff00ff" width="512" height="512"/>
  </tileset>
@@ -141,6 +141,13 @@
   <object id="17" name="NPC" x="176" y="416" width="16" height="32">
    <properties>
     <property name="script" value="say &quot;npc_downstabman&quot;"/>
+   </properties>
+  </object>
+  <object id="18" name="Tree" x="304" y="304" width="64" height="128"/>
+  <object id="19" name="Tree" x="576" y="272" width="64" height="128"/>
+  <object id="20" name="NPC" x="864" y="416" width="16" height="32">
+   <properties>
+    <property name="script" value="say &quot;npc_chargeattackman&quot;"/>
    </properties>
   </object>
  </objectgroup>

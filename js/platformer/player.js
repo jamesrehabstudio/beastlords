@@ -331,7 +331,9 @@ function Player(x, y){
 	this.invincible_time = Game.DELTASECOND * 1.5;
 	this.autoblock = true;
 	this.rollTime = Game.DELTASECOND * 0.5;
-	this.dodgeTime = this.rollTime * 0.33333;
+	this.dodgeTime = this.rollTime * 0.6;
+	this.rollSpeed = 9;
+	this.dodgeSpeed = 15;
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
@@ -459,18 +461,7 @@ Player.prototype.update = function(){
 		}
 		
 		if (this.stun > 0 ){
-			//Try to escape stun effect
-			/*
-			if(
-				input.state("left") == 1 ||
-				input.state("right") == 1 ||
-				input.state("fire") == 1 ||
-				input.state("jump") == 1
-			){
-				this.statusEffects.stun -= 2.0;
-				this.position.y -= 2;
-			}
-			*/
+			//Do nothing, just wait to recover
 		} else if (this.states.spellCounter > 0){
 			this.states.spellCounter -= this.delta;
 			if(this.states.spellCounter <= 0){
@@ -482,9 +473,9 @@ Player.prototype.update = function(){
 		} else if( this.states.roll > 0 ) {
 			if(this.dodgeFlash){
 				this.force.y -= (0.2 + this.gravity) * this.delta;
-				this.force.x = this.forward() * 15;
+				this.force.x = this.forward() * this.dodgeSpeed;
 			} else {
-				this.force.x = this.forward() * 6;
+				this.force.x = this.forward() * this.rollSpeed;
 			}
 			this.states.roll -= this.delta;
 			if( input.state("jump") == 1 ){
@@ -539,11 +530,6 @@ Player.prototype.update = function(){
 			
 			this.states.guard = ( input.state('block') > 0 || this.autoblock );
 			
-			if(this.states.turn > 0){
-				//Block disabled while turning
-				this.states.guard = false;
-			}
-			
 			if(input.state("select") == 1 && this.spells.length > 0){
 				audio.play("equip");
 				this.spellCursor = (this.spellCursor+1)%this.spells.length;
@@ -557,6 +543,13 @@ Player.prototype.update = function(){
 				if ( input.state('right') <= 0 && input.state('left') <= 0 && this.grounded ) { 
 					this.force.x -= this.force.x * Math.min(this.speeds.breaks*this.delta);
 				}
+			} else {
+				this.states.turn = 0.0;
+			}
+			
+			if(this.states.turn > 0){
+				//Block disabled while turning
+				this.states.guard = false;
 			}
 			
 			if(this.states.againstwall && !this.grounded && input.state("down") <= 0){
@@ -635,10 +628,11 @@ Player.prototype.update = function(){
 					this.force.y = 0;
 					this.position.y -= 1;
 					this.grounded = false;
+					this.states.rollCooldown = this.speeds.rollCooldown;
 				} else if(this.grounded){
 					this.states.roll = this.invincible = this.rollTime;
+					this.states.rollCooldown = this.speeds.rollCooldown;
 				}
-				this.states.rollCooldown = this.speeds.rollCooldown;
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
@@ -782,7 +776,6 @@ Player.prototype.duck = function(){
 	if( !this.states.duck ) {
 		this.position.y += 3.0;
 		this.states.duck = true;
-		this.states.turn = 0.0;
 		if( this.grounded )	this.force.x = 0;
 		this.frame.x = 0;
 	}

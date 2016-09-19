@@ -10,21 +10,21 @@ function game_start(g){
 	var shaders = window.shaders;
 	
 	new Material(g.g, "default", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-default"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
-	new Material(g.g, "tiles", {"fs":shaders["2d-fragment-shader"],"vs":shaders["tile-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
-	new Material(g.g, "hurt", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"],"settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
-	new Material(g.g, "gold", {"fs":shaders["fragment-greytocolor"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
-	new Material(g.g, "color", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-shader"]} );
-	new Material(g.g, "heat", {"fs":shaders["fragment-heat"],"vs":shaders["2d-vertex-shader"]} );
-	new Material(g.g, "blur", {"fs":shaders["2d-fragment-blur"],"vs":shaders["2d-vertex-shader"]} );
-	new Material(g.g, "enchanted", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"], "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
-	new Material(g.g, "item", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-shader"]} );
-	new Material(g.g, "halo", {"fs":shaders["2d-fragment-redasalpha"],"vs":shaders["2d-vertex-shader"]} );
+	new Material(g.g, "tiles", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-tile"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "hurt", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-default"],"settings":{"u_color":[0.8,0.1,0.0,1.0]}} );
+	new Material(g.g, "gold", {"fs":shaders["fragment-greytocolor"],"vs":shaders["2d-vertex-default"], "settings":{"u_color":[1.0,0.9,0.2,1.0]}} );
+	new Material(g.g, "color", {"fs":shaders["2d-fragment-shader"],"vs":shaders["2d-vertex-default"]} );
+	new Material(g.g, "heat", {"fs":shaders["fragment-heat"],"vs":shaders["2d-vertex-default"]} );
+	new Material(g.g, "blur", {"fs":shaders["2d-fragment-blur"],"vs":shaders["2d-vertex-default"]} );
+	new Material(g.g, "enchanted", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-default"], "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
+	new Material(g.g, "item", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-default"]} );
+	new Material(g.g, "halo", {"fs":shaders["2d-fragment-redasalpha"],"vs":shaders["2d-vertex-default"]} );
 	
-	new Material(g.g, "t1", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.1]}} );
-	new Material(g.g, "t2", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[-0.1]}} );
-	new Material(g.g, "t3", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.2]}} );
-	new Material(g.g, "t4", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.3]}} );
-	new Material(g.g, "t5", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-shader"], "settings":{"u_shift":[0.5]}} );
+	new Material(g.g, "t1", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-default"], "settings":{"u_shift":[0.1]}} );
+	new Material(g.g, "t2", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-default"], "settings":{"u_shift":[-0.1]}} );
+	new Material(g.g, "t3", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-default"], "settings":{"u_shift":[0.2]}} );
+	new Material(g.g, "t4", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-default"], "settings":{"u_shift":[0.3]}} );
+	new Material(g.g, "t5", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-default"], "settings":{"u_shift":[0.5]}} );
 	
 	new Material(g.g, "backbuffer", {"fs":shaders["2d-fragment-shader"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "solid", {"fs":shaders["2d-fragment-solid"],"vs":shaders["2d-vertex-shader"]} );
@@ -327,6 +327,7 @@ function load_sprites (){
 	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48});
 	sprites['switch'] = new Sprite(RT+"img/switch.gif", {offset:new Point(0, 4),width:16,height:40});
 	sprites['treads'] = new Sprite(RT+"img/treads.png", {offset:new Point(0, 0),width:16,height:16});
+	sprites['trees'] = new Sprite(RT+"img/trees.png", {offset:new Point(28, 48),width:56,height:48});
 	sprites['owlwizzard'] = new Sprite(RT+"img/owlwizzard.png", {offset:new Point(24, 24),width:48,height:48});
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
@@ -452,7 +453,7 @@ window.audio = new AudioPlayer({
 	"music_goodbye" : {"url":RT+"sounds/music_goodbye.mp3", "music":true},
 	"music_intro" : {"url":RT+"sounds/music_intro.ogg", "music":true,"loop":0.0},
 	"music_temple1" : {"url":RT+"sounds/music_temple1.ogg","music":true,"loop":73.205},
-	"music_temple2" : {"url":RT+"sounds/music_temple2.ogg","music":true,"loop":72.077},
+	"music_temple2" : {"url":RT+"sounds/music_temple2.ogg","music":true,"loop":28.822},
 	"music_temple3" : {"url":RT+"sounds/music_temple3.ogg","music":true,"loop":0},
 	"music_temple4" : {"url":RT+"sounds/music_temple4.ogg","music":true,"loop":32.011},
 	"music_town" : {"url":RT+"sounds/music_town.ogg","music":true,"loop":0.0},
