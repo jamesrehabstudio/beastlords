@@ -442,6 +442,8 @@ function FlameTower(x,y,d,o){
 	this.damage = 1;
 	this.time = 0;
 	
+	this.flameHeight = 88;
+	
 	this.timers = {
 		"wait" : Game.DELTASECOND,
 		"active" : Game.DELTASECOND * 2.5,
@@ -471,7 +473,7 @@ FlameTower.prototype.update = function(){
 	} else {
 		var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
 		var preh = this.height;
-		this.height = 88 * Math.min(prog*1.5,1);
+		this.height = this.flameHeight * Math.min(prog*1.5,1);
 		this.rigidbodyActive = false;
 		this.position.y -= 0.5 * (this.height-preh);
 		Background.pushLight( this.position, this.height*2, COLOR_FIRE );

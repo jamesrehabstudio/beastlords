@@ -33,6 +33,7 @@ function FlyingSlime(x,y,d,o){
 	}
 	
 	this.life = 9999;
+	this.damageReduction = 1.0;
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.loopTime = 0.0;
 	this.loopTimeFull = Game.DELTASECOND;

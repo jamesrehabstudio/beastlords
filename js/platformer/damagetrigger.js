@@ -28,7 +28,7 @@ function DamageTrigger(x,y,d,o){
 	}
 	
 	this.on("collideObject", function(obj){
-		if( obj instanceof Player ) {
+		if( obj.hurtByDamageTriggers ) {
 			if(this.alwaysKill){
 				obj.invincible = -1;
 				obj.life = 0;

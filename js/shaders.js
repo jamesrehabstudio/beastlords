@@ -84,3 +84,9 @@ window.shaders["fragment-heat"] = "precision mediump float;\nuniform sampler2D u
 
 window.shaders["fragment-shifthue"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_shift;\n\nvec3 rgb2hsv(vec3 c)\n{\n	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);\n	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));\n	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));\n\n	float d = q.x - min(q.w, q.y);\n	float e = 1.0e-10;\n	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);\n}\n\nvec3 hsv2rgb(vec3 c)\n{\n	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	vec3 hsv = rgb2hsv(color.rgb);\n	hsv.x = mod(hsv.x + u_shift, 1.0);\n	vec3 rgb = hsv2rgb(hsv);\n	gl_FragColor = vec4(rgb,color.a);\n}";
 
+
+
+ /* platformer\shaders\fragment-water.shader*/ 
+
+window.shaders["fragment-water"] = "precision mediump float;\nuniform sampler2D u_image;\n\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\nuniform vec4 u_dimensions;\nuniform vec3 u_wavesize;\nuniform float u_time;\n\nvoid main() {\n	vec4 deepblue = vec4(0,0.2,0.5,1.0);\n	vec4 surfblue = vec4(0.9,0.95,1.0,1.0);\n	\n	float textx = v_texCoord.x + u_dimensions.x / (u_dimensions.z*0.5);\n	\n	float x = sin(textx * 30.0) * 10.0 + textx * u_dimensions.z;\n	float w = u_time * u_wavesize.z + (x * u_wavesize.x);\n	float h = (1.0 + sin(w)) * (u_wavesize.y / u_dimensions.w) * 0.5;\n	\n	vec4 color = mix(u_color,deepblue,pow(v_texCoord.y-h,0.5));\n	if(v_texCoord.y < h+0.01){\n		color = surfblue;\n	}\n	if(v_texCoord.y > h){\n		color.a = 1.0;\n	} else {\n		color.a = 0.0;\n	}\n	\n	gl_FragColor = color;\n}";
+

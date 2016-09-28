@@ -84,14 +84,15 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 		return 1;
 	});
 }
-Renderer.scaleFillRect = function(x,y,w,h){
+Renderer.scaleFillRect = function(x,y,w,h,ops){
 	Renderer.layers[Renderer.layer].insertSort({
 		"type" : 1,
 		"color" : [Renderer.color[0],Renderer.color[1],Renderer.color[2],Renderer.color[3]],
 		"x" : x,
 		"y" : y,
 		"w" : w,
-		"h" : h
+		"h" : h,
+		"options" : ops
 	},function(a,b){
 		if("z" in b){
 			return -1;

@@ -39,7 +39,7 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 				"rest":restTime*Game.DELTASECOND,
 				"miss":missTime*Game.DELTASECOND,
 				"animation" : 0,
-				"pause" : 0.1*Game.DELTASECOND,
+				"pause" : 0.05*Game.DELTASECOND,
 				"stun" : 0.5*Game.DELTASECOND,
 				"movement" : 0.3
 			},
@@ -51,7 +51,7 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 				"rest":restTime*Game.DELTASECOND,
 				"miss":missTime*Game.DELTASECOND,
 				"animation" : 1,
-				"pause" : 0.333*Game.DELTASECOND,
+				"pause" : 0.05*Game.DELTASECOND,
 				"stun" : 0.5*Game.DELTASECOND,
 				"movement" : 0.3
 			},
@@ -64,7 +64,7 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 				"miss":missTime*1.2*Game.DELTASECOND,
 				"animation" : 2,
 				"force" : new Point(3.0, 0.0),
-				"pause" : 0.333*Game.DELTASECOND,
+				"pause" : 0.05*Game.DELTASECOND,
 				"knockback" : 5,
 				"stun" : 0.25 * Game.DELTASECOND,
 				"movement" : 0.3
@@ -90,13 +90,14 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 			"alwaysqueue" : 0,
 			"length" : 1,
 			0 : {
-				"strike" : new Line(new Point(0,-8), new Point(length,12)),
+				"strike" : new Line(new Point(0,-24), new Point(length,12)),
 				"damage":0.8,
 				"warm" : warmTime*Game.DELTASECOND,
 				"time" : 1.5*baseTime*Game.DELTASECOND,
 				"rest":restTime*Game.DELTASECOND,
 				"miss":restTime*Game.DELTASECOND,
 				"animation" : 3,
+				"pause" : 0.05*Game.DELTASECOND,
 				"stun" : 0.5 * Game.DELTASECOND,
 				"movement" : 1.0
 			}

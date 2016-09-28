@@ -13,12 +13,13 @@ function Spawn(x,y,d,ops){
 	this.enemies = new Array();
 	this.enemiesLimit = 1;
 	this.active = false;
+	this.respawn = false;
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
 	this.edgespawn = false;
 	this.idleMargin = 0;
 	this.spawnRest = Game.DELTASECOND * 20;
-	this.lastSpawn = 0;
+	this.lastSpawn = Number.MIN_SAFE_INTEGER;
 	
 	this.on("activate",function(obj){
 		this.clear();
@@ -52,11 +53,7 @@ function Spawn(x,y,d,ops){
 		this.edgespawn = this.options.edgespawn * 1;
 	}
 	if("respawn" in this.options){
-		this.on("wakeup",function(){
-			if(this.active && this.count() < this.enemiesLimit){
-				this.spawn();
-			}
-		});
+		this.respawn = this.options["respawn"] * 1;
 	}
 	if( "tags" in this.options ){
 		this.tags = this.options.tags.split(",");
@@ -74,18 +71,21 @@ function Spawn(x,y,d,ops){
 		this._tid = this.options.trigger;
 	}
 	
-	if(autospawn){
-		//Spawn on creation
-		this.spawn();
-	}
+	this.on("wakeup",function(){
+		if(this.active && this.count() < this.enemiesLimit){
+			this.spawn();
+		}
+	});
 }
 
 Spawn.prototype.update = function(){
-	if(this.timerTotal > 0){
-		this.timer -= this.delta;
-		if(this.timer <= 0){
-			this.timer = this.timerTotal;
-			if(this.count() < this.enemiesLimit){
+	if(this.count() >= this.enemiesLimit){
+		this.lastSpawn = game.timeScaled;
+	} else {
+		if(this.timerTotal > 0){
+			this.timer -= this.delta;
+			if(this.timer <= 0){
+				this.timer = this.timerTotal;
 				this.spawn();
 			}
 		}
@@ -95,10 +95,11 @@ Spawn.prototype.update = function(){
 Spawn.prototype.spawn = function(){
 	try{
 		if(this.lastSpawn + this.spawnRest > game.timeScaled){
-			console.log("previous spawn")
 			return;
 		}
+		
 		this.lastSpawn = game.timeScaled;
+		this.active = this.respawn;
 		
 		if(this.specific instanceof Array){
 			this.create(this.specific);
@@ -127,6 +128,9 @@ Spawn.prototype.spawn = function(){
 	} catch( err ) {
 		console.error( "No valid enemy matching tags: " + this.tags );
 	}
+}
+Spawn.prototype.isAlive = function(enemies){
+	return this.count() > 0;
 }
 Spawn.prototype.count = function(enemies){
 	var count = 0;

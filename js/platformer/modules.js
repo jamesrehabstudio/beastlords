@@ -325,6 +325,7 @@ var mod_combat = {
 		this.criticalMultiplier = 4.0;
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
+		this.hurtByDamageTriggers = true;
 		
 		//Counters
 		this.invincible = 0;
@@ -381,6 +382,7 @@ var mod_combat = {
 				//Remove effects
 				this.buffs = new Array();
 				this.buffer_damage = 0;
+				this.hurtByDamageTriggers = false;
 				
 				//Trigger death
 				if( this.death_time > 0 ) {
@@ -555,6 +557,7 @@ var Combat = {
 		);
 		
 		offset.correct();
+		this.ttest = offset;
 		var hits = game.overlaps(offset);
 		for(var i=0; i < hits.length; i++){
 			if(hits[i].interactive){

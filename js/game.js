@@ -159,7 +159,7 @@ function Game( elm ) {
 	
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
-	this.renderOrder = [0,1,2,"o",3];
+	this.renderOrder = [0,1,"o",2,3];
 	this.layerCamera = {
 		//0 : function(c){ return new Point(c.x*0.9375, c.y); }
 	}
@@ -310,7 +310,8 @@ Game.prototype.renderObject = function(obj){
 				obj.x,
 				obj.y,
 				obj.w,
-				obj.h
+				obj.h,
+				obj.options
 			);
 		}
 	} catch (err){

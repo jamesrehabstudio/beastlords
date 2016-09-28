@@ -4,25 +4,25 @@ function Bear(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
+	this.width = 32;
 	this.height = 32;
 	this.sprite = "bear";
 	this.speed = 0.2;
 	this.active = false;
+	this.start = new Point(x,y);
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
+	this.guard.y = -15;
+	this.guard.h = 32;
+	
 	this.states = {
+		"attackTotal" : Game.DELTASECOND * 1.5,
 		"attack" : 0,
 		"cooldown" : 100.0,
-		"attack_down" : false,
-		"guard" : 2 //0 none, 1 bottom, 2 top
+		"block" : 0.0
 	}
-	
-	this.attack_warm = 40.0;
-	this.attack_time = 23.0;
-	this.attack_rest = 0.0;
 	
 	o = o || {};
 	
@@ -41,12 +41,13 @@ function Bear(x,y,d,o){
 		if( this.team == obj.team ) return;
 		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
-	this.on("struck", EnemyStruck);
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		if( this.inviciple > 0 ) return;
 		
 		var dir = this.position.subtract(obj.position);
+		
+		this.states.block = Game.DELTASECOND * 0.5;
 	
 		//blocked
 		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
@@ -54,108 +55,66 @@ function Bear(x,y,d,o){
 		audio.playLock("block",0.1);
 	});
 	this.on("hurt", function(){
-		this.states.attack = -1.0;
-		this.states.cooldown = Math.random() > 0.6 ? 0 : 30;
-		this.states.guard = Math.random() > 0.5 ? 1 : 2;
+		this.states.attack = 0.0;
 		audio.play("hurt");
 	});
 	this.on("death", function(){
 		Item.drop(this);
-		_player.addXP(this.xp_award);
 		audio.play("kill");
 		this.destroy();
 	});
-	
-	SpecialEnemy(this);
-	this.calculateXP();
 }
 Bear.prototype.update = function(){	
-	//this.sprite = "knight";
+	var dir = this.position.subtract(_player.position);
+	var dis = this.position.subtract(this.start);
+	
 	if(this.life > 0){
-		if ( this.stun <= 0 ) {
-			var dir = this.position.subtract( _player.position );
-			this.active = this.active || Math.abs( dir.x ) < 120;
-			
-			if( this.active && this.states.attack <= 0 ) {
-				var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
-				this.force.x += direction * this.delta * this.speed;
-				this.flip = dir.x > 0;
-				this.states.cooldown -= this.delta;
-			}
-		
-			if( this.states.cooldown < 0 ){
-				this.states.attack_down = Math.random() > 0.5;
-				this.states.guard = 0;
-				this.states.attack = this.attack_warm;
-				this.states.cooldown = 70.0;
-			}
-			
-			if( this.states.guard == 0 && this.states.attack <= 0 ){
-				this.states.guard = Math.random() > 0.5 ? 1 : 2;
-			}
-			
-			if ( this.states.attack > 0 && this.states.attack < this.attack_time && this.states.attack > this.attack_rest ){
-				this.strike(new Line(
-					new Point( 15, (this.states.attack_down ? 8 : -8) ),
-					new Point( 27, (this.states.attack_down ? 8 : -8)+4 )
-				) );
-			}
-		}
-		/* counters */
-		this.states.attack -= this.delta;
-		
-		/* guard */
-		this.guard.active = this.states.guard != 0;
-		this.guard.x = 8;
-		this.guard.y = this.states.guard == 1 ? 6 : -5;
-	} else {
-		this.guard.active = 0;
-	}
-	
-	/* Animation */
-	if ( this.stun > 0 || this.life <= 0 ) {
-		this.frame.x = 0;
-		this.frame.y = 2;
-	} else { 
-		if( this.states.attack > 0 ) {
-			this.frame.x = (this.states.attack_down == 1 ? 2 : 0) + (this.states.attack > this.attack_time ? 0 : 1);
-			this.frame.y = 1;
-			this.criticalChance = 1.0;
-		} else {
-			this.criticalChance = 0.0;
-			if( Math.abs( this.force.x ) > 0.1 ) {
-				this.frame.x = Math.max( (this.frame.x + this.delta * Math.abs(this.force.x) * 0.2) % 4, 1 );
+		if(this.stun <= 0){
+			if(this.states.attack > 0){
+				this.guard.active = false;
+				this.states.attack -= this.delta;
+				this.frame.x = Math.min(this.frame.x + this.delta * 0.4, 2);
+				this.frame.y = 1;
+				
+				if(this.frame.x < 2){
+					this.strike(new Line(0,-12,32,0));
+				}
 			} else {
-				this.frame.x = 0;
+				this.guard.active = true;
+				
+				if(this.states.block > 0){
+					this.frame.x = 0;
+					this.frame.y = 2;
+					this.states.block -= this.delta;
+				} else {
+					this.flip = dir.x > 0;
+					if(Math.abs(dir.x) < 96){
+						this.states.cooldown -= this.delta;
+						if(Math.abs(dis.x) < 180 && Math.abs(dir.x) > 48){
+							this.force.x += this.forward() * this.speed * this.delta;
+						} 
+					} else {
+						this.force.x += (dis.x>0?-1:1) * this.speed * this.delta;
+					}
+					
+					this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.2) % 4;
+					this.frame.y = 0;
+				}
+				
+				if(this.states.cooldown <= 0){
+					this.states.attack = this.states.attackTotal;
+					this.states.cooldown = Game.DELTASECOND * 4;
+					this.force.x = this.forward() * 5;
+					this.frame.y = this.frame.x = 0;
+				}
 			}
-			this.frame.y = 0;
+		} else {
+			this.stun = Math.min(this.stun, Game.DELTASECOND * 0.1);
+			this.frame.x = 1;
+			this.frame.y = 2;
 		}
+	} else {
+		this.frame.x = 1;
+		this.frame.y = 2;
 	}
-}
-Bear.prototype.render = function(g,c){
-	//Shield
-	if( this.states.guard > 0 ) {
-		g.renderSprite(
-			this.sprite,
-			new Point(this.position.x - c.x, this.position.y - c.y),
-			this.zIndex,
-			new Point((this.states.guard > 1 ? 2 : 3 ), 2),
-			this.flip
-		);
-	}
-	//Body
-	GameObject.prototype.render.apply(this, [g,c]);
-	
-	//Sword
-	var _x = 0
-	if( this.states.attack > 0 ){
-		_x = (this.states.attack > this.attack_time ? 0 : (this.flip ? -32 : 32 ));
-	}
-	g.renderSprite(
-		this.sprite,
-		new Point(_x + this.position.x - c.x, this.position.y - c.y), 
-		this.zIndex,
-		new Point(this.frame.x, this.frame.y+3),
-		this.flip
-	);
 }

@@ -80,29 +80,29 @@ Material.prototype.addProperty = function(prop) {
 Material.propertyTypes = [
 	"float",
 	"vec2",
+	"vec3",
 	"vec4",
 	"mat3",
 	"mat4"
 ];
-Material.prototype.set = function(name, args) {
+Material.prototype.set = function(name, a,b,c,d) {
 	if(!(name in this.properties )) return;
 	var prop = this.properties[name];
 	
-	if( !(args instanceof Array )) {
-		args = Array.prototype.slice.apply(arguments, [1]);
-	}
-	
 	if( prop.uniform ) {
-		if( prop.type == 0 ) {
-			this.gl.uniform1f(prop.location, args[0]);
-		} else if( prop.type == 1 ) {
-			this.gl.uniform2f(prop.location, args[0], args[1]);
-		} else if( prop.type == 2 ){
-			this.gl.uniform4f(prop.location, args[0], args[1], args[2], args[3]);
-		} else if( prop.type == 3 ){
-			this.gl.uniformMatrix3fv(prop.location, false, args[0]);
-		} else if( prop.type == 4 ){
-			this.gl.uniformMatrix4fv(prop.location, false, args[0]);
+		switch(prop.type){
+			case 0:
+				this.gl.uniform1f(prop.location, a);
+			break; case 1:
+				this.gl.uniform2f(prop.location, a, b);
+			break; case 2:
+				this.gl.uniform3f(prop.location, a, b, c);
+			break; case 3:
+				this.gl.uniform4f(prop.location, a, b, c, d);
+			break; case 4:
+				this.gl.uniformMatrix3fv(prop.location, false, a);
+			break; case 5:
+				this.gl.uniformMatrix4fv(prop.location, false, a);
 		}
 	} else {
 		this.gl.vertexAttribPointer(prop.location, 2, this.gl.FLOAT, false, 0, 0);
@@ -248,7 +248,6 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 		} else if( shaderOps["shader"] in window.materials ){
 			shader = window.materials[shaderOps["shader"]]
 		}
-		delete shaderOps.shader;
 	}
 	
 	shader.use();
@@ -262,7 +261,13 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 		//r = r / 180 * Math.PI;
 	}
 	for(var i in shaderOps){
-		shader.set(i, shaderOps[i]);
+		if(i == "sahder"){
+			//Do nothing
+		} else if(shaderOps[i] instanceof Array){
+			shader.set.apply(shader, [i].concat(shaderOps[i]));
+		} else {
+			shader.set(i, shaderOps[i]);
+		}
 	}
 	
 	//texture is mirrored in negative index, flip inverts UVs
@@ -484,20 +489,8 @@ WebGLRenderingContext.prototype.createF = function(size){
 		}
 	}
 }
-WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
-	//var pos = window.materials["test"]["properties"]["position"];
-	//var uvs = window.materials["test"]["properties"]["uvs"];
-	//var res = window.materials["test"]["properties"]["resolution"];
-	//var cam = window.materials["test"]["properties"]["camera"];
-	
-	geo = new Float32Array([
-		x,y,
-		x+w,y,
-		x,y+h,
-		x,y+h,
-		x+w,y,
-		x+w,y+h
-	]);
+WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h,ops){
+	geo = new Float32Array(Sprite.UV);
 	
 	var shader = window.materials["solid"];
 	var buffer = this.createBuffer();
@@ -507,18 +500,11 @@ WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h){
 	shader.set("u_color", color[0], color[1], color[2], color[3]);
 	this.bindBuffer( this.ARRAY_BUFFER, buffer );
 	this.bufferData( this.ARRAY_BUFFER, new Float32Array(geo), this.DYNAMIC_DRAW);
-	//this.vertexAttribPointer(pos, 2, this.FLOAT, false, 0, 0);
 	shader.set("a_position");
-	
-	//var tbuffer = gl.createBuffer();
-	//gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-	//gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(tex), gl.DYNAMIC_DRAW);
-	//gl.vertexAttribPointer(uvs, 2, gl.FLOAT, false, 0, 0);			
-	
-	//this.uniform2f(res, game.resolution.x, game.resolution.y);
-	//this.uniform2f(cam, 0, 0);
-	shader.set("u_resolution", game.resolution.x, game.resolution.y);
-	shader.set("u_camera", 0, 0);
+		
+	shader.set("u_frame", 0, 0, 1, 1);
+	shader.set("u_world", new Matrix2D().transition(x,y).rotate(0).multiply(new Matrix2D().scale(w,h)).toFloatArray());
+	shader.set("u_camera", game.cameraMatrix.toFloatArray());
 	
 	this.drawArrays(this.TRIANGLE_STRIP, 0, geo.length/2);
 }
@@ -547,7 +533,7 @@ WebGLRenderingContext.prototype.renderBackbuffer = function(image, tint){
 	this.bindBuffer( this.ARRAY_BUFFER, tbuffer );
 	this.bufferData( this.ARRAY_BUFFER, tex, this.DYNAMIC_DRAW);
 	shader.set("a_texCoord");
-	shader.set("u_color", tint);
+	shader.set("u_color", tint[0],tint[1],tint[2],tint[3]);
 	shader.set("u_resolution", game.resolution.x, game.resolution.y);
 	
 	this.drawArrays(this.TRIANGLE_STRIP, 0, geo.length/2);

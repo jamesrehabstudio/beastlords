@@ -92,7 +92,7 @@ function Player(x, y){
 		"airGlide" : 0.0,
 		"breaks": 0.4,
 		"manaRegen" : Game.DELTASECOND * 60,
-		"turn" : Game.DELTASECOND * 0.5,
+		"turn" : Game.DELTASECOND * 0.25,
 		"charge" : Game.DELTASECOND * 0.4
 	};
 	
@@ -249,7 +249,7 @@ function Player(x, y){
 				var aim = dir.normalize().add(new Point(dir.x>0?1:-1,0));
 				game.slow(0.1, Game.DELTASECOND * 0.5);
 				audio.playLock("explode3", 0.5);
-				obj.destroy();
+				obj.trigger("death");
 				game.addObject( new ExplodingEnemy( 
 					obj.position.x,
 					this.position.y,
@@ -580,10 +580,12 @@ Player.prototype.update = function(){
 			} else if ( input.state('fire') > 0 ) { 
 				//Charge attack
 				this.attstates.charge += game.deltaUnscaled;
-			} else if( this.attstates.charge >= this.speeds.charge){
-				//Release Charge
-				this.cancelAttack();
-				this.attack();
+			} else {
+				if( this.attstates.charge >= this.speeds.charge){
+					//Release Charge
+					this.cancelAttack();
+					this.attack();
+				}
 				this.attstates.charge = 0.0;
 			}
 			
@@ -763,7 +765,7 @@ Player.prototype.update = function(){
 Player.prototype.deltaSpeed = function(){
 	var speed = this.speeds.baseSpeed;
 	if( this.spellsCounters.haste > 0 ) speed *= 1.6;
-	return this.inertia * this.delta;
+	return speed * this.inertia * this.delta;
 }
 Player.prototype.idle = function(){}
 Player.prototype.stand = function(){
@@ -1083,6 +1085,8 @@ Player.prototype.respawn = function(g,c){
 	this.position.y = this.checkpoint.y;
 	this.interactive = true;
 	this.lock_overwrite = false;
+	this.hurtByDamageTriggers = true;
+	this.money = Checkpoint.money;
 	game.addObject(this);
 	this.keys = keys;
 	//audio.playAs(audio.alias["music"],"music");

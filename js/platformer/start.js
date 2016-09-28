@@ -6,17 +6,17 @@ function game_start(g){
 	DemoThanks.items = 0;
 	DemoThanks.time = 0;
 	
-	g.addObject( new TitleMenu() );
+	//g.addObject( new TitleMenu() );
 	//g.addObject( new DemoThanks() );
 	//dataManager.randomLevel(game,0);
 	//return;
 	
 	setTimeout(function(){
 		new Player(0,0);
-		//_player.doubleJump = true;
+		_player.doubleJump = true;
 		//_player.dodgeFlash = true;
-		//_player.grabLedges = true;
-		//WorldLocale.loadMap("temple2.tmx");
+		_player.grabLedges = true;
+		WorldLocale.loadMap("test.tmx");
 		//WorldLocale.loadMap("townhub.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;

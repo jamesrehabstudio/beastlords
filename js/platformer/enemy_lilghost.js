@@ -29,6 +29,7 @@ function LilGhost(x,y,d,o){
 	this.friction = 0.1;
 	this.mass = 0.3;
 	this.maxForce = 2.0;
+	this.hurtByDamageTriggers = false;
 	
 	this.force.y = this.maxForce;
 	

@@ -560,8 +560,14 @@ Point.prototype.multiply = function(a){
 	var scale = this.scale( this.x * a.x + this.y * a.y );
 	return new Point(this.x * scale, a.y * scale);
 }
-Point.prototype.scale = function(scale){
-	return new Point(this.x * scale, this.y * scale);
+Point.prototype.scale = function(x,y){
+	if(x instanceof Point){
+		y = x.y;
+		x = x.x;
+	} else if (y == undefined){
+		y = x;
+	}
+	return new Point(this.x * x, this.y * y);
 }
 Point.prototype.floor = function(nearest){
 	if(!nearest) { nearest = 1;}

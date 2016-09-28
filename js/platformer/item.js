@@ -247,21 +247,21 @@ Item.prototype.setName = function(n){
 		this.frame.x = 0; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
-		this.stats = {"speed":1.0,"guardlife":30,"height":16, "frame":0, "frame_row":0,"turn":0.3}
+		this.stats = {"speed":1.0,"guardlife":30,"height":16, "frame":0, "frame_row":0,"turn":0.15}
 		return; 
 	}
 	if(n == "large_shield") { 
 		this.frame.x = 1; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
-		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1,"turn":0.5}
+		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1,"turn":0.4}
 		return; 
 	}
 	if(n == "kite_shield") { 
 		this.frame.x = 2; this.frame.y = 3; 
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=1;
-		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2,"turn":0.6}
+		this.stats = {"speed":1.1,"guardlife":40,"height":16, "frame":0, "frame_row":2,"turn":0.5}
 		return; 
 	}
 	if(n == "broad_shield") { 

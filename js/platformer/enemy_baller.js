@@ -4,27 +4,34 @@ function Baller(x, y, d, o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 48;
-	this.height = 72;
+	this.width = 24;
+	this.height = 32;
 	this.sprite = "baller";
+	this.zIndex = 1;
+	this.idleMargin = 128;
+	this.anchorpoint = new Point(0,0);
 	
 	this.ball = new BallerBall(x-48,y);
-	game.addObject( this.ball );
+	this.ball.owner = this;
+	
+	this.links = new Array();
+	for(var i=0; i < 8; i++) { this.links.push(new Point(x,y)); }
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
+	this.timers = {
+		"swing" : 4,
+		"release" : Game.DELTASECOND * 1.5,
+		"pull" : Game.DELTASECOND * 4.0,
+		"retrieve" : Game.DELTASECOND * 2.0,
+	}
 	this.states = {
-		"cooldown" : 50.0,
-		"swing" : 0.0,
+		"swing" : this.timers.swing,
 		"release" : 0.0,
+		"pull" : 0.0,
 		"retrieve" : 0.0,
 	};
-	this.timers = {
-		"swing" : Game.DELTASECOND * 3.0,
-		"release" : Game.DELTASECOND * 1.5,
-		"retrieve" : Game.DELTASECOND * 3.0,
-	}
 	
 	o = o || {};
 	
@@ -34,10 +41,31 @@ function Baller(x, y, d, o){
 	}
 	
 	this.death_time = Game.DELTASECOND * 3.0;
-	this.life = Spawn.life(16,this.difficulty);
-	this.lifeMax = this.life;
+	this.lifeMax = this.life = Spawn.life(8,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.mass = 4.0;
+	this.recoverySpeed = 6;
+	this.arcSize = 56;
+	this.archSpeed = 0.2;
+	
+	game.addObject(this.ball);
+	
+	this.on("wakeup", function(){
+		this.states.swing = this.timers.swing;
+		this.states.release = 0.0;
+		this.states.pull = 0.0;
+		this.states.retrieve = 0.0;
+		this.ball.position.x = this.position.x;
+		this.ball.position.y = this.position.y;
+		
+		if(game.objects.indexOf(this.ball) < 0){
+			game.addObject(this.ball);
+		}
+	});
+	
+	this.on("sleep", function(){
+		this.ball.destroy();
+	});
 	
 	this.on("struck", EnemyStruck);
 	
@@ -57,86 +85,120 @@ function Baller(x, y, d, o){
 	this.calculateXP();
 }
 Baller.prototype.update = function(){
-	if ( this.stun <= 0 && this.life > 0 ) {
+	if ( this.life > 0 ) {
 		var dir = this.position.subtract( _player.position );
 		this.flip = dir.x > 0;
 		
 		if( this.ball.reflect ) {
-			this.ball.gravity = 0;
-			var balldir = this.ball.position.subtract( this.position );
-			balldir = balldir.normalize();
-			this.ball.force.x = -balldir.x * 4.0;
-			this.ball.force.y = -balldir.y * 4.0;
+			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+			var direction = this.ball.position.subtract(this.position).normalize(2 * this.delta * this.recoverySpeed);
+			this.ball.position = this.ball.position.subtract(direction);
 		} else if( this.states.retrieve > 0 ) {
 			this.states.retrieve -= this.delta;
-			if( this.ball.position.x < this.position.x ) {
-				this.ball.force.x += this.delta * 0.5;
-				this.ball.flip = false;
-			} else { 
-				this.ball.force.x -= this.delta * 0.5;
-				this.ball.flip = true;
+			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+			if(this.bounds().overlaps(this.ball.bounds())){
+				this.anchorpoint = new Point(-16,-16);
+				this.ball.visible = false;
+				this.frame.x = 2;
+				this.frame.y = 2;
+			} else {
+				this.frame.x = 2;
+				this.frame.y = 0;
+				var direction = this.ball.position.subtract(this.position).normalize(this.delta * this.recoverySpeed);
+				this.ball.position = this.ball.position.subtract(direction);
+				this.ball.flip = direction.x > 0;
+			} 
+			
+			if(this.states.retrieve <= 0){
+				this.states.swing = this.timers.swing;
+				this.ball.visible = true;
 			}
+		} else if( this.states.pull > 0 ) {
+			this.states.pull -= this.delta;
+			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+			this.frame.x = Math.max((this.frame.x + this.delta * 0.1) % 3,1);
+			this.frame.y = 1;
+			
+			if(this.states.pull <= 0){
+				this.states.retrieve = this.timers.retrieve;
+			}
+			
 		} else if ( this.states.release > 0 ) {
 			this.states.release -= this.delta;
-			if( this.position.distance( this.ball.position ) > 200 ) {
-				this.force.x *= -1.0;
-				this.force.y *= -1.0;
-			}
-			if( this.states.release <= 0 ) {
-				this.states.retrieve = this.timers.retrieve;
-				this.ball.pushable = true;
-				this.ball.damage = 0;
-			}
-		} else if ( this.states.swing > 0 ) { 
-			this.states.swing -= this.delta;
-			//Spin ball around head
-			var ball_position = Math.sin( this.states.swing * 0.2 );
-			var ball_height = Math.max( Math.min( 32-Math.abs(dir.x*0.4), 32), -32);
-			this.ball.frame.x = 1 + Math.floor((1-Math.abs(ball_position))*3);
-			this.ball.flip = ball_position < 0;
-			this.ball.position.x = this.position.x + ball_position * 96;
-			this.ball.position.y = this.position.y + ball_height;
+			this.anchorpoint = new Point(0,0);
+			this.frame.x = Math.min(this.frame.x + this.delta * 0.01, 1);
+			this.frame.y = 1;
 			
-			if( this.states.swing <= 0 ) {
+			if(this.states.release <= 0 || this.ball.grounded){
+				this.ball.strikeable = false;
+				this.states.pull = this.timers.pull;
+				this.states.release = 0.0;
+			}
+		} else if ( this.states.swing > 0 ) {
+			var distance = Math.sin(game.timeScaled * this.archSpeed) * this.arcSize;
+			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+			this.ball.position = this.position.add(new Point(distance, -16));
+			this.ball.flip = this.ball.position.x < this.position.x;
+			this.anchorpoint = new Point(-16,-16);
+			
+			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+			this.frame.y = 0;
+			
+			if(distance < this.forward() * this.arcSize * 0.98){
+				if(this.flip && this.ball.zIndex < this.zIndex ){
+					this.states.swing--;
+				}
+				this.ball.zIndex = this.zIndex + 1;
+			}
+			if(distance > this.forward() * this.arcSize * 0.98){
+				if(!this.flip && this.ball.zIndex >= this.zIndex){
+					this.states.swing--;
+				}
+				this.ball.zIndex = this.zIndex - 1;
+			}
+			
+			if(this.states.swing <= 0){
 				this.states.release = this.timers.release;
-				//Fling the ball
-				this.ball.frame.x = 0;
-				this.ball.gravity = 0.5;
-				this.ball.force.x = 10 * (dir.x > 0 ? -1.0 : 1.0);
+				this.frame.x = 0;
+				this.ball.strikeable = true;
+				this.ball.force.x = this.forward() * 10;
 				this.ball.force.y = -3;
+				this.ball.flip = this.flip;
+				this.ball.gravity = 0.5;
+				this.ball.grounded = false;
 			}
 		} else {
-			this.states.cooldown -= this.delta;
-			if( this.states.cooldown <= 0 ) {
-				this.states.swing = this.timers.swing;
-				//Stop ball from moving
-				this.ball.pushable = false;
-				this.ball.gravity = 0;
-				this.ball.force.x = this.ball.force.y = 0;
-				this.ball.damage = this.damage;
-			}
+			
 		}
-	}
-	
-	/* Animation */
-	if( this.ball.reflect || this.stun > 0 ) {
-		this.frame.x = 3;
-		this.frame.y = 1;
-	} else if( this.states.retrieve > 0 ) {
-		this.frame.x = Math.max((this.frame.x + this.delta * 0.1) % 3, 1);
-		this.frame.y = 1;
-	} else if ( this.states.release > 0 ) {
-		this.frame.x = 0;
-		this.frame.y = 1;
-	} else if ( this.states.swing > 0 ) { 
-		this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
-		this.frame.y = 0;
 	} else {
 		this.frame.x = 1;
-		this.frame.y = 1;
+		this.frame.y = 2;
 	}
 }
-
+Baller.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this,[g,c]);
+	
+	var ap = this.anchorpoint.scale(this.forward(),1);
+	var linkFrame = new Point(1,3);
+	
+	for(var i=0; i < this.links.length; i++){
+		if(i==0){
+			this.links[i] = Point.lerp(this.position.add(ap),this.links[i+1],0.5);
+		} else if( i+1>=this.links.length ){
+			this.links[i] = Point.lerp(this.links[i-1],this.ball.position,0.5);
+		} else {
+			this.links[i] = Point.lerp(this.links[i-1],this.links[i+1],0.5);
+		}
+		
+		g.renderSprite(
+			this.sprite,
+			this.links[i].subtract(c),
+			this.zIndex - 2,
+			linkFrame,
+			false
+		);
+	}
+}
 
 BallerBall.prototype = new GameObject();
 BallerBall.prototype.constructor = GameObject;
@@ -144,46 +206,49 @@ function BallerBall(x, y){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 48;
-	this.height = 48;
+	this.width = 16;
+	this.height = 16;
 	this.sprite = "baller";
 	this.damage = 0;
+	this.strikeable = false;
 	this.reflect = false;
+	this.owner = false;
+	this.zIndex = 1;
 	
 	this.strikeBox = this.bounds().transpose(this.position.scale(-1.0));
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	this.friction = 0.04;
-	this.on("hurt_other", function(obj, damage){
-		if( obj instanceof Player && damage > 0 ) {
-			obj.force.x += this.force.x;
-			obj.hurt( this, this.damage );
-		}
+	this.on(["hurt_other","blocked"], function(obj, damage){
+		this.force.x = 0;
+		this.force.y = Math.max(this.force.y, 0);
 	});
 	this.on("collideObject", function(obj){
-		if( obj instanceof Baller && this.reflect ) {
+		if(this.reflect && obj === this.owner){
 			this.reflect = false;
-			this.gravity = 1.0;
-			obj.force.x += this.force.x;
-			obj.hurt( this, this.damage * 2.0 );
+			obj.hurt(this,obj.lifeMax);
 		}
 	});
 	this.on("struck", function(obj) {
-		if( !this.reflect && Math.abs( this.force.x ) > 1 && this.damage > 0 ) {
+		if(this.strikeable && obj instanceof Player){
 			this.reflect = true;
-			audio.play("critical");
-			game.slow(0.1, Game.DELTASECOND * 0.5 );
 		}
 	});
 	
+	this.lifeMax = this.life = Number.MAX_SAFE_INTEGER;
+	this.damageReduction = 0.9999999;
 	this.mass = 3.0;
+	this.friction = 0.04;
+	this.gravity = 0;
+	this.pushable = false;
+	
 	this.frame.x = 0
-	this.frame.y = 2;
+	this.frame.y = 3;
 }
+
 BallerBall.prototype.update = function(){
-	if( this.damage > 0 ) {
+	if( this.damage > 0 && !this.reflect) {
 		this.strike( this.strikeBox );
 	}
 }

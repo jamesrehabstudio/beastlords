@@ -22,9 +22,12 @@ function Checkpoint(x,y,d,ops){
 			obj.manaHeal = obj.manaMax;
 			audio.play("item1");
 			game.slow(0,Game.DELTASECOND*0.3333);
+			Checkpoint.money = _player.money;
 		}
 	});
 }
+
+Checkpoint.money = 0;
 
 Checkpoint.prototype.render = function(g,c){
 	if(this.activated){

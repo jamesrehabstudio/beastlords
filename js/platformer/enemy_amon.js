@@ -63,7 +63,7 @@ function Amon(x,y,d,o){
 	this.force.y = this.speed * (Math.random() > 0.5 ? -1 : 1);
 	this.backupForce = new Point(this.force.x, this.force.y);
 	this.pushable = false;
-	
+	this.hurtByDamageTriggers = false;
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;

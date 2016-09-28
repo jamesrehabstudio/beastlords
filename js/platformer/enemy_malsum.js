@@ -4,19 +4,26 @@ function Malsum(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 32;
-	this.height = 32;
-	this.sprite = "bear";
+	this.width = 16;
+	this.height = 18;
+	this.sprite = "malsum";
 	this.speed = 0.3;
+	this.start = new Point(x,y);
 	
 	this.start_x = x;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
-	
+	this.times = {
+		"hop" : Game.DELTASECOND * 0.2,
+		"attack" : Game.DELTASECOND,
+		"cooldown" : Game.DELTASECOND
+	}
 	this.states = {
-		"direction" : -1,
+		"hop" : 0.0,
+		"attack" : 0.0,
+		"cooldown" : this.times.cooldown,
 	}
 	
 	o = o || {};
@@ -26,40 +33,75 @@ function Malsum(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(4,this.difficulty);
-	this.damage = Spawn.damage(1,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(1,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.0;
-	this.inviciple_time = this.stun_time;
+	this.gravity = 0.5;
 	
-	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ) obj.hurt( this, this.damage );
-	});
-	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		audio.play("hurt");
 	});
 	this.on("death", function(obj){
-		Item.drop(this,30);
-		_player.addXP(this.xp_award);
+		Item.drop(this,3);
 		audio.play("kill");
 		this.destroy();
 	});
-	
-	SpecialEnemy(this);
-	this.calculateXP();
 }
 Malsum.prototype.update = function(){	
 	var dir = this.position.subtract(_player.position);
 	
-	if( this.stun <= 0 ) {
-		if( this.position.x - this.start_x < -48 ) this.states.direction = 1;
-		if( this.position.x - this.start_x > 48 ) this.states.direction = -1;
+	if(this.life > 0 ){
 		
-		this.force.x += this.states.direction * this.delta * this.speed;
+		if(this.grounded){
+			this.frame = new Point(0,0);
+		} else {
+			this.frame = new Point(Math.max(Math.min(1+this.force.y,2),0),1);
+		}
+		
+		if(this.states.cooldown > 0){
+			if(this.grounded){
+				this.states.cooldown -= this.delta;
+				this.states.hop -= this.delta;
+				this.flip = dir.x > 0;
+			}
+			
+			if(this.states.cooldown > 0 && this.states.hop <= 0){
+				this.states.hop = this.times.hop;
+				this.grounded = false;
+				this.force.y = -5;
+				this.force.x = (this.position.x > this.start.x ? -1 : 1) * 4;
+			}
+			
+			if(this.states.cooldown <= 0){
+				this.states.attack = this.times.attack;
+				if(Math.random() > 0.5){
+					this.grounded = false;
+					this.force.y = -5;
+				}
+			}
+		} else if(this.states.attack > 0){
+			this.states.attack -= this.delta;
+			
+			if(Timer.isAt(this.states.attack, this.times.attack * 0.5, this.delta)){
+				var bullet = new Bullet(this.position.x, this.position.y + 4);
+				bullet.damage = this.damage;
+				bullet.blockable = true;
+				bullet.frame = new Point(1,0);
+				bullet.force.x = this.forward() * 8;
+				game.addObject(bullet);
+			}
+			
+			if(this.states.attack < this.times.attack * 0.5){
+				this.frame = new Point(1,0);
+			}
+			
+			if(this.states.attack <= 0 ){
+				this.states.cooldown = this.times.cooldown;
+			}
+		}
+	} else {
+		this.frame.x = 0;
+		this.frame.y = 2;
 	}
-	
-	this.frame = 0;
-	this.frame_row = 0;
 }
