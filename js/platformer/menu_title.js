@@ -77,15 +77,21 @@ TitleMenu.prototype.update = function(){
 		this.progress = 10.0;
 		if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
 		if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
-		this.cursor = Math.max(Math.min(this.cursor,3),0);
+		this.cursor = Math.max(Math.min(this.cursor,5),0);
 		
 		if(this.cursor == 1){
 			if( input.state("left") == 1 ) { TitleMenu.level -= 1; audio.play("cursor"); }
 			if( input.state("right") == 1 ) { TitleMenu.level += 1; audio.play("cursor"); }
 			TitleMenu.level = Math.max(Math.min(TitleMenu.level,50),1);
 		}else if(this.cursor == 2){
-			if( input.state("left") == 1 ) { TitleMenu.flight = !TitleMenu.flight; audio.play("cursor"); }
-			if( input.state("right") == 1 ) { TitleMenu.flight = !TitleMenu.flight; audio.play("cursor"); }
+			if( input.state("left") == 1 ) { TitleMenu.doubleJump = !TitleMenu.doubleJump; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { TitleMenu.doubleJump = !TitleMenu.doubleJump; audio.play("cursor"); }
+		}else if(this.cursor == 3){
+			if( input.state("left") == 1 ) { TitleMenu.grabLedges = !TitleMenu.grabLedges; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { TitleMenu.grabLedges = !TitleMenu.grabLedges; audio.play("cursor"); }
+		}else if(this.cursor == 4){
+			if( input.state("left") == 1 ) { TitleMenu.dodgeFlash = !TitleMenu.dodgeFlash; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { TitleMenu.dodgeFlash = !TitleMenu.dodgeFlash; audio.play("cursor"); }
 		}
 		
 		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
@@ -94,14 +100,12 @@ TitleMenu.prototype.update = function(){
 					TitleMenu.mapname = name;
 				});
 				//localStorage.setItem("debug_map", MapLoader.mapname);
-			} else if(this.cursor == 3){
+			} else if(this.cursor == 5){
 				//Start in DEBUG mode
 				audio.play("pause");
 				
 				var p = new Player(0,0);
-				for(var i=1; i < TitleMenu.level; i++){
-					p.addXP(p.nextLevel-p.experience);
-				}
+				p.stat_points = Math.max(TitleMenu.level-1, 0);
 				
 				game.loadMap(TitleMenu.mapname, function(starts){
 					if(starts.length > 0 ){
@@ -114,6 +118,9 @@ TitleMenu.prototype.update = function(){
 					game.addObject(new Background());
 					
 					_player.lightRadius = 240;
+					_player.doubleJump = TitleMenu.doubleJump;
+					_player.dodgeFlash = TitleMenu.dodgeFlash;
+					_player.grabLedges = TitleMenu.grabLedges;
 					if(TitleMenu.flight){ 
 						_player.spellsCounters.flight = Game.DELTAYEAR;
 					}
@@ -184,16 +191,20 @@ TitleMenu.prototype.hudrender = function(g,c){
 	} else if(this.page == 2){ 
 		var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
 		boxArea(g,x_pos,16,200,208);
-		textArea(g,"Map name",x_pos+32,48);
-		textArea(g,"Level",x_pos+32,80);
-		textArea(g,"Flight",x_pos+32,112);
-		textArea(g,"Play",x_pos+32,144);
+		textArea(g,"Map name",x_pos+32,32);
+		textArea(g,"Level",x_pos+32,64);
+		textArea(g,"Double Jump",x_pos+32,96);
+		textArea(g,"Wall Slide",x_pos+32,128);
+		textArea(g,"Dash",x_pos+32,160);
+		textArea(g,"Play",x_pos+32,192);
 		
-		textArea(g,"@",x_pos+16,48+32*this.cursor);
+		textArea(g,"@",x_pos+16,32+32*this.cursor);
 		
-		textArea(g,""+TitleMenu.mapname,x_pos+32,48+12);
-		textArea(g,""+TitleMenu.level,x_pos+32,80+12);
-		textArea(g,""+TitleMenu.flight,x_pos+32,112+12);
+		textArea(g,""+TitleMenu.mapname,x_pos+32,32+12);
+		textArea(g,""+TitleMenu.level,x_pos+32,64+12);
+		textArea(g,""+TitleMenu.doubleJump,x_pos+32,96+12);
+		textArea(g,""+TitleMenu.grabLedges,x_pos+32,128+12);
+		textArea(g,""+TitleMenu.dodgeFlash,x_pos+32,160+12);
 	}
 	
 	if( this.progress >= 24 ) {
@@ -223,4 +234,6 @@ TitleMenu.prototype.startGame = function(){
 }
 TitleMenu.mapname = "testmap.tmx";
 TitleMenu.level = 1;
-TitleMenu.flight = false;
+TitleMenu.grabLedges = false;
+TitleMenu.doubleJump = false;
+TitleMenu.dodgeFlash = false;

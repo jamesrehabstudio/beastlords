@@ -18,7 +18,7 @@ function Biker(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 		this.states.runaway = Game.DELTASECOND * 0.5;
 	});
 	this.on("collideObject", function(obj){
@@ -44,7 +44,7 @@ function Biker(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		_player.addXP(this.xp_award);
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	
@@ -252,7 +252,7 @@ ArmWrestler.prototype.update = function(){
 			this.active = false;
 			this.defeated = true;
 			
-			audio.play("kill");
+			audio.play("kill",this.position);
 			this.grounded = false;
 			this.force.y = -5;
 			Item.drop(this,15);

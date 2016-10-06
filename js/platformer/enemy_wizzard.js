@@ -17,7 +17,7 @@ function WizzardBolter(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if( obj instanceof WizzardBolter ) {
@@ -36,7 +36,7 @@ function WizzardBolter(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		_player.addXP(this.xp_award);
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	
@@ -154,7 +154,7 @@ function WizzardFlamer(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -166,7 +166,7 @@ function WizzardFlamer(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		_player.addXP(this.xp_award);
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	
@@ -272,7 +272,7 @@ function WizzardSoldier(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -284,7 +284,7 @@ function WizzardSoldier(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		_player.addXP(this.xp_award);
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	
@@ -362,7 +362,7 @@ function WizzardLightning(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -374,7 +374,7 @@ function WizzardLightning(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		_player.addXP(this.xp_award);
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	
@@ -429,83 +429,6 @@ WizzardLightning.prototype.update = function(){
 
 
 //Wizzard attacks
-
-
-FlameTower.prototype = new GameObject();
-FlameTower.prototype.constructor = GameObject;
-function FlameTower(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.height = 8;
-	this.width = 32;
-	this.damage = 1;
-	this.time = 0;
-	
-	this.flameHeight = 88;
-	
-	this.timers = {
-		"wait" : Game.DELTASECOND,
-		"active" : Game.DELTASECOND * 2.5,
-		"destroy" : Game.DELTASECOND * 2.9
-	};
-	
-	this.on("sleep", function(){
-		this.destroy();
-	});
-	this.on("collideObject", function(obj){
-		if( obj instanceof Player && this.time > this.timers.active) {
-			obj.hurt(this,this.damage);
-		}
-	});
-	
-	this.addModule( mod_rigidbody );
-	this.pushable = false;
-}
-
-FlameTower.prototype.update = function(){
-	this.time += this.delta;
-	if(this.time < this.timers.wait){
-		
-	}else if(this.time < this.timers.active){
-		var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
-		Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), COLOR_FIRE );
-	} else {
-		var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
-		var preh = this.height;
-		this.height = this.flameHeight * Math.min(prog*1.5,1);
-		this.rigidbodyActive = false;
-		this.position.y -= 0.5 * (this.height-preh);
-		Background.pushLight( this.position, this.height*2, COLOR_FIRE );
-	}
-	if(this.time > this.timers.destroy){
-		this.destroy();
-	}
-}
-	
-FlameTower.prototype.render = function(g,c){
-	if(this.time > this.timers.wait){
-		g.color = [1.0,0.7,0.0,1.0];
-		if(this.time < this.timers.active){
-			var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
-			var w = 1.5 * this.width * prog;
-			var h = 16 * (1 - prog);
-			
-			g.scaleFillRect(
-				(this.position.x - w*0.5) - c.x,
-				(this.position.y - h*0.5) - c.y,
-				w, h
-			);
-		} else {
-			//active
-			g.scaleFillRect(
-				(this.position.x - this.width*0.5) - c.x,
-				(this.position.y - this.height*0.5) - c.y,
-				this.width, this.height
-			);
-		}
-	} 
-}
 
 
 LightningBolt.prototype = new GameObject();

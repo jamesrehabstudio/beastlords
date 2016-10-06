@@ -54,7 +54,7 @@ function Zoder(x,y){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt", this.position);
 		if( Math.random() > 0.2 ) {
 			this.states.guardUpdate = Game.DELTASECOND * 2.0;
 			this.states.guard = _player.states.duck ? 1 : 2;

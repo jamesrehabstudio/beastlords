@@ -83,6 +83,41 @@ AudioPlayer.prototype.play = function(l){
 		console.error("Trying to play a sound that does not exist");
 	}
 }
+AudioPlayer.prototype.playPan = function(l,balance,gain){
+	if(l in this.list ){
+		if( "buffer" in this.list[l] ) {
+			var b = this.list[l]["buffer"];
+			this.list[l]["source"] = this.a.createBufferSource();
+			this.list[l]["source"].buffer = b;
+			
+			var volume = this.a.createGain();
+			var stereo = audio.a.createStereoPanner();
+			volume.gain.value = gain;
+			stereo.pan.value = balance;
+			var mix = volume.connect(stereo)
+			
+			if( "loop" in this.list[l] ) {
+				this.list[l]["source"].loop = true;
+				this.list[l]["source"].loopStart = this.list[l]["loop"];
+				this.list[l]["source"].loopEnd = b.length / b.sampleRate;
+			}
+			
+			if( "music" in this.list[l]) {
+				this.list[l]["source"].connect(this.musVolume).connect(stereo).connect(volume);
+			} else {
+				stereo.connect(this.sfxVolume);
+				volume.connect(stereo);
+				this.list[l]["source"].connect(volume);
+			}
+			
+			this.list[l]["source"].start();
+		} else {
+			this.list[l]["playOnLoad"] = true;
+		}
+	} else {
+		console.error("Trying to play a sound that does not exist");
+	}
+}
 AudioPlayer.prototype.isPlayingAs = function(n){
 	if(n in this.alias){
 		return this.alias[n];
@@ -171,21 +206,6 @@ function Game( elm ) {
 	//this.g.scaleFillRect = function(){};
 	this.g.beginPath = function(){};
 	this.g.closePath = function(){};
-	
-	//Build tile buffer for faster rendering
-	var tileVerts = new Array();
-	var ts = 16;
-	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
-		var x = _x*ts;
-		var y = _y*ts;
-		tileVerts.push(x); tileVerts.push(y);
-		tileVerts.push(x+ts); tileVerts.push(y);
-		tileVerts.push(x); tileVerts.push(y+ts);
-		tileVerts.push(x); tileVerts.push(y+ts);
-		tileVerts.push(x+ts); tileVerts.push(y);
-		tileVerts.push(x+ts); tileVerts.push(y+ts);
-	}
-	this._tileBuffer = new Float32Array(tileVerts);
 	
 	this.lightBuffer = this.g.createF();
 	this.hudBuffer = this.g.createF();
@@ -428,91 +448,6 @@ Game.prototype.render = function( ) {
 		
 		this.hudBuffer.reset(this.g);
 	}
-	
-	//lightBuffer
-	
-	/*
-	
-	//Prerender
-	for ( var i in this.prerenderTree ) {
-		if ( this.prerenderTree[i] instanceof GameObject ) {
-			var obj = this.prerenderTree[i];
-			if(obj.prerender instanceof Function){
-				obj.prerender(this.g, camera_center);
-			}
-			for(var i=0; i < obj.modules.length; i++){
-				if( "prerender" in obj.modules[i] ) {
-					obj.modules[i].prerender.apply(obj,[this.g, camera_center]);
-				}
-			}
-		}
-	}
-	
-	//Render tiles and objects
-	for(var o=0; o < this.renderOrder.length; o++){
-		if( this.renderOrder[o] == "o" ){
-			for ( var i in renderList ) {
-				if ( renderList[i] instanceof GameObject ) {
-					var obj = renderList[i];
-					obj.render( this.g, camera_center );
-					
-					for(var i=0; i < obj.modules.length; i++){
-						if( "render" in obj.modules[i] ) {
-							obj.modules[i].render.apply(obj,[this.g, camera_center]);
-						}
-					}
-				}		
-			}
-		} else {
-			//Render Tile Layer
-			if(this.tiles && this.renderOrder[o] in this.tiles){
-				var layer = this.tiles[this.renderOrder[o]];
-				this.tileRules.render(this.g,this.camera,layer,this.tileDimension.width());
-			}
-		}
-	}
-	
-	//Postrender
-	for ( var i in this.postrenderTree ) {
-		var obj = this.postrenderTree[i];
-		if ( obj instanceof GameObject ) {
-			if(obj.postrender instanceof Function){
-				obj.postrender(this.g, camera_center);
-			}
-			for(var i=0; i < obj.modules.length; i++){
-				if( "postrender" in obj.modules[i] ) {
-					obj.modules[i].postrender.apply(obj,[this.g, camera_center]);
-				}
-			}
-		}
-	}
-	
-	//Render Hud
-	//this.hudBuffer.use(this.g);
-	for ( var i in this.hudrenderTree ) {
-		var obj = this.hudrenderTree[i];
-		if ( obj instanceof GameObject ) {
-			if(obj.hudrender instanceof Function){
-				obj.hudrender(this.g, camera_center);
-			}
-			for(var i=0; i < obj.modules.length; i++){
-				if( "hudrender" in obj.modules[i] ) {
-					obj.modules[i].hudrender.apply(obj,[this.g, camera_center]);
-				}
-			}
-		}
-	}
-	//this.hudBuffer.reset(this.g);
-	
-	
-	//Debug, show collisions
-	if ( window.debug && this.lines instanceof BSPTree ) {
-		var lines = this.lines.get(new Line(this.camera.x-32,this.camera.y-32,this.camera.x+game.width+32,this.camera.y+game.height+32));
-		for ( var i = 0; i < lines.length; i++ ){
-			lines[i].render( this.g, camera_center );
-		}
-	}
-	*/
 	
 	this.g.viewport(0,0,this.element.width,this.element.height);
 	

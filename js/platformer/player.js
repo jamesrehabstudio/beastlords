@@ -694,13 +694,11 @@ Player.prototype.update = function(){
 		this.frame.x = Math.min(this.frame.x + this.delta * 0.2,2);
 		this.frame.y = 3; 
 	} else {
-		if(this.attstates.timer > 0){
+		if(this.attstates.currentAttack){
 			//Attack
-			if(this.attstates.currentAttack){
-				var sequence = Weapon.animations[this.attstates.currentAttack.animation];
-				var progress = Math.max(Math.min(this.attstates.timer / this.attstates.currentAttack.time,1),0);
-				this.frame = sequence.frame(progress);
-			}
+			var sequence = Weapon.animations[this.attstates.currentAttack.animation];
+			var progress = Math.max(Math.min(this.attstates.timer / this.attstates.currentAttack.time,1),0);
+			this.frame = sequence.frame(progress);
 		} else if( !this.grounded ) {
 			//In air
 			if(this.states.againstwall && this.force.y > 0){

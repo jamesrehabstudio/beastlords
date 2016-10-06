@@ -8,7 +8,8 @@ function Material(gl,name,ops){
 
 	// Create the shader program
 
-	this.program = gl.createProgram();
+	this.program = gl.createProgram();	
+	
 	gl.attachShader(this.program, vertexMaterial);
 	gl.attachShader(this.program, fragmentMaterial);
 	gl.linkProgram(this.program);
@@ -31,17 +32,13 @@ function Material(gl,name,ops){
 	}
 	
 	//Find exposed Uniforms and attributes
-	var props = [
-		ops["fs"].match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
-		ops["vs"].match(/\s*uniform\s+([^\s]+)\s+([^\s]+)/g),
-		ops["fs"].match(/\s*attribute\s+([^\s]+)\s+([^\s]+)/g),
-		ops["vs"].match(/\s*attribute\s+([^\s]+)\s+([^\s]+)/g)
-	];
-	for(var i=0; i < props.length; i++){
-		if( props[i] instanceof Array ) for(var j=0; j < props[i].length; j++) {
-			this.addProperty(props[i][j]);
-		}
-	}
+	this.gatherProperties();
+	
+	//All shaders use the same uvs
+	this.textureBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.textureBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, Sprite.SQUARE, gl.STATIC_DRAW);
+	this.set("a_texCoord", 2);
 	
 	window.materials[name] = this;
 	if( !("default" in window.materials ) ){
@@ -49,47 +46,53 @@ function Material(gl,name,ops){
 	}
 }
 
-Material.prototype.addProperty = function(prop) {
-	try{
-		prop = prop.trim().replace(";","");
-		var props = prop.split(" ");
+Material.prototype.gatherProperties = function() {
+	//Gather Uniforms
+	for(var j=0; j < 2; j++){
 		
-		if( props.length >= 3 ) {
-			var isUniform = props[0]=="uniform";
-			var type = props[1];
-			var name = props[2];
-			var location;
-			if( isUniform ) {
-				location = this.gl.getUniformLocation(this.program, name);
+		//Determine if we're checking for attributes or uniforms
+		var isUniform = j == 0;
+		var activeType = isUniform ? this.gl.ACTIVE_UNIFORMS : this.gl.ACTIVE_ATTRIBUTES
+		
+		var count = this.gl.getProgramParameter(this.program, activeType);
+		for(var i=0; i < count; i++){
+			if(isUniform){
+				var details = this.gl.getActiveUniform(this.program,i);
+				var location = this.gl.getUniformLocation(this.program, details.name);
 				this.gl.enableVertexAttribArray(location);
 			} else {
-				location = this.gl.getAttribLocation(this.program, name);
+				var details = this.gl.getActiveAttrib(this.program,i);
+				var location = this.gl.getAttribLocation(this.program, details.name);
 				this.gl.enableVertexAttribArray(location);
 			}
-			this.properties[name] = {
+			
+			this.properties[details.name] = {
 				"uniform" : isUniform,
-				"type" : Material.propertyTypes.indexOf(type),
-				"location" : location
+				"type" : Material.propertyTypes.indexOf(details.type),
+				"location" : location,
+				"texture" : 0
 			}
 		}
-	} catch ( err ){
-		console.error("Error reading property: " + prop);
 	}
 }
-
 Material.propertyTypes = [
-	"float",
-	"vec2",
-	"vec3",
-	"vec4",
-	"mat3",
-	"mat4"
+	WebGLRenderingContext.FLOAT,
+	WebGLRenderingContext.FLOAT_VEC2,
+	WebGLRenderingContext.FLOAT_VEC3,
+	WebGLRenderingContext.FLOAT_VEC4,
+	WebGLRenderingContext.FLOAT_MAT3,
+	WebGLRenderingContext.FLOAT_MAT4,
+	WebGLRenderingContext.SAMPLER_2D,
+	WebGLRenderingContext.INT,
+	WebGLRenderingContext.UNSIGNED_INT
 ];
 Material.prototype.set = function(name, a,b,c,d) {
 	if(!(name in this.properties )) return;
 	var prop = this.properties[name];
 	
-	if( prop.uniform ) {
+	if(prop.location < 0){
+		return;
+	} else if( prop.uniform ) {
 		switch(prop.type){
 			case 0:
 				this.gl.uniform1f(prop.location, a);
@@ -103,14 +106,29 @@ Material.prototype.set = function(name, a,b,c,d) {
 				this.gl.uniformMatrix3fv(prop.location, false, a);
 			break; case 5:
 				this.gl.uniformMatrix4fv(prop.location, false, a);
+			break; case 6:
+				this.setTexture(a, this.gl["TEXTURE"+prop.texture]);
 		}
 	} else {
-		this.gl.vertexAttribPointer(prop.location, 2, this.gl.FLOAT, false, 0, 0);
+		switch(prop.type){
+			case 0:
+				this.gl.vertexAttribPointer(prop.location, 1, this.gl.FLOAT, false, 0, 0);
+			break; default:
+				this.gl.vertexAttribPointer(prop.location, a, this.gl.FLOAT, false, 0, 0);
+		}
 	}
 }
-Material.prototype.setTexture = function(img){
+Material.prototype.setTexture = function(img, slot){
 	//if(img != Material.currentTexture){
-		Material.currentTexture = img;
+		//Material.currentTexture = img;
+		if(slot === undefined){
+			slot = this.gl.TEXTURE0;
+		}
+		if(!(img instanceof WebGLTexture)){
+			img = sprites[img].gl_tex;
+		}
+		
+		this.gl.activeTexture(slot);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, img);
 	//}
 }
@@ -120,6 +138,15 @@ Material.prototype.use = function() {
 	}*/
 	game.shader = this;
 	this.gl.useProgram(this.program);
+	
+	var textureCount = 0;
+	for(var j in this.properties) {
+		if(this.properties[j].type == 6){
+			this.properties[j].texture = textureCount;
+			this.gl.uniform1i(this.properties[j].location, textureCount);
+			textureCount++;
+		}
+	}
 	
 	for(var i = 0; i < this.settings.length; i++){
 		this.set.apply(this, this.settings[i]);
@@ -197,7 +224,6 @@ Sprite.prototype.resize = function() {
 	//Create a canvas for resizing the images
 	var max = Math.min( Math.max( this.img.width, this.img.height ), 4096 );
 	var size = 2; while( size < max ) size = size * 2;
-//	console.log( size, this.name, max );
 
 	var temp_c = document.createElement('canvas'); temp_c.width = size; temp_c.height = size;
 	var temp_g = temp_c.getContext('2d');
@@ -238,7 +264,7 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 	
 	//Set default shader, scale and rotation
 	var shader = window.materials["default"];
-	var scale = 1.0;
+	var scale = new Point(1,1);
 	var rotate = 0.0;
 	
 	//Choose shader
@@ -253,8 +279,14 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 	shader.use();
 	
 	//Set shader options
+	if("scalex" in shaderOps){
+		scale.x *= shaderOps["scalex"];
+	}
+	if("scaley" in shaderOps){
+		scale.y *= shaderOps["scaley"];
+	}
 	if("scale" in shaderOps){
-		scale = shaderOps["scale"] * 1;
+		scale = scale.scale(shaderOps["scale"] * 1);
 	}
 	if("rotate" in shaderOps){
 		rotate = shaderOps["rotate"] / 180 * Math.PI;
@@ -277,23 +309,23 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 	}
 	
 	//Set UVs
-	var texbuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, texbuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, Sprite.UV, gl.DYNAMIC_DRAW);
-	shader.set("a_texCoord");
+	gl.bindBuffer(gl.ARRAY_BUFFER, shader.textureBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, Sprite.SQUARE, gl.DYNAMIC_DRAW);
+	shader.set("a_texCoord", 2);
 	
 	//Set texture image
-	shader.setTexture(this.gl_tex);
+	shader.set("u_image",this.gl_tex);
+	//shader.set("u_fakeimg",this.gl_tex);
 	
 	//Set geometry
 	if( !this.buffer ) this.buffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	gl.bufferData(gl.ARRAY_BUFFER, this.mesh, gl.DYNAMIC_DRAW);
-	shader.set("a_position");
+	shader.set("a_position", 2);
 	
 	//Set transformation matrices for vertex shader
 	shader.set("u_frame", frame_x, frame_y, this.frame_width/this.img.width, this.frame_height/this.img.height);
-	shader.set("u_world", new Matrix2D().transition(p.x,p.y).rotate(rotate).multiply(new Matrix2D().scale(scale,scale)).toFloatArray());
+	shader.set("u_world", new Matrix2D().transition(p.x,p.y).rotate(rotate).multiply(new Matrix2D().scale(scale.x,scale.y)).toFloatArray());
 	shader.set("u_camera", game.cameraMatrix.toFloatArray());
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
@@ -313,7 +345,7 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 		var cam = new Point(Math.floor(camera.x/ts),Math.floor(camera.y/ts));
 		var tile_index = (_x+cam.x-0) + ((_y+cam.y-0) * width);
 		var tile = tiles[tile_index];
-		if( tile == 0 || tile == undefined) tile = window.BLANK_TILE;
+		if( tile == 0 || tile === undefined) tile = window.BLANK_TILE;
 		
 		var tileData =  getTileData(tile);
 		
@@ -342,23 +374,55 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	
 	material.set("u_resolution", game.resolution.x, game.resolution.y);
 	material.set("u_camera", campos.x, campos.y);
-	gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
+	material.set("u_image", this.gl_tex);
 	
-	var gridBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, gridBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, game._tileBuffer, gl.DYNAMIC_DRAW);
-	material.set("a_position");
+	if(!Sprite.gridBuffer){
+		Sprite.gridBuffer = gl.createBuffer();
+		Sprite.gridUVBuffer = gl.createBuffer();
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, Sprite.gridBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, Sprite.createTileGrid(16,1), gl.STATIC_DRAW);
+		material.set("a_tilegrid", 2);
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, Sprite.gridUVBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, Sprite.createTileGrid(1,0), gl.STATIC_DRAW);
+		material.set("a_tileuvs", 2);
+	} else {
+		gl.bindBuffer(gl.ARRAY_BUFFER, Sprite.gridBuffer);
+		material.set("a_tilegrid", 2);
+		gl.bindBuffer(gl.ARRAY_BUFFER, Sprite.gridUVBuffer);
+		material.set("a_tileuvs", 2);
+	}
 	
-	
-	var textBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, textBuffer);
+	var tilebuffer = gl.createBuffer();
+		
+	gl.bindBuffer(gl.ARRAY_BUFFER, tilebuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvVerts), gl.DYNAMIC_DRAW);
-	material.set("a_tile");
+	material.set("a_tile",2);
 	
 	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
 }
 
-Sprite.UV = new Float32Array([
+Sprite.gridBuffer = 0;
+Sprite.gridUVBuffer = 0;
+
+Sprite.createTileGrid = function(ts,offset){
+	var tileVerts = new Array();
+	
+	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
+		var x = _x*ts*offset;
+		var y = _y*ts*offset;
+		tileVerts.push(x); tileVerts.push(y);
+		tileVerts.push(x+ts); tileVerts.push(y);
+		tileVerts.push(x); tileVerts.push(y+ts);
+		tileVerts.push(x); tileVerts.push(y+ts);
+		tileVerts.push(x+ts); tileVerts.push(y);
+		tileVerts.push(x+ts); tileVerts.push(y+ts);
+	}
+	return new Float32Array(tileVerts);
+}
+
+Sprite.SQUARE = new Float32Array([
 	0, 0,
 	1, 0,
 	0, 1,
@@ -490,7 +554,7 @@ WebGLRenderingContext.prototype.createF = function(size){
 	}
 }
 WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h,ops){
-	geo = new Float32Array(Sprite.UV);
+	geo = new Float32Array(Sprite.SQUARE);
 	
 	var shader = window.materials["solid"];
 	var buffer = this.createBuffer();
@@ -500,7 +564,7 @@ WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h,ops){
 	shader.set("u_color", color[0], color[1], color[2], color[3]);
 	this.bindBuffer( this.ARRAY_BUFFER, buffer );
 	this.bufferData( this.ARRAY_BUFFER, new Float32Array(geo), this.DYNAMIC_DRAW);
-	shader.set("a_position");
+	shader.set("a_position", 2);
 		
 	shader.set("u_frame", 0, 0, 1, 1);
 	shader.set("u_world", new Matrix2D().transition(x,y).rotate(0).multiply(new Matrix2D().scale(w,h)).toFloatArray());
@@ -527,12 +591,12 @@ WebGLRenderingContext.prototype.renderBackbuffer = function(image, tint){
 	var buffer = this.createBuffer();
 	this.bindBuffer( this.ARRAY_BUFFER, buffer );
 	this.bufferData( this.ARRAY_BUFFER, geo, this.DYNAMIC_DRAW);
-	shader.set("a_position");
+	shader.set("a_position", 2);
 	
 	var tbuffer = this.createBuffer();
 	this.bindBuffer( this.ARRAY_BUFFER, tbuffer );
 	this.bufferData( this.ARRAY_BUFFER, tex, this.DYNAMIC_DRAW);
-	shader.set("a_texCoord");
+	shader.set("a_texCoord", 2);
 	shader.set("u_color", tint[0],tint[1],tint[2],tint[3]);
 	shader.set("u_resolution", game.resolution.x, game.resolution.y);
 	

@@ -66,14 +66,14 @@ function Knight(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 		this.states.retreat = Game.DELTASECOND * 0.5;
 		this.states.guard_freeze = 0.0;
 	});
 	this.on("death", function(){
 		Item.drop(this,this.money_award);
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	

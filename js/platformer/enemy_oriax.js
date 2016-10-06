@@ -16,7 +16,7 @@ function Oriax(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -29,7 +29,7 @@ function Oriax(x,y,d,o){
 		this.spawnSnakes(2);
 		_player.addXP(this.xp_award);
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	this.on("stun", function(obj,damage,count){

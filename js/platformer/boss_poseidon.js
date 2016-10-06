@@ -59,7 +59,7 @@ function Poseidon(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt", this.position);
 	});
 	this.on("downstabbed", function(obj,damage){
 		if(

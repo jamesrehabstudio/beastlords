@@ -18,22 +18,19 @@ function Block(x,y,d,ops){
 }
 
 Block.prototype.gatherTiles = function(){
+	var ts = 16;
 	this.tiles = new Array();
-	this.tileWidth = Math.ceil(this.width / 16);
-	this.tileHeight = Math.ceil(this.height / 16);
+	this.tileWidth = Math.ceil(this.width / ts);
+	this.tileHeight = Math.ceil(this.height / ts);
 	for(var x=0; x < this.tileWidth; x++){
 		for(var y=0; y < this.tileHeight; y++){
-			var tile = game.getTile(
-				this.position.x + x*16,
-				this.position.y + y*16
+			var tilePos = new Point(
+				Math.roundTo(this.position.x + x*ts,ts),
+				Math.roundTo(this.position.y + y*ts,ts)
 			);
+			var tile = game.getTile(tilePos.x, tilePos.y);
 			this.tiles.push(tile);
-			game.setTile(
-				this.position.x + x*16,
-				this.position.y + y*16,
-				game.tileCollideLayer,
-				0
-			);
+			game.setTile(tilePos.x, tilePos.y, game.tileCollideLayer, 0);
 		}
 	}
 }
@@ -141,6 +138,77 @@ SinkingBlock.prototype.gatherTiles = Block.prototype.gatherTiles;
 SinkingBlock.prototype.render = Block.prototype.render;
 SinkingBlock.TRIGGERTYPE_DESTROY = 0;
 SinkingBlock.TRIGGERTYPE_SINK = 1;
+
+FallingBlock.prototype = new GameObject();
+FallingBlock.prototype.constructor = GameObject;
+function FallingBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.startPosition = new Point(this.position.x, this.position.y);
+	this.width = d[0];
+	this.height = d[1];
+	this.force = new Point(0,0);
+	this.gravity = 1.0;
+	this.maxFall = 10.0;
+	this.resetOnDeath = false;
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	if("resetondeath" in ops){
+		this.resetOnDeath = ops["resetondeath"] * 1;
+	}
+	
+	this.on("collideVertical", function(y){
+		if(this.force.y >= this.maxFall){
+			shakeCamera(Game.DELTASECOND*1.6,5);
+			audio.play("explode1",this.position);
+		}
+		
+		this.force.y = 0;
+	});
+	this.on("objectStuck", function(obj){
+		if(obj.isStuck && obj.hasModule(mod_combat)){
+			obj.invincible = -1;
+			obj.hurt( this, Math.floor( 9999 ) );
+		}
+	});
+	this.on("player_death", function(obj){
+		if(this.resetOnDeath){
+			this.force.x = this.force.y = 0;
+			this.position.x = this.startPosition.x;
+			this.position.y = this.startPosition.y;
+		}
+	});
+	
+	this.gatherTiles();
+}
+
+FallingBlock.prototype.idle = function(){}
+FallingBlock.prototype.corners = function(){
+	var b = GameObject.prototype.corners.apply(this);
+	b.left += 1;
+	b.right -= 1;
+	return b;
+}
+
+FallingBlock.prototype.update = function(){
+	this.force.y = Math.min(this.force.y + this.gravity * this.delta, this.maxFall);
+	this.position.x = this.startPosition.x;
+	game.t_move(this, this.force.x * this.delta, this.force.y * this.delta);
+}
+FallingBlock.prototype.shouldRender = function(){
+	var c = this.corners();
+	var l = new Line(c.left,c.top,c.right,c.bottom).transpose(game.camera.scale(-1));
+	return l.overlaps(new Line(0,0,game.resolution.x,game.resolution.y));
+}
+FallingBlock.prototype.gatherTiles = Block.prototype.gatherTiles;
+FallingBlock.prototype.render = Block.prototype.render;
+
 
 MovingBlock.prototype = new GameObject();
 MovingBlock.prototype.constructor = GameObject;
@@ -312,7 +380,7 @@ function FloatBlock(x,y,d,ops){
 FloatBlock.prototype.idle = function(){}
 
 FloatBlock.prototype.update = function(){
-	if(this.blockOnboard.indexOf(_player) >= 0){
+	if(this.block_isOnboard(_player)){
 		//Someone on board
 		if(this.rubberband > 0){
 			this.force.y *= 1 - (0.1 * this.delta);

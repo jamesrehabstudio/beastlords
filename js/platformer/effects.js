@@ -243,7 +243,7 @@ function EffectNumber(x, y, value){
 	this.position.y = y;
 	this.width = 8;
 	this.height = 8;
-	this.zIndex = 12;
+	this.zIndex = 99;
 	this.sprite = "numbers";
 	this.value = Math.floor(value);
 	this.progress = 0.0;

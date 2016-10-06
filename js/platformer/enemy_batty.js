@@ -67,7 +67,7 @@ function Batty(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("wakeup", function(){
 		//this.visible = true;
@@ -84,7 +84,7 @@ function Batty(x,y,d,o){
 		//this.interactive = false;
 		this.destroy();
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 	});
 }
 Batty.prototype.update = function(){

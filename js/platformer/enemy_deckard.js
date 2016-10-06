@@ -36,13 +36,13 @@ function Deckard(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("death", function(){
 		this.destroy();
 		_player.addXP(this.xp_award);
 		Item.drop(this,20);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		
 		for(var i=0; i < 2; i++ ){
 			//Spawn bats on death

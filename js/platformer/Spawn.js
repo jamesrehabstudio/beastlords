@@ -320,7 +320,7 @@ Spawn.damage = function(level,difficulty){
 		case 6: damage = 10.0; break;//6 strike from SUPER boss
 	}
 	
-	var multi = 1 + difficulty * 0.25;
+	var multi = 1 + difficulty * 0.3;
 	damage = Math.floor( damage * multi );
 	return damage;
 }
@@ -332,8 +332,8 @@ Spawn.life = function(level, difficulty){
 	}
 	
 	if( level == 0 ) return 3; //Always one shot
-	var multi = 5 + difficulty * 3.125;
-	return Math.floor( multi * level );
+	var multi = 1 + difficulty * 0.6;
+	return Math.floor( multi * level * 9 );
 }
 
 Spawn.difficulty = 0;

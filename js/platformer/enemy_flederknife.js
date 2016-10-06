@@ -35,7 +35,7 @@ function Flederknife(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if(obj.hasModule(mod_combat) && this.turndelay <= 0){
@@ -69,7 +69,7 @@ function Flederknife(x, y, d, o){
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();
 	});

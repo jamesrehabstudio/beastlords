@@ -56,12 +56,12 @@ function Yakseyo(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("death", function(obj){
 		Item.drop(this,24);
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	SpecialEnemy(this);

@@ -18,18 +18,20 @@ function Bookrider(x,y,d,o){
 		"attack" : Game.DELTASECOND * 0.3,
 		"turn" : Game.DELTASECOND * 0.5,
 		"cooldown" : Game.DELTASECOND * 1.5,
-		"retreat" : Game.DELTASECOND * 0.2
+		"retreat" : Game.DELTASECOND * 0.2,
+		"lowerlock" : Game.DELTASECOND * 0.5
 	};
 	this.states = {
 		"attack" : 0.0,
 		"turn" : 0.0,
 		"cooldown" : this.times.cooldown,
-		"retreat" : 0.0
+		"retreat" : 0.0,
+		"lowerlock" : 0.0
 	};
 	
 	this.on("hurt", function(obj,damage){
 		this.states.retreat = this.times.retreat;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player && obj.position.y > this.position.y && this.life > 0){
@@ -38,7 +40,7 @@ function Bookrider(x,y,d,o){
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	
@@ -53,7 +55,7 @@ function Bookrider(x,y,d,o){
 		this.charged = o["charged"] * 1;
 	}
 	
-	this.life = Spawn.life(6,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	
 	this.pushable = false;
@@ -91,12 +93,17 @@ Bookrider.prototype.update = function(){
 					this.states.turn = this.times.turn;
 				}
 				
-				if(Math.abs(dir.x) < 16 && dir.y < 0){
+				if((Math.abs(dir.x) < 16 && dir.y < 0) || this.states.lowerlock > 0){
 					if(dir.y < -56) {
 						this.force.y += this.delta * this.speed;
 					} else {
 						this.states.cooldown -= this.delta;
 						this.force.y -= this.delta * this.speed;
+					}
+					if(Math.abs(dir.x) < 16){
+						this.states.lowerlock = this.times.lowerlock;
+					} else {
+						this.states.lowerlock -= this.delta;
 					}
 				} else {
 					this.states.cooldown = Math.min(this.states.cooldown + this.delta * 0.25, this.times.cooldown);

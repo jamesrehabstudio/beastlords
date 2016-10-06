@@ -19,6 +19,7 @@ function game_start(g){
 	new Material(g.g, "enchanted", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-default"], "settings":{"u_color":[1.0,0.0,0.3,1.0]}} );
 	new Material(g.g, "item", {"fs":shaders["2d-fragment-glow"],"vs":shaders["2d-vertex-default"]} );
 	new Material(g.g, "halo", {"fs":shaders["2d-fragment-redasalpha"],"vs":shaders["2d-vertex-default"]} );
+	new Material(g.g, "fire", {"fs":shaders["fragment-fire"],"vs":shaders["2d-vertex-default"]} );
 	new Material(g.g, "water", {"fs":shaders["fragment-water"],"vs":shaders["2d-vertex-default"]} );
 	
 	new Material(g.g, "t1", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-default"], "settings":{"u_shift":[0.1]}} );
@@ -239,6 +240,9 @@ var tileRules = {
 function load_sprites (){	
 	sprites['bgcave1'] = new Sprite(RT+"img/background/cave1.png", {offset:new Point(0, 0),width:256,height:64});
 	sprites['bgclouds'] = new Sprite(RT+"img/background/clouds.png", {offset:new Point(64, 32),width:128,height:64});
+	sprites['bgrain'] = new Sprite(RT+"img/background/bg_rain.png", {offset:new Point(80, 80),width:160,height:160});
+	
+	sprites['sky_storm1'] = new Sprite(RT+"img/background/sky_storm1.png", {offset:new Point(213, 0),width:427,height:240});
 	
 	sprites['text'] = new Sprite(RT+"img/text.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['numbers'] = new Sprite(RT+"img/numbers.gif", {offset:new Point(0, 0),width:8,height:8});
@@ -247,6 +251,10 @@ function load_sprites (){
 	sprites['loading'] = new Sprite(RT+"img/loading.png", {offset:new Point(120, 120),width:240,height:240});
 	sprites['dreams'] = new Sprite(RT+"img/dreams.gif", {offset:new Point(0, 0),width:256,height:16});
 	sprites['transform'] = new Sprite(RT+"img/transform.gif", {offset:new Point(16, 17),width:33,height:34});
+	
+	
+	sprites['effect_fire'] = new Sprite(RT+"img/effect_fire.png", {offset:new Point(32, 32),width:64,height:64});	
+	
 	
 	sprites['items'] = new Sprite(RT+"img/items.png", {offset:new Point(8, 8),width:16,height:16});
 	sprites['waystones'] = new Sprite(RT+"img/waystones.gif", {offset:new Point(16, 24),width:32,height:48});
@@ -279,6 +287,7 @@ function load_sprites (){
 	sprites['bear'] = new Sprite(RT+"img/bear.png", {offset:new Point(40, 32),width:80,height:48});
 	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56});
 	sprites['bombbowler'] = new Sprite(RT+"img/bombbowler.png", {offset:new Point(40, 50),width:80,height:80});
+	sprites['bombjar'] = new Sprite(RT+"img/bombjar.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['cape1'] = new Sprite(RT+"img/cape1.gif", {offset:new Point(24, 24),width:48,height:48});
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['characters2'] = new Sprite(RT+"img/characters2.gif", {offset:new Point(24, 32),width:48,height:48});
@@ -298,12 +307,13 @@ function load_sprites (){
 	sprites['ghoul'] = new Sprite(RT+"img/ghoul.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['ending'] = new Sprite(RT+"img/ending.gif", {offset:new Point(48, 32),width:96,height:64});
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
-	sprites['igbo'] = new Sprite(RT+"img/igbo.gif", {offset:new Point(26, 40),width:64,height:64});
+	sprites['igbo'] = new Sprite(RT+"img/igbo.png", {offset:new Point(32, 48),width:64,height:72});
 	sprites['knight'] = new Sprite(RT+"img/knight.gif", {offset:new Point(24, 44),width:64,height:64});
 	sprites['lamps'] = new Sprite(RT+"img/lamps.gif", {offset:new Point(8, 16),width:16,height:32});
 	sprites['laughing'] = new Sprite(RT+"img/laughing.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['lilghost'] = new Sprite(RT+"img/lilghost.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['librarian'] = new Sprite(RT+"img/librarian.png", {offset:new Point(24, 37),width:48,height:64});
+	sprites['manonfire'] = new Sprite(RT+"img/manonfire.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48});
 	sprites['malsum'] = new Sprite(RT+"img/malsum.png", {offset:new Point(24, 23),width:48,height:32});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(32, 40),width:64,height:64});
@@ -319,6 +329,7 @@ function load_sprites (){
 	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16});
 	sprites['shields'] = new Sprite(RT+"img/shields.png", {offset:new Point(16, 16),width:32,height:32});
 	sprites['shooter'] = new Sprite(RT+"img/shooter.gif", {offset:new Point(32, 32),width:64,height:64});
+	sprites['shockowl'] = new Sprite(RT+"img/shockowl.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['slime'] = new Sprite(RT+"img/slime.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['slimerilla'] = new Sprite(RT+"img/slimerilla.gif", {offset:new Point(48, 48),width:96,height:64});
 	sprites['slimegrenadier'] = new Sprite(RT+"img/slimegrenadier.gif", {offset:new Point(28, 40),width:64,height:64});

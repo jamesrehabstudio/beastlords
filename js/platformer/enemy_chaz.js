@@ -18,7 +18,7 @@ function Chaz(x,y,d,o){
 	
 	this.on("hurt", function(obj,damage){
 		this.states.attack = 0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -27,7 +27,7 @@ function Chaz(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		_player.addXP(this.xp_award);
 		Item.drop(this);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	

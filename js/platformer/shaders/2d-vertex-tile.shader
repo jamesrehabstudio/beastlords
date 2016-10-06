@@ -1,4 +1,5 @@
-attribute vec2 a_position;
+attribute vec2 a_tilegrid;
+attribute vec2 a_tileuvs;
 attribute vec2 a_tile;
 uniform vec2 u_resolution;
 uniform vec2 u_camera;
@@ -90,7 +91,7 @@ vec2 tile(vec2 tile){
 
 void main() {
 	//Adjust position with camera
-	vec2 pos = a_position + u_camera - u_resolution * 0.5;
+	vec2 pos = a_tilegrid + u_camera - u_resolution * 0.5;
 	
 	//Flip object
 	pos.y = pos.y*-1.0;
@@ -104,5 +105,5 @@ void main() {
 	
 	//Store new position for fragment shader
 	v_texCoord = a_texCoord;
-	v_position = a_position;
+	v_position = a_tilegrid;
 }

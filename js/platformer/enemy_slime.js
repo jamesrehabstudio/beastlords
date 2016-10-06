@@ -36,7 +36,7 @@ function Slime(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt",function(obj,damage){
 		this.times.cooldown = 0.0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("hurtOther",function(obj,damage){
 		this.times.cooldown = 0.0;
@@ -47,7 +47,7 @@ function Slime(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	

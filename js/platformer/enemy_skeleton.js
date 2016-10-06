@@ -72,12 +72,12 @@ function Skeleton(x,y,d,o){
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
 		//this.states.cooldown = 30.0;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("death", function(){
 		Item.drop(this);
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	

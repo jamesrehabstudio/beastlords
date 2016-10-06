@@ -44,14 +44,14 @@ function Malphas(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 		this.states.cooldown -= 10;
 		this.states.active = true
 	});
 	this.on("death", function(obj){
 		Item.drop(this,30);
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	

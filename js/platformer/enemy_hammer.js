@@ -42,11 +42,11 @@ function HammerMathers(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();
 	});

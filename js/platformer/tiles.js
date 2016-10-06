@@ -83,6 +83,7 @@ function BreakableTile(x, y, d, ops){
 	this.chain = 1;
 	this.life = 1;
 	
+	this.resetOnDeath = false;
 	this.chaintype = "break";
 	this.chaintime = Game.DELTASECOND * 0.15;
 	this.chaintimer = this.chaintime;
@@ -144,6 +145,9 @@ function BreakableTile(x, y, d, ops){
 	if("resetonsleep" in ops){
 		this.resetOnSleep = ops["resetonsleep"];
 	}
+	if("resetondeath" in ops){
+		this.resetOnDeath = ops["resetondeath"] * 1;
+	}
 	if("explode" in ops){
 		this.explode = ops["explode"] * 1;
 	}
@@ -185,6 +189,15 @@ function BreakableTile(x, y, d, ops){
 	}
 	if(this.resetOnSleep){
 		this.on("sleep", function(){
+			if(this.startBroken){
+				this.break(false);
+			}else{
+				this.unbreak(false);
+			}
+		});
+	}
+	if(this.resetOnDeath){
+		this.on("player_death", function(){
 			if(this.startBroken){
 				this.break(false);
 			}else{

@@ -56,7 +56,7 @@ function Minotaur(x,y){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
 		this.states.dizzy -= Game.DELTASECOND * 0.5;
-		audio.play("hurt");
+		audio.play("hurt", this.position);
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);

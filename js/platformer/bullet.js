@@ -165,6 +165,7 @@ function Fire(x,y){
 	this.team = 0;
 	this.damage = 10;
 	this.pushable = false;
+	this.zIndex = 5;
 	
 	this.addModule( mod_rigidbody );
 	
@@ -353,4 +354,86 @@ Explosion.prototype.render = function(g,c){
 	
 	var progress = this.time / this.totalTime;
 	Background.pushLight( this.position.subtract(c), 360 * progress );
+}
+
+FlameTower.prototype = new GameObject();
+FlameTower.prototype.constructor = GameObject;
+function FlameTower(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.height = 8;
+	this.width = 32;
+	this.damage = 1;
+	this.time = 0;
+	
+	this.flameHeight = 88;
+	
+	this.timers = {
+		"wait" : Game.DELTASECOND,
+		"active" : Game.DELTASECOND * 2.5,
+		"destroy" : Game.DELTASECOND * 2.9
+	};
+	
+	this.on("sleep", function(){
+		this.destroy();
+	});
+	this.on("collideObject", function(obj){
+		if( obj instanceof Player && this.time > this.timers.active) {
+			obj.hurt(this,this.damage);
+		}
+	});
+	
+	this.addModule( mod_rigidbody );
+	this.pushable = false;
+}
+
+FlameTower.prototype.update = function(){
+	this.time += this.delta;
+	if(this.time < this.timers.wait){
+		
+	}else if(this.time < this.timers.active){
+		var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+		Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), COLOR_FIRE );
+	} else {
+		var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
+		var preh = this.height;
+		this.height = this.flameHeight * Math.min(prog*1.5,1);
+		this.rigidbodyActive = false;
+		this.position.y -= 0.5 * (this.height-preh);
+		Background.pushLight( this.position, this.height*2, COLOR_FIRE );
+	}
+	if(this.time > this.timers.destroy){
+		this.destroy();
+	}
+}
+	
+FlameTower.prototype.render = function(g,c){
+	if(this.time > this.timers.wait){
+		var w = 0;
+		var h = 0;
+		if(this.time < this.timers.active){
+			var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+			w = 1.5 * this.width * prog;
+			h = 16 * (1 - prog);
+		} else {
+			//active
+			w = this.width;
+			h = this.height;
+		}
+		
+		g.renderSprite(
+			"effect_fire",
+			this.position.subtract(c),
+			this.zIndex,
+			this.frame,
+			this.flip,
+			{
+				"shader" : "fire",
+				"u_time" : game.timeScaled * 0.01,
+				"scalex" : w / 64,
+				"scaley" : h / 64,
+			}
+		)
+	} 
 }

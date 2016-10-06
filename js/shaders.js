@@ -28,7 +28,7 @@ window.shaders["2d-fragment-redasalpha"] = "precision mediump float;\nuniform sa
 
  /* platformer\shaders\2d-fragment-shader.shader*/ 
 
-window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 additive = u_color - 1.0;\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	gl_FragColor = additive + multiply * texture2D(u_image, v_texCoord);\n}";
+window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 additive = clamp(u_color - 1.0,0.0,1.0);\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	gl_FragColor = additive + multiply * texture2D(u_image, v_texCoord);\n}";
 
 
 
@@ -58,13 +58,19 @@ window.shaders["2d-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2
 
  /* platformer\shaders\2d-vertex-tile.shader*/ 
 
-window.shaders["2d-vertex-tile"] = "attribute vec2 a_position;\nattribute vec2 a_tile;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvec2 tile(vec2 tile){\n	float t = tile.x;\n	float flag = tile.y;\n	bool flipd = false;\n	bool flipv = false;\n	bool fliph = false;\n	bool bottom = false;\n	bool right = false;\n	\n	if( flag - 32.0 >= 0.0){\n		fliph = true;\n		flag -= 32.0;\n	}\n	if( flag - 16.0 >= 0.0){\n		flipv = true;\n		flag -= 16.0;\n	}\n	if( flag - 8.0 >= 0.0){\n		flipd = true;\n		flag -= 8.0;\n	}\n	if( flag - 4.0 >= 0.0){\n		flag -= 4.0;\n	}\n	if( flag - 2.0 >= 0.0){\n		bottom = true;\n		flag -= 2.0;\n	}\n	if( flag - 1.0 >= 0.0){\n		right = true;\n		flag -= 1.0;\n	}\n	\n	float size = 32.0;\n	float ts = 1.0 / size;\n	\n	t = t - 1.0;\n	float x = min(mod(t, size) / size, 1.0-ts);\n	float y = min(floor(t / size) / size, 1.0-ts);\n	\n	bool xPlus = right;\n	bool yPlus = bottom;\n	\n	if(flipd){\n		if(bottom){\n			if(right){\n				xPlus = true;\n				yPlus = false;\n			} else{\n				xPlus = true;\n				yPlus = true;\n			}\n		} else {\n			if(right){\n				xPlus = false;\n				yPlus = false;\n			} else{\n				xPlus = false;\n				yPlus = true;\n			}\n		}\n	}\n	\n	if(flipv){\n		yPlus = !yPlus;\n	} \n	if(fliph){\n		xPlus = !xPlus;\n	}\n	\n	if(yPlus){\n		y += ts;\n	}\n	if(xPlus){\n		x += ts;\n	}\n	\n	\n	return vec2(x,y);\n}\n\n\nvoid main() {\n	//Adjust position with camera\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	\n	//Flip object\n	pos.y = pos.y*-1.0;\n	\n	//Set position\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	\n	//Get UV from tile information\n	vec2 a_texCoord = tile(a_tile);\n	\n	\n	//Store new position for fragment shader\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
+window.shaders["2d-vertex-tile"] = "attribute vec2 a_tilegrid;\nattribute vec2 a_tileuvs;\nattribute vec2 a_tile;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvec2 tile(vec2 tile){\n	float t = tile.x;\n	float flag = tile.y;\n	bool flipd = false;\n	bool flipv = false;\n	bool fliph = false;\n	bool bottom = false;\n	bool right = false;\n	\n	if( flag - 32.0 >= 0.0){\n		fliph = true;\n		flag -= 32.0;\n	}\n	if( flag - 16.0 >= 0.0){\n		flipv = true;\n		flag -= 16.0;\n	}\n	if( flag - 8.0 >= 0.0){\n		flipd = true;\n		flag -= 8.0;\n	}\n	if( flag - 4.0 >= 0.0){\n		flag -= 4.0;\n	}\n	if( flag - 2.0 >= 0.0){\n		bottom = true;\n		flag -= 2.0;\n	}\n	if( flag - 1.0 >= 0.0){\n		right = true;\n		flag -= 1.0;\n	}\n	\n	float size = 32.0;\n	float ts = 1.0 / size;\n	\n	t = t - 1.0;\n	float x = min(mod(t, size) / size, 1.0-ts);\n	float y = min(floor(t / size) / size, 1.0-ts);\n	\n	bool xPlus = right;\n	bool yPlus = bottom;\n	\n	if(flipd){\n		if(bottom){\n			if(right){\n				xPlus = true;\n				yPlus = false;\n			} else{\n				xPlus = true;\n				yPlus = true;\n			}\n		} else {\n			if(right){\n				xPlus = false;\n				yPlus = false;\n			} else{\n				xPlus = false;\n				yPlus = true;\n			}\n		}\n	}\n	\n	if(flipv){\n		yPlus = !yPlus;\n	} \n	if(fliph){\n		xPlus = !xPlus;\n	}\n	\n	if(yPlus){\n		y += ts;\n	}\n	if(xPlus){\n		x += ts;\n	}\n	\n	\n	return vec2(x,y);\n}\n\n\nvoid main() {\n	//Adjust position with camera\n	vec2 pos = a_tilegrid + u_camera - u_resolution * 0.5;\n	\n	//Flip object\n	pos.y = pos.y*-1.0;\n	\n	//Set position\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	\n	//Get UV from tile information\n	vec2 a_texCoord = tile(a_tile);\n	\n	\n	//Store new position for fragment shader\n	v_texCoord = a_texCoord;\n	v_position = a_tilegrid;\n}";
 
 
 
  /* platformer\shaders\back-vertex-shader.shader*/ 
 
 window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(a_position, 0, 1);\n	v_texCoord = a_texCoord;\n}";
+
+
+
+ /* platformer\shaders\fragment-fire.shader*/ 
+
+window.shaders["fragment-fire"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_time;\n\nvec2 uvcord(vec2 orig, float time){\n	float x = orig.x + 0.5;\n	float y = mod(orig.y + time,0.5);\n	return vec2(x,y);\n}\n\nvoid main() {\n	float intensity1 = texture2D(u_image, v_texCoord).r;\n	float intensity2 = texture2D(u_image, uvcord(v_texCoord, u_time)).r;\n	float intensity = intensity1*intensity2;\n	vec4 color = texture2D(u_image, vec2(intensity, 1));\n	if(intensity < 0.1){\n		color.a = 0.0;\n	}\n	gl_FragColor = color;\n}";
 
 
 

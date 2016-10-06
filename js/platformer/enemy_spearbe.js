@@ -18,7 +18,7 @@ function Spearbe(x,y,d,o){
 	this.addModule( mod_combat );
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player && this.isCharged){
@@ -41,7 +41,7 @@ function Spearbe(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 	

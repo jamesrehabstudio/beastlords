@@ -184,16 +184,23 @@ Math.trunc = function(x){
 }
 Math.mod = function(x,n){
 	if( x >= 0 ) return x % n;
-	while(x < 0 ) {
-		x += n;
-	}
-	return x;
+	return Math.floor(x/-n)*n + x;
 }
 Math.lerp = function(x,y,delta){
 	return x + (y-x) * delta;
 }
 Math.roundTo = function(x,n){
 	return Math.floor(x/n)*n; 
+}
+Math.subtractToZero = function(x,y){
+	if(y < 0 ){
+		return x;
+	} else if(x > y){
+		return x - y;
+	} else if(x < -y){
+		return x + y;
+	}
+	return 0;
 }
 
 function Matrix2D() {

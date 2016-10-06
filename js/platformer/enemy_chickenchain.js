@@ -61,14 +61,14 @@ function ChickenChain(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	
 	this.on("pre_death", function(){
 		this.states.attackstage = 0;
 	});
 	this.on("death", function(){
-		audio.play("kill");
+		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();
 	});

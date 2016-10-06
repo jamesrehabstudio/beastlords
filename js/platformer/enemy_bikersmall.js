@@ -38,12 +38,12 @@ function BikerSmall(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("death", function(){
 		this.destroy();
 		Item.drop(this,12);
-		audio.play("kill");
+		audio.play("kill",this.position);
 	});
 }
 

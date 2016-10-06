@@ -184,18 +184,25 @@ Background.presets = {
 		g.renderSprite("bgclouds",new Point(120+this.time*0.2,80).subtract(c.scale(0.2)).mod(carea),1,new Point(0,1), false,{"u_color":[0.9,0.95,1.0,1.0]});
 	},
 	"darksky" : function(g,c){
-		var inc = Math.ceil(game.resolution.y/16);
-		for(var y=0; y < game.resolution.y; y += inc){
-			var p = Math.pow(y / game.resolution.y,2);
-			g.color = [
-				Math.lerp(0.1,0.4,p),
-				Math.lerp(0.15,0.3,p),
-				Math.lerp(0.2,0.4,p),
-				1.0
-			];
-			g.scaleFillRect(0,y,game.resolution.x, inc);
+		g.renderSprite("sky_storm1",new Point(game.resolution.x*0.5,0),1,new Point(0,0));
+		var raincolor = [0.8,0.5,0.5,0.5];
+		
+		for(var i=0; i < 12; i++){
+			var fallspeed = 2.5 + i * 0.5;
+			var offset = new Point(
+				i * 16 + Math.mod(i,5) * 130,
+				i * 16 + Math.floor(i/5) * 130
+			)
+			
+			g.renderSprite("bgrain",new Point(
+				Math.mod(offset.x + game.timeScaled * fallspeed * -0.5, game.resolution.x+160) + (game.resolution.x + 80),
+				Math.mod(offset.y + game.timeScaled * fallspeed, game.resolution.y+160) - 80
+				), 2,new Point(0,0), false, {"u_color" : raincolor}
+			);
 		}
 		
+		
+		/*
 		var carea = new Line(-96,-32,game.resolution.x+96,game.resolution.y+32);
 		var space = 100;
 		for(var i=0; i < 5; i++){
@@ -207,6 +214,7 @@ Background.presets = {
 			g.renderSprite("bgclouds",new Point(i*space+this.time*0.7,40).mod(carea),3,new Point(0,1), flip,{"scale":1.7,"u_color":[0.6,0.6,0.6,1.0]});
 		
 		}
+		*/
 	},
 	"cavefire" : function(g,c){
 		g.color = [0,0,0,1];

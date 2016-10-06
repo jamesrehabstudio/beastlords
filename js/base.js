@@ -2,9 +2,24 @@ importScripts("maths.js");
 
 audio = {
 	"out" : {},
-	"play" : function(name){
-		if(!("play" in audio.out)) audio.out["play"] = new Array();
-		audio.out["play"].push([name]);
+	"play" : function(name,position,falloff){
+		if(position === undefined){
+			//Play sound as is
+			if(!("play" in audio.out)) audio.out["play"] = new Array();
+			audio.out["play"].push([name]);
+		} else {
+			//Apply panning and falloff
+			if(!("playPan" in audio.out)) audio.out["playPan"] = new Array();
+			if(falloff === undefined) falloff = 1;
+			
+			var scale = 200;
+			var center = game.camera.add(new Point(game.resolution.x*0.5,game.resolution.y*0.5));
+			var distance = position.subtract(center);
+			var balance = Math.max(Math.min(Math.subtractToZero(distance.x - scale)/ scale,1),-1);
+			var gain = 1.0 - Math.max(Math.min(Math.subtractToZero(distance.length()-scale) / (scale*falloff),1),0);
+			
+			audio.out["playPan"].push([name, balance, gain]);
+		}
 	},
 	"playAs" : function(name,alias){
 		if(!("playAs" in audio.out)) audio.out["playAs"] = new Array();
@@ -144,6 +159,8 @@ Game.DELTAMINUTE = 60 * Game.DELTASECOND;
 Game.DELTAHOUR = 60 * Game.DELTAMINUTE;
 Game.DELTADAY = 24 * Game.DELTAHOUR;
 Game.DELTAYEAR = Game.DELTADAY * 365.25;
+Game.DELTAFRAME30 = Game.DELTASECOND / 30.0;
+Game.DELTAFRAME60 = Game.DELTASECOND / 60.0;
 
 Game.prototype.slow = function(s,d) {
 	if( d > this.deltaScaleReset ) {
@@ -934,12 +951,13 @@ GameObject.prototype.transpose = function(x, y) {
 		this.position.y += y;
 	}
 }
-GameObject.prototype.corners = function() {
+GameObject.prototype.corners = function(pos) {
+	pos = pos || this.position;
 	return {
-		"left" : this.position.x + (-this.width*this.origin.x),
-		"right" : this.position.x + (this.width*(1.0-this.origin.x)),
-		"top" : this.position.y + (-this.height*this.origin.y),
-		"bottom" : this.position.y + (this.height*(1.0-this.origin.y))
+		"left" : pos.x + (-this.width*this.origin.x),
+		"right" : pos.x + (this.width*(1.0-this.origin.x)),
+		"top" : pos.y + (-this.height*this.origin.y),
+		"bottom" : pos.y + (this.height*(1.0-this.origin.y))
 	};
 }
 GameObject.prototype.bounds = function() {

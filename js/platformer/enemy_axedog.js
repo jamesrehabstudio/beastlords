@@ -42,13 +42,13 @@ function Axedog(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 		this.states.cooldown = Game.DELTASECOND * 0.5;
 		this.states.attack = 0.0;
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();
 	});

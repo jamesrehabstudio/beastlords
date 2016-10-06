@@ -25,6 +25,7 @@ var mod_rigidbody = {
 		this.preventPlatFormSnap = false;
 		this.pushable = true;
 		this.physicsLayer = physicsLayer.default;
+		this.currentlyStandingBlock = false;
 		
 		this.on("collideHorizontal", function(dir){
 			this.force.x *= this.collisionReduction;
@@ -114,6 +115,20 @@ var mod_rigidbody = {
 				}
 			}
 			
+			if(this.currentlyStandingBlock){
+				this.position = this.position.add(this.currentlyStandingBlock.blockChange);
+				
+				if(this.isStuck){
+					this.currentlyStandingBlock = false;
+				} else if(this.grounded && this.currentlyStandingBlock.block_isWithinX(this)){
+					var c = this.currentlyStandingBlock.corners();
+					this.position.y = c.top - this.height * this.origin.y;
+					this.trigger("collideVertical", 1);
+				} else {
+					this.currentlyStandingBlock = false;
+				}
+			}
+			
 			var friction_x = 1.0 - this.friction * this.delta;
 			this.force.x *= friction_x;
 			this.preventPlatFormSnap -= this.delta;
@@ -130,72 +145,116 @@ var mod_block = {
 		this.blockCollide = true;
 		this.blockKillStuck = true;
 		this.blockTopOnly = false;
-		this.blockOnboard = new Array();
+		this.blockStuck = new Array();
 		this.blockPrevious = new Point(this.position.x, this.position.y);
+		this.blockChange = new Point(0,0);
+		this.zIndex = 20;
+		
+		this.block_isWithinX = function(obj){
+			c = obj.corners();
+			d = this.corners();
+			return c.right >= d.left && c.left <= d.right;
+		}
+		this.block_isWithinY = function(obj){
+			c = obj.corners();
+			d = this.corners();
+			return c.bottom >= d.top && c.top <= d.bottom;
+		}
+		this.block_isWithin = function(obj){
+			c = obj.corners();
+			d = this.corners();
+			return c.right >= d.left && c.left <= d.right && c.bottom >= d.top && c.top <= d.bottom;
+		}
+		this.block_isOnboard = function(obj){
+			if(obj.hasModule(mod_rigidbody)){
+				return obj.currentlyStandingBlock === this;
+			}
+			return false;
+		}
+		this.block_handleStuck = function(obj){
+			obj.position = obj.position.add(this.blockChange);
+			
+			this.trigger("objectStuck", obj);
+			obj.trigger("blockStuck", this);
+			if(obj.position.y < this.position.y){
+				this.trigger("collideTop", obj);
+			} else if(obj.position.x > this.position.x + this.width * this.origin.x){
+				obj.position.x += obj.delta;
+			} else {
+				obj.position.x -= obj.delta;
+			}
+		}
+		
+		this.on("collideTop", function(obj){
+			var c = this.corners();
+			if(obj.force.y > 0){
+				obj.position.y = (c.top - 0) - obj.height * obj.origin.y;
+				obj.trigger( "collideVertical", 1);
+			}
+			this.trigger("blockLand",obj);
+			//this.blockOnboard.push(obj);
+			obj.currentlyStandingBlock = this;
+			obj.preventPlatFormSnap = Game.DELTAFRAME30;
+		});
+		this.on("collideBottom", function(obj){
+			var c = this.corners();
+			obj.position.y = c.bottom + obj.height * obj.origin.y;
+			if(obj.force.y < 0){
+				obj.trigger( "collideVertical", -1);
+			}
+		});
+		this.on("collideLeft", function(obj){
+			var c = this.corners();
+			obj.position.x = c.left - obj.width * obj.origin.x;
+			if(obj.force.x > 0){
+				obj.trigger( "collideHorizontal", 1);
+			}
+		});
+		this.on("collideRight", function(obj){
+			var c = this.corners();
+			obj.position.x = c.right + obj.width * obj.origin.x;
+			if(obj.force.x < 0){
+				obj.trigger( "collideHorizontal", -1);
+			}
+		});
 		
 		this.on("collideObject", function(obj){
 			if(this.blockCollide && this.width > 0 && this.height > 0){
-				if( obj.hasModule(mod_rigidbody) && this.blockOnboard.indexOf(obj) < 0 ) {
-					var c = obj.corners();
+				if( obj.hasModule(mod_rigidbody) ) {
+					var prepos = obj.position.subtract(obj.force.scale(obj.delta));
 					var d = this.corners();
-					var fallspeed = Math.max(obj.force.y / obj.delta,4);
-					if(!this.blockTopOnly && c.bottom > d.bottom && (c.right-1>d.left&&c.left+1<d.right)){
-						//Below
+					var b = obj.corners();
+					var c = obj.corners(prepos);
+					
+					if(!this.block_isWithin(obj)){
+						//Object outside of bounds, do nothing
+					} else if(c.bottom <= d.top){
+						//Top
+						this.trigger("collideTop", obj);
+					} else if(c.top >= d.bottom){
+						//Bottom
 						this.trigger("collideBottom", obj);
-						
-						var dif = obj.position.y - c.top;
-						obj.position.y = d.bottom + dif;
-						if(obj.force.y < 0){
-							obj.trigger( "collideVertical", -1);
-						}
-					} else if(!this.blockTopOnly && c.left < d.left && c.bottom-fallspeed > d.top){
+					} else if(c.right <= d.left){
 						//left
 						this.trigger("collideLeft", obj);
-						
-						var dif = c.right - obj.position.x;
-						obj.position.x = d.left - dif;
-						if(obj.force.x > 0 ){
-							obj.trigger( "collideHorizontal", 1);
-						}
-						if(d.top > c.top && obj.force.y > 0){
-							obj.trigger("catchLedge", new Point(d.left-3, d.top), obj.flip, this);
-						}
-					} else if(!this.blockTopOnly && c.right > d.right && c.bottom-fallspeed > d.top){
+					} else if(c.left >= d.right){
 						//right
 						this.trigger("collideRight", obj);
-						
-						var dif = obj.position.x - c.left;
-						obj.position.x = d.right + dif;
-						if(obj.force.x < 0){
-							obj.trigger( "collideHorizontal", -1);
-						}
-						if(d.top > c.top && obj.force.y > 0){
-							obj.trigger("catchLedge", new Point(d.right+3, d.top), obj.flip, this);
-						}
-					} else if(obj.force.y >= 0){
-						//top
-						this.trigger("collideTop", obj);
-						
-						var dif = c.bottom - obj.position.y;
-						obj.position.y = 1 + (d.top - dif);
-						if(obj.force.y > 0){
-							obj.trigger( "collideVertical", 1);
-						}
-						this.trigger("blockLand",obj);
-						this.blockOnboard.push(obj);
-						obj.preventPlatFormSnap = Game.DELTASECOND * 0.5;
+					} else {
+						//Stuck inside
+						this.blockStuck.push(obj);
 					}
 				}
 			}
 		});
 	},
 	'update' : function(){
-		var change = this.position.subtract(this.blockPrevious);
-		for(var i=0; i < this.blockOnboard.length; i++){
-			var obj = this.blockOnboard[i];
-			obj.position = obj.position.add(change);
+		for(var i=0; i < this.blockStuck.length; i++){
+			this.block_handleStuck(this.blockStuck[i]);
 		}
-		this.blockOnboard = new Array();
+		this.blockStuck = new Array();
+		
+		this.blockChange = this.position.subtract(this.blockPrevious);
 		this.blockPrevious = new Point(this.position.x,this.position.y);
 	}
 }
@@ -423,7 +482,7 @@ var mod_combat = {
 			damage = this.useBuff("before_hurt", damage);
 			
 			if( this.damageReduction >= 1){
-				audio.play("tink");
+				audio.play("tink",this.position);
 			} else if( this.invincible <= 0 ) {
 				//Increment number of hits
 				this.combat_stuncount++;
@@ -432,7 +491,7 @@ var mod_combat = {
 				if( Math.random() < this.criticalChance ) {
 					//Determine if its a critical shot
 					damage *= obj.criticalMultiplier;
-					audio.play("critical");
+					audio.play("critical",this.position);
 					game.slow(0.1, Game.DELTASECOND * 0.5 );
 					this.trigger("critical",obj,damage);
 					game.addObject(new EffectCritical(this.position.x, this.position.y));

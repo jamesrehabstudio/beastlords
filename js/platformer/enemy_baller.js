@@ -40,8 +40,8 @@ function Baller(x, y, d, o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.death_time = Game.DELTASECOND * 3.0;
-	this.lifeMax = this.life = Spawn.life(8,this.difficulty);
+	this.death_time = Game.DELTASECOND * 1.0;
+	this.lifeMax = this.life = Spawn.life(7,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.mass = 4.0;
 	this.recoverySpeed = 6;
@@ -70,14 +70,14 @@ function Baller(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt", this.position);
 	});
 	this.on("pre_death", function(){
 		this.ball.destroy();
 	});
 	this.on("death", function(){
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();
 	});
@@ -178,25 +178,27 @@ Baller.prototype.update = function(){
 Baller.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	
-	var ap = this.anchorpoint.scale(this.forward(),1);
-	var linkFrame = new Point(1,3);
-	
-	for(var i=0; i < this.links.length; i++){
-		if(i==0){
-			this.links[i] = Point.lerp(this.position.add(ap),this.links[i+1],0.5);
-		} else if( i+1>=this.links.length ){
-			this.links[i] = Point.lerp(this.links[i-1],this.ball.position,0.5);
-		} else {
-			this.links[i] = Point.lerp(this.links[i-1],this.links[i+1],0.5);
-		}
+	if(this.life > 0){
+		var ap = this.anchorpoint.scale(this.forward(),1);
+		var linkFrame = new Point(1,3);
 		
-		g.renderSprite(
-			this.sprite,
-			this.links[i].subtract(c),
-			this.zIndex - 2,
-			linkFrame,
-			false
-		);
+		for(var i=0; i < this.links.length; i++){
+			if(i==0){
+				this.links[i] = Point.lerp(this.position.add(ap),this.links[i+1],0.5);
+			} else if( i+1>=this.links.length ){
+				this.links[i] = Point.lerp(this.links[i-1],this.ball.position,0.5);
+			} else {
+				this.links[i] = Point.lerp(this.links[i-1],this.links[i+1],0.5);
+			}
+			
+			g.renderSprite(
+				this.sprite,
+				this.links[i].subtract(c),
+				this.zIndex - 2,
+				linkFrame,
+				false
+			);
+		}
 	}
 }
 

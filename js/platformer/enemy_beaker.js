@@ -41,7 +41,7 @@ function Beaker(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("wakeup", function(){
 		//this.visible = true;
@@ -54,7 +54,7 @@ function Beaker(x, y, d, o){
 		//this.visible = false;
 		//this.interactive = false;
 		_player.addXP(this.xp_award);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();
 	});

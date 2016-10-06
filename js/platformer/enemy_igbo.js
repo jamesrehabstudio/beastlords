@@ -4,31 +4,26 @@ function Igbo(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 16;
-	this.height = 46;
+	this.width = 36;
+	this.height = 48;
 	this.sprite = "igbo";
-	this.speed = 0.3;
-	this.start_x = x;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
+	this.times = {
+		"attack" : Game.DELTASECOND * 1.5,
+		"cooldown" : Game.DELTASECOND * 3.5,
+	}
 	this.states = {
 		"attack" : 0,
-		"cooldown" : 100.0,
-		"combo_cooldown" : 0.0,
-		"attack_down" : false,
-		"backup" : 1
+		"cooldown" : this.times.cooldown
 	}
 	
-	this.attack_warm = Game.DELTASECOND * 2.5;
-	this.attack_time = Game.DELTASECOND * 1.5;
-	this.attack_rest = Game.DELTASECOND * 1.4;
-	
 	this.guard.active = true;
-	this.guard.x = 20;
-	this.guard.y = 0;
-	this.guard.w = 16;
+	this.guard.x = 8;
+	this.guard.y = -20;
+	this.guard.w = 24;
 	this.guard.h = 46;	
 	
 	o = o || {};
@@ -41,114 +36,92 @@ function Igbo(x,y,d,o){
 	this.life = Spawn.life(8,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(2,this.difficulty);
+	this.death_time = Game.DELTASECOND;
 	this.mass = 3.0;
-	this.friction = 0.3;
-	this.inviciple_time = this.stun_time;
+	this.friction = 0.4;
 	
-	this.cooldown_time = Game.DELTASECOND * 1.6;
-	
-	
-	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
-	});
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
+		if( this.inviciple > 0 ) return;
 		
 		var dir = this.position.subtract(obj.position);
+		
+		this.states.block = Game.DELTASECOND * 0.5;
+	
 		//blocked
-		obj.force.x += (dir.x > 0 ? -1 : 1) * this.delta;
-		//this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
+		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
 		audio.playLock("block",0.1);
 	});
-	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		//this.states.attack = -1.0;
-		this.states.cooldown -= 20;
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("death", function(obj){
-		Item.drop(this,40);
-		_player.addXP(this.xp_award);
-		audio.play("kill");
+		Item.drop(this,15);
+		audio.play("kill",this.position);
 		this.destroy();
 	});
-	
-	SpecialEnemy(this);
-	this.calculateXP();
 }
 Igbo.prototype.update = function(){	
-	//this.sprite = "knight";
-	if ( this.stun <= 0 ) {
-		var dir = this.position.subtract( _player.position );
+	if(this.life > 0){
+		var dir = this.position.subtract(_player.position);
 		
-		if( this.states.attack <= 0 ) {
-			var direction = 1;
-			
-			if( this.position.x - this.start_x > 48 ) this.states.backup = -1;
-			if( this.position.x - this.start_x < -48 ) this.states.backup = 1;
-			
-			var direction = this.states.backup;
-			if( Math.abs( dir.x ) < 32 ) direction = dir.x > 0 ? 1 : -1;
-			
-			this.force.x += direction * this.delta * this.speed;
-			this.flip = dir.x > 0;
-			this.states.cooldown -= this.delta;
-		}
-		
-		if( Math.abs( dir.x ) < 32 && this.states.attack <= 0 ) {
-			//this.states.attack = this.attack_time;
-			//this.states.attack_down = true;
-		}
-		
-		if( this.states.cooldown < 0 && Math.abs(dir.x) < 48 ){
-			this.states.attack_down = false;
-			this.states.attack = this.attack_warm;
-			this.states.cooldown = this.cooldown_time;
-		}
-		
-		if ( this.states.attack > this.attack_rest && this.states.attack < this.attack_time ){
-			var range = this.states.attack_down ? 20 : 35;
-			this.strike(new Line(
-				new Point( 10, (this.states.attack_down ? 0: 0) ),
-				new Point( range, (this.states.attack_down ? 8 : 24) ) )
-			);
-		}
-		
-		this.guard.active = this.states.attack <= 0 || this.states.attack > this.attack_time;
-	}
-	
-	/* counters */
-	this.states.attack -= this.delta;
-	
-	/* Animation */
-	if( this.states.attack > 0 ) {
-		this.frame = 0;
-		if( this.states.attack <= this.attack_time ) this.frame = 1;
-		if( this.states.attack <= this.attack_rest ) this.frame = 2;
-		this.frame_row = (this.states.attack_down ? 2 : 1);
-	} else {
-		if( Math.abs( this.force.x ) > 0.1 ) {
-			this.frame = (this.frame + this.delta * Math.abs(this.force.x) * 0.3) % 3;
+		if(this.states.attack > 0 ){
+			this.states.attack -= this.delta;
+			this.frame = Igbo.anim_attack.frame(1-this.states.attack/this.times.attack);
+			this.guard.active = false;
+			if(Timer.isAt(this.states.attack,this.times.attack*0.5,this.delta)){
+				this.fire(4,0.0);
+			}
 		} else {
-			this.frame = 0;
+			this.states.cooldown -= this.delta;
+			
+			this.flip = dir.x > 0;
+			this.guard.active = true;
+			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+			this.frame.y = 0;
+			
+			if(this.states.cooldown <= 0){
+				this.states.attack = this.times.attack;
+				this.states.cooldown = this.times.cooldown;
+			}
 		}
-		this.frame_row = 0;
+	} else {
+		this.guard.active = false;
+		this.frame.x = 2;
+		this.frame.y = 2;
+	}
+}
+
+Igbo.prototype.fire = function(amount, skiprandom){
+	var xoff = 32;
+	for(var i=0; i < amount; i++){
+		var xpos = this.forward() * xoff;
+		var ftower = new FlameTower(xpos+this.position.x, this.position.y);
+		ftower.damage = this.damage;
+		ftower.time = Game.DELTASECOND * i * -0.2;
+		game.addObject(ftower);
+		xoff += Math.random() > skiprandom ?  40 : 80;
 	}
 }
 
 Igbo.prototype.render = function(g,c){
-	//Shield
-	var _f = this.frame;
-	var _fr = this.frame_row;
-	
-	this.frame = 1;
-	this.frame_row = 3;
-	if( this.guard.active ) this.frame = 0;
-	GameObject.prototype.render.apply(this, [g,c]);
-	
-	//Body
-	this.frame = _f;
-	this.frame_row = _fr;
-	GameObject.prototype.render.apply(this, [g,c]);
+	if(this.guard.active){
+		g.renderSprite(
+			this.sprite,
+			this.position.add(new Point(this.forward() * 24, 0)).subtract(c),
+			this.zIndex + 1,
+			new Point(0,3),
+			this.flip
+		);
+	}
+	GameObject.prototype.render.apply(this,[g,c]);
 }
+
+Igbo.anim_attack = new Sequence([
+	[0,1,0.1],
+	[1,1,0.1],
+	[2,1,0.5],
+	[3,1,0.1],
+	[0,2,0.1],
+	[1,2,0.5]
+])

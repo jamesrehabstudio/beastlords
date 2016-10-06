@@ -16,14 +16,13 @@ function game_start(g){
 		_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		_player.grabLedges = true;
-		WorldLocale.loadMap("test.tmx");
-		//WorldLocale.loadMap("townhub.tmx");
+		WorldLocale.loadMap("temple4.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			//_player.stat_points = 5;
-			//_player.life = _player.lifeMax = 42;
-			//_player.mana = _player.manaMax = 36;
+			_player.stat_points = 6;
+			_player.life = _player.lifeMax = 42;
+			_player.mana = _player.manaMax = 36;
 			//audio.playAs("music_temple4");
 			//audio.playAs("music_temple4","music");
 		}, 1000);

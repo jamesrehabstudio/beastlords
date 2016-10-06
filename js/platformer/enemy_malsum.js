@@ -40,11 +40,11 @@ function Malsum(x,y,d,o){
 	this.gravity = 0.5;
 	
 	this.on("hurt", function(){
-		audio.play("hurt");
+		audio.play("hurt",this.position);
 	});
 	this.on("death", function(obj){
 		Item.drop(this,3);
-		audio.play("kill");
+		audio.play("kill",this.position);
 		this.destroy();
 	});
 }
