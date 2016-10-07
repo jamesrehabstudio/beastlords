@@ -269,7 +269,7 @@ WorldLocale.prototype.update = function(){
 		this.sleepTime -= this.delta;
 	}
 }
-WorldLocale.loadMap = function(map, start){
+WorldLocale.loadMap = function(map, start, callback){
 	var file = map;
 	game.loadMap(file, function(starts){
 		//Determine player start location
@@ -291,6 +291,10 @@ WorldLocale.loadMap = function(map, start){
 		}
 		game.addObject(new PauseMenu(0,0));
 		game.addObject(new Background(0,0));
+		
+		if(callback instanceof Function){
+			callback.apply(self);
+		}
 	});
 }
 WorldLocale.getMapIndex = function(list,key){

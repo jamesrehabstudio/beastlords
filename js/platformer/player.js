@@ -189,13 +189,15 @@ function Player(x, y){
 		Background.flash = [0.6,0,0,1];
 		audio.play("playerhurt");
 	})
+	/*
 	this.on("struckTarget", function(obj, pos, damage){
 		if( this.states.downStab && obj.hasModule(mod_combat)){
 			this.states.downStab = false;
 			this.force.y = -2;
 			this.jump();
+			this.doubleJumpReady = true;
 		}
-	});
+	})*/;
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.life_steal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
@@ -228,9 +230,15 @@ function Player(x, y){
 			this.states.afterImage.set(Game.DELTASECOND * 3);
 		}
 		
-		if(this.states.downStab){
+		if(this.states.roll > 0){
+			this.states.doubleJumpReady = true;
+		} else if(this.states.downStab){
+			this.states.downStab = false;
+			this.force.y = -2;
+			this.jump();
 			this.trigger("downstabTarget", this, damage);
 			obj.trigger("downstabbed", this, damage);
+			this.states.doubleJumpReady = true;
 		} else {
 			if( !this.grounded ) {
 				//Add extra float
@@ -268,33 +276,19 @@ function Player(x, y){
 	this.on("added", function(){
 		this.damage_buffer = 0;
 		this.lock_overwrite = false;
-		this.checkpoint = new Point(this.position.x, this.position.y);
 		this.force.x = this.force.y = 0;
 		this.states.doubleJumpReady = true;
 		
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
 		
-		for(var i in this.spellsCounters ){
-			this.spellsCounters[i] = 0;
-		}
-		
-		/*
-		if( dataManager.temple_instance ) {
-			this.keys = dataManager.temple_instance.keys;
-		} else {
-			this.keys = new Array();
-		}*/
-	})
-	this.on("downstabTarget", function(obj, damage){
-		this.states.doubleJumpReady = true;
+		Checkpoint.saveState(this);
 	});
 	this.on("collideObject", function(obj){
 		if( this.states.roll > 0 && this.dodgeFlash){
 			if("hurt" in obj && obj.hurt instanceof Function){
 				var damage = this.baseDamage();
 				obj.hurt(this, damage);
-				this.doubleJumpReady = true;
 			}
 		}
 	});
@@ -1076,22 +1070,18 @@ Player.prototype.hasCharm = function(value){
 	return false;
 }
 Player.prototype.respawn = function(g,c){
-	var keys = this.keys;
 	this.life = this.lifeMax;
 	this.mana = this.manaMax;
-	this.position.x = this.checkpoint.x;
-	this.position.y = this.checkpoint.y;
 	this.interactive = true;
 	this.lock_overwrite = false;
 	this.hurtByDamageTriggers = true;
-	this.money = Checkpoint.money;
+	
+	Checkpoint.loadState(this);
+	
 	game.addObject(this);
-	this.keys = keys;
-	//audio.playAs(audio.alias["music"],"music");
-	try{ 
-		game.pause = false;
-		PauseMenu.open = false; 
-	} catch(err){}
+	
+	game.pause = false;
+	PauseMenu.open = false; 
 }
 Player.prototype.render = function(g,c){	
 	/*

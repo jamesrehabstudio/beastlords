@@ -168,7 +168,7 @@ function Item(x,y,d, ops){
 			if(this.itemid){
 				NPC.set(this.itemid,1)
 			}
-			this.interactive = false;
+			//this.interactive = false;
 			this.destroy();
 		}
 	});

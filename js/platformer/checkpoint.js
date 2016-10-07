@@ -11,23 +11,57 @@ function Checkpoint(x,y,d,ops){
 	
 	this.on("collideObject",function(obj){
 		if(!this.activated && obj instanceof Player){
-			var allpoints = game.getObjects(Checkpoint);
-			for(var i=0; i < allpoints.length; i++){
-				allpoints[i].activated = false;
-			}
-			this.activated = true;
-			obj.checkpoint.x = this.position.x;
-			obj.checkpoint.y = this.position.y;
-			obj.heal = obj.lifeMax;
-			obj.manaHeal = obj.manaMax;
-			audio.play("item1");
-			game.slow(0,Game.DELTASECOND*0.3333);
-			Checkpoint.money = _player.money;
+			this.activate(obj);
 		}
 	});
 }
 
-Checkpoint.money = 0;
+Checkpoint.prototype.activate = function(obj){
+	//Deativate all other points
+	var allpoints = game.getObjects(Checkpoint);
+	for(var i=0; i < allpoints.length; i++){
+		allpoints[i].activated = false;
+	}
+	
+	this.activated = true;
+	obj.heal = obj.lifeMax;
+	obj.manaHeal = obj.manaMax;
+	audio.play("item1");
+	game.slow(0,Game.DELTASECOND*0.3333);
+	
+	Checkpoint.saveState(obj);
+}
+
+Checkpoint.saveState = function(obj){
+	obj.checkpoint.x = obj.position.x;
+	obj.checkpoint.y = obj.position.y;
+	
+	Checkpoint.state.money = obj.money;
+	Checkpoint.state.keys = new Array();
+	for(var i=0; i < obj.keys.length; i++) {
+		Checkpoint.state.keys.push(obj.keys[i]);
+	}
+}
+Checkpoint.loadState = function(obj){
+	obj.position.x = obj.checkpoint.x ;
+	obj.position.y = obj.checkpoint.y ;
+	obj.money = Checkpoint.state.money;
+	
+	var newKeyList = new Array();
+	for(var i=0; i < obj.keys.length; i++) {
+		if(Checkpoint.state.keys.indexOf(obj.keys[i]) >= 0){
+			newKeyList.push(obj.keys[i]);
+		} else {
+			game.addObject(obj.keys[i]);
+		}
+	}
+	obj.keys = newKeyList;
+}
+
+Checkpoint.state = {
+	"money" : 0,
+	"keys" : []
+}
 
 Checkpoint.prototype.render = function(g,c){
 	if(this.activated){

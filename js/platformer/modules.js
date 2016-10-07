@@ -483,6 +483,7 @@ var mod_combat = {
 			
 			if( this.damageReduction >= 1){
 				audio.play("tink",this.position);
+				obj.trigger("hurt_other",this,0);
 			} else if( this.invincible <= 0 ) {
 				//Increment number of hits
 				this.combat_stuncount++;

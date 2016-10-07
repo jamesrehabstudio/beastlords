@@ -89,6 +89,7 @@ function BreakableTile(x, y, d, ops){
 	this.chaintimer = this.chaintime;
 	this.chainActive = false;
 	this.chainSize = 10;
+	this.canUnbreak = true;
 	this.target = false;
 	this.resetOnSleep = 0;
 	this.tileLayer = game.tileCollideLayer;
@@ -139,6 +140,9 @@ function BreakableTile(x, y, d, ops){
 	if("broken" in ops) {
 		this.startBroken = ops["broken"] * 1;
 	}
+	if("canunbreak" in ops) {
+		this.canUnbreak = ops["canunbreak"] * 1;
+	}
 	if("chain" in ops){
 		this.chain = ops["chain"] * 1;
 	}
@@ -153,7 +157,7 @@ function BreakableTile(x, y, d, ops){
 	}
 	
 	this.on("activate", function(obj,pos,damage){
-		if(this.broken){
+		if(this.broken && this.canUnbreak){
 			this.unbreak(this.explode);
 		}else{
 			this.break(this.explode);

@@ -25,10 +25,10 @@ function Door(x,y,d,ops){
 	
 	this.on("activate", function(obj){
 		if(this.isOpen){
-			audio.play("open");
+			audio.play("open", this.position);
 			this.close();
 		}else {
-			audio.play("open");
+			audio.play("open", this.position);
 			this.open();
 		}
 	});
@@ -37,7 +37,7 @@ function Door(x,y,d,ops){
 		if( this.lock >= 0 && !this.isOpen && obj instanceof Player ){
 			for( var i=0; i < obj.keys.length; i++ ) {
 				if( this.name == obj.keys[i].name ) {
-					audio.play("open");
+					audio.play("open", this.position);
 					this.open();
 				}
 			}
