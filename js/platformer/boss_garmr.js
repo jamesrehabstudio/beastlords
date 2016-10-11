@@ -41,6 +41,7 @@ function Garmr(x,y,d,ops){
 	this.mass = 5.0;
 	this.damage = Spawn.damage(6,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	

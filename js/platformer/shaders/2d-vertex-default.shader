@@ -6,6 +6,7 @@ uniform mat3 u_camera;
 
 varying vec2 v_texCoord;
 varying vec2 v_position;
+varying vec2 v_edges;
 
 void main() {
 	vec3 pos = u_camera * u_world * vec3(a_position,1);
@@ -15,4 +16,11 @@ void main() {
 		(a_texCoord.y+u_frame.y) * u_frame.w
 	);
 	v_position = a_position;
+	v_edges = vec2(0,0);
+	if(a_position.x > 0.0){
+		v_edges.x = 1.0;
+	}
+	if(a_position.y > 0.0){
+		v_edges.y = 1.0;
+	}
 }

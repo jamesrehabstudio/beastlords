@@ -16,6 +16,7 @@ function FrogBoss(x,y){
 	this.frame = 0;
 	this.frame_row = 0;
 	this.life = Spawn.life(35,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.gravity = 0.5;
 	this.friction = 0.2;
 	this.mass = 20.0;

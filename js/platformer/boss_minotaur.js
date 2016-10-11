@@ -29,6 +29,7 @@ function Minotaur(x,y){
 	this.mass = 5.0;
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.collideDamage = Spawn.damage(5,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.collisionReduction = -1.0;
 	this.death_time = Game.DELTASECOND * 3;

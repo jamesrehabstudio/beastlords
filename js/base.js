@@ -221,6 +221,17 @@ Game.prototype.update = function(){
 					}
 				}
 				obj.update();
+				
+				//Update buffs
+				for(var j=0; j < obj.buffs.length; j++){
+					obj.buffs[j].time -= this.delta;
+					if(obj.buffs[j].time <= 0){
+						obj.buffs.remove(j);
+						j--;
+					}
+				}
+				obj.useBuff("update");
+				
 				if(obj.interactive){
 					this.collideObject(obj);
 				}
@@ -255,6 +266,8 @@ Game.prototype.update = function(){
 							obj.modules[m][step].apply(obj,[Renderer, this.camera]);
 						}
 					}
+					
+					obj.useBuff(step, Renderer, this.camera);
 				//}catch(err){
 					
 				//}
@@ -916,6 +929,7 @@ function GameObject() {
 	this.filter = false;
 	this.isStuck = false;
 	this.idleMargin = 32;
+	this.buffs = new Array();
 	
 	this.visible = true;
 	this.modules = new Array();
@@ -939,6 +953,19 @@ GameObject.prototype.trigger = function(name) {
 			this.events[name][i].apply(this,args)
 		}
 	}
+}
+GameObject.prototype.addBuff = function(buff){
+	buff.user = this;
+	this.buffs.push(buff);
+	this.trigger("addbuff", buff);
+}
+GameObject.prototype.useBuff = function(name, a,b,c,d,e,f){
+	for(var i=0; i < this.buffs.length; i++){
+		if(name in this.buffs[i] && this.buffs[i][name] instanceof Function){
+			a = this.buffs[i][name](a,b,c,d,e,f);
+		}
+	}
+	return a;
 }
 GameObject.prototype.clearEvents = function(name){
 	this.events[name] = [];
@@ -1073,20 +1100,7 @@ GameObject.prototype.destroy = function() {
 	game.tree.remove(this);
 }
 
-Test.prototype = new GameObject();
-Test.prototype.constructor = GameObject;
-function Test(x, y){
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 14;
-	this.height = 30;
-	this.zIndex = 1;
-	this.sprite = "oriax";
-}
-Test.prototype.update = function(){
-	this.frame.x = (this.frame.x+this.delta*5) % 5;
-	this.frame.y = 0;
-}
+
 
 importScripts("platformer.js");
 

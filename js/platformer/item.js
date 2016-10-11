@@ -149,8 +149,8 @@ function Item(x,y,d, ops){
 			if( this.name == "spell_flash") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "spell_heal") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "spell_purify") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_bifurcate") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_teleport") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_shield") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_strength") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			if( this.name == "unique_pray"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
@@ -186,63 +186,67 @@ Item.prototype.setName = function(n){
 	if(n == "short_sword") { 
 		this.frame.x = 0; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":new Point(0,0) };
+		this.equipframe = new Point(0,0);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
 	if(n == "long_sword") { 
 		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":new Point(1,0) };
+		this.equipframe = new Point(1,0);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
 	if(n == "broad_sword") { 
-		this.frame.x = 3; this.frame.y = 2; 
-		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":new Point(2,0) };
-		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
-		return; 
-	}
-	if(n == "spear") { 
 		this.frame.x = 2; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":"sword3" };
+		this.equipframe = new Point(2,0);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
-	if(n == "warhammer") { 
-		this.frame.x = 6; this.frame.y = 2; 
-		this.isWeapon = true; this.twoHanded = true;
-		this.level=1; this.bonus_att=5; 
-		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":"sword4" };
+	if(n == "morningstar") { 
+		this.frame.x = 3; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(0,1);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
+	if(n == "bloodsickle") { 
+		this.frame.x = 4; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(1,1);
+		this.message = Item.weaponDescription;
+		
+		this.on("equip", function(obj){
+			this.lifeleech = new BuffLifeleech();
+			this.lifeleech.time = Game.DELTAYEAR;
+			this.lifeleech.percentage = 0.11;
+			obj.addBuff(this.lifeleech);
+		})
+		this.on("unequip", function(obj){
+			this.lifeleech.time = 0;
+		})
+		return; 
+	}
+	if(n == "burningblade") { 
+		this.frame.x = 5; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(2,1);
+		this.message = Item.weaponDescription;
+		
+		this.on("equip", function(obj){
+			this.firedamage = new BuffFireDamage();
+			this.firedamage.time = Game.DELTAYEAR;
+			this.firedamage.damage = 5;
+			obj.addBuff(this.firedamage);
+		})
+		this.on("unequip", function(obj){
+			this.firedamage.time = 0;
+		})
+		return; 
+	}
+	
+	//Shields
 	if(n == "small_shield") { 
 		this.frame.x = 0; this.frame.y = 3; 
 		this.isShield = true;
@@ -386,8 +390,8 @@ Item.prototype.setName = function(n){
 	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.2; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
 	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.castTime = Game.DELTASECOND * 1.0; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
 	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.3; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
-	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
+	if( this.name == "spell_shield") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_shield; this.message = "Spell of Magic Shield\nProtects user with a shield made from magic.";}
+	if( this.name == "spell_strength") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_strength; this.message = "Spell of Strength\nEnhances the user's strength.";}
 	
 	if( this.name == "unique_wand"){
 		this.frame.x = 2;
@@ -473,39 +477,33 @@ Item.prototype.render = function(g,c){
 			this.zIndex,
 			this.frame,
 			false,
-			{"shader":"item","u_color":[0.8,0.1,1.0,a]}
+			{
+				"shader":"item",
+				"u_frameSize" : [16,16],
+				"u_pixelSize" : 256,
+				"u_color":[0.8,0.1,1.0,a]
+			}
 		);
 	}
 }
 
-Item.drop = function(obj,money,sleep){
-	money = money || Math.ceil(1+Math.random()*3);
-	
-	if(Math.random() > 0.95){
-		money += 20 + Math.floor(Math.random()*10);
+Item.drop = function(obj){
+	if("moneyDrop" in obj){
+		Item.dropMoney(obj.position, obj.moneyDrop);
 	}
-	
-	if("money_bonus" in _player){
-		money = Math.round(money * _player.money_bonus);
-	}
-
-	Item.dropMoney(obj.position, money, sleep);
 	
 	if (Math.random() < _player.waystone_bonus) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
-		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
 	
 	if (Math.random() > 0.9) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
-		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
 	
 	if (Math.random() > 0.967) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
-		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
 }

@@ -24,6 +24,7 @@ function CryptKeeper(x,y,d,o){
 	this.life = Spawn.life(5,this.difficulty);
 	this.lifeMax = this.life;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.mass = 1.8;
 	
 	this.state = 0;

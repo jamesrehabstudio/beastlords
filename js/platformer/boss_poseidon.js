@@ -31,6 +31,7 @@ function Poseidon(x,y,d,o){
 	this.damageReduction = 0.333;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.stun_time = 0;
 	this.interactive = false;
 	

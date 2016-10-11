@@ -10,7 +10,7 @@ window.shaders["2d-fragment-blur"] = "precision mediump float;\nuniform sampler2
 
  /* platformer\shaders\2d-fragment-glow.shader*/ 
 
-window.shaders["2d-fragment-glow"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	float pixSize = 1.0 / 256.0;\n	vec4 color = texture2D(u_image, v_texCoord);\n	if( color.a < 0.1 ) {\n		if( \n			texture2D(u_image, v_texCoord - vec2(pixSize,0)).a > 0.1 || \n			texture2D(u_image, v_texCoord + vec2(pixSize,0)).a > 0.1 || \n			texture2D(u_image, v_texCoord - vec2(0, pixSize)).a > 0.1 || \n			texture2D(u_image, v_texCoord + vec2(0, pixSize)).a > 0.1\n		) {\n			color = u_color;\n		}\n	}\n	gl_FragColor = color;\n	//gl_FragColor = vec4(v_texCoord.x,v_texCoord.y,0,1.0);\n}";
+window.shaders["2d-fragment-glow"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\n\nuniform vec4 u_color;\nuniform vec2 u_frameSize;\nuniform float u_pixelSize;\n\n\nvarying vec2 v_edges;\n\nbool sample(vec2 shift){\n	vec2 check = v_edges + shift * u_frameSize;\n	if(check.x > 1.0 || check.x < 0.0 || check.y > 1.0 || check.y < 0.0){\n		return false;\n	}\n	return texture2D(u_image, v_texCoord+shift).a > 0.1;\n}\n\nvoid main() {\n	float pixSize = 1.0 / u_pixelSize;\n	vec4 color = texture2D(u_image, v_texCoord);\n	if( color.a < 0.1 ) {\n		if( \n			sample(vec2(-pixSize,0)) || \n			sample(vec2(pixSize,0)) || \n			sample(vec2(0,-pixSize)) || \n			sample(vec2(0,pixSize))\n		) {\n			color = u_color;\n		}\n	}\n	gl_FragColor = color;\n}";
 
 
 
@@ -40,7 +40,7 @@ window.shaders["2d-fragment-solid"] = "precision mediump float;\nuniform vec4 u_
 
  /* platformer\shaders\2d-vertex-default.shader*/ 
 
-window.shaders["2d-vertex-default"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec4 u_frame;\nuniform mat3 u_world;\nuniform mat3 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec3 pos = u_camera * u_world * vec3(a_position,1);\n	gl_Position = vec4(pos,1);\n	v_texCoord = vec2(\n		(a_texCoord.x+u_frame.x) * u_frame.z,\n		(a_texCoord.y+u_frame.y) * u_frame.w\n	);\n	v_position = a_position;\n}";
+window.shaders["2d-vertex-default"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec4 u_frame;\nuniform mat3 u_world;\nuniform mat3 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\nvarying vec2 v_edges;\n\nvoid main() {\n	vec3 pos = u_camera * u_world * vec3(a_position,1);\n	gl_Position = vec4(pos,1);\n	v_texCoord = vec2(\n		(a_texCoord.x+u_frame.x) * u_frame.z,\n		(a_texCoord.y+u_frame.y) * u_frame.w\n	);\n	v_position = a_position;\n	v_edges = vec2(0,0);\n	if(a_position.x > 0.0){\n		v_edges.x = 1.0;\n	}\n	if(a_position.y > 0.0){\n		v_edges.y = 1.0;\n	}\n}";
 
 
 

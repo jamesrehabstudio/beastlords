@@ -36,6 +36,7 @@ function Marquis(x,y){
 	this.mass = 4.0;
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 3;
 	

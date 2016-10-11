@@ -32,7 +32,9 @@ function DamageTrigger(x,y,d,o){
 			if(this.alwaysKill){
 				obj.invincible = -1;
 				obj.life = 0;
-				obj.hurt(this,0);
+				obj.stun = Game.DELTASECOND * 1;
+				obj.trigger("hurt",this,0);
+				obj.isDead();
 			} else if( game.time > DamageTrigger.rest ){
 				if(this.alwaysHurt){
 					obj.invincible = -1;

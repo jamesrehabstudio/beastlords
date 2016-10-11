@@ -385,6 +385,7 @@ var mod_combat = {
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
 		this.hurtByDamageTriggers = true;
+		this.moneyDrop = Spawn.money(3,0);
 		
 		//Counters
 		this.invincible = 0;
@@ -406,7 +407,6 @@ var mod_combat = {
 		this.hitIgnoreList = new Array();
 		
 		this.ragdoll = false;
-		this.buffs = new Array();
 		
 		this.guard = {
 			"x" : 4,
@@ -420,18 +420,7 @@ var mod_combat = {
 			"invincible" : 0.0
 		};
 		
-		this.addBuff = function(buff){
-			this.buffs.push(buff);
-			this.trigger("addbuff", buff);
-		}
-		this.useBuff = function(name, value){
-			for(var i=0; i < this.buffs.length; i++){
-				if(name in this.buffs[i]){
-					value = this.buffs[i][name].apply(this,[value]);
-				}
-			}
-			return value;
-		}
+		
 			
 		this.strike = Combat.strike;
 		this.shieldArea = Combat.shieldArea;
@@ -439,7 +428,6 @@ var mod_combat = {
 		this.isDead = function(){
 			if(!(this.life > 0)){
 				//Remove effects
-				this.buffs = new Array();
 				this.buffer_damage = 0;
 				this.hurtByDamageTriggers = false;
 				
@@ -478,12 +466,23 @@ var mod_combat = {
 				this.trigger("status_effect", name);
 			}
 		}
-		this.hurt = function(obj, damage){
-			damage = this.useBuff("before_hurt", damage);
-			
+		this.displayDamage = function(damage){
+			if(damage > 0 && this.life > 0 && this.showDamage){
+				//Show damage taken
+				this._damageCounter.value = Math.round(this._damageCounter.value + damage * 1);
+				this._damageCounter.progress = 0.0;
+				this._damageCounter.position.x = this.position.x;
+				this._damageCounter.position.y = this.position.y - 16;
+				if(this._damageCounter.sleep){
+					game.addObject(this._damageCounter);
+				}
+			}
+		}
+		this.hurt = function(obj, damage){			
 			if( this.damageReduction >= 1){
 				audio.play("tink",this.position);
 				obj.trigger("hurt_other",this,0);
+				obj.useBuff("hurt_other",0,this);
 			} else if( this.invincible <= 0 ) {
 				//Increment number of hits
 				this.combat_stuncount++;
@@ -498,39 +497,40 @@ var mod_combat = {
 					game.addObject(new EffectCritical(this.position.x, this.position.y));
 				}
 				//Apply damage reduction as percentile
-				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
+				damage = obj.useBuff("prehurt_other",damage,this);
+				damage = this.useBuff("hurt",damage,obj);
 				
-				if(damage > 0 && this.life > 0 && this.showDamage){
-					//Show damaage taken
-					this._damageCounter.value = Math.round(this._damageCounter.value + damage * 1);
-					this._damageCounter.progress = 0.0;
-					this._damageCounter.position.x = this.position.x;
-					this._damageCounter.position.y = this.position.y - 16;
-					if(this._damageCounter.sleep){
-						game.addObject(this._damageCounter);
+				if(damage > 0){
+					damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
+					
+					this.displayDamage(damage);
+					
+					if( this.buffer_damage ) {
+						this.damage_buffer += damage;
+					} else {
+						this.life -= damage;
 					}
-				}
-				
-				if( this.buffer_damage ) {
-					this.damage_buffer += damage;
+					
+					this.isDead();
+					
+					this.invincible = this.invincible_time;
+					//this.stun = this.stun_time;
+					this.trigger("hurt",obj,damage);
+					obj.trigger("hurt_other",this,damage);
+					
+					this.useBuff("posthurt",damage,obj);
+					obj.useBuff("hurt_other",damage,this);
+					
+					
+					if(this.ragdoll && this.hasModule(mod_rigidbody)){
+						this.grounded = false;
+						this.gravity = 0.6;
+						this.criticalChance = 0;
+						this.force.y = -7;
+						this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
+					}
 				} else {
-					this.life -= damage;
-				}
-				
-				this.isDead();
-				
-				this.invincible = this.invincible_time;
-				//this.stun = this.stun_time;
-				this.trigger("hurt",obj,damage);
-				obj.trigger("hurt_other",this,damage);
-				
-				
-				if(this.ragdoll && this.hasModule(mod_rigidbody)){
-					this.grounded = false;
-					this.gravity = 0.6;
-					this.criticalChance = 0;
-					this.force.y = -7;
-					this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
+					this.invincible = this.invincible_time;
 				}
 			}
 		}
@@ -583,6 +583,7 @@ var mod_combat = {
 		
 		
 		this.invincible -= this.deltaUnscaled;
+		this.guard.invincible -= this.deltaUnscaled;
 		this.stun -= this.delta;
 	},
 	"postrender" : function(g,c){
@@ -661,10 +662,17 @@ var Combat = {
 				var shield = obj.shieldArea();
 				
 				if( obj.guard.active && (onidirectional||(direction!=obj.flip)) && shield.overlaps(rect) ){
-					this.trigger("blocked",obj);
-					obj.trigger("block",this,this.position,damage);
+					if(obj.guard.invincible <= 0){
+						obj.guard.invincible = Game.DELTASECOND * 0.5;
+						
+						this.trigger("blocked",obj);
+						obj.trigger("block",this,this.position,damage);
+						
+						this.useBuff("blocked", damage, obj);
+						obj.useBuff("block", damage, this);
+					}
 				} else {
-					//this.trigger("hurt_other",obj, damaage);
+					//this.trigger("hurt_other",obj, damage);
 					obj.hurt( this, damage );
 				}
 				

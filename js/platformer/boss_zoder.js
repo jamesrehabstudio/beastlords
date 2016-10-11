@@ -33,6 +33,7 @@ function Zoder(x,y){
 	this.life = Spawn.life(24,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.mass = 5.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 3;

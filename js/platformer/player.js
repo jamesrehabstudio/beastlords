@@ -681,8 +681,13 @@ Player.prototype.update = function(){
 		this.frame.x = (1 - Math.min(this.states.spellCounter / Game.DELTASECOND, 1)) * 8;
 		this.frame.y = 7;
 	} else if( this.states.roll > 0 ) {
-		this.frame.y = 2;
-		this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
+		if(this.dodgeFlash){
+			this.frame.y = 6;
+			this.frame.x = 8;
+		} else {
+			this.frame.y = 2;
+			this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
+		}
 	} else if( this.states.downStab ){
 		if(this.frame.x > 2) this.frame.x = 0;
 		this.frame.x = Math.min(this.frame.x + this.delta * 0.2,2);
@@ -862,7 +867,7 @@ Player.prototype.cancelAttack = function(){
 	this.attstates.timer = 0.0;
 }
 Player.prototype.baseDamage = function(){
-	return Math.round(2 + this.stats.attack) * this.attstates.stats.damage;
+	return Math.round((2 + this.stats.attack) * this.attstates.stats.damage);
 }
 
 Player.prototype.currentDamage = function(){
@@ -915,7 +920,7 @@ Player.prototype.equipCharm = function(c){
 }
 Player.prototype.equip = function(sword, shield){
 	try {	
-		if( sword.isWeapon && "stats" in sword ){
+		if( sword.isWeapon ){
 			NPC.set(sword.name, 1);
 			this.attstates.stats = WeaponStats[sword.name];
 		} else {
@@ -986,17 +991,12 @@ Player.prototype.equip = function(sword, shield){
 			mag_bonus += (this.equip_shield.bonus_tec || 0);
 		}
 		
-		var att = Math.max( Math.min( att_bonus + this.stats.attack - 1, 19), 0 );
-		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
-		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
-		var magic = Math.max( Math.min( mag_bonus + this.stats.magic - 1, 19), 0 );
-		
 		//this.guard.lifeMax += 3 * def + tech;
 		//this.guard.restore = 0.4 + tech * 0.05;
 		
-		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
-		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
-		this.speeds.manaRegen = Game.DELTASECOND * (10 - magic * (9/19));
+		this.damage = 5 + this.stats.attack * 3;
+		this.damageReduction = (this.stats.defence-Math.pow(this.stats.defence*0.15,2))*.071;
+		this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
 		
 	} catch(e) {
 		this.equip( this.equip_sword, this.equip_shield );
@@ -1144,47 +1144,15 @@ Player.prototype.render = function(g,c){
 	
 	//Render current sword
 	if(this.states.roll <= 0){
-		try{
-			var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
-			var rotation = _t.r;
-			var sposition = _t.p;
-			var zPlus = _t.z;
-			var effect = _t.v;
-			var shield = _t.s;
-			
-			if(this.flip){
-				sposition = new Point(sposition.x*-1,sposition.y);
-			}
-			
-			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.stats.sprite, false, {
-				"rotate" : (this.flip ? -1 : 1) * rotation
-			});
-			if(effect instanceof Point){
-				g.renderSprite("swordeffect", this.position.subtract(c), this.zIndex+2, effect, this.flip);
-			}
-			if(shield instanceof Point){
-				var shieldFrames = new Point(Math.abs(shield.y), this.shieldProperties.frame_row);
-				var shieldFlip = shield.y < 0 ? !this.flip : this.flip;
-				var shieldOffset = new Point(
-					(this.flip?-1:1)*shield.x, 
-					Math.floor(this.guard.y+_player.guard.h*0.5)
-				);
-				g.renderSprite(
-					"shields", 
-					this.position.subtract(c).add(shieldOffset), 
-					this.zIndex+1, 
-					shieldFrames, 
-					shieldFlip
-				);
-			}
+			this.renderWeapon(g,c);
+			this.renderShield(g,c);
 			
 			if(this.attstates.charge > 0){
 				EffectList.charge.apply(this, [g,
-					this.position.subtract(c).add(sposition),
+					this.position.subtract(c).add(new Point(this.forward()*16,0)),
 					this.attstates.charge / this.speeds.charge
 				]);
 			}
-		}catch(e){}
 	}
 	
 	//Charge effect
@@ -1211,6 +1179,56 @@ Player.prototype.render = function(g,c){
 		"bullets".render(g,this.position.add(spos).subtract(c),sframe,slength,this.flip);
 	}
 	*/
+}
+
+Player.prototype.renderWeapon = function(g,c,ops,eops){
+	try{
+		ops = ops || {};
+		eops = eops || {};
+		
+		var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
+		var rotation = _t.r;
+		var sposition = _t.p;
+		var zPlus = _t.z;
+		var effect = _t.v;
+		var shield = _t.s;
+		
+		if(this.flip){
+			sposition = new Point(sposition.x*-1,sposition.y);
+		}
+		ops["rotate"] = (this.flip ? -1 : 1) * rotation;
+		
+		g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
+		if(effect instanceof Point){
+			g.renderSprite("swordeffect", this.position.subtract(c), this.zIndex+2, effect, this.flip, eops);
+		}
+	} catch (e){
+		
+	}
+}
+Player.prototype.renderShield = function(g,c,ops){
+	try{
+		var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
+		var shield = _t.s;
+		
+		if(shield instanceof Point){
+			var shieldFrames = new Point(Math.abs(shield.y), this.shieldProperties.frame_row);
+			var shieldFlip = shield.y < 0 ? !this.flip : this.flip;
+			var shieldOffset = new Point(
+				(this.flip?-1:1)*shield.x, 
+				Math.floor(this.guard.y+_player.guard.h*0.5)
+			);
+			g.renderSprite(
+				"shields", 
+				this.position.subtract(c).add(shieldOffset), 
+				this.zIndex+1, 
+				shieldFrames, 
+				shieldFlip,
+				ops
+			);
+		}
+	} catch(e){
+	}
 }
 
 Player.prototype.hudrender = function(g,c){
@@ -1353,6 +1371,9 @@ var playerSwordPosition = {
 			4 : {p:new Point(6,-6),r:45,z:-1,v:new Point(2,2)},
 			5 : {p:new Point(14,-2),r:50,z:-1,v:new Point(3,2)},
 			6 : {p:new Point(16,4),r:60,z:1,v:0},
+		},
+		6 : {
+			8 : {p:new Point(-16,1),r:-45,z:1,v:0}
 		},
 		8 : {
 			0 : {p:new Point(-15,-2),r:-10,z:1,v:0},

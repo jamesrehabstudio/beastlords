@@ -123,8 +123,11 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 
 var WeaponStats = {
 	"short_sword" : createWeaponTemplate(0.05,0.30,0.08,0.15,38),
-	"long_sword" : createWeaponTemplate(0.10,0.333,0.1,0.2,42),
-	"broad_sword" : createWeaponTemplate(0.20,0.35,0.1,0.3,42)
+	"long_sword" : createWeaponTemplate(0.10,0.333,0.1,0.2,48),
+	"broad_sword" : createWeaponTemplate(0.20,0.35,0.1,0.3,42),
+	"morningstar" : createWeaponTemplate(0.08,0.35,0.08,0.35,40),
+	"bloodsickle" : createWeaponTemplate(0.05,0.30,0.08,0.15,36),
+	"burningblade" : createWeaponTemplate(0.05,0.333,0.1,0.2,38),
 }
 
 WeaponStats.short_sword.damage = 3;
@@ -135,3 +138,16 @@ WeaponStats.long_sword.standing.alwaysqueue = 0;
 
 WeaponStats.broad_sword.damage = 5;
 WeaponStats.broad_sword.standing.alwaysqueue = 0;
+
+WeaponStats.morningstar.damage = 5;
+WeaponStats.morningstar.standing.alwaysqueue = 0;
+WeaponStats.morningstar.standing.length = 1;
+WeaponStats.morningstar.standing[0]["force"] = new Point(1.0,0.0);
+
+WeaponStats.bloodsickle.damage = 2.5;
+WeaponStats.bloodsickle.standing.alwaysqueue = 1;
+WeaponStats.bloodsickle.standing.length = 2;
+
+WeaponStats.burningblade.damage = 3.5;
+WeaponStats.burningblade.standing.alwaysqueue = 1;
+WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);

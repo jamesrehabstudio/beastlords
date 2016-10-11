@@ -21,6 +21,7 @@ function GhostChort(x,y){
 	this.death_time = Game.DELTASECOND * 3;
 	this.life = Spawn.life(26,this.difficulty);
 	this.collideDamage = 5;
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
 	

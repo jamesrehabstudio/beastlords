@@ -238,7 +238,7 @@ var tileRules = {
 };
 
 function load_sprites (){	
-	sprites['bgcave1'] = new Sprite(RT+"img/background/cave1.png", {offset:new Point(0, 0),width:256,height:64});
+	sprites['bgfirecave'] = new Sprite(RT+"img/background/firecave.png", {offset:new Point(0, 0),width:592,height:416});
 	sprites['bgclouds'] = new Sprite(RT+"img/background/clouds.png", {offset:new Point(64, 32),width:128,height:64});
 	sprites['bgrain'] = new Sprite(RT+"img/background/bg_rain.png", {offset:new Point(80, 80),width:160,height:160});
 	
@@ -286,6 +286,7 @@ function load_sprites (){
 	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24});
 	sprites['bear'] = new Sprite(RT+"img/bear.png", {offset:new Point(40, 32),width:80,height:48});
 	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56});
+	sprites['bookreptile'] = new Sprite(RT+"img/bookreptile.png", {offset:new Point(32, 34),width:64,height:48});
 	sprites['bombbowler'] = new Sprite(RT+"img/bombbowler.png", {offset:new Point(40, 50),width:80,height:80});
 	sprites['bombjar'] = new Sprite(RT+"img/bombjar.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['cape1'] = new Sprite(RT+"img/cape1.gif", {offset:new Point(24, 24),width:48,height:48});
@@ -476,6 +477,7 @@ window.audio = new AudioPlayer({
 	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},
 	"fanfair" : {"url":RT+"sounds/fanfair.ogg","music":true},
 	
+	"barrier" : {"url":RT+"sounds/barrier.wav"},
 	"block" : {"url":RT+"sounds/block.wav"},
 	"burst1" : {"url":RT+"sounds/burst1.wav"},
 	"critical" : {"url":RT+"sounds/critical.wav"},

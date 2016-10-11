@@ -24,6 +24,7 @@ function Chort(x,y){
 	this.collideDamage = 5;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	
 	this.mass = 6.0;
 	this.gravity = 0.4;

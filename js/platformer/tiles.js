@@ -320,3 +320,39 @@ BreakableTile.prototype.update = function(){
 }
 
 BreakableTile.unbreakable = 1023;
+
+SpeedTile.prototype = new GameObject();
+SpeedTile.prototype.constructor = GameObject;
+function SpeedTile(x, y, d, ops){	
+	this.constructor();
+	this.padding = 8;
+	this.origin.x = this.origin.y = 0.0;
+	this.width = Math.roundTo(d[0],16) + this.padding * 2;
+	this.height = Math.roundTo(d[1],16);
+	this.position.x = x - 0.5 * this.width;
+	this.position.y = y - 0.5 * this.height;
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			var dir = this.position.subtract(obj.position);
+			if(obj.states.roll > 0 && obj.dodgeFlash){
+				if((obj.flip && dir.x < 0) || (!obj.flip && dir.x > 0)){
+					this.break();
+				}
+			}
+		}
+	});
+}
+SpeedTile.prototype.break = function(){
+	var right = (this.position.x + this.width) - this.padding * 2;
+	var bottom = this.position.y + this.height;
+	
+	for(var x = this.position.x + this.padding; x < right; x+=16){
+		for(var y = this.position.y; y < bottom; y+=16){
+			game.setTile(x,y,game.tileCollideLayer,0);
+		}
+	}
+	
+	game.addObject(new EffectExplosion(this.position.x + this.width * 0.5, this.position.y + this.height * 0.5,"crash"));
+	this.destroy();
+}

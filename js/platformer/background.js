@@ -217,34 +217,20 @@ Background.presets = {
 		*/
 	},
 	"cavefire" : function(g,c){
-		g.color = [0,0,0,1];
-		g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
 		var mapHeight = game.map.height * 16 - this.sealevel;
-		var sspeed = 0.25;
-		var pos = new Point();
-		var sspeeds = [0.1,0.05,0.025];
 		
-		//Top
-		for(var j=0; j < sspeeds.length; j++){
-			sspeed = sspeeds[j];
-			pos = new Point(0,0).subtract(c.scale(sspeed));
-			pos.x = pos.x % 256;
-			for(var i=0;i<3;i++){
-				g.renderSprite("bgcave1",pos.add(new Point(i*256,j*16)),-99-j,new Point(0,5-j));
-			}
-		}
+		var scale = Math.min(
+			(592 - game.resolution.x) / (game.map.width * 16),
+			(416 - game.resolution.y) / (game.map.height * 16)
+		)
 		
-		//Bottom
-		for(var j=sspeeds.length-1; j >= 0; j--){
-			sspeed = sspeeds[j];
-			var pos = new Point(
-				(-c.x*sspeed)%256,
-				(176-j*16)+(((game.map.height*16-this.sealevel) - game.resolution.y)-c.y)*sspeed
-			);
-			for(var i=0;i<3;i++){
-				g.renderSprite("bgcave1",pos.add(new Point(i*256,0)),-99,new Point(0,j));
-			}
-		}
+		g.renderSprite(
+			"bgfirecave",
+			new Point(0,0).subtract(c.scale(scale)),
+			-99,
+			new Point(0,0),
+			false
+		);
 	},
 	"graveyard" : function(g,c){
 		var backgroundTiles = _map_backdrops[1];

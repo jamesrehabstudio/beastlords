@@ -100,10 +100,10 @@ spell_purify = function(player){
 	}
 	
 	var used = false;
-	for(var i in player.statusEffects){
-		if(player.statusEffects[i] > 0){
+	for(var i=0; i < player.buffs.length; i++){
+		if(player.buffs[i].negative){
 			used = true;
-			player.statusEffects[i] = 0.0;
+			player.buffs[i].time = 0;
 		}
 	}
 	
@@ -116,23 +116,43 @@ spell_purify = function(player){
 	}
 }
 
-spell_teleport = function(player){
+spell_shield = function(player){
 	//removes all debuffs
-	var cost = 12;
+	var cost = 0;
 	
-	var marker = game.getObject(TeleMarker);
-	if(marker instanceof TeleMarker){
-		player.position.x = marker.position.x;
-		player.position.y = marker.position.y;
-		marker.destroy();
-		return 0;
-	} else {
-		if(player.mana < cost){
+	for(var i=0; i < player.buffs.length; i++){
+		if(player.buffs[i] instanceof BuffMagicShield){
 			audio.play("negative");
 			return 0;
 		}
-		game.addObject(new TeleMarker(player.position.x, player.position.y, player));
 	}
+	var buff = new BuffMagicShield();
+	buff.absorb = Math.min((player.stats.magic-1) * 0.05, 0.45);
+	player.addBuff(buff)
+	audio.play("spell");
+	
+	return cost;
+}
+
+spell_strength = function(player){
+	//removes all debuffs
+	var cost = 16;
+	
+	if(player.mana < cost){
+		audio.play("negative");
+		return 0;
+	}
+	
+	for(var i=0; i < player.buffs.length; i++){
+		if(player.buffs[i] instanceof BuffStrength){
+			audio.play("negative");
+			return 0;
+		}
+	}
+	var buff = new BuffStrength();
+	buff.multiplier = Math.min(1.25 + (player.stats.magic-1) * 0.1, 2.5);
+	player.addBuff(buff)
+	audio.play("spell");
 	
 	return cost;
 }

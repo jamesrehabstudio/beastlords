@@ -443,34 +443,20 @@ Background.presets = {
 		*/
 	},
 	"cavefire" : function(g,c){
-		g.color = [0,0,0,1];
-		g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
 		var mapHeight = game.map.height * 16 - this.sealevel;
-		var sspeed = 0.25;
-		var pos = new Point();
-		var sspeeds = [0.1,0.05,0.025];
 		
-		//Top
-		for(var j=0; j < sspeeds.length; j++){
-			sspeed = sspeeds[j];
-			pos = new Point(0,0).subtract(c.scale(sspeed));
-			pos.x = pos.x % 256;
-			for(var i=0;i<3;i++){
-				g.renderSprite("bgcave1",pos.add(new Point(i*256,j*16)),-99-j,new Point(0,5-j));
-			}
-		}
+		var scale = Math.min(
+			(592 - game.resolution.x) / (game.map.width * 16),
+			(416 - game.resolution.y) / (game.map.height * 16)
+		)
 		
-		//Bottom
-		for(var j=sspeeds.length-1; j >= 0; j--){
-			sspeed = sspeeds[j];
-			var pos = new Point(
-				(-c.x*sspeed)%256,
-				(176-j*16)+(((game.map.height*16-this.sealevel) - game.resolution.y)-c.y)*sspeed
-			);
-			for(var i=0;i<3;i++){
-				g.renderSprite("bgcave1",pos.add(new Point(i*256,0)),-99,new Point(0,j));
-			}
-		}
+		g.renderSprite(
+			"bgfirecave",
+			new Point(0,0).subtract(c.scale(scale)),
+			-99,
+			new Point(0,0),
+			false
+		);
 	},
 	"graveyard" : function(g,c){
 		var backgroundTiles = _map_backdrops[1];
@@ -1180,7 +1166,7 @@ function Ammit(x,y,d,o){
 	}
 	
 	this.life = this.lifeMax = Spawn.life(24,this.difficulty);
-	
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.mass = 5.0;
 	this.death_time = Game.DELTASECOND * 3;
@@ -1515,6 +1501,7 @@ function Chort(x,y){
 	this.collideDamage = 5;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	
 	this.mass = 6.0;
 	this.gravity = 0.4;
@@ -1660,6 +1647,7 @@ function CryptKeeper(x,y,d,o){
 	this.life = Spawn.life(5,this.difficulty);
 	this.lifeMax = this.life;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.mass = 1.8;
 	
 	this.state = 0;
@@ -1889,6 +1877,7 @@ function FrogBoss(x,y){
 	this.frame = 0;
 	this.frame_row = 0;
 	this.life = Spawn.life(35,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.gravity = 0.5;
 	this.friction = 0.2;
 	this.mass = 20.0;
@@ -2116,6 +2105,7 @@ function Garmr(x,y,d,ops){
 	this.mass = 5.0;
 	this.damage = Spawn.damage(6,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.stun_time = 0;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -2500,6 +2490,7 @@ function GhostChort(x,y){
 	this.death_time = Game.DELTASECOND * 3;
 	this.life = Spawn.life(26,this.difficulty);
 	this.collideDamage = 5;
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
 	
@@ -2665,6 +2656,7 @@ function Marquis(x,y){
 	this.mass = 4.0;
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -2798,6 +2790,7 @@ function Minotaur(x,y){
 	this.mass = 5.0;
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.collideDamage = Spawn.damage(5,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.collisionReduction = -1.0;
 	this.death_time = Game.DELTASECOND * 3;
@@ -2923,6 +2916,7 @@ function Poseidon(x,y,d,o){
 	this.damageReduction = 0.333;
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(6,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.stun_time = 0;
 	this.interactive = false;
 	
@@ -3234,6 +3228,7 @@ function Zoder(x,y){
 	this.life = Spawn.life(24,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.mass = 5.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 3;
@@ -3352,6 +3347,147 @@ Zoder.prototype.render = function(g,c){
 	}
 	//Body
 	GameObject.prototype.render.apply(this, [g,c]);
+}
+
+ /* platformer\buffs.js*/ 
+
+function Buff(){
+	this.time = Game.DELTASECOND;
+	this.negative = false;
+	this.user = null;
+}
+
+//Positive
+
+BuffStrength.prototype = new Buff();
+BuffStrength.prototype.constructor = Buff;
+function BuffStrength(){
+	this.constructor();
+	this.negative = false;
+	this.additional = 0;
+	this.multiplier = 1.5;
+	this.time = Game.DELTASECOND * 45;
+}
+BuffStrength.prototype.prehurt_other = function(damage, target){
+	return damage * this.multiplier + this.additional;
+}
+BuffStrength.prototype.render = function(g,c){
+	if(this.user instanceof Player){
+		this.user.renderWeapon(g,c,{
+			"shader":"item",
+			"u_frameSize" : [32,64],
+			"u_pixelSize" : 256,
+			"u_color":[1.0,0.5,0.0,1.0]
+		});
+	}
+	return g;
+}
+
+BuffFireDamage.prototype = new Buff();
+BuffFireDamage.prototype.constructor = Buff;
+function BuffFireDamage(){
+	this.constructor();
+	this.negative = false;
+	this.damage = 5;
+	this.time = Game.DELTASECOND * 45;
+}
+BuffFireDamage.prototype.prehurt_other = function(damage, target){
+	return damage + this.damage;
+}
+BuffFireDamage.prototype.blocked = function(damage, target){
+	target.life -= this.damage;
+	target.displayDamage(this.damage);
+	target.isDead();
+	return damage;
+}
+BuffFireDamage.prototype.render = function(g,c){
+	this.user.renderWeapon(g,c,null,{
+		"shader":"item",
+		"u_frameSize" : [112,48],
+		"u_pixelSize" : 256,
+		"u_color":[1.0,0.5,0.0,1.0]
+	});
+	return g;
+}
+
+BuffMagicShield.prototype = new Buff();
+BuffMagicShield.prototype.constructor = Buff;
+function BuffMagicShield(){
+	this.constructor();
+	this.negative = false;
+	this.absorb = 0.2;
+	this.time = Game.DELTASECOND * 120;
+}
+BuffMagicShield.prototype.hurt = function(damage, attacker){
+	if(this.user instanceof Player){
+		var maxreduction = this.user.mana * (1 + this.absorb);
+		if(damage > maxreduction){
+			this.user.mana = 0;
+			damage = Math.floor(Math.max(damage - this.user.mana * (1+this.absorb),0));
+			this.time = 0;
+		} else {
+			this.user.mana = Math.floor(Math.max(this.user.mana - damage * (1-this.absorb),0));
+			damage = 0;
+			audio.play("barrier",this.user.position);
+		}
+	}
+	return damage;
+}
+BuffMagicShield.prototype.render = function(g,c){
+	g.renderSprite(
+		this.user.sprite,
+		this.user.position.subtract(c),
+		this.user.zIndex,
+		this.user.frame,
+		this.user.flip,
+		{
+			"shader":"item",
+			"u_frameSize" : [64,64],
+			"u_pixelSize" : 1024,
+			"u_color":[0.5,0.8,1.0,1.0]
+		}
+	)
+	return g;
+}
+
+BuffLifeleech.prototype = new Buff();
+BuffLifeleech.prototype.constructor = Buff;
+function BuffLifeleech(){
+	this.constructor();
+	this.negative = false;
+	this.percentage = 0.05;
+	this.time = Game.DELTASECOND * 5;
+}
+BuffLifeleech.prototype.hurt_other = function(damage, target){
+	var finalDamage = Math.max(Math.min(target.life+damage,damage),0);
+	var l = Math.floor(finalDamage * this.percentage);
+	this.user.life = Math.min(this.user.life + l, this.user.lifeMax);
+	return damage;
+}
+
+//Debuffs
+
+BuffPoison.prototype = new Buff();
+BuffPoison.prototype.constructor = Buff;
+function BuffPoison(){
+	this.constructor();
+	this.negative = true;
+	this.speed = Game.DELTASECOND * 1.0;
+	this.time = Game.DELTASECOND * 12;
+	this.damage = 1;
+}
+BuffPoison.prototype.update = function(){
+	if(Timer.interval(this.time,this.speed,game.delta)){
+		var c = this.user.corners();
+		var pos = new Point(c.left + Math.random()*this.user.width, c.top + Math.random()*this.user.height);
+		var effect = new EffectStatus(pos.x,pos.y);
+		effect.frame.x = 1;
+		game.addObject(effect);
+		
+		this.user.displayDamage(this.damage);
+		this.user.life -= this.damage;
+		this.user.isDead();
+	}
 }
 
  /* platformer\bullet.js*/ 
@@ -4005,7 +4141,9 @@ function DamageTrigger(x,y,d,o){
 			if(this.alwaysKill){
 				obj.invincible = -1;
 				obj.life = 0;
-				obj.hurt(this,0);
+				obj.stun = Game.DELTASECOND * 1;
+				obj.trigger("hurt",this,0);
+				obj.isDead();
 			} else if( game.time > DamageTrigger.rest ){
 				if(this.alwaysHurt){
 					obj.invincible = -1;
@@ -4751,7 +4889,7 @@ function EffectStatus(x, y){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.zIndex = 2;
+	this.zIndex = 23;
 	this.sprite = "bullets";
 	this.time = Game.DELTASECOND;
 	this.timeMax = this.time;
@@ -6883,6 +7021,127 @@ Bombjar.prototype.update = function(){
 		
 	}
 }
+
+ /* platformer\enemy_bookreptile.js*/ 
+
+BookReptile.prototype = new GameObject();
+BookReptile.prototype.constructor = GameObject;
+function BookReptile(x,y,d,o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 28;
+	this.sprite = "bookreptile";
+	this.speed = 0.5;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	this.times = {
+		"attack" : Game.DELTASECOND * 2,
+		"rest" : Game.DELTASECOND * 3,
+		"carryon" : Game.DELTASECOND * 2,
+		"spawn" : Game.DELTASECOND * 0.2
+	}
+	
+	this.states = {
+		"wakingup" : 1,
+		"attack" : 0,
+		"rest" : 0,
+		"spawn" : this.times.spawn
+	}
+	
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	if("background" in o){
+		this.states.background = this.times.background * o["background"];
+	}
+	
+	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
+	this.mass = 1;
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(1,this.difficulty);
+	this.pushable = false;
+	this.force.y = -12;
+	
+	this.on("struck", EnemyStruck);
+	this.on("hurt", function(){
+		audio.play("hurt",this.position);
+	});
+	this.on("death", function(){
+		this.destroy();
+		Item.drop(this,4);
+		audio.play("kill",this.position);
+	});
+}
+
+BookReptile.prototype.update = function(){
+	if ( this.life > 0 ) {
+		var dir = this.position.subtract(_player.position);
+		
+		if(this.states.wakingup > 0){
+			this.interactive = false;
+			this.frame.x = this.force.y < 0 ? 0 : 1;
+			this.frame.y = 0;
+			
+			if(this.grounded){
+				this.states.wakingup = 0;
+			}
+		} else if( this.states.spawn > 0) {
+			this.interactive = true;
+			var p = 1 - this.states.spawn / this.times.spawn;
+			this.frame.x = 2 + p * 3;
+			this.frame.y = 0;
+			this.states.spawn -= this.delta;
+			if(this.states.spawn <= 0){
+				this.force.y = -9;
+			}
+		} else if( this.states.attack > 0) {
+			//Leap and swing at the player
+			this.frame.x = Math.min(this.frame.x + this.delta * 0.3, 3);
+			
+			if(this.frame.x >= 1 && this.frame.x < 3){
+				this.strike(Axesub.attackRect);
+			}
+			
+			this.states.attack -= this.delta;
+		} else if( this.states.rest > 0) {
+			this.frame.x = 0;
+			this.frame.y = 1;
+			this.states.rest -= this.delta;
+		} else {
+			//Run at player
+			if(this.grounded){
+				this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 6;
+				this.frame.y = 1;
+				
+				this.flip = dir.x > 0;
+				this.force.x += this.forward() * this.speed * this.delta;
+			} else {
+				this.frame.x = 1 + Math.max(Math.min(this.force.y,1),-1) * 0.1;
+				this.frame.y = 3;
+			}
+			
+			if(Math.abs(dir.x) < 64){
+				this.states.attack = this.times.attack;
+				this.states.rest = this.times.rest;
+				this.frame.x = 0;
+				this.frame.y = 2;
+			}
+		}
+	} else {
+		this.frame.x = 5;
+		this.frame.y = 0;
+	}
+}
+
+BookReptile.attackRect = new Line(8,-12,20,12);
 
  /* platformer\enemy_bookrider.js*/ 
 
@@ -12433,8 +12692,11 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 
 var WeaponStats = {
 	"short_sword" : createWeaponTemplate(0.05,0.30,0.08,0.15,38),
-	"long_sword" : createWeaponTemplate(0.10,0.333,0.1,0.2,42),
-	"broad_sword" : createWeaponTemplate(0.20,0.35,0.1,0.3,42)
+	"long_sword" : createWeaponTemplate(0.10,0.333,0.1,0.2,48),
+	"broad_sword" : createWeaponTemplate(0.20,0.35,0.1,0.3,42),
+	"morningstar" : createWeaponTemplate(0.08,0.35,0.08,0.35,40),
+	"bloodsickle" : createWeaponTemplate(0.05,0.30,0.08,0.15,36),
+	"burningblade" : createWeaponTemplate(0.05,0.333,0.1,0.2,38),
 }
 
 WeaponStats.short_sword.damage = 3;
@@ -12445,6 +12707,19 @@ WeaponStats.long_sword.standing.alwaysqueue = 0;
 
 WeaponStats.broad_sword.damage = 5;
 WeaponStats.broad_sword.standing.alwaysqueue = 0;
+
+WeaponStats.morningstar.damage = 5;
+WeaponStats.morningstar.standing.alwaysqueue = 0;
+WeaponStats.morningstar.standing.length = 1;
+WeaponStats.morningstar.standing[0]["force"] = new Point(1.0,0.0);
+
+WeaponStats.bloodsickle.damage = 2.5;
+WeaponStats.bloodsickle.standing.alwaysqueue = 1;
+WeaponStats.bloodsickle.standing.length = 2;
+
+WeaponStats.burningblade.damage = 3.5;
+WeaponStats.burningblade.standing.alwaysqueue = 1;
+WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);
 
  /* platformer\exit.js*/ 
 
@@ -13181,8 +13456,8 @@ function Item(x,y,d, ops){
 			if( this.name == "spell_flash") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "spell_heal") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "spell_purify") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_bifurcate") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_teleport") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_shield") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
+			if( this.name == "spell_strength") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			if( this.name == "unique_pray"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
@@ -13218,63 +13493,67 @@ Item.prototype.setName = function(n){
 	if(n == "short_sword") { 
 		this.frame.x = 0; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=0;
-		this.stats = {"warm":10.5, "strike":8.5,"rest":5.0,"range":18, "sprite":new Point(0,0) };
+		this.equipframe = new Point(0,0);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
 	if(n == "long_sword") { 
 		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=2; 
-		this.stats = {"warm":15.0, "strike":11,"rest":8.0,"range":24, "sprite":new Point(1,0) };
+		this.equipframe = new Point(1,0);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
 	if(n == "broad_sword") { 
-		this.frame.x = 3; this.frame.y = 2; 
-		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=3; 
-		this.stats = {"warm":17.0, "strike":8.5,"rest":5.0,"range":24, "sprite":new Point(2,0) };
-		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
-		return; 
-	}
-	if(n == "spear") { 
 		this.frame.x = 2; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
-		this.level=1; this.bonus_att=4; 
-		this.stats = {"warm":21.5, "strike":17.5,"rest":12.0,"range":32, "sprite":"sword3" };
+		this.equipframe = new Point(2,0);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
-	if(n == "warhammer") { 
-		this.frame.x = 6; this.frame.y = 2; 
-		this.isWeapon = true; this.twoHanded = true;
-		this.level=1; this.bonus_att=5; 
-		this.stats = {"warm":24.5, "strike":15.5,"rest":12.0,"range":27, "sprite":"sword4" };
+	if(n == "morningstar") { 
+		this.frame.x = 3; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(0,1);
 		this.message = Item.weaponDescription;
-		if(0) {
-			if( Math.random() < this.enchantChance ) Item.enchantWeapon(this);
-			if( Math.random() < this.enchantChance*.3 ) Item.enchantWeapon(this);
-		}
 		return; 
 	}
+	if(n == "bloodsickle") { 
+		this.frame.x = 4; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(1,1);
+		this.message = Item.weaponDescription;
+		
+		this.on("equip", function(obj){
+			this.lifeleech = new BuffLifeleech();
+			this.lifeleech.time = Game.DELTAYEAR;
+			this.lifeleech.percentage = 0.11;
+			obj.addBuff(this.lifeleech);
+		})
+		this.on("unequip", function(obj){
+			this.lifeleech.time = 0;
+		})
+		return; 
+	}
+	if(n == "burningblade") { 
+		this.frame.x = 5; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(2,1);
+		this.message = Item.weaponDescription;
+		
+		this.on("equip", function(obj){
+			this.firedamage = new BuffFireDamage();
+			this.firedamage.time = Game.DELTAYEAR;
+			this.firedamage.damage = 5;
+			obj.addBuff(this.firedamage);
+		})
+		this.on("unequip", function(obj){
+			this.firedamage.time = 0;
+		})
+		return; 
+	}
+	
+	//Shields
 	if(n == "small_shield") { 
 		this.frame.x = 0; this.frame.y = 3; 
 		this.isShield = true;
@@ -13418,8 +13697,8 @@ Item.prototype.setName = function(n){
 	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.2; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
 	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.castTime = Game.DELTASECOND * 1.0; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
 	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_bifurcate") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.3; this.cast = spell_bifurcate; this.message = "Spell of Bifurcation\nHalves the life of enemy.";}
-	if( this.name == "spell_teleport") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_teleport; this.message = "Spell of Teleportation\nAllows to set a marker and teleport to it.";}
+	if( this.name == "spell_shield") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_shield; this.message = "Spell of Magic Shield\nProtects user with a shield made from magic.";}
+	if( this.name == "spell_strength") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_strength; this.message = "Spell of Strength\nEnhances the user's strength.";}
 	
 	if( this.name == "unique_wand"){
 		this.frame.x = 2;
@@ -13505,39 +13784,33 @@ Item.prototype.render = function(g,c){
 			this.zIndex,
 			this.frame,
 			false,
-			{"shader":"item","u_color":[0.8,0.1,1.0,a]}
+			{
+				"shader":"item",
+				"u_frameSize" : [16,16],
+				"u_pixelSize" : 256,
+				"u_color":[0.8,0.1,1.0,a]
+			}
 		);
 	}
 }
 
-Item.drop = function(obj,money,sleep){
-	money = money || Math.ceil(1+Math.random()*3);
-	
-	if(Math.random() > 0.95){
-		money += 20 + Math.floor(Math.random()*10);
+Item.drop = function(obj){
+	if("moneyDrop" in obj){
+		Item.dropMoney(obj.position, obj.moneyDrop);
 	}
-	
-	if("money_bonus" in _player){
-		money = Math.round(money * _player.money_bonus);
-	}
-
-	Item.dropMoney(obj.position, money, sleep);
 	
 	if (Math.random() < _player.waystone_bonus) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
-		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
 	
 	if (Math.random() > 0.9) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
-		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
 	
 	if (Math.random() > 0.967) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
-		if( sleep ) item.sleep = sleep;
 		game.addObject( item );
 	}
 }
@@ -15226,6 +15499,7 @@ var mod_combat = {
 		this.collideDamage = 5;
 		this.damageReduction = 0.0;
 		this.hurtByDamageTriggers = true;
+		this.moneyDrop = Spawn.money(3,0);
 		
 		//Counters
 		this.invincible = 0;
@@ -15247,7 +15521,6 @@ var mod_combat = {
 		this.hitIgnoreList = new Array();
 		
 		this.ragdoll = false;
-		this.buffs = new Array();
 		
 		this.guard = {
 			"x" : 4,
@@ -15261,18 +15534,7 @@ var mod_combat = {
 			"invincible" : 0.0
 		};
 		
-		this.addBuff = function(buff){
-			this.buffs.push(buff);
-			this.trigger("addbuff", buff);
-		}
-		this.useBuff = function(name, value){
-			for(var i=0; i < this.buffs.length; i++){
-				if(name in this.buffs[i]){
-					value = this.buffs[i][name].apply(this,[value]);
-				}
-			}
-			return value;
-		}
+		
 			
 		this.strike = Combat.strike;
 		this.shieldArea = Combat.shieldArea;
@@ -15280,7 +15542,6 @@ var mod_combat = {
 		this.isDead = function(){
 			if(!(this.life > 0)){
 				//Remove effects
-				this.buffs = new Array();
 				this.buffer_damage = 0;
 				this.hurtByDamageTriggers = false;
 				
@@ -15319,12 +15580,23 @@ var mod_combat = {
 				this.trigger("status_effect", name);
 			}
 		}
-		this.hurt = function(obj, damage){
-			damage = this.useBuff("before_hurt", damage);
-			
+		this.displayDamage = function(damage){
+			if(damage > 0 && this.life > 0 && this.showDamage){
+				//Show damage taken
+				this._damageCounter.value = Math.round(this._damageCounter.value + damage * 1);
+				this._damageCounter.progress = 0.0;
+				this._damageCounter.position.x = this.position.x;
+				this._damageCounter.position.y = this.position.y - 16;
+				if(this._damageCounter.sleep){
+					game.addObject(this._damageCounter);
+				}
+			}
+		}
+		this.hurt = function(obj, damage){			
 			if( this.damageReduction >= 1){
 				audio.play("tink",this.position);
 				obj.trigger("hurt_other",this,0);
+				obj.useBuff("hurt_other",0,this);
 			} else if( this.invincible <= 0 ) {
 				//Increment number of hits
 				this.combat_stuncount++;
@@ -15339,39 +15611,40 @@ var mod_combat = {
 					game.addObject(new EffectCritical(this.position.x, this.position.y));
 				}
 				//Apply damage reduction as percentile
-				damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
+				damage = obj.useBuff("prehurt_other",damage,this);
+				damage = this.useBuff("hurt",damage,obj);
 				
-				if(damage > 0 && this.life > 0 && this.showDamage){
-					//Show damaage taken
-					this._damageCounter.value = Math.round(this._damageCounter.value + damage * 1);
-					this._damageCounter.progress = 0.0;
-					this._damageCounter.position.x = this.position.x;
-					this._damageCounter.position.y = this.position.y - 16;
-					if(this._damageCounter.sleep){
-						game.addObject(this._damageCounter);
+				if(damage > 0){
+					damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
+					
+					this.displayDamage(damage);
+					
+					if( this.buffer_damage ) {
+						this.damage_buffer += damage;
+					} else {
+						this.life -= damage;
 					}
-				}
-				
-				if( this.buffer_damage ) {
-					this.damage_buffer += damage;
+					
+					this.isDead();
+					
+					this.invincible = this.invincible_time;
+					//this.stun = this.stun_time;
+					this.trigger("hurt",obj,damage);
+					obj.trigger("hurt_other",this,damage);
+					
+					this.useBuff("posthurt",damage,obj);
+					obj.useBuff("hurt_other",damage,this);
+					
+					
+					if(this.ragdoll && this.hasModule(mod_rigidbody)){
+						this.grounded = false;
+						this.gravity = 0.6;
+						this.criticalChance = 0;
+						this.force.y = -7;
+						this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
+					}
 				} else {
-					this.life -= damage;
-				}
-				
-				this.isDead();
-				
-				this.invincible = this.invincible_time;
-				//this.stun = this.stun_time;
-				this.trigger("hurt",obj,damage);
-				obj.trigger("hurt_other",this,damage);
-				
-				
-				if(this.ragdoll && this.hasModule(mod_rigidbody)){
-					this.grounded = false;
-					this.gravity = 0.6;
-					this.criticalChance = 0;
-					this.force.y = -7;
-					this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
+					this.invincible = this.invincible_time;
 				}
 			}
 		}
@@ -15424,6 +15697,7 @@ var mod_combat = {
 		
 		
 		this.invincible -= this.deltaUnscaled;
+		this.guard.invincible -= this.deltaUnscaled;
 		this.stun -= this.delta;
 	},
 	"postrender" : function(g,c){
@@ -15502,10 +15776,17 @@ var Combat = {
 				var shield = obj.shieldArea();
 				
 				if( obj.guard.active && (onidirectional||(direction!=obj.flip)) && shield.overlaps(rect) ){
-					this.trigger("blocked",obj);
-					obj.trigger("block",this,this.position,damage);
+					if(obj.guard.invincible <= 0){
+						obj.guard.invincible = Game.DELTASECOND * 0.5;
+						
+						this.trigger("blocked",obj);
+						obj.trigger("block",this,this.position,damage);
+						
+						this.useBuff("blocked", damage, obj);
+						obj.useBuff("block", damage, this);
+					}
 				} else {
-					//this.trigger("hurt_other",obj, damaage);
+					//this.trigger("hurt_other",obj, damage);
 					obj.hurt( this, damage );
 				}
 				
@@ -17832,8 +18113,13 @@ Player.prototype.update = function(){
 		this.frame.x = (1 - Math.min(this.states.spellCounter / Game.DELTASECOND, 1)) * 8;
 		this.frame.y = 7;
 	} else if( this.states.roll > 0 ) {
-		this.frame.y = 2;
-		this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
+		if(this.dodgeFlash){
+			this.frame.y = 6;
+			this.frame.x = 8;
+		} else {
+			this.frame.y = 2;
+			this.frame.x = 6 * (1 - this.states.roll / this.rollTime);
+		}
 	} else if( this.states.downStab ){
 		if(this.frame.x > 2) this.frame.x = 0;
 		this.frame.x = Math.min(this.frame.x + this.delta * 0.2,2);
@@ -18013,7 +18299,7 @@ Player.prototype.cancelAttack = function(){
 	this.attstates.timer = 0.0;
 }
 Player.prototype.baseDamage = function(){
-	return Math.round(2 + this.stats.attack) * this.attstates.stats.damage;
+	return Math.round((2 + this.stats.attack) * this.attstates.stats.damage);
 }
 
 Player.prototype.currentDamage = function(){
@@ -18066,7 +18352,7 @@ Player.prototype.equipCharm = function(c){
 }
 Player.prototype.equip = function(sword, shield){
 	try {	
-		if( sword.isWeapon && "stats" in sword ){
+		if( sword.isWeapon ){
 			NPC.set(sword.name, 1);
 			this.attstates.stats = WeaponStats[sword.name];
 		} else {
@@ -18137,17 +18423,12 @@ Player.prototype.equip = function(sword, shield){
 			mag_bonus += (this.equip_shield.bonus_tec || 0);
 		}
 		
-		var att = Math.max( Math.min( att_bonus + this.stats.attack - 1, 19), 0 );
-		var def = Math.max( Math.min( def_bonus + this.stats.defence - 1, 19), 0 );
-		var tech = Math.max( Math.min( tec_bonus + this.stats.technique - 1, 19), 0 );
-		var magic = Math.max( Math.min( mag_bonus + this.stats.magic - 1, 19), 0 );
-		
 		//this.guard.lifeMax += 3 * def + tech;
 		//this.guard.restore = 0.4 + tech * 0.05;
 		
-		this.damage = 5 + att * 3 + Math.floor(tech*0.5);
-		this.damageReduction = (def-Math.pow(def*0.15,2))*.071;
-		this.speeds.manaRegen = Game.DELTASECOND * (10 - magic * (9/19));
+		this.damage = 5 + this.stats.attack * 3;
+		this.damageReduction = (this.stats.defence-Math.pow(this.stats.defence*0.15,2))*.071;
+		this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
 		
 	} catch(e) {
 		this.equip( this.equip_sword, this.equip_shield );
@@ -18295,47 +18576,15 @@ Player.prototype.render = function(g,c){
 	
 	//Render current sword
 	if(this.states.roll <= 0){
-		try{
-			var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
-			var rotation = _t.r;
-			var sposition = _t.p;
-			var zPlus = _t.z;
-			var effect = _t.v;
-			var shield = _t.s;
-			
-			if(this.flip){
-				sposition = new Point(sposition.x*-1,sposition.y);
-			}
-			
-			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.stats.sprite, false, {
-				"rotate" : (this.flip ? -1 : 1) * rotation
-			});
-			if(effect instanceof Point){
-				g.renderSprite("swordeffect", this.position.subtract(c), this.zIndex+2, effect, this.flip);
-			}
-			if(shield instanceof Point){
-				var shieldFrames = new Point(Math.abs(shield.y), this.shieldProperties.frame_row);
-				var shieldFlip = shield.y < 0 ? !this.flip : this.flip;
-				var shieldOffset = new Point(
-					(this.flip?-1:1)*shield.x, 
-					Math.floor(this.guard.y+_player.guard.h*0.5)
-				);
-				g.renderSprite(
-					"shields", 
-					this.position.subtract(c).add(shieldOffset), 
-					this.zIndex+1, 
-					shieldFrames, 
-					shieldFlip
-				);
-			}
+			this.renderWeapon(g,c);
+			this.renderShield(g,c);
 			
 			if(this.attstates.charge > 0){
 				EffectList.charge.apply(this, [g,
-					this.position.subtract(c).add(sposition),
+					this.position.subtract(c).add(new Point(this.forward()*16,0)),
 					this.attstates.charge / this.speeds.charge
 				]);
 			}
-		}catch(e){}
 	}
 	
 	//Charge effect
@@ -18362,6 +18611,56 @@ Player.prototype.render = function(g,c){
 		"bullets".render(g,this.position.add(spos).subtract(c),sframe,slength,this.flip);
 	}
 	*/
+}
+
+Player.prototype.renderWeapon = function(g,c,ops,eops){
+	try{
+		ops = ops || {};
+		eops = eops || {};
+		
+		var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
+		var rotation = _t.r;
+		var sposition = _t.p;
+		var zPlus = _t.z;
+		var effect = _t.v;
+		var shield = _t.s;
+		
+		if(this.flip){
+			sposition = new Point(sposition.x*-1,sposition.y);
+		}
+		ops["rotate"] = (this.flip ? -1 : 1) * rotation;
+		
+		g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
+		if(effect instanceof Point){
+			g.renderSprite("swordeffect", this.position.subtract(c), this.zIndex+2, effect, this.flip, eops);
+		}
+	} catch (e){
+		
+	}
+}
+Player.prototype.renderShield = function(g,c,ops){
+	try{
+		var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
+		var shield = _t.s;
+		
+		if(shield instanceof Point){
+			var shieldFrames = new Point(Math.abs(shield.y), this.shieldProperties.frame_row);
+			var shieldFlip = shield.y < 0 ? !this.flip : this.flip;
+			var shieldOffset = new Point(
+				(this.flip?-1:1)*shield.x, 
+				Math.floor(this.guard.y+_player.guard.h*0.5)
+			);
+			g.renderSprite(
+				"shields", 
+				this.position.subtract(c).add(shieldOffset), 
+				this.zIndex+1, 
+				shieldFrames, 
+				shieldFlip,
+				ops
+			);
+		}
+	} catch(e){
+	}
 }
 
 Player.prototype.hudrender = function(g,c){
@@ -18504,6 +18803,9 @@ var playerSwordPosition = {
 			4 : {p:new Point(6,-6),r:45,z:-1,v:new Point(2,2)},
 			5 : {p:new Point(14,-2),r:50,z:-1,v:new Point(3,2)},
 			6 : {p:new Point(16,4),r:60,z:1,v:0},
+		},
+		6 : {
+			8 : {p:new Point(-16,1),r:-45,z:1,v:0}
 		},
 		8 : {
 			0 : {p:new Point(-15,-2),r:-10,z:1,v:0},
@@ -20190,6 +20492,7 @@ function Spawn(x,y,d,ops){
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
 	this.edgespawn = false;
+	this.spawnPattern = 0;
 	this.idleMargin = 0;
 	this.spawnRest = Game.DELTASECOND * 20;
 	this.lastSpawn = Number.MIN_SAFE_INTEGER;
@@ -20222,8 +20525,8 @@ function Spawn(x,y,d,ops){
 		autospawn = this.options.autospawn * 1;
 		this.active = autospawn;
 	}
-	if("edgespawn" in this.options){
-		this.edgespawn = this.options.edgespawn * 1;
+	if("spawnpattern" in this.options){
+		this.spawnPattern = this.options.spawnpattern * 1;
 	}
 	if("respawn" in this.options){
 		this.respawn = this.options["respawn"] * 1;
@@ -20236,6 +20539,7 @@ function Spawn(x,y,d,ops){
 	if("timer" in this.options){
 		this.timerTotal = this.options["timer"] * Game.DELTASECOND;
 		this.timer = this.timerTotal;
+		this.spawnRest = 0;
 	}
 	if("spawnrest" in this.options){
 		this.spawnRest = this.options.spawnrest * Game.DELTASECOND;
@@ -20347,7 +20651,12 @@ Spawn.prototype.create = function(enemies){
 	}
 }
 Spawn.prototype.spawnPosition = function(i){
-	if(this.edgespawn){
+	if(this.spawnPattern == 2){
+		var c = this.corners();
+		var left = Math.max(c.left, game.camera.x);
+		var width = Math.min(game.resolution.x,c.right-left);
+		return new Point(left+Math.random()*width,this.position.y);
+	} else if(this.spawnPattern == 1){
 		var c = this.corners();
 		var leftPos = game.camera.x;
 		var rightPos = game.camera.x + game.resolution.x
@@ -20509,6 +20818,23 @@ Spawn.life = function(level, difficulty){
 	return Math.floor( multi * level * 9 );
 }
 
+Spawn.money = function(money, difficulty){
+	
+	if(difficulty == undefined){
+		difficulty = Spawn.difficulty;
+	}
+	
+	var base = money * 0.66666 + money * 0.4 * Math.random();
+	var multi = 1 + difficulty * 1.6;
+	var bonus = Math.round( multi * 20 );
+	var out = Math.round( multi * base );
+	if(Math.random() < 0.04){
+		return Math.max(out,bonus);
+	} else {
+		return out;
+	}
+}
+
 Spawn.difficulty = 0;
 
  /* platformer\spells.js*/ 
@@ -20615,10 +20941,10 @@ spell_purify = function(player){
 	}
 	
 	var used = false;
-	for(var i in player.statusEffects){
-		if(player.statusEffects[i] > 0){
+	for(var i=0; i < player.buffs.length; i++){
+		if(player.buffs[i].negative){
 			used = true;
-			player.statusEffects[i] = 0.0;
+			player.buffs[i].time = 0;
 		}
 	}
 	
@@ -20631,23 +20957,43 @@ spell_purify = function(player){
 	}
 }
 
-spell_teleport = function(player){
+spell_shield = function(player){
 	//removes all debuffs
-	var cost = 12;
+	var cost = 0;
 	
-	var marker = game.getObject(TeleMarker);
-	if(marker instanceof TeleMarker){
-		player.position.x = marker.position.x;
-		player.position.y = marker.position.y;
-		marker.destroy();
-		return 0;
-	} else {
-		if(player.mana < cost){
+	for(var i=0; i < player.buffs.length; i++){
+		if(player.buffs[i] instanceof BuffMagicShield){
 			audio.play("negative");
 			return 0;
 		}
-		game.addObject(new TeleMarker(player.position.x, player.position.y, player));
 	}
+	var buff = new BuffMagicShield();
+	buff.absorb = Math.min((player.stats.magic-1) * 0.05, 0.45);
+	player.addBuff(buff)
+	audio.play("spell");
+	
+	return cost;
+}
+
+spell_strength = function(player){
+	//removes all debuffs
+	var cost = 16;
+	
+	if(player.mana < cost){
+		audio.play("negative");
+		return 0;
+	}
+	
+	for(var i=0; i < player.buffs.length; i++){
+		if(player.buffs[i] instanceof BuffStrength){
+			audio.play("negative");
+			return 0;
+		}
+	}
+	var buff = new BuffStrength();
+	buff.multiplier = Math.min(1.25 + (player.stats.magic-1) * 0.1, 2.5);
+	player.addBuff(buff)
+	audio.play("spell");
 	
 	return cost;
 }
@@ -20670,9 +21016,9 @@ function game_start(g){
 	setTimeout(function(){
 		new Player(0,0);
 		_player.doubleJump = true;
-		//_player.dodgeFlash = true;
+		_player.dodgeFlash = true;
 		_player.grabLedges = true;
-		WorldLocale.loadMap("temple4.tmx");
+		WorldLocale.loadMap("temple1.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
@@ -21082,6 +21428,42 @@ BreakableTile.prototype.update = function(){
 }
 
 BreakableTile.unbreakable = 1023;
+
+SpeedTile.prototype = new GameObject();
+SpeedTile.prototype.constructor = GameObject;
+function SpeedTile(x, y, d, ops){	
+	this.constructor();
+	this.padding = 8;
+	this.origin.x = this.origin.y = 0.0;
+	this.width = Math.roundTo(d[0],16) + this.padding * 2;
+	this.height = Math.roundTo(d[1],16);
+	this.position.x = x - 0.5 * this.width;
+	this.position.y = y - 0.5 * this.height;
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			var dir = this.position.subtract(obj.position);
+			if(obj.states.roll > 0 && obj.dodgeFlash){
+				if((obj.flip && dir.x < 0) || (!obj.flip && dir.x > 0)){
+					this.break();
+				}
+			}
+		}
+	});
+}
+SpeedTile.prototype.break = function(){
+	var right = (this.position.x + this.width) - this.padding * 2;
+	var bottom = this.position.y + this.height;
+	
+	for(var x = this.position.x + this.padding; x < right; x+=16){
+		for(var y = this.position.y; y < bottom; y+=16){
+			game.setTile(x,y,game.tileCollideLayer,0);
+		}
+	}
+	
+	game.addObject(new EffectExplosion(this.position.x + this.width * 0.5, this.position.y + this.height * 0.5,"crash"));
+	this.destroy();
+}
 
  /* platformer\titlecard.js*/ 
 

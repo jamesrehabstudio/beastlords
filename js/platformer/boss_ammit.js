@@ -38,7 +38,7 @@ function Ammit(x,y,d,o){
 	}
 	
 	this.life = this.lifeMax = Spawn.life(24,this.difficulty);
-	
+	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.mass = 5.0;
 	this.death_time = Game.DELTASECOND * 3;

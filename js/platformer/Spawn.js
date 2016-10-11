@@ -17,6 +17,7 @@ function Spawn(x,y,d,ops){
 	this.timer = 0.0;
 	this.timerTotal = 0.0;
 	this.edgespawn = false;
+	this.spawnPattern = 0;
 	this.idleMargin = 0;
 	this.spawnRest = Game.DELTASECOND * 20;
 	this.lastSpawn = Number.MIN_SAFE_INTEGER;
@@ -49,8 +50,8 @@ function Spawn(x,y,d,ops){
 		autospawn = this.options.autospawn * 1;
 		this.active = autospawn;
 	}
-	if("edgespawn" in this.options){
-		this.edgespawn = this.options.edgespawn * 1;
+	if("spawnpattern" in this.options){
+		this.spawnPattern = this.options.spawnpattern * 1;
 	}
 	if("respawn" in this.options){
 		this.respawn = this.options["respawn"] * 1;
@@ -63,6 +64,7 @@ function Spawn(x,y,d,ops){
 	if("timer" in this.options){
 		this.timerTotal = this.options["timer"] * Game.DELTASECOND;
 		this.timer = this.timerTotal;
+		this.spawnRest = 0;
 	}
 	if("spawnrest" in this.options){
 		this.spawnRest = this.options.spawnrest * Game.DELTASECOND;
@@ -174,7 +176,12 @@ Spawn.prototype.create = function(enemies){
 	}
 }
 Spawn.prototype.spawnPosition = function(i){
-	if(this.edgespawn){
+	if(this.spawnPattern == 2){
+		var c = this.corners();
+		var left = Math.max(c.left, game.camera.x);
+		var width = Math.min(game.resolution.x,c.right-left);
+		return new Point(left+Math.random()*width,this.position.y);
+	} else if(this.spawnPattern == 1){
 		var c = this.corners();
 		var leftPos = game.camera.x;
 		var rightPos = game.camera.x + game.resolution.x
@@ -334,6 +341,23 @@ Spawn.life = function(level, difficulty){
 	if( level == 0 ) return 3; //Always one shot
 	var multi = 1 + difficulty * 0.6;
 	return Math.floor( multi * level * 9 );
+}
+
+Spawn.money = function(money, difficulty){
+	
+	if(difficulty == undefined){
+		difficulty = Spawn.difficulty;
+	}
+	
+	var base = money * 0.66666 + money * 0.4 * Math.random();
+	var multi = 1 + difficulty * 1.6;
+	var bonus = Math.round( multi * 20 );
+	var out = Math.round( multi * base );
+	if(Math.random() < 0.04){
+		return Math.max(out,bonus);
+	} else {
+		return out;
+	}
 }
 
 Spawn.difficulty = 0;

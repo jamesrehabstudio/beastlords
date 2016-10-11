@@ -145,7 +145,7 @@ function EffectStatus(x, y){
 	this.position.y = y;
 	this.width = 16;
 	this.height = 16;
-	this.zIndex = 2;
+	this.zIndex = 23;
 	this.sprite = "bullets";
 	this.time = Game.DELTASECOND;
 	this.timeMax = this.time;
