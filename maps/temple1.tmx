@@ -473,7 +473,7 @@
    <property name="spawnrest" type="int" value="0"/>
   </properties>
   <object id="21" name="Lift" x="656" y="400" width="32" height="48"/>
-  <object id="35" name="Player" x="2912" y="1552" width="16" height="32"/>
+  <object id="35" name="Player" x="48" y="416" width="16" height="32"/>
   <object id="37" name="CornerStone" x="5728" y="112" width="64" height="96">
    <properties>
     <property name="gate" type="int" value="1"/>
@@ -1574,12 +1574,6 @@
   <object id="529" name="BreakableTile" x="4064" y="2080" width="16" height="16"/>
   <object id="530" name="BreakableTile" x="4080" y="2080" width="16" height="16"/>
   <object id="531" name="BreakableTile" x="4080" y="2096" width="16" height="16"/>
-  <object id="532" name="Trigger" x="2864" y="1536" width="128" height="48">
-   <properties>
-    <property name="background" value="cavefire"/>
-    <property name="sealevel" type="int" value="720"/>
-   </properties>
-  </object>
  </objectgroup>
  <layer name="map" width="400" height="150">
   <data encoding="csv">

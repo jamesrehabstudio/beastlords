@@ -156,7 +156,7 @@ Smith.anim_braces = new Sequence([
 	[0,3,0.5],
 ]);
 Smith.weapons = [
-	"short_sword", "long_sword", "broad_sword", "spear", "warhammer",
+	"short_sword", "long_sword", "broad_sword", "morningstar", "bloodsickle", "burningblade",
 	"small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"
 ];
 Smith.introduction = true;

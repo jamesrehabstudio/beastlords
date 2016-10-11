@@ -14138,14 +14138,14 @@ function Lift(x,y,d,ops){
 	this.speed = 3.0;
 	this.sprite = "elevator";
 	
-	this.onboard = false;
+	this.onboard = 0.0;
 	
 	this.addModule( mod_rigidbody );
 	this.clearEvents("collideObject");
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player ) {
-			this.onboard = true;
+			this.onboard = Game.DELTASECOND * 0.2;
 			obj.position.y = this.position.y;
 			obj.trigger( "collideVertical", 1);
 			this.position.x = this.start_x;
@@ -14167,10 +14167,11 @@ Lift.prototype.idle = function(){}
 Lift.prototype.update = function(){
 	//slow down lift
 	this.force.y *= 0.9;
+	this.grounded = false;
 	
 	var dir = this.position.subtract( _player.position );
 	var goto_y = 200 + (Math.floor( _player.position.y / 240 ) * 240);
-	if( this.onboard ) {
+	if( this.onboard > 0) {
 		this.trackPlayer = true;
 		if( input.state("up") > 0 ) {
 			this.force.y = -this.speed;
@@ -14190,7 +14191,7 @@ Lift.prototype.update = function(){
 	if(Math.abs(this.force.y) < 0.2) this.frame.x = 0;
 	this.frame_row = 0;
 	
-	this.onboard = false;
+	this.onboard -= this.delta;
 }
 
  /* platformer\mapdebug.js*/ 
@@ -17146,7 +17147,7 @@ Smith.anim_braces = new Sequence([
 	[0,3,0.5],
 ]);
 Smith.weapons = [
-	"short_sword", "long_sword", "broad_sword", "spear", "warhammer",
+	"short_sword", "long_sword", "broad_sword", "morningstar", "bloodsickle", "burningblade",
 	"small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"
 ];
 Smith.introduction = true;
@@ -21015,16 +21016,16 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
-		_player.doubleJump = true;
-		_player.dodgeFlash = true;
-		_player.grabLedges = true;
-		WorldLocale.loadMap("temple1.tmx");
+		//_player.doubleJump = true;
+		//_player.dodgeFlash = true;
+		//_player.grabLedges = true;
+		WorldLocale.loadMap("temple2.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			_player.stat_points = 6;
-			_player.life = _player.lifeMax = 42;
-			_player.mana = _player.manaMax = 36;
+			//_player.stat_points = 6;
+			//_player.life = _player.lifeMax = 42;
+			//_player.mana = _player.manaMax = 36;
 			//audio.playAs("music_temple4");
 			//audio.playAs("music_temple4","music");
 		}, 1000);

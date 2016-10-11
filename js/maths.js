@@ -184,7 +184,7 @@ Math.trunc = function(x){
 }
 Math.mod = function(x,n){
 	if( x >= 0 ) return x % n;
-	return Math.floor(x/-n)*n + x;
+	return n + (x + Math.floor(x/-n)*n);
 }
 Math.lerp = function(x,y,delta){
 	return x + (y-x) * delta;
