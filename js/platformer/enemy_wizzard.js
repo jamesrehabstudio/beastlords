@@ -47,9 +47,10 @@ function WizzardBolter(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life =  Spawn.life(2,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	
 	//SpecialEnemy(this);
 	this.calculateXP();

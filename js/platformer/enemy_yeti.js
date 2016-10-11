@@ -29,6 +29,7 @@ function Yeti(x,y,d,o){
 	
 	this.life = Spawn.life(6,this.difficulty);
 	this.mass = 2.2;
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.stun_time = 0;

@@ -29,6 +29,7 @@ function Yakseyo(x,y,d,o){
 	this.life = Spawn.life(10,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	this.pushable = false;

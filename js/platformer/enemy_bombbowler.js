@@ -33,6 +33,7 @@ function BombBowler(x,y,d,o){
 	
 	this.life = Spawn.life(6,this.difficulty);
 	this.collideDamage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 5.0;
 	this.friction = 0.005;
 	this.death_time = Game.DELTASECOND * 2;

@@ -8,6 +8,7 @@ function Door(x,y,d,ops){
 	this.height = 64;
 	this.name = "";
 	this.sprite = "doors";
+	this.keepopen = false;
 	
 	this.lock = -1;
 	this.isOpen = false;
@@ -29,6 +30,7 @@ function Door(x,y,d,ops){
 			this.close();
 		}else {
 			audio.play("open", this.position);
+			this.keepopen = true;
 			this.open();
 		}
 	});
@@ -41,6 +43,11 @@ function Door(x,y,d,ops){
 					this.open();
 				}
 			}
+		}
+	});
+	this.on("player_death", function(obj){
+		if(this.isOpen && this.lock >= 0){
+			this.close();
 		}
 	});
 	

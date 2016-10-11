@@ -82,10 +82,10 @@ function Player(x, y){
 	
 	this.speeds = {
 		"baseSpeed" : 1.25,
-		"inertiaGrounded" : 0.4,
-		"inertiaAir" : 0.2,
-		"frictionGrounded" : 0.1,
-		"frictionAir" : 0.05,
+		"inertiaGrounded" : 0.8,
+		"inertiaAir" : 0.4,
+		"frictionGrounded" : 0.2,
+		"frictionAir" : 0.1,
 		"rollCooldown" : Game.DELTASECOND * 1.2,
 		"jump" : 9.0,
 		"airBoost" : 1.0,

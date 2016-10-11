@@ -42,6 +42,7 @@ function Skeleton(x,y,d,o){
 	this.mass = 0.8;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.stun_time = 0;
 	
 	this.on("collideObject", function(obj){

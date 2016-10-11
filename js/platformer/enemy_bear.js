@@ -31,9 +31,10 @@ function Bear(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(6,this.difficulty);
+	this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	
@@ -88,7 +89,7 @@ Bear.prototype.update = function(){
 					this.states.block -= this.delta;
 				} else {
 					this.flip = dir.x > 0;
-					if(Math.abs(dir.x) < 96){
+					if(Math.abs(dir.x) < 128){
 						this.states.cooldown -= this.delta;
 						if(Math.abs(dis.x) < 180 && Math.abs(dir.x) > 48){
 							this.force.x += this.forward() * this.speed * this.delta;
@@ -103,7 +104,7 @@ Bear.prototype.update = function(){
 				
 				if(this.states.cooldown <= 0){
 					this.states.attack = this.states.attackTotal;
-					this.states.cooldown = Game.DELTASECOND * 4;
+					this.states.cooldown = Game.DELTASECOND * 2.5;
 					this.force.x = this.forward() * 5;
 					this.frame.y = this.frame.x = 0;
 				}

@@ -43,6 +43,7 @@ function Chaz(x,y,d,o){
 	this.life = Spawn.life(7,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.mass = 1.3;
 	
 	this.states = {

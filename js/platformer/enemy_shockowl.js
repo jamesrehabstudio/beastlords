@@ -22,6 +22,7 @@ function Shockowl(x, y, d, o){
 	
 	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.bounceCount = 3;
 	this.mass = 1.0;
 	this.gravity = 0.4;

@@ -36,6 +36,7 @@ function Igbo(x,y,d,o){
 	this.life = Spawn.life(8,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(10,this.difficulty);
 	this.death_time = Game.DELTASECOND;
 	this.mass = 3.0;
 	this.friction = 0.4;

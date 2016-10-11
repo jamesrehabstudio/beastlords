@@ -22,6 +22,7 @@ function Shooter(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(8,this.difficulty);
 	this.speed = 1.125;
 	this.frame = 0;
 	this.frame_row = 0;

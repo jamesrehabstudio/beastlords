@@ -57,6 +57,7 @@ function Bookrider(x,y,d,o){
 	
 	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
 	this.pushable = false;
 	this.hurtByDamageTriggers = false;

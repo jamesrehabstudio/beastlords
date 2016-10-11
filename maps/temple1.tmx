@@ -473,7 +473,7 @@
    <property name="spawnrest" type="int" value="0"/>
   </properties>
   <object id="21" name="Lift" x="656" y="400" width="32" height="48"/>
-  <object id="35" name="Player" x="48" y="416" width="16" height="32"/>
+  <object id="35" name="Player" x="64" y="416" width="16" height="32"/>
   <object id="37" name="CornerStone" x="5728" y="112" width="64" height="96">
    <properties>
     <property name="gate" type="int" value="1"/>
@@ -1099,7 +1099,7 @@
     <property name="kill" type="int" value="1"/>
    </properties>
   </object>
-  <object id="405" name="Trigger" x="16" y="352" width="80" height="96">
+  <object id="405" name="Trigger" x="32" y="352" width="80" height="96">
    <properties>
     <property name="background" value="sky"/>
     <property name="darkness" value="(c.y-(45*16))/240"/>

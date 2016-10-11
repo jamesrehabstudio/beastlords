@@ -25,8 +25,6 @@ function HotSpring(x,y,d){
 		this.time = 0.0;
 		
 		_player.visible = true;
-		_player.life = _player.lifeMax;
-		_player.mana = _player.manaMax;
 		Renderer.tint = [1,1,1,1];
 	});
 	
@@ -74,8 +72,8 @@ HotSpring.prototype.update = function(){
 		
 		//Heal
 		if(Timer.isAt(this.time,Game.DELTASECOND*6.0,game.deltaUnscaled)){
-			_player.heal = Number.MAX_SAFE_INTEGER;
-			_player.healMana = Number.MAX_SAFE_INTEGER;
+			_player.life = _player.lifeMax;
+			_player.mana = _player.manaMax;
 		}
 	}
 }

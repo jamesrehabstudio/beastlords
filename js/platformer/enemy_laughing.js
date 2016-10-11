@@ -21,6 +21,7 @@ function Laughing(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	
 	this.speed = 0.225;
 	this.frame = 0;

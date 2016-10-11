@@ -41,6 +41,7 @@ function Axesub(x,y,d,o){
 	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.mass = 1;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.pushable = false;
 	this.friction = 0.05;
 	

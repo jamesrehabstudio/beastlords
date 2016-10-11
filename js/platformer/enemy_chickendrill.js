@@ -29,6 +29,7 @@ function ChickenDrill(x, y, d, o){
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 1.5;
 	this.death_time = Game.DELTASECOND * 0.5;
 	

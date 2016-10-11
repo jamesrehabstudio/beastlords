@@ -24,6 +24,7 @@ function Bombjar(x, y, d, o){
 	this.walkcycle = 0.0;
 	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.bounceCount = 4;
 	this.mass = 1.0;
 	this.death_time = 0.1;

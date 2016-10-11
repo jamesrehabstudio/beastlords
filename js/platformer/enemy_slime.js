@@ -61,6 +61,7 @@ function Slime(x,y,d,o){
 	
 	this.flip = Math.random() > 0.5;
 	this.life = Spawn.life(0, this.difficulty);
+	this.moneyDrop = Spawn.money(2,this.difficulty);
 	this.damage = Spawn.damage(1,this.difficulty);
 	this.calculateXP();
 }

@@ -31,6 +31,7 @@ function Ratgut(x,y,d,o){
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.2;
 	this.collideDamage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.stun_time = Game.DELTASECOND;
 	this.attackEffects.poison = [1.0,30.0];
 	

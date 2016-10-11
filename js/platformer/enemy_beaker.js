@@ -27,6 +27,7 @@ function Beaker(x, y, d, o){
 	
 	this.life = Spawn.life(3,this.difficulty);
 	this.lifeMax = Spawn.life(3,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.mass = 0.8;
 	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;

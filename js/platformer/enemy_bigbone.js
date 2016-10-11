@@ -47,6 +47,7 @@ function BigBones(x,y,d,o){
 	this.life = Spawn.life(9,this.difficulty);
 	this.mass = 2.0;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.stun_time = Game.DELTASECOND * 0.25;
 	
 	

@@ -21,6 +21,7 @@ function ManOnFire(x, y, d, o){
 	
 	this.walkcycle = 0.0;
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.0;
 	

@@ -28,6 +28,7 @@ function Batty(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.lifeMax = Spawn.life(0,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.mass = 0.8;
 	this.pushable = false;
 	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);

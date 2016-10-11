@@ -28,6 +28,7 @@ function SlimeGrenadier(x,y,d,o){
 	this.stun_time = Game.DELTASECOND;
 	this.life = Spawn.life(6, this.difficulty);
 	this.damage = Spawn.damage(3, this.difficulty);
+	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.mass = 3.0;
 	this.death_time = Game.DELTASECOND * 0.5;
 	

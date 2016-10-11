@@ -4407,6 +4407,7 @@ function Door(x,y,d,ops){
 	this.height = 64;
 	this.name = "";
 	this.sprite = "doors";
+	this.keepopen = false;
 	
 	this.lock = -1;
 	this.isOpen = false;
@@ -4428,6 +4429,7 @@ function Door(x,y,d,ops){
 			this.close();
 		}else {
 			audio.play("open", this.position);
+			this.keepopen = true;
 			this.open();
 		}
 	});
@@ -4440,6 +4442,11 @@ function Door(x,y,d,ops){
 					this.open();
 				}
 			}
+		}
+	});
+	this.on("player_death", function(obj){
+		if(this.isOpen && this.lock >= 0){
+			this.close();
 		}
 	});
 	
@@ -5320,6 +5327,7 @@ function Amon(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(2,this.difficulty);
 	
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;
@@ -5411,6 +5419,7 @@ function Axedog(x, y, d, o){
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
 	this.damage = Spawn.life(2,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){
@@ -5536,6 +5545,7 @@ function Baller(x, y, d, o){
 	this.death_time = Game.DELTASECOND * 1.0;
 	this.lifeMax = this.life = Spawn.life(7,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
+	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 4.0;
 	this.recoverySpeed = 6;
 	this.arcSize = 56;
@@ -5780,6 +5790,7 @@ function Batty(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.lifeMax = Spawn.life(0,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.mass = 0.8;
 	this.pushable = false;
 	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);
@@ -5931,6 +5942,7 @@ function Beaker(x, y, d, o){
 	
 	this.life = Spawn.life(3,this.difficulty);
 	this.lifeMax = Spawn.life(3,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.mass = 0.8;
 	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
@@ -6045,9 +6057,10 @@ function Bear(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(6,this.difficulty);
+	this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	
@@ -6102,7 +6115,7 @@ Bear.prototype.update = function(){
 					this.states.block -= this.delta;
 				} else {
 					this.flip = dir.x > 0;
-					if(Math.abs(dir.x) < 96){
+					if(Math.abs(dir.x) < 128){
 						this.states.cooldown -= this.delta;
 						if(Math.abs(dis.x) < 180 && Math.abs(dir.x) > 48){
 							this.force.x += this.forward() * this.speed * this.delta;
@@ -6117,7 +6130,7 @@ Bear.prototype.update = function(){
 				
 				if(this.states.cooldown <= 0){
 					this.states.attack = this.states.attackTotal;
-					this.states.cooldown = Game.DELTASECOND * 4;
+					this.states.cooldown = Game.DELTASECOND * 2.5;
 					this.force.x = this.forward() * 5;
 					this.frame.y = this.frame.x = 0;
 				}
@@ -6184,6 +6197,7 @@ function BigBones(x,y,d,o){
 	this.life = Spawn.life(9,this.difficulty);
 	this.mass = 2.0;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.stun_time = Game.DELTASECOND * 0.25;
 	
 	
@@ -6337,6 +6351,7 @@ function Biker(x,y,d,o){
 	
 	this.life = Spawn.life(8,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(25,this.difficulty);
 	this.mass = 5.3;
 	this.friction = 0.005;
 	this.death_time = Game.DELTASECOND * 2;
@@ -6622,6 +6637,7 @@ function BikerSmall(x,y,d,o){
 	this.friction = 0.01;
 	this.pushable = false;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
 	this.on("collideObject", function(obj){
 		if(this.life > 0 && obj instanceof Player){
@@ -6783,6 +6799,7 @@ function BombBowler(x,y,d,o){
 	
 	this.life = Spawn.life(6,this.difficulty);
 	this.collideDamage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 5.0;
 	this.friction = 0.005;
 	this.death_time = Game.DELTASECOND * 2;
@@ -6947,6 +6964,7 @@ function Bombjar(x, y, d, o){
 	this.walkcycle = 0.0;
 	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.bounceCount = 4;
 	this.mass = 1.0;
 	this.death_time = 0.1;
@@ -7204,6 +7222,7 @@ function Bookrider(x,y,d,o){
 	
 	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
 	this.pushable = false;
 	this.hurtByDamageTriggers = false;
@@ -7332,6 +7351,7 @@ function Chaz(x,y,d,o){
 	this.life = Spawn.life(7,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.mass = 1.3;
 	
 	this.states = {
@@ -7455,6 +7475,7 @@ function ChickenChain(x, y, d, o){
 	
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){
@@ -7621,6 +7642,7 @@ function ChickenDrill(x, y, d, o){
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 1.5;
 	this.death_time = Game.DELTASECOND * 0.5;
 	
@@ -7789,6 +7811,7 @@ function Deckard(x,y,d,o){
 	
 	this.life = Spawn.life(6,this.difficulty);
 	this.lifeMax = Spawn.life(6,this.difficulty);
+	this.moneyDrop = Spawn.money(15,this.difficulty);
 	this.mass = 4;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.death_time = Game.DELTASECOND * 2;
@@ -8078,6 +8101,7 @@ function DonkeyKnife(x, y, d, o){
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 1.5;
 	this.death_time = Game.DELTASECOND * 0.5;
 	
@@ -8264,6 +8288,7 @@ function Fireman(x,y,d,o){
 	
 	this.life =  Spawn.life(5,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.death_time = Game.DELTASECOND * 1;
 	
@@ -8449,6 +8474,7 @@ function Flederknife(x, y, d, o){
 	this.life = Spawn.life(3,this.difficulty);
 	this.lifeMax = Spawn.life(3,this.difficulty);
 	this.damage = Spawn.life(1,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("struck", EnemyStruck);
@@ -8949,6 +8975,7 @@ function Igbo(x,y,d,o){
 	this.life = Spawn.life(8,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(10,this.difficulty);
 	this.death_time = Game.DELTASECOND;
 	this.mass = 3.0;
 	this.friction = 0.4;
@@ -9086,6 +9113,7 @@ function Knight(x,y,d,o){
 	
 	this.life = Spawn.life(12,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(15,this.difficulty);
 	this.mass = 3.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
@@ -9252,6 +9280,7 @@ function Laughing(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	
 	this.speed = 0.225;
 	this.frame = 0;
@@ -9590,6 +9619,7 @@ function Malphas(x,y,d,o){
 	this.life = Spawn.life(6,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	
@@ -9717,6 +9747,7 @@ function Malsum(x,y,d,o){
 	this.lifeMax = this.life = Spawn.life(1,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 1.0;
 	this.gravity = 0.5;
 	
@@ -9812,6 +9843,7 @@ function ManOnFire(x, y, d, o){
 	
 	this.walkcycle = 0.0;
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.0;
 	
@@ -9917,6 +9949,7 @@ function Oriax(x,y,d,o){
 	
 	this.life =  Spawn.life(12,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(9,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 3.0;
 	this.death_time = Game.DELTASECOND * 1;
@@ -10042,6 +10075,7 @@ function Ratgut(x,y,d,o){
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.mass = 1.2;
 	this.collideDamage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.stun_time = Game.DELTASECOND;
 	this.attackEffects.poison = [1.0,30.0];
 	
@@ -10191,6 +10225,7 @@ function Samrat(x,y,d,o){
 	
 	this.life = Spawn.life(6,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(9,this.difficulty);
 	
 	this.states = {
 		"attack" : 0.0,
@@ -10505,6 +10540,7 @@ function Shockowl(x, y, d, o){
 	
 	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.bounceCount = 3;
 	this.mass = 1.0;
 	this.gravity = 0.4;
@@ -10592,6 +10628,7 @@ function Shooter(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(8,this.difficulty);
 	this.speed = 1.125;
 	this.frame = 0;
 	this.frame_row = 0;
@@ -10763,6 +10800,7 @@ function Skeleton(x,y,d,o){
 	this.mass = 0.8;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.stun_time = 0;
 	
 	this.on("collideObject", function(obj){
@@ -10933,6 +10971,7 @@ function Slime(x,y,d,o){
 	
 	this.flip = Math.random() > 0.5;
 	this.life = Spawn.life(0, this.difficulty);
+	this.moneyDrop = Spawn.money(2,this.difficulty);
 	this.damage = Spawn.damage(1,this.difficulty);
 	this.calculateXP();
 }
@@ -11032,6 +11071,7 @@ function SlimeGrenadier(x,y,d,o){
 	this.stun_time = Game.DELTASECOND;
 	this.life = Spawn.life(6, this.difficulty);
 	this.damage = Spawn.damage(3, this.difficulty);
+	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.mass = 3.0;
 	this.death_time = Game.DELTASECOND * 0.5;
 	
@@ -11205,6 +11245,7 @@ function Slimerilla(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(8, this.difficulty);
+	this.moneyDrop = Spawn.money(8,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.death_time = Game.DELTASECOND * 0.5;
 	this.calculateXP();
@@ -11514,6 +11555,7 @@ function Spearbe(x,y,d,o){
 	}
 	
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
+	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.pushable = false;
 	
@@ -11650,6 +11692,7 @@ function Axesub(x,y,d,o){
 	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.mass = 1;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.pushable = false;
 	this.friction = 0.05;
 	
@@ -11820,6 +11863,7 @@ function Svarog(x,y,d,o){
 	this.invincible_time = 30.0;
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
 	this.states = {
 		"cooldown" : 0
@@ -11900,9 +11944,10 @@ function WizzardBolter(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life =  Spawn.life(2,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(3,this.difficulty);
 	
 	//SpecialEnemy(this);
 	this.calculateXP();
@@ -12373,6 +12418,7 @@ function Yakseyo(x,y,d,o){
 	this.life = Spawn.life(10,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 1.0;
 	this.inviciple_time = this.stun_time;
 	this.pushable = false;
@@ -12481,6 +12527,7 @@ function Yeti(x,y,d,o){
 	
 	this.life = Spawn.life(6,this.difficulty);
 	this.mass = 2.2;
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.stun_time = 0;
@@ -12679,8 +12726,8 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 				"damage":2.5,
 				"warm" : warmTime*Game.DELTASECOND,
 				"time" : 1.5*baseTime*Game.DELTASECOND,
-				"rest":1.2*restTime*Game.DELTASECOND,
-				"miss":1.5*restTime*Game.DELTASECOND,
+				"rest":0.8*restTime*Game.DELTASECOND,
+				"miss":1.0*restTime*Game.DELTASECOND,
 				"animation" : 5,
 				"stun" : 0.7 * Game.DELTASECOND,
 				"force" : new Point(4.5, 0.0),
@@ -14431,7 +14478,7 @@ PauseMenu.prototype.update = function(){
 			if( input.state("up") == 1 ) { this.cursor-=1; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor+=1; audio.play("cursor"); }
 			
-			this.cursor = Math.max( Math.min( this.cursor, 3), 0 );
+			this.cursor = Math.max( Math.min( this.cursor, 4), 0 );
 			
 			if( input.state("fire") == 1) {
 				audio.play("cursor");
@@ -14439,6 +14486,12 @@ PauseMenu.prototype.update = function(){
 				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
 				if(this.cursor == 2 ) Settings.sfxvolume = Math.min(Settings.sfxvolume+0.25,1);
 				if(this.cursor == 3 ) Settings.musvolume = Math.min(Settings.musvolume+0.25,1);
+				if(this.cursor == 4 ){
+					PauseMenu.open = false;
+					game.clearAll();
+					game_start(game);
+					return;
+				}
 				WorldMap.updateSettings();
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
@@ -14608,6 +14661,9 @@ PauseMenu.prototype.hudrender = function(g,c){
 			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<Settings.musvolume*20; i++)
 				g.scaleFillRect(leftx+20+i*4, 148, 3, 8 );
+			
+			textArea(g,"Game",leftx+16,168);
+			textArea(g,"Reset",leftx+20,180);
 			
 			//Draw cursor 84
 			textArea(g,"@",leftx+12, 52 + this.cursor * 32 );
@@ -16655,8 +16711,6 @@ function HotSpring(x,y,d){
 		this.time = 0.0;
 		
 		_player.visible = true;
-		_player.life = _player.lifeMax;
-		_player.mana = _player.manaMax;
 		Renderer.tint = [1,1,1,1];
 	});
 	
@@ -16704,8 +16758,8 @@ HotSpring.prototype.update = function(){
 		
 		//Heal
 		if(Timer.isAt(this.time,Game.DELTASECOND*6.0,game.deltaUnscaled)){
-			_player.heal = Number.MAX_SAFE_INTEGER;
-			_player.healMana = Number.MAX_SAFE_INTEGER;
+			_player.life = _player.lifeMax;
+			_player.mana = _player.manaMax;
 		}
 	}
 }
@@ -17515,10 +17569,10 @@ function Player(x, y){
 	
 	this.speeds = {
 		"baseSpeed" : 1.25,
-		"inertiaGrounded" : 0.4,
-		"inertiaAir" : 0.2,
-		"frictionGrounded" : 0.1,
-		"frictionAir" : 0.05,
+		"inertiaGrounded" : 0.8,
+		"inertiaAir" : 0.4,
+		"frictionGrounded" : 0.2,
+		"frictionAir" : 0.1,
 		"rollCooldown" : Game.DELTASECOND * 1.2,
 		"jump" : 9.0,
 		"airBoost" : 1.0,
@@ -21001,15 +21055,16 @@ spell_strength = function(player){
 
  /* platformer\start.js*/ 
 
-var version = "0.4.0";
+var version = "0.4.2";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
 	DemoThanks.kills = 0;
 	DemoThanks.items = 0;
 	DemoThanks.time = 0;
+	NPC.variables = {};
 	
-	//g.addObject( new TitleMenu() );
+	g.addObject( new TitleMenu() );
 	//g.addObject( new DemoThanks() );
 	//dataManager.randomLevel(game,0);
 	//return;
@@ -21019,7 +21074,7 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		WorldLocale.loadMap("temple2.tmx");
+		//WorldLocale.loadMap("temple4.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;

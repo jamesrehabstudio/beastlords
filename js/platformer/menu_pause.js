@@ -46,7 +46,7 @@ PauseMenu.prototype.update = function(){
 			if( input.state("up") == 1 ) { this.cursor-=1; audio.play("cursor"); }
 			if( input.state("down") == 1 ) { this.cursor+=1; audio.play("cursor"); }
 			
-			this.cursor = Math.max( Math.min( this.cursor, 3), 0 );
+			this.cursor = Math.max( Math.min( this.cursor, 4), 0 );
 			
 			if( input.state("fire") == 1) {
 				audio.play("cursor");
@@ -54,6 +54,12 @@ PauseMenu.prototype.update = function(){
 				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
 				if(this.cursor == 2 ) Settings.sfxvolume = Math.min(Settings.sfxvolume+0.25,1);
 				if(this.cursor == 3 ) Settings.musvolume = Math.min(Settings.musvolume+0.25,1);
+				if(this.cursor == 4 ){
+					PauseMenu.open = false;
+					game.clearAll();
+					game_start(game);
+					return;
+				}
 				WorldMap.updateSettings();
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
@@ -223,6 +229,9 @@ PauseMenu.prototype.hudrender = function(g,c){
 			g.color = [0.8,0.6,0.1,1.0];
 			for(var i=0; i<Settings.musvolume*20; i++)
 				g.scaleFillRect(leftx+20+i*4, 148, 3, 8 );
+			
+			textArea(g,"Game",leftx+16,168);
+			textArea(g,"Reset",leftx+20,180);
 			
 			//Draw cursor 84
 			textArea(g,"@",leftx+12, 52 + this.cursor * 32 );

@@ -1,12 +1,13 @@
-var version = "0.4.0";
+var version = "0.4.2";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
 	DemoThanks.kills = 0;
 	DemoThanks.items = 0;
 	DemoThanks.time = 0;
+	NPC.variables = {};
 	
-	//g.addObject( new TitleMenu() );
+	g.addObject( new TitleMenu() );
 	//g.addObject( new DemoThanks() );
 	//dataManager.randomLevel(game,0);
 	//return;
@@ -16,7 +17,7 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		WorldLocale.loadMap("temple2.tmx");
+		//WorldLocale.loadMap("temple4.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;

@@ -49,6 +49,7 @@ function Svarog(x,y,d,o){
 	this.invincible_time = 30.0;
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
 	this.states = {
 		"cooldown" : 0

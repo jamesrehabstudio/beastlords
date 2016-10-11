@@ -30,6 +30,7 @@ function BikerSmall(x,y,d,o){
 	this.friction = 0.01;
 	this.pushable = false;
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
 	this.on("collideObject", function(obj){
 		if(this.life > 0 && obj instanceof Player){

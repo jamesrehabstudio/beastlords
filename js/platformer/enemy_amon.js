@@ -51,6 +51,7 @@ function Amon(x,y,d,o){
 	
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
+	this.moneyDrop = Spawn.money(2,this.difficulty);
 	
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;

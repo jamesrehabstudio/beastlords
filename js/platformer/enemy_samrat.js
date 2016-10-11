@@ -50,6 +50,7 @@ function Samrat(x,y,d,o){
 	
 	this.life = Spawn.life(6,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
+	this.moneyDrop = Spawn.money(9,this.difficulty);
 	
 	this.states = {
 		"attack" : 0.0,

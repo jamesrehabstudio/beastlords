@@ -60,6 +60,7 @@ function Slimerilla(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(8, this.difficulty);
+	this.moneyDrop = Spawn.money(8,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.death_time = Game.DELTASECOND * 0.5;
 	this.calculateXP();

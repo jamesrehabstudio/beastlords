@@ -53,6 +53,7 @@ function Spearbe(x,y,d,o){
 	}
 	
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
+	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.pushable = false;
 	
