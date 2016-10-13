@@ -216,6 +216,34 @@ Background.presets = {
 		}
 		*/
 	},
+	"pipes" : function(g,c){
+		var scale = 0.25;
+		var camera = new Point(
+			(c.x * scale) % 240,
+			(c.y * scale) % 240
+		);
+		for(var x=0; x < 3; x++) for(var y=0; y < 2; y++){
+			g.renderSprite(
+				"bgpipes",
+				new Point(x*240,y*240).subtract(camera),
+				-99,
+				new Point(0,0),
+				false
+			);
+		}
+		g.renderSprite(
+			"halo",
+			new Point(game.resolution.x*0.5,40),
+			-98,
+			new Point(0,0),
+			false,
+			{
+				"shader" : "halo",
+				"scale" : 2.0,
+				"u_color" : [1.0,0.4,0.8,0.1]
+			}
+		);
+	},
 	"cavefire" : function(g,c){
 		var mapHeight = game.map.height * 16 - this.sealevel;
 		

@@ -169,6 +169,7 @@ function Game( elm ) {
 		window.msRequestAnimationFrame     || 
 		null;
 	
+	window.game = this;
 	this.renderCollisions = true;
 	this.gameThread = new Worker("js/base.js");
 	
@@ -177,6 +178,7 @@ function Game( elm ) {
 	
 	this.camera = new Point(0,0);
 	this.tint = [1.0,1.0,1.0,1.0];
+	this.filter = 0;
 	this.objects = {};
 	this.map = null;
 	
@@ -207,18 +209,15 @@ function Game( elm ) {
 	this.g.beginPath = function(){};
 	this.g.closePath = function(){};
 	
+	this.finalBuffer = this.g.createF();
 	this.lightBuffer = this.g.createF();
 	this.hudBuffer = this.g.createF();
 	this.backBuffer = this.g.createF();
 	
-	if( localStorage.getItem("sfxvolume") ){
-		audio.sfxVolume.gain.value = localStorage.getItem("sfxvolume");
-	} if( localStorage.getItem("sfxvolume") ){
-		audio.musVolume.gain.value = localStorage.getItem("musvolume");
-	}
-	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
+	
+	this.loadSettings();
 	
 	if( window.game_start instanceof Function ) {
 		window.game_start( this );
@@ -292,10 +291,7 @@ Game.prototype.onmessage = function(data){
 	}
 	
 	if("settings" in data){
-		var settings = data["settings"];
-		if("sfxvolume" in settings) audio.sfxVolume.gain.value = settings.sfxvolume;
-		if("musvolume" in settings) audio.musVolume.gain.value = settings.musvolume;
-		if("fullscreen" in settings) game.fullscreen(settings.fullscreen);
+		this.applySettings( data["settings"] );
 	}
 	
 	if("tiles" in data){
@@ -348,7 +344,8 @@ Game.prototype.render = function( ) {
 		"resolution" : {
 			"x" : this.resolution.x,
 			"y" : this.resolution.y
-		}
+		},
+		"settings" : Game.Settings
 	});
 	
 	//this.resolution = new Point(512,512);
@@ -449,10 +446,10 @@ Game.prototype.render = function( ) {
 		this.hudBuffer.reset(this.g);
 	}
 	
-	this.g.viewport(0,0,this.element.width,this.element.height);
+	this.finalBuffer.use(this.g);
 	
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA );
-	this.g.renderBackbuffer(this.backBuffer.texture, this.tint);
+	this.g.renderBackbuffer(this.backBuffer.texture);
 	
 	if(useLightBuffer){
 		this.g.blendFunc(this.g.DST_COLOR, this.g.Zero );
@@ -461,7 +458,12 @@ Game.prototype.render = function( ) {
 	
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA );
 	this.g.renderBackbuffer(this.hudBuffer.texture);
-	//this.g.renderImage(0,0,this.resolution.x,this.resolution.y, this.backBuffer.texture);
+	
+	this.g.viewport(0,0,this.element.width,this.element.height);
+	this.finalBuffer.reset(this.g);
+	this.g.renderBackbuffer(this.finalBuffer.texture, this.tint, {
+		"shader":Game.Filters[this.filter]
+	});
 	
 	this.g.flush();
 }
@@ -494,12 +496,30 @@ Game.prototype.useMap = function( m ) {
 		"tileset" : m.tileset
 	};
 }
+Game.prototype.loadSettings = function() {
+	try{
+		var s = JSON.parse(localStorage.getItem("global"));		
+		this.applySettings(s);
+	} catch(e){}
+}
+Game.prototype.applySettings = function( s ) {
+	if(s instanceof Object){
+		for(var i in s){
+			Game.Settings[i] = s[i];
+		}
+	}
+	
+	audio.sfxVolume.gain.value = Game.Settings.sfxvolume;
+	audio.musVolume.gain.value = Game.Settings.musvolume;
+	this.fullscreen(Game.Settings.fullscreen);
+	this.filter = Game.Settings.filter;
+	
+	localStorage.setItem("global", JSON.stringify(Game.Settings));
+}
 Game.prototype.isFullscreen = function(){
 	var fullscreen = 
-		document.fullscreenElement ||
-		document.mozFullScreenElement ||
-		document.webkitFullscreenElement ||
-		document.msFullscreenElement;
+		document.isFullScreen ||
+		document.webkitIsFullScreen;
 	return fullscreen;
 }
 Game.prototype.fullscreen = function(fs){
@@ -522,6 +542,7 @@ Game.prototype.fullscreen = function(fs){
 	} catch (err) {
 		console.error("Cannot fullscreen.");
 	}
+	Game.Settings.fullscreen = fs;
 }
 Game.prototype.getTile = function( x,y,layer ) {
 	if( x instanceof Point ) { layer=y; y=x.y; x=x.x; }
@@ -547,86 +568,23 @@ Game.prototype.setTile = function( x,y,layer,t ) {
 	);
 	return this.tiles[layer][index] = t;
 }
-
-Game.prototype.trace = function( start, end, thickness ) {
-	var lines = [ new Line(start,end) ];
-	
-	if ( thickness ) {
-		var n = lines[0].normal().normalize(thickness);
-		lines.push( new Line(start.add(n), end.add(n)) );
-		var m = n.scale(-1);
-		lines.push( new Line(start.add(m), end.add(m)) );
-	}
-	
-	var collisions = this.lines.get( new Line(start,end) );
-	
-	for( var i = 0; i < lines.length; i++ ){
-	for( var j = 0; j < collisions.length; j++ ){
-		if ( collisions[j].intersects( lines[i] ) ){
-			return false;
-		}
-	} }
-	return true;
+Game.Settings = {
+	"sfxvolume" : 1.0,
+	"musvolume" : 0.5,
+	"fullscreen" : false,
+	"filter" : 0
 }
-
-Game.prototype.raytrace = function(l, end){
-	var line;
-	if( l instanceof Line ) {
-		line = l;
-	} else if ( l instanceof Point ){
-		line = new Line(l, end);
-	}
-	var out = [];
-	for(var i=0; i < this.objects.length; i++ ){
-		if( this.objects[i].intersects(line) ) {
-			out.push( this.objects[i] );
-		}
-	}
-	return out;
-}
+Game.Filters = [
+	"backbuffer",
+	"backbuffercrt",
+	"backbuffercolorblind"
+];
 
 //Constants
 Game.MAX_RATIO = 1.7777777777777777777777777777778;
 Game.DELTASECOND = 33.33333333;
 Game.DELTADAY = 2880000.0;
 Game.DELTAYEAR = 1036800000.0;
-/*
-Game.prototype.buildPaths = function(){
-	var temp_nodes = new Array();
-	for(var i=0; i<game.objects.length;i++){
-		if ( game.objects[i] instanceof Node || game.objects[i].type == "Node" ){
-			this.nodes.push( game.objects[i] );
-			temp_nodes.push( game.objects[i] );
-		}
-	}
-	
-	for(var i=0; i<temp_nodes.length;i++){
-		temp_nodes[i].connections = [];
-	for(var j=0; j<temp_nodes.length;j++){
-		if ( i != j && !temp_nodes[i].properties.nopath) {
-			if ( game.trace( temp_nodes[i].position, temp_nodes[j].position, 15 ) ){
-				temp_nodes[i].connections.push( temp_nodes[j] );
-			}
-		}
-	} }
-}
-
-Game.prototype.nearestnode = function(target,thickness){
-	var out = this.nodes.nearest(target.position,function(node, position){
-		var out = game.trace( node.position, position, thickness );
-		return out;
-	});
-	return out;	
-}
-
-Game.prototype.path_update = function(e){
-	//console.log(e);
-	if ( e.object instanceof Object ){
-		_player.position.x = e.object.x;
-		_player.position.y = e.object.y;
-	}
-}
-*/
 
 function Tileset(sprite,rules,animation){
 	this.sprite = sprite;

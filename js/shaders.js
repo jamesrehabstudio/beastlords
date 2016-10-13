@@ -22,13 +22,13 @@ window.shaders["2d-fragment-lightbeam"] = "precision mediump float;\nuniform vec
 
  /* platformer\shaders\2d-fragment-redasalpha.shader*/ 
 
-window.shaders["2d-fragment-redasalpha"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	color.a *= color.r;\n	color.rgb = vec3(1,1,1);\n	gl_FragColor = color;\n}";
+window.shaders["2d-fragment-redasalpha"] = "precision mediump float;\nuniform sampler2D u_image;\nuniform vec4 u_color;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	color.a *= color.r * u_color.a;\n	color.rgb = vec3(u_color.rgb);\n	gl_FragColor = color;\n}";
 
 
 
  /* platformer\shaders\2d-fragment-shader.shader*/ 
 
-window.shaders["2d-fragment-shader"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform vec4 u_color;\n\nvoid main() {\n	vec4 additive = clamp(u_color - 1.0,0.0,1.0);\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	gl_FragColor = additive + multiply * texture2D(u_image, v_texCoord);\n}";
+window.shaders["2d-fragment-shader"] = "precision mediump float;\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 additive = clamp(u_color - 1.0,0.0,1.0);\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	gl_FragColor = additive + multiply * texture2D(u_image, v_texCoord);\n}";
 
 
 
@@ -64,7 +64,13 @@ window.shaders["2d-vertex-tile"] = "attribute vec2 a_tilegrid;\nattribute vec2 a
 
  /* platformer\shaders\back-vertex-shader.shader*/ 
 
-window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(a_position, 0, 1);\n	v_texCoord = a_texCoord;\n}";
+window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(a_position, 0, 1);\n	v_texCoord = a_texCoord;\n}";
+
+
+
+ /* platformer\shaders\fragment-crt.shader*/ 
+
+window.shaders["fragment-crt"] = "precision mediump float;\n\n#define M_PI 3.1415926535897932384626433832795\n#define CURVE 0.00625\n#define LINES 2048.0\n#define LOW 0.02\n#define BLUR 0.001\n#define RATIO 0.5625\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 additive = clamp(u_color - 1.0,0.0,1.0);\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	\n	float c1 = cos((v_texCoord.x*(512.0/u_resolution.x))*2.0*M_PI);\n	float c2 = cos((v_texCoord.y*(512.0/u_resolution.y))*2.0*M_PI);\n	\n	vec2 uv = vec2(\n		v_texCoord.x + c1 * CURVE - 0.01,\n		v_texCoord.y + c2 * CURVE - 0.01\n	);\n	\n	vec4 color1 = additive + multiply * texture2D(u_image, uv) * vec4(1.2,0.833333,1.0,1.0);\n	vec4 color2 = additive + multiply * texture2D(u_image, uv+vec2(BLUR,0)) * vec4(0.83333,1.2,1.0,1.0);\n	\n	vec4 fcolor = (color1 + color2) * 0.6;\n	\n	fcolor.r = (0.8 + sin((uv.y+LOW*0.0) * LINES) * 0.2) * fcolor.r;\n	fcolor.g = (0.8 + sin((uv.y+LOW*1.0) * LINES) * 0.2) * fcolor.g;\n	fcolor.b = (0.8 + sin((uv.y+LOW*2.0) * LINES) * 0.2) * fcolor.b;\n	\n	gl_FragColor = fcolor;\n}";
 
 
 
@@ -83,6 +89,12 @@ window.shaders["fragment-greytocolor"] = "precision mediump float;\nuniform samp
  /* platformer\shaders\fragment-heat.shader*/ 
 
 window.shaders["fragment-heat"] = "precision mediump float;\nuniform sampler2D u_image;\nuniform float heat;\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 color = texture2D(u_image, v_texCoord);\n	color.r = color.r * (1.0-heat) + heat;\n	color.g = color.g * (1.0-heat) + heat * 0.4;\n	color.b = color.b * (1.0-heat);\n	gl_FragColor = color;\n}";
+
+
+
+ /* platformer\shaders\fragment-highcontrast.shader*/ 
+
+window.shaders["fragment-highcontrast"] = "precision mediump float;\n\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 additive = clamp(u_color - 1.0,0.0,1.0);\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	\n	float pix = 0.001953125;\n	float str = 1.5;\n	float bstr = 0.6;\n	\n	vec4 color1 = texture2D(u_image, v_texCoord);\n	vec4 color2 = texture2D(u_image, v_texCoord + vec2(pix,0.0));\n	vec4 color3 = texture2D(u_image, v_texCoord + vec2(-pix,0.0));\n	vec4 color4 = texture2D(u_image, v_texCoord + vec2(0.0,pix));\n	vec4 color5 = texture2D(u_image, v_texCoord + vec2(0.0,-pix));\n	\n	vec4 average = (color2 + color3 + color4 + color5) * 0.25;\n	vec4 boost = clamp((color1 - average) * str, 0.0, 1.0);\n	\n	vec4 fcolor = additive + multiply * color1 + (color1 - average) * str;\n	fcolor.r = max((fcolor.r + fcolor.g) * 0.5, fcolor.b*bstr);\n	fcolor.g = max(fcolor.r, fcolor.b*bstr);\n	fcolor.b = min(fcolor.r, fcolor.b);\n	\n	gl_FragColor = fcolor;\n}";
 
 
 

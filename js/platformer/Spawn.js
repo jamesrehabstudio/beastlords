@@ -339,8 +339,8 @@ Spawn.life = function(level, difficulty){
 	}
 	
 	if( level == 0 ) return 3; //Always one shot
-	var multi = 1 + difficulty * 0.6;
-	return Math.floor( multi * level * 9 );
+	var multi = 1 + difficulty * 0.5;
+	return Math.floor( multi * level * 7 );
 }
 
 Spawn.money = function(money, difficulty){

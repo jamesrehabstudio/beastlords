@@ -130,24 +130,24 @@ var WeaponStats = {
 	"burningblade" : createWeaponTemplate(0.05,0.333,0.1,0.2,38),
 }
 
-WeaponStats.short_sword.damage = 3;
+WeaponStats.short_sword.damage = 1;
 WeaponStats.short_sword.standing.alwaysqueue = 1;
 
-WeaponStats.long_sword.damage = 4;
+WeaponStats.long_sword.damage = 1.5;
 WeaponStats.long_sword.standing.alwaysqueue = 0;
 
-WeaponStats.broad_sword.damage = 5;
+WeaponStats.broad_sword.damage = 2;
 WeaponStats.broad_sword.standing.alwaysqueue = 0;
 
-WeaponStats.morningstar.damage = 5;
+WeaponStats.morningstar.damage = 2;
 WeaponStats.morningstar.standing.alwaysqueue = 0;
 WeaponStats.morningstar.standing.length = 1;
 WeaponStats.morningstar.standing[0]["force"] = new Point(1.0,0.0);
 
-WeaponStats.bloodsickle.damage = 2.5;
+WeaponStats.bloodsickle.damage = 0.8;
 WeaponStats.bloodsickle.standing.alwaysqueue = 1;
 WeaponStats.bloodsickle.standing.length = 2;
 
-WeaponStats.burningblade.damage = 3.5;
+WeaponStats.burningblade.damage = 1.2;
 WeaponStats.burningblade.standing.alwaysqueue = 1;
 WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);

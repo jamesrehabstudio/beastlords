@@ -867,7 +867,7 @@ Player.prototype.cancelAttack = function(){
 	this.attstates.timer = 0.0;
 }
 Player.prototype.baseDamage = function(){
-	return Math.round((2 + this.stats.attack) * this.attstates.stats.damage);
+	return Math.round(8 + this.stats.attack * this.attstates.stats.damage);
 }
 
 Player.prototype.currentDamage = function(){
@@ -995,7 +995,7 @@ Player.prototype.equip = function(sword, shield){
 		//this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + this.stats.attack * 3;
-		this.damageReduction = (this.stats.defence-Math.pow(this.stats.defence*0.15,2))*.071;
+		this.damageReduction = (this.stats.defence-1)*0.03;
 		this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
 		
 	} catch(e) {

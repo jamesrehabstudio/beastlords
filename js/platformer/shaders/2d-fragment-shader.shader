@@ -1,7 +1,9 @@
 precision mediump float;
+
 uniform sampler2D u_image;
-varying vec2 v_texCoord;
 uniform vec4 u_color;
+
+varying vec2 v_texCoord;
 
 void main() {
 	vec4 additive = clamp(u_color - 1.0,0.0,1.0);

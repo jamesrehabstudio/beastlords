@@ -131,6 +131,7 @@ function Game(){
 	this.tree = new BSPTree(new Line(0,0,256,240));
 	this.tileDelta = {};
 	this.mainThreadReady = true;
+	this.settingsUpdated = false;
 	
 	this.deltaScaleReset = 0.0;
 	this.deltaScalePause = 0;
@@ -162,6 +163,10 @@ Game.DELTAYEAR = Game.DELTADAY * 365.25;
 Game.DELTAFRAME30 = Game.DELTASECOND / 30.0;
 Game.DELTAFRAME60 = Game.DELTASECOND / 60.0;
 
+Game.prototype.setSetting = function(name,val) {
+	Settings[name] = val;
+	this.settingsUpdated = true;
+}
 Game.prototype.slow = function(s,d) {
 	if( d > this.deltaScaleReset ) {
 		this.deltaScale = s;
@@ -174,7 +179,7 @@ Game.prototype.loadMap = function(name, func){
 }
 Game.prototype.update = function(){
 	//Interval lock
-	while((new Date() * 1)-this.cycleTime < this.interval){}
+	//while((new Date() * 1)-this.cycleTime < this.interval){}
 	
 	var newTime = new Date() * 1;
 	var baseDelta = Math.min(
@@ -277,6 +282,13 @@ Game.prototype.update = function(){
 	
 	if(this.mainThreadReady){
 		this.mainThreadReady = false;
+		if(this.settingsUpdated){
+			self.postMessage({
+				"settings" : Settings
+			});
+			this.settingsUpdated = false;
+		}
+		
 		postMessage({
 			"audio" : audio.serialize(),
 			"render" : Renderer.serialize(),
@@ -287,6 +299,7 @@ Game.prototype.update = function(){
 		audio.clear();
 	}
 	Renderer.clear();
+	input.update();
 }
 Game.prototype.useMap = function(m){
 	this.clearAll();
@@ -1106,7 +1119,16 @@ importScripts("platformer.js");
 
 //Start
 _player = null;
+
 game = new Game();
+
+var Settings = {
+	"filter" : 0,
+	"fullscreen" : false,
+	"sfxvolume" : 1.0,
+	"musvolume" : 1.0,
+	"debugmap" : "testmap.tmx"
+}
 
 var input = {
 	"states" : {},
@@ -1116,21 +1138,23 @@ var input = {
 		}
 		return 0;
 	},
-	"update" : function(s){
-		if(s == undefined){
-			for(var i in this.states){
-				if(this.states[i] > 0){
-					this.states[i]++;
-				}
+	"update" : function(){
+		for(var i in this.states){
+			if(this.states[i] > 0){
+				this.states[i]++;
 			}
-		} else{
+		}
+	},
+	"refresh" : function(s){
+		if(s == undefined){
+			return;
+		} else {
 			for(var i in s){
-				if(!(i in this.states)){
-					this.states[i] = 0;
-				}
+				if(!(i in this.states)) this.states[i] = 0;
+				
 				if(s[i] > 0){
-					this.states[i]++;
-				} else {
+					this.states[i] = Math.max(this.states[i], 1);
+				} else if(this.states[i] > 1){
 					this.states[i] = 0;
 				}
 			}
@@ -1139,6 +1163,11 @@ var input = {
 }
 
 self.onmessage = function(event){
+	if("settings" in event.data){
+		for(var i in event.data.settings){
+			Settings[i] = event.data.settings[i];
+		}
+	}
 	if("loaddata" in event.data && game._loadCallback instanceof Function) {
 		game._loadCallback(event.data["loaddata"]);
 	}
@@ -1147,7 +1176,7 @@ self.onmessage = function(event){
 	}
 	if("input" in event.data){
 		//general update
-		input.update(event.data.input);
+		input.refresh(event.data.input);
 		if(game instanceof Game){
 			game.mainThreadReady = true;
 			game.resolution.x = event.data.resolution.x;

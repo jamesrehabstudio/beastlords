@@ -35,12 +35,14 @@ function DamageTrigger(x,y,d,o){
 				obj.stun = Game.DELTASECOND * 1;
 				obj.trigger("hurt",this,0);
 				obj.isDead();
-			} else if( game.time > DamageTrigger.rest ){
-				if(this.alwaysHurt){
+			} else {
+				if(this.alwaysHurt && game.timeScaled > DamageTrigger.rest){
 					obj.invincible = -1;
 				}
 				obj.hurt( this, Math.floor( this.damage ) );
-				DamageTrigger.rest = game.time + Game.DELTASECOND * 2;
+				if(obj instanceof Player){
+					DamageTrigger.rest = game.timeScaled + Game.DELTASECOND * 2;
+				}
 			}
 		}
 	});

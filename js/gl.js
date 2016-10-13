@@ -35,10 +35,8 @@ function Material(gl,name,ops){
 	this.gatherProperties();
 	
 	//All shaders use the same uvs
-	this.textureBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.textureBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, Sprite.SQUARE, gl.STATIC_DRAW);
-	this.set("a_texCoord", 2);
+	this.geometryBuffer = gl.createBuffer();
+	this.textcordBuffer = gl.createBuffer();
 	
 	window.materials[name] = this;
 	if( !("default" in window.materials ) ){
@@ -108,6 +106,7 @@ Material.prototype.set = function(name, a,b,c,d) {
 				this.gl.uniformMatrix4fv(prop.location, false, a);
 			break; case 6:
 				this.setTexture(a, this.gl["TEXTURE"+prop.texture]);
+			break;
 		}
 	} else {
 		switch(prop.type){
@@ -128,8 +127,11 @@ Material.prototype.setTexture = function(img, slot){
 			img = sprites[img].gl_tex;
 		}
 		
-		this.gl.activeTexture(slot);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, img);
+		if(Material.currentTexture !== img){
+			this.gl.activeTexture(slot);
+			this.gl.bindTexture(this.gl.TEXTURE_2D, img);
+			Material.currentTexture = img;
+		}
 	//}
 }
 Material.prototype.use = function() {
@@ -196,10 +198,18 @@ function Sprite(url, options) {
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
+	this.material = new Material(
+		game.g, url, 
+		{
+			"fs":shaders["2d-fragment-shader"],
+			"vs":shaders["2d-vertex-default"], 
+			"settings":{
+				"u_color":[1.0,1.0,1.0,1.0]
+			}
+		}
+	);
 	
 	this.setOffset(offset);
-	
-	this.buffer = false;	
 	
 	this.name = "";
 }
@@ -214,6 +224,18 @@ Sprite.prototype.setOffset = function(os) {
 		this.frame_width-this.offset.x, -this.offset.y,
 		this.frame_width-this.offset.x, this.frame_height-this.offset.y
 	]);
+	
+	var gl = game.g;
+	
+	//Set UVs
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.material.textcordBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, Sprite.SQUARE, gl.DYNAMIC_DRAW);
+	this.material.set("a_texCoord", 2);
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.material.geometryBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, this.mesh, gl.DYNAMIC_DRAW);
+	this.material.set("a_position", 2);
+	
 }
 Sprite.prototype.isCorrectSize = function() {
 	if( this.img.width != this.img.height ) return false;
@@ -254,7 +276,7 @@ Sprite.prototype.imageLoaded = function() {
 	//gl.generateMipmap(gl.TEXTURE_2D);
 	gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.img);
 	
-	//gl.bindTexture( gl.TEXTURE_2D, null );
+	this.material.set("u_image",this.gl_tex);
 }
 	
 Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
@@ -263,7 +285,7 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 	shaderOps = shaderOps || {};
 	
 	//Set default shader, scale and rotation
-	var shader = window.materials["default"];
+	var shader = this.material;
 	var scale = new Point(1,1);
 	var rotate = 0.0;
 	
@@ -293,7 +315,7 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 		//r = r / 180 * Math.PI;
 	}
 	for(var i in shaderOps){
-		if(i == "sahder"){
+		if(i == "shader"){
 			//Do nothing
 		} else if(shaderOps[i] instanceof Array){
 			shader.set.apply(shader, [i].concat(shaderOps[i]));
@@ -308,19 +330,12 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 		p.x += this.offset.x * 2 - this.frame_width;
 	}
 	
-	//Set UVs
-	gl.bindBuffer(gl.ARRAY_BUFFER, shader.textureBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, Sprite.SQUARE, gl.DYNAMIC_DRAW);
+	shader.set("u_image",this.gl_tex);
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.material.textcordBuffer);
 	shader.set("a_texCoord", 2);
 	
-	//Set texture image
-	shader.set("u_image",this.gl_tex);
-	//shader.set("u_fakeimg",this.gl_tex);
-	
-	//Set geometry
-	if( !this.buffer ) this.buffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-	gl.bufferData(gl.ARRAY_BUFFER, this.mesh, gl.DYNAMIC_DRAW);
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.material.geometryBuffer);
 	shader.set("a_position", 2);
 	
 	//Set transformation matrices for vertex shader
@@ -340,32 +355,7 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	var uvVerts = new Array();
 	var ts = this.frame_width;
 	
-	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
-
-		var cam = new Point(Math.floor(camera.x/ts),Math.floor(camera.y/ts));
-		var tile_index = (_x+cam.x-0) + ((_y+cam.y-0) * width);
-		var tile = tiles[tile_index];
-		if( tile == 0 || tile === undefined) tile = window.BLANK_TILE;
-		
-		var tileData =  getTileData(tile);
-		
-		if(animation != undefined){
-			if(tileData.tile in animation){
-				var anim = animation[tileData.tile];
-				var f = Math.floor((anim.speed * new Date() * 0.001) % anim.frames.length);
-				tileData.tile = anim.frames[f];
-			}
-		}
-		
-		var flags = Math.abs(tile >> 28) << 2;
-		
-		uvVerts.push(tileData.tile); uvVerts.push(flags+0); //topleft
-		uvVerts.push(tileData.tile); uvVerts.push(flags+1); //topright
-		uvVerts.push(tileData.tile); uvVerts.push(flags+2); //botleft
-		uvVerts.push(tileData.tile); uvVerts.push(flags+2); //botleft
-		uvVerts.push(tileData.tile); uvVerts.push(flags+1); //topright
-		uvVerts.push(tileData.tile); uvVerts.push(flags+3); //botright
-	}
+	
 		
 	var campos = new Point(
 		0-Math.round(Math.mod(camera.x,ts)),
@@ -379,6 +369,7 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 	if(!Sprite.gridBuffer){
 		Sprite.gridBuffer = gl.createBuffer();
 		Sprite.gridUVBuffer = gl.createBuffer();
+		Sprite.tilebuffer = gl.createBuffer();
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, Sprite.gridBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Sprite.createTileGrid(16,1), gl.STATIC_DRAW);
@@ -394,17 +385,45 @@ Sprite.prototype.renderTiles = function(gl,tiles,width,x,y,animation){
 		material.set("a_tileuvs", 2);
 	}
 	
-	var tilebuffer = gl.createBuffer();
+	var cam = new Point(Math.floor(camera.x/ts),Math.floor(camera.y/ts));
+	var time = new Date() * 0.001;
+	
+	for(var _x=0; _x < 28; _x++) for(var _y=0; _y < 16; _y++) {
+		var tile_index = (_x+cam.x) + ((_y+cam.y) * width);
+		var tile = tiles[tile_index];
+		if( tile == 0 || tile === undefined) tile = window.BLANK_TILE;
 		
-	gl.bindBuffer(gl.ARRAY_BUFFER, tilebuffer);
+		var tileData =  getTileData(tile);
+		
+		if(animation != undefined){
+			if(tileData.tile in animation){
+				var anim = animation[tileData.tile];
+				var f = Math.floor((anim.speed * time) % anim.frames.length);
+				tileData.tile = anim.frames[f];
+			}
+		}
+		
+		var flags = Math.abs(tile >> 28) << 2;
+		
+		uvVerts.push(tileData.tile); uvVerts.push(flags+0); //topleft
+		uvVerts.push(tileData.tile); uvVerts.push(flags+1); //topright
+		uvVerts.push(tileData.tile); uvVerts.push(flags+2); //botleft
+		uvVerts.push(tileData.tile); uvVerts.push(flags+2); //botleft
+		uvVerts.push(tileData.tile); uvVerts.push(flags+1); //topright
+		uvVerts.push(tileData.tile); uvVerts.push(flags+3); //botright
+	}
+		
+	gl.bindBuffer(gl.ARRAY_BUFFER, Sprite.tilebuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvVerts), gl.DYNAMIC_DRAW);
 	material.set("a_tile",2);
 	
-	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(uvVerts.length/2));
+	gl.drawArrays(gl.TRIANGLES, 0, Math.floor(Sprite.tileVertLength/2));
 }
 
 Sprite.gridBuffer = 0;
 Sprite.gridUVBuffer = 0;
+Sprite.tilebuffer = 0;
+Sprite.tileVertLength = 0;
 
 Sprite.createTileGrid = function(ts,offset){
 	var tileVerts = new Array();
@@ -419,6 +438,8 @@ Sprite.createTileGrid = function(ts,offset){
 		tileVerts.push(x+ts); tileVerts.push(y);
 		tileVerts.push(x+ts); tileVerts.push(y+ts);
 	}
+	
+	Sprite.tileVertLength = tileVerts.length;
 	return new Float32Array(tileVerts);
 }
 
@@ -573,14 +594,29 @@ WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h,ops){
 	this.drawArrays(this.TRIANGLE_STRIP, 0, geo.length/2);
 }
 
-WebGLRenderingContext.prototype.renderBackbuffer = function(image, tint){
+WebGLRenderingContext.prototype.renderBackbuffer = function(image, tint, ops){
 	var top = game.resolution.y / 512;
 	var lef = game.resolution.x / 512;
 	
 	var geo = Sprite.RectBuffer(new Point(-1, -1),2 ,2);
 	var tex = Sprite.RectBuffer(new Point(),lef ,top);
 	
-	var shader = window.materials["backbuffer"].use();
+	ops = ops || {};
+	
+	var shader = window.materials["backbuffer"];
+	
+	if("shader" in ops){
+		shader = window.materials[ops["shader"]];
+	}
+	shader.use();
+	
+	for(var i in ops){
+		if(ops[i] instanceof Array){
+			shader.set.apply(shader, [i].concat(ops[i]));
+		} else {
+			shader.set(i, ops[i]);
+		}
+	}
 	
 	this.bindTexture(this.TEXTURE_2D, image);
 	

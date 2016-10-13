@@ -442,6 +442,34 @@ Background.presets = {
 		}
 		*/
 	},
+	"pipes" : function(g,c){
+		var scale = 0.25;
+		var camera = new Point(
+			(c.x * scale) % 240,
+			(c.y * scale) % 240
+		);
+		for(var x=0; x < 3; x++) for(var y=0; y < 2; y++){
+			g.renderSprite(
+				"bgpipes",
+				new Point(x*240,y*240).subtract(camera),
+				-99,
+				new Point(0,0),
+				false
+			);
+		}
+		g.renderSprite(
+			"halo",
+			new Point(game.resolution.x*0.5,40),
+			-98,
+			new Point(0,0),
+			false,
+			{
+				"shader" : "halo",
+				"scale" : 2.0,
+				"u_color" : [1.0,0.4,0.8,0.1]
+			}
+		);
+	},
 	"cavefire" : function(g,c){
 		var mapHeight = game.map.height * 16 - this.sealevel;
 		
@@ -4144,12 +4172,14 @@ function DamageTrigger(x,y,d,o){
 				obj.stun = Game.DELTASECOND * 1;
 				obj.trigger("hurt",this,0);
 				obj.isDead();
-			} else if( game.time > DamageTrigger.rest ){
-				if(this.alwaysHurt){
+			} else {
+				if(this.alwaysHurt && game.timeScaled > DamageTrigger.rest){
 					obj.invincible = -1;
 				}
 				obj.hurt( this, Math.floor( this.damage ) );
-				DamageTrigger.rest = game.time + Game.DELTASECOND * 2;
+				if(obj instanceof Player){
+					DamageTrigger.rest = game.timeScaled + Game.DELTASECOND * 2;
+				}
 			}
 		}
 	});
@@ -12746,25 +12776,25 @@ var WeaponStats = {
 	"burningblade" : createWeaponTemplate(0.05,0.333,0.1,0.2,38),
 }
 
-WeaponStats.short_sword.damage = 3;
+WeaponStats.short_sword.damage = 1;
 WeaponStats.short_sword.standing.alwaysqueue = 1;
 
-WeaponStats.long_sword.damage = 4;
+WeaponStats.long_sword.damage = 1.5;
 WeaponStats.long_sword.standing.alwaysqueue = 0;
 
-WeaponStats.broad_sword.damage = 5;
+WeaponStats.broad_sword.damage = 2;
 WeaponStats.broad_sword.standing.alwaysqueue = 0;
 
-WeaponStats.morningstar.damage = 5;
+WeaponStats.morningstar.damage = 2;
 WeaponStats.morningstar.standing.alwaysqueue = 0;
 WeaponStats.morningstar.standing.length = 1;
 WeaponStats.morningstar.standing[0]["force"] = new Point(1.0,0.0);
 
-WeaponStats.bloodsickle.damage = 2.5;
+WeaponStats.bloodsickle.damage = 0.8;
 WeaponStats.bloodsickle.standing.alwaysqueue = 1;
 WeaponStats.bloodsickle.standing.length = 2;
 
-WeaponStats.burningblade.damage = 3.5;
+WeaponStats.burningblade.damage = 1.2;
 WeaponStats.burningblade.standing.alwaysqueue = 1;
 WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);
 
@@ -14482,24 +14512,22 @@ PauseMenu.prototype.update = function(){
 			
 			if( input.state("fire") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
-				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) Settings.sfxvolume = Math.min(Settings.sfxvolume+0.25,1);
-				if(this.cursor == 3 ) Settings.musvolume = Math.min(Settings.musvolume+0.25,1);
+				if(this.cursor == 0 ) game.setSetting("fullscreen", !Settings.fullscreen);
+				if(this.cursor == 1 ) game.setSetting("filter", (Settings.filter+1) % PauseMenu.Filters.length);
+				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.min(Settings.sfxvolume+0.25,1));
+				if(this.cursor == 3 ) game.setSetting("musvolume", Math.min(Settings.musvolume+0.25,1));
 				if(this.cursor == 4 ){
 					PauseMenu.open = false;
 					game.clearAll();
 					game_start(game);
 					return;
 				}
-				WorldMap.updateSettings();
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
-				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) Settings.sfxvolume = Math.max(Settings.sfxvolume-0.25,0);
-				if(this.cursor == 3 ) Settings.musvolume = Math.max(Settings.musvolume-0.25,0);
-				WorldMap.updateSettings();
+				if(this.cursor == 0 ) game.setSetting("fullscreen", !Settings.fullscreen);
+				if(this.cursor == 1 ) game.setSetting("filter", (Settings.filter+1) % PauseMenu.Filters.length);
+				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.max(Settings.sfxvolume-0.25,0));
+				if(this.cursor == 3 ) game.setSetting("musvolume", Math.max(Settings.musvolume-0.25,0));
 			}
 		} else if( this.page == 1 ) {
 			//Map page
@@ -14639,16 +14667,16 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,i18n("press_start"),xpos+84,184);
 		} else if( this.page == 0 ) {
 			//Option 68
-			leftx = game.resolution.x*0.5 - 120*0.5;
+			leftx = game.resolution.x*0.5 - 224*0.5;
 			
-			boxArea(g,leftx,8,120,224);
+			boxArea(g,leftx,8,224,224);
 			textArea(g,"Settings",leftx+30,20);
 			
 			textArea(g,"Screen",leftx+16,40);
 			textArea(g,(Settings.fullscreen?"Fullscreen":"Windowed"),leftx+20,52);
 			
-			textArea(g,"Guard Style",leftx+16,72);
-			textArea(g,(_player.autoblock?"Automatic":"Manual"),leftx+20,84);
+			textArea(g,"Screen Filter",leftx+16,72);
+			textArea(g,PauseMenu.Filters[Settings.filter],leftx+20,84);
 			
 			textArea(g,"SFX Volume",leftx+16,104);
 			//g.fillStyle = "#e45c10";
@@ -14851,6 +14879,12 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		var r = 0;
 	}
 }
+
+PauseMenu.Filters = [
+	"Default",
+	"CRT",
+	"Deuteranopia"
+]
 
 PauseMenu.convertTileDataToMapData = function(data){
 	//Used to convert raw map data to something useable by the map engine
@@ -18354,7 +18388,7 @@ Player.prototype.cancelAttack = function(){
 	this.attstates.timer = 0.0;
 }
 Player.prototype.baseDamage = function(){
-	return Math.round((2 + this.stats.attack) * this.attstates.stats.damage);
+	return Math.round(8 + this.stats.attack * this.attstates.stats.damage);
 }
 
 Player.prototype.currentDamage = function(){
@@ -18482,7 +18516,7 @@ Player.prototype.equip = function(sword, shield){
 		//this.guard.restore = 0.4 + tech * 0.05;
 		
 		this.damage = 5 + this.stats.attack * 3;
-		this.damageReduction = (this.stats.defence-Math.pow(this.stats.defence*0.15,2))*.071;
+		this.damageReduction = (this.stats.defence-1)*0.03;
 		this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
 		
 	} catch(e) {
@@ -20869,8 +20903,8 @@ Spawn.life = function(level, difficulty){
 	}
 	
 	if( level == 0 ) return 3; //Always one shot
-	var multi = 1 + difficulty * 0.6;
-	return Math.floor( multi * level * 9 );
+	var multi = 1 + difficulty * 0.5;
+	return Math.floor( multi * level * 7 );
 }
 
 Spawn.money = function(money, difficulty){
@@ -21064,6 +21098,8 @@ function game_start(g){
 	DemoThanks.time = 0;
 	NPC.variables = {};
 	
+	g.pause = false;
+	
 	g.addObject( new TitleMenu() );
 	//g.addObject( new DemoThanks() );
 	//dataManager.randomLevel(game,0);
@@ -21071,16 +21107,16 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
-		//_player.doubleJump = true;
+		_player.doubleJump = true;
 		//_player.dodgeFlash = true;
-		//_player.grabLedges = true;
-		//WorldLocale.loadMap("temple4.tmx");
+		_player.grabLedges = true;
+		//WorldLocale.loadMap("temple3.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			//_player.stat_points = 6;
-			//_player.life = _player.lifeMax = 42;
-			//_player.mana = _player.manaMax = 36;
+			_player.stat_points = 4;
+			_player.life = _player.lifeMax = 30;
+			_player.mana = _player.manaMax = 30;
 			//audio.playAs("music_temple4");
 			//audio.playAs("music_temple4","music");
 		}, 1000);
@@ -22408,13 +22444,6 @@ Quests = {
 	"q2" : 0 //Lost souls in the phantom world
 }
 
-Settings = {
-	"fullscreen" : false,
-	"sfxvolume" : 1.0,
-	"musvolume" : 1.0,
-	"debugmap" : "testmap.tmx"
-}
-
 WorldMap = {
 	"newgame" : function(){
 		new Player(64,178);
@@ -22470,11 +22499,6 @@ WorldMap = {
 		"Shop",
 		"WaystoneChest"
 	],
-	"updateSettings" : function(){
-		self.postMessage({
-			"settings" : Settings
-		})
-	},
 	"save" : function(){
 		var q = {}
 		var i = 0;

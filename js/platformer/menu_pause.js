@@ -50,24 +50,22 @@ PauseMenu.prototype.update = function(){
 			
 			if( input.state("fire") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
-				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) Settings.sfxvolume = Math.min(Settings.sfxvolume+0.25,1);
-				if(this.cursor == 3 ) Settings.musvolume = Math.min(Settings.musvolume+0.25,1);
+				if(this.cursor == 0 ) game.setSetting("fullscreen", !Settings.fullscreen);
+				if(this.cursor == 1 ) game.setSetting("filter", (Settings.filter+1) % PauseMenu.Filters.length);
+				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.min(Settings.sfxvolume+0.25,1));
+				if(this.cursor == 3 ) game.setSetting("musvolume", Math.min(Settings.musvolume+0.25,1));
 				if(this.cursor == 4 ){
 					PauseMenu.open = false;
 					game.clearAll();
 					game_start(game);
 					return;
 				}
-				WorldMap.updateSettings();
 			} else if( input.state("jump") == 1) {
 				audio.play("cursor");
-				if(this.cursor == 0 ) Settings.fullscreen = !Settings.fullscreen;
-				if(this.cursor == 1 ) _player.autoblock = !_player.autoblock;
-				if(this.cursor == 2 ) Settings.sfxvolume = Math.max(Settings.sfxvolume-0.25,0);
-				if(this.cursor == 3 ) Settings.musvolume = Math.max(Settings.musvolume-0.25,0);
-				WorldMap.updateSettings();
+				if(this.cursor == 0 ) game.setSetting("fullscreen", !Settings.fullscreen);
+				if(this.cursor == 1 ) game.setSetting("filter", (Settings.filter+1) % PauseMenu.Filters.length);
+				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.max(Settings.sfxvolume-0.25,0));
+				if(this.cursor == 3 ) game.setSetting("musvolume", Math.max(Settings.musvolume-0.25,0));
 			}
 		} else if( this.page == 1 ) {
 			//Map page
@@ -207,16 +205,16 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,i18n("press_start"),xpos+84,184);
 		} else if( this.page == 0 ) {
 			//Option 68
-			leftx = game.resolution.x*0.5 - 120*0.5;
+			leftx = game.resolution.x*0.5 - 224*0.5;
 			
-			boxArea(g,leftx,8,120,224);
+			boxArea(g,leftx,8,224,224);
 			textArea(g,"Settings",leftx+30,20);
 			
 			textArea(g,"Screen",leftx+16,40);
 			textArea(g,(Settings.fullscreen?"Fullscreen":"Windowed"),leftx+20,52);
 			
-			textArea(g,"Guard Style",leftx+16,72);
-			textArea(g,(_player.autoblock?"Automatic":"Manual"),leftx+20,84);
+			textArea(g,"Screen Filter",leftx+16,72);
+			textArea(g,PauseMenu.Filters[Settings.filter],leftx+20,84);
 			
 			textArea(g,"SFX Volume",leftx+16,104);
 			//g.fillStyle = "#e45c10";
@@ -419,6 +417,12 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 		var r = 0;
 	}
 }
+
+PauseMenu.Filters = [
+	"Default",
+	"CRT",
+	"Deuteranopia"
+]
 
 PauseMenu.convertTileDataToMapData = function(data){
 	//Used to convert raw map data to something useable by the map engine

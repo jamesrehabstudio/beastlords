@@ -1,11 +1,5 @@
 window._version = "0.3.1";
 
-function DataManager() {	
-	localStorage.setItem("version", window._version);
-	load_sprites();
-	//this.reset();
-}
-
 function game_start(g){
 	var shaders = window.shaders;
 	
@@ -29,121 +23,13 @@ function game_start(g){
 	new Material(g.g, "t5", {"fs":shaders["fragment-shifthue"],"vs":shaders["2d-vertex-default"], "settings":{"u_shift":[0.5]}} );
 	
 	new Material(g.g, "backbuffer", {"fs":shaders["2d-fragment-shader"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "backbuffercrt", {"fs":shaders["fragment-crt"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "backbuffercolorblind", {"fs":shaders["fragment-highcontrast"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	
 	new Material(g.g, "solid", {"fs":shaders["2d-fragment-solid"],"vs":shaders["2d-vertex-default"]} );
 	new Material(g.g, "lightbeam", {"fs":shaders["2d-fragment-lightbeam"],"vs":shaders["2d-vertex-shader"]} );
-}
-
-DataManager.prototype.reset = function(){
-	if( game instanceof Game ) game.pause = false;
-	window._player = undefined;
-	window._shop = undefined;
-	audio.stop("music");
 	
-	this.currentTemple = -1;
-	this.currentTown = -1;
-	this.monsterDifficulty = 0;
-	
-	this.unlocks = [];
-	for(var i=0; i < Item.treasures.length; i++ ) {
-		if(Item.treasures[i].unlocked > 0) {
-			Item.treasures[i]["remaining"] = Item.treasures[i].pergame;
-		} else { 
-			Item.treasures[i]["remaining"] = 0;
-		}
-	}
-}
-DataManager.prototype.itemGet = function(name){
-	/*
-	for(var i=0; i < Item.treasures.length; i++){
-		if( Item.treasures[i].name == name ) {
-			
-			if( Item.treasures[i].unlocked == 0 && this.unlocks.indexOf(name) < 0){
-				this.unlocks.push( name );
-			}
-			this.treasures[i].unlocked = 2;
-			localStorage.setItem("item_"+name,2);
-		}
-	}
-	*/
-}
-DataManager.prototype.itemUnlock = function(name){
-	/*
-	for(var i=0; i < this.treasures.length; i++){
-		if( this.treasures[i].name == name ) {
-			
-			if( this.treasures[i].unlocked == 0 && this.unlocks.indexOf(name) < 0){
-				this.unlocks.push( name );
-				this.treasures[i].unlocked = 1;
-				localStorage.setItem("item_"+name,1);
-			}
-		}
-	}
-	*/
-}
-DataManager.prototype.townFromTag = function(tag){
-	for(var i=0; i < _map_town.length; i++){
-		if( "tags" in _map_town[i] && _map_town[i].tags.indexOf(tag) >= 0 ){
-			return i;
-		}
-	}
-	if( tag != "house") {
-		return this.townFromTag("house");
-	}
-	return -1;
-}
-DataManager.prototype.randomTown = function(g, town){
-	this.currentTemple = -1;
-	this.currentTown = town.id;
-	this.slices = [];
-		
-	g.clearAll();
-	g.tileSprite = sprites.town;
-	
-	var pos = 1;
-	var rooms = new Array();
-	
-	rooms.push( this.townFromTag( "exit_w" ) );
-	for( i in _world.town.buildings ){
-		var building = _world.town.buildings[i];
-		if( building.complete ){
-			var room_id = this.townFromTag( i );
-			if( room_id >= 0 ) {
-				var room = _map_town[room_id];
-				rooms[pos] = room_id;
-				pos += room.width;
-			}
-		} else if ( building.progress > 0 ) {
-			var wip = "wip" + Math.floor(Math.min( building.progress / 10, 2));
-			rooms[pos] = this.townFromTag( wip );
-			pos += 2;
-		}
-	}
-	rooms[pos] = this.townFromTag( "exit_e" );
-	pos++;
-	
-	g.bounds = g.tileDimension = new Line(0,0,pos*8,15);
-	g.tiles = [
-		new Array( ~~g.tileDimension.area() ),
-		new Array( ~~g.tileDimension.area() ),
-		new Array( ~~g.tileDimension.area() )
-	];
-	g.buildCollisions();
-	g.addObject(new PauseMenu());
-	g.addObject(new Background());
-	
-	for(var i=0; i < rooms.length; i++){
-		if( rooms[i] != undefined && rooms[i] >= 0 ) {
-			this.createRoom(g,_map_town[ rooms[i] ], new Point(i*128,0),{"background":false, "room_size":8});
-		}
-	}
-	if( _player instanceof Player ) {
-		_player.lock = new Line(0,0,pos*128,240);
-		_player.lock_overwrite = false;
-		_player.keys = new Array();
-//		_player.position.x = 72;
-//		_player.position.y = 200;
-//		g.addObject(_player);
-	}
+	load_sprites();
 }
 
 var sprites = {};
@@ -241,6 +127,7 @@ function load_sprites (){
 	sprites['bgfirecave'] = new Sprite(RT+"img/background/firecave.png", {offset:new Point(0, 0),width:592,height:416});
 	sprites['bgclouds'] = new Sprite(RT+"img/background/clouds.png", {offset:new Point(64, 32),width:128,height:64});
 	sprites['bgrain'] = new Sprite(RT+"img/background/bg_rain.png", {offset:new Point(80, 80),width:160,height:160});
+	sprites['bgpipes'] = new Sprite(RT+"img/background/pipes.png", {offset:new Point(0, 0),width:240,height:240});
 	
 	sprites['sky_storm1'] = new Sprite(RT+"img/background/sky_storm1.png", {offset:new Point(213, 0),width:427,height:240});
 	
