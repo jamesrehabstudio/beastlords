@@ -24,11 +24,16 @@ function Material(gl,name,ops){
 	//Fetch properties
 	this.gl = gl;
 	this.properties = {};
+	this.textureSlots = {};
 	
 	this.settings = [];
 	if( "settings" in ops ) for( var i in ops.settings ){
-		ops.settings[i].unshift(i);
-		this.settings.push( ops.settings[i] );
+		if(ops.settings[i] instanceof Array){
+			ops.settings[i].unshift(i);
+			this.settings.push( ops.settings[i] );
+		} else{
+			this.settings.push( [i, ops.settings[i]] );
+		}
 	}
 	
 	//Find exposed Uniforms and attributes
@@ -53,6 +58,7 @@ Material.prototype.gatherProperties = function() {
 		var activeType = isUniform ? this.gl.ACTIVE_UNIFORMS : this.gl.ACTIVE_ATTRIBUTES
 		
 		var count = this.gl.getProgramParameter(this.program, activeType);
+		var textureCount = 0;
 		for(var i=0; i < count; i++){
 			if(isUniform){
 				var details = this.gl.getActiveUniform(this.program,i);
@@ -64,11 +70,19 @@ Material.prototype.gatherProperties = function() {
 				this.gl.enableVertexAttribArray(location);
 			}
 			
+			var propertyType = Material.propertyTypes.indexOf(details.type);
+			var textureSlot = 0;
+			
+			if(propertyType == 6) {
+				textureSlot = textureCount;
+				textureCount++;
+			}
+			
 			this.properties[details.name] = {
 				"uniform" : isUniform,
-				"type" : Material.propertyTypes.indexOf(details.type),
+				"type" : propertyType,
 				"location" : location,
-				"texture" : 0
+				"texture" : textureSlot
 			}
 		}
 	}
@@ -105,7 +119,8 @@ Material.prototype.set = function(name, a,b,c,d) {
 			break; case 5:
 				this.gl.uniformMatrix4fv(prop.location, false, a);
 			break; case 6:
-				this.setTexture(a, this.gl["TEXTURE"+prop.texture]);
+				this.gl.uniform1i(prop.location, prop.texture);
+				this.setTexture(name, a, this.gl["TEXTURE" + prop.texture]);
 			break;
 		}
 	} else {
@@ -117,22 +132,16 @@ Material.prototype.set = function(name, a,b,c,d) {
 		}
 	}
 }
-Material.prototype.setTexture = function(img, slot){
-	//if(img != Material.currentTexture){
-		//Material.currentTexture = img;
-		if(slot === undefined){
-			slot = this.gl.TEXTURE0;
-		}
-		if(!(img instanceof WebGLTexture)){
-			img = sprites[img].gl_tex;
-		}
-		
-		if(Material.currentTexture !== img){
-			this.gl.activeTexture(slot);
-			this.gl.bindTexture(this.gl.TEXTURE_2D, img);
-			Material.currentTexture = img;
-		}
-	//}
+Material.prototype.setTexture = function(name, img, slot){
+	if(!(img instanceof WebGLTexture)){
+		img = sprites[img].gl_tex;
+	}
+	
+	if(Material.currentTexture !== img){
+		this.gl.activeTexture(slot);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, img);
+		Material.currentTexture = img;
+	}
 }
 Material.prototype.use = function() {
 	/*if(this == Material.current){
@@ -141,14 +150,19 @@ Material.prototype.use = function() {
 	game.shader = this;
 	this.gl.useProgram(this.program);
 	
+	/*
+	this.textureSlots = {};
+	
 	var textureCount = 0;
 	for(var j in this.properties) {
 		if(this.properties[j].type == 6){
 			this.properties[j].texture = textureCount;
 			this.gl.uniform1i(this.properties[j].location, textureCount);
+			this.textureSlots[j] = this.gl["TEXTURE" + textureCount];
 			textureCount++;
 		}
 	}
+	*/
 	
 	for(var i = 0; i < this.settings.length; i++){
 		this.set.apply(this, this.settings[i]);
@@ -618,7 +632,7 @@ WebGLRenderingContext.prototype.renderBackbuffer = function(image, tint, ops){
 		}
 	}
 	
-	this.bindTexture(this.TEXTURE_2D, image);
+	shader.set("u_image", image);
 	
 	if(tint == undefined){
 		tint = [1.0,1.0,1.0,1.0];

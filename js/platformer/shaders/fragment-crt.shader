@@ -5,7 +5,7 @@ precision mediump float;
 #define LINES 2048.0
 #define LOW 0.02
 #define BLUR 0.001
-#define RATIO 0.5625
+#define PIXEL 0.001953125
 
 uniform sampler2D u_image;
 uniform vec4 u_color;
@@ -19,10 +19,11 @@ void main() {
 	
 	float c1 = cos((v_texCoord.x*(512.0/u_resolution.x))*2.0*M_PI);
 	float c2 = cos((v_texCoord.y*(512.0/u_resolution.y))*2.0*M_PI);
+	float c3 = clamp(20.0 * sin((v_texCoord.x/PIXEL)*M_PI), -1.0, 1.0);
 	
 	vec2 uv = vec2(
 		v_texCoord.x + c1 * CURVE - 0.01,
-		v_texCoord.y + c2 * CURVE - 0.01
+		v_texCoord.y + c2 * CURVE + c3 * CURVE * LOW - 0.01
 	);
 	
 	vec4 color1 = additive + multiply * texture2D(u_image, uv) * vec4(1.2,0.833333,1.0,1.0);

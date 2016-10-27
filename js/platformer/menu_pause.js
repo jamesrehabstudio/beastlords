@@ -421,7 +421,9 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 PauseMenu.Filters = [
 	"Default",
 	"CRT",
-	"Deuteranopia"
+	"Deuteranopia",
+	"Terrible port",
+	"Dot matrix"
 ]
 
 PauseMenu.convertTileDataToMapData = function(data){

@@ -25,6 +25,8 @@ function game_start(g){
 	new Material(g.g, "backbuffer", {"fs":shaders["2d-fragment-shader"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "backbuffercrt", {"fs":shaders["fragment-crt"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
 	new Material(g.g, "backbuffercolorblind", {"fs":shaders["fragment-highcontrast"],"vs":shaders["back-vertex-shader"], "settings":{"u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "backbuffernes", {"fs":shaders["fragment-palletswap"],"vs":shaders["back-vertex-shader"], "settings":{"u_colorgrid":"nescolors", "u_color":[1.0,1.0,1.0,1.0]}} );
+	new Material(g.g, "backbuffergb", {"fs":shaders["fragment-palletswap"],"vs":shaders["back-vertex-shader"], "settings":{"u_colorgrid":"dotmatcolors", "u_color":[1.0,1.0,1.0,1.0]}} );
 	
 	new Material(g.g, "solid", {"fs":shaders["2d-fragment-solid"],"vs":shaders["2d-vertex-default"]} );
 	new Material(g.g, "lightbeam", {"fs":shaders["2d-fragment-lightbeam"],"vs":shaders["2d-vertex-shader"]} );
@@ -138,6 +140,9 @@ function load_sprites (){
 	sprites['loading'] = new Sprite(RT+"img/loading.png", {offset:new Point(120, 120),width:240,height:240});
 	sprites['dreams'] = new Sprite(RT+"img/dreams.gif", {offset:new Point(0, 0),width:256,height:16});
 	sprites['transform'] = new Sprite(RT+"img/transform.gif", {offset:new Point(16, 17),width:33,height:34});
+	
+	sprites['nescolors'] = new Sprite(RT+"img/nescolors.png", {offset:new Point(0, 0),width:64,height:64});
+	sprites['dotmatcolors'] = new Sprite(RT+"img/dotmatcolors.png", {offset:new Point(0, 0),width:64,height:64});
 	
 	
 	sprites['effect_fire'] = new Sprite(RT+"img/effect_fire.png", {offset:new Point(32, 32),width:64,height:64});	

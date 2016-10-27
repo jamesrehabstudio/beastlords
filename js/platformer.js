@@ -14883,7 +14883,9 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 PauseMenu.Filters = [
 	"Default",
 	"CRT",
-	"Deuteranopia"
+	"Deuteranopia",
+	"Terrible port",
+	"Dot matrix"
 ]
 
 PauseMenu.convertTileDataToMapData = function(data){
@@ -21107,16 +21109,27 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
-		_player.doubleJump = true;
+		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
-		_player.grabLedges = true;
-		//WorldLocale.loadMap("temple3.tmx");
+		//_player.grabLedges = true;
+		//WorldLocale.loadMap("temple4.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			_player.stat_points = 4;
-			_player.life = _player.lifeMax = 30;
-			_player.mana = _player.manaMax = 30;
+			//_player.stat_points = 4;
+			//_player.life = _player.lifeMax = 30;
+			//_player.mana = _player.manaMax = 30;
+			
+			//NPC.set("long_sword",1);
+			//NPC.set("broad_sword",1);
+			//NPC.set("morningstar",1);
+			//NPC.set("bloodsickle",1);
+			//NPC.set("burningblade",1);
+			
+			//NPC.set("templeCompleted", 2);
+			//_player.spells.push( new Item(0,0,0,{"name":"spell_fire"}));
+			//_player.spells.push( new Item(0,0,0,{"name":"spell_flash"}));
+			//_player.spells.push( new Item(0,0,0,{"name":"spell_heal"});
 			//audio.playAs("music_temple4");
 			//audio.playAs("music_temple4","music");
 		}, 1000);

@@ -49,33 +49,57 @@ function AudioPlayer(list){
 AudioPlayer.prototype.loaded = function(b,l){	
 	if( l in this.list ) {
 		this.list[l]["buffer"] = b;
+		this.list[l]["lastplayed"] = 0;
+		this.list[l]["playcount"] = 0;
+		
 		
 		if( "playOnLoad" in this.list[l] ){
 			this.play(l);
 		}
 	}
 }
+AudioPlayer.prototype.isReady = function(l){
+	var time = game.time * 1;
+	if(l in this.list){
+		if(this.list[l]["lastplayed"] + 250 > time){
+			this.list[l]["playcount"]++;
+			if(this.list[l]["playcount"] > 2){
+				return false;
+			} else {
+				return true;
+			}
+		} else {
+			this.list[l]["lastplayed"] = time;
+			this.list[l]["playcount"] = 1;
+			return true;
+		}
+	}
+	return false;
+}
+
 AudioPlayer.prototype.play = function(l){
 	if(l in this.list ){
 		if( "buffer" in this.list[l] ) {
-			var volume = this.a.createGain();
-			var b = this.list[l]["buffer"];
-			this.list[l]["source"] = this.a.createBufferSource();
-			this.list[l]["source"].buffer = b;
-			
-			if( "loop" in this.list[l] ) {
-				this.list[l]["source"].loop = true;
-				this.list[l]["source"].loopStart = this.list[l]["loop"];
-				this.list[l]["source"].loopEnd = b.length / b.sampleRate;
+			if( this.isReady(l) ){
+				var volume = this.a.createGain();
+				var b = this.list[l]["buffer"];
+				this.list[l]["source"] = this.a.createBufferSource();
+				this.list[l]["source"].buffer = b;
+				
+				if( "loop" in this.list[l] ) {
+					this.list[l]["source"].loop = true;
+					this.list[l]["source"].loopStart = this.list[l]["loop"];
+					this.list[l]["source"].loopEnd = b.length / b.sampleRate;
+				}
+				
+				if( "music" in this.list[l]) {
+					this.list[l]["source"].connect(this.musVolume);
+				} else {
+					this.list[l]["source"].connect(this.sfxVolume);
+				}
+				
+				this.list[l]["source"].start();
 			}
-			
-			if( "music" in this.list[l]) {
-				this.list[l]["source"].connect(this.musVolume);
-			} else {
-				this.list[l]["source"].connect(this.sfxVolume);
-			}
-			
-			this.list[l]["source"].start();
 		} else {
 			this.list[l]["playOnLoad"] = true;
 		}
@@ -86,31 +110,33 @@ AudioPlayer.prototype.play = function(l){
 AudioPlayer.prototype.playPan = function(l,balance,gain){
 	if(l in this.list ){
 		if( "buffer" in this.list[l] ) {
-			var b = this.list[l]["buffer"];
-			this.list[l]["source"] = this.a.createBufferSource();
-			this.list[l]["source"].buffer = b;
-			
-			var volume = this.a.createGain();
-			var stereo = audio.a.createStereoPanner();
-			volume.gain.value = gain;
-			stereo.pan.value = balance;
-			var mix = volume.connect(stereo)
-			
-			if( "loop" in this.list[l] ) {
-				this.list[l]["source"].loop = true;
-				this.list[l]["source"].loopStart = this.list[l]["loop"];
-				this.list[l]["source"].loopEnd = b.length / b.sampleRate;
+			if( this.isReady(l) ){
+				var b = this.list[l]["buffer"];
+				this.list[l]["source"] = this.a.createBufferSource();
+				this.list[l]["source"].buffer = b;
+				
+				var volume = this.a.createGain();
+				var stereo = audio.a.createStereoPanner();
+				volume.gain.value = gain;
+				stereo.pan.value = balance;
+				var mix = volume.connect(stereo)
+				
+				if( "loop" in this.list[l] ) {
+					this.list[l]["source"].loop = true;
+					this.list[l]["source"].loopStart = this.list[l]["loop"];
+					this.list[l]["source"].loopEnd = b.length / b.sampleRate;
+				}
+				
+				if( "music" in this.list[l]) {
+					this.list[l]["source"].connect(this.musVolume).connect(stereo).connect(volume);
+				} else {
+					stereo.connect(this.sfxVolume);
+					volume.connect(stereo);
+					this.list[l]["source"].connect(volume);
+				}
+				
+				this.list[l]["source"].start();
 			}
-			
-			if( "music" in this.list[l]) {
-				this.list[l]["source"].connect(this.musVolume).connect(stereo).connect(volume);
-			} else {
-				stereo.connect(this.sfxVolume);
-				volume.connect(stereo);
-				this.list[l]["source"].connect(volume);
-			}
-			
-			this.list[l]["source"].start();
 		} else {
 			this.list[l]["playOnLoad"] = true;
 		}
@@ -577,7 +603,9 @@ Game.Settings = {
 Game.Filters = [
 	"backbuffer",
 	"backbuffercrt",
-	"backbuffercolorblind"
+	"backbuffercolorblind",
+	"backbuffernes",
+	"backbuffergb"
 ];
 
 //Constants
