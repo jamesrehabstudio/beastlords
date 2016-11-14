@@ -1,6 +1,152 @@
 /* Shader list */
 
 
+ /* platformer\airjet.js*/ 
+
+Airjet.prototype = new GameObject();
+Airjet.prototype.constructor = GameObject;
+function Airjet(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.width = d[0];
+	this.height = d[1];
+	this.frame = new Point(0,31);
+	
+	this.active = true;
+	this.power = 1.25;
+	this.maxFallMultiplier = 0.75;
+	this.minHeight = 128;
+	this.inside = new Array();
+	this.sync = 0;
+	
+	this.sleepTime = 0.0;
+	this.wakeTime = 2.0 * Game.DELTASECOND;
+	this.timer = 0.0;
+	
+	this.particles = new Array();
+	for(var i=0; i < Math.min(this.width * this.height * 0.25 * Airjet.SQUR16X16, 24); i++){
+		this.particles.push([
+			this.position.x + Math.random() * this.width,
+			this.position.y + Math.random() * this.height,
+			Math.random() * 360
+		])
+	}
+	
+	if("power" in ops){
+		this.power = ops["power"] * 1;
+	}
+	if("maxfall" in ops){
+		this.maxFallMultiplier = ops["maxfall"] * 1;
+	}
+	if("minheight" in ops){
+		this.minHeight = ops["minheight"] * 1;
+	}
+	if("sleeptime" in ops){
+		this.sleepTime = ops["sleeptime"] * Game.DELTASECOND;
+	}
+	if("waketime" in ops){
+		this.wakeTime = ops["waketime"] * Game.DELTASECOND;
+	}
+	if("sync" in ops){
+		this.sync = 1;
+		var synctime = Math.abs(ops["sync"] * Game.DELTASECOND) % (this.wakeTime+this.sleepTime);
+		if(synctime > this.wakeTime){
+			this.active = false;
+			this.timer = this.sleepTime - (synctime - this.wakeTime);
+		} else {
+			this.active = true;
+			this.timer = this.wakeTime - synctime;
+		}
+	}
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_rigidbody) && this.inside.indexOf(obj) < 0){
+			this.inside.push(obj);
+		}
+	});
+	
+	this.hoverLevel = this.position.y + (this.height - this.minHeight);
+}
+
+Airjet.prototype.idle = function(){
+	if(!this.sync){
+		GameObject.prototype.idle.apply(this);
+	}
+}
+
+Airjet.prototype.update = function(){
+	if(this.sleepTime > 0){
+		this.timer -= this.delta;
+		if(this.timer <= 0){
+			if(this.active){
+				this.active = false;
+				this.timer = this.sleepTime;
+			} else {
+				audio.play("gasstart", this.position.add(new Point(this.width*0.5,this.height)));
+				this.active = true;
+				this.timer = this.wakeTime;
+			}
+		}
+	}
+	
+	if(this.active){
+		for(var i=0; i < this.inside.length; i++){
+			var obj = this.inside[i];
+			var power = this.power;
+			//obj.force.y = Math.min(obj.force.y - this.power * this.delta, this.maxFallMultiplier/this.power);
+			
+			if(obj instanceof Player && obj.states.downStab){
+				power = power * 0.5;
+			}
+			
+			if(obj.force.y < this.power * -5){
+				//do nothing
+			} else if(obj.position.y > this.hoverLevel){
+				obj.force.y -= power * this.delta;
+			} else if (obj.force.y > 0 ) { 
+				obj.force.y -= power * this.delta * 0.75;
+			} else {
+				//obj.force.y -= power * this.delta * 0.75;
+			}
+			
+			
+		}
+	}
+	this.inside = new Array();
+}
+
+Airjet.prototype.render = function(g,c){
+	if(this.active){
+		for(var i=0; i < this.particles.length; i++){
+			var p = this.particles[i];
+			p[1] -= this.power * this.delta * 5;
+			if(p[1] < this.position.y) {
+				p[1] = this.position.y + this.height;
+			}
+			var opacity = Math.min(Math.pow((p[1]-this.position.y) / this.height, 0.25),1);
+			var pos = new Point(p[0], p[1]);
+			
+			if(game.insideScreen(pos, 4)){
+				g.renderSprite(
+					game.map.tileset, 
+					pos.subtract(c),
+					this.zIndex,
+					this.frame,
+					false,
+					{
+						"u_color" : [1,1,1,opacity],
+						"rotate":p[2]
+					}
+				);
+			}
+		}
+	}
+}
+Airjet.SQUR16X16 = 0.00390625;
+
  /* platformer\alter.js*/ 
 
 Alter.prototype = new GameObject();
@@ -2643,6 +2789,122 @@ GhostChort.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
 	Background.pushLight( this.position.subtract(c), 180 );
 }
+
+ /* platformer\boss_lavasnake.js*/ 
+
+LavaSnake.prototype = new GameObject();
+LavaSnake.prototype.constructor = GameObject;
+function LavaSnake(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 48;
+	this.height = 32;
+	this.sprite = "lavasnake";
+	this.active = false;
+	
+	this.addModule( mod_block );
+	this.addModule( mod_combat );
+	this.addModule( mod_boss );
+	
+	this.bossface_frame = 0;
+	this.bossface_frame_row = 0;
+	
+	this.death_time = Game.DELTASECOND * 3;
+	this.lifeMax = this.life = Spawn.life(26,this.difficulty);
+	this.damage = Spawn.damage(4,this.difficulty);
+	
+	this.force = new Point();
+	this.friction = 0.02;
+	this.speed = 0.1;
+	
+	this.states = {
+		
+	};
+	
+	this.tail = new Array();
+	for(var i=0; i < 6; i++){
+		var t = new LavaSnakeBody(x,y);
+		this.tail.push(t);
+		game.addObject(t);
+		t.position.x += (i+1) * t.distance;
+	}
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Player){
+			obj.hurt(this,this.damage);
+		}
+		if(obj.hasModule(mod_rigidbody) && obj.isStuck){
+			this.force.x *= -1;
+			this.force.y *= -1;
+		}
+	});
+	this.on("collideHorizontal", function(dir){
+		this.force.x = -this.force.x;
+	});
+	this.on("collideVertical", function(dir){
+		this.force.y = -this.force.y;
+	});
+	
+	this.on("hurt", function(){
+		audio.play("hurt");
+	});
+	this.on("death", function(){
+		_player.addXP(this.xp_award);
+		
+		Item.drop(this,24);
+		audio.play("kill");
+		this.destroy();
+		
+		for(var i=0; i < this.tail.length; i++){
+			this.tail[i].destroy();
+		}
+	});
+	this.calculateXP();
+}
+LavaSnake.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if(this.life > 0 && this.active){
+		var dirnormal = _player.position.subtract(this.position).normalize();
+		
+		this.force.x += dirnormal.x * this.delta * this.speed;
+		this.force.y += dirnormal.y * this.delta * this.speed;
+		
+		game.t_move(this,this.force.x * this.delta,this.force.y * this.delta);
+		this.force = this.force.scale(1.0 - this.friction * this.delta);
+		
+		this.updatetail();
+	}
+}
+LavaSnake.prototype.idle = function(){}
+
+LavaSnake.prototype.updatetail = function(){
+	for(var i=0; i < this.tail.length; i++){
+		var head = i > 0 ? this.tail[i-1] : this;
+		var t = this.tail[i];
+		var dir = t.position.subtract(head.position).normalize(t.distance);
+		t.position = head.position.add(dir);
+	}
+}
+
+LavaSnakeBody.prototype = new GameObject();
+LavaSnakeBody.prototype.constructor = GameObject;
+function LavaSnakeBody(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 48;
+	this.height = 32;
+	this.sprite = "lavasnake";
+	this.active = false;
+	this.frame.x = 0;
+	this.frame.y = 1;
+	
+	this.addModule( mod_block );
+	this.parentPart = false;
+	this.distance = 56;
+}	
 
  /* platformer\boss_marquis.js*/ 
 
@@ -6930,7 +7192,11 @@ BombBowl.prototype.explode = function(){
 		}
 	}
 	shakeCamera(Game.DELTASECOND * 0.5, 4);
-	audio.play("explode3");
+	//audio.play("explode3");
+	
+	var explosion = new EffectBang(this.position.x,this.position.y);
+	game.addObject(explosion);
+	
 	Background.flash = [1,1,1,1];
 	this.destroy();
 }
@@ -8276,6 +8542,103 @@ Dropper.prototype.update = function(){
 		game.addObject( bullet );
 	}
 	this.cooldown -= this.delta;
+}
+
+ /* platformer\enemy_firebird.js*/ 
+
+FireBird.prototype = new GameObject();
+FireBird.prototype.constructor = GameObject;
+function FireBird(x,y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 32;
+	this.sprite = "firebird";
+	
+	this.addModule( mod_combat );
+	this.addModule( mod_rigidbody );
+	
+	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
+	this.fire = new Point(x,y);
+	
+	this.speed = 0.4;
+	
+	this.states = {
+		"turntime" : 0.0
+	};
+	
+	this.on("collideObject", function(obj){
+		if(obj instanceof Airjet && obj.active){
+			if(this.grounded){
+				this.grounded = false;
+				this.force.y = -5;
+			} else {
+				
+			}
+		}
+	});
+	
+	this.on("hurt", function(){
+		audio.play("hurt");
+	});
+	this.on("death", function(){
+		Item.drop(this);
+		audio.play("kill");
+		this.destroy();
+	});
+}
+FireBird.prototype.update = function(){
+	var dir = this.position.subtract(_player.position);
+	
+	if(this.life > 0){
+		
+		if(this.stun > 0){
+			this.force.x = 0;
+		} else {
+			//Turn logic
+			if(dir.x > 0 != this.flip){
+				this.states.turntime += this.delta;
+				if(this.states.turntime > Game.DELTASECOND * 0.5){
+					this.states.turntime = 0.0;
+					this.flip = !this.flip;
+				}
+			} else {
+				this.states.turntime = 0.0;
+			}
+			
+			if(this.grounded){
+				this.frame.y = 0;
+				this.speed = 0.4;
+				this.friction = 0.1;
+				this.fire.x = this.position.x + this.forward() * 32;
+				this.fire.y = this.position.y - 6;
+			} else {
+				this.frame.y = 1;
+				this.speed = 0.25;
+				this.friction = 0.05;
+				this.force.y -= 0.8 * this.delta;
+				this.fire.x = this.position.x;
+				this.fire.y = this.position.y + 24;
+			}
+			
+			this.force.x += this.delta * this.speed * this.forward();
+		}
+		
+		var firearea = new Line(this.fire.x - 8, this.fire.y - 8, this.fire.x + 8, this.fire.y + 8);
+		var hits = game.overlaps(firearea);
+		for(var i=0; i < hits.length; i++){
+			if( hits[i] instanceof Player && hits[i].intersects(firearea) ){
+				hits[i].hurt(this, this.damage);
+			}
+		}
+	}
+}
+
+FireBird.prototype.render = function(g,c){
+	GameObject.prototype.render.apply(this,[g,c]);
+	g.renderSprite("bullets",this.fire.subtract(c),this.zIndex,new Point((game.timeScaled*0.5)%3,3),this.flip);
 }
 
  /* platformer\enemy_fireman.js*/ 
@@ -14201,6 +14564,196 @@ Lamp.prototype.idle = function(){
 	}
 }
 
+ /* platformer\lava.js*/ 
+
+Lava.prototype = new GameObject();
+Lava.prototype.constructor = GameObject;
+function Lava(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.width = d[0];
+	this.height = d[1];
+	this.zIndex = 999;
+	
+	this.drain = 0;
+	this.bottom = this.position.y + this.height;
+	this.triggerheight = 4;
+	this.speed = 2;
+	
+	if("triggerheight" in ops){
+		this.triggerheight = ops["triggerheight"]
+	}
+	if("trigger" in ops) {
+		this._tid = ops["trigger"];
+	}
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_combat)){
+			obj.life = 0;
+			obj.stun = 1;
+			obj.trigger("hurt", this, 0)
+			obj.isDead();
+		}
+	});
+	
+	this.on("activate", function(){
+		this.drain = 1;
+	});
+	
+	this.on("wakeup", function(){
+		if(this.drain){
+			this.height = this.triggerheight;
+			this.position.y = this.bottom - this.height;
+		}
+	})
+}
+
+Lava.prototype.update = function(){
+	if(this.drain){
+		if(this.height > this.triggerheight){
+			this.height -= this.speed * this.delta;
+		} else {
+			this.height = this.triggerheight;
+		}
+		this.position.y = this.bottom - this.height;
+	}
+	
+	this.interactive = this.width > 0 && this.height > 0;
+}
+
+Lava.prototype.render = function(g,c){
+	if(this.interactive){
+		g.color = [1.0,0.5,0.0,1.0];
+		Renderer.scaleFillRect(
+			this.position.x - c.x,
+			this.position.y - c.y,
+			this.width,
+			this.height
+		)
+	}
+}
+
+Lava.prototype.lightrender = function(g,c){
+	if(this.interactive){
+		g.color = [0.2,0.1,0.0,1.0];
+		for(var i=0; i < 8; i++){
+			var extra = 2 * Math.sin(i *0.5 + game.timeScaled * 0.1) + (8 * i+1);
+			Renderer.scaleFillRect(
+				this.position.x - extra - c.x,
+				this.position.y - extra- c.y,
+				this.width + extra * 2,
+				this.height  + extra * 2
+			)
+		}
+	}
+}
+
+Lavafalls.prototype = new GameObject();
+Lavafalls.prototype.constructor = GameObject;
+function Lavafalls(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.width = d[0];
+	this.height = d[1];
+	this.zIndex = 898;
+	
+	this.sprite = "lavafalls";
+	this.speed = 12.0;
+	this.ends = new Point(0, 0);
+	
+	this.damage = 12;
+	this.yexcess = 72;
+	this.ystep = 72;
+	this.waketime = Game.DELTASECOND * 1.0;
+	this.sleeptime = Game.DELTASECOND * 2.0;
+	this.timer = 0;
+	
+	if("waketime" in ops){
+		this.waketime = ops["waketime"] * 1;
+	}
+	if("sleeptime" in ops){
+		this.waketime = ops["sleeptime"] * 1;
+	}
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_combat)){
+			var c_top = obj.position.y - obj.height * obj.origin.y;
+			var c_bot = obj.position.y + obj.height * obj.origin.y;
+			if(
+				c_bot > this.position.y + this.ends.x && 
+				c_top < this.position.y + this.ends.y
+			){
+				obj.hurt(this, this.damage);
+			}
+		}
+	});
+}
+
+Lavafalls.bloboffset = [
+	{x:0,y:0,z:2,f:0,g:Math.random()*16},
+	{x:0,y:16,z:1,f:1,g:Math.random()*16},
+	{x:0,y:4,z:2,f:2,g:Math.random()*16},
+	{x:-24,y:24,z:0,f:3,g:Math.random()*16}
+];
+
+Lavafalls.prototype.update = function(g,c){
+	if(this.ends.x >= this.height+this.yexcess){
+		//Go to sleep
+		if(this.timer >= this.sleeptime){
+			this.timer = this.ends.x = this.ends.y = 0;
+		}
+	} else {
+		this.ends.y += this.speed * this.delta;
+		if(this.timer >= this.waketime){
+			this.ends.x += this.speed * this.delta;
+		}
+		if(this.ends.x >= this.height+this.yexcess){
+			this.timer = 0;
+		}
+	}
+	this.timer += this.delta;
+}
+
+Lavafalls.prototype.render = function(g,c){
+	var bottom = this.ends.y;
+	if(this.ends.y > this.height){
+		bottom = this.height + ((this.ends.y-this.height) % this.ystep);
+	}
+	
+	for(var y=bottom; y >= this.ends.x; y-=this.ystep){
+		var i = 0;
+		for(var x=0; x < this.width; x+=16){
+			blob = Lavafalls.bloboffset[i];
+			g.renderSprite(
+				this.sprite,
+				this.position.add(new Point(x+blob.x, y+blob.y)).subtract(c).floor(),
+				this.zIndex + blob.z - y,
+				new Point(blob.f,0),
+				this.flip, 
+				{
+					"u_intensity" : 1 + Math.abs(0.5*Math.sin(blob.g + game.timeScaled*0.125))
+				}
+			)
+			i = (i+1) % 4;
+		}
+	}
+}
+Lavafalls.prototype.lightrender = function(g,c){
+	g.color = COLOR_FIRE;
+	g.scaleFillRect(
+		this.position.x - c.x,
+		this.position.y + this.ends.x - c.y,
+		this.width,
+		Math.min(this.height, this.ends.y - this.ends.x)
+	);
+}
+
  /* platformer\lift.js*/ 
 
 Lift.prototype = new GameObject();
@@ -15337,7 +15890,9 @@ var mod_rigidbody = {
 			}
 			
 			var friction_x = 1.0 - this.friction * this.delta;
+			var friction_y = 1.0 - 0.02 * this.delta;
 			this.force.x *= friction_x;
+			this.force.y *= friction_y;
 			this.preventPlatFormSnap -= this.delta;
 			
 			if( inair && this.grounded ) {
@@ -15379,16 +15934,18 @@ var mod_block = {
 			return false;
 		}
 		this.block_handleStuck = function(obj){
-			obj.position = obj.position.add(this.blockChange);
+			//obj.position = obj.position.add(this.blockChange);
 			
 			this.trigger("objectStuck", obj);
 			obj.trigger("blockStuck", this);
 			if(obj.position.y < this.position.y){
 				this.trigger("collideTop", obj);
 			} else if(obj.position.x > this.position.x + this.width * this.origin.x){
-				obj.position.x += obj.delta;
+				//obj.position.x += obj.delta;
+				obj.trigger( "collideHorizontal", 1);
 			} else {
-				obj.position.x -= obj.delta;
+				//obj.position.x -= obj.delta;
+				obj.trigger( "collideHorizontal", -1);
 			}
 		}
 		
@@ -15399,6 +15956,9 @@ var mod_block = {
 				obj.trigger( "collideVertical", 1);
 			}
 			this.trigger("blockLand",obj);
+			if(obj.currentlyStandingBlock !== this){
+				obj.trigger("land");
+			}
 			//this.blockOnboard.push(obj);
 			obj.currentlyStandingBlock = this;
 			obj.preventPlatFormSnap = Game.DELTAFRAME30;
@@ -15429,8 +15989,8 @@ var mod_block = {
 			if(this.blockCollide && this.width > 0 && this.height > 0){
 				if( obj.hasModule(mod_rigidbody) ) {
 					var prepos = obj.position.subtract(obj.force.scale(obj.delta));
-					var d = this.corners();
-					var b = obj.corners();
+					var d = this.corners(this.blockPrevious);
+					//var b = obj.corners();
 					var c = obj.corners(prepos);
 					
 					if(!this.block_isWithin(obj)){
@@ -15936,7 +16496,6 @@ var mod_boss = {
 				
 				_player.lock_overwrite = false;
 				Trigger.activate("boss_door");
-				Trigger.activate("boss_death");
 			}
 		}
 		this._boss_is_active = function(){
@@ -15964,6 +16523,7 @@ var mod_boss = {
 		});
 		this.on("death", function() {
 			Trigger.activate("boss_door");
+			Trigger.activate("boss_death");
 			
 			//for(var i=0; i < this.boss_doors.length; i++ )
 			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
@@ -17552,7 +18112,6 @@ function Player(x, y){
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
-	this.jump_strength = 8.0;
 	this.lightRadius = 32.0;
 	this.grabLedges = false;
 	this.doubleJump = false;
@@ -17610,8 +18169,8 @@ function Player(x, y){
 		"frictionGrounded" : 0.2,
 		"frictionAir" : 0.1,
 		"rollCooldown" : Game.DELTASECOND * 1.2,
-		"jump" : 9.0,
-		"airBoost" : 1.0,
+		"jump" : 9.3,
+		"airBoost" : 0.5,
 		"airGlide" : 0.0,
 		"breaks": 0.4,
 		"manaRegen" : Game.DELTASECOND * 60,
@@ -18121,7 +18680,7 @@ Player.prototype.update = function(){
 					}
 				
 					if( this.jump_boost ) {
-						var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+						var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : this.speeds.airBoost;
 						this.force.y -= this.gravity * boost * this.delta; 
 					}
 				} else {
@@ -21089,9 +21648,55 @@ spell_strength = function(player){
 	return cost;
 }
 
+ /* platformer\spook.js*/ 
+
+Spook.prototype = new GameObject();
+Spook.prototype.constructor = GameObject;
+function Spook(x,y,d,ops){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	
+	this.spookCount = 8;
+	this.spookTime = 8 * Game.DELTASECOND
+	this.spooks = new Array();
+	for(var i=0; i < 8; i++){
+		this.spooks.push({
+			"position" : new Point(x + Math.random()* 128, y + Math.random()* 120),
+			"frame" : Math.random() * this.spookTime
+		})
+	}
+}
+
+Spook.prototype.update = function(){
+}
+
+Spook.prototype.render = function(g,c){
+}
+
+Spook.prototype.lightrender = function(g,c){
+	for(var i=0; i < this.spooks.length; i++){
+		var s = this.spooks[i];
+		
+		s.frame = (s.frame + this.delta) % this.spookTime;
+		var sf = 9 * Math.min(s.frame / (Game.DELTASECOND * 1), 1);
+		
+		var f = new Point(sf%3,sf/3);
+		
+		
+		g.renderSprite(
+			"spook1",
+			s.position.subtract(c),
+			this.zIndex,
+			f,
+			false
+		);
+	}
+}
+
  /* platformer\start.js*/ 
 
-var version = "0.4.2";
+var version = "0.4.3";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -21112,13 +21717,13 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		//WorldLocale.loadMap("temple4.tmx");
+		//WorldLocale.loadMap("firepits.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			//_player.stat_points = 4;
-			//_player.life = _player.lifeMax = 30;
-			//_player.mana = _player.manaMax = 30;
+			//_player.stat_points = 6;
+			//_player.life = _player.lifeMax = 36;
+			//_player.mana = _player.manaMax = 36;
 			
 			//NPC.set("long_sword",1);
 			//NPC.set("broad_sword",1);
@@ -21638,6 +22243,7 @@ function Treads(x,y,d,ops){
 	this.speed = 0.06;
 	this.maxSpeed = 3.0;
 	this.sprite = "treads";
+	this.blockOnboard = new Array();
 	
 	this.addModule(mod_block);
 	
@@ -21664,6 +22270,11 @@ function Treads(x,y,d,ops){
 			this.sink = false;
 		});
 	}
+	this.on("collideTop", function(obj){
+		if(this.blockOnboard.indexOf(obj) < 0){
+			this.blockOnboard.push(obj);
+		}
+	});
 	
 	//Gather tiles
 	this.tiles = new Array();
@@ -21687,7 +22298,7 @@ function Treads(x,y,d,ops){
 }
 
 Treads.prototype.update = function(){
-	if(this.blockOnboard.indexOf(_player) >= 0){
+	if(this.block_isOnboard(_player)){
 		if(_player.grounded) {
 			this.force += _player.force.x * this.delta * this.speed;
 			_player.position.x -= this.force * this.delta;
@@ -21714,6 +22325,7 @@ Treads.prototype.update = function(){
 	this.force = Math.min(Math.max(this.force, -this.maxSpeed), this.maxSpeed);
 	
 	this.frame.y = ((this.originalPosition.y-this.position.y) * 0.2 ) % 4;
+	this.blockOnboard = new Array();
 }
 
 Treads.prototype.render = function(g,c){

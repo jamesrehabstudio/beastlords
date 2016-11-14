@@ -391,6 +391,18 @@ Game.prototype.overlaps = function(l, end){
 	}
 	return out;
 }
+Game.prototype.insideScreen = function(p,margin) {
+	if(margin === undefined){
+		margin = 0;
+	}
+	return 	(
+		p.x > this.camera.x - margin &&
+		p.x < this.camera.x + margin + this.resolution.x &&
+		p.y > this.camera.y - margin &&
+		p.y < this.camera.y + margin + this.resolution.y
+	);
+}
+
 Game.prototype.t_unstick = function( obj ) {
 	var hitbox = obj.corners();
 	obj.isStuck = false;

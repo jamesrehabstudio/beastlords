@@ -197,6 +197,8 @@ function Sprite(url, options) {
 	options = options || {};
 	
 	var offset = options['offset'] || new Point();
+	var fragmentshader = "2d-fragment-shader";
+	var vertexshader = "2d-vertex-default";
 	
 	this.img = new Image();
 	this.img.src = url;
@@ -212,11 +214,18 @@ function Sprite(url, options) {
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
+	if("fragment" in options){
+		fragmentshader = options["fragment"];
+	}
+	if("vertex" in options){
+		vertexshader = options["vertex"];
+	}
+	
 	this.material = new Material(
 		game.g, url, 
 		{
-			"fs":shaders["2d-fragment-shader"],
-			"vs":shaders["2d-vertex-default"], 
+			"fs":shaders[fragmentshader],
+			"vs":shaders[vertexshader], 
 			"settings":{
 				"u_color":[1.0,1.0,1.0,1.0]
 			}

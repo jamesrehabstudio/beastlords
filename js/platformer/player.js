@@ -29,7 +29,6 @@ function Player(x, y){
 	
 	this.inertia = 0.9; 
 	this.jump_boost = false;
-	this.jump_strength = 8.0;
 	this.lightRadius = 32.0;
 	this.grabLedges = false;
 	this.doubleJump = false;
@@ -87,8 +86,8 @@ function Player(x, y){
 		"frictionGrounded" : 0.2,
 		"frictionAir" : 0.1,
 		"rollCooldown" : Game.DELTASECOND * 1.2,
-		"jump" : 9.0,
-		"airBoost" : 1.0,
+		"jump" : 9.3,
+		"airBoost" : 0.5,
 		"airGlide" : 0.0,
 		"breaks": 0.4,
 		"manaRegen" : Game.DELTASECOND * 60,
@@ -598,7 +597,7 @@ Player.prototype.update = function(){
 					}
 				
 					if( this.jump_boost ) {
-						var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : 0.45;
+						var boost = this.spellsCounters.feather_foot > 0 ? 0.7 : this.speeds.airBoost;
 						this.force.y -= this.gravity * boost * this.delta; 
 					}
 				} else {

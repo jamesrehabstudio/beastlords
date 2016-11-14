@@ -98,6 +98,12 @@ window.shaders["fragment-highcontrast"] = "precision mediump float;\n\n\nuniform
 
 
 
+ /* platformer\shaders\fragment-lava.shader*/ 
+
+window.shaders["fragment-lava"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_intensity;\n\nvoid main() {\n	float intensity = clamp(u_intensity * texture2D(u_image, v_texCoord).r,0.0,1.0);\n	vec4 color = texture2D(u_image, vec2(intensity, 1));\n	if(intensity < 0.1){\n		color.a = 0.0;\n	}\n	gl_FragColor = color;\n}";
+
+
+
  /* platformer\shaders\fragment-palletswap.shader*/ 
 
 window.shaders["fragment-palletswap"] = "precision mediump float;\n\n#define SEG 0.25\n#define CMAX 0.99\n\nuniform sampler2D u_image;\nuniform sampler2D u_colorgrid;\nuniform vec4 u_color;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 additive = clamp(u_color - 1.0,0.0,1.0);\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	vec4 color = additive + multiply * texture2D(u_image, v_texCoord);\n	\n	float r = min(1.0 - color.r,CMAX);\n	float g = min(color.g,CMAX);\n	float b = min(color.b,CMAX);\n	vec2 grid = vec2(\n		floor(mod(r * 16.0, 4.0)) * SEG + g * SEG,\n		floor((r * 16.0) / 4.0) * SEG + b * SEG\n	);\n	vec4 gridColor = texture2D(u_colorgrid, grid);\n	\n	\n	gl_FragColor = gridColor;\n}";

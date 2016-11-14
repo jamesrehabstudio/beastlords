@@ -130,7 +130,9 @@ var mod_rigidbody = {
 			}
 			
 			var friction_x = 1.0 - this.friction * this.delta;
+			var friction_y = 1.0 - 0.02 * this.delta;
 			this.force.x *= friction_x;
+			this.force.y *= friction_y;
 			this.preventPlatFormSnap -= this.delta;
 			
 			if( inair && this.grounded ) {
@@ -172,16 +174,18 @@ var mod_block = {
 			return false;
 		}
 		this.block_handleStuck = function(obj){
-			obj.position = obj.position.add(this.blockChange);
+			//obj.position = obj.position.add(this.blockChange);
 			
 			this.trigger("objectStuck", obj);
 			obj.trigger("blockStuck", this);
 			if(obj.position.y < this.position.y){
 				this.trigger("collideTop", obj);
 			} else if(obj.position.x > this.position.x + this.width * this.origin.x){
-				obj.position.x += obj.delta;
+				//obj.position.x += obj.delta;
+				obj.trigger( "collideHorizontal", 1);
 			} else {
-				obj.position.x -= obj.delta;
+				//obj.position.x -= obj.delta;
+				obj.trigger( "collideHorizontal", -1);
 			}
 		}
 		
@@ -192,6 +196,9 @@ var mod_block = {
 				obj.trigger( "collideVertical", 1);
 			}
 			this.trigger("blockLand",obj);
+			if(obj.currentlyStandingBlock !== this){
+				obj.trigger("land");
+			}
 			//this.blockOnboard.push(obj);
 			obj.currentlyStandingBlock = this;
 			obj.preventPlatFormSnap = Game.DELTAFRAME30;
@@ -222,8 +229,8 @@ var mod_block = {
 			if(this.blockCollide && this.width > 0 && this.height > 0){
 				if( obj.hasModule(mod_rigidbody) ) {
 					var prepos = obj.position.subtract(obj.force.scale(obj.delta));
-					var d = this.corners();
-					var b = obj.corners();
+					var d = this.corners(this.blockPrevious);
+					//var b = obj.corners();
 					var c = obj.corners(prepos);
 					
 					if(!this.block_isWithin(obj)){
@@ -729,7 +736,6 @@ var mod_boss = {
 				
 				_player.lock_overwrite = false;
 				Trigger.activate("boss_door");
-				Trigger.activate("boss_death");
 			}
 		}
 		this._boss_is_active = function(){
@@ -757,6 +763,7 @@ var mod_boss = {
 		});
 		this.on("death", function() {
 			Trigger.activate("boss_door");
+			Trigger.activate("boss_death");
 			
 			//for(var i=0; i < this.boss_doors.length; i++ )
 			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);

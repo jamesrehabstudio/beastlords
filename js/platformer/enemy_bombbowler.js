@@ -134,7 +134,11 @@ BombBowl.prototype.explode = function(){
 		}
 	}
 	shakeCamera(Game.DELTASECOND * 0.5, 4);
-	audio.play("explode3");
+	//audio.play("explode3");
+	
+	var explosion = new EffectBang(this.position.x,this.position.y);
+	game.addObject(explosion);
+	
 	Background.flash = [1,1,1,1];
 	this.destroy();
 }

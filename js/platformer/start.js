@@ -1,4 +1,4 @@
-var version = "0.4.2";
+var version = "0.4.3";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -19,13 +19,13 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		//WorldLocale.loadMap("temple4.tmx");
+		//WorldLocale.loadMap("firepits.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
-			//_player.stat_points = 4;
-			//_player.life = _player.lifeMax = 30;
-			//_player.mana = _player.manaMax = 30;
+			//_player.stat_points = 6;
+			//_player.life = _player.lifeMax = 36;
+			//_player.mana = _player.manaMax = 36;
 			
 			//NPC.set("long_sword",1);
 			//NPC.set("broad_sword",1);

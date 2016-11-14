@@ -13,6 +13,7 @@ function Treads(x,y,d,ops){
 	this.speed = 0.06;
 	this.maxSpeed = 3.0;
 	this.sprite = "treads";
+	this.blockOnboard = new Array();
 	
 	this.addModule(mod_block);
 	
@@ -39,6 +40,11 @@ function Treads(x,y,d,ops){
 			this.sink = false;
 		});
 	}
+	this.on("collideTop", function(obj){
+		if(this.blockOnboard.indexOf(obj) < 0){
+			this.blockOnboard.push(obj);
+		}
+	});
 	
 	//Gather tiles
 	this.tiles = new Array();
@@ -62,7 +68,7 @@ function Treads(x,y,d,ops){
 }
 
 Treads.prototype.update = function(){
-	if(this.blockOnboard.indexOf(_player) >= 0){
+	if(this.block_isOnboard(_player)){
 		if(_player.grounded) {
 			this.force += _player.force.x * this.delta * this.speed;
 			_player.position.x -= this.force * this.delta;
@@ -89,6 +95,7 @@ Treads.prototype.update = function(){
 	this.force = Math.min(Math.max(this.force, -this.maxSpeed), this.maxSpeed);
 	
 	this.frame.y = ((this.originalPosition.y-this.position.y) * 0.2 ) % 4;
+	this.blockOnboard = new Array();
 }
 
 Treads.prototype.render = function(g,c){

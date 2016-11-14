@@ -58,11 +58,14 @@ AudioPlayer.prototype.loaded = function(b,l){
 		}
 	}
 }
-AudioPlayer.prototype.isReady = function(l){
+AudioPlayer.prototype.isReady = function(l, gain){
+	if(gain === undefined){
+		gain = 1;
+	}
 	var time = game.time * 1;
 	if(l in this.list){
 		if(this.list[l]["lastplayed"] + 250 > time){
-			this.list[l]["playcount"]++;
+			this.list[l]["playcount"] += gain;
 			if(this.list[l]["playcount"] > 2){
 				return false;
 			} else {
@@ -70,7 +73,7 @@ AudioPlayer.prototype.isReady = function(l){
 			}
 		} else {
 			this.list[l]["lastplayed"] = time;
-			this.list[l]["playcount"] = 1;
+			this.list[l]["playcount"] = gain;
 			return true;
 		}
 	}
@@ -110,7 +113,7 @@ AudioPlayer.prototype.play = function(l){
 AudioPlayer.prototype.playPan = function(l,balance,gain){
 	if(l in this.list ){
 		if( "buffer" in this.list[l] ) {
-			if( this.isReady(l) ){
+			if( this.isReady(l, gain) ){
 				var b = this.list[l]["buffer"];
 				this.list[l]["source"] = this.a.createBufferSource();
 				this.list[l]["source"].buffer = b;

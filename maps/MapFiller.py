@@ -4,7 +4,7 @@ import re
 import glob
 import json
 
-TILE_DEFAULT = 290
+TILE_DEFAULT = 1
 XML_HEADER = """<?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" renderorder="right-down" width="{0}" height="{1}" tilewidth="16" tileheight="16" nextobjectid="1">
 """
