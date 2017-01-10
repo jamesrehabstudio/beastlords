@@ -11,7 +11,6 @@ function Player(x, y){
 	this.checkpoint = new Point(x,y);
 	
 	this.keys = [];
-	this.spells = [];
 	this.spellCursor = 0;
 	this.uniqueItems = [];
 	this.charm = false;
@@ -54,7 +53,8 @@ function Player(x, y){
 		"againstwall" : 0,
 		"turn" : 0.0,
 		"doubleJumpReady": true,
-		"spellCounter" : 0.0
+		"spellCounter" : 0.0,
+		"justjumped" : 0.0
 	};
 	
 	this.attstates = {
@@ -198,7 +198,7 @@ function Player(x, y){
 		}
 	})*/;
 	this.on("hurt_other", function(obj, damage){
-		var ls = Math.min(this.life_steal, 0.4);
+		var ls = Math.min(this.perks.lifeSteal, 0.4);
 		this.life = Math.min( this.life + Math.round(damage * ls), this.lifeMax );
 		
 		if(this.attstates.currentAttack){
@@ -212,16 +212,19 @@ function Player(x, y){
 			if("shake" in this.attstates.currentAttack){
 				shakeCamera(Game.DELTASECOND*0.25, this.attstates.currentAttack.shake);
 			}
-			
 			if("stun" in this.attstates.currentAttack){
 				obj.stun = this.attstates.currentAttack.stun;
+				if(!this.grounded && obj.life > 0 && obj.hasModule(mod_rigidbody)){
+					obj.airtime = this.attstates.currentAttack.stun;
+				}
+			}
+			if("knockback" in this.attstates.currentAttack && obj.hasModule(mod_rigidbody)){
+				var scale = 1.0 / Math.max(obj.mass, 1.0);
+				var knock = new Point(this.forward() * this.attstates.currentAttack.knockback.x, this.attstates.currentAttack.knockback.y).scale(scale);
+				obj.force.x += knock.x;
+				obj.force.y += knock.y;
 			}
 			
-			if("knockback" in this.attstates.currentAttack && obj.hasModule(mod_rigidbody)){
-				var dir = obj.position.subtract( this.position ).normalize();
-				var scale = 1.0 / Math.max(obj.mass, 1.0);
-				obj.force.x += dir.x * this.attstates.currentAttack.knockback * scale;
-			}
 		}
 		
 		if( "life" in obj && obj.life <= 0 ) {
@@ -301,11 +304,31 @@ function Player(x, y){
 	this.addModule( mod_camera );
 	this.addModule( mod_combat );
 	
+	this.spells = [
+		new SpellFire(),
+		new SpellFlash(),
+		new SpellHeal(),
+	];
 	
+	this.shieldSlots = [
+	
+	];
+	
+	this.baseStats = {
+		"attack" : 9,
+		"magic" : 3
+	};
 	this.stats = {
-		"attack" : 1,
-		"defence" : 1,
-		"magic" : 1
+		"attack" : 9,
+		"magic" : 3
+	};
+	
+	this.perks = {
+		"lifeSteal" : 0.0,
+		"bonusMoney" : 0.0,
+		"painImmune" : false,
+		"thorns" : 0.0,
+		"slowWound": 0.0
 	}
 	
 	this.life = 24;
@@ -313,7 +336,6 @@ function Player(x, y){
 	this.mana = 24;
 	this.manaMax = 24;
 	this.money = 0;
-	this.waystones = 0;
 	this.heal = 0;
 	this.healMana = 0;
 	this.damage = 5;
@@ -373,10 +395,6 @@ function Player(x, y){
 		"thorns" : 0,
 		"magic_song" : 0
 	};
-	
-	this.money_bonus = 1.0;
-	this.waystone_bonus = 0.1;
-	this.life_steal = 0.0;
 	
 	this.addXP(0);
 }
@@ -474,7 +492,9 @@ Player.prototype.update = function(){
 			if( input.state("jump") == 1 ){
 				//Jump cancelAttack
 				this.invincible = this.states.roll = 0;
-				this.jump();
+				if(this.grounded || (this.states.doubleJumpReady && this.doubleJump)){
+					this.jump();
+				}
 			}
 			
 			if( this.states.roll <= 0 ) {
@@ -602,6 +622,7 @@ Player.prototype.update = function(){
 					}
 				} else {
 					this.jump_boost = false;
+					this.airtime = 0.0;
 				}
 			}
 			
@@ -742,6 +763,7 @@ Player.prototype.update = function(){
 	//Timers
 	var attack_decrement_modifier = this.spellsCounters.haste > 0 ? 1.3 : 1.0;
 	this.states.rollCooldown -= this.delta;
+	this.states.justjumped -= this.delta;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
 	}
@@ -805,6 +827,7 @@ Player.prototype.jump = function(){
 	
 	if( this.spellsCounters.flight > 0 ) force = 2;
 	
+	this.states.justjumped = Game.DELTASECOND * 0.2;
 	this.force.y = -force; 
 	this.grounded = false; 
 	this.jump_boost = true; 
@@ -828,6 +851,10 @@ Player.prototype.attack = function(){
 				this.attstates.currentAttack = this.attstates.currentQueue[this.attstates.currentQueuePosition];
 				this.attstates.timer = -this.attstates.currentAttack["warm"];
 				this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
+				
+				if(!this.grounded){
+					this.airtime = this.attstates.attackEndTime;
+				}
 				
 				return;
 			} else {
@@ -854,6 +881,10 @@ Player.prototype.attack = function(){
 	//Attack ends after the attack + miss
 	this.attstates.timer = -this.attstates.currentAttack["warm"]
 	this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
+	
+	if(!this.grounded){
+		this.airtime = this.attstates.attackEndTime;
+	}
 }
 Player.prototype.cancelAttack = function(){
 	this.attstates.currentAttack = null;
@@ -918,7 +949,12 @@ Player.prototype.equipCharm = function(c){
 	c.trigger("equip");
 }
 Player.prototype.equip = function(sword, shield){
-	try {	
+	try {
+		if(sword == undefined && shield == undefined){
+			sword = this.equip_sword;
+			shield = this.equip_shield;
+		}
+		
 		if( sword.isWeapon ){
 			NPC.set(sword.name, 1);
 			this.attstates.stats = WeaponStats[sword.name];
@@ -963,7 +999,8 @@ Player.prototype.equip = function(sword, shield){
 			this.equip_shield.sleep = Game.DELTASECOND * 2;
 			this.equip_shield.position.x = this.position.x;
 			this.equip_shield.position.y = this.position.y;
-			//game.addObject( this.equip_shield );
+			
+			this.shieldSlots = new Array();
 		}
 		
 		if( this.equip_sword != sword && sword instanceof Item ) sword.trigger("equip", this);
@@ -972,29 +1009,36 @@ Player.prototype.equip = function(sword, shield){
 		this.equip_sword = sword;
 		this.equip_shield = shield;
 		
-		//Calculate damage and defence
-		var att_bonus = 0;
-		var def_bonus = 0;
-		var tec_bonus = 0;
-		var mag_bonus = 0;
-		if( this.equip_sword instanceof Item ){
-			att_bonus += (this.equip_sword.bonus_att || 0);
-			def_bonus += (this.equip_sword.bonus_def || 0);
-			tec_bonus += (this.equip_sword.bonus_tec || 0);
-			mag_bonus += (this.equip_sword.bonus_tec || 0);
-		}
-		if( this.equip_shield instanceof Item ){
-			att_bonus += (this.equip_shield.bonus_att || 0);
-			def_bonus += (this.equip_shield.bonus_def || 0);
-			tec_bonus += (this.equip_shield.bonus_tec || 0);
-			mag_bonus += (this.equip_shield.bonus_tec || 0);
+		//Set stats to base
+		this.stats.attack = this.baseStats.attack;
+		this.stats.magic = this.baseStats.magic;
+		this.defencePhysical = 0.0;
+		this.defenceFire = 0.0;
+		this.defenceSlime = 0.0;
+		this.defenceIce = 0.0;
+		this.defenceLight = 0.0;
+		this.damage = 0;
+		this.damageFire = 0;
+		this.damageSlime = 0;
+		this.damageIce = 0;
+		this.damageLight = 0;
+		this.perks.lifeSteal = 0.0;
+		this.perks.bonusMoney = 0.0;
+		this.perks.painImmune = false;
+		this.perks.thorns = 0.0;
+		this.perks.slowWound = 0.0;
+		
+		this.attstates.stats.onEquip(this);
+		
+		if(this.equip_shield != null){
+			for(var i=0; i < this.equip_shield.slots.length; i++){
+				if(this.shieldSlots[i] instanceof Spell){
+					this.shieldSlots[i].modifyStats(this, this.equip_shield.slots[i]);
+				}
+			}
 		}
 		
-		//this.guard.lifeMax += 3 * def + tech;
-		//this.guard.restore = 0.4 + tech * 0.05;
-		
-		this.damage = 5 + this.stats.attack * 3;
-		this.damageReduction = (this.stats.defence-1)*0.03;
+		this.damage = Math.floor(this.damage + this.stats.attack * this.attstates.stats.damage);
 		this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
 		
 	} catch(e) {
@@ -1295,8 +1339,7 @@ Player.prototype.hudrender = function(g,c){
 	}
 	if(this.spells.length > 0){
 		var spell = this.spells[this.spellCursor];
-		spell.position.x = spell.position.y = 0;
-		spell.render(g,new Point(-item_pos,-15));
+		g.renderSprite("items",new Point(item_pos,15),10,spell.frame);
 		item_pos += 20;
 	}
 	

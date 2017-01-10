@@ -216,16 +216,6 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,1);
 		this.message = Item.weaponDescription;
-		
-		this.on("equip", function(obj){
-			this.lifeleech = new BuffLifeleech();
-			this.lifeleech.time = Game.DELTAYEAR;
-			this.lifeleech.percentage = 0.11;
-			obj.addBuff(this.lifeleech);
-		})
-		this.on("unequip", function(obj){
-			this.lifeleech.time = 0;
-		})
 		return; 
 	}
 	if(n == "burningblade") { 
@@ -233,16 +223,6 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(2,1);
 		this.message = Item.weaponDescription;
-		
-		this.on("equip", function(obj){
-			this.firedamage = new BuffFireDamage();
-			this.firedamage.time = Game.DELTAYEAR;
-			this.firedamage.damage = 5;
-			obj.addBuff(this.firedamage);
-		})
-		this.on("unequip", function(obj){
-			this.firedamage.time = 0;
-		})
 		return; 
 	}
 	
@@ -252,6 +232,7 @@ Item.prototype.setName = function(n){
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.0,"guardlife":30,"height":16, "frame":0, "frame_row":0,"turn":0.15}
+		this.slots = [ShieldSmith.SLOT_NORMAL_MID,ShieldSmith.SLOT_NORMAL_LOW,ShieldSmith.SLOT_NORMAL_LOW];
 		return; 
 	}
 	if(n == "large_shield") { 
@@ -259,6 +240,7 @@ Item.prototype.setName = function(n){
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1,"turn":0.4}
+		this.slots = [ShieldSmith.SLOT_ELEMENT_MID,ShieldSmith.SLOT_NORMAL_MID,ShieldSmith.SLOT_NORMAL_LOW,ShieldSmith.SLOT_NORMAL_LOW];
 		return; 
 	}
 	if(n == "kite_shield") { 

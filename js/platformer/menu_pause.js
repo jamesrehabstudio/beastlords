@@ -243,47 +243,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			
 		} else if ( this.page == 2 ) {
 			//Stats page
-			leftx = game.resolution.x*0.5 - 224*0.5;
-			
-			boxArea(g,leftx,8,224,224);
-			
-			textArea(g,"Attributes",leftx+20,20);
-			
-			textArea(g,"Points: "+_player.stat_points ,leftx+20,36);
-			
-			var attr_i = 0;
-			for(attr in _player.stats) {
-				var y = attr_i * 28;
-				textArea(g,attr ,leftx+20,60+y);
-				g.color = [0.8,0.6,0.1,1.0];
-				for(var i=0; i<_player.stats[attr]; i++)
-					g.scaleFillRect(leftx+20+i*4, 72 + y, 3, 8 );
-				
-				if( _player.stat_points > 0 ) {
-					//Draw cursor
-					g.color = [1.0,1.0,1.0,1.0];
-					if( this.stat_cursor == attr_i ){
-						g.scaleFillRect(leftx+12, 62 + y, 4, 4 );
-					}
-				}
-				attr_i++;
-			}
-			
-			var regenTime = Math.round(
-				((60*Game.DELTASECOND) / _player.speeds.manaRegen)*10
-			)/10;
-			
-			textArea(g,"Damage",leftx+120,60);
-			textArea(g,"Defence",leftx+120,60+28);
-			textArea(g,"Stanima",leftx+120,60+56);
-			textArea(g,"Speed",leftx+120,60+84);
-			textArea(g,"MP Regen",leftx+120,60+112);
-			
-			textArea(g,""+_player.baseDamage(),leftx+120,72);
-			textArea(g,Math.floor(_player.damageReduction*100)+"%",leftx+120,72+28);
-			textArea(g,""+_player.guard.lifeMax,leftx+120,72+56);
-			//textArea(g,PauseMenu.attackspeedToName(_player.attackProperties.warm),leftx+120,72+84);
-			textArea(g,regenTime+"p/m",leftx+120,72+112);
+			PauseMenu.renderStatsPage(g,new Point(game.resolution.x*0.5 - 224*0.5, 8));
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			leftx = game.resolution.x*0.5 - 224*0.5;
@@ -345,6 +305,89 @@ PauseMenu.prototype.hudrender = function(g,c){
 			);
 		}
 	}
+}
+
+PauseMenu.renderStatsPage= function(g,c){
+	var padding = 20;
+	var statX = 56;
+			
+	boxArea(g,c.x,c.y,224,224);
+	
+	textArea(g,"Attributes",c.x+20,c.y+12);
+	
+	//textArea(g,"Points: "+_player.stat_points ,c.x+20,36);
+	var attributeY = c.y+28;
+	
+	//attack
+	textArea(g,"Attack:", c.x+padding,attributeY);
+	textArea(g,""+Math.floor(_player.stats["attack"]), c.x+padding+statX,attributeY);
+	attributeY += 12;
+	
+	//magic
+	textArea(g,"Magic:", c.x+padding,attributeY);
+	textArea(g,""+Math.floor(_player.stats["magic"]), c.x+padding+statX,attributeY);
+	attributeY += 20;
+	
+	var damages = _player.getDamage();
+	//Damage
+	textArea(g,"DMG / DEF", c.x+padding,attributeY);
+	attributeY += 12;
+	
+	//Physical
+	textArea(g,"Phys:", c.x+padding,attributeY);
+	textArea(g,""+damages.physical, c.x+padding+statX,attributeY);
+	textArea(g,Math.floor(_player.defencePhysical*100)+"%", c.x+padding+statX+32,attributeY);
+	attributeY += 12;
+	
+	//Fire
+	textArea(g,"Fire:", c.x+padding,attributeY);
+	textArea(g,""+damages.fire, c.x+padding+statX,attributeY);
+	textArea(g,Math.floor(_player.defenceFire*100)+"%", c.x+padding+statX+32,attributeY);
+	attributeY += 12;
+	
+	//Fire
+	textArea(g,"Slime:", c.x+padding,attributeY);
+	textArea(g,""+damages.slime, c.x+padding+statX,attributeY);
+	textArea(g,Math.floor(_player.defenceSlime*100)+"%", c.x+padding+statX+32,attributeY);
+	attributeY += 12;
+	
+	//Ice
+	textArea(g,"Ice:", c.x+padding,attributeY);
+	textArea(g,""+damages.ice, c.x+padding+statX,attributeY);
+	textArea(g,Math.floor(_player.defenceIce*100)+"%", c.x+padding+statX+32,attributeY);
+	attributeY += 12;
+	
+	//Light
+	textArea(g,"Light:", c.x+padding,attributeY);
+	textArea(g,""+damages.light, c.x+padding+statX,attributeY);
+	textArea(g,Math.floor(_player.defenceLight*100)+"%", c.x+padding+statX+32,attributeY);
+	attributeY += 20;
+	
+	//Render perks
+	attributeY = c.y+28;
+	for(var i in _player.perks){
+		if(_player.perks[i]){
+			textArea(g,i.slice(0,6), c.x+128,attributeY);
+			if(!isNaN(_player.perks[i])){
+				textArea(g,""+Math.floor(_player.perks[i]*100), c.x+192,attributeY);
+			}
+			
+			attributeY += 12;
+		}
+	}
+	
+	//Shield slots
+	for(var i=0; i < _player.equip_shield.slots.length; i++){
+		var slotType = _player.equip_shield.slots[i];
+		g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
+		
+		if(i < _player.shieldSlots.length){
+			if(_player.shieldSlots[i] instanceof Spell){
+				_player.shieldSlots[i].render(g,new Point(8+c.x+padding+i*32,c.y+196));
+			}
+		}
+	}
+	
 }
 
 PauseMenu.prototype.fetchDoors = function(g,cursor,offset,limits){

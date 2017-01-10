@@ -81,8 +81,8 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 	Renderer.layers[Renderer.layer].insertSort({
 		"type" : 0,
 		"sprite" : sprite,
-		"x" : pos.x,
-		"y" : pos.y,
+		"x" : Math.round(pos.x),
+		"y" : Math.round(pos.y),
 		"z" : z,
 		"frame" : f,
 		"frame_row" : fr,
@@ -586,6 +586,19 @@ function Sequence(d){
 		this.data = d;
 		this.total = 1.0;
 	}
+}
+Sequence.prototype.properties = function(progress){
+	var out;
+	progress = Math.min(Math.max(progress,0),1);
+	for(var i in this.data){
+		if(progress >= i){
+			out = this.data[i];
+		}
+	}
+	if(out && out.length > 3){
+		return out[3];
+	}
+	return {};
 }
 Sequence.prototype.frame = function(progress){
 	var out;

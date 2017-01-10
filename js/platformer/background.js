@@ -18,6 +18,11 @@ function Background(x,y){
 	this.sealevel = 240;
 	this.preset = Background.presets.sky;
 	
+	this.tintOld = [1.0,1.0,1.0,1.0];
+	this.tintNew = [1.0,1.0,1.0,1.0];
+	this.tintTime = 0.0;
+	this.tintTimeMax = 0.0;
+	
 	this.ambience = [0.3,0.3,0.5];
 	this.ambienceStrength = 0.0;
 	this.darknessFunction = function(c){
@@ -41,6 +46,17 @@ function Background(x,y){
 }
 Background.prototype.render = function(g,c){
 	this.time += this.delta;
+	
+	if(this.tintTime > 0){
+		var change = this.tintTime / this.tintTimeMax;
+		for(var i=0; i < g.tint.length; i++){
+			g.tint[i] = Math.lerp(this.tintNew[i], this.tintOld[i], change);
+		}
+		this.tintTime -= game.deltaUnscaled;
+		if(this.tintTime <= 0){
+			g.tint = [this.tintNew[0],this.tintNew[1],this.tintNew[2],this.tintNew[3]]
+		}
+	}
 }
 
 Background.prototype.postrender = function(g,c){
@@ -118,10 +134,26 @@ Background.prototype.lightrender = function(g,c){
 	//render lights
 	while( Background.lights.length > 0 ) {
 		var light = Background.lights.pop();
-		var position = light[0];
-		var radius = light[1];
-		var color = light[2];
-		g.renderSprite("halo",position.subtract(c),this.zIndex,new Point(),false,{"scale":radius/240,"u_color":color});
+		if(light[3] == 0){
+			//Point light
+			var position = light[0];
+			var radius = light[1];
+			var color = light[2];
+			g.renderSprite("halo",position.subtract(c),this.zIndex,new Point(),false,{"scale":radius/240,"u_color":color});
+		} else if(light[3] == 1) {
+			//Area light
+			var rect = light[0];
+			var radius = light[1];
+			var color = light[2];
+			var areaSize = new Point(rect.width(), rect.height());
+			var totalSize = new Point(areaSize.x + radius * 2.0, areaSize.y + radius * 2.0);
+			g.renderSprite("haloarea",rect.start.subtract(new Point(radius,radius)).subtract(c),this.zIndex,new Point(),false,{
+				"scalex":totalSize.x/256,
+				"scaley":totalSize.y/256,
+				"u_radius" : [(radius*1.5)/totalSize.x,(radius*1.5)/totalSize.y*0.5],
+				"u_color":color
+			});
+		}
 	}
 	Background.lights = new Array();
 }
@@ -157,7 +189,29 @@ Background.pushLight = function(p,r,c){
 		p = p || new Point();
 		r = r || 0;
 		c = c || [1.0,1.0,1.0,1.0];
-		Background.lights.push([p,r,c]);
+		Background.lights.push([p,r,c,0]);
+	}
+}
+Background.pushLightArea = function(rect,r,c){
+	if( Background.lights.length < 20 ) {
+		rect = rect || new Line(0,0,1,1);
+		r = r || 0;
+		c = c || [1.0,1.0,1.0,1.0];
+		Background.lights.push([rect,r,c,1]);
+	}
+}
+Background.setTint = function(t, duration){
+	if(t instanceof Array && t.length >= 4){
+		if(duration === undefined){ duration = 0.0; }
+		
+		if(duration > 0){
+			var b = game.getObject(Background);
+			b.tintOld = [Renderer.tint[0],Renderer.tint[1],Renderer.tint[2],Renderer.tint[3]];
+			b.tintNew = [t[0],t[1],t[2],t[3]];
+			b.tintTime = b.tintTimeMax = duration;
+		} else {
+			Renderer.tint = t;
+		}
 	}
 }
 

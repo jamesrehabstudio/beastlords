@@ -104,6 +104,18 @@ window.shaders["fragment-lava"] = "precision mediump float;\nuniform sampler2D u
 
 
 
+ /* platformer\shaders\fragment-lavapool.shader*/ 
+
+window.shaders["fragment-lavapool"] = "precision mediump float;\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\nuniform vec2 u_size;\nuniform float u_time;\n\nvarying vec2 v_texCoord;\n\nconst float pixsize = 0.015625;\n\nvoid main() {\n	vec2 uv = v_texCoord;\n	float xscale = 1.0 / u_size.x;\n	float yscale = 1.0 / u_size.y;\n	uv.y = uv.y + (sin((v_texCoord.x+u_time*xscale) * (u_size.x * 0.1)) - 1.0) * (1.0/u_size.y);\n	\n	vec4 c_glow = vec4(1.0,1.0,0.2,1.0);\n	vec4 c_body = vec4(0.9,0.0,0.2,1.0);\n	vec4 c_deep = vec4(1.0,1.0,0.2,1.0);\n	//vec4 c_deep = vec4(0.2,0.0,0.2,1.0);\n	\n	float bubbles = texture2D(u_image, mod((v_texCoord * u_size * pixsize) + vec2(0.0,u_time*0.1),1.0)).r;\n	\n	vec4 color = mix(c_body, c_deep, uv.y);\n	color = mix(c_glow, color, clamp(0.25 * uv.y * u_size.y,0.0,1.0));\n	color = mix(color, c_glow, bubbles * (1.0-min(v_texCoord.y/yscale*0.015625,1.0)));\n	\n	\n	if(uv.y < 0.0){\n		color.a = 0.0;\n	}\n	\n	gl_FragColor = color;\n	//gl_FragColor = vec4(random(v_texCoord.x),random(v_texCoord.y),0.0,1.0);\n	\n}";
+
+
+
+ /* platformer\shaders\fragment-lightarea.shader*/ 
+
+window.shaders["fragment-lightarea"] = "precision mediump float;\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\nuniform vec2 u_radius;\nuniform float u_time;\n\nvarying vec2 v_texCoord;\n\nconst float pixsize = 0.00416666666666666666666666666667;\n\nvoid main() {\n	vec2 uv = v_texCoord;\n	\n	if(uv.x < u_radius.x){\n		uv.x = uv.x / u_radius.x * 0.5;\n	} else if(uv.x > 1.0 - u_radius.x){\n		uv.x = 0.5 + (uv.x + u_radius.x - 1.0) / u_radius.x * 0.5;\n	} else {\n		uv.x = 0.5;\n	}\n	\n	\n	if(uv.y < u_radius.y){\n		uv.y = uv.y / u_radius.y * 0.5;\n	} else if(uv.y > 1.0 - u_radius.y){\n		uv.y = 0.5 + (uv.y + u_radius.y - 1.0) / u_radius.y * 0.5;\n	} else {\n		uv.y = 0.5;\n	}\n	\n	vec4 color = u_color * texture2D(u_image, uv);\n	gl_FragColor = color;\n	//gl_FragColor = vec4(random(v_texCoord.x),random(v_texCoord.y),0.0,1.0);\n	\n}";
+
+
+
  /* platformer\shaders\fragment-palletswap.shader*/ 
 
 window.shaders["fragment-palletswap"] = "precision mediump float;\n\n#define SEG 0.25\n#define CMAX 0.99\n\nuniform sampler2D u_image;\nuniform sampler2D u_colorgrid;\nuniform vec4 u_color;\nuniform vec2 u_resolution;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	vec4 additive = clamp(u_color - 1.0,0.0,1.0);\n	vec4 multiply = clamp(u_color,0.0,1.0);\n	vec4 color = additive + multiply * texture2D(u_image, v_texCoord);\n	\n	float r = min(1.0 - color.r,CMAX);\n	float g = min(color.g,CMAX);\n	float b = min(color.b,CMAX);\n	vec2 grid = vec2(\n		floor(mod(r * 16.0, 4.0)) * SEG + g * SEG,\n		floor((r * 16.0) / 4.0) * SEG + b * SEG\n	);\n	vec4 gridColor = texture2D(u_colorgrid, grid);\n	\n	\n	gl_FragColor = gridColor;\n}";

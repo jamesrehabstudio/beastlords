@@ -31,8 +31,10 @@ function ManOnFire(x, y, d, o){
 	});
 	
 	this.on("collideObject", function(obj){
-		if(obj instanceof Player){
-			obj.hurt(this,this.damage);
+		if(this.life > 0){
+			if(obj instanceof Player){
+				obj.hurt(this,this.damage);
+			}
 		}
 	});
 	this.on("hurt", function(){

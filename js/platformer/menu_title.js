@@ -3,6 +3,7 @@ TitleMenu.prototype.constructor = GameObject;
 function TitleMenu(){	
 	this.constructor();
 	this.sprite = "title";
+	this.bgsprite = "landingpage";
 	this.zIndex = 999;
 	this.visible = true;
 	this.page = 0;
@@ -15,17 +16,17 @@ function TitleMenu(){
 	this.cursor = 1;
 	
 	this.starPositions = [
-		new Point(84,64),
-		new Point(102,80),
-		new Point(99,93),
-		new Point(117,99),
-		new Point(117,111),
-		new Point(128,71),
-		new Point(191,41),
-		new Point(64,108 ),
-		new Point(158,65),
-		new Point(15,5),
-		new Point(229,69)
+		new Point(42,26),
+		new Point(64,35),
+		new Point(105,42),
+		new Point(138,18),
+		new Point(182,19),
+		new Point(208,43),
+		new Point(223,17),
+		new Point(250,42 ),
+		new Point(307,36),
+		new Point(326,43),
+		new Point(363,9)
 	]
 	
 	this.stars = [
@@ -136,9 +137,34 @@ TitleMenu.prototype.update = function(){
 TitleMenu.prototype.render = function(g,c){
 	var xpos = (game.resolution.x - 427) * 0.5;
 	
-	var pan = Math.min(this.progress/8, 1.0);
+	var pan = Math.sqrt(Math.min(this.progress/8, 1.0));
 	
-	g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
+	//g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
+	
+	
+	var tileSize = new Point(215,120);
+	var bgcolor = [21/255.0,29/255.0,41/255.0,1.0];
+	
+	g.color = bgcolor;
+	g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
+	
+	//Render star background
+	g.renderSprite(this.bgsprite,new Point(xpos, 0),this.zIndex, new Point(0,0));
+	g.renderSprite(this.bgsprite,new Point(xpos+tileSize.x, 0),this.zIndex, new Point(1,0));
+	
+	//Render middleground
+	var mpos = xpos + pan * 24 - 159;
+	g.renderSprite(this.bgsprite,new Point(mpos+tileSize.x, 0),this.zIndex, new Point(2,0));
+	g.renderSprite(this.bgsprite,new Point(mpos+tileSize.x*2, 0),this.zIndex, new Point(3,0));
+	
+	g.renderSprite(this.bgsprite,new Point(mpos, tileSize.y),this.zIndex, new Point(1,1));
+	g.renderSprite(this.bgsprite,new Point(mpos+tileSize.x, tileSize.y),this.zIndex, new Point(2,1));
+	g.renderSprite(this.bgsprite,new Point(mpos+tileSize.x*2, tileSize.y),this.zIndex, new Point(3,1));
+	
+	//Render foreground
+	var fpos = xpos + pan * 240 - 240;
+	g.renderSprite(this.bgsprite,new Point(fpos, tileSize.y),this.zIndex, new Point((game.time*0.333)%4,2));
+	g.renderSprite(this.bgsprite,new Point(fpos+60, tileSize.y-24),this.zIndex, new Point((game.time*0.2)%3,3));
 	
 	//Random twinkling stars
 	for(var i=0; i<this.stars.length; i++) {
@@ -149,7 +175,7 @@ TitleMenu.prototype.render = function(g,c){
 			this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
 		) frame = 3;
 			
-		g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
+		g.renderSprite("bullets",star.pos.add(new Point(xpos-1,-1)),this.zIndex,new Point(frame,2));
 		star.timer -= this.delta;
 		if( star.timer <= 0 ){
 			star.timer = Game.DELTASECOND * 1.0;
@@ -162,10 +188,11 @@ TitleMenu.prototype.render = function(g,c){
 		this.stars.timer += this.stars.reset;
 	}
 	
-	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
-	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
+	if(this.page < 1){
+		g.renderSprite(this.bgsprite,new Point(xpos+107, Math.lerp(-480,32,pan)),this.zIndex, new Point(0,1));
+	}
 	
-	textArea(g,"Copyright Pogames.uk 2016",8,4);
+	textArea(g,"Copyright Rattus/Rattus LLP 2016",8,4);
 	textArea(g,"Version "+version,8,228);
 }
 

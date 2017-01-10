@@ -507,6 +507,7 @@ Game.prototype.renderFPS = function(){
 	var start = this.resolution.x - 32;
 	var fps = this.delta;
 	
+	/*
 	this.g.color = [1,1,1,1];
 	this.g.scaleFillRect(start-1, 240-17, 26, 10);
 	
@@ -515,6 +516,7 @@ Game.prototype.renderFPS = function(){
 	
 	this.g.color = [1-clerp,clerp,.4,1,];
 	this.g.scaleFillRect(start, 240-16, length, 8);
+	*/
 }
 Game.prototype.useMap = function( m ) {
 	this.gameThread.postMessage(m);

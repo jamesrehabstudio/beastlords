@@ -4,6 +4,7 @@ function Biker(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
+	this.startPosition = new Point(x,y);
 	this.width = 52;
 	this.height = 56;
 	this.previousForceX = 0.0;
@@ -47,6 +48,12 @@ function Biker(x,y,d,o){
 		audio.play("kill",this.position);
 		this.destroy();
 	});
+	this.on("player_death", function(){
+		this.life = this.lifeMax;
+		this.position.x = this.startPosition.x;
+		this.position.y = this.startPosition.y;
+		this.active = false;
+	});
 	
 	o = o || {};
 	
@@ -55,7 +62,7 @@ function Biker(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(8,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(8,this.difficulty);
 	this.collideDamage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(25,this.difficulty);
 	this.mass = 5.3;
@@ -63,6 +70,7 @@ function Biker(x,y,d,o){
 	this.death_time = Game.DELTASECOND * 2;
 	this.pushable = false;
 	this.stun_time = 0;
+	this.active = false;
 	
 	this.states = {
 		"collideCooldown" : 0.0,
@@ -77,16 +85,25 @@ Biker.prototype.update = function(){
 	this.previousForceX = this.force.x;
 	
 	if( this.life > 0 ) {
-		this.flip = this.force.x < 0;
-		var direction = 0;
-		if(this.states.runaway > 0){
-			direction = this.force.x > 0 ? 1 : -1;
+		if(this.active){
+			this.flip = this.force.x < 0;
+			var direction = 0;
+			
+			if( Math.abs(this.force.x) < 2 && Math.abs(dir.x) < 24){
+				this.states.runaway = Game.DELTASECOND * 2;
+			}
+			
+			if(this.states.runaway > 0){
+				direction = this.force.x > 0 ? 1 : -1;
+			} else {
+				direction = dir.x < 0 ? 1 : -1;
+			}
+			this.force.x += this.speed * this.delta * direction;
+			this.states.collideCooldown -= this.delta;
+			this.states.runaway -= this.delta;
 		} else {
-			direction = dir.x < 0 ? 1 : -1;
+			this.active = game.insideScreen(this.position, 32);
 		}
-		this.force.x += this.speed * this.delta * direction;
-		this.states.collideCooldown -= this.delta;
-		this.states.runaway -= this.delta;
 	} else {
 		this.force.x = 0;
 	}
@@ -108,6 +125,8 @@ Biker.prototype.update = function(){
 			this.frame.y = 0;
 			this.frame.x = 2;
 		}
+		var lightoffset = Math.min(Math.abs( this.force.x ),2) * 16;
+		Background.pushLight(this.position.add(new Point(this.forward()*lightoffset,0)), 200);
 	}
 }
 Biker.prototype.idle = function(){}

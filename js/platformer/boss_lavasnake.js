@@ -29,7 +29,7 @@ function LavaSnake(x,y){
 	};
 	
 	this.tail = new Array();
-	for(var i=0; i < 6; i++){
+	for(var i=0; i < 8; i++){
 		var t = new LavaSnakeBody(x,y);
 		this.tail.push(t);
 		game.addObject(t);
@@ -109,5 +109,5 @@ function LavaSnakeBody(x,y){
 	
 	this.addModule( mod_block );
 	this.parentPart = false;
-	this.distance = 56;
+	this.distance = 48;
 }	

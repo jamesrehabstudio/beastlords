@@ -15,6 +15,7 @@ var mod_rigidbody = {
 		this.mass = 1.0;
 		this.force = new Point();
 		this.gravity = 1.0;
+		this.airtime = 0.0;
 		this.grounded = false;
 		this._groundedTimer = 0;
 		this.friction = 0.1;
@@ -92,7 +93,9 @@ var mod_rigidbody = {
 	'update' : function(){
 		if(this.delta > 0 && this.rigidbodyActive){
 			var inair = !this.grounded;
-			this.force.y += this.gravity * this.delta;
+			if(this.airtime <= 0 || this.force.y < 0.0){
+				this.force.y += this.gravity * this.delta;
+			}
 			//Max speed 
 			this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
 			this.force.y = Math.max( Math.min ( this.force.y, 50), -50 );
@@ -134,6 +137,7 @@ var mod_rigidbody = {
 			this.force.x *= friction_x;
 			this.force.y *= friction_y;
 			this.preventPlatFormSnap -= this.delta;
+			this.airtime -= this.delta;
 			
 			if( inair && this.grounded ) {
 				this.trigger("land");
@@ -384,15 +388,25 @@ var mod_camera = {
 var mod_combat = {
 	"init" : function() {
 		this.lifeMax = this.life = 100;
-		this.damage = 10;
 		this.difficulty = 0;
 		this.team = 0;
 		this.criticalChance = 0.0;
-		this.criticalMultiplier = 4.0;
-		this.collideDamage = 5;
-		this.damageReduction = 0.0;
 		this.hurtByDamageTriggers = true;
 		this.moneyDrop = Spawn.money(3,0);
+		
+		this.damage = 10;
+		this.damageFire = 0;
+		this.damageSlime = 0;
+		this.damageIce = 0;
+		this.damageLight = 0;
+		
+		this.defencePhysical = 0.0;
+		this.defenceFire = 0.0;
+		this.defenceSlime = 0.0;
+		this.defenceIce = 0.0;
+		this.defenceLight = 0.0;
+		
+		this.criticalMultiplier = 4.0;
 		
 		//Counters
 		this.invincible = 0;
@@ -485,12 +499,41 @@ var mod_combat = {
 				}
 			}
 		}
-		this.hurt = function(obj, damage){			
-			if( this.damageReduction >= 1){
-				audio.play("tink",this.position);
-				obj.trigger("hurt_other",this,0);
-				obj.useBuff("hurt_other",0,this);
-			} else if( this.invincible <= 0 ) {
+		
+		this.getDamage = function(mulitplier){
+			if(mulitplier == undefined){
+				mulitplier = 1.0;
+			}
+			
+			return {
+				"physical" : this.damage * mulitplier,
+				"fire" : this.damageFire * mulitplier,
+				"slime" : this.damageSlime * mulitplier,
+				"ice" : this.damageIce * mulitplier,
+				"light" : this.damageLight * mulitplier
+			};
+		}
+		
+		this.calcDamage = function(damage){
+			if(damage instanceof Object){
+				var fdamage = 0;
+				fdamage += damage.physical - (damage.physical * this.defencePhysical);
+				fdamage += damage.fire - (damage.fire * this.defenceFire);
+				fdamage += damage.slime - (damage.slime * this.defenceSlime);
+				fdamage += damage.ice - (damage.ice * this.defenceIce);
+				fdamage += damage.light - (damage.light * this.defenceLight);
+				
+				damage = Math.round(fdamage);
+			} else {
+				damage += Math.round(damage - (damage * this.defencePhysical));
+			}
+			return damage;
+		}
+		
+		this.hurt = function(obj, damage){
+			damage = this.calcDamage(damage);
+			
+			if( this.invincible <= 0 ) {
 				//Increment number of hits
 				this.combat_stuncount++;
 				this.trigger("stun", obj, damage, this.combat_stuncount);
@@ -644,7 +687,7 @@ var Combat = {
 		
 		ops = ops || {};
 		var blockable = true;
-		var damage = this.damage;
+		var damage = this.getDamage();
 		var direction = this.flip;
 		var onidirectional = false;
 		
@@ -652,7 +695,7 @@ var Combat = {
 			blockable = ops["blockable"] * 1;
 		}
 		if("damage" in ops){
-			damage = ops["damage"] * 1;
+			damage = ops["damage"];
 		}
 		if("onidirectional" in ops){
 			onidirectional = ops["onidirectional"] * 1;

@@ -9,6 +9,7 @@ function Lava(x,y,d,ops){
 	this.width = d[0];
 	this.height = d[1];
 	this.zIndex = 999;
+	this.idleMargin = Lava.lightradius;
 	
 	this.drain = 0;
 	this.bottom = this.position.y + this.height;
@@ -16,7 +17,7 @@ function Lava(x,y,d,ops){
 	this.speed = 2;
 	
 	if("triggerheight" in ops){
-		this.triggerheight = ops["triggerheight"]
+		this.triggerheight = ops["triggerheight"] * 1;
 	}
 	if("trigger" in ops) {
 		this._tid = ops["trigger"];
@@ -53,10 +54,25 @@ Lava.prototype.update = function(){
 		this.position.y = this.bottom - this.height;
 	}
 	
+	Background.pushLightArea(new Line(this.position,this.position.add(new Point(this.width,this.height))),Lava.lightradius,[1.0,0.6,0.2,1.0]);
 	this.interactive = this.width > 0 && this.height > 0;
 }
 
 Lava.prototype.render = function(g,c){
+	g.renderSprite(
+		"lava", 
+		this.position.subtract(c),
+		this.zIndex,
+		new Point(),
+		false,
+		{
+			"u_time" : game.timeScaled * 0.1,
+			"u_size" : [this.width, this.height],
+			"scalex" : this.width / 64.0,
+			"scaley" : this.height / 64.0
+		}
+	)
+	return;
 	if(this.interactive){
 		g.color = [1.0,0.5,0.0,1.0];
 		Renderer.scaleFillRect(
@@ -67,7 +83,9 @@ Lava.prototype.render = function(g,c){
 		)
 	}
 }
+Lava.lightradius = 64;
 
+/*
 Lava.prototype.lightrender = function(g,c){
 	if(this.interactive){
 		g.color = [0.2,0.1,0.0,1.0];
@@ -82,6 +100,7 @@ Lava.prototype.lightrender = function(g,c){
 		}
 	}
 }
+*/
 
 Lavafalls.prototype = new GameObject();
 Lavafalls.prototype.constructor = GameObject;
@@ -150,6 +169,18 @@ Lavafalls.prototype.update = function(g,c){
 		}
 	}
 	this.timer += this.delta;
+	
+	Background.pushLightArea(
+		new Line(
+			this.position.add(new Point(0, this.ends.x)), 
+			this.position.add(new Point(
+				this.width,
+				Math.min(this.height, this.ends.y - this.ends.x)
+			)
+		)),
+		Lava.lightradius,
+		[1.0,0.6,0.2,1.0]
+	);
 }
 
 Lavafalls.prototype.render = function(g,c){
@@ -177,6 +208,7 @@ Lavafalls.prototype.render = function(g,c){
 	}
 }
 Lavafalls.prototype.lightrender = function(g,c){
+	/*
 	g.color = COLOR_FIRE;
 	g.scaleFillRect(
 		this.position.x - c.x,
@@ -184,4 +216,5 @@ Lavafalls.prototype.lightrender = function(g,c){
 		this.width,
 		Math.min(this.height, this.ends.y - this.ends.x)
 	);
+	*/
 }

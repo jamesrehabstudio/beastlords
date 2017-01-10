@@ -9,8 +9,7 @@ function game_start(g){
 	
 	g.pause = false;
 	
-	g.addObject( new TitleMenu() );
-	//g.addObject( new DemoThanks() );
+	//g.addObject( new TitleMenu() );
 	//dataManager.randomLevel(game,0);
 	//return;
 	
@@ -19,7 +18,7 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		//WorldLocale.loadMap("firepits.tmx");
+		WorldLocale.loadMap("townhub.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;

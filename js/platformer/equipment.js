@@ -3,12 +3,17 @@ Weapon = {
 	"STATE_CHARGED" : "charged",
 	"STATE_JUMPING" : "jumping",
 	"STATE_DUCKING" : "ducking",
+	"STATE_JUMPUP" : "jumpup",
 	"playerState" : function(player){
 		var state = Weapon.STATE_STANDING;
 		if(player.attstates.charge >= player.speeds.charge){
 			state = Weapon.STATE_CHARGED;
 		} else if(!player.grounded){ 
-			state = Weapon.STATE_JUMPING;
+			if(player.states.justjumped > 0.0){
+				state = Weapon.STATE_JUMPUP;
+			} else {
+				state = Weapon.STATE_JUMPING;
+			}
 		} else if(player.states.duck){
 			state = Weapon.STATE_DUCKING;
 		}
@@ -28,6 +33,7 @@ Weapon = {
 createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 	return {
 		"damage" : 3.0,
+		"onEquip" : function(player){},
 		"standing" : {
 			"alwaysqueue" : 0,
 			"length" : 3,
@@ -90,16 +96,46 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 			"alwaysqueue" : 0,
 			"length" : 1,
 			0 : {
+				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
+				"damage":1.0,
+				"warm" : warmTime*Game.DELTASECOND,
+				"time" : baseTime*Game.DELTASECOND,
+				"rest":restTime*Game.DELTASECOND,
+				"miss":missTime*Game.DELTASECOND,
+				"animation" : 0,
+				"pause" : 0.05*Game.DELTASECOND,
+				"stun" : 0.75*Game.DELTASECOND,
+				"movement" : 0.3
+			},
+			1 : {
+				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
+				"damage":1.2,
+				"warm" : warmTime*Game.DELTASECOND,
+				"time" : baseTime*Game.DELTASECOND,
+				"rest":restTime*Game.DELTASECOND,
+				"miss":missTime*Game.DELTASECOND,
+				"animation" : 1,
+				"pause" : 0.05*Game.DELTASECOND,
+				"stun" : 0.75*Game.DELTASECOND,
+				"movement" : 0.3
+			},
+		},
+		"jumpup" : {
+			"alwaysqueue" : 0,
+			"length" : 1,
+			0 : {
 				"strike" : new Line(new Point(0,-24), new Point(length,12)),
 				"damage":0.8,
-				"warm" : warmTime*Game.DELTASECOND,
+				"warm" :0,
 				"time" : 1.5*baseTime*Game.DELTASECOND,
-				"rest":restTime*Game.DELTASECOND,
+				"rest":restTime*Game.DELTASECOND*0.8,
 				"miss":restTime*Game.DELTASECOND,
 				"animation" : 3,
 				"pause" : 0.05*Game.DELTASECOND,
 				"stun" : 0.5 * Game.DELTASECOND,
-				"movement" : 1.0
+				"knockback" : new Point(0.0, -14.0),
+				"force" : new Point(0, -2.0),
+				"movement" : 0.3
 			}
 		},
 		"charged" : {
@@ -122,7 +158,8 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 }
 
 var WeaponStats = {
-	"short_sword" : createWeaponTemplate(0.05,0.30,0.08,0.15,38),
+	//warmTime, baseTime, restTime, missTime, length
+	"short_sword" : createWeaponTemplate(0.05,0.25,0.08,0.10,38),
 	"long_sword" : createWeaponTemplate(0.10,0.333,0.1,0.2,48),
 	"broad_sword" : createWeaponTemplate(0.20,0.35,0.1,0.3,42),
 	"morningstar" : createWeaponTemplate(0.08,0.35,0.08,0.35,40),
@@ -147,7 +184,9 @@ WeaponStats.morningstar.standing[0]["force"] = new Point(1.0,0.0);
 WeaponStats.bloodsickle.damage = 0.8;
 WeaponStats.bloodsickle.standing.alwaysqueue = 1;
 WeaponStats.bloodsickle.standing.length = 2;
+WeaponStats.bloodsickle.onEquip = function(player){ player.perks.lifeSteal += 0.11; },
 
 WeaponStats.burningblade.damage = 1.2;
 WeaponStats.burningblade.standing.alwaysqueue = 1;
 WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);
+WeaponStats.burningblade.onEquip = function(player){ player.damageFire += 5; },
