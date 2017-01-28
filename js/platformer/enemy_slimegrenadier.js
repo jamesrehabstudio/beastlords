@@ -27,7 +27,11 @@ function SlimeGrenadier(x,y,d,o){
 	
 	this.stun_time = Game.DELTASECOND;
 	this.life = Spawn.life(6, this.difficulty);
-	this.damage = Spawn.damage(3, this.difficulty);
+	this.damage = 0;
+	this.damageSlime = Spawn.damage(3, this.difficulty);
+	this.defencePhysical = 0.3;
+	this.defenceFire = -0.5;
+	this.defenceSlime = 1.0;
 	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.mass = 3.0;
 	this.death_time = Game.DELTASECOND * 0.5;
@@ -65,7 +69,7 @@ SlimeGrenadier.prototype.update = function(){
 			if(this.times.attack.at(this.times.attackRelease)){
 				//Throw bomb
 				var nade = new Gernade(this.position.x, this.position.y);
-				nade.damage = this.damage;
+				nade.damageSlime = this.damageSlime;
 				nade.force.x = Math.min(Math.abs(dir.x)*0.04,30);
 				nade.force.y = -5;
 				nade.team = this.team;
@@ -109,7 +113,12 @@ function Gernade(x,y,d,o){
 	
 	this.addModule( mod_rigidbody );
 	
-	this.damage = 10;
+	this.damage = 0;
+	this.damageFire = 0;
+	this.damageSlime = 0;
+	this.damageIce = 0;
+	this.damageLight = 0;
+	
 	this.friction = 0.03;
 	this.gravity = 0.5;
 	this.bounce = 0.9;
@@ -118,7 +127,7 @@ function Gernade(x,y,d,o){
 	
 	this.on("collideObject", function(obj){
 		if(obj.hasModule(mod_combat) && this.team != obj.team){
-			obj.hurt(this,this.damage);
+			obj.hurt(this,Combat.getDamage.apply(this));
 			this.destroy();
 		}
 	});

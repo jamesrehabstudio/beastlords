@@ -29,6 +29,7 @@ function Player(x, y){
 	this.inertia = 0.9; 
 	this.jump_boost = false;
 	this.lightRadius = 32.0;
+	this.downstab = false;
 	this.grabLedges = false;
 	this.doubleJump = false;
 	this.dodgeFlash = false;
@@ -54,6 +55,7 @@ function Player(x, y){
 		"turn" : 0.0,
 		"doubleJumpReady": true,
 		"spellCounter" : 0.0,
+		"spellCurrent" : undefined,
 		"justjumped" : 0.0
 	};
 	
@@ -161,6 +163,14 @@ function Player(x, y){
 		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
 		audio.playLock("block",0.1);
 	});
+	this.on("blocked", function(obj){
+		if(obj.hasModule(mod_combat)){
+			fireDamage = this.damageFire - Math.round(this.damageFire * obj.defenceFire);
+			obj.life -= fireDamage;
+			obj.displayDamage(fireDamage);
+			obj.isDead();
+		}
+	});
 	this.on("hurt", function(obj, damage){
 		shakeCamera(Game.DELTASECOND*0.5,str);
 		//this.states.ledge = null;
@@ -181,6 +191,9 @@ function Player(x, y){
 			this.states.spellCounter = 0.0;
 			this.stun = this.stun_time;
 			game.slow(0,5.0);
+		}
+		if( this.perks.thorns > 0 && obj.hurt instanceof Function){
+			obj.hurt(this,Math.floor(damage * this.perks.thorns));
 		}
 		if(this.life > 0 && damage >= this.life){
 			audio.play("deathwarning");
@@ -305,9 +318,6 @@ function Player(x, y){
 	this.addModule( mod_combat );
 	
 	this.spells = [
-		new SpellFire(),
-		new SpellFlash(),
-		new SpellHeal(),
 	];
 	
 	this.shieldSlots = [
@@ -328,7 +338,8 @@ function Player(x, y){
 		"bonusMoney" : 0.0,
 		"painImmune" : false,
 		"thorns" : 0.0,
-		"slowWound": 0.0
+		"slowWound": 0.0,
+		"poisonResist" : 0.0
 	}
 	
 	this.life = 24;
@@ -352,26 +363,16 @@ function Player(x, y){
 	
 	this.superHurt = this.hurt;
 	this.hurt = function(obj,damage){
-		if(this.hasCharm("charm_soul") && this.mana > 0){
-			if(this.invincible > 0 ) return;
-			var manaReduction = (1 + this.stats.magic * 0.04);
-			var manaEffective = Math.round(this.mana * manaReduction);
-			
-			if(manaEffective >= damage){
-				this.mana = Math.max(this.mana - Math.floor(damage / manaReduction), 0);
-				this.invincible = this.invincible_time;
-				audio.play("spell");
-				return;
-			} else {
-				this.mana = 0;
-				damage -= manaEffective;
-			}
-		}
-		if( this.spellsCounters.thorns > 0 && obj.hurt instanceof Function)
-			obj.hurt(this,damage);
-		if( this.spellsCounters.magic_armour > 0 )
-			damage = Math.max( Math.floor( damage * 0.5 ), 1);
+		
 		this.superHurt(obj,damage);
+	}
+	this.superGetDamage = this.getDamage;
+	this.getDamage = function(){
+		var damage = this.superGetDamage();
+		if(this.attstates.currentAttack) {
+			damage.physical *= this.attstates.currentAttack["damage"];
+		}
+		return damage;
 	}
 	
 	//Stats
@@ -532,10 +533,7 @@ Player.prototype.update = function(){
 			if(this.attstates.currentAttack){
 				//Strike ahead
 				if(this.attstates.timer < this.attstates.currentAttack.time){
-					this.strike(
-						this.attstates.currentAttack.strike,
-						{"damage" : this.currentDamage()}
-					);
+					this.strike(this.attstates.currentAttack.strike);
 				}
 			}
 		} else if( this.delta > 0) {
@@ -572,20 +570,25 @@ Player.prototype.update = function(){
 				}
 			}
 						
-			if ( input.state("down") > 0 && !this.grounded) { 
+			if ( this.downstab && input.state("down") > 0 && !this.grounded) { 
 				//Down strike
 				this.states.downStab = true;
 				this.states.guard = false;
 				
 				if(this.force.y > 0){
-					this.strike(new Line( -4, 8, 4, 20), {"damage":this.baseDamage()});
+					this.strike(new Line( -4, 8, 4, 20));
 				}
 				
 			} else if ( input.state('fire') == 1 && input.state("up") > 0 ) { 
 				//Cast Spell
 				if(this.spells.length > 0){
 					var spell = this.spells[this.spellCursor];
-					this.states.spellCounter = spell.castTime;
+					if(spell.canCast(this) && spell.stock > 0){
+						this.states.spellCurrent = spell;
+						this.states.spellCounter = spell.castTime;
+					} else {
+						audio.play("negative");
+					}
 				}
 			} else if ( input.state('fire') == 1 ) { 
 				//Attack and start combo
@@ -910,11 +913,12 @@ Player.prototype.currentDamage = function(){
 
 
 Player.prototype.castSpell = function(name){
-	if(this.spells.length > 0){
-		this.spellCursor = Math.max(Math.min(this.spellCursor, this.spells.length-1),0);
-		var spell = this.spells[this.spellCursor];
-		var cost = spell.cast(this);
-		this.mana = Math.max(this.mana - cost, 0);
+	var spell = this.states.spellCurrent;
+	if(spell instanceof Spell){
+		if(spell.stock > 0 ){
+			spell.use(this);
+			spell.stock--;
+		}
 	}
 }
 Player.prototype.addUniqueItem = function(item){
@@ -1022,18 +1026,19 @@ Player.prototype.equip = function(sword, shield){
 		this.damageSlime = 0;
 		this.damageIce = 0;
 		this.damageLight = 0;
-		this.perks.lifeSteal = 0.0;
-		this.perks.bonusMoney = 0.0;
+		for(var i in this.perks){
+			this.perks[i] = 0.0;
+		}
 		this.perks.painImmune = false;
-		this.perks.thorns = 0.0;
-		this.perks.slowWound = 0.0;
 		
 		this.attstates.stats.onEquip(this);
 		
 		if(this.equip_shield != null){
 			for(var i=0; i < this.equip_shield.slots.length; i++){
 				if(this.shieldSlots[i] instanceof Spell){
-					this.shieldSlots[i].modifyStats(this, this.equip_shield.slots[i]);
+					var slotType = Math.floor(this.equip_shield.slots[i] / 3);
+					var slotPower = Math.floor(this.equip_shield.slots[i] % 3);
+					this.shieldSlots[i].modifyStats(this, slotType, slotPower);
 				}
 			}
 		}
@@ -1339,7 +1344,9 @@ Player.prototype.hudrender = function(g,c){
 	}
 	if(this.spells.length > 0){
 		var spell = this.spells[this.spellCursor];
-		g.renderSprite("items",new Point(item_pos,15),10,spell.frame);
+		var spellXOff = spell.stock >= 10 ? -8 : -3;
+		spell.render(g, new Point(item_pos,15));
+		textArea(g,""+spell.stock,item_pos+spellXOff,24);
 		item_pos += 20;
 	}
 	

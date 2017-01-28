@@ -48,14 +48,16 @@ ShieldSmith.prototype.update = function(){
 					_player.equip();
 					audio.play("equip");
 					this.spellMenuOpen = false;
-				} else if(!this.isSpellUsed(_player.spells[this.cursorMagic])){
+				} else {
+					var usedIndex = _player.shieldSlots.indexOf(_player.spells[this.cursorMagic]);
+					if(usedIndex >= 0){
+						_player.shieldSlots[usedIndex] = undefined;
+					}
 					_player.shieldSlots[this.cursorSlot] = _player.spells[this.cursorMagic];
 					_player.equip();
 					audio.play("equip");
 					this.spellMenuOpen = false;
-				} else {
-					audio.play("negative");
-				}
+				} 
 			} else if(input.state("up")==1){
 				this.cursorMagic = Math.max(this.cursorMagic-1, 0);
 				audio.play("cursor");

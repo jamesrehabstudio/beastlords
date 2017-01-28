@@ -19,6 +19,9 @@ function CornerStone(x,y,d,options){
 		this.gateNumber = options["gate"] * 1;
 	}
 	
+	this.npcvarname = "templegate_" + this.gateNumber;
+	this.broken = NPC.set(this.npcvarname);
+	
 	
 	this.frame.x = this.broken ? 2 : 0;
 	this.frame.y = this.gateNumber - 1;
@@ -37,6 +40,11 @@ function CornerStone(x,y,d,options){
 	});
 	
 	var tile = this.broken ? 0 : 1024;
+	this.fillTiles(tile);
+	
+	this.addModule(mod_combat);
+}
+CornerStone.prototype.fillTiles = function(tile){
 	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
 		game.setTile(
 			-32 + x + _x,
@@ -45,9 +53,8 @@ function CornerStone(x,y,d,options){
 			tile
 		);
 	}
-	
-	this.addModule(mod_combat);
 }
+
 CornerStone.prototype.update = function(){
 	if( this.active ) {
 		//Progress to the end of the level
@@ -74,8 +81,10 @@ CornerStone.prototype.update = function(){
 				
 			} else {
 				_player.keys = new Array();
-				NPC.set("templeCompleted", this.gateNumber);
-				WorldLocale.loadMap("townhub.tmx");
+				NPC.set(this.npcvarname, 1);
+				//WorldLocale.loadMap("townhub.tmx");
+				this.fillTiles(0);
+				
 			}
 			
 			//WorldMap.open()

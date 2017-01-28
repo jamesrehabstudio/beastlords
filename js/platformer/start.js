@@ -15,10 +15,11 @@ function game_start(g){
 	
 	setTimeout(function(){
 		new Player(0,0);
+		//_player.downstab = true;
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		WorldLocale.loadMap("townhub.tmx");
+		WorldLocale.loadMap("temple2.tmx");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;

@@ -314,6 +314,20 @@ Background.presets = {
 			false
 		);
 	},
+	"firepit" : function(g,c){
+		g.color = [0.2,0.12,0.1,1.0];
+		g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
+		
+		Background.renderRepeatingTiles(g,"bgfirepit02",c.scale(-0.5),new Point(256,256),new Point(),1);
+		
+		if(_player.cameraLock.height() <= 240){
+			Background.renderRepeatingTiles(g,"bgfirepit01",new Point(c.x*-0.7,0),new Point(256,0),new Point(),1);
+			Background.renderRepeatingTiles(g,"bgfirepit01",new Point(c.x*-0.7,144),new Point(128,0),new Point(0,1),1);
+		}
+		
+		//var _c = new Point(128-game.resolution.x*0.5, (c.y*0.7) % (240+96));
+		//g.renderSprite("bgfirepit01", new Point(0,240).subtract(_c), 1, new Point(0,0));
+	},
 	"graveyard" : function(g,c){
 		var backgroundTiles = _map_backdrops[1];
 		var tileset = sprites[backgroundTiles.tileset];
@@ -357,5 +371,26 @@ Background.presets = {
 			}
 		}
 	}
+}
+
+Background.renderRepeatingTiles = function(g,sprite,position,dimensions,frame,zIndex){
+	zIndex = zIndex != undefined ? 1 : zIndex;
+	var h = 1;
+	var w = 1;
+	var x = position.x;
+	var y = position.y;
 	
+	if(dimensions.x > 0){
+		w = Math.ceil((game.resolution.x+dimensions.x) / dimensions.x);
+		x = (position.x % dimensions.x);
+	}
+	if(dimensions.y > 0){
+		h = Math.ceil((game.resolution.y+dimensions.y) / dimensions.y);
+		y = (position.y % dimensions.y);
+	}
+	
+	for(var i=0; i < w; i++) for(var j=0; j < h; j++) {
+		var pos = new Point(x+dimensions.x*i, y+dimensions.y*j);
+		g.renderSprite(sprite,pos,zIndex,frame);
+	}
 }

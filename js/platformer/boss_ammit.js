@@ -39,7 +39,12 @@ function Ammit(x,y,d,o){
 	
 	this.life = this.lifeMax = Spawn.life(24,this.difficulty);
 	this.moneyDrop = Spawn.money(40,this.difficulty);
-	this.damage = Spawn.damage(4,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
+	this.damageSlime = Spawn.damage(3,this.difficulty);
+	this.defencePhysical = 0.5;
+	this.defenceFire = -0.5;
+	this.defenceSlime = 1.2;
+	
 	this.mass = 5.0;
 	this.death_time = Game.DELTASECOND * 3;
 	
@@ -64,7 +69,7 @@ function Ammit(x,y,d,o){
 				this.states.current == Ammit.STATE_BOUNCE
 			){
 				if(this.states.transition <= 0){
-					obj.hurt(this, this.damage);
+					obj.hurt(this, this.getDamage());
 				}
 			}
 		}

@@ -302,24 +302,28 @@ var mod_camera = {
 			if(map_tile != undefined){
 				//If map tile is valid, change camera locks
 				var lock;
+				var h = 256;
+				var v = 240;
+				var hlimit = 1024;
+				var vlimit = 960;
 				switch( Math.abs(map_tile) % 16 ){
-					case 0: lock = new Line(0,0,256,480); break;
-					case 1: lock = new Line(0,0,512,480); break;
-					case 2: lock = new Line(-256,0,256,480); break;
-					case 3: lock = new Line(-256,0,512,480); break;
-					case 4: lock = new Line(0,0,256,240); break;
-					case 5: lock = new Line(0,0,512,240); break;
-					case 6: lock = new Line(-256,0,256,240); break;
-					case 7: lock = new Line(-256,0,512,240); break;
-					case 8: lock = new Line(0,-240,256,480); break;
-					case 9: lock = new Line(0,-240,512,480); break;
-					case 10: lock = new Line(-256,-240,256,480); break;
-					case 11: lock = new Line(-256,-240,512,480); break;
-					case 12: lock = new Line(0,-240,256,240); break;
-					case 13: lock = new Line(0,-240,512,240); break;
-					case 14: lock = new Line(-256,-240,256,240); break;
-					case 15: lock = new Line(-256,-240,512,240); break;
-					default: lock = new Line(-256,-240,256,480); break;
+					case 0: lock = new Line(0,0,h,v+vlimit); break;
+					case 1: lock = new Line(0,0,h+hlimit,v+vlimit); break;
+					case 2: lock = new Line(-hlimit,0,h,v+vlimit); break;
+					case 3: lock = new Line(-hlimit,0,h+hlimit,v+vlimit); break;
+					case 4: lock = new Line(0,0,h,v); break;
+					case 5: lock = new Line(0,0,h+hlimit,v); break;
+					case 6: lock = new Line(-hlimit,0,h,v); break;
+					case 7: lock = new Line(-hlimit,0,h+hlimit,v); break;
+					case 8: lock = new Line(0,-vlimit,h,v+vlimit); break;
+					case 9: lock = new Line(0,-vlimit,h+hlimit,v+vlimit); break;
+					case 10: lock = new Line(-hlimit,-vlimit,h,v+vlimit); break;
+					case 11: lock = new Line(-hlimit,-vlimit,h+hlimit,v+vlimit); break;
+					case 12: lock = new Line(0,-vlimit,h,v); break;
+					case 13: lock = new Line(0,-vlimit,h+hlimit,v); break;
+					case 14: lock = new Line(-hlimit,-vlimit,h,v); break;
+					case 15: lock = new Line(-hlimit,-vlimit,h+hlimit,v); break;
+					default: lock = new Line(-hlimit,-vlimit,h,v+vlimit); break;
 				}
 				lock = lock.transpose( 
 					Math.floor(this.position.x / 256)*256,  
@@ -500,19 +504,7 @@ var mod_combat = {
 			}
 		}
 		
-		this.getDamage = function(mulitplier){
-			if(mulitplier == undefined){
-				mulitplier = 1.0;
-			}
-			
-			return {
-				"physical" : this.damage * mulitplier,
-				"fire" : this.damageFire * mulitplier,
-				"slime" : this.damageSlime * mulitplier,
-				"ice" : this.damageIce * mulitplier,
-				"light" : this.damageLight * mulitplier
-			};
-		}
+		this.getDamage = Combat.getDamage;
 		
 		this.calcDamage = function(damage){
 			if(damage instanceof Object){
@@ -531,7 +523,9 @@ var mod_combat = {
 		}
 		
 		this.hurt = function(obj, damage){
+			//Turns damage object into a flat damage number
 			damage = this.calcDamage(damage);
+			
 			
 			if( this.invincible <= 0 ) {
 				//Increment number of hits
@@ -551,7 +545,7 @@ var mod_combat = {
 				damage = this.useBuff("hurt",damage,obj);
 				
 				if(damage > 0){
-					damage = Math.max( damage - Math.ceil( this.damageReduction * damage ), 1 );
+					//damage = Math.max( damage - Math.ceil( this.defencePhysical * damage ), 1 );
 					
 					this.displayDamage(damage);
 					
@@ -710,16 +704,17 @@ var Combat = {
 			} else {
 				var flip = obj.flip ? -1:1;
 				var shield = obj.shieldArea();
+				var flatDamage = obj.calcDamage(damage);
 				
 				if( obj.guard.active && (onidirectional||(direction!=obj.flip)) && shield.overlaps(rect) ){
 					if(obj.guard.invincible <= 0){
 						obj.guard.invincible = Game.DELTASECOND * 0.5;
 						
 						this.trigger("blocked",obj);
-						obj.trigger("block",this,this.position,damage);
+						obj.trigger("block",this,this.position,flatDamage);
 						
-						this.useBuff("blocked", damage, obj);
-						obj.useBuff("block", damage, this);
+						this.useBuff("blocked", flatDamage, obj);
+						obj.useBuff("block", flatDamage, this);
 					}
 				} else {
 					//this.trigger("hurt_other",obj, damage);
@@ -747,6 +742,19 @@ var Combat = {
 		);
 		shield.correct();
 		return shield;
+	},
+	"getDamage" : function(mulitplier){
+		if(mulitplier == undefined){
+			mulitplier = 1.0;
+		}
+		
+		return {
+			"physical" : this.damage * mulitplier,
+			"fire" : this.damageFire * mulitplier,
+			"slime" : this.damageSlime * mulitplier,
+			"ice" : this.damageIce * mulitplier,
+			"light" : this.damageLight * mulitplier
+		};
 	}
 }
 

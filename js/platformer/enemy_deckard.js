@@ -158,15 +158,11 @@ Deckard.prototype.update = function(){
 				this.frame = Deckard.anim_fire.frame(1 - this.states.time/this.states.timeTotal);
 				
 				if(Timer.isAt(this.states.time,Game.DELTASECOND*0.2,this.delta)){
-					var bullet = new Bullet(this.position.x, this.position.y);
+					var bullet = Bullet.createFireball(this.position.x, this.position.y);
 					bullet.force = _player.position.subtract(this.position).normalize(6);
-					bullet.blockable = false;
-					bullet.damage = this.damage;
+					bullet.damageFire = this.damage;
 					bullet.effect = EffectSmoke;
 					bullet.team = this.team;
-					bullet.explode = true;
-					bullet.frames = [5,6,7];
-					bullet.frame.y = 1;
 					game.addObject(bullet);
 				}
 				

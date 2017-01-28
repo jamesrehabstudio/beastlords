@@ -80,10 +80,11 @@ Chaz.prototype.update = function(){
 				this.states.thrown = true;
 				var missle;
 				if( this.states.attack_lower ) {
-					missle = new Bullet(this.position.x, this.position.y+10, (this.flip?-1:1) );
+					missle = new Bullet(this.position.x, this.position.y+10);
 				} else {
-					missle = new Bullet(this.position.x, this.position.y-8, (this.flip?-1:1) );
+					missle = new Bullet(this.position.x, this.position.y-8);
 				}
+				missle.force.x = 6 * this.forward();
 				missle.damage = this.damage;
 				missle.frame.x = 4;
 				missle.frame.y = 0;

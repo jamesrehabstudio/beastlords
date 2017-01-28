@@ -4,6 +4,7 @@ function Bullet(x,y,d){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
+	this.rotation = 0;
 	this.width = 10;
 	this.height = 6;
 	this.blockable = true;
@@ -29,7 +30,6 @@ function Bullet(x,y,d){
 	this.sprite = "bullets";
 	
 	this.addModule( mod_rigidbody );
-	this.force.x = d * this.speed;
 	this.pushable = false;
 	
 	this.on("collideObject", Bullet.hit);
@@ -52,10 +52,18 @@ function Bullet(x,y,d){
 	});
 	
 	this.team = 0;
-	this.damage = 8;
+	
+	this.damage = 10;
+	this.damageFire = 0;
+	this.damageSlime = 0;
+	this.damageIce = 0;
+	this.damageLight = 0;
+	
 	this.mass = 0.0;
 	this.gravity = 0.0;
 	this.friction = 0.0;
+	this.light = false;
+	this.lightColor = [1,1,1,1];
 }
 Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
@@ -80,6 +88,9 @@ Bullet.prototype.update = function(){
 		}
 		this.effect_time -= this.delta;
 	}
+	if(this.light){
+		Background.pushLight( this.position, this.light, this.lightColor );
+	}
 }
 
 Bullet.hit = function(obj){
@@ -88,7 +99,7 @@ Bullet.hit = function(obj){
 			if(this.ignoreInvincibility){
 				obj.invincible = 0.0;
 			}
-			obj.hurt( this, this.damage );
+			obj.hurt( this, Combat.getDamage.apply(this) );
 		} else {
 			var flip = obj.flip ? -1:1;
 			var shield = new Line(
@@ -106,12 +117,43 @@ Bullet.hit = function(obj){
 					obj.invincible = 0.0;
 				}
 				this.trigger("hurt_other",obj);
-				obj.hurt( this, this.damage );
+				obj.hurt( this, Combat.getDamage.apply(this) );
 			}
 			
 		}
 		this.trigger("death");
 	}
+}
+Bullet.prototype.render = function(g,c){
+	g.renderSprite(
+		this.sprite,
+		this.position.subtract(c),
+		this.zIndex,
+		this.frame,
+		this.flip,
+		{
+			"rotate" : this.rotation
+		}
+	)
+}
+Bullet.createFireball = function(x,y,ops){
+	ops = ops || {};
+	var bullet = new Bullet(x,y);
+	bullet.blockable = 0;
+	bullet.frames = [5,6,7];
+	bullet.frame.y = 1;
+	bullet.explode = true;
+	bullet.light = 56;
+	bullet.lightColor = COLOR_FIRE;
+	bullet.damage = 0;
+	bullet.damageFire = 10;
+	if("team" in ops){
+		bullet.team = ops.team * 1;
+	}
+	if("damage" in ops){
+		bullet.damageFire = ops.damage * 1;
+	}
+	return bullet;
 }
 
 PhantomBullet.prototype = new GameObject();
@@ -130,7 +172,12 @@ function PhantomBullet(x,y,d,o){
 	this.force = new Point();
 	this.team = 0;
 	this.time = Game.DELTASECOND * 2;
-	this.damage = 1;
+	
+	this.damage = 10;
+	this.damageFire = 0;
+	this.damageSlime = 0;
+	this.damageIce = 0;
+	this.damageLight = 0;
 	
 	this.on("collideObject", Bullet.hit);
 	this.on("sleep", function(){ this.destroy(); } );
@@ -163,9 +210,14 @@ function Fire(x,y){
 	this.width = 10;
 	this.height = 10;
 	this.team = 0;
-	this.damage = 10;
 	this.pushable = false;
 	this.zIndex = 5;
+	
+	this.damage = 0;
+	this.damageFire = 8;
+	this.damageSlime = 0;
+	this.damageIce = 0;
+	this.damageLight = 0;
 	
 	this.addModule( mod_rigidbody );
 	
@@ -188,7 +240,7 @@ function Fire(x,y){
 		
 		if( obj.hurt instanceof Function ) {
 			this.life = 0;
-			obj.hurt( this, this.damage );
+			obj.hurt( this, Combat.getDamage.apply(this) );
 		}
 	});
 	this.on("death", function(){
@@ -364,8 +416,13 @@ function FlameTower(x,y,d,o){
 	this.position.y = y;
 	this.height = 8;
 	this.width = 32;
-	this.damage = 1;
 	this.time = 0;
+	
+	this.damage = 0;
+	this.damageFire = 10;
+	this.damageSlime = 0;
+	this.damageIce = 0;
+	this.damageLight = 0;
 	
 	this.flameHeight = 88;
 	
@@ -380,7 +437,7 @@ function FlameTower(x,y,d,o){
 	});
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.time > this.timers.active) {
-			obj.hurt(this,this.damage);
+			obj.hurt(this,Combat.getDamage.apply(this));
 		}
 	});
 	

@@ -66,7 +66,7 @@ AudioPlayer.prototype.isReady = function(l, gain){
 	if(l in this.list){
 		if(this.list[l]["lastplayed"] + 250 > time){
 			this.list[l]["playcount"] += gain;
-			if(this.list[l]["playcount"] > 2){
+			if(this.list[l]["playcount"] > 4){
 				return false;
 			} else {
 				return true;

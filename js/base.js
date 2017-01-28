@@ -754,6 +754,8 @@ BSPTree.prototype.nearest = function(position, conditions){
 
 var tilerules = {
 	"ts" : 16,
+	"VERTICAL" : 0,
+	"HORIZONTAL" : 1,
 	"currentrule" : function(){
 		if(game.map.tileset == "world"){
 			return tilerules.rules.world;
@@ -775,7 +777,7 @@ var tilerules = {
 		}
 	},
 	"block" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
+		if(axis == tilerules.VERTICAL){
 			if(v>0) limits[1] = Math.min(limits[1], pos.y);
 			if(v<0) limits[3] = Math.max(limits[3], pos.y + tilerules.ts);
 		} else {
@@ -784,73 +786,85 @@ var tilerules = {
 		}
 		return limits;
 	},
-	"slope_1tohalf" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
-			var peak = (pos.y) + Math.max((hitbox.left-pos.x)*0.5, 1);
-			limits[1] = Math.min(limits[1], peak-1);
-		}
-		return limits;
-	},
 	"onewayup" : function(axis,v,pos,hitbox,limits,start_hitbox){
 		//one way blocks
-		if(axis == 0){
+		if(axis == tilerules.VERTICAL){
 			if(v > 0 && start_hitbox.bottom <= pos.y){
 				limits[1] = Math.min(limits[1], pos.y);
 			}
 		}
 		return limits;
 	},
+	"slope_1tohalf" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.VERTICAL){
+			var maxright = Math.max((hitbox.left - pos.x) / tilerules.ts, 0);
+			var peak = Math.lerp(pos.y, pos.y+tilerules.ts*0.5, maxright);
+			
+			limits[1] = Math.min(limits[1], peak-1);
+		}
+		return limits;
+	},
 	"slope_halfto0" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
-			var peak = (pos.y+(tilerules.ts*0.5)) + Math.max((hitbox.left-pos.x)*0.5, 1);
+		if(axis == tilerules.VERTICAL){
+			var maxright = Math.max((hitbox.left - pos.x) / tilerules.ts, 0);
+			var peak = Math.lerp(pos.y+tilerules.ts*0.5, pos.y+tilerules.ts, maxright);
+			
 			limits[1] = Math.min(limits[1], peak-1);
 		}
 		return limits;
 	},
 	"slope_1to0" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
-			var peak = (pos.y) + Math.max(hitbox.left-pos.x, 1);
+		if(axis == tilerules.VERTICAL){
+			var maxright = Math.max((hitbox.left - pos.x) / tilerules.ts, 0);
+			var peak = Math.lerp(pos.y, pos.y+tilerules.ts, maxright);
+			
 			limits[1] = Math.min(limits[1], peak-1);
 		}
 		return limits;
 	},
 	"slope_0to1" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
-			var peak = (pos.y+tilerules.ts) + Math.max(pos.x-hitbox.right, 1-tilerules.ts);
+		if(axis == tilerules.VERTICAL){
+			var maxright = Math.min((hitbox.right - pos.x) / tilerules.ts, 1);
+			var peak = Math.lerp(pos.y+tilerules.ts, pos.y, maxright);
+			
 			limits[1] = Math.min(limits[1], peak-1);
 		}
 		return limits;
 	},
 	"slope_0tohalf" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
-			var peak = (pos.y+tilerules.ts) + Math.max((pos.x-hitbox.right) * 0.5, 1-tilerules.ts*0.5);
+		if(axis == tilerules.VERTICAL){
+			var maxright = Math.min((hitbox.right - pos.x) / tilerules.ts, 1);
+			var peak = Math.lerp(pos.y+tilerules.ts, pos.y+tilerules.ts*0.5, maxright);
+			
 			limits[1] = Math.min(limits[1], peak-1);
 		}
 		return limits;
 	},
 	"slope_halfto1" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
-			var peak = (pos.y+tilerules.ts) + Math.max((pos.x-(hitbox.right+tilerules.ts)) * 0.5, 1-tilerules.ts);
+		if(axis == tilerules.VERTICAL){
+			var maxright = Math.min((hitbox.right - pos.x) / tilerules.ts, 1);
+			var peak = Math.lerp(pos.y+tilerules.ts*0.5, pos.y, maxright);
+			
 			limits[1] = Math.min(limits[1], peak-1);
 		}
 		return limits;
 	},
 	"ceil_0to1" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
+		if(axis == tilerules.VERTICAL){
 			var peak = pos.y + Math.min(hitbox.right-pos.x,16);
 			limits[3] = Math.max(limits[3], peak+1);
 		}
 		return limits;
 	},
 	"ceil_1to0" : function(axis,v,pos,hitbox,limits){
-		if(axis == 0){
+		if(axis == tilerules.VERTICAL){
 			var peak = (pos.y+tilerules.ts) - Math.max(hitbox.left-pos.x, 1);
 			limits[3] = Math.max(limits[3], peak+1);
 		}
 		return limits;
 	},
 	"edge_left" : function(axis,v,pos,hitbox,limits){
-		if(axis == 1){
+		if(axis == tilerules.HORIZONTAL){
 			var center = (hitbox.left + hitbox.right) * 0.5;
 			if(center > pos.x){
 				//obj on right side
@@ -863,7 +877,7 @@ var tilerules = {
 		return limits;
 	},
 	"edge_right" : function(axis,v,pos,hitbox,limits){
-		if(axis == 1){
+		if(axis == tilerules.HORIZONTAL){
 			var center = (hitbox.left + hitbox.right) * 0.5;
 			if(center > pos.x+tilerules.ts){
 				//obj on right side

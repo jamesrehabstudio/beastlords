@@ -22,7 +22,11 @@ function ManOnFire(x, y, d, o){
 	this.walkcycle = 0.0;
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
-	this.damage = Spawn.damage(3,this.difficulty);
+	this.damage = 0;
+	this.damageFire = Spawn.damage(3,this.difficulty);
+	this.defencePhysical = 0.6;
+	this.defenceFire = 1.2;
+	this.defenceIce = -1.0;
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){
@@ -33,7 +37,7 @@ function ManOnFire(x, y, d, o){
 	this.on("collideObject", function(obj){
 		if(this.life > 0){
 			if(obj instanceof Player){
-				obj.hurt(this,this.damage);
+				obj.hurt(this,this.getDamage());
 			}
 		}
 	});
