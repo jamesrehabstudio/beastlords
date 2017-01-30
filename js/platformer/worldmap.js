@@ -257,9 +257,18 @@ WorldLocale.prototype.update = function(){
 		this.sleepTime -= this.delta;
 	}
 }
+WorldLocale.currentMapName = null;
 WorldLocale.loadMap = function(map, start, callback){
+	//Save current map reveal first
+	var pm = game.getObject(PauseMenu);
+	if(pm instanceof PauseMenu) {
+		pm.saveMapReveal();
+	}
+	
 	var file = map;
 	game.loadMap(file, function(starts){
+		WorldLocale.currentMapName = map;
+		
 		//Determine player start location
 		if(starts.length > 0){
 			var index = WorldLocale.getMapIndex(starts,start);

@@ -21,6 +21,8 @@ function PauseMenu(){
 	
 	this.message_text = false;
 	this.message_time = 0;
+	
+	this.loadMapReveal();
 }
 
 PauseMenu.open = false;
@@ -172,6 +174,22 @@ PauseMenu.prototype.revealMap = function(secrets){
 			this.map_reveal[i] = Math.max( this.map_reveal[i], 1 );
 		}
 	}
+}
+PauseMenu.prototype.loadMapReveal = function(){
+	var mapname = WorldLocale.currentMapName;
+	var recordname = "mapreveal_" + mapname;
+	
+	var str_reveal = NPC.get(recordname);
+	if(str_reveal){
+		this.map_reveal = str_reveal.split(",");
+	}
+}
+PauseMenu.prototype.saveMapReveal = function(){
+	var mapname = WorldLocale.currentMapName;
+	var recordname = "mapreveal_" + mapname;
+	var str_reveal = this.map_reveal.toString();
+	
+	NPC.set(recordname, str_reveal);
 }
 PauseMenu.prototype.hudrender = function(g,c){
 	var xpos = (game.resolution.x - 256) * 0.5;

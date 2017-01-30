@@ -387,7 +387,7 @@
    <property name="tags" value="[&quot;house&quot;]"/>
   </properties>
   <object id="4" name="Shop" x="2608" y="400" width="48" height="48"/>
-  <object id="5" name="Player" x="832" y="464" width="16" height="32">
+  <object id="5" name="Player" x="3248" y="416" width="16" height="32">
    <properties>
     <property name="start" value="towneast"/>
    </properties>

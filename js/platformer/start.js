@@ -19,7 +19,7 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		WorldLocale.loadMap("townhub.tmx");
+		WorldLocale.loadMap("temple2.tmx");
 		//WorldLocale.loadMap("firepits.tmx", "temple1bottom");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
@@ -27,7 +27,7 @@ function game_start(g){
 			//_player.stat_points = 6;
 			//_player.life = _player.lifeMax = 36;
 			//_player.mana = _player.manaMax = 36;
-			_player.money = 36000;
+			//_player.money = 36000;
 			
 			//NPC.set("long_sword",1);
 			//NPC.set("broad_sword",1);

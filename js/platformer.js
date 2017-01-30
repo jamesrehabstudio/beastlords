@@ -15597,6 +15597,8 @@ function PauseMenu(){
 	
 	this.message_text = false;
 	this.message_time = 0;
+	
+	this.loadMapReveal();
 }
 
 PauseMenu.open = false;
@@ -15748,6 +15750,22 @@ PauseMenu.prototype.revealMap = function(secrets){
 			this.map_reveal[i] = Math.max( this.map_reveal[i], 1 );
 		}
 	}
+}
+PauseMenu.prototype.loadMapReveal = function(){
+	var mapname = WorldLocale.currentMapName;
+	var recordname = "mapreveal_" + mapname;
+	
+	var str_reveal = NPC.get(recordname);
+	if(str_reveal){
+		this.map_reveal = str_reveal.split(",");
+	}
+}
+PauseMenu.prototype.saveMapReveal = function(){
+	var mapname = WorldLocale.currentMapName;
+	var recordname = "mapreveal_" + mapname;
+	var str_reveal = this.map_reveal.toString();
+	
+	NPC.set(recordname, str_reveal);
 }
 PauseMenu.prototype.hudrender = function(g,c){
 	var xpos = (game.resolution.x - 256) * 0.5;
@@ -22985,7 +23003,7 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		WorldLocale.loadMap("townhub.tmx");
+		WorldLocale.loadMap("temple2.tmx");
 		//WorldLocale.loadMap("firepits.tmx", "temple1bottom");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
@@ -22993,7 +23011,7 @@ function game_start(g){
 			//_player.stat_points = 6;
 			//_player.life = _player.lifeMax = 36;
 			//_player.mana = _player.manaMax = 36;
-			_player.money = 36000;
+			//_player.money = 36000;
 			
 			//NPC.set("long_sword",1);
 			//NPC.set("broad_sword",1);
@@ -24604,9 +24622,18 @@ WorldLocale.prototype.update = function(){
 		this.sleepTime -= this.delta;
 	}
 }
+WorldLocale.currentMapName = null;
 WorldLocale.loadMap = function(map, start, callback){
+	//Save current map reveal first
+	var pm = game.getObject(PauseMenu);
+	if(pm instanceof PauseMenu) {
+		pm.saveMapReveal();
+	}
+	
 	var file = map;
 	game.loadMap(file, function(starts){
+		WorldLocale.currentMapName = map;
+		
 		//Determine player start location
 		if(starts.length > 0){
 			var index = WorldLocale.getMapIndex(starts,start);
