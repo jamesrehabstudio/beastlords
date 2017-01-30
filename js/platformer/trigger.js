@@ -124,6 +124,13 @@ function Trigger(x,y,d,o){
 		}
 	});
 	
+	if("triggersave" in o){
+		this.triggersave = o["triggersave"];
+		if(NPC.get(this.triggersave)){
+			this.trigger("activate");
+		}
+	}
+	
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player){
 			if(this.time <= 0){
@@ -227,8 +234,8 @@ function Switch(x,y,d,o){
 	
 	this.sprite = "switch";
 	this.playerover = false;
-	this.frame = 0;
-	this.frame_row = 0;
+	this.frame.x = 0;
+	this.frame.y = 0;
 	this.zIndex = -1;
 	
 	this.on("collideObject", function(obj){
@@ -246,10 +253,11 @@ function Switch(x,y,d,o){
 			this.countdown = true;
 		}
 		audio.play("switch");
-		this.frame = 1;
 	});
 	
 	this.render = function(g,c){
+		this.frame.x = this.triggerCount > 0 ? 1 : 0;
+		
 		if(this.triggerCount==0 && this.retrigger){
 			Background.pushLight(this.position.add(new Point(this.width*0.5,this.height*0.5)),96);
 		}

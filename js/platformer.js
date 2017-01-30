@@ -3297,9 +3297,15 @@ function Poseidon(x,y,d,o){
 	this.life = Spawn.life(30,this.difficulty);
 	this.lifeMax = this.life;
 	this.collideDamage = 5;
-	this.damageReduction = 0.333;
+	
+	this.defencePhysical = 0.3;
+	this.defenceFire = 0.0;
+	this.defenceSlime = 0.1;
+	this.defenceIce = -0.2;
+	this.defenceLight = -0.2;
+	
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.landDamage = Spawn.damage(6,this.difficulty);
+	this.landDamage = Spawn.damage(5,this.difficulty);
 	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.stun_time = 0;
 	this.interactive = false;
@@ -3481,10 +3487,10 @@ Poseidon.prototype.update = function(){
 				}
 			} else if(this.states.current == Poseidon.TOSS_STATE){
 				if(this.states.timer + this.delta >= this.states.timerTotal){
-					var bullet = new Bullet(this.position.x, this.position.y+8, (this.flip?-1:1));
+					var bullet = new Bullet(this.position.x, this.position.y+8);
 					bullet.team = 0;
 					bullet.blockable = 1;
-					bullet.force.x *= 2;
+					bullet.force.x = this.forward() * 12;
 					bullet.damage = this.damage;
 					game.addObject(bullet);
 				}
@@ -3516,10 +3522,11 @@ Poseidon.prototype.update = function(){
 				}
 			} else if(this.states.current == Poseidon.FIRE_STATE){
 				if(this.states.timer + this.delta >= this.states.timerTotal){
-					var bullet = new Bullet(this.position.x, this.position.y, (this.flip?-1:1));
+					var bullet = new Bullet(this.position.x, this.position.y);
 					bullet.team = 0;
 					bullet.frames = [5,6,7];
 					bullet.frame.y = 1;
+					bullet.force.x = this.forward() * 6;
 					bullet.blockable = 0;
 					bullet.damage = Math.round(this.damage*1.5);
 					bullet.explode = true;
@@ -4465,22 +4472,23 @@ function CornerStone(x,y,d,options){
 	
 	this.constructor();
 	this.sprite = "cornerstones";
-	this.position.x = x - 8;
-	this.position.y = y + 8;
+	this.position.x = x;
+	this.position.y = y;
 	this.width = 64;
 	this.height = 96;
 	this.gateNumber = 0;
-	this.gate_variable = "gate_0"
 	this.broken = 0;
 	
 	this.play_fanfair = false;
+	this.current_music = false;
 	
 	if("gate" in options){
 		this.gateNumber = options["gate"] * 1;
 	}
 	
 	this.npcvarname = "templegate_" + this.gateNumber;
-	this.broken = NPC.set(this.npcvarname);
+	this.broken = NPC.get(this.npcvarname);
+	this.interactive = !this.broken;
 	
 	
 	this.frame.x = this.broken ? 2 : 0;
@@ -4490,8 +4498,8 @@ function CornerStone(x,y,d,options){
 	this.progress = 0.0;
 	
 	this.on("struck",function(obj,pos,damage){
-		if( !this.active && obj instanceof Player ) {
-			NPC.variables[this.gate_variable] = 1;
+		if( !this.broken && !this.active && obj instanceof Player ) {
+			this.current_music = audio.get("music");
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
@@ -4507,8 +4515,8 @@ function CornerStone(x,y,d,options){
 CornerStone.prototype.fillTiles = function(tile){
 	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
 		game.setTile(
-			-32 + x + _x,
-			-48 + y +_y,
+			-32 + this.position.x + _x,
+			-48 + this.position.y + _y,
 			game.tileCollideLayer, 
 			tile
 		);
@@ -4516,7 +4524,7 @@ CornerStone.prototype.fillTiles = function(tile){
 }
 
 CornerStone.prototype.update = function(){
-	if( this.active ) {
+	if( this.active && !this.broken ) {
 		//Progress to the end of the level
 		game.pause = true;
 		this.frame.x = 1;
@@ -4544,7 +4552,12 @@ CornerStone.prototype.update = function(){
 				NPC.set(this.npcvarname, 1);
 				//WorldLocale.loadMap("townhub.tmx");
 				this.fillTiles(0);
+				this.broken = 1;
+				this.interactive = 0;
 				
+				if(this.current_music){
+					audio.playAs(this.current_music, "music");
+				}
 			}
 			
 			//WorldMap.open()
@@ -5870,7 +5883,7 @@ function Axedog(x, y, d, o){
 	
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
-	this.damage = Spawn.life(2,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.mass = 1.0;
 	
@@ -8610,12 +8623,12 @@ DonkeyKnife.prototype.update = function(){
 				var missle;
 				if( Math.random() > 0.5 ) {
 					//Bottom
-					missle = new Bullet(this.position.x, this.position.y+18, (this.flip?-1:1) );
+					missle = new Bullet(this.position.x, this.position.y+18);
 				} else {
 					//top
-					missle = new Bullet(this.position.x, this.position.y+2, (this.flip?-1:1) );
+					missle = new Bullet(this.position.x, this.position.y+2);
 				}
-				missle.force.x *= 1.5;
+				missle.force.x = this.forward() * 9;
 				missle.damage = this.damage;
 				missle.frame.x = 4;
 				missle.frame.y = 0;
@@ -10519,8 +10532,9 @@ Oriax.prototype.update = function(){
 					snakebullet.flip = this.flip;
 					game.addObject(snakebullet);
 				} else {
-					var bullet = new Bullet(this.position.x, this.position.y+4,(this.flip?-1:1));
+					var bullet = new Bullet(this.position.x, this.position.y+4);
 					bullet.blockable = 1;
+					bullet.force.x = this.forward() * 6;
 					bullet.damage = this.damage;
 					game.addObject(bullet);
 				}
@@ -14329,8 +14343,11 @@ function Item(x,y,d, ops){
 			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
-			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "spell_refill") { if(this.spell.stock < this.spell.stockMax) { this.spell.stock++; this.destroy(); audio.play("pickup1"); } }
+			
+			if( this.name == "downstab") { obj.downstab = true; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); DemoThanks.items++;}
 			
 			//Enchanted items
@@ -14365,7 +14382,6 @@ function Item(x,y,d, ops){
 			if( this.name == "seed_mair") { obj.stats.attack=Math.max(obj.stats.attack-1,1); obj.stats.defence=Math.max(obj.stats.defence-1,1); obj.stats.technique+=4; this.pickupEffect(); }
 			if( this.name == "seed_igbo") { obj.stats.defence+=3; this.pickupEffect(); }
 			
-			if( this.name == "downstab") { obj.downstab = true; this.pickupEffect(); }
 			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.feather_foot=Game.DELTAYEAR}); this.pickupEffect(); }
 			if( this.name == "haft") { obj.criticalMultiplier += 2.0; this.pickupEffect(); }
 			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; this.pickupEffect(); }
@@ -14392,13 +14408,6 @@ function Item(x,y,d, ops){
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_soul") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
-			
-			if( this.name == "spell_fire") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_flash") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_heal") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_purify") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_shield") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_strength") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			if( this.name == "unique_pray"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
@@ -14548,7 +14557,10 @@ Item.prototype.setName = function(n){
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
 	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; return; }
 	
+	if( this.name == "spell_refill") { this.frame.x = 0; this.frame.y = 10; }
+	
 	//Special items
+	if(n == "downstab") { this.frame.x = 10; this.frame.y = 5; this.message = "Down Stab\nHold down in the air to stab downwards."; return; }
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; this.message = "Gauntlets\nAllow the user to wall jump."; return; }
 	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; this.message = "Magic boots\nAllow the user to perform a double jump."; return; }
 	if(n == "dodgeflash") { this.frame.x = 5; this.frame.y = 3; this.message = "Power Pauldrons\nAllow the user dash through the air."; return; }
@@ -14597,7 +14609,6 @@ Item.prototype.setName = function(n){
 	if( this.name == "seed_mair") { this.frame.x = 12; this.frame.y = 4; this.message = "Mair Seed\nTrades attack and defence for technique.";}
 	if( this.name == "seed_igbo") { this.frame.x = 13; this.frame.y = 4; this.message = "Igbo Seed\nDefence very up.";}
 	
-	if( this.name == "downstab") { this.frame.x = 10; this.frame.y = 5; this.message = "Down Stab\nHold down in the air to stab downwards.";}
 	if( this.name == "pedila") { this.frame.x = 0; this.frame.y = 5; this.message = "Pedila\nFantastically light shoes.";}
 	if( this.name == "haft") { this.frame.x = 2; this.frame.y = 5; this.message = "Haft\nIncreased critical damage.";}
 	if( this.name == "zacchaeus_stick") { this.frame.x = 3; this.frame.y = 5; this.message = "Zacchaeus'\nMore money.";}
@@ -14616,13 +14627,6 @@ Item.prototype.setName = function(n){
 	if( this.name == "treasure_map") { this.frame.x = 0; this.frame.y = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
 	if( this.name == "life_fruit") { this.frame.x = 1; this.frame.y = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame.x = 2; this.frame.y = 6; this.message = "Mana fruit\nMana up.";}
-	
-	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.1; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
-	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.2; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
-	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.castTime = Game.DELTASECOND * 1.0; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
-	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_shield") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_shield; this.message = "Spell of Magic Shield\nProtects user with a shield made from magic.";}
-	if( this.name == "spell_strength") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_strength; this.message = "Spell of Strength\nEnhances the user's strength.";}
 	
 	if( this.name == "unique_wand"){
 		this.frame.x = 2;
@@ -14723,20 +14727,33 @@ Item.drop = function(obj){
 		Item.dropMoney(obj.position, obj.moneyDrop);
 	}
 	
+	/*
 	if (Math.random() < _player.waystone_bonus) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
 		game.addObject( item );
 	}
+	*/
 	
 	if (Math.random() > 0.9) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
 		game.addObject( item );
 	}
 	
+	var spell = Spell.randomRefill(_player, 300);
+	if(spell){
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "spell_refill"} );
+		item.frame.x = spell.frame.x;
+		item.frame.y = spell.frame.y + 1;
+		item.spell = spell;
+		game.addObject( item );
+	}
+	
+	/*
 	if (Math.random() > 0.967) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
 		game.addObject( item );
 	}
+	*/
 }
 Item.dropMoney = function(position, money, sleep){
 	if(sleep == undefined){
@@ -15066,13 +15083,30 @@ function Lava(x,y,d,ops){
 	this.drain = 0;
 	this.bottom = this.position.y + this.height;
 	this.triggerheight = 4;
+	this.triggerdelete = 0;
+	this.triggerdelay = 0;
+	this.triggersave = 0;
 	this.speed = 2;
 	
+	if("trigger" in ops) {
+		this._tid = ops["trigger"];
+	}
 	if("triggerheight" in ops){
 		this.triggerheight = ops["triggerheight"] * 1;
 	}
-	if("trigger" in ops) {
-		this._tid = ops["trigger"];
+	if("triggerdelete" in ops){
+		this.triggerdelete = ops["triggerdelete"] * 1;
+	}
+	if("triggerdelay" in ops){
+		this.triggerdelay = ops["triggerdelay"] * Game.DELTASECOND;
+	}
+	
+	if("triggersave" in ops){
+		this.triggersave = ops["triggersave"];
+		if(NPC.get(this.triggersave)){
+			this.height = this.triggerheight;
+			this.drain = true;
+		}
 	}
 	
 	this.on("collideObject", function(obj){
@@ -15086,6 +15120,9 @@ function Lava(x,y,d,ops){
 	
 	this.on("activate", function(){
 		this.drain = 1;
+		if(this.triggersave){
+			NPC.set(this.triggersave, 1);
+		}
 	});
 	
 	this.on("wakeup", function(){
@@ -15099,9 +15136,16 @@ function Lava(x,y,d,ops){
 Lava.prototype.update = function(){
 	if(this.drain){
 		if(this.height > this.triggerheight){
-			this.height -= this.speed * this.delta;
+			if(this.triggerdelay > 0){
+				this.triggerdelay -= this.delta;
+			} else {
+				this.height -= this.speed * this.delta;
+			}
 		} else {
 			this.height = this.triggerheight;
+			if(this.triggerdelete){
+				this.destroy();
+			}
 		}
 		this.position.y = this.bottom - this.height;
 	}
@@ -18276,7 +18320,7 @@ ShieldSmith.prototype.hudrender = function(g,c){
 				textArea(g,"Max: "+spell.stockMax, pos.x+260,24+i*20);
 			}
 			g.color = [1,1,1,1];
-			g.scaleFillRect(pos.x+236,30+this.cursorMagic*20,4,4);
+			g.scaleFillRect(pos.x+234,26+this.cursorMagic*20,4,4);
 		}
 		
 		cursorArea(g, pos.x+12+this.cursorSlot*32, 224-36,32,32);
@@ -18602,6 +18646,93 @@ Smith.weapons = [
 	"small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"
 ];
 Smith.introduction = true;
+
+ /* platformer\npc_spellmaster.js*/ 
+
+SpellMaster.prototype = new GameObject();
+SpellMaster.prototype.constructor = GameObject;
+function SpellMaster(x, y){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = "prisoner";
+	
+	this.frame.x = 3;
+	this.frame.y = 0;
+	
+	this.width = 32;
+	this.height = 40;
+	
+	this.cursorSpell = 0;
+	
+	this.addModule( mod_talk );
+	this.on("open", function(){
+		game.pause = true;
+		this.cursorSpell = 0;
+		audio.play("pause");
+	});
+	this.on("close", function(){
+		game.pause = false;
+	});
+}
+
+
+
+SpellMaster.prototype.update = function(){
+	if( this.open ) {
+		
+		if(input.state("up") == 1){
+			this.cursorSpell = Math.max(this.cursorSpell-1, 0);
+			audio.play("cursor");
+		}
+		if(input.state("down") == 1){
+			this.cursorSpell = Math.min(this.cursorSpell+1, _player.spells.length-1);
+			audio.play("cursor");
+		}
+		
+		if(input.state("fire") == 1){
+			var spell = _player.spells[this.cursorSpell];
+			if(spell && spell.upgradePrice() <= _player.money){
+				//Upgrade spell
+				_player.money -= spell.upgradePrice();
+				spell.stock++;
+				spell.stockMax++;
+				_player.equip();
+				
+				audio.play("item1");
+			} else {
+				audio.play("negative");
+			}
+		}
+		
+		if(input.state("jump") == 1){
+			this.close();
+		}
+		if(PauseMenu.open){
+			this.close();
+		}
+	}
+}
+
+SpellMaster.prototype.hudrender = function(g,c){
+	if(this.open){
+		var pos = new Point(Math.floor(game.resolution.x/2)-112,8);
+		
+		boxArea(g,pos.x,pos.y,224,224);
+		textArea(g,"Increase Spells",pos.x+20,pos.y+12);
+		
+		for(var i=0; i < _player.spells.length; i++){
+			var spell = _player.spells[i];
+			spell.render(g, new Point(pos.x+24, pos.y+36+i*20));
+			textArea(g,""+spell.stockMax, pos.x+40,pos.y+32+i*20);
+			//textArea(g,spell.name, pos.x+72,pos.y+32+i*20);
+			textArea(g,"$"+spell.upgradePrice(), pos.x+72,pos.y+32+i*20);
+		}
+		
+		g.color = [1,1,1,1];
+		g.scaleFillRect(pos.x+10,pos.y+34+this.cursorSpell*20,4,4);
+	}
+}
 
  /* platformer\ocean.js*/ 
 
@@ -22427,22 +22558,13 @@ Spawn.enemies = {
 };
 
 Spawn.damage = function(level,difficulty){
-	var damage = 5; //0 very little
+	var damage = level * 2;
 	
 	if(difficulty == undefined){
 		difficulty = Spawn.difficulty;
 	}
 	
-	switch(level){
-		case 1: damage = 2.5; break;//1 weak, bashing into normal enemy
-		case 2: damage = 4.0; break;//2 strike from minor enemy
-		case 3: damage = 5.0; break;//3 strike from major enemy
-		case 4: damage = 6.0; break;//4 strike from miniboss
-		case 5: damage = 7.5; break;//5 strike from boss
-		case 6: damage = 10.0; break;//6 strike from SUPER boss
-	}
-	
-	var multi = 1 + difficulty * 0.3;
+	var multi = 1 + difficulty * (1.0/3.0);
 	damage = Math.floor( damage * multi );
 	return damage;
 }
@@ -22486,10 +22608,13 @@ function Spell(){
 	this.stockMax = 10;
 	this.refillRarity = 10.0;
 	this.frame = new Point(0,10);
+	this.priceBase = 0;
+	this.priceExponent = 2.5;
 }
 Spell.prototype.use = function(player){}
 Spell.prototype.modifyStats = function(player, type){}
 Spell.prototype.canCast = function(player){ return true; }
+Spell.prototype.upgradePrice = function(){ return Math.floor(Math.pow(this.priceBase+this.stockMax, this.priceExponent)); }
 Spell.prototype.render = function(g,p){
 	g.renderSprite("items",p,10,this.frame);
 }
@@ -22497,8 +22622,8 @@ Spell.SLOTTYPE_NORMAL = 0;
 Spell.SLOTTYPE_ELEMENT = 1;
 Spell.SLOTTYPE_ATTACK = 2;
 Spell.SLOTTYPE_DEFENCE = 3;
-Spell.randomRefill = function(player){
-	var total = 0.0;
+Spell.randomRefill = function(player, nothingchance){
+	var total = nothingchance || 0.0;
 	var roll = Math.random();
 	var availableCriteria = function(s){
 		return s.stock < s.stockMax;
@@ -22519,6 +22644,7 @@ Spell.randomRefill = function(player){
 			}
 		}
 	}
+	return null;
 }
 
 SpellFire.prototype = new Spell();
@@ -22543,7 +22669,7 @@ SpellFire.prototype.use = function(player){
 	game.addObject(bullet);
 }
 SpellFire.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 7,0);
+	var max = Math.max(this.stockMax - 9,0);
 	if(type == Spell.SLOTTYPE_NORMAL){
 		player.stats.attack += max * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
@@ -22578,7 +22704,7 @@ SpellSlimeGernade.prototype.use = function(player){
 	game.addObject(nade);
 }
 SpellSlimeGernade.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 7,0);
+	var max = Math.max(this.stockMax - 9,0);
 	if(type == Spell.SLOTTYPE_NORMAL){
 		player.damageSlime += max * (2+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
@@ -22622,7 +22748,7 @@ SpellFlash.prototype.use = function(player){
 	player.heal += heal;
 }
 SpellFlash.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 7,0);
+	var max = Math.max(this.stockMax - 9,0);
 	if(type == Spell.SLOTTYPE_NORMAL){
 		player.stats.magic += max * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
@@ -22645,6 +22771,8 @@ function SpellHeal(){
 	this.stock = 3;
 	this.stockMax = 3;
 	this.frame = new Point(2,10);
+	this.priceBase = 7;
+	this.priceExponent = 2.7;
 }
 SpellHeal.prototype.canCast = function(player){
 	return player.life < player.lifeMax;
@@ -22654,7 +22782,7 @@ SpellHeal.prototype.use = function(player){
 	player.heal += heal;
 }
 SpellHeal.prototype.modifyStats = function(player, type, power){
-	var max = this.stockMax;
+	var max = Math.max(this.stockMax-2, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
 		player.defencePhysical += max * (0.015 + power*0.005);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
@@ -22678,6 +22806,7 @@ function SpellPurify(){
 	this.stock = 6;
 	this.stockMax = 6;
 	this.frame = new Point(3,10);
+	this.priceBase = 4;
 }
 SpellPurify.prototype.canCast = function(player){
 	for(var i=0; i < player.buffs.length; i++){
@@ -22695,7 +22824,7 @@ SpellPurify.prototype.use = function(player){
 	}
 }
 SpellPurify.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 3, 0);
+	var max = Math.max(this.stockMax - 5, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
 		player.perks.poisonResist += max * (0.05 + power * 0.02);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
@@ -22712,10 +22841,12 @@ SpellShield.prototype.constructor = Spell;
 function SpellShield(){
 	//Fires a fireball
 	this.constructor();
-	this.name = "Purify";
+	this.name = "Magic Shield";
 	this.stock = 3;
 	this.stockMax = 3;
 	this.frame = new Point(4,10);
+	this.priceBase = 7;
+	this.priceExponent = 3.0;
 }
 SpellShield.prototype.canCast = function(player){
 	for(var i=0; i < player.buffs.length; i++){
@@ -22732,7 +22863,7 @@ SpellShield.prototype.use = function(player){
 	audio.play("spell");
 }
 SpellShield.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 0, 0);
+	var max = Math.max(this.stockMax - 2, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
 		player.stats.magic += max * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
@@ -22754,6 +22885,8 @@ function SpellStrength(){
 	this.stock = 5;
 	this.stockMax = 5;
 	this.frame = new Point(5,10);
+	this.priceBase = 5;
+	this.priceExponent = 3.0;
 }
 SpellStrength.prototype.canCast = function(player){
 	for(var i=0; i < player.buffs.length; i++){
@@ -22770,7 +22903,7 @@ SpellStrength.prototype.use = function(player){
 	audio.play("spell");
 }
 SpellStrength.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 2, 0);
+	var max = Math.max(this.stockMax - 4, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
 		player.stats.attack += max * 2 * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
@@ -22852,13 +22985,15 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
-		WorldLocale.loadMap("temple2.tmx");
+		WorldLocale.loadMap("townhub.tmx");
+		//WorldLocale.loadMap("firepits.tmx", "temple1bottom");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
 			//_player.stat_points = 6;
 			//_player.life = _player.lifeMax = 36;
 			//_player.mana = _player.manaMax = 36;
+			_player.money = 36000;
 			
 			//NPC.set("long_sword",1);
 			//NPC.set("broad_sword",1);
@@ -23718,6 +23853,13 @@ function Trigger(x,y,d,o){
 		}
 	});
 	
+	if("triggersave" in o){
+		this.triggersave = o["triggersave"];
+		if(NPC.get(this.triggersave)){
+			this.trigger("activate");
+		}
+	}
+	
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player){
 			if(this.time <= 0){
@@ -23821,8 +23963,8 @@ function Switch(x,y,d,o){
 	
 	this.sprite = "switch";
 	this.playerover = false;
-	this.frame = 0;
-	this.frame_row = 0;
+	this.frame.x = 0;
+	this.frame.y = 0;
 	this.zIndex = -1;
 	
 	this.on("collideObject", function(obj){
@@ -23840,10 +23982,11 @@ function Switch(x,y,d,o){
 			this.countdown = true;
 		}
 		audio.play("switch");
-		this.frame = 1;
 	});
 	
 	this.render = function(g,c){
+		this.frame.x = this.triggerCount > 0 ? 1 : 0;
+		
 		if(this.triggerCount==0 && this.retrigger){
 			Background.pushLight(this.position.add(new Point(this.width*0.5,this.height*0.5)),96);
 		}

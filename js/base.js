@@ -1,6 +1,7 @@
 importScripts("maths.js");
 
 audio = {
+	"alias" : {},
 	"out" : {},
 	"play" : function(name,position,falloff){
 		if(position === undefined){
@@ -22,14 +23,18 @@ audio = {
 		}
 	},
 	"playAs" : function(name,alias){
-		if(!("playAs" in audio.out)) audio.out["playAs"] = new Array();
-		audio.out["playAs"].push([name,alias]);
+		if(this.get(alias) != name){
+			this.alias[alias] = name;
+			if(!("playAs" in audio.out)) audio.out["playAs"] = new Array();
+			audio.out["playAs"].push([name,alias]);
+		}
 	},
 	"playLock" : function(name,duration){
 		if(!("playLock" in audio.out)) audio.out["playLock"] = new Array();
 		audio.out["playLock"].push([name,duration]);
 	},
 	"stopAs" : function(alias){
+		this.alias[alias] = "";
 		if(!("stopAs" in audio.out)) audio.out["stopAs"] = new Array();
 		audio.out["stopAs"].push([alias]);
 	},
@@ -38,6 +43,12 @@ audio = {
 	},
 	"clear" : function(){
 		audio.out = {};
+	},
+	"get" : function(alias){
+		if(alias in this.alias){
+			return this.alias[alias];
+		}
+		return "";
 	}
 }
 

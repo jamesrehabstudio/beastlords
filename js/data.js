@@ -161,7 +161,7 @@ function load_sprites (){
 	sprites['explosion'] = new Sprite(RT+"img/explosion.gif", {offset:new Point(64, 64),width:128,height:128});
 	sprites['halo'] = new Sprite(RT+"img/halo.gif", {offset:new Point(120, 120),width:240,height:240});
 	sprites['haloarea'] = new Sprite(RT+"img/haloarea.gif", {offset:new Point(0, 0),width:256,height:256,"fragment":"fragment-lightarea"});
-	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(40, 56),width:96,height:96});
+	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(48, 48),width:96,height:96});
 	//sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['map'] = new Sprite(RT+"img/maptiles.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['doors'] = new Sprite(RT+"img/doors.gif", {offset:new Point(16, 32),width:64,height:64});
@@ -292,6 +292,7 @@ function load_sprites (){
 	sprites['temple3'] = new Sprite(RT+"img/tiles/temple3.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['temple4'] = new Sprite(RT+"img/tiles/temple4.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['firepits'] = new Sprite(RT+"img/tiles/firepits.png", {offset:new Point(0, 0),width:16,height:16});
+	sprites['templeice'] = new Sprite(RT+"img/tiles/templeice.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['cave'] = new Sprite(RT+"img/tiles/cave.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['planes'] = new Sprite(RT+"img/tiles/planes.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['town'] = new Sprite(RT+"img/tiles/town.png", {offset:new Point(0, 0),width:16,height:16});
@@ -331,9 +332,9 @@ function load_sprites (){
 		1023 : {"frames":[1024], "speed":0.0}
 	});
 	tiles["temple1"] = new Tileset(sprites["temple1"],tileRules["big"], {
-		321 : {"frames":[321,322,323], "speed":6.0},
 		357 : {"frames":[357,357,357,357,357,357,357,357,357,357,358,359,360,361,362], "speed":8.0},
-		499 : {"frames":[499,499,499,499,499,499,499,500,501,502,503,504,499,499,499], "speed":8.0}
+		499 : {"frames":[499,499,499,499,499,499,499,500,501,502,503,504,499,499,499], "speed":8.0},
+		1023 : {"frames":[1024], "speed":0.0}
 	});
 	tiles["temple2"] = new Tileset(sprites["temple2"],tileRules["big"], {
 		275 : {"frames":[275,277,279], "speed":9.0},
@@ -382,6 +383,21 @@ function load_sprites (){
 		321 : {"frames":[321,322,323], "speed":5.0},
 	});
 	tiles["firepits"] = new Tileset(sprites["firepits"],tileRules["big"], {
+		204 : {"frames":[1024], "speed":0.0},
+		1023 : {"frames":[1024], "speed":0.0}
+	});
+	tiles["templeice"] = new Tileset(sprites["templeice"],tileRules["big"], {
+		21 : {"frames":[21,24,27], "speed":8.0},
+		22 : {"frames":[22,25,28], "speed":8.0},
+		23 : {"frames":[23,26,29], "speed":8.0},
+		53 : {"frames":[53,56,59], "speed":8.0},
+		54 : {"frames":[54,57,60], "speed":8.0},
+		55 : {"frames":[55,58,61], "speed":8.0},
+		85 : {"frames":[85,88,91], "speed":8.0},
+		86 : {"frames":[86,89,92], "speed":8.0},
+		87 : {"frames":[87,90,93], "speed":8.0},
+		
+		204 : {"frames":[1024], "speed":0.0},
 		1023 : {"frames":[1024], "speed":0.0}
 	});
 }
@@ -395,6 +411,8 @@ window.audio = new AudioPlayer({
 	"music_temple3" : {"url":RT+"sounds/music_temple3.ogg","music":true,"loop":0},
 	"music_temple4" : {"url":RT+"sounds/music_temple4.ogg","music":true,"loop":32.011},
 	"music_town" : {"url":RT+"sounds/music_town.ogg","music":true,"loop":0.0},
+	"music_firepits" : {"url":RT+"sounds/music_firepits.ogg","music":true,"loop":4.596},
+	"music_fridge" : {"url":RT+"sounds/music_fridge.ogg","music":true,"loop":0.0},
 	//"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
 	"music_sleep" : {"url":RT+"sounds/music_sleep.mp3","music":true},
 	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},

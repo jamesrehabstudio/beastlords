@@ -74,12 +74,12 @@ DonkeyKnife.prototype.update = function(){
 				var missle;
 				if( Math.random() > 0.5 ) {
 					//Bottom
-					missle = new Bullet(this.position.x, this.position.y+18, (this.flip?-1:1) );
+					missle = new Bullet(this.position.x, this.position.y+18);
 				} else {
 					//top
-					missle = new Bullet(this.position.x, this.position.y+2, (this.flip?-1:1) );
+					missle = new Bullet(this.position.x, this.position.y+2);
 				}
-				missle.force.x *= 1.5;
+				missle.force.x = this.forward() * 9;
 				missle.damage = this.damage;
 				missle.frame.x = 4;
 				missle.frame.y = 0;

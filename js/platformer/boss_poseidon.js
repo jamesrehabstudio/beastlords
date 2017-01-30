@@ -28,9 +28,15 @@ function Poseidon(x,y,d,o){
 	this.life = Spawn.life(30,this.difficulty);
 	this.lifeMax = this.life;
 	this.collideDamage = 5;
-	this.damageReduction = 0.333;
+	
+	this.defencePhysical = 0.3;
+	this.defenceFire = 0.0;
+	this.defenceSlime = 0.1;
+	this.defenceIce = -0.2;
+	this.defenceLight = -0.2;
+	
 	this.damage = Spawn.damage(4,this.difficulty);
-	this.landDamage = Spawn.damage(6,this.difficulty);
+	this.landDamage = Spawn.damage(5,this.difficulty);
 	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.stun_time = 0;
 	this.interactive = false;
@@ -212,10 +218,10 @@ Poseidon.prototype.update = function(){
 				}
 			} else if(this.states.current == Poseidon.TOSS_STATE){
 				if(this.states.timer + this.delta >= this.states.timerTotal){
-					var bullet = new Bullet(this.position.x, this.position.y+8, (this.flip?-1:1));
+					var bullet = new Bullet(this.position.x, this.position.y+8);
 					bullet.team = 0;
 					bullet.blockable = 1;
-					bullet.force.x *= 2;
+					bullet.force.x = this.forward() * 12;
 					bullet.damage = this.damage;
 					game.addObject(bullet);
 				}
@@ -247,10 +253,11 @@ Poseidon.prototype.update = function(){
 				}
 			} else if(this.states.current == Poseidon.FIRE_STATE){
 				if(this.states.timer + this.delta >= this.states.timerTotal){
-					var bullet = new Bullet(this.position.x, this.position.y, (this.flip?-1:1));
+					var bullet = new Bullet(this.position.x, this.position.y);
 					bullet.team = 0;
 					bullet.frames = [5,6,7];
 					bullet.frame.y = 1;
+					bullet.force.x = this.forward() * 6;
 					bullet.blockable = 0;
 					bullet.damage = Math.round(this.damage*1.5);
 					bullet.explode = true;

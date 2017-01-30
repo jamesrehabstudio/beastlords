@@ -32,7 +32,7 @@ function Axedog(x, y, d, o){
 	
 	this.life = Spawn.life(4,this.difficulty);
 	this.lifeMax = Spawn.life(4,this.difficulty);
-	this.damage = Spawn.life(2,this.difficulty);
+	this.damage = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.mass = 1.0;
 	

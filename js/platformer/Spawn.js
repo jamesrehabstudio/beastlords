@@ -312,22 +312,13 @@ Spawn.enemies = {
 };
 
 Spawn.damage = function(level,difficulty){
-	var damage = 5; //0 very little
+	var damage = level * 2;
 	
 	if(difficulty == undefined){
 		difficulty = Spawn.difficulty;
 	}
 	
-	switch(level){
-		case 1: damage = 2.5; break;//1 weak, bashing into normal enemy
-		case 2: damage = 4.0; break;//2 strike from minor enemy
-		case 3: damage = 5.0; break;//3 strike from major enemy
-		case 4: damage = 6.0; break;//4 strike from miniboss
-		case 5: damage = 7.5; break;//5 strike from boss
-		case 6: damage = 10.0; break;//6 strike from SUPER boss
-	}
-	
-	var multi = 1 + difficulty * 0.3;
+	var multi = 1 + difficulty * (1.0/3.0);
 	damage = Math.floor( damage * multi );
 	return damage;
 }

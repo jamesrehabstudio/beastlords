@@ -5,22 +5,23 @@ function CornerStone(x,y,d,options){
 	
 	this.constructor();
 	this.sprite = "cornerstones";
-	this.position.x = x - 8;
-	this.position.y = y + 8;
+	this.position.x = x;
+	this.position.y = y;
 	this.width = 64;
 	this.height = 96;
 	this.gateNumber = 0;
-	this.gate_variable = "gate_0"
 	this.broken = 0;
 	
 	this.play_fanfair = false;
+	this.current_music = false;
 	
 	if("gate" in options){
 		this.gateNumber = options["gate"] * 1;
 	}
 	
 	this.npcvarname = "templegate_" + this.gateNumber;
-	this.broken = NPC.set(this.npcvarname);
+	this.broken = NPC.get(this.npcvarname);
+	this.interactive = !this.broken;
 	
 	
 	this.frame.x = this.broken ? 2 : 0;
@@ -30,8 +31,8 @@ function CornerStone(x,y,d,options){
 	this.progress = 0.0;
 	
 	this.on("struck",function(obj,pos,damage){
-		if( !this.active && obj instanceof Player ) {
-			NPC.variables[this.gate_variable] = 1;
+		if( !this.broken && !this.active && obj instanceof Player ) {
+			this.current_music = audio.get("music");
 			audio.stopAs("music");
 			audio.play("crash");
 			this.active = true;
@@ -47,8 +48,8 @@ function CornerStone(x,y,d,options){
 CornerStone.prototype.fillTiles = function(tile){
 	for(var _x=0; _x < this.width; _x+=16) for(var _y=0; _y < this.height; _y+=16) {
 		game.setTile(
-			-32 + x + _x,
-			-48 + y +_y,
+			-32 + this.position.x + _x,
+			-48 + this.position.y + _y,
 			game.tileCollideLayer, 
 			tile
 		);
@@ -56,7 +57,7 @@ CornerStone.prototype.fillTiles = function(tile){
 }
 
 CornerStone.prototype.update = function(){
-	if( this.active ) {
+	if( this.active && !this.broken ) {
 		//Progress to the end of the level
 		game.pause = true;
 		this.frame.x = 1;
@@ -84,7 +85,12 @@ CornerStone.prototype.update = function(){
 				NPC.set(this.npcvarname, 1);
 				//WorldLocale.loadMap("townhub.tmx");
 				this.fillTiles(0);
+				this.broken = 1;
+				this.interactive = 0;
 				
+				if(this.current_music){
+					audio.playAs(this.current_music, "music");
+				}
 			}
 			
 			//WorldMap.open()

@@ -82,8 +82,11 @@ function Item(x,y,d, ops){
 			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
-			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "spell_refill") { if(this.spell.stock < this.spell.stockMax) { this.spell.stock++; this.destroy(); audio.play("pickup1"); } }
+			
+			if( this.name == "downstab") { obj.downstab = true; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); DemoThanks.items++;}
 			
 			//Enchanted items
@@ -118,7 +121,6 @@ function Item(x,y,d, ops){
 			if( this.name == "seed_mair") { obj.stats.attack=Math.max(obj.stats.attack-1,1); obj.stats.defence=Math.max(obj.stats.defence-1,1); obj.stats.technique+=4; this.pickupEffect(); }
 			if( this.name == "seed_igbo") { obj.stats.defence+=3; this.pickupEffect(); }
 			
-			if( this.name == "downstab") { obj.downstab = true; this.pickupEffect(); }
 			if( this.name == "pedila") { obj.spellsCounters.feather_foot=Game.DELTAYEAR; obj.on("added",function(){this.spellsCounters.feather_foot=Game.DELTAYEAR}); this.pickupEffect(); }
 			if( this.name == "haft") { obj.criticalMultiplier += 2.0; this.pickupEffect(); }
 			if( this.name == "zacchaeus_stick") { obj.money_bonus += 0.5; this.pickupEffect(); }
@@ -145,13 +147,6 @@ function Item(x,y,d, ops){
 			if( this.name == "charm_barter") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_elephant") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
 			if( this.name == "charm_soul") { obj.equipCharm(this); this.destroy(); audio.play("equip"); }
-			
-			if( this.name == "spell_fire") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_flash") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_heal") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_purify") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_shield") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
-			if( this.name == "spell_strength") { obj.equipSpell(this); this.destroy(); audio.play("equip"); }
 			
 			if( this.name == "unique_wand"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
 			if( this.name == "unique_pray"){ obj.addUniqueItem(this); this.destroy(); this.pickupEffect(); }
@@ -301,7 +296,10 @@ Item.prototype.setName = function(n){
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
 	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; return; }
 	
+	if( this.name == "spell_refill") { this.frame.x = 0; this.frame.y = 10; }
+	
 	//Special items
+	if(n == "downstab") { this.frame.x = 10; this.frame.y = 5; this.message = "Down Stab\nHold down in the air to stab downwards."; return; }
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; this.message = "Gauntlets\nAllow the user to wall jump."; return; }
 	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; this.message = "Magic boots\nAllow the user to perform a double jump."; return; }
 	if(n == "dodgeflash") { this.frame.x = 5; this.frame.y = 3; this.message = "Power Pauldrons\nAllow the user dash through the air."; return; }
@@ -350,7 +348,6 @@ Item.prototype.setName = function(n){
 	if( this.name == "seed_mair") { this.frame.x = 12; this.frame.y = 4; this.message = "Mair Seed\nTrades attack and defence for technique.";}
 	if( this.name == "seed_igbo") { this.frame.x = 13; this.frame.y = 4; this.message = "Igbo Seed\nDefence very up.";}
 	
-	if( this.name == "downstab") { this.frame.x = 10; this.frame.y = 5; this.message = "Down Stab\nHold down in the air to stab downwards.";}
 	if( this.name == "pedila") { this.frame.x = 0; this.frame.y = 5; this.message = "Pedila\nFantastically light shoes.";}
 	if( this.name == "haft") { this.frame.x = 2; this.frame.y = 5; this.message = "Haft\nIncreased critical damage.";}
 	if( this.name == "zacchaeus_stick") { this.frame.x = 3; this.frame.y = 5; this.message = "Zacchaeus'\nMore money.";}
@@ -369,13 +366,6 @@ Item.prototype.setName = function(n){
 	if( this.name == "treasure_map") { this.frame.x = 0; this.frame.y = 6; this.message = "Treasure Map\nReveals secrets areas on map.";}
 	if( this.name == "life_fruit") { this.frame.x = 1; this.frame.y = 6; this.message = "Life fruit\nLife up.";}
 	if( this.name == "mana_fruit") { this.frame.x = 2; this.frame.y = 6; this.message = "Mana fruit\nMana up.";}
-	
-	if( this.name == "spell_fire") { this.frame.x = 0; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.1; this.cast = spell_fire; this.message = "Spell of Fire\nCast magic fire balls.";}
-	if( this.name == "spell_flash") { this.frame.x = 1; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.2; this.cast = spell_flash; this.message = "Spell of Flash\nDrains and absorbs nearby enemies' life.";}
-	if( this.name == "spell_heal") { this.frame.x = 2; this.frame.y = 10; this.castTime = Game.DELTASECOND * 1.0; this.cast = spell_heal; this.message = "Spell of Healing\nCloses wounds.";}
-	if( this.name == "spell_purify") { this.frame.x = 3; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_purify; this.message = "Spell of Purification\nRemoves curses and ailments.";}
-	if( this.name == "spell_shield") { this.frame.x = 4; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_shield; this.message = "Spell of Magic Shield\nProtects user with a shield made from magic.";}
-	if( this.name == "spell_strength") { this.frame.x = 5; this.frame.y = 10; this.castTime = Game.DELTASECOND * 0.5; this.cast = spell_strength; this.message = "Spell of Strength\nEnhances the user's strength.";}
 	
 	if( this.name == "unique_wand"){
 		this.frame.x = 2;
@@ -476,20 +466,33 @@ Item.drop = function(obj){
 		Item.dropMoney(obj.position, obj.moneyDrop);
 	}
 	
+	/*
 	if (Math.random() < _player.waystone_bonus) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
 		game.addObject( item );
 	}
+	*/
 	
 	if (Math.random() > 0.9) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
 		game.addObject( item );
 	}
 	
+	var spell = Spell.randomRefill(_player, 300);
+	if(spell){
+		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "spell_refill"} );
+		item.frame.x = spell.frame.x;
+		item.frame.y = spell.frame.y + 1;
+		item.spell = spell;
+		game.addObject( item );
+	}
+	
+	/*
 	if (Math.random() > 0.967) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
 		game.addObject( item );
 	}
+	*/
 }
 Item.dropMoney = function(position, money, sleep){
 	if(sleep == undefined){

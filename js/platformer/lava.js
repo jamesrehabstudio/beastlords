@@ -14,13 +14,30 @@ function Lava(x,y,d,ops){
 	this.drain = 0;
 	this.bottom = this.position.y + this.height;
 	this.triggerheight = 4;
+	this.triggerdelete = 0;
+	this.triggerdelay = 0;
+	this.triggersave = 0;
 	this.speed = 2;
 	
+	if("trigger" in ops) {
+		this._tid = ops["trigger"];
+	}
 	if("triggerheight" in ops){
 		this.triggerheight = ops["triggerheight"] * 1;
 	}
-	if("trigger" in ops) {
-		this._tid = ops["trigger"];
+	if("triggerdelete" in ops){
+		this.triggerdelete = ops["triggerdelete"] * 1;
+	}
+	if("triggerdelay" in ops){
+		this.triggerdelay = ops["triggerdelay"] * Game.DELTASECOND;
+	}
+	
+	if("triggersave" in ops){
+		this.triggersave = ops["triggersave"];
+		if(NPC.get(this.triggersave)){
+			this.height = this.triggerheight;
+			this.drain = true;
+		}
 	}
 	
 	this.on("collideObject", function(obj){
@@ -34,6 +51,9 @@ function Lava(x,y,d,ops){
 	
 	this.on("activate", function(){
 		this.drain = 1;
+		if(this.triggersave){
+			NPC.set(this.triggersave, 1);
+		}
 	});
 	
 	this.on("wakeup", function(){
@@ -47,9 +67,16 @@ function Lava(x,y,d,ops){
 Lava.prototype.update = function(){
 	if(this.drain){
 		if(this.height > this.triggerheight){
-			this.height -= this.speed * this.delta;
+			if(this.triggerdelay > 0){
+				this.triggerdelay -= this.delta;
+			} else {
+				this.height -= this.speed * this.delta;
+			}
 		} else {
 			this.height = this.triggerheight;
+			if(this.triggerdelete){
+				this.destroy();
+			}
 		}
 		this.position.y = this.bottom - this.height;
 	}

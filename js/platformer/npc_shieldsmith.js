@@ -109,7 +109,7 @@ ShieldSmith.prototype.hudrender = function(g,c){
 				textArea(g,"Max: "+spell.stockMax, pos.x+260,24+i*20);
 			}
 			g.color = [1,1,1,1];
-			g.scaleFillRect(pos.x+236,30+this.cursorMagic*20,4,4);
+			g.scaleFillRect(pos.x+234,26+this.cursorMagic*20,4,4);
 		}
 		
 		cursorArea(g, pos.x+12+this.cursorSlot*32, 224-36,32,32);
