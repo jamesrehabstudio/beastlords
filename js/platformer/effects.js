@@ -12,7 +12,7 @@ function EffectExplosion(x, y, sound){
 	
 	this.speed = 0.3;	
 	sound = sound || "explode2";
-	audio.playLock(sound,0.1);
+	audio.play(sound,this.position);
 	this.on("sleep",function(){ this.destroy(); } );
 }
 

@@ -196,6 +196,7 @@ function load_sprites (){
 	sprites['cryptkeeper'] = new Sprite(RT+"img/cryptkeeper.png", {offset:new Point(36, 36),width:64,height:64});
 	sprites['deckard'] = new Sprite(RT+"img/deckard.png", {offset:new Point(48, 52),width:96,height:80});
 	sprites['donkeyknife'] = new Sprite(RT+"img/donkeyknife.png", {offset:new Point(28, 42),width:64,height:64});
+	sprites['gear1'] = new Sprite(RT+"img/gear1.png", {offset:new Point(0, 0),width:16,height:64});
 	sprites['elevator'] = new Sprite(RT+"img/elevator.gif", {offset:new Point(16, 24),width:32,height:48});
 	sprites['flameman'] = new Sprite(RT+"img/flameman.png", {offset:new Point(40, 52),width:80,height:80});
 	sprites['flederknife'] = new Sprite(RT+"img/flederknife.gif", {offset:new Point(16, 32),width:48,height:48});
@@ -254,7 +255,7 @@ function load_sprites (){
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
 	
 	sprites['swordtest'] = new Sprite(RT+"img/sword_test.png", {offset:new Point(15, 56),width:32,height:64});
-	sprites['swordeffect'] = new Sprite(RT+"img/swordeffect.png", {offset:new Point(48, 33),width:112,height:48});
+	sprites['swordeffect'] = new Sprite(RT+"img/swordeffect.png", {offset:new Point(48, 49),width:112,height:64});
 	
 	sprites['bossface'] = new Sprite(RT+"img/bossface.gif", {offset:new Point(0, 0),width:90,height:120});
 	

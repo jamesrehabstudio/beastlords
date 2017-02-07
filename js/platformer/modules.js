@@ -104,7 +104,8 @@ var mod_rigidbody = {
 			if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
 			
 			//Add just enough force to lock them to the ground
-			if(this.grounded ) this.force.y += 1.0;
+			if(this.grounded ) this.force.y += 0.01;
+			//if(this.grounded ) this.force.y = 0.0;
 			
 			//The timer prevents landing errors
 			this._groundedTimer -= this.grounded ? 1 : 10;
@@ -517,7 +518,7 @@ var mod_combat = {
 				
 				damage = Math.round(fdamage);
 			} else {
-				damage += Math.round(damage - (damage * this.defencePhysical));
+				damage = Math.round(damage * (1 - this.defencePhysical));
 			}
 			return damage;
 		}

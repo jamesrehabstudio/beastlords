@@ -25,7 +25,8 @@ Weapon = {
 		new Sequence([[7,4,0.10],[8,4,0.10],[9,4,0.10],[10,4,0.10]]),
 		new Sequence([[1,8,0.10],[2,8,0.10],[3,8,0.10],[4,8,0.10],[5,8,0.10]]),
 		new Sequence([[1,9,0.10],[2,9,0.10],[3,9,0.10],[4,9,0.10],[5,9,0.10]]),
-		new Sequence([[0,5,0.10],[1,5,0.10],[2,5,0.10],[3,5,0.10],[4,5,0.10],[5,5,0.10],[6,5,0.10]])
+		new Sequence([[0,5,0.10],[1,5,0.10],[2,5,0.10],[3,5,0.10],[4,5,0.10],[5,5,0.10],[6,5,0.10]]),
+		new Sequence([[7,5,0.20],[8,5,0.20],[9,5,0.20],[10,5,0.20],[11,5,0.20]])
 	]
 };
 
@@ -130,7 +131,7 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 				"time" : 1.5*baseTime*Game.DELTASECOND,
 				"rest":restTime*Game.DELTASECOND*0.8,
 				"miss":restTime*Game.DELTASECOND,
-				"animation" : 3,
+				"animation" : 6,
 				"pause" : 0.05*Game.DELTASECOND,
 				"stun" : 0.5 * Game.DELTASECOND,
 				"knockback" : new Point(0.0, -14.0),

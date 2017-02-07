@@ -94,6 +94,7 @@ function BreakableTile(x, y, d, ops){
 	this.resetOnSleep = 0;
 	this.tileLayer = game.tileCollideLayer;
 	this.explode = 1;
+	this.triggersave = false;
 	
 	this.startBroken = 0;
 	
@@ -171,6 +172,9 @@ function BreakableTile(x, y, d, ops){
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.strikeable && obj instanceof Player){
+			if(this.triggersave){
+				NPC.set(this.triggersave, 1);
+			}
 			if(!this.broken){
 				if(obj.states.downStab){
 					obj.force.y = -2;
@@ -208,6 +212,12 @@ function BreakableTile(x, y, d, ops){
 				this.unbreak(false);
 			}
 		});
+	}
+	if("triggersave" in ops){
+		this.triggersave = ops["triggersave"];
+		if(NPC.get(this.triggersave)){
+			this.trigger("activate");
+		}
 	}
 }
 BreakableTile.prototype.unbreak = function(explode){

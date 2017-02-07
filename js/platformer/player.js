@@ -228,7 +228,7 @@ function Player(x, y){
 			if("stun" in this.attstates.currentAttack){
 				obj.stun = this.attstates.currentAttack.stun;
 				if(!this.grounded && obj.life > 0 && obj.hasModule(mod_rigidbody)){
-					obj.airtime = this.attstates.currentAttack.stun;
+					obj.airtime = this.attstates.currentAttack.stun * this.perks.attackairboost;
 				}
 			}
 			if("knockback" in this.attstates.currentAttack && obj.hasModule(mod_rigidbody)){
@@ -334,6 +334,7 @@ function Player(x, y){
 	};
 	
 	this.perks = {
+		"attackairboost" : 0.0,
 		"lifeSteal" : 0.0,
 		"bonusMoney" : 0.0,
 		"painImmune" : false,
@@ -856,7 +857,7 @@ Player.prototype.attack = function(){
 				this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
 				
 				if(!this.grounded){
-					this.airtime = this.attstates.attackEndTime;
+					this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
 				}
 				
 				return;
@@ -886,7 +887,7 @@ Player.prototype.attack = function(){
 	this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
 	
 	if(!this.grounded){
-		this.airtime = this.attstates.attackEndTime;
+		this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
 	}
 }
 Player.prototype.cancelAttack = function(){
@@ -1354,6 +1355,12 @@ Player.prototype.hudrender = function(g,c){
 	Background.pushLight( this.position, this.lightRadius );
 }
 
+Player.prototype.animtest = function(){
+	if(input.state("up")==1)this.frame.y--;
+	if(input.state("down")==1)this.frame.y++;
+	if(input.state("left")==1)this.frame.x--;
+	if(input.state("right")==1)this.frame.x++;
+}
 var playerSwordPosition = {
 		0 : {
 			0 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
@@ -1419,7 +1426,12 @@ var playerSwordPosition = {
 			3 : {p:new Point(12,-6),r:45,z:-1,v:new Point(1,2)},
 			4 : {p:new Point(6,-6),r:45,z:-1,v:new Point(2,2)},
 			5 : {p:new Point(14,-2),r:50,z:-1,v:new Point(3,2)},
-			6 : {p:new Point(16,4),r:60,z:1,v:0},
+			6 : {p:new Point(16,4),r:80,z:1,v:0},
+			7 : {p:new Point(-4,4),r:100,z:-1,v:0},
+			8 : {p:new Point(12,-26),r:10,z:-1,v:0,v:new Point(0,6)},
+			9 : {p:new Point(12,-27),r:0,z:-1,v:0,v:new Point(1,6)},
+			10 : {p:new Point(12,-27),r:0,z:-1,v:0,v:new Point(2,6)},
+			11 : {p:new Point(12,-27),r:0,z:-1,v:0},
 		},
 		6 : {
 			8 : {p:new Point(-16,1),r:-45,z:1,v:0}

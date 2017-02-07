@@ -11,6 +11,7 @@ function Drain(x,y,d,ops){
 	this.speed = 0.25;
 	this.emptyOnStart = 0;
 	this.resetOnSleep = 0;
+	this.triggersave = false;
 	
 	this.fullheight = this.height;
 	
@@ -32,6 +33,9 @@ function Drain(x,y,d,ops){
 				this.filling = 0;
 				this.active = 1;
 			}
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave,1);
 		}
 	});
 	
@@ -80,6 +84,19 @@ function Drain(x,y,d,ops){
 	}
 	if("resetonsleep" in ops){
 		this.resetOnSleep = ops["resetonsleep"] * 1;
+	}
+	if("triggersave" in ops){
+		this.triggersave = ops["triggersave"];
+		if(NPC.get(this.triggersave)){
+			if(this.emptyOnStart){
+				//Instant fill
+				this.height = this.fullheight;
+			} else {
+				//Instant empty
+				this.height = 0;
+			}
+			this.updateTiles();
+		}
 	}
 	
 	if(this.resetOnSleep){

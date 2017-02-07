@@ -63,7 +63,8 @@ function Airjet(x,y,d,ops){
 		}
 	});
 	
-	this.hoverLevel = this.position.y + (this.height - this.minHeight);
+	//this.hoverLevel = this.position.y + (this.height - this.minHeight);
+	this.hoverLevel = this.position.y;
 }
 
 Airjet.prototype.idle = function(){

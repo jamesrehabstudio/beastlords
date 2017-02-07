@@ -68,7 +68,8 @@ function Airjet(x,y,d,ops){
 		}
 	});
 	
-	this.hoverLevel = this.position.y + (this.height - this.minHeight);
+	//this.hoverLevel = this.position.y + (this.height - this.minHeight);
+	this.hoverLevel = this.position.y;
 }
 
 Airjet.prototype.idle = function(){
@@ -4986,6 +4987,7 @@ function Drain(x,y,d,ops){
 	this.speed = 0.25;
 	this.emptyOnStart = 0;
 	this.resetOnSleep = 0;
+	this.triggersave = false;
 	
 	this.fullheight = this.height;
 	
@@ -5007,6 +5009,9 @@ function Drain(x,y,d,ops){
 				this.filling = 0;
 				this.active = 1;
 			}
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave,1);
 		}
 	});
 	
@@ -5055,6 +5060,19 @@ function Drain(x,y,d,ops){
 	}
 	if("resetonsleep" in ops){
 		this.resetOnSleep = ops["resetonsleep"] * 1;
+	}
+	if("triggersave" in ops){
+		this.triggersave = ops["triggersave"];
+		if(NPC.get(this.triggersave)){
+			if(this.emptyOnStart){
+				//Instant fill
+				this.height = this.fullheight;
+			} else {
+				//Instant empty
+				this.height = 0;
+			}
+			this.updateTiles();
+		}
 	}
 	
 	if(this.resetOnSleep){
@@ -5228,7 +5246,7 @@ function EffectExplosion(x, y, sound){
 	
 	this.speed = 0.3;	
 	sound = sound || "explode2";
-	audio.playLock(sound,0.1);
+	audio.play(sound,this.position);
 	this.on("sleep",function(){ this.destroy(); } );
 }
 
@@ -8749,14 +8767,16 @@ function FireBird(x,y){
 	this.addModule( mod_rigidbody );
 	
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
-	this.damage = Spawn.damage(2,this.difficulty);
+	this.damage = 0;
+	this.damageFire = Spawn.damage(2,this.difficulty);
 	this.fire = new Point(x,y);
 	
 	this.speed = 0.4;
+	this.frameWalkProgress = 0.0;
+	this.frameTurnTime = 0.0;
+	this.frameTurnTimeMax = Game.DELTASECOND * 0.25;
+	this.previousGrounded = false;
 	
-	this.states = {
-		"turntime" : 0.0
-	};
 	
 	this.on("collideObject", function(obj){
 		if(obj instanceof Airjet && obj.active){
@@ -8785,26 +8805,42 @@ FireBird.prototype.update = function(){
 		
 		if(this.stun > 0){
 			this.force.x = 0;
+			this.frame.x = 0;
+			this.frame.y = 3;
 		} else {
-			//Turn logic
-			if(dir.x > 0 != this.flip){
-				this.states.turntime += this.delta;
-				if(this.states.turntime > Game.DELTASECOND * 0.5){
-					this.states.turntime = 0.0;
-					this.flip = !this.flip;
+			if(this.grounded){
+				if( this.frameTurnTime > 0){
+					//Turn logic
+					var p = 1 - (this.frameTurnTime / this.frameTurnTimeMax);
+					this.frame.x = Math.min(1 + p*3, 3);
+					this.frame.y = 3;
+					this.frameTurnTime -= this.delta;
+				} else {
+					this.frameWalkProgress = (this.frameWalkProgress + Math.abs(this.force.x) * this.delta * 0.15) % 8.0;
+					this.frame.x = (this.frameWalkProgress) % 4;
+					this.frame.y = (this.frameWalkProgress*0.25);
+					this.speed = 0.4;
+					this.friction = 0.1;
+					this.fire.x = this.position.x + this.forward() * 32;
+					this.fire.y = this.position.y - 6;
+					this.previousGrounded = true;
+					
+					if(dir.x > 0 != this.flip){
+						this.frameTurnTime = this.frameTurnTimeMax;
+						this.flip = !this.flip;
+						this.frame.x = 1;
+						this.frame.y = 3;
+					}
 				}
 			} else {
-				this.states.turntime = 0.0;
-			}
-			
-			if(this.grounded){
-				this.frame.y = 0;
-				this.speed = 0.4;
-				this.friction = 0.1;
-				this.fire.x = this.position.x + this.forward() * 32;
-				this.fire.y = this.position.y - 6;
-			} else {
-				this.frame.y = 1;
+				if(this.previousGrounded){
+					this.frame.x = 0;
+					this.previousGrounded = false;
+				}
+				this.flip = dir.x > 0;
+				this.frameTurnTime = 0;
+				this.frame.x = Math.min(this.frame.x + this.delta * 0.4, 3);
+				this.frame.y = 2;
 				this.speed = 0.25;
 				this.friction = 0.05;
 				this.force.y -= 0.8 * this.delta;
@@ -8819,15 +8855,20 @@ FireBird.prototype.update = function(){
 		var hits = game.overlaps(firearea);
 		for(var i=0; i < hits.length; i++){
 			if( hits[i] instanceof Player && hits[i].intersects(firearea) ){
-				hits[i].hurt(this, this.damage);
+				hits[i].hurt(this, this.getDamage());
 			}
 		}
+	} else {
+		this.frame.x = 0;
+		this.frame.y = 3;
 	}
 }
 
 FireBird.prototype.render = function(g,c){
 	GameObject.prototype.render.apply(this,[g,c]);
-	g.renderSprite("bullets",this.fire.subtract(c),this.zIndex,new Point((game.timeScaled*0.5)%3,3),this.flip);
+	if(this.life > 0){
+		g.renderSprite("bullets",this.fire.subtract(c),this.zIndex,new Point((game.timeScaled*0.5)%3,3),this.flip);
+	}
 }
 
  /* platformer\enemy_fireman.js*/ 
@@ -13509,7 +13550,8 @@ Weapon = {
 		new Sequence([[7,4,0.10],[8,4,0.10],[9,4,0.10],[10,4,0.10]]),
 		new Sequence([[1,8,0.10],[2,8,0.10],[3,8,0.10],[4,8,0.10],[5,8,0.10]]),
 		new Sequence([[1,9,0.10],[2,9,0.10],[3,9,0.10],[4,9,0.10],[5,9,0.10]]),
-		new Sequence([[0,5,0.10],[1,5,0.10],[2,5,0.10],[3,5,0.10],[4,5,0.10],[5,5,0.10],[6,5,0.10]])
+		new Sequence([[0,5,0.10],[1,5,0.10],[2,5,0.10],[3,5,0.10],[4,5,0.10],[5,5,0.10],[6,5,0.10]]),
+		new Sequence([[7,5,0.20],[8,5,0.20],[9,5,0.20],[10,5,0.20],[11,5,0.20]])
 	]
 };
 
@@ -13614,7 +13656,7 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 				"time" : 1.5*baseTime*Game.DELTASECOND,
 				"rest":restTime*Game.DELTASECOND*0.8,
 				"miss":restTime*Game.DELTASECOND,
-				"animation" : 3,
+				"animation" : 6,
 				"pause" : 0.05*Game.DELTASECOND,
 				"stun" : 0.5 * Game.DELTASECOND,
 				"knockback" : new Point(0.0, -14.0),
@@ -16513,7 +16555,8 @@ var mod_rigidbody = {
 			if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
 			
 			//Add just enough force to lock them to the ground
-			if(this.grounded ) this.force.y += 1.0;
+			if(this.grounded ) this.force.y += 0.01;
+			//if(this.grounded ) this.force.y = 0.0;
 			
 			//The timer prevents landing errors
 			this._groundedTimer -= this.grounded ? 1 : 10;
@@ -16926,7 +16969,7 @@ var mod_combat = {
 				
 				damage = Math.round(fdamage);
 			} else {
-				damage += Math.round(damage - (damage * this.defencePhysical));
+				damage = Math.round(damage * (1 - this.defencePhysical));
 			}
 			return damage;
 		}
@@ -19261,7 +19304,7 @@ function Player(x, y){
 			if("stun" in this.attstates.currentAttack){
 				obj.stun = this.attstates.currentAttack.stun;
 				if(!this.grounded && obj.life > 0 && obj.hasModule(mod_rigidbody)){
-					obj.airtime = this.attstates.currentAttack.stun;
+					obj.airtime = this.attstates.currentAttack.stun * this.perks.attackairboost;
 				}
 			}
 			if("knockback" in this.attstates.currentAttack && obj.hasModule(mod_rigidbody)){
@@ -19367,6 +19410,7 @@ function Player(x, y){
 	};
 	
 	this.perks = {
+		"attackairboost" : 0.0,
 		"lifeSteal" : 0.0,
 		"bonusMoney" : 0.0,
 		"painImmune" : false,
@@ -19889,7 +19933,7 @@ Player.prototype.attack = function(){
 				this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
 				
 				if(!this.grounded){
-					this.airtime = this.attstates.attackEndTime;
+					this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
 				}
 				
 				return;
@@ -19919,7 +19963,7 @@ Player.prototype.attack = function(){
 	this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
 	
 	if(!this.grounded){
-		this.airtime = this.attstates.attackEndTime;
+		this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
 	}
 }
 Player.prototype.cancelAttack = function(){
@@ -20387,6 +20431,12 @@ Player.prototype.hudrender = function(g,c){
 	Background.pushLight( this.position, this.lightRadius );
 }
 
+Player.prototype.animtest = function(){
+	if(input.state("up")==1)this.frame.y--;
+	if(input.state("down")==1)this.frame.y++;
+	if(input.state("left")==1)this.frame.x--;
+	if(input.state("right")==1)this.frame.x++;
+}
 var playerSwordPosition = {
 		0 : {
 			0 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
@@ -20452,7 +20502,12 @@ var playerSwordPosition = {
 			3 : {p:new Point(12,-6),r:45,z:-1,v:new Point(1,2)},
 			4 : {p:new Point(6,-6),r:45,z:-1,v:new Point(2,2)},
 			5 : {p:new Point(14,-2),r:50,z:-1,v:new Point(3,2)},
-			6 : {p:new Point(16,4),r:60,z:1,v:0},
+			6 : {p:new Point(16,4),r:80,z:1,v:0},
+			7 : {p:new Point(-4,4),r:100,z:-1,v:0},
+			8 : {p:new Point(12,-26),r:10,z:-1,v:0,v:new Point(0,6)},
+			9 : {p:new Point(12,-27),r:0,z:-1,v:0,v:new Point(1,6)},
+			10 : {p:new Point(12,-27),r:0,z:-1,v:0,v:new Point(2,6)},
+			11 : {p:new Point(12,-27),r:0,z:-1,v:0},
 		},
 		6 : {
 			8 : {p:new Point(-16,1),r:-45,z:1,v:0}
@@ -23004,7 +23059,7 @@ function game_start(g){
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
 		WorldLocale.loadMap("temple2.tmx");
-		//WorldLocale.loadMap("firepits.tmx", "temple1bottom");
+		//WorldLocale.loadMap("firepits.tmx", "testme");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;
@@ -23200,6 +23255,7 @@ function BreakableTile(x, y, d, ops){
 	this.resetOnSleep = 0;
 	this.tileLayer = game.tileCollideLayer;
 	this.explode = 1;
+	this.triggersave = false;
 	
 	this.startBroken = 0;
 	
@@ -23277,6 +23333,9 @@ function BreakableTile(x, y, d, ops){
 	});
 	this.on("struck", function(obj,pos,damage){
 		if( this.strikeable && obj instanceof Player){
+			if(this.triggersave){
+				NPC.set(this.triggersave, 1);
+			}
 			if(!this.broken){
 				if(obj.states.downStab){
 					obj.force.y = -2;
@@ -23314,6 +23373,12 @@ function BreakableTile(x, y, d, ops){
 				this.unbreak(false);
 			}
 		});
+	}
+	if("triggersave" in ops){
+		this.triggersave = ops["triggersave"];
+		if(NPC.get(this.triggersave)){
+			this.trigger("activate");
+		}
 	}
 }
 BreakableTile.prototype.unbreak = function(explode){
@@ -23687,6 +23752,102 @@ Treads.prototype.render = function(g,c){
 }
 Treads.prototype.shouldRender = MovingBlock.prototype.shouldRender;
 Treads.prototype.idle = function(){}
+
+Gears.prototype = new GameObject();
+Gears.prototype.constructor = GameObject;
+function Gears(x,y,d,ops){
+	this.constructor();
+	this.position.x = x - d[0] * 0.5;
+	this.position.y = y - d[1] * 0.5;
+	this.origin = new Point();
+	this.zIndex = 1;
+	this.width = d[0];
+	this.height = 64;
+	this.frame = new Point(0,0);
+	this.sprite = "gear1"
+	
+	this.speed = 0.4;
+	this.startX = this.position.x;
+	this.moveStart = 0;
+	this.moveEnd = 0;
+	
+	this.duckForce = 1.5;
+	this.turnTransfer = 0.7;
+	this.turnForce = 0.0;
+	this.turnForceMax = 4.0;
+	this.turnForceDrag = 0.05;
+	this.turnObjectMove = 0.3;
+	
+	if("start" in ops){
+		this.moveStart = ops["start"] * 1;
+	}
+	if("end" in ops){
+		this.moveEnd = ops["end"] * 1;
+	}
+	
+	this.forwardDirection = this.moveEnd > 0 ? 1 : -1;
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_rigidbody)){
+			if(obj.force.y > 0){
+				var fallThreshold = obj.states.duck ? 8 : 14;
+				if(obj.position.y + fallThreshold < this.position.y + this.height){
+					obj.position.y -= this.turnForce * this.delta * this.turnObjectMove;
+					obj.trigger( "collideVertical", 1);
+				}
+			}
+		
+			if(obj instanceof Player){
+				this.turnForce += obj.force.x * this.delta * this.turnTransfer;
+				this.turnForce = Math.max(Math.min(this.turnForce, this.turnForceMax),-this.turnForceMax);
+				
+				if(obj.states.duck){
+					obj.position.y += this.delta * this.duckForce;
+				}
+			}
+		}
+	});
+	
+	this.on("player_death", function(){
+		this.position.x = this.startX;
+	});
+}
+
+Gears.prototype.update = function(){
+	
+	if(this.turnForce == 0){
+		
+	} else {
+		var f = (this.turnForce > 0 && this.forwardDirection > 0) || (this.turnForce < 0 && this.forwardDirection < 0);
+		if(f){
+			//Going towards end
+			this.position.x += this.forwardDirection * Math.abs(this.turnForce) * this.speed * this.delta;
+			var dif = this.position.x - this.startX;
+			if((this.forwardDirection < 0 && dif < this.moveEnd) || (this.forwardDirection > 0 && dif > this.moveEnd)){
+				this.position.x = this.startX + this.moveEnd;
+				this.turnForce = 0;
+			}
+		} else {
+			//Going towards start
+			this.position.x -= this.forwardDirection * Math.abs(this.turnForce) * this.speed * this.delta;
+			var dif = this.position.x - this.startX;
+			if((this.forwardDirection > 0 && dif < this.moveStart) || (this.forwardDirection < 0 && dif > this.moveStart)){
+				this.position.x = this.startX + this.moveStart;
+				this.turnForce = 0;
+			}
+		}
+	}
+	
+	this.frame.x = Math.mod(this.frame.x - this.turnForce * 0.1 * this.delta,5);
+	this.turnForce *= 1 - (this.turnForceDrag * this.delta);
+}
+
+Gears.prototype.render = function(g,c){
+	for(var i=0; i < this.width; i+= 16) {
+		var f = new Point((this.frame.x+i) % 5, 0);
+		g.renderSprite(this.sprite,this.position.add(new Point(i,0)).subtract(c), this.zIndex, f, false);
+	}
+}
 
  /* platformer\tree.js*/ 
 

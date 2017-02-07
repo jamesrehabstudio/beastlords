@@ -20,7 +20,7 @@ function game_start(g){
 		//_player.dodgeFlash = true;
 		//_player.grabLedges = true;
 		WorldLocale.loadMap("temple2.tmx");
-		//WorldLocale.loadMap("firepits.tmx", "temple1bottom");
+		//WorldLocale.loadMap("firepits.tmx", "testme");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			_player.lightRadius = 240;

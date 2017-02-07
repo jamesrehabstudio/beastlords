@@ -118,3 +118,99 @@ Treads.prototype.render = function(g,c){
 }
 Treads.prototype.shouldRender = MovingBlock.prototype.shouldRender;
 Treads.prototype.idle = function(){}
+
+Gears.prototype = new GameObject();
+Gears.prototype.constructor = GameObject;
+function Gears(x,y,d,ops){
+	this.constructor();
+	this.position.x = x - d[0] * 0.5;
+	this.position.y = y - d[1] * 0.5;
+	this.origin = new Point();
+	this.zIndex = 1;
+	this.width = d[0];
+	this.height = 64;
+	this.frame = new Point(0,0);
+	this.sprite = "gear1"
+	
+	this.speed = 0.4;
+	this.startX = this.position.x;
+	this.moveStart = 0;
+	this.moveEnd = 0;
+	
+	this.duckForce = 1.5;
+	this.turnTransfer = 0.7;
+	this.turnForce = 0.0;
+	this.turnForceMax = 4.0;
+	this.turnForceDrag = 0.05;
+	this.turnObjectMove = 0.3;
+	
+	if("start" in ops){
+		this.moveStart = ops["start"] * 1;
+	}
+	if("end" in ops){
+		this.moveEnd = ops["end"] * 1;
+	}
+	
+	this.forwardDirection = this.moveEnd > 0 ? 1 : -1;
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_rigidbody)){
+			if(obj.force.y > 0){
+				var fallThreshold = obj.states.duck ? 8 : 14;
+				if(obj.position.y + fallThreshold < this.position.y + this.height){
+					obj.position.y -= this.turnForce * this.delta * this.turnObjectMove;
+					obj.trigger( "collideVertical", 1);
+				}
+			}
+		
+			if(obj instanceof Player){
+				this.turnForce += obj.force.x * this.delta * this.turnTransfer;
+				this.turnForce = Math.max(Math.min(this.turnForce, this.turnForceMax),-this.turnForceMax);
+				
+				if(obj.states.duck){
+					obj.position.y += this.delta * this.duckForce;
+				}
+			}
+		}
+	});
+	
+	this.on("player_death", function(){
+		this.position.x = this.startX;
+	});
+}
+
+Gears.prototype.update = function(){
+	
+	if(this.turnForce == 0){
+		
+	} else {
+		var f = (this.turnForce > 0 && this.forwardDirection > 0) || (this.turnForce < 0 && this.forwardDirection < 0);
+		if(f){
+			//Going towards end
+			this.position.x += this.forwardDirection * Math.abs(this.turnForce) * this.speed * this.delta;
+			var dif = this.position.x - this.startX;
+			if((this.forwardDirection < 0 && dif < this.moveEnd) || (this.forwardDirection > 0 && dif > this.moveEnd)){
+				this.position.x = this.startX + this.moveEnd;
+				this.turnForce = 0;
+			}
+		} else {
+			//Going towards start
+			this.position.x -= this.forwardDirection * Math.abs(this.turnForce) * this.speed * this.delta;
+			var dif = this.position.x - this.startX;
+			if((this.forwardDirection > 0 && dif < this.moveStart) || (this.forwardDirection < 0 && dif > this.moveStart)){
+				this.position.x = this.startX + this.moveStart;
+				this.turnForce = 0;
+			}
+		}
+	}
+	
+	this.frame.x = Math.mod(this.frame.x - this.turnForce * 0.1 * this.delta,5);
+	this.turnForce *= 1 - (this.turnForceDrag * this.delta);
+}
+
+Gears.prototype.render = function(g,c){
+	for(var i=0; i < this.width; i+= 16) {
+		var f = new Point((this.frame.x+i) % 5, 0);
+		g.renderSprite(this.sprite,this.position.add(new Point(i,0)).subtract(c), this.zIndex, f, false);
+	}
+}
