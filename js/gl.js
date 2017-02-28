@@ -214,11 +214,15 @@ function Sprite(url, options) {
 	
 	this.frame_width = options['width'] || 0;
 	this.frame_height = options['height'] || 0;
+	this.custom_offset = false;
 	if("fragment" in options){
 		fragmentshader = options["fragment"];
 	}
 	if("vertex" in options){
 		vertexshader = options["vertex"];
+	}
+	if("custom_offset" in options){
+		this.custom_offset = options["custom_offset"];
 	}
 	
 	this.material = new Material(
@@ -318,6 +322,16 @@ Sprite.prototype.render = function( gl, p, frame_x, frame_y, flip, shaderOps ) {
 			//Correct shader already selected
 		} else if( shaderOps["shader"] in window.materials ){
 			shader = window.materials[shaderOps["shader"]]
+		}
+	}
+	
+	if(this.custom_offset){
+		var coffname = Math.floor(frame_x)+"_"+Math.floor(frame_y);
+		if(coffname in this.custom_offset){
+			p = new Point(
+				p.x + this.custom_offset[coffname].x,
+				p.y + this.custom_offset[coffname].y
+			);
 		}
 	}
 	

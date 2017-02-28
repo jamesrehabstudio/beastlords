@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="208" height="90" tilewidth="16" tileheight="16" nextobjectid="35">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="208" height="90" tilewidth="16" tileheight="16" nextobjectid="36">
  <tileset firstgid="1" name="town" tilewidth="16" tileheight="16" tilecount="1024" columns="32">
   <image source="../img/tiles/town.png" trans="ff00ff" width="512" height="512"/>
  </tileset>
@@ -428,19 +428,9 @@
   </object>
   <object id="21" name="Tree" x="1504" y="240" width="64" height="128"/>
   <object id="22" name="ShieldSmith" x="1456" y="384" width="64" height="64"/>
-  <object id="24" name="Shrine" x="1904" y="416" width="80" height="32">
+  <object id="24" name="Shrine" x="1264" y="416" width="80" height="32">
    <properties>
     <property name="spells" value="SpellHeal"/>
-   </properties>
-  </object>
-  <object id="25" name="Shrine" x="1152" y="416" width="64" height="32">
-   <properties>
-    <property name="spells" value="SpellSlimeGernade"/>
-   </properties>
-  </object>
-  <object id="26" name="Shrine" x="1328" y="416" width="64" height="32">
-   <properties>
-    <property name="spells" value="SpellFire"/>
    </properties>
   </object>
   <object id="27" name="Tranistion" x="3296" y="384" width="16" height="64">

@@ -90,19 +90,43 @@ PauseMenu.prototype.update = function(){
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			if( input.state("up") == 1 ) { 
-				this.cursor = (this.cursor > 0) ? this.cursor - 1 : _player.uniqueItems.length-1; 
+				this.cursor = (this.cursor > 0) ? this.cursor - 1 : 5; 
 				audio.play("cursor"); 
 			}
 			if( input.state("down") == 1 ) { 
-				this.cursor = (this.cursor + 1) % _player.uniqueItems.length; 
+				this.cursor = (this.cursor + 1) % 6; 
 				audio.play("cursor"); 
 			}
+			if( input.state("fire") == 1 ) { 
+				if(this.cursor == 0){
+					_player.lightRadius = !_player.lightRadius;
+				}
+				if(this.cursor == 1){
+					if(_player.grabLedge){
+						_player.grabLedge = false;
+						_player.speeds.jump = 9.3;
+					} else {
+						_player.grabLedge = true;
+						_player.speeds.jump = 7.0;
+					}
+				} else if(this.cursor == 2){
+					_player.downstab = !_player.downstab;
+				} else if(this.cursor == 3){
+					_player.doubleJump = !_player.doubleJump;
+				} else if(this.cursor == 4){
+					_player.walljump = !_player.walljump;
+				} else if(this.cursor == 5){
+					_player.dodgeFlash = !_player.dodgeFlash;
+				}
+			}
+			/*
 			if( input.state("fire") == 1 ) { 
 				_player.unique_item = _player.uniqueItems[this.cursor];
 				PauseMenu.open = false;
 				game.pause = false;
 				audio.play("spell");
 			}
+			*/
 		} else if (this.page == 4){
 			//Quests
 			if(this.questlist.length > 0){
@@ -267,7 +291,36 @@ PauseMenu.prototype.hudrender = function(g,c){
 			leftx = game.resolution.x*0.5 - 224*0.5;
 			
 			boxArea(g,leftx,8,224,224);
-			textArea(g,"Special Items",leftx+56,20);
+			//textArea(g,"Special Items",leftx+56,20);
+			textArea(g,"Debug",leftx+92,20);
+			
+			textArea(g,"@",leftx+16,32+this.cursor*12);
+			
+			var offy = 32;
+			textArea(g,"Light radius:",leftx+32,offy);
+			textArea(g,""+_player.lightRadius,leftx+144,offy);
+			offy += 12;
+			
+			textArea(g,"Grab Ledge:",leftx+32,offy);
+			textArea(g,""+_player.grabLedge,leftx+144,offy);
+			offy += 12;
+			
+			textArea(g,"Down Stab:",leftx+32,offy);
+			textArea(g,""+_player.downstab,leftx+144,offy);
+			offy += 12;
+			
+			textArea(g,"Double Jump:",leftx+32,offy);
+			textArea(g,""+_player.doubleJump,leftx+144,offy);
+			offy += 12;
+			
+			textArea(g,"Wall Jump:",leftx+32,offy);
+			textArea(g,""+_player.walljump,leftx+144,offy);
+			offy += 12;
+			
+			textArea(g,"Dodge Flash:",leftx+32,offy);
+			textArea(g,""+_player.dodgeFlash,leftx+144,offy);
+			offy += 12;
+			
 			
 			for(var i=0; i < _player.uniqueItems.length; i++){
 				var y_pos = 46 + 20 * i;
@@ -325,9 +378,9 @@ PauseMenu.prototype.hudrender = function(g,c){
 	}
 }
 
-PauseMenu.renderStatsPage= function(g,c){
+PauseMenu.renderStatsPage= function(g,c,testPlayer){
 	var padding = 20;
-	var statX = 56;
+	var statX = 64;
 			
 	boxArea(g,c.x,c.y,224,224);
 	
@@ -336,14 +389,43 @@ PauseMenu.renderStatsPage= function(g,c){
 	//textArea(g,"Points: "+_player.stat_points ,c.x+20,36);
 	var attributeY = c.y+28;
 	
+	//Quick function for rendering stats
+	var r = function(g,x,y,player,vfunc){
+		var origVal = vfunc(_player);
+		if(!player){
+			textArea(g,""+origVal, x,y);
+		} else {
+			var sval = "" + vfunc(player);
+			var val = Number.parseInt(sval);
+			var xoff = 8 * (sval.length);
+			origVal = Number.parseInt(origVal);
+			textArea(g,sval, x,y);
+			if(val > origVal){
+				g.renderSprite("text",new Point(x+xoff,y),999,new Point(6,6));
+			} else if(val < origVal){
+				g.renderSprite("text",new Point(x+xoff,y),999,new Point(7,6));
+			}
+		}
+	}
+	
 	//attack
 	textArea(g,"Attack:", c.x+padding,attributeY);
-	textArea(g,""+Math.floor(_player.stats["attack"]), c.x+padding+statX,attributeY);
+	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.attack;});
+	attributeY += 12;
+	
+	//magic
+	textArea(g,"Defence:", c.x+padding,attributeY);
+	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.defence;});
 	attributeY += 12;
 	
 	//magic
 	textArea(g,"Magic:", c.x+padding,attributeY);
-	textArea(g,""+Math.floor(_player.stats["magic"]), c.x+padding+statX,attributeY);
+	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.magic;});
+	attributeY += 20;
+	
+	//magic
+	textArea(g,"Damage:", c.x+padding,attributeY);
+	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.damage + p.damageFire + p.damageSlime + p.damageIce + p.damageLight;});
 	attributeY += 20;
 	
 	var damages = _player.getDamage();
@@ -352,43 +434,42 @@ PauseMenu.renderStatsPage= function(g,c){
 	attributeY += 12;
 	
 	//Physical
-	textArea(g,"Phys:", c.x+padding,attributeY);
-	textArea(g,""+damages.physical, c.x+padding+statX,attributeY);
-	textArea(g,Math.floor(_player.defencePhysical*100)+"%", c.x+padding+statX+32,attributeY);
+	textArea(g,"P", c.x+padding,attributeY);
+	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damage);});
+	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defencePhysical*100)+"%";});
 	attributeY += 12;
 	
 	//Fire
-	textArea(g,"Fire:", c.x+padding,attributeY);
-	textArea(g,""+damages.fire, c.x+padding+statX,attributeY);
-	textArea(g,Math.floor(_player.defenceFire*100)+"%", c.x+padding+statX+32,attributeY);
+	textArea(g,"F", c.x+padding,attributeY);
+	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageFire);});
+	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceFire*100)+"%";});
 	attributeY += 12;
 	
 	//Fire
-	textArea(g,"Slime:", c.x+padding,attributeY);
-	textArea(g,""+damages.slime, c.x+padding+statX,attributeY);
-	textArea(g,Math.floor(_player.defenceSlime*100)+"%", c.x+padding+statX+32,attributeY);
+	textArea(g,"S", c.x+padding,attributeY);
+	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageSlime);});
+	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceSlime*100)+"%";});
 	attributeY += 12;
 	
 	//Ice
-	textArea(g,"Ice:", c.x+padding,attributeY);
-	textArea(g,""+damages.ice, c.x+padding+statX,attributeY);
-	textArea(g,Math.floor(_player.defenceIce*100)+"%", c.x+padding+statX+32,attributeY);
+	textArea(g,"I", c.x+padding,attributeY);
+	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageIce);});
+	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceIce*100)+"%";});
 	attributeY += 12;
 	
 	//Light
-	textArea(g,"Light:", c.x+padding,attributeY);
-	textArea(g,""+damages.light, c.x+padding+statX,attributeY);
-	textArea(g,Math.floor(_player.defenceLight*100)+"%", c.x+padding+statX+32,attributeY);
+	textArea(g,"L", c.x+padding,attributeY);
+	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageLight);});
+	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceLight*100)+"%";});
 	attributeY += 20;
 	
 	//Render perks
 	attributeY = c.y+28;
 	for(var i in _player.perks){
-		if(_player.perks[i]){
-			textArea(g,i.slice(0,6), c.x+128,attributeY);
-			if(!isNaN(_player.perks[i])){
-				textArea(g,""+Math.floor(_player.perks[i]*100), c.x+192,attributeY);
-			}
+		if(_player.perks[i] || (testPlayer && testPlayer.perks[i])){
+			textArea(g,i.slice(0,8), c.x+112,attributeY);
+			//textArea(g,""+Math.floor(_player.perks[i]*100), c.x+192,attributeY);
+			r(g,c.x+184,attributeY,testPlayer,function(p){return Math.floor(p.perks[i]*100);});
 			
 			attributeY += 12;
 		}

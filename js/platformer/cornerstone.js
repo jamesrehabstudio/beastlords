@@ -81,7 +81,6 @@ CornerStone.prototype.update = function(){
 				game.addObject(new DemoThanks(0,0));
 				
 			} else {
-				_player.keys = new Array();
 				NPC.set(this.npcvarname, 1);
 				//WorldLocale.loadMap("townhub.tmx");
 				this.fillTiles(0);

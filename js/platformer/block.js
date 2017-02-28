@@ -55,6 +55,32 @@ Block.prototype.render = function(g,c){
 	}
 }
 
+EnemyBlock.prototype = new GameObject();
+EnemyBlock.prototype.constructor = GameObject;
+function EnemyBlock(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.originalPosition = new Point(this.position.x,this.position.y);
+	this.width = d[0];
+	this.height = d[1];
+	this.visible = false;
+	
+	this.addModule(mod_block);
+	
+	ops = ops || {};
+	
+	this.blockCollideCriteria = function(obj){
+		return (
+			obj.hasModule(mod_rigidbody) &&
+			obj.hasModule(mod_combat) &&
+			obj.team == 0
+		);
+	}
+}
+
 SinkingBlock.prototype = new GameObject();
 SinkingBlock.prototype.constructor = GameObject;
 function SinkingBlock(x,y,d,ops){

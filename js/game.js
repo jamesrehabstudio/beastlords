@@ -225,7 +225,6 @@ function Game( elm ) {
 	
 	this.width = Math.floor( this.element.width / pixel_scale );
 	this.height = Math.floor( this.element.height / pixel_scale );
-	this.renderOrder = [0,1,"o",2,3];
 	this.layerCamera = {
 		//0 : function(c){ return new Point(c.x*0.9375, c.y); }
 	}
@@ -411,9 +410,14 @@ Game.prototype.render = function( ) {
 		this.backBuffer.reset(this.g);
 	}
 	
-	for(var order=0; order < this.renderOrder.length; order++){
+	var renderOrder = ["o"];
+	if(this.map != undefined && this.map.order instanceof Array){
+		renderOrder = this.map.order;
+	}
+	
+	for(var order=0; order < renderOrder.length; order++){
 		this.backBuffer.use(this.g);
-		if(this.renderOrder[order] == "o"){
+		if(renderOrder[order] == "o"){
 			if("render" in this.objects){
 				for(var i=0; i < this.objects["render"].length; i++){
 					this.renderObject( this.objects["render"][i] ); 
@@ -421,13 +425,26 @@ Game.prototype.render = function( ) {
 			}
 		} else {
 			//Render Tile Layer
-			if(this.map && this.renderOrder[order] in this.map.layers){
-				var layer = this.map.layers[this.renderOrder[order]];
+			if(this.map && renderOrder[order] in this.map.layers){
+				var layer = this.map.layers[renderOrder[order]];
+				var properties = this.map.layersProperties[renderOrder[order]];
 				var tilesprite = window.tiles[this.map.tileset];
+				var camera = this.camera.scale(1);
+				
+				if("scrollscale" in properties){
+					camera = camera.scale(properties.scrollscale);
+				}
+				if("scrolloffset_x" in properties){
+					camera = camera.add(new Point(properties.scrolloffset_x,0));
+				}
+				if("scrolloffset_y" in properties){
+					camera = camera.add(new Point(0,properties.scrolloffset_y));
+				}
+				
 				if(layer.length >= this.map.width){
 					tilesprite.render(
 						this.g,
-						this.camera,
+						camera,
 						layer,
 						this.map.width
 					);
@@ -522,9 +539,12 @@ Game.prototype.useMap = function( m ) {
 	this.gameThread.postMessage(m);
 	this.map = {
 		"layers" : m.layers,
+		"layersProperties" : m.layersProperties,
 		"width" : m.width,
 		"height" : m.height,
-		"tileset" : m.tileset
+		"tileset" : m.tileset,
+		"order" : m.order,
+		"collisionLayer" : m.collisionLayer
 	};
 }
 Game.prototype.loadSettings = function() {

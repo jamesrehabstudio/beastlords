@@ -155,6 +155,7 @@ function Game(){
 	this.timeScaled = 0.0;
 	
 	this.newmap = false;
+	this.newmapName = false;
 	this._newmapCallback = false;
 	this._loadCallback = false;
 	this._promptCallback = false;
@@ -186,7 +187,8 @@ Game.prototype.slow = function(s,d) {
 }
 Game.prototype.loadMap = function(name, func){
 	this._newmapCallback = func;
-	this.newmap = name;
+	this.newmap = true;
+	this.newmapName = name;
 }
 Game.prototype.update = function(){
 	//Interval lock
@@ -210,7 +212,7 @@ Game.prototype.update = function(){
 	if(this.newmap){
 		this.clearAll();
 		postMessage({
-			"loadmap" : this.newmap
+			"loadmap" : this.newmapName
 		});
 		
 		this.newmap = false;
@@ -226,6 +228,7 @@ Game.prototype.update = function(){
 			
 			var mods = obj.modules;
 			//Set any frame specific values
+			obj.deltaPrevious = obj.delta;
 			obj.delta = this.delta * obj.deltaScale;
 			obj.deltaUnscaled = this.delta;
 			
@@ -325,6 +328,7 @@ Game.prototype.useMap = function(m){
 	
 	var splits = Math.floor(Math.max(m.width,m.height)/64);
 	this.tree = new BSPTree(new Line(0,0,m.width*16,m.height*16), splits);
+	this.tileCollideLayer = m.collisionLayer;
 	
 	for(var i=0; i < m.objects.length; i++){
 		var obj = m.objects[i];
@@ -360,6 +364,18 @@ Game.prototype.setTile = function( x,y,layer,t ) {
 	this.tileDelta[layer][index] = t;
 	
 	return this.map.layers[layer][index] = t;
+}
+Game.prototype.getTileRule = function(x,y,layer){
+	var t = this.getTile(x,y,layer);
+	var tile = getTileData(t).tile;
+	var rules = tilerules.currentrule();
+	if(tile == 0){
+		return tilerules.ignore;
+	} else if(tile in rules){
+		return rules[tile];
+	} else {
+		return tilerules.block;
+	}
 }
 Game.prototype.addObject = function(obj){
 	if(obj instanceof GameObject && this.objects.indexOf(obj) < 0){
@@ -418,42 +434,43 @@ Game.prototype.t_unstick = function( obj ) {
 	var hitbox = obj.corners();
 	obj.isStuck = false;
 	var escape = {
-		"top" : 0,
-		"bottom" : 0,
-		"left" : 0,
-		"right" : 0
+		"top" : true,
+		"bottom" : true,
+		"left" : true,
+		"right" : true
 	}
 	var ts = 16;
 	var xinc = obj.width/ Math.ceil(obj.width/ts);
 	var yinc = obj.height/ Math.ceil(obj.height/ts);
 	var xmid = hitbox.left + Math.floor(obj.width/ts) * 0.5 * xinc;
 	var ymid = hitbox.top + Math.floor(obj.height/ts) * 0.5 * xinc;
-	for(var _x=hitbox.left; _x<=hitbox.right+1; _x+=xinc ) {
-		for(var _y=hitbox.top; _y <=hitbox.bottom+1; _y+=yinc ) {
+	for(var _x=hitbox.left; _x<=hitbox.right; _x+=xinc ) {
+		for(var _y=hitbox.top; _y <=hitbox.bottom; _y+=yinc ) {
 			var tile = this.getTile(_x,_y);
 			var tileData = getTileData(tile);
 			if( tileData.tile != 0 && !(tileData.tile in tilerules.currentrule()) ) {
 				//You're stuck, do something about it!
 				obj.isStuck = true;
-			} else {
-				if( _x == hitbox.left ) escape["left"] ++;
-				else if( _x == hitbox.right ) escape["right"] ++;
 				
-				if ( _y == hitbox.top ) escape["top"] ++;
-				else if( _y == hitbox.bottom ) escape["bottom"] ++;
+				if( _x == hitbox.left ) escape["left"] = false;
+				if( _x == hitbox.right ) escape["right"] = false;
+				if( _y == hitbox.top ) escape["top"] = false;
+				if( _y == hitbox.bottom ) escape["bottom"] = false;
 			}
 		}
 	}
 	if( obj.isStuck ) {
 		//Try to escape
-		var dir = new Point(
-			escape["right"] - escape["left"],
-			escape["bottom"] - escape["top"]
-		);
-		if( dir.x == 0 && dir.y == 0 ) {
-			obj.position.x += 1.0;
+		if(escape.left){
+			obj.position.x -= 1;
+		} else if(escape.right){
+			obj.position.x += 1;
+		} else if(escape.top){
+			obj.position.y -= 1;
+		} else if(escape.bottom){
+			obj.position.y += 1;
 		} else {
-			obj.position = obj.position.add(dir);
+			obj.position.x += 1;
 		}
 	}
 	return obj.isStuck;
@@ -988,6 +1005,7 @@ function GameObject() {
 	this.events = {};
 	this.delta = 0;
 	this.deltaUnscaled = 0;
+	this.deltaPrevious = 0;
 	this.deltaScale = 1.0;
 	this.filter = false;
 	this.isStuck = false;
@@ -1111,16 +1129,19 @@ GameObject.prototype.intersects = function(a) {
 	}
 }
 GameObject.prototype.update = function(){ }
-GameObject.prototype.idle = function(){
-	var current = this.awake;
+GameObject.prototype.isOnscreen = function(){
 	var corners = this.corners();
-	
-	this.awake = (
+	return (
 		corners.right + this.idleMargin > game.camera.x &&
 		corners.left - this.idleMargin < game.camera.x + game.resolution.x &&
 		corners.bottom + this.idleMargin > game.camera.y &&
 		corners.top - this.idleMargin < game.camera.y + game.resolution.y
 	);
+}
+GameObject.prototype.idle = function(){
+	var current = this.awake;
+	
+	this.awake = this.isOnscreen();
 	
 	if( current != this.awake ){
 		this.trigger( (this.awake ? "wakeup" : "sleep") );

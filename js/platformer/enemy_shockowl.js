@@ -55,7 +55,7 @@ Shockowl.prototype.update = function(){
 				var lightning2 = new LightningBolt(this.position.x,this.position.y);
 				lightning1.speed = -2;
 				lightning2.speed = 2;
-				lightning1.damage = lightning2.damage = this.damage;
+				lightning1.damageLight = lightning2.damageLight = this.damage;
 				lightning1.force.x = lightning2.force.x = this.forward() * 6;
 				lightning1.force.y = lightning2.force.y = -12;
 				game.addObject(lightning1);

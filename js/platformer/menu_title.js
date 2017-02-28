@@ -250,8 +250,7 @@ TitleMenu.prototype.startGame = function(){
 		audio.play("pause");
 		//WorldMap.newgame();
 		new Player(0,0);
-		_player.lightRadius = 240;
-		WorldLocale.loadMap("townhub.tmx");
+		WorldLocale.loadMap("gateway.tmx");
 	} else { 
 		audio.play("negative");
 		//ga("send","event","start_intro");

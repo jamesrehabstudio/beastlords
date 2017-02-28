@@ -345,7 +345,7 @@ function SpeedTile(x, y, d, ops){
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player){
 			var dir = this.position.subtract(obj.position);
-			if(obj.states.roll > 0 && obj.dodgeFlash){
+			if(obj.states.rolling && obj.dodgeFlash){
 				if((obj.flip && dir.x < 0) || (!obj.flip && dir.x > 0)){
 					this.break();
 				}

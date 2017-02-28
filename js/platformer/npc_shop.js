@@ -20,17 +20,22 @@ function Shop(x,y){
 	
 	this.on("open",function(obj){
 		game.pause = true;
-		audio.playLock("pause",0.3);
+		//audio.playLock("pause",0.3);
+		DialogManger.set(this.message);
 	});
-	this.message = [
-		"This is all we got. Don't like go some place else!",
-		"I sold my entire stock. Nice doing business with you."
-	];
+	this.on("close", function(){
+		game.pause = false;
+	});
+	this.message = "We'er currently closed for business in this demo.";
 	this.cursor = 0;	
 }
 
 Shop.prototype.update = function(g,c){
 	if( this.open > 0 ) {
+		if(!DialogManger.show){
+			this.close();
+		}
+		/*
 		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
 			audio.playLock("unpause",0.3);
 			this.close();
@@ -48,6 +53,7 @@ Shop.prototype.update = function(g,c){
 		if( input.state("fire") == 1){
 			this.purchase();
 		}
+		*/
 	}
 	
 	/* animation */
@@ -98,12 +104,14 @@ Shop.prototype.render = function(g,c){
 	}
 }
 
-Shop.prototype.postrender = function(g,c){	
+Shop.prototype.hudrender = function(g,c){	
 	if( this.open > 0 ){		
-		
+		DialogManger.render(g);
+		/*
 		var p = Shop.itemposition[this.cursor].add(this.position).subtract(c);
 		
 		cursorArea(g, p.x-16,p.y-16,32,32);
 		textArea(g, "$"+this.price(), p.x-16, p.y+24);
+		*/
 	}
 }

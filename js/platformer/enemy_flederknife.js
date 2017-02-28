@@ -39,24 +39,15 @@ function Flederknife(x, y, d, o){
 		audio.play("hurt",this.position);
 	});
 	this.on("collideObject", function(obj){
-		if(obj.hasModule(mod_combat) && this.turndelay <= 0){
-			this.force.x = 0;
-			this.states.direction *= -1.0;
-			this.turndelay = Game.DELTASECOND;
+		if(obj.hasModule(mod_combat) && obj.hasModule(mod_rigidbody)){
+			this.changeDirection();
 		}
 	});
 	this.on("collideHorizontal", function(dir){
-		this.force.x = 0;
-		this.states.direction *= -1.0;
-		
-		if(this.difficulty > 0){
-			this.states.duck = Math.round(Math.random());
-		}
-		if(this.difficulty > 1){
-			this.states.jump_tick--;
-		}
+		this.position.x += dir > 0 ? 1 : -1;
+		this.changeDirection();
 	});
-	this.on("wakeup", function(){
+	this.on(["added","wakeup"], function(){
 		var dir = this.position.subtract( _player.position );
 		this.states.direction = dir.x > 0 ? -1.0 : 1.0;
 		this.states.jump_tick = 1;
@@ -76,7 +67,20 @@ function Flederknife(x, y, d, o){
 	});
 	
 	this.faceTarget();
-	this.calculateXP();
+}
+Flederknife.prototype.changeDirection = function(){
+	this.force.x = 0;
+	if(this.turndelay < 0){
+		this.states.direction *= -1.0;
+		this.turndelay = Game.DELTASECOND * 0.5;
+	}
+	
+	if(this.difficulty > 0){
+		this.states.duck = Math.round(Math.random());
+	}
+	if(this.difficulty > 99){
+		this.states.jump_tick--;
+	}
 }
 Flederknife.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
@@ -84,6 +88,10 @@ Flederknife.prototype.update = function(){
 		this.flip = this.states.direction < 0;
 		
 		this.force.x += this.delta * this.speed * this.states.direction;
+		
+		if(this.atLedge()){
+			this.changeDirection();
+		}
 		
 		if(this.states.jump && this.grounded){
 			this.states.jump = 0;
@@ -109,6 +117,7 @@ Flederknife.prototype.update = function(){
 			this.states.jump_tick = 2 + Math.floor(Math.random()*3);
 		}
 		this.turndelay -= this.delta; 
+		
 		
 		/* Animation */
 		

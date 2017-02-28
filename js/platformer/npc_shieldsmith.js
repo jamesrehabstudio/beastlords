@@ -16,6 +16,7 @@ function ShieldSmith(x, y){
 	this.animationProgress = 0.0;
 	this.menuOpen = true;
 	this.spellMenuOpen = false;
+	this.testPlayer = false;
 	
 	this.addModule( mod_talk );
 	this.text = i18n("smith_intro");
@@ -65,7 +66,14 @@ ShieldSmith.prototype.update = function(){
 				this.cursorMagic = Math.min(this.cursorMagic+1, _player.spells.length-1);
 				audio.play("cursor");
 			}
-
+			
+			this.testPlayer = ShieldSmith.createTestPlayer();
+			var cursorSpell = _player.spells[this.cursorMagic];
+			var spellsCurrentOccupation = _player.shieldSlots.indexOf(cursorSpell);
+			if(spellsCurrentOccupation >= 0 ){ this.testPlayer.shieldSlots[spellsCurrentOccupation] = undefined; }
+			this.testPlayer.shieldSlots[this.cursorSlot] = cursorSpell;
+			if(cursorSpell == this.testPlayer.shieldSlots[this.cursorSlot]){ this.testPlayer.shieldSlots[spellsCurrentOccupation] = undefined; }
+			Player.prototype.equip.apply(this.testPlayer);
 		} else {
 			if(input.state("jump")==1){
 				this.close();
@@ -80,6 +88,7 @@ ShieldSmith.prototype.update = function(){
 				this.cursorSlot = Math.min(this.cursorSlot+1, _player.equip_shield.slots.length-1);
 				audio.play("cursor");
 			}
+			this.testPlayer = false;
 		}
 		
 		if(PauseMenu.open){
@@ -99,14 +108,14 @@ ShieldSmith.prototype.hudrender = function(g,c){
 	if(this.open){
 		var pos = new Point(Math.floor(game.resolution.x/2)-168,8);
 		
-		PauseMenu.renderStatsPage(g, pos);
+		PauseMenu.renderStatsPage(g, pos, this.testPlayer);
 		
 		if(this.spellMenuOpen){
 			boxArea(g,pos.x+224,8,112,224);
 			for(var i=0; i < _player.spells.length; i++){
 				var spell = _player.spells[i];
 				g.renderSprite("items",new Point(pos.x+244,28+i*20),1,spell.frame);
-				textArea(g,"Max: "+spell.stockMax, pos.x+260,24+i*20);
+				textArea(g,"Lv."+spell.level, pos.x+260,24+i*20);
 			}
 			g.color = [1,1,1,1];
 			g.scaleFillRect(pos.x+234,26+this.cursorMagic*20,4,4);
@@ -158,3 +167,26 @@ ShieldSmith.SLOT_FRAME = [
 	new Point(3,1),
 	new Point(3,2)
 ];
+
+ShieldSmith.createTestPlayer = function(){
+	var output = {
+		"baseStats" : {},
+		"stats" : {},
+		"equip_sword" : _player.equip_sword,
+		"equip_shield" : _player.equip_shield,
+		"perks" : {},
+		"shieldSlots" : []
+	}
+	
+	for(var i=0; i < _player.shieldSlots.length; i++){
+		output.shieldSlots.push(_player.shieldSlots[i]);
+	}
+	for(perk in _player.perks){
+		output.perks[perk] = 0.0;
+	}
+	for(stat in _player.baseStats){
+		output.baseStats[stat] = _player.baseStats[stat];
+		output.stats[stat] = 0;
+	}
+	return output;
+}

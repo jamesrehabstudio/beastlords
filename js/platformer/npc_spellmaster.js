@@ -41,11 +41,10 @@ SpellMaster.prototype.update = function(){
 		
 		if(input.state("fire") == 1){
 			var spell = _player.spells[this.cursorSpell];
-			if(spell && spell.upgradePrice() <= _player.money){
+			if(spell && spell.upgradePrice() <= _player.money && spell.level < spell.levelMax){
 				//Upgrade spell
 				_player.money -= spell.upgradePrice();
-				spell.stock++;
-				spell.stockMax++;
+				spell.level++;
 				_player.equip();
 				
 				audio.play("item1");
@@ -73,9 +72,15 @@ SpellMaster.prototype.hudrender = function(g,c){
 		for(var i=0; i < _player.spells.length; i++){
 			var spell = _player.spells[i];
 			spell.render(g, new Point(pos.x+24, pos.y+36+i*20));
-			textArea(g,""+spell.stockMax, pos.x+40,pos.y+32+i*20);
+			textArea(g,"Lv."+spell.level, pos.x+40,pos.y+32+i*20);
+			
+			if(spell.level < spell.levelMax){
+				textArea(g,"$"+spell.upgradePrice(), pos.x+88,pos.y+32+i*20);
+			} else {
+				textArea(g,"Max", pos.x+88,pos.y+32+i*20);
+			}
 			//textArea(g,spell.name, pos.x+72,pos.y+32+i*20);
-			textArea(g,"$"+spell.upgradePrice(), pos.x+72,pos.y+32+i*20);
+			
 		}
 		
 		g.color = [1,1,1,1];

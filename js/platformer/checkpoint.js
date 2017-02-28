@@ -37,30 +37,15 @@ Checkpoint.saveState = function(obj){
 	obj.checkpoint.y = obj.position.y;
 	
 	Checkpoint.state.money = obj.money;
-	Checkpoint.state.keys = new Array();
-	for(var i=0; i < obj.keys.length; i++) {
-		Checkpoint.state.keys.push(obj.keys[i]);
-	}
 }
 Checkpoint.loadState = function(obj){
 	obj.position.x = obj.checkpoint.x ;
 	obj.position.y = obj.checkpoint.y ;
 	obj.money = Checkpoint.state.money;
-	
-	var newKeyList = new Array();
-	for(var i=0; i < obj.keys.length; i++) {
-		if(Checkpoint.state.keys.indexOf(obj.keys[i]) >= 0){
-			newKeyList.push(obj.keys[i]);
-		} else {
-			game.addObject(obj.keys[i]);
-		}
-	}
-	obj.keys = newKeyList;
 }
 
 Checkpoint.state = {
-	"money" : 0,
-	"keys" : []
+	"money" : 0
 }
 
 Checkpoint.prototype.render = function(g,c){

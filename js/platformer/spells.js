@@ -1,17 +1,18 @@
 function Spell(){
 	this.name = "Spell";
-	this.stock = 10;
+	this.level = 1;
+	this.levelMax = 5;
 	this.castTime = Game.DELTASECOND;
-	this.stockMax = 10;
 	this.refillRarity = 10.0;
 	this.frame = new Point(0,10);
-	this.priceBase = 0;
+	this.priceBase = 7;
 	this.priceExponent = 2.5;
+	this.manaCost = 3;
 }
 Spell.prototype.use = function(player){}
 Spell.prototype.modifyStats = function(player, type){}
 Spell.prototype.canCast = function(player){ return true; }
-Spell.prototype.upgradePrice = function(){ return Math.floor(Math.pow(this.priceBase+this.stockMax, this.priceExponent)); }
+Spell.prototype.upgradePrice = function(){ return Math.floor(Math.pow(this.priceBase+this.level, this.priceExponent)); }
 Spell.prototype.render = function(g,p){
 	g.renderSprite("items",p,10,this.frame);
 }
@@ -19,6 +20,7 @@ Spell.SLOTTYPE_NORMAL = 0;
 Spell.SLOTTYPE_ELEMENT = 1;
 Spell.SLOTTYPE_ATTACK = 2;
 Spell.SLOTTYPE_DEFENCE = 3;
+/*
 Spell.randomRefill = function(player, nothingchance){
 	var total = nothingchance || 0.0;
 	var roll = Math.random();
@@ -43,6 +45,7 @@ Spell.randomRefill = function(player, nothingchance){
 	}
 	return null;
 }
+*/
 
 SpellFire.prototype = new Spell();
 SpellFire.prototype.constructor = Spell;
@@ -50,8 +53,6 @@ function SpellFire(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Fireball";
-	this.stock = 10;
-	this.stockMax = 10;
 	this.castTime = Game.DELTASECOND * 0.15;
 	this.frame = new Point(0,10);
 }
@@ -62,21 +63,20 @@ SpellFire.prototype.use = function(player){
 	bullet.force.x = player.flip ? -6 : 6;
 	bullet.team = player.team;
 	bullet.ignoreInvincibility = true;
-	bullet.damageFire = 5 + player.stats.magic * 3;
+	bullet.damageFire = 8 + player.stats.magic * this.level;
 	game.addObject(bullet);
 }
 SpellFire.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 9,0);
 	if(type == Spell.SLOTTYPE_NORMAL){
-		player.stats.attack += max * (1+power);
+		player.stats.attack += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceFire += max * (0.025 + power*0.01);
-		player.damageFire += max * (1+power);
+		player.defenceFire += this.level * (0.025 + power*0.01);
+		player.damageFire += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.stats.attack += max * (1+power);
-		player.damageFire += max * (1+power);
+		player.stats.attack += this.level * (1+power);
+		player.damageFire += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceFire += max * (0.05 + power*0.02);
+		player.defenceFire += this.level * (0.05 + power*0.02);
 	}
 }
 
@@ -86,14 +86,12 @@ function SpellSlimeGernade(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Slime gernade";
-	this.stock = 10;
-	this.stockMax = 10;
 	this.castTime = Game.DELTASECOND * 0.15;
 	this.frame = new Point(6,10);
 }
 SpellSlimeGernade.prototype.use = function(player){
 	var nade = new Gernade(player.position.x, player.position.y);
-	nade.damageSlime = 5 + player.stats.magic * 3;
+	nade.damageSlime = 10 + player.stats.magic * this.level;
 	nade.force.x = 6;
 	nade.force.y = -8;
 	nade.team = player.team;
@@ -101,16 +99,15 @@ SpellSlimeGernade.prototype.use = function(player){
 	game.addObject(nade);
 }
 SpellSlimeGernade.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 9,0);
 	if(type == Spell.SLOTTYPE_NORMAL){
-		player.damageSlime += max * (2+power);
+		player.damageSlime += this.level * (2+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceSlime += max * (0.025 + power*0.01);
-		player.damageSlime += max * (1+power);
+		player.defenceSlime += this.level * (0.025 + power*0.01);
+		player.damageSlime += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.damageSlime += max * (2+power);
+		player.damageSlime += this.level * (2+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceSlime += max * (0.05 + power*0.02);
+		player.defenceSlime += this.level * (0.05 + power*0.02);
 	}
 }
 
@@ -121,9 +118,8 @@ function SpellFlash(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Flash";
-	this.stock = 10;
-	this.stockMax = 10;
 	this.castTime = Game.DELTASECOND * 0.3;
+	this.manaCost = 8;
 	this.frame = new Point(1,10);
 }
 SpellFlash.prototype.use = function(player){
@@ -132,7 +128,7 @@ SpellFlash.prototype.use = function(player){
 	
 	var area = new Line(game.camera, game.camera.add(game.resolution));
 	var objs = game.overlaps(area);
-	var damage = Math.floor(8 + player.stats.magic*2);
+	var damage = Math.floor(14 + player.stats.magic * this.level);
 	var heal = 0;
 	for(var i=0; i < objs.length; i++){
 		var obj = objs[i];
@@ -145,17 +141,16 @@ SpellFlash.prototype.use = function(player){
 	player.heal += heal;
 }
 SpellFlash.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 9,0);
 	if(type == Spell.SLOTTYPE_NORMAL){
-		player.stats.magic += max * (1+power);
+		player.stats.magic += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceLight += max * (0.025 + power*0.01);
-		player.damageLight += max * (1+power);
+		player.defenceLight += this.level * (0.025 + power*0.01);
+		player.damageLight += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.stats.attack += max * (1+power);
-		player.damageLight += max * (1+power);
+		player.stats.attack += this.level * (1+power);
+		player.damageLight += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceLight += max * (0.05 + power*0.02);
+		player.defenceLight += this.level * (0.05 + power*0.02);
 	}
 }
 
@@ -165,32 +160,30 @@ function SpellHeal(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Heal";
-	this.stock = 3;
-	this.stockMax = 3;
+	this.manaCost = 16;
 	this.frame = new Point(2,10);
-	this.priceBase = 7;
+	this.priceBase = 8;
 	this.priceExponent = 2.7;
 }
 SpellHeal.prototype.canCast = function(player){
 	return player.life < player.lifeMax;
 }
 SpellHeal.prototype.use = function(player){
-	var heal = Math.floor(8 + player.stats.magic*3);
+	var heal = Math.floor(3 + (player.stats.magic + this.level) * 2);
 	player.heal += heal;
 }
 SpellHeal.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax-2, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
-		player.defencePhysical += max * (0.015 + power*0.005);
+		player.perks.slowWound += this.level * (0.05 + power * 0.05);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceFire += max * (0.015 + power*0.005);
-		player.defenceSlime += max * (0.015 + power*0.005);
-		player.defenceIce += max * (0.015 + power*0.005);
-		player.defenceLight += max * (0.015 + power*0.005);
+		player.defenceFire += this.level * (0.015 + power*0.005);
+		player.defenceSlime += this.level * (0.015 + power*0.005);
+		player.defenceIce += this.level * (0.015 + power*0.005);
+		player.defenceLight += this.level * (0.015 + power*0.005);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.perks.lifeSteal += max * (0.02 + power*0.1);
+		player.perks.lifeSteal += this.level * (0.02 + power*0.1);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.perks.slowWound += max * (0.05 + power*0.25);
+		player.perks.slowWound += this.level * (0.05 + power*0.25);
 	}
 }
 
@@ -200,10 +193,9 @@ function SpellPurify(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Purify";
-	this.stock = 6;
-	this.stockMax = 6;
+	this.manaCost = 12;
 	this.frame = new Point(3,10);
-	this.priceBase = 4;
+	this.priceBase = 6;
 }
 SpellPurify.prototype.canCast = function(player){
 	for(var i=0; i < player.buffs.length; i++){
@@ -221,15 +213,14 @@ SpellPurify.prototype.use = function(player){
 	}
 }
 SpellPurify.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 5, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
-		player.perks.poisonResist += max * (0.05 + power * 0.02);
+		player.stats.defence += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.perks.poisonResist += max * (0.05 + power * 0.02);
+		player.perks.poisonResist += this.level * (0.05 + power * 0.02);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.perks.lifeSteal += max * (0.02 + power*0.1);
+		player.perks.lifeSteal += this.level * (0.02 + power*0.1);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.perks.poisonResist += max * (0.05 + power * 0.02);
+		player.perks.poisonResist += this.level * (0.05 + power * 0.02);
 	}
 }
 
@@ -239,10 +230,9 @@ function SpellShield(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Magic Shield";
-	this.stock = 3;
-	this.stockMax = 3;
+	this.manaCost = 3;
 	this.frame = new Point(4,10);
-	this.priceBase = 7;
+	this.priceBase = 9;
 	this.priceExponent = 3.0;
 }
 SpellShield.prototype.canCast = function(player){
@@ -260,16 +250,15 @@ SpellShield.prototype.use = function(player){
 	audio.play("spell");
 }
 SpellShield.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 2, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
-		player.stats.magic += max * (1+power);
+		player.stats.magic += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceLight += max * (0.025 + power*0.01);
-		player.damageLight += max * (1+power);
+		player.defenceLight += this.level * (0.025 + power*0.01);
+		player.damageLight += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.damageLight += max * (1+power);
+		player.damageLight += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceLight += max * (0.05 + power*0.02);
+		player.defenceLight += this.level * (0.05 + power*0.02);
 	}
 }
 
@@ -279,10 +268,9 @@ function SpellStrength(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Strength";
-	this.stock = 5;
-	this.stockMax = 5;
+	this.manaCost = 16;
 	this.frame = new Point(5,10);
-	this.priceBase = 5;
+	this.priceBase = 8;
 	this.priceExponent = 3.0;
 }
 SpellStrength.prototype.canCast = function(player){
@@ -300,15 +288,14 @@ SpellStrength.prototype.use = function(player){
 	audio.play("spell");
 }
 SpellStrength.prototype.modifyStats = function(player, type, power){
-	var max = Math.max(this.stockMax - 4, 0);
 	if(type == Spell.SLOTTYPE_NORMAL){
-		player.stats.attack += max * 2 * (1+power);
+		player.stats.attack += this.level * 2 * (1+power);
 	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defencePhysical += max * (0.0125 + power*0.005);
-		player.stats.attack += max * (1+power);
+		player.defencePhysical += this.level * (0.0125 + power*0.005);
+		player.stats.attack += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.perks.thorns += max * (0.10 + power * 0.04);
+		player.perks.thorns += this.level * (0.10 + power * 0.04);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defencePhysical += max * (0.025 + power*0.01);
+		player.defencePhysical += this.level * (0.025 + power*0.01);
 	}
 }

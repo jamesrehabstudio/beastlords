@@ -8,7 +8,6 @@ function Knight(x,y,d,o){
 	this.height = 40;
 	this.sprite = "knight";
 	this.speed = 0.4;
-	this.active = false;
 	this.start_x = x;
 	
 	this.addModule( mod_rigidbody );
@@ -21,17 +20,17 @@ function Knight(x,y,d,o){
 		"attack_down" : false,
 		"guard" : 2, //0 none, 1 bottom, 2 top
 		"guard_freeze" : 0.0,
+		"guard_tire" : Game.DELTASECOND * 3,
 		"retreat" : 0
 	}
 	
-	this.attack_warm = 24.0;
-	this.attack_release = 10.5;
-	this.attack_rest = 7.0;
-	this.thrust_power = 8;
+	this.attack_time = Game.DELTASECOND * 0.9;
+	this.thrust_power = 4;
 	
-	this.guard.x = 8;
+	this.guard.active = true;
+	this.guard.x = -24;
 	this.guard.y = 8;
-	this.guard.w = 16;
+	this.guard.w = 32;
 	this.guard.h = 16;
 	
 	o = o || {};
@@ -54,16 +53,13 @@ function Knight(x,y,d,o){
 	this.on("block", function(obj,pos,damage){
 		if( this.team == obj.team ) return;
 		
+		this.states.guard_tire -= Game.DELTASECOND * 0.3;
+		
 		var dir = this.position.subtract(obj.position);
 		//blocked
 		obj.force.x += (dir.x > 0 ? -1 : 1) * this.delta;
 		//this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
-	});
-	this.on("blockOther", function(obj, position, damage){
-		//audio.playLock("clang",0.5);
-		//this.states.guard_freeze = Game.DELTASECOND;
-		//this.states.combo = 0;
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
@@ -85,58 +81,39 @@ Knight.prototype.update = function(){
 		var dir = this.position.subtract(_player.position);
 		var home_x = this.position.x - this.start_x;
 		
-		if(this.states.attack > 0 || this.states.combo > 0){
-			if(this.states.attack <= 0){
-				
-				if(this.states.combo > 0){
-					this.states.attack = this.attack_warm;
-					this.force.x = this.thrust_power * (this.flip?-1:1);
-					this.states.attack_down = Math.random() > 0.5;
-					this.states.combo--;
-				}
+		if(this.states.attack > 0){
+			
+			var progress = 1 - (this.states.attack / this.attack_time);
+			
+			if(this.states.attack_down){
+				this.frame = Knight.anim_attackdown.frame(progress);
+			} else{
+				this.frame = Knight.anim_attackup.frame(progress);
 			}
 			
-			if(this.states.attack <= this.attack_release && this.states.attack > this.attack_rest){
+			
+			if(this.frame.x == 1){
+				this.force.x = this.forward() * this.thrust_power;
 				if(this.states.attack_down){
-					this.strike(new Line(0,16,32,20));
+					this.strike(new Line(0,16,48,20));
 				} else {
-					this.strike(new Line(0,0,32,4));
+					this.strike(new Line(0,0,48,4));
 				}
-				this.frame.x = 2;
-			} else if(this.states.attack > this.attack_release){
-				var p = (this.states.attack - this.attack_release) / (this.attack_warm - this.attack_release)
-				this.frame.x = p > 0.5 ? 0 : 1;
-			} else {
-				this.frame.x = 3;
-			}
+			} 
 			
 			this.states.attack -= this.delta;
-			this.frame.y = 1;
-			this.guard.active = false;
-		} else if(this.stun > 0 || this.states.guard_freeze > 0){
-			//hurt, do nothing
-			this.guard.active = false;
-			this.frame.x = 0;
-			this.frame.y = 2;
-			this.states.guard_freeze -= this.delta;
+		} else if(this.states.combo > 0){
+			this.states.attack = this.attack_time;
+			this.states.attack_down = Math.random() > 0.5;
+			this.states.combo--;			
 		} else {
 			this.flip = dir.x > 0;
 			if(this.states.cooldown <= 0 && Math.abs(dir.x) < 64){
+				this.force.x = 0;
 				this.states.combo = 3;
-				this.states.cooldown = Game.DELTASECOND * 2;
+				this.states.cooldown = Game.DELTASECOND * 1.5;
 			}
 			this.states.cooldown -= this.delta;
-			
-			this.guard.active = true;
-			if(this.states.guard == 1){
-				//bottom
-				this.guard.x = 8;
-				this.guard.y = 12;
-			} 
-			if(this.states.guard == 2){
-				this.guard.x = 8;
-				this.guard.y = -8;
-			}
 			
 			if(this.states.retreat > 0){
 				//run away from player
@@ -156,31 +133,60 @@ Knight.prototype.update = function(){
 			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 4;
 			this.frame.y = 0;
 		}
+		
+		if(this.states.guard_freeze > 0){
+			this.states.guard_tire = Game.DELTASECOND * 3;
+			this.states.guard_freeze -= this.delta;
+		} else {
+			this.states.guard = _player.states.duck ? 1 : 2;
+			this.states.guard_tire -= this.delta;
+			if(this.states.guard_tire <= 0){
+				this.states.guard_freeze = Game.DELTASECOND * 0.8;
+			}
+		}
+		
+		if(this.states.guard == 1){
+			//bottom
+			this.guard.y = 12;
+		} 
+		if(this.states.guard == 2){
+			this.guard.y = -8;
+		}
+	} else {
+		this.guard.active = false;
+		this.frame.x = 3;
+		this.frame.y = 1;
 	}
 }
 Knight.prototype.render = function(g,c){
 	var filter = {"shader":this.filter};
-	//Shield no guard
-	if(!this.guard.active){
-		//render shield
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(3, 2), this.flip, filter);
-	}
+
 	//Render body
 	GameObject.prototype.render.apply(this, [g,c]);
 	
 	//Shield guard
 	if(this.guard.active){
 		//render shield
-		var shield_f = this.guard.y > 0 ? 1 : 2;
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(shield_f, 2), this.flip, filter);
+		var shield_f = this.states.attack > 0 ? 1 : 0;
+		var zPlus = this.states.attack > 0 && this.frame.x >= 1 ? -1 : 1;
+		var shieldOff = this.states.guard == 1 ? 16 : 0;
+		g.renderSprite(
+			this.sprite,
+			this.position.add(new Point(0,shieldOff)).subtract(c),
+			this.zIndex+zPlus,
+			new Point(shield_f, 3), 
+			this.flip, 
+			filter
+		);
 	}
-	
-	//Render sword
-	var sword_f = 4;
-	var sword_fr = 0;
-	if(this.states.attack > 0){
-		sword_f = this.frame.x;
-		sword_fr = this.states.attack_down ? 4 : 3;
-	}
-	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(sword_f, sword_fr), this.flip, filter);
 }
+Knight.anim_attackup = new Sequence([
+	[0,2,0.8],
+	[1,2,0.1],
+	[2,2,0.4],
+]);
+Knight.anim_attackdown = new Sequence([
+	[0,1,0.8],
+	[1,1,0.1],
+	[2,1,0.4],
+]);

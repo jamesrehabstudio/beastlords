@@ -9,21 +9,21 @@ function game_start(g){
 	
 	g.pause = false;
 	
-	//g.addObject( new TitleMenu() );
+	g.addObject( new TitleMenu() );
 	//dataManager.randomLevel(game,0);
 	//return;
 	
 	setTimeout(function(){
-		new Player(0,0);
+		new Player(0,0);		
+		//_player.lightRadius = true;
 		//_player.downstab = true;
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
-		//_player.grabLedges = true;
-		WorldLocale.loadMap("temple2.tmx");
-		//WorldLocale.loadMap("firepits.tmx", "testme");
+		//_player.walljump = true;
+		//WorldLocale.loadMap("townhub.tmx");
+		//WorldLocale.loadMap("gateway.tmx", "gatetemple2");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
-			_player.lightRadius = 240;
 			//_player.stat_points = 6;
 			//_player.life = _player.lifeMax = 36;
 			//_player.mana = _player.manaMax = 36;
@@ -36,11 +36,13 @@ function game_start(g){
 			//NPC.set("burningblade",1);
 			
 			//NPC.set("templeCompleted", 2);
-			//_player.spells.push( new Item(0,0,0,{"name":"spell_fire"}));
-			//_player.spells.push( new Item(0,0,0,{"name":"spell_flash"}));
-			//_player.spells.push( new Item(0,0,0,{"name":"spell_heal"});
-			//audio.playAs("music_temple4");
-			//audio.playAs("music_temple4","music");
+			//_player.spells.push( new SpellFire());
+			//_player.spells.push( new SpellSlimeGernade());
+			//_player.spells.push( new SpellFlash());
+			//_player.spells.push( new SpellHeal());
+			//_player.spells.push( new SpellPurify());
+			//_player.spells.push( new SpellShield());
+			//_player.spells.push( new SpellStrength());
 		}, 1000);
 	},100);
 	/**/

@@ -30,15 +30,15 @@ function Axedog(x, y, d, o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(4,this.difficulty);
-	this.lifeMax = Spawn.life(4,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){
 		this.force.x = 0;
-		this.states.direction *= -1.0;
+		this.states.direction = x > 0 ? -1 : 1;
+		this.position.x += this.states.direction;
 	});
 	this.on("struck", EnemyStruck);
 	
@@ -67,47 +67,50 @@ Axedog.prototype.update = function(){
 			}
 			this.states.attack -= this.delta;
 		} else {
-			if( game.getTile( 
-				16 * this.states.direction + this.position.x, 
-				this.position.y + 24, game.tileCollideLayer) == 0 
-			){
+			if( this.grounded && this.atLedge() ){
 				//Turn around, don't fall off the edge
 				this.force.x = 0;
 				this.states.direction *= -1.0;
 			}
 			
-			if( Math.abs( dir.x ) > 24 ) {
+			if( Math.abs( dir.x ) > 24 || Math.abs(dir.y) > 48) {
 				this.force.x += this.speed * this.delta * this.states.direction;
+				this.flip = this.states.direction < 0;
 			}
-			this.states.cooldown -= this.delta;
-			this.flip = this.states.direction < 0;
 			
-			if( this.states.cooldown <= 0 && Math.abs( dir.x ) < 64 ) {
-				this.states.attack = this.attacks.charge;
-				this.states.cooldown = Game.DELTASECOND * 2.0;
-				this.flip = dir.x > 0;
+			if(Math.abs(dir.y) < 48){
+				this.states.cooldown -= this.delta;
+				
+				if( this.states.cooldown <= 0 && Math.abs( dir.x ) < 64 ) {
+					this.states.attack = this.attacks.charge;
+					this.states.cooldown = Game.DELTASECOND * 2.0;
+					this.flip = dir.x > 0;
+				}
 			}
 		}
 		
 		/* Animation */
 		if( this.states.attack > 0 ) {
 			if( this.states.attack < this.attacks.rest ) {
-				this.frame.x = 2;
-				this.frame.y = 2;
+				this.frame.x = 1;
+				this.frame.y = 3;
 			} else if (this.states.attack < this.attacks.release ){
 				this.frame.x = 1;
-				this.frame.y = 2;
+				this.frame.y = Math.max(Math.min(this.frame.y + this.delta * 0.5,3),1);
 			} else {
-				this.frame.x = 0;
-				this.frame.y = 2;
+				this.frame.x = 1;
+				this.frame.y = 0;
 			}
 		} else {
-			this.frame.y = 1;
-			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+			this.frame.x = 0;
+			this.frame.y = (this.frame.y + Math.abs(this.force.x) * this.delta * 0.2) % 6;
 		}
 	} else{
 		//Stun or dead
-		this.frame.x = 3;
-		this.frame.y = 2;
+		this.frame.x = 2;
+		this.frame.y = 1;
+		if(this.life > 0){
+			this.frame.y = 0;
+		}
 	} 
 }

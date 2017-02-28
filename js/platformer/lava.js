@@ -42,10 +42,12 @@ function Lava(x,y,d,ops){
 	
 	this.on("collideObject", function(obj){
 		if(obj.hasModule(mod_combat)){
-			obj.life = 0;
-			obj.stun = 1;
-			obj.trigger("hurt", this, 0)
-			obj.isDead();
+			if(obj.life > 0){
+				obj.life = 0;
+				obj.stun = 1;
+				obj.trigger("hurt", this, 0)
+				obj.isDead();
+			}
 		}
 	});
 	
@@ -151,6 +153,7 @@ function Lavafalls(x,y,d,ops){
 	this.waketime = Game.DELTASECOND * 1.0;
 	this.sleeptime = Game.DELTASECOND * 2.0;
 	this.timer = 0;
+	this.active = true;
 	
 	if("waketime" in ops){
 		this.waketime = ops["waketime"] * 1;
@@ -158,6 +161,10 @@ function Lavafalls(x,y,d,ops){
 	if("sleeptime" in ops){
 		this.waketime = ops["sleeptime"] * 1;
 	}
+	
+	this.on("activate", function(){
+		this.active = !this.active;
+	});
 	
 	this.on("collideObject", function(obj){
 		if(obj.hasModule(mod_combat)){
@@ -195,7 +202,10 @@ Lavafalls.prototype.update = function(g,c){
 			this.timer = 0;
 		}
 	}
-	this.timer += this.delta;
+	
+	if(this.active){
+		this.timer += this.delta;
+	}
 	
 	Background.pushLightArea(
 		new Line(

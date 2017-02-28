@@ -265,6 +265,8 @@ WorldLocale.loadMap = function(map, start, callback){
 		pm.saveMapReveal();
 	}
 	
+	_player.keys = new Array();
+	
 	var file = map;
 	game.loadMap(file, function(starts){
 		WorldLocale.currentMapName = map;
@@ -290,7 +292,7 @@ WorldLocale.loadMap = function(map, start, callback){
 		game.addObject(new Background(0,0));
 		
 		if(callback instanceof Function){
-			callback.apply(self);
+			callback.apply(self, [map]);
 		}
 	});
 }

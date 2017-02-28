@@ -440,7 +440,7 @@ function LightningBolt(x,y,d,o){
 	this.position.y = y;
 	this.height = 8;
 	this.width = 8;
-	this.damage = 1;
+	this.damageLight = 1;
 	this.time = 0;
 	this.speed = 0;
 	this.team = 0;

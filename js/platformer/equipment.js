@@ -185,7 +185,7 @@ WeaponStats.morningstar.standing[0]["force"] = new Point(1.0,0.0);
 WeaponStats.bloodsickle.damage = 0.8;
 WeaponStats.bloodsickle.standing.alwaysqueue = 1;
 WeaponStats.bloodsickle.standing.length = 2;
-WeaponStats.bloodsickle.onEquip = function(player){ player.perks.lifeSteal += 0.11; },
+WeaponStats.bloodsickle.onEquip = function(player){ player.perks.lifeSteal += 0.06; },
 
 WeaponStats.burningblade.damage = 1.2;
 WeaponStats.burningblade.standing.alwaysqueue = 1;

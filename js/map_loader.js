@@ -149,15 +149,13 @@ MapLoader.parseMap = function(xml){
 		"tileset" : "",
 		"width" : 0,
 		"height" : 0,
-		"layers" : [
-			new Array(),
-			new Array(),
-			new Array(),
-			new Array()
-		],
+		"layers" : new Array(),
+		"layersProperties" : new Array(),
 		"map" : new Array(),
 		"objects" : new Array(),
-		"starts" : new Array()
+		"starts" : new Array(),
+		"collisionLayer" : 0,
+		"order" : new Array()
 	}
 	
 	try{
@@ -181,10 +179,40 @@ MapLoader.parseMap = function(xml){
 		var name = t.getAttribute("name");
 		var tiles = t.getElementsByTagName("data")[0].innerHTML.split(",");
 		
-		out.width = t.getAttribute("width") * 1
-		out.height = t.getAttribute("height") * 1
+		out.width = t.getAttribute("width") * 1;
+		out.height = t.getAttribute("height") * 1;
+		
+		if("map"==name){
+			out.map = new Array();
+		} else{
+			var properties = tileLayers[i].getElementsByTagName("property");
+			var props = {};
+			for(var j=0; j < properties.length; j++){
+				var propName = properties[j].getAttribute("name");
+				var value = properties[j].getAttribute("value");
+				if(!isNaN(value)){ value = value * 1;}
+				props[propName] = value;
+			}
+			out.layers.push(new Array());
+			out.layersProperties.push(props);
+			if("front"==name){
+				out.order.push("o");
+			}
+			out.order.push(i);
+		}
 		
 		for(var j=0; j < tiles.length; j++){
+			if("map"==name){
+				if((j%out.width) < out.width/16 && Math.floor(j/out.width) < out.height/15){
+					out.map.push(MapLoader.parseTile(tiles[j],tilesets));
+				}
+			} else {
+				if("front"==name){
+					out.collisionLayer = i;
+				}
+				out.layers[i].push(MapLoader.parseTile(tiles[j],tilesets));
+			}
+			/*
 			if("top"==name){
 				out.layers[3].push(MapLoader.parseTile(tiles[j],tilesets));
 			} else if("front"==name){
@@ -198,6 +226,7 @@ MapLoader.parseMap = function(xml){
 					out.map.push(MapLoader.parseTile(tiles[j],tilesets));
 				}
 			}
+			*/
 		}
 	}
 	

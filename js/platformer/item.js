@@ -5,7 +5,7 @@ function Item(x,y,d, ops){
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 18;
-	this.height = 16;
+	this.height = 15;
 	this.name = "";
 	this.sprite = "items";
 	this.sleep = null;
@@ -18,6 +18,8 @@ function Item(x,y,d, ops){
 	this.animation_speed = 0.25;
 	this.enchantChance = 0.8;
 	this.itemid = null;
+	this.time = 0.0;
+	this.timeLimit = 0.0;
 	
 	this.addModule(mod_rigidbody);
 	this.pushable = false;
@@ -34,7 +36,12 @@ function Item(x,y,d, ops){
 	if( "id" in ops ) {
 		this.itemid = "item_" + ops["id"];
 		if(NPC.get(this.itemid)){
-			this.on("added", function(){ this.destroy();});
+			this.on("added", function(){ 
+				if( _player instanceof Player && this.name.match(/^key_\d+$/) ){
+					_player.keys.push( this );
+				}
+				this.destroy();
+			});
 		}
 	}
 	if( "name" in ops ) {
@@ -44,6 +51,12 @@ function Item(x,y,d, ops){
 			this.setName( ops.name );
 		}
 	}
+	
+	this.on("sleep", function(){
+		if(this.timeLimit){
+			this.destroy();
+		}
+	});
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
@@ -61,6 +74,8 @@ function Item(x,y,d, ops){
 				var currentWeapon = _player.equip_sword;
 				obj.equip(this, obj.equip_shield);
 				game.addObject(currentWeapon);
+				currentWeapon.force = new Point(0,0);
+				currentWeapon.gravity = 0;
 				audio.play("equip");
 			}
 			
@@ -84,18 +99,21 @@ function Item(x,y,d, ops){
 			
 			if( this.name == "spell_refill") { if(this.spell.stock < this.spell.stockMax) { this.spell.stock++; this.destroy(); audio.play("pickup1"); } }
 			
+			if( this.name == "lightradius") { obj.lightRadius = true; this.pickupEffect(); DemoThanks.items++; }
 			if( this.name == "downstab") { obj.downstab = true; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); DemoThanks.items++;}
-			if( this.name == "gauntlets") { obj.grabLedges = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "gauntlets") { obj.walljump = true; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); DemoThanks.items++;}
 			
 			//Enchanted items
 			if( this.name == "intro_item") { obj.stats.attack+=3; game.addObject(new SceneTransform(obj.position.x, obj.position.y)); obj.sprite = "player"; audio.play("levelup"); }
 			
 			
-			if( this.name == "seed_oriax") { obj.stats.attack+=1; this.pickupEffect(); DemoThanks.items++;}
-			if( this.name == "seed_bear") { obj.stats.defence+=1; this.pickupEffect(); DemoThanks.items++;}
-			if( this.name == "seed_malphas") { obj.stats.magic+=1; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "seed_oriax") { obj.baseStats.attack+=1; this.pickupEffect(); DemoThanks.items++; obj.equip();}
+			if( this.name == "seed_bear") { obj.baseStats.defence+=1; this.pickupEffect(); DemoThanks.items++; obj.equip();}
+			if( this.name == "seed_malphas") { obj.baseStats.magic+=1; this.pickupEffect(); DemoThanks.items++; obj.equip();}
+			
+			
 			if( this.name == "seed_cryptid") { obj.attackEffects.slow[0] += .2; this.pickupEffect(); }
 			if( this.name == "seed_knight") { obj.invincible_time+=16.666; this.pickupEffect(); }
 			if( this.name == "seed_minotaur") { 
@@ -184,6 +202,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(0,0);
 		this.message = Item.weaponDescription;
+		this.stats = WeaponStats[n];
 		return; 
 	}
 	if(n == "long_sword") { 
@@ -191,6 +210,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,0);
 		this.message = Item.weaponDescription;
+		this.stats = WeaponStats[n];
 		return; 
 	}
 	if(n == "broad_sword") { 
@@ -198,6 +218,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(2,0);
 		this.message = Item.weaponDescription;
+		this.stats = WeaponStats[n];
 		return; 
 	}
 	if(n == "morningstar") { 
@@ -205,6 +226,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(0,1);
 		this.message = Item.weaponDescription;
+		this.stats = WeaponStats[n];
 		return; 
 	}
 	if(n == "bloodsickle") { 
@@ -212,6 +234,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,1);
 		this.message = Item.weaponDescription;
+		this.stats = WeaponStats[n];
 		return; 
 	}
 	if(n == "burningblade") { 
@@ -219,6 +242,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(2,1);
 		this.message = Item.weaponDescription;
+		this.stats = WeaponStats[n];
 		return; 
 	}
 	
@@ -286,19 +310,22 @@ Item.prototype.setName = function(n){
 	if(n == "life") { this.frame.x = 0; this.frame.y = 1; return; }
 	if(n == "map") { this.frame.x = 3; this.frame.y = 1; this.message = "Map\nReveals unexplored areas on the map."; return }
 	
-	if(n == "life_small") { this.frame.x = 1; this.frame.y = 1; this.gravity = 0.5; return; }
-	if(n == "mana_small") { this.frame.x = 4; this.frame.y = 1; this.gravity = 0.5; return; }
+	var coinTime = Game.DELTASECOND * 6;
+	
+	if(n == "life_small") { this.frame.x = 1; this.frame.y = 1; this.gravity = 0.5; this.timeLimit = coinTime; return; }
+	if(n == "mana_small") { this.frame.x = 4; this.frame.y = 1; this.gravity = 0.5; this.timeLimit = coinTime; return; }
 	if(n == "money_bag") { this.frame.x = 5; this.frame.y = 1; this.gravity = 0.5; return; }
 	if(n == "xp_big") { this.frame.x = 2; this.frame.y = 1; this.gravity = 0.5; return; }
 	
-	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
-	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
-	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; return; }
-	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; return; }
+	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
+	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
+	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; this.timeLimit = coinTime; return; }
 	
 	if( this.name == "spell_refill") { this.frame.x = 0; this.frame.y = 10; }
 	
 	//Special items
+	if(n == "lightradius") { this.frame.x = 7; this.frame.y = 5; this.message = "Magic eyes\nAllows user to see in the dark."; return; }
 	if(n == "downstab") { this.frame.x = 10; this.frame.y = 5; this.message = "Down Stab\nHold down in the air to stab downwards."; return; }
 	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; this.message = "Gauntlets\nAllow the user to wall jump."; return; }
 	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; this.message = "Magic boots\nAllow the user to perform a double jump."; return; }
@@ -420,6 +447,16 @@ Item.prototype.getMessage = function(){
 	}
 }
 Item.prototype.update = function(){
+	if(this.timeLimit){
+		if(this.timeLimit - this.time < Game.DELTASECOND * 2){
+			//Flash
+			this.visible = (this.time / (Game.DELTASECOND * 0.125)) % 1.0 > 0.5;
+		}
+		if(this.time >= this.timeLimit){
+			this.destroy();
+		}
+		this.time += this.delta;
+	}
 	if( this.sleep != null ){
 		this.sleep -= this.delta;
 		this.interactive = this.sleep <= 0;
@@ -478,6 +515,7 @@ Item.drop = function(obj){
 		game.addObject( item );
 	}
 	
+	/*
 	var spell = Spell.randomRefill(_player, 300);
 	if(spell){
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "spell_refill"} );
@@ -486,13 +524,12 @@ Item.drop = function(obj){
 		item.spell = spell;
 		game.addObject( item );
 	}
+	*/
 	
-	/*
 	if (Math.random() > 0.967) {
 		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
 		game.addObject( item );
 	}
-	*/
 }
 Item.dropMoney = function(position, money, sleep){
 	if(sleep == undefined){

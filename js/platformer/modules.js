@@ -40,6 +40,18 @@ var mod_rigidbody = {
 				this.force.y *= -this.bounce;
 			}
 		});
+		this.atLedge = function(f){
+			if(f == undefined){
+				f = this.forward();
+			}
+			var c = this.corners();
+			var p = new Point(
+				f > 0 ? c.right : c.left,
+				c.bottom + 16
+			);
+			return game.getTile(p) == 0;
+			
+		}
 		this.on("collideObject", function(obj){
 			if( obj.hasModule(mod_rigidbody) && this.pushable && obj.pushable ) {
 				if(physicsLayer.groups[this.physicsLayer].indexOf(obj.physicsLayer) >= 0){
@@ -155,6 +167,7 @@ var mod_block = {
 		this.blockStuck = new Array();
 		this.blockPrevious = new Point(this.position.x, this.position.y);
 		this.blockChange = new Point(0,0);
+		this.blockCollideCriteria = function(obj){ return obj.hasModule(mod_rigidbody); }
 		this.zIndex = 20;
 		
 		this.block_isWithinX = function(obj){
@@ -199,6 +212,7 @@ var mod_block = {
 			if(obj.force.y > 0){
 				obj.position.y = (c.top - 0) - obj.height * obj.origin.y;
 				obj.trigger( "collideVertical", 1);
+				obj.trigger( "blockCollideVertical", 1, this);
 			}
 			this.trigger("blockLand",obj);
 			if(obj.currentlyStandingBlock !== this){
@@ -213,6 +227,7 @@ var mod_block = {
 			obj.position.y = c.bottom + obj.height * obj.origin.y;
 			if(obj.force.y < 0){
 				obj.trigger( "collideVertical", -1);
+				obj.trigger( "blockCollideVertical", -1, this);
 			}
 		});
 		this.on("collideLeft", function(obj){
@@ -220,6 +235,7 @@ var mod_block = {
 			obj.position.x = c.left - obj.width * obj.origin.x;
 			if(obj.force.x > 0){
 				obj.trigger( "collideHorizontal", 1);
+				obj.trigger( "blockCollideHorizontal", 1, this);
 			}
 		});
 		this.on("collideRight", function(obj){
@@ -227,12 +243,13 @@ var mod_block = {
 			obj.position.x = c.right + obj.width * obj.origin.x;
 			if(obj.force.x < 0){
 				obj.trigger( "collideHorizontal", -1);
+				obj.trigger( "blockCollideHorizontal", -1, this);
 			}
 		});
 		
 		this.on("collideObject", function(obj){
 			if(this.blockCollide && this.width > 0 && this.height > 0){
-				if( obj.hasModule(mod_rigidbody) ) {
+				if( this.blockCollideCriteria(obj) ) {
 					var prepos = obj.position.subtract(obj.force.scale(obj.delta));
 					var d = this.corners(this.blockPrevious);
 					//var b = obj.corners();
@@ -422,12 +439,7 @@ var mod_combat = {
 		this.death_time = 0;
 		this._hurt_strobe = 0;
 		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
-		
-		//Life drains slowly
-		this.damage_buffer = 0;
-		this.buffer_damage = false;
-		
-		this._damage_buffer_timer = 0;
+				
 		this.showDamage = true;
 		this._damageCounter = new EffectNumber(0,0,0);
 		this.hitIgnoreList = new Array();
@@ -443,13 +455,18 @@ var mod_combat = {
 			"life" : 99999,
 			"lifeMax" : 99999,
 			"restore" : 0.5,
-			"invincible" : 0.0
+			"invincible" : 0.0,
+			"omidirectional" : false
 		};
 		
 		
 			
 		this.strike = Combat.strike;
 		this.shieldArea = Combat.shieldArea;
+		
+		this.combatFinalDamage = function(damage){
+			this.life -= damage;
+		}
 		
 		this.isDead = function(){
 			if(!(this.life > 0)){
@@ -533,28 +550,24 @@ var mod_combat = {
 				this.combat_stuncount++;
 				this.trigger("stun", obj, damage, this.combat_stuncount);
 				
-				if( Math.random() < this.criticalChance ) {
+				if( Math.random() < this.criticalChance && damage > 0) {
 					//Determine if its a critical shot
-					damage *= obj.criticalMultiplier;
+					damage *= obj.criticalMultiplier || 2.0;
 					audio.play("critical",this.position);
 					game.slow(0.1, Game.DELTASECOND * 0.5 );
 					this.trigger("critical",obj,damage);
 					game.addObject(new EffectCritical(this.position.x, this.position.y));
 				}
-				//Apply damage reduction as percentile
-				damage = obj.useBuff("prehurt_other",damage,this);
-				damage = this.useBuff("hurt",damage,obj);
 				
 				if(damage > 0){
 					//damage = Math.max( damage - Math.ceil( this.defencePhysical * damage ), 1 );
 					
+					damage = obj.useBuff("prehurt_other",damage,this);
+					damage = this.useBuff("hurt",damage,obj);
+					
 					this.displayDamage(damage);
 					
-					if( this.buffer_damage ) {
-						this.damage_buffer += damage;
-					} else {
-						this.life -= damage;
-					}
+					this.combatFinalDamage(damage);
 					
 					this.isDead();
 					
@@ -598,14 +611,6 @@ var mod_combat = {
 		
 		//this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
 		
-		
-		this._damage_buffer_timer -= this.deltaUnscaled;
-		if( this.damage_buffer > 0 && this._damage_buffer_timer <= 0 ){
-			this.life -= 1;
-			this.damage_buffer -= 1;
-			this._damage_buffer_timer = Game.DELTASECOND * 0.6;
-			this.isDead();
-		}
 		
 		//Handle death
 		if(this.life <= 0 ){
@@ -682,18 +687,14 @@ var Combat = {
 		
 		ops = ops || {};
 		var blockable = true;
-		var damage = this.getDamage();
+		var damage = Combat.getDamage.apply(this);
 		var direction = this.flip;
-		var onidirectional = false;
 		
 		if("blockable" in ops){
 			blockable = ops["blockable"] * 1;
 		}
 		if("damage" in ops){
 			damage = ops["damage"];
-		}
-		if("onidirectional" in ops){
-			onidirectional = ops["onidirectional"] * 1;
 		}
 		if("direction" in ops){
 			direction = !!ops["direction"];
@@ -707,7 +708,7 @@ var Combat = {
 				var shield = obj.shieldArea();
 				var flatDamage = obj.calcDamage(damage);
 				
-				if( obj.guard.active && (onidirectional||(direction!=obj.flip)) && shield.overlaps(rect) ){
+				if( obj.guard.active && (obj.guard.omidirectional||(direction!=obj.flip)) && shield.overlaps(rect) ){
 					if(obj.guard.invincible <= 0){
 						obj.guard.invincible = Game.DELTASECOND * 0.5;
 						
@@ -749,6 +750,12 @@ var Combat = {
 			mulitplier = 1.0;
 		}
 		
+		this.damage = this.damage || 0;
+		this.damageFire = this.damageFire || 0;
+		this.damageSlime = this.damageSlime || 0;
+		this.damageIce = this.damageIce || 0;
+		this.damageLight = this.damageLight || 0;
+		
 		return {
 			"physical" : this.damage * mulitplier,
 			"fire" : this.damageFire * mulitplier,
@@ -768,7 +775,10 @@ var mod_boss = {
 		this.boss_intro = 0.0;
 		this.bossface_frame = 0;
 		this.bossface_frame_row = 0;
+		this.boss_shutdoors = true;
+		this.boss_showintro = true;
 		this.bossdeatheffect = false;
+		this.boss_id = "boss_"+game.newmapName+"_"+Math.floor(x)+"_"+Math.floor(y);
 		
 		var corner = new Point(256*Math.floor((x-16)/256), 240*Math.floor(y/240));
 		this.boss_lock = new Line(
@@ -787,7 +797,9 @@ var mod_boss = {
 				this.boss_intro = 0.0;
 				
 				_player.lock_overwrite = false;
-				Trigger.activate("boss_door");
+				if(this.boss_shutdoors){
+					Trigger.activate("boss_door");
+				}
 			}
 		}
 		this._boss_is_active = function(){
@@ -795,27 +807,41 @@ var mod_boss = {
 				this.interactive = false;
 				var dir = this.position.subtract( _player.position );
 				if( Math.abs( dir.x ) < 120 && Math.abs( dir.y ) < 64 ){
-					game.slow(0.1, Game.DELTASECOND * 3);
-					this.active = true;
 					this.trigger("activate");
 				}
 			}
+		}
+		
+		if(NPC.get(this.boss_id)){
+			this.on("added", function(){
+				this.destroy();
+			})
 		}
 		
 		this.on("player_death", function(){
 			this.reset_boss();
 		});
 		this.on("activate", function() {
-			Trigger.activate("boss_door");
+			if(this.boss_shutdoors){
+				Trigger.activate("boss_door");
+			}
+			if(this.boss_showintro){
+				game.slow(0.1, Game.DELTASECOND * 3);
+			}
 			
 			//for(var i=0; i < this.boss_doors.length; i++ ) 
 			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, window.BLANK_TILE);
 			//_player.lock_overwrite = this.boss_lock;
+			this.active = true;
 			this.interactive = true;
 		});
 		this.on("death", function() {
-			Trigger.activate("boss_door");
+			if(this.boss_shutdoors){
+				Trigger.activate("boss_door");
+			}
 			Trigger.activate("boss_death");
+			
+			NPC.set(this.boss_id, 1);
 			
 			//for(var i=0; i < this.boss_doors.length; i++ )
 			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
@@ -844,20 +870,22 @@ var mod_boss = {
 			g.scaleFillRect(start, game.resolution.y-24, width*lifePercent, height);
 			
 		}
-		if( this.active && this.boss_intro < 1.0){
-			this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
-			g.color = [0.0,0.0,0.0,0.3];
-			
-			var slide = Math.min(Math.sin(Math.PI*this.boss_intro)*4, 1);
-			var border = Math.min(Math.sin(Math.PI*this.boss_intro)*3, 1) * 64;
-			g.scaleFillRect(0, 0, game.resolution.x, border);
-			g.scaleFillRect(0, game.resolution.y-border, game.resolution.x, border);
-			
-			var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
-			var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
-			
-			g.renderSprite("bossface",porta,this.zIndex,new Point(1,0),false);
-			g.renderSprite("bossface",portb,this.zIndex,new Point(this.bossface_frame,this.bossface_frame_row),true);
+		if(this.boss_showintro){
+			if( this.active && this.boss_intro < 1.0){
+				this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
+				g.color = [0.0,0.0,0.0,0.3];
+				
+				var slide = Math.min(Math.sin(Math.PI*this.boss_intro)*4, 1);
+				var border = Math.min(Math.sin(Math.PI*this.boss_intro)*3, 1) * 64;
+				g.scaleFillRect(0, 0, game.resolution.x, border);
+				g.scaleFillRect(0, game.resolution.y-border, game.resolution.x, border);
+				
+				var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
+				var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
+				
+				g.renderSprite("bossface",porta,this.zIndex,new Point(1,0),false);
+				g.renderSprite("bossface",portb,this.zIndex,new Point(this.bossface_frame,this.bossface_frame_row),true);
+			}
 		}
 	}
 }

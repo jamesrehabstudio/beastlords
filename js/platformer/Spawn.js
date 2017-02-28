@@ -9,6 +9,7 @@ function Spawn(x,y,d,ops){
 	this.height = d[1];
 	this.difficulty = Spawn.difficulty;
 	this.specific = null;
+	this.autoreset = 0;
 	this.autodestroy = 0;
 	this.enemies = new Array();
 	this.enemiesLimit = 1;
@@ -25,7 +26,6 @@ function Spawn(x,y,d,ops){
 	this.on("activate",function(obj){
 		this.clear();
 		this.spawn();
-		this.active = true;
 	});
 	
 	this.options = ops || {};
@@ -45,6 +45,9 @@ function Spawn(x,y,d,ops){
 	}
 	if("autodestroy" in this.options){
 		this.autodestroy = this.options.autodestroy * 1;
+	}
+	if("autoreset" in this.options){
+		this.autoreset = this.options.autoreset * 1;
 	}
 	if("autospawn" in this.options){
 		autospawn = this.options.autospawn * 1;
@@ -167,6 +170,15 @@ Spawn.prototype.create = function(enemies){
 			});
 			if(this.autodestroy){
 				object.on("sleep", function(){this.destroy();});
+			}
+			if(this.autoreset){
+				object.lifeMax = object.life;
+				object.on("sleep", function(){ 
+					if(!that.isOnscreen()){
+						this.destroy(); 
+						that.lastSpawn = game.timeScaled - that.spawnRest;
+					}
+				});
 			}
 			game.addObject( object );
 			this.enemies.push( object );

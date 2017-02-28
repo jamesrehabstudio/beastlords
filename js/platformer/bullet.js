@@ -45,9 +45,10 @@ function Bullet(x,y,d){
 	});
 	this.on("struck", function(obj){ 
 		if(this.blockable && obj.team!=this.team) {
+			this.trigger("deflect");
 			this.trigger("death");
-			audio.play("slash");
-			game.slow(0,Game.DELTASECOND*0.1);
+			audio.play("block");
+			game.slow(0,Game.DELTAFRAME30);
 		}
 	});
 	
@@ -64,6 +65,16 @@ function Bullet(x,y,d){
 	this.friction = 0.0;
 	this.light = false;
 	this.lightColor = [1,1,1,1];
+}
+Bullet.prototype.setDeflect = function(){
+	this.on("deflect", function(){
+		var rag = new Ragdoll(this.position.x, this.position.y);
+		rag.width = rag.height = 12;
+		rag.sprite = this.sprite;
+		rag.frame = this.frame;
+		rag.rotationSpeed = 3.0;
+		game.addObject(rag);
+	});
 }
 Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
