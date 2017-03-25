@@ -187,7 +187,7 @@ WeaponStats.bloodsickle.standing.alwaysqueue = 1;
 WeaponStats.bloodsickle.standing.length = 2;
 WeaponStats.bloodsickle.onEquip = function(player){ player.perks.lifeSteal += 0.06; },
 
-WeaponStats.burningblade.damage = 1.2;
+WeaponStats.burningblade.damage = 1.0;
 WeaponStats.burningblade.standing.alwaysqueue = 1;
 WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);
-WeaponStats.burningblade.onEquip = function(player){ player.damageFire += 5; },
+WeaponStats.burningblade.onEquip = function(player){ player.damageFire += Math.floor(_player.stats.attack * 0.5); },

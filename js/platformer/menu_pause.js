@@ -70,23 +70,16 @@ PauseMenu.prototype.update = function(){
 				if(this.cursor == 3 ) game.setSetting("musvolume", Math.max(Settings.musvolume-0.25,0));
 			}
 		} else if( this.page == 1 ) {
-			//Map page
-			if( input.state("fire") ) {
-				if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
-				if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
-				if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
-			}
+			//Map page			
+			if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
+			if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
+			if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
+			
 
 		} else if( this.page == 2 ){
 			//attributes page
-			if( _player.stat_points > 0 ) {
-				if( input.state("up") == 1 ) { this.stat_cursor -= 1; audio.play("cursor"); }
-				if( input.state("down") == 1 ) { this.stat_cursor += 1; audio.play("cursor"); }
-				this.stat_cursor = Math.max( Math.min( this.stat_cursor, Object.keys(_player.stats).length-1 ), 0 );
-				
-				if( input.state("fire") == 1 ) _player.levelUp(this.stat_cursor);
-			}
+			AttributeMenu.update();
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			if( input.state("up") == 1 ) { 
@@ -155,8 +148,8 @@ PauseMenu.prototype.update = function(){
 			
 			//Navigate pages
 			if( this.page != 1 || input.state("fire") <= 0 ) {
-				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
+				if( input.state("select") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
+				//if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
 			}
 		}
 	} else {
@@ -171,6 +164,7 @@ PauseMenu.prototype.update = function(){
 			this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
 			audio.play("pause");
+			AttributeMenu.close();
 		}
 	}
 
@@ -285,7 +279,8 @@ PauseMenu.prototype.hudrender = function(g,c){
 			
 		} else if ( this.page == 2 ) {
 			//Stats page
-			PauseMenu.renderStatsPage(g,new Point(game.resolution.x*0.5 - 224*0.5, 8));
+			AttributeMenu.render(g, new Point(game.resolution.x*0.5 - 224*0.5, 8));
+			//PauseMenu.renderStatsPage(g,new Point(game.resolution.x*0.5 - 224*0.5, 8));
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			leftx = game.resolution.x*0.5 - 224*0.5;
@@ -365,155 +360,30 @@ PauseMenu.prototype.hudrender = function(g,c){
 		}
 	} else {
 		if( _player instanceof Player ) {
+			//Minimap
 			g.color = [1.0,1.0,1.0,1.0];
-			g.scaleFillRect(game.resolution.x-41,7,34,26);
+			g.scaleFillRect(game.resolution.x-49,7,42,26);
 			g.color = [0.0,0.0,0.0,1.0];
-			g.scaleFillRect(game.resolution.x-40,8,32,24);
+			g.scaleFillRect(game.resolution.x-48,8,40,24);
 			this.renderMap(g,
 				new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
 				new Point(game.resolution.x-24,24), 
-				new Line(-16,-16,16,8)
+				new Line(-24,-16,16,8)
 			);
 		}
 	}
 }
 
-PauseMenu.renderStatsPage= function(g,c,testPlayer){
-	var padding = 20;
-	var statX = 64;
-			
-	boxArea(g,c.x,c.y,224,224);
-	
-	textArea(g,"Attributes",c.x+20,c.y+12);
-	
-	//textArea(g,"Points: "+_player.stat_points ,c.x+20,36);
-	var attributeY = c.y+28;
-	
-	//Quick function for rendering stats
-	var r = function(g,x,y,player,vfunc){
-		var origVal = vfunc(_player);
-		if(!player){
-			textArea(g,""+origVal, x,y);
-		} else {
-			var sval = "" + vfunc(player);
-			var val = Number.parseInt(sval);
-			var xoff = 8 * (sval.length);
-			origVal = Number.parseInt(origVal);
-			textArea(g,sval, x,y);
-			if(val > origVal){
-				g.renderSprite("text",new Point(x+xoff,y),999,new Point(6,6));
-			} else if(val < origVal){
-				g.renderSprite("text",new Point(x+xoff,y),999,new Point(7,6));
-			}
-		}
+PauseMenu.mapIcons = new Array();
+PauseMenu.pushIcon = function(icon){
+	if(icon instanceof MapIcon && PauseMenu.mapIcons.indexOf(icon) < 0){
+		PauseMenu.mapIcons.push(icon);
 	}
-	
-	//attack
-	textArea(g,"Attack:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.attack;});
-	attributeY += 12;
-	
-	//magic
-	textArea(g,"Defence:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.defence;});
-	attributeY += 12;
-	
-	//magic
-	textArea(g,"Magic:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.magic;});
-	attributeY += 20;
-	
-	//magic
-	textArea(g,"Damage:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.damage + p.damageFire + p.damageSlime + p.damageIce + p.damageLight;});
-	attributeY += 20;
-	
-	var damages = _player.getDamage();
-	//Damage
-	textArea(g,"DMG / DEF", c.x+padding,attributeY);
-	attributeY += 12;
-	
-	//Physical
-	textArea(g,"P", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damage);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defencePhysical*100)+"%";});
-	attributeY += 12;
-	
-	//Fire
-	textArea(g,"F", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageFire);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceFire*100)+"%";});
-	attributeY += 12;
-	
-	//Fire
-	textArea(g,"S", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageSlime);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceSlime*100)+"%";});
-	attributeY += 12;
-	
-	//Ice
-	textArea(g,"I", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageIce);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceIce*100)+"%";});
-	attributeY += 12;
-	
-	//Light
-	textArea(g,"L", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageLight);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceLight*100)+"%";});
-	attributeY += 20;
-	
-	//Render perks
-	attributeY = c.y+28;
-	for(var i in _player.perks){
-		if(_player.perks[i] || (testPlayer && testPlayer.perks[i])){
-			textArea(g,i.slice(0,8), c.x+112,attributeY);
-			//textArea(g,""+Math.floor(_player.perks[i]*100), c.x+192,attributeY);
-			r(g,c.x+184,attributeY,testPlayer,function(p){return Math.floor(p.perks[i]*100);});
-			
-			attributeY += 12;
-		}
-	}
-	
-	//Shield slots
-	for(var i=0; i < _player.equip_shield.slots.length; i++){
-		var slotType = _player.equip_shield.slots[i];
-		g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
-		
-		if(i < _player.shieldSlots.length){
-			if(_player.shieldSlots[i] instanceof Spell){
-				_player.shieldSlots[i].render(g,new Point(8+c.x+padding+i*32,c.y+196));
-			}
-		}
-	}
-	
 }
 
-PauseMenu.prototype.fetchDoors = function(g,cursor,offset,limits){
-	this.icons = new Array();
-	var doors = game.getObjects(Door);
-	var shops = game.getObjects(Shop);
-	for(var i=0; i < doors.length; i++){
-		if(doors[i].name.match(/(\d+)/)){
-			var id = doors[i].name.match(/(\d+)/)[0] - 0;
-			var x = Math.floor(doors[i].position.x/256) 
-			var y = Math.floor(doors[i].position.y/240)
-			this.icons.push({"x":x,"y":y,frame:new Point(8,id)});
-		}
-	}
-	for(var i=0; i < shops.length; i++){
-		var x = Math.floor(shops[i].position.x/256) 
-		var y = Math.floor(shops[i].position.y/240)
-		this.icons.push({"x":x,"y":y,frame:new Point(8,9)});
-	}
-}
 PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 	try {
 		var size = new Point(8,8);
-		
-		if(!this.icons){
-			this.fetchDoors();
-		}
 		var mapstart = new Point(0,0);
 		var mapwidth = Math.floor(game.map.width/16);
 		var map = game.map.map;
@@ -534,27 +404,28 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 					var ytile = map[i] % 16;
 					if( this.map_reveal[i] < 2 ) xtile += 4;
 					g.renderSprite("map",pos.add(offset),this.zIndex,new Point(xtile,ytile));
-					
-					//Render icons
-					if( this.map_reveal[i] >= 2 ) {
-						for(var j=0; j < this.icons.length; j++ ){
-							if( tile.x == this.icons[j].x && tile.y == this.icons[j].y ){
-								g.renderSprite("map",pos.add(offset),this.zIndex,this.icons[j].frame);
-							}
-						}
-					}
 				}
 			}
 		}
-		//Draw player
-		var pos = new Point(
-			1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
-			(cursor.y*8) + Math.floor(_player.position.y/240)*8 -Math.abs(Math.sin(game.time*0.1)*2)
-		);
+		
+		for(var i=0; i < PauseMenu.mapIcons.length; i++){
+			var icon = PauseMenu.mapIcons[i];
+			var pos = icon.mapPosition().add(cursor).scale(8)
+			var reveal = this.map_reveal[icon.mapIndex()];
+			if(reveal >= icon.mapRevealMin){
+				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+					var c = new Point().subtract(cursor.scale(8)).subtract(offset);
+					icon.render(g,c);
+				}
+			}
+			
+		}
+		/*
 		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 			g.color = [1.0,0.0,0.0,1.0];
 			g.renderSprite("map",pos.add(offset),this.zIndex+1,new Point(9,0),false);
 		}
+		*/
 	} catch (err) {
 		var r = 0;
 	}
@@ -594,4 +465,32 @@ PauseMenu.attackspeedToName = function(speed){
 	} else {
 		return n[4];
 	}
+}
+
+function MapIcon(x,y){
+	this.position = new Point(x,y);
+	this.bobSpeed = 0;
+	this.bobHeight = 3;
+	this.sprite = "mapicons";
+	this.mapRevealMin = 2;
+	this.frame = new Point(0,0);
+}
+MapIcon.prototype.mapPosition = function(){
+	return new Point(Math.floor(this.position.x/(16*16)), Math.floor(this.position.y/(15*16)));
+}
+MapIcon.prototype.mapIndex = function(){
+	var mPos = this.mapPosition();
+	var mWidth = Math.floor(game.map.width / 16);
+	return mPos.x + mPos.y * mWidth;
+}
+MapIcon.prototype.render = function(g,c){
+	var bob = (1 + Math.sin(game.time * this.bobSpeed)) * 0.5 * this.bobHeight;
+	var p = this.mapPosition();
+	
+	g.renderSprite(
+		this.sprite,
+		p.scale(8).add(new Point(0,-bob)).subtract(c),
+		1000,
+		this.frame
+	)
 }

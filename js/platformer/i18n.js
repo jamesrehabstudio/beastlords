@@ -29,9 +29,33 @@ i18n_messages = {
 		"english" : ["Anahilt Fortress","The Gardens of Benburb", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"],
 		"engrish" : ["Anahilt Fortress","Benburb Gardens", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"]
 	},
-	"speeds" : {
-		"english" : ["Very slow","Slow","Normal","Fast","Very Fast"],
-		"engrish" : ["Very slow","Slow","Normal","Fast","Very Fast"]
+	"map_unknown" : {
+		"english" : "Unknown",
+		"engrish" : "Nowhere."
+	},
+	"maps" : {
+		"english" : {
+			"gateway.tmx"	:"Gateway", 
+			"townhub.tmx"	:"Town",
+			"firepits.tmx"	:"Furnace",
+			"fridge.tmx"	:"Cooler",
+			"temple1.tmx"	:"Palace",
+			"temple2.tmx"	:"Anglemyer",
+			"temple3.tmx"	:"Sanctuary",
+			"temple4.tmx"	:"Residence"
+		},
+	},
+	"maps_full" : {
+		"engrish" : {
+			"gateway.tmx"	:"Beast City Gateway", 
+			"townhub.tmx"	:"Kinallen Town",
+			"firepits.tmx"	:"Krafla Furnace",
+			"fridge.tmx"	:"Grand Cooler",
+			"temple1.tmx"	:"Chort's Palace",
+			"temple2.tmx"	:"Anglemyer Tower",
+			"temple3.tmx"	:"Rainer Sanctuary",
+			"temple4.tmx"	:"Beast City Residence"
+		},
 	},
 	"mayor_intro" : {
 		"english" : [

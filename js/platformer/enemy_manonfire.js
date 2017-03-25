@@ -19,7 +19,13 @@ function ManOnFire(x, y, d, o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.walkcycle = 0.0;
+	this.timers = {
+		"walkcycle" : 0.0,
+		"cooldown" : 0.0,
+		"fireball" : 0.0,
+		"fireballTime" : Game.DELTASECOND * 1.2
+	}
+	
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.damage = 0;
@@ -56,19 +62,38 @@ function ManOnFire(x, y, d, o){
 }
 ManOnFire.prototype.update = function(){
 	if ( this.life > 0 ) {
-		if( game.getTile( 
-			16 * this.forward() + this.position.x, 
-			this.position.y + 24, game.tileCollideLayer) == 0 
-		){
-			//Turn around, don't fall off the edge
-			this.force.x = -this.force.x;
-			this.flip = !this.flip;
+		if(this.timers.fireball > 0){
+			var progress = 1 - (this.timers.fireball / this.timers.fireballTime);
+			this.timers.fireball -= this.delta;
+			
+			this.frame = ManOnFire.anim_fire.frame(progress);
+			
+			if(Timer.isAt(this.timers.fireball,this.timers.fireballTime*0.5,this.delta)){
+				var fb = Bullet.createFireball(this.position.x, this.position.y,{"team":this.team,"damage":this.damageFire});
+				fb.force = new Point(this.forward() * 6, 0);
+				game.addObject(fb);
+			}
+		} else {
+			if( this.atLedge() ){
+				//Turn around, don't fall off the edge
+				this.force.x = -this.force.x;
+				this.flip = !this.flip;
+			}
+			
+			var dir = this.position.subtract(_player.position);
+			
+			if(Math.abs(dir.y) < 48 && this.timers.cooldown <= 0){
+				this.flip = dir.x > 0;
+				this.timers.fireball = this.timers.fireballTime;
+				this.timers.cooldown = Game.DELTASECOND * (2.0 * Math.random()*1.5);
+			}
+			
+			this.timers.cooldown -= this.delta;
+			this.force.x = this.speed * this.forward();
+			this.timers.walkcycle = (this.timers.walkcycle + this.delta * 0.3) % 6;
+			this.frame.x = this.timers.walkcycle % 3;
+			this.frame.y = this.timers.walkcycle / 3;
 		}
-		
-		this.force.x = this.speed * this.forward();
-		this.walkcycle = (this.walkcycle + this.delta * 0.3) % 6;
-		this.frame.x = this.walkcycle % 3;
-		this.frame.y = this.walkcycle / 3;
 		
 		Background.pushLight( this.position, 120, COLOR_FIRE );
 	} else{
@@ -80,3 +105,10 @@ ManOnFire.prototype.update = function(){
 		}
 	}
 }
+ManOnFire.anim_fire = new Sequence([
+	[0,3,0.1],
+	[1,3,0.2],
+	[2,3,0.1],
+	[3,3,0.1],
+	[4,3,0.5]
+]);

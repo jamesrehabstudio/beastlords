@@ -106,23 +106,7 @@ WorldMap = {
 		"Shop",
 		"WaystoneChest"
 	],
-	"save" : function(){
-		var q = {}
-		var i = 0;
-		while("q"+i in Quests){
-			q["q"+i] = Quests["q"+i];
-			i++;
-		}
-		
-		var data = {
-			"savedata" : new Date * 1,
-			"quests" : q,
-			"variables" : NPC.variables,
-			"settings" : Settings
-		}
-		
-		game.save(data);
-	}
+	
 };
 
 WorldPlayer.prototype = new GameObject();
@@ -266,6 +250,7 @@ WorldLocale.loadMap = function(map, start, callback){
 	}
 	
 	_player.keys = new Array();
+	PauseMenu.mapIcons = new Array();
 	
 	var file = map;
 	game.loadMap(file, function(starts){
@@ -296,6 +281,54 @@ WorldLocale.loadMap = function(map, start, callback){
 		}
 	});
 }
+WorldLocale.save = function(){
+	var q = {}
+	var i = 0;
+	while("q"+i in Quests){
+		q["q"+i] = Quests["q"+i];
+		i++;
+	}
+	
+	var location = {
+		"map" : game.newmapName,
+		"x" : _player.position.x,
+		"y" : _player.position.y
+		
+	}
+	
+	var data = {
+		"savedate" : new Date * 1,
+		"quests" : q,
+		"location" : location,
+		"variables" : NPC.variables,
+		"player" : _player.toJson(),
+		"settings" : Settings
+	}
+	
+	game.save(data);
+}
+WorldLocale.profile = 0;
+WorldLocale.load = function(){
+	game.load(function(data){
+		if(data){
+			new Player();
+			_player.fromJson(data.player);
+			
+			NPC.variables = data.variables;
+			
+			game.loadMap(data.location.map, function(starts){
+				_player.position.x = data.location.x;
+				_player.position.y = data.location.y;
+				
+				game.addObject(_player);
+				game.addObject(new PauseMenu(0,0));
+				game.addObject(new Background(0,0));
+			});
+		}
+		
+	}, WorldLocale.profile);
+}
+
 WorldLocale.getMapIndex = function(list,key){
 	for(var i=0; i < list.length; i++){
 		if(list[i].start == key){

@@ -14,6 +14,7 @@ function Door(x,y,d,ops){
 	this.isOpen = false;
 	this.openAnimation = 0;
 	this._tid = false;
+	this.triggersave = false;
 	
 	this.door_blocks = [
 		new Point(x,y+16),
@@ -51,6 +52,13 @@ function Door(x,y,d,ops){
 		}
 	});
 	
+	this.on("added", function(){
+		if(this.lock >= 0){
+			PauseMenu.pushIcon(this.mapIcon);
+		}
+	});
+	
+	
 	ops = ops || {};
 	
 	if("name" in ops) {
@@ -65,6 +73,19 @@ function Door(x,y,d,ops){
 	if("open" in ops && ops["open"] > 0) {
 		this.open();
 	}
+	if("triggersave" in ops){
+		this.triggersave = "door_" + ops["triggersave"];
+		if(NPC.get(this.triggersave) != undefined){
+			if(NPC.get(this.triggersave)){
+				this.open();
+			} else {
+				this.close();
+			}
+		}
+	}
+	
+	this.mapIcon = new MapIcon(x,y);
+	this.mapIcon.frame = new Point(1,this.lock);
 }
 Door.prototype.close = function(){
 	for(var i=0; i < this.door_blocks.length; i++){
@@ -72,6 +93,10 @@ Door.prototype.close = function(){
 	}
 	this.zIndex = 0;
 	this.isOpen = false;
+	
+	if(this.triggersave){
+		NPC.set(this.triggersave, 0);
+	}
 }
 Door.prototype.open = function(){
 	for(var i=0; i < this.door_blocks.length; i++){
@@ -79,6 +104,10 @@ Door.prototype.open = function(){
 	}
 	this.zIndex = -20;
 	this.isOpen = true;
+	
+	if(this.triggersave){
+		NPC.set(this.triggersave, 1);
+	}
 }
 Door.prototype.update = function(){
 	

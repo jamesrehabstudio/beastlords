@@ -4,10 +4,10 @@ function Svarog(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 24;
-	this.height = 40;
+	this.width = 32;
+	this.height = 32;
 	
-	this.speed = 2.5;
+	this.speed = 0.25;
 	this.sprite = "svarog";
 	
 	this.addModule( mod_rigidbody );
@@ -32,7 +32,6 @@ function Svarog(x,y,d,o){
 	});
 	this.on("wakeup", function(){
 		var dir = this.position.subtract(_player.position);
-		this.force.x = dir.x > 0 ? -this.speed : this.speed; 
 	});
 	
 	o = o || {};
@@ -44,15 +43,22 @@ function Svarog(x,y,d,o){
 	
 	this.life = Spawn.life(1,this.difficulty);
 	this.collisionReduction = -1.0;
-	this.friction = 0.0;
+	this.friction = 0.05;
 	this.stun_time = 30.0;
 	this.invincible_time = 30.0;
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
+	this.times = {
+		"turn" : Game.DELTASECOND * 0.8,
+		"forceHeight" : 0.1,
+		"waveSpeed" : 0.08,
+	};
 	this.states = {
-		"cooldown" : 0
+		"cooldown" : 0,
+		"turn" : 0.0,
+		"wave" : 0.0
 	};
 	
 	this.mass = 1.0;
@@ -61,20 +67,51 @@ function Svarog(x,y,d,o){
 	SpecialEnemy(this);
 	this.calculateXP();
 }
+Svarog.prototype.isBehind = function(p){
+	if(this.flip){
+		return p.x > this.position.x;
+	} else{
+		return p.x < this.position.x;
+	}
+}
 Svarog.prototype.update = function(){
-	this.frame = (this.frame + this.delta * 0.2) % 3;
-	this.frame_row = 0;
-	this.flip = this.force.x < 0;
 	
 	var dir = this.position.subtract(_player.position);
-	this.force.y += ( dir.y > -56 ? -.2 : .2 ) * this.delta;
 	
-	if( this.states.cooldown <= 0 ) {
-		this.states.cooldown = Game.DELTASECOND * 1.0;
-		var fire = new Fire(this.position.x, this.position.y);
-		fire.team = this.team;
-		fire.damage = this.damage;
-		game.addObject(fire);
+	if(this.life > 0){
+		this.states.wave += this.delta * this.times.waveSpeed;
+		this.force.y += Math.sin(this.states.wave) * this.times.forceHeight * this.delta;
+		
+		if(this.states.turn > 0){
+			var progress = 1 - this.states.turn / this.times.turn;
+			this.frame.x = progress * 4;
+			this.frame.y = 1;
+			this.states.turn -= this.delta;
+			if(this.states.turn <= 0){
+				this.flip = !this.flip;
+			}
+		} else {
+			if(this.isBehind(_player.position)){
+				this.states.turn = this.times.turn;
+			}
+			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+			this.frame.y = 0;
+			this.force.x += this.forward() * this.speed * this.delta;
+		}
+		
+		this.states.cooldown -= this.delta;
+		
+		if( this.states.cooldown <= 0 ) {
+			this.states.cooldown = Game.DELTASECOND * 1.0;
+			var fire = new Fire(this.position.x, this.position.y+20);
+			fire.team = this.team;
+			game.addObject(fire);
+		}
+		
+	} else {
+		this.frame.x = 0;
+		this.frame.y = 2;
+		this.gravity = 1.0;
+		this.force.x = this.forward() * 2;
 	}
-	this.states.cooldown -= this.delta;
 }

@@ -1,3 +1,4 @@
+from jsmin import jsmin
 import glob	
 import time
 import datetime
@@ -7,6 +8,7 @@ js_saveto = "platformer.js"
 sh_saveto = "shaders.js"
 js_previous = "prev"
 sh_previous = "prev"
+minify = False
 
 watching = [
 	"platformer/*.js",
@@ -48,7 +50,11 @@ def concat():
 	if js_previous != js_out:
 		#only save if it has changed
 		f = open( js_saveto, 'w')
-		f.write( js_out )
+		
+		if minify:
+			f.write(jsmin(js_out))
+		else:
+			f.write( js_out )
 		f.close()
 		
 		date = datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")
@@ -62,6 +68,7 @@ def concat():
 		
 		date = datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")
 		print  "("+ date + ") update to " + sh_saveto
+		
 	js_previous = js_out
 	sh_previous = sh_out
 	

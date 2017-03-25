@@ -1,5 +1,3 @@
-window._version = "0.3.1";
-
 function game_start(g){
 	var shaders = window.shaders;
 	
@@ -172,6 +170,7 @@ function load_sprites (){
 	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(48, 48),width:96,height:96});
 	//sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['map'] = new Sprite(RT+"img/maptiles.gif", {offset:new Point(0, 0),width:8,height:8});
+	sprites['mapicons'] = new Sprite(RT+"img/mapicons.png", {offset:new Point(0, 0),width:8,height:8});
 	sprites['doors'] = new Sprite(RT+"img/doors.gif", {offset:new Point(16, 32),width:64,height:64});
 	sprites['gate'] = new Sprite(RT+"img/gate.gif", {offset:new Point(16, 24),width:32,height:48});
 	
@@ -218,10 +217,12 @@ function load_sprites (){
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
 	sprites['igbo'] = new Sprite(RT+"img/igbo.png", {offset:new Point(32, 48),width:64,height:72});
 	sprites['knight'] = new Sprite(RT+"img/knight.png", {offset:new Point(32, 44),width:96,height:64});
+	sprites['knior'] = new Sprite(RT+"img/knior.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['lamps'] = new Sprite(RT+"img/lamps.gif", {offset:new Point(8, 16),width:16,height:32});
 	sprites['landingpage'] = new Sprite(RT+"img/landingpage.png", {offset:new Point(0, 0),width:215,height:120});
 	sprites['laughing'] = new Sprite(RT+"img/laughing.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['lava'] = new Sprite(RT+"img/lava.png", {offset:new Point(0, 0),width:64,height:64,fragment:"fragment-lavapool"});
+	sprites['ooze'] = new Sprite(RT+"img/lava.png", {offset:new Point(0, 0),width:64,height:64,fragment:"fragment-ooze"});
 	sprites['lavafalls'] = new Sprite(RT+"img/lavafalls.png", {offset:new Point(0, 112),width:32,height:112,fragment:"fragment-lava"});
 	sprites['lavasnake'] = new Sprite(RT+"img/lavasnake.png", {offset:new Point(56, 32),width:80,height:80});
 	sprites['lilghost'] = new Sprite(RT+"img/lilghost.gif", {offset:new Point(16, 16),width:32,height:32});
@@ -257,7 +258,7 @@ function load_sprites (){
 	sprites['spikebug'] = new Sprite(RT+"img/spikebug.png", {offset:new Point(16, 24),width:32,height:32});
 	sprites['spook1'] = new Sprite(RT+"img/spook1.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['statues'] = new Sprite(RT+"img/statues.gif", {offset:new Point(32, 56),width:64,height:64});
-	sprites['svarog'] = new Sprite(RT+"img/svarog.gif", {offset:new Point(24, 24),width:48,height:48});
+	sprites['svarog'] = new Sprite(RT+"img/svarog.png", {offset:new Point(24, 24),width:48,height:48});
 	sprites['switch'] = new Sprite(RT+"img/switch.gif", {offset:new Point(0, 4),width:16,height:40});
 	sprites['treads'] = new Sprite(RT+"img/treads.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['trees'] = new Sprite(RT+"img/trees.png", {offset:new Point(28, 48),width:56,height:48});
@@ -399,7 +400,13 @@ function load_sprites (){
 		
 		321 : {"frames":[321,322,323], "speed":5.0},
 	});
-	tiles["firepits"] = new Tileset(sprites["firepits"],tileRules["big"], {
+	tiles["firepits"] = new Tileset(sprites["firepits"],mergeLists({
+		98:Tileset.ignore, 99:Tileset.ignore,
+		225:Tileset.ignore, 226:Tileset.ignore, 227:Tileset.ignore, 228:Tileset.ignore, 229:Tileset.ignore,
+		257:Tileset.ignore, 291:Tileset.ignore, 293:Tileset.ignore, 321:Tileset.ignore, 323:Tileset.ignore,
+		353:Tileset.ignore, 385:Tileset.ignore, 386:Tileset.ignore, 386:Tileset.ignore, 387:Tileset.ignore,
+		388:Tileset.ignore, 417:Tileset.ignore, 418:Tileset.ignore, 419:Tileset.ignore
+	}, tileRules["big"]), {
 		204 : {"frames":[1024], "speed":0.0},
 		1023 : {"frames":[1024], "speed":0.0}
 	});

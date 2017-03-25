@@ -96,6 +96,9 @@ function BreakableTile(x, y, d, ops){
 	this.explode = 1;
 	this.triggersave = false;
 	
+	this.breakable = true;
+	this.fixable = true;
+	
 	this.startBroken = 0;
 	
 	ops = ops || {};
@@ -141,8 +144,11 @@ function BreakableTile(x, y, d, ops){
 	if("broken" in ops) {
 		this.startBroken = ops["broken"] * 1;
 	}
-	if("canunbreak" in ops) {
-		this.canUnbreak = ops["canunbreak"] * 1;
+	if("breakable" in ops){
+		this.breakable =  ops["breakable"] * 1;
+	}
+	if("fixable" in ops){
+		this.fixable =  ops["fixable"] * 1;
 	}
 	if("chain" in ops){
 		this.chain = ops["chain"] * 1;
@@ -158,7 +164,7 @@ function BreakableTile(x, y, d, ops){
 	}
 	
 	this.on("activate", function(obj,pos,damage){
-		if(this.broken && this.canUnbreak){
+		if(this.broken){
 			this.unbreak(this.explode);
 		}else{
 			this.break(this.explode);
@@ -215,19 +221,29 @@ function BreakableTile(x, y, d, ops){
 	}
 	if("triggersave" in ops){
 		this.triggersave = ops["triggersave"];
-		if(NPC.get(this.triggersave)){
-			this.trigger("activate");
+		if(NPC.get(this.triggersave) != undefined){
+			var tempChain = this.chain;
+			this.chain = 0;
+			if(NPC.get(this.triggersave)){
+				this.break(false);
+			} else {
+				this.unbreak(false);
+			}
+			this.chain = tempChain;
 		}
 	}
 }
 BreakableTile.prototype.unbreak = function(explode){
-	if(this.broken && this.undertile != 0){
+	if(this.broken && this.undertile != 0 && this.fixable){
 		if(this.chain) {
 			this.chainActive = true;
 			this.chaintype = "unbreak";
 		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave, 0);
 		}
 		if(this.undertile instanceof Array){
 			var i = 0;
@@ -254,13 +270,16 @@ BreakableTile.prototype.unbreak = function(explode){
 	}
 }
 BreakableTile.prototype.break = function(explode){
-	if(!this.broken && this.undertile != BreakableTile.unbreakable && this.undertile != 0){
+	if(!this.broken && this.breakable && this.undertile != 0){
 		if(this.chain) {
 			this.chainActive = true;
 			this.chaintype = "break";
 		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave, 1);
 		}
 		if(this.undertile instanceof Array){
 			for(var x=0; x < this.width; x+= 16){

@@ -31,7 +31,7 @@ function BombBowler(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(6,this.difficulty);
+	this.life = Spawn.life(3,this.difficulty);
 	this.collideDamage = Spawn.damage(4,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 5.0;

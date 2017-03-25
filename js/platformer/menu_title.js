@@ -41,11 +41,7 @@ function TitleMenu(){
 		"start_help"
 	];
 	
-	/*
-	if(localStorage.getItem("debug_map")){
-		MapLoader.mapname = localStorage.getItem("debug_map")
-	}
-	*/
+	TitleMenu.fetchProfiles();
 }
 
 TitleMenu.prototype.update = function(){
@@ -64,15 +60,17 @@ TitleMenu.prototype.update = function(){
 		}
 	} else if( this.page == 1 ) {
 		this.progress = 10.0;
-		if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
-		if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		if( input.state("up") == 1 ) { 
+			this.cursor = Math.max(this.cursor-1, 0); 
+			audio.play("cursor"); 
+		}
+		if( input.state("down") == 1 ) { 
+			this.cursor = this.cursor = Math.min(this.cursor+1, 2); 
+			audio.play("cursor"); 
+		}
 		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
-			if(this.cursor == 0){
-				this.page = 2;
-				audio.play("pause");
-			} else if(this.cursor == 1){
-				this.startGame(); 
-			}
+			audio.play("pause");
+			this.startGame(this.cursor); 
 		}
 	} else if( this.page == 2 ) {
 		this.progress = 10.0;
@@ -192,30 +190,27 @@ TitleMenu.prototype.render = function(g,c){
 		g.renderSprite(this.bgsprite,new Point(xpos+107, Math.lerp(-480,32,pan)),this.zIndex, new Point(0,1));
 	}
 	
-	textArea(g,"Copyright Rattus/Rattus LLP 2016",8,4);
+	textArea(g,"Copyright Rattus/Rattus LLP 2017",8,4);
 	textArea(g,"Version "+version,8,228);
 }
 
 TitleMenu.prototype.hudrender = function(g,c){
 	if(this.page == 0){
+		//Press start
 		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			boxArea(g,x_pos,168,120,40);
 			textArea(g,i18n("press_start"),x_pos+16,184);
 		}
 	} else if(this.page == 1) {
-		var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
-		boxArea(g,x_pos,32,192,88);
-		textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
-		
-		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-		boxArea(g,x_pos,146,120,56);
-		//textArea(g,i18n("introduction"),x_pos+24,162);
-		textArea(g,"Debug",x_pos+24,162);
-		textArea(g,i18n("new_game"),x_pos+24,178);
-		
-		g.renderSprite("text",new Point(x_pos+16,162+(16*this.cursor)),this.zIndex,new Point(15,5));
+		//Select profile
+		for(var i=0; i < 3; i++){
+			var pos = new Point(game.resolution.x * 0.5 - 90, 16 + i * 72);
+			this.renderProfile(g, pos, TitleMenu.profile_info[i]);
+		}
+		textArea(g,"@",game.resolution.x * 0.5 - 106,32+72*this.cursor);
 	} else if(this.page == 2){ 
+		//Debug
 		var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
 		boxArea(g,x_pos,16,200,208);
 		textArea(g,"Map name",x_pos+32,32);
@@ -241,23 +236,86 @@ TitleMenu.prototype.hudrender = function(g,c){
 		textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
 	}	
 }
-TitleMenu.prototype.idle = function(){}
-
-TitleMenu.prototype.startGame = function(){
+TitleMenu.prototype.renderProfile = function(g,c, profile){
+	boxArea(g,c.x,c.y,180,64);
 	
-	if(this.cursor == 1) {
-		this.start = true;
-		audio.play("pause");
-		//WorldMap.newgame();
-		new Player(0,0);
-		WorldLocale.loadMap("gateway.tmx");
-	} else { 
-		audio.play("negative");
-		//ga("send","event","start_intro");
-		//dataManager.loadMap(game,_map_maps[0]);
-		//audio.stop("music_intro");
+	if(profile != undefined){
+		Player.renderLifebar(g,c.add(new Point(16,16)),profile.life,profile.lifeMax,0);
+		Player.renderManabar(g,c.add(new Point(16,28)),profile.mana, profile.manaMax);
+		
+		var timeHour = Math.floor(profile.time/3600);
+		var timeMinute = Math.floor(profile.time/60) % 60;
+		
+		timeMinute = (timeMinute < 10 ? "0" : "") + timeMinute;
+		
+		textArea(g,"$"+profile.money,c.x+90,c.y+16);
+		textArea(g,"T"+timeHour+":"+timeMinute,c.x+90,c.y+28);
+		textArea(g,profile.location,c.x+90,c.y+40);
+		
+		for(var i=0; i < 4; i++){
+			if(profile["stone" + i]){
+				textArea(g,"@",c.x+16+12*i,c.y+40);
+			}
+		}
+	} else {
+		var ng_text = i18n("new_game");
+		var textpos = 90 - ng_text.length * 4;
+		textArea(g,i18n("new_game"),c.x+textpos,c.y+28,256,240);
 	}
 }
+
+TitleMenu.prototype.idle = function(){}
+
+TitleMenu.prototype.startGame = function(profile){
+	if(TitleMenu.profile_info[profile]){
+		WorldLocale.profile = profile;
+		WorldLocale.load();
+	} else {
+		new Player();
+		WorldLocale.loadMap("gateway.tmx");
+	}
+}
+TitleMenu.fetchProfiles = function(){
+	game.load(function(data){
+		TitleMenu.profile_info = {};
+		
+		for(var i in data){
+			var d = data[i];
+			var areas = i18n("maps");
+			var map = i18n("map_unknown");
+			
+			if(d.location.map in areas){
+				map = areas[d.location.map];
+			}
+			
+			var out = {
+				"life" : d.player.life,
+				"lifeMax" : d.player.lifeMax,
+				"mana" : d.player.mana,
+				"manaMax" : d.player.manaMax,
+				"money" : d.player.money,
+				"stone0" : 0,
+				"stone1" : 0,
+				"stone2" : 0,
+				"stone3" : 0,
+				"time" : 5400,
+				"location" : map
+			};
+			
+			for(var stone = 0; stone < 4; stone++){
+				var tname = "templegate_" + stone;
+				if(tname in d.variables && d.variables[tname]){
+					out["stone" + stone] = 1;
+				}
+			}
+			
+			TitleMenu.profile_info[i] = out;
+		}
+		
+	},-1);
+}
+
+TitleMenu.profile_info = {};
 TitleMenu.mapname = "testmap.tmx";
 TitleMenu.level = 1;
 TitleMenu.grabLedges = false;

@@ -189,6 +189,11 @@ function AttackTrigger(x,y,d,o){
 	o = o || {};
 	this.team = 0;
 	this.lifeMax = this.life = 1;
+	this.defencePhysical = 0.0;
+	this.defenceFire = 0.0;
+	this.defenceSlime = 0.0;
+	this.defenceIce = 0.0;
+	this.defenceLight = 0.0;
 	
 	if(!("retrigger" in o)){
 		this.retrigger = 0;
@@ -215,8 +220,9 @@ function AttackTrigger(x,y,d,o){
 }
 AttackTrigger.prototype.hurt = function(obj,damage){
 	if(this.life > 0){
-		this.life -= damage;
-		this.trigger("hurt", obj, damage);
+		var flatDamage = Combat.calcDamage.apply(this,[damage]);
+		this.life -= flatDamage;
+		this.trigger("hurt", obj, flatDamage);
 		if(this.life <= 0){
 			this.trigger("death");
 		}

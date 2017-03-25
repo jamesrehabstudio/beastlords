@@ -4536,6 +4536,8 @@ Checkpoint.saveState = function(obj){
 	obj.checkpoint.y = obj.position.y;
 	
 	Checkpoint.state.money = obj.money;
+	
+	WorldLocale.save();
 }
 Checkpoint.loadState = function(obj){
 	obj.position.x = obj.checkpoint.x ;
@@ -5092,6 +5094,7 @@ function Door(x,y,d,ops){
 	this.isOpen = false;
 	this.openAnimation = 0;
 	this._tid = false;
+	this.triggersave = false;
 	
 	this.door_blocks = [
 		new Point(x,y+16),
@@ -5129,6 +5132,13 @@ function Door(x,y,d,ops){
 		}
 	});
 	
+	this.on("added", function(){
+		if(this.lock >= 0){
+			PauseMenu.pushIcon(this.mapIcon);
+		}
+	});
+	
+	
 	ops = ops || {};
 	
 	if("name" in ops) {
@@ -5143,6 +5153,19 @@ function Door(x,y,d,ops){
 	if("open" in ops && ops["open"] > 0) {
 		this.open();
 	}
+	if("triggersave" in ops){
+		this.triggersave = "door_" + ops["triggersave"];
+		if(NPC.get(this.triggersave) != undefined){
+			if(NPC.get(this.triggersave)){
+				this.open();
+			} else {
+				this.close();
+			}
+		}
+	}
+	
+	this.mapIcon = new MapIcon(x,y);
+	this.mapIcon.frame = new Point(1,this.lock);
 }
 Door.prototype.close = function(){
 	for(var i=0; i < this.door_blocks.length; i++){
@@ -5150,6 +5173,10 @@ Door.prototype.close = function(){
 	}
 	this.zIndex = 0;
 	this.isOpen = false;
+	
+	if(this.triggersave){
+		NPC.set(this.triggersave, 0);
+	}
 }
 Door.prototype.open = function(){
 	for(var i=0; i < this.door_blocks.length; i++){
@@ -5157,6 +5184,10 @@ Door.prototype.open = function(){
 	}
 	this.zIndex = -20;
 	this.isOpen = true;
+	
+	if(this.triggersave){
+		NPC.set(this.triggersave, 1);
+	}
 }
 Door.prototype.update = function(){
 	
@@ -5325,6 +5356,22 @@ Drain.prototype.update = function(){
 }
 
 Drain.prototype.render = function(g,c){
+	/*
+	g.renderSprite(
+		"ooze", 
+		this.position.subtract(new Point(0,this.height)).subtract(c),
+		this.zIndex,
+		new Point(),
+		false,
+		{
+			"u_time" : game.timeScaled * 0.01,
+			"u_size" : [this.width, this.height],
+			"scalex" : this.width / 64.0,
+			"scaley" : this.height / 64.0
+		}
+	)
+	return;
+	*/
 	if(this.active){
 		for(var x=0; x < this.width; x+=16){
 			var pos = new Point(
@@ -7621,7 +7668,7 @@ function BombBowler(x,y,d,o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.life = Spawn.life(6,this.difficulty);
+	this.life = Spawn.life(3,this.difficulty);
 	this.collideDamage = Spawn.damage(4,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.mass = 5.0;
@@ -10307,6 +10354,150 @@ Knight.anim_attackdown = new Sequence([
 	[2,1,0.4],
 ]);
 
+ /* platformer\enemy_knior.js*/ 
+
+Knior.prototype = new GameObject();
+Knior.prototype.constructor = GameObject;
+function Knior(x, y, d, o){
+	this.constructor();
+	this.position.x = x;
+	this.position.y = y;
+	this.width = 24;
+	this.height = 32;
+	this.sprite = "knior";
+	
+	this.speed = 0.6;
+	this.jumpPower = 11.0;
+	
+	this.addModule( mod_rigidbody );
+	this.addModule( mod_combat );
+	
+	o = o || {};
+	
+	this.difficulty = Spawn.difficulty;
+	if("difficulty" in o){
+		this.difficulty = o["difficulty"] * 1;
+	}
+	
+	this.timers = {
+		"jumpPrep" : 0.0,
+		"jumpPrepReady" : false,
+		"knifeReady" : true,
+		"rest" : Game.DELTASECOND * 1.5,
+		"throwKnife" : 0.0,
+		"throwKnifeTime" : Game.DELTASECOND * 0.5,
+		"cooldown" : 0.0
+	}
+	
+	this.lifeMax = this.life = Spawn.life(6,this.difficulty);
+	this.moneyDrop = Spawn.money(5,this.difficulty);
+	this.damage = Spawn.damage(3,this.difficulty);
+	
+	this.defencePhysical = 0.0;
+	//this.defenceFire = 1.2;
+	//this.defenceIce = -1.0;
+	this.mass = 1.0;
+	this.gravity = 0.5;
+	
+	this.on("collideHorizontal", function(x){
+	});
+	
+	this.on("collideObject", function(obj){
+	});
+	
+	this.on("hurt", function(){
+		audio.play("hurt",this.position);
+	});
+	this.on("pre_death", function(){
+	});
+	
+	this.on("death", function(){
+		audio.play("kill",this.position);
+		Item.drop(this);
+		this.destroy();
+	});
+}
+Knior.prototype.update = function(){
+	if ( this.life > 0 ) {
+		var dir = this.position.subtract(_player.position);
+		if(this.grounded){
+			
+			if(this.timers.rest > 0){
+				this.timers.jumpPrepReady = false;
+				this.timers.rest -= this.delta;
+				this.frame.x = 0;
+				this.frame.y = 2;
+			} else if(this.timers.jumpPrepReady){
+				this.force.x = 0;
+				this.timers.jumpPrep -= this.delta;
+			} else{
+				this.flip = dir.x > 0;
+				this.force.x += this.forward() * this.speed * this.delta;
+				this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 6;
+				this.frame.y = 0;
+			}
+			
+			if(Math.abs(dir.x) < 72){
+				this.flip = dir.x > 0;
+				this.timers.jumpPrepReady = true;
+				this.frame.x = 0;
+				this.frame.y = 2;
+			}
+			
+			if(this.timers.jumpPrepReady && this.timers.jumpPrep <= 0){
+				this.grounded = false;
+				this.force.y = -this.jumpPower;
+				this.force.x = this.forward() * this.speed;
+				this.timers.rest = Game.DELTASECOND;
+				this.timers.jumpPrep = Game.DELTASECOND * 0.5;
+			}
+			
+			this.timers.knifeReady = true;
+			this.timers.throwKnife = 0.0;
+			
+		} else {
+			this.frame.x = 0;
+			this.frame.y = 1;
+			
+			if(this.timers.throwKnife > 0){
+				var progress = 1 - this.timers.throwKnife / this.timers.throwKnifeTime;
+				this.frame = Knior.anim_knife.frame(progress);
+				this.timers.throwKnife -= this.delta;
+				
+				if(Timer.isAt(this.timers.throwKnife, this.timers.throwKnifeTime*0.75, this.delta)){
+					var bullet = new Bullet(this.position.x, this.position.y);
+					bullet.rotation = 90;
+					bullet.team = this.team;
+					bullet.damage = this.damage;
+					bullet.setDeflect();
+					bullet.force = new Point(0, 8);
+					bullet.sprite = this.sprite;
+					bullet.frame = new Point(2,2);
+					game.addObject(bullet);
+				}
+			} else if(dir.y < 0){
+				//Above the player
+				if(this.timers.knifeReady && Math.abs(dir.x) < 16){
+					this.timers.throwKnife = this.timers.throwKnifeTime;
+					this.timers.knifeReady = false;
+				}
+			}
+			
+			this.force.x += this.forward() * this.delta * this.speed;
+		}
+	} else{
+		this.frame.x = 1;
+		this.frame.y = 2;
+	}
+}
+Knior.anim_knife = new Sequence([
+	[1,1,0.1],
+	[2,1,0.1],
+	[3,1,0.2],
+	[4,1,0.1],
+	[5,1,0.5],
+]);
+
  /* platformer\enemy_laughing.js*/ 
 
 Laughing.prototype = new GameObject();
@@ -10766,7 +10957,13 @@ function ManOnFire(x, y, d, o){
 		this.difficulty = o["difficulty"] * 1;
 	}
 	
-	this.walkcycle = 0.0;
+	this.timers = {
+		"walkcycle" : 0.0,
+		"cooldown" : 0.0,
+		"fireball" : 0.0,
+		"fireballTime" : Game.DELTASECOND * 1.2
+	}
+	
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.damage = 0;
@@ -10803,19 +11000,38 @@ function ManOnFire(x, y, d, o){
 }
 ManOnFire.prototype.update = function(){
 	if ( this.life > 0 ) {
-		if( game.getTile( 
-			16 * this.forward() + this.position.x, 
-			this.position.y + 24, game.tileCollideLayer) == 0 
-		){
-			//Turn around, don't fall off the edge
-			this.force.x = -this.force.x;
-			this.flip = !this.flip;
+		if(this.timers.fireball > 0){
+			var progress = 1 - (this.timers.fireball / this.timers.fireballTime);
+			this.timers.fireball -= this.delta;
+			
+			this.frame = ManOnFire.anim_fire.frame(progress);
+			
+			if(Timer.isAt(this.timers.fireball,this.timers.fireballTime*0.5,this.delta)){
+				var fb = Bullet.createFireball(this.position.x, this.position.y,{"team":this.team,"damage":this.damageFire});
+				fb.force = new Point(this.forward() * 6, 0);
+				game.addObject(fb);
+			}
+		} else {
+			if( this.atLedge() ){
+				//Turn around, don't fall off the edge
+				this.force.x = -this.force.x;
+				this.flip = !this.flip;
+			}
+			
+			var dir = this.position.subtract(_player.position);
+			
+			if(Math.abs(dir.y) < 48 && this.timers.cooldown <= 0){
+				this.flip = dir.x > 0;
+				this.timers.fireball = this.timers.fireballTime;
+				this.timers.cooldown = Game.DELTASECOND * (2.0 * Math.random()*1.5);
+			}
+			
+			this.timers.cooldown -= this.delta;
+			this.force.x = this.speed * this.forward();
+			this.timers.walkcycle = (this.timers.walkcycle + this.delta * 0.3) % 6;
+			this.frame.x = this.timers.walkcycle % 3;
+			this.frame.y = this.timers.walkcycle / 3;
 		}
-		
-		this.force.x = this.speed * this.forward();
-		this.walkcycle = (this.walkcycle + this.delta * 0.3) % 6;
-		this.frame.x = this.walkcycle % 3;
-		this.frame.y = this.walkcycle / 3;
 		
 		Background.pushLight( this.position, 120, COLOR_FIRE );
 	} else{
@@ -10827,6 +11043,13 @@ ManOnFire.prototype.update = function(){
 		}
 	}
 }
+ManOnFire.anim_fire = new Sequence([
+	[0,3,0.1],
+	[1,3,0.2],
+	[2,3,0.1],
+	[3,3,0.1],
+	[4,3,0.5]
+]);
 
  /* platformer\enemy_moleminer.js*/ 
 
@@ -13258,10 +13481,10 @@ function Svarog(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.width = 24;
-	this.height = 40;
+	this.width = 32;
+	this.height = 32;
 	
-	this.speed = 2.5;
+	this.speed = 0.25;
 	this.sprite = "svarog";
 	
 	this.addModule( mod_rigidbody );
@@ -13286,7 +13509,6 @@ function Svarog(x,y,d,o){
 	});
 	this.on("wakeup", function(){
 		var dir = this.position.subtract(_player.position);
-		this.force.x = dir.x > 0 ? -this.speed : this.speed; 
 	});
 	
 	o = o || {};
@@ -13298,15 +13520,22 @@ function Svarog(x,y,d,o){
 	
 	this.life = Spawn.life(1,this.difficulty);
 	this.collisionReduction = -1.0;
-	this.friction = 0.0;
+	this.friction = 0.05;
 	this.stun_time = 30.0;
 	this.invincible_time = 30.0;
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	
+	this.times = {
+		"turn" : Game.DELTASECOND * 0.8,
+		"forceHeight" : 0.1,
+		"waveSpeed" : 0.08,
+	};
 	this.states = {
-		"cooldown" : 0
+		"cooldown" : 0,
+		"turn" : 0.0,
+		"wave" : 0.0
 	};
 	
 	this.mass = 1.0;
@@ -13315,22 +13544,53 @@ function Svarog(x,y,d,o){
 	SpecialEnemy(this);
 	this.calculateXP();
 }
+Svarog.prototype.isBehind = function(p){
+	if(this.flip){
+		return p.x > this.position.x;
+	} else{
+		return p.x < this.position.x;
+	}
+}
 Svarog.prototype.update = function(){
-	this.frame = (this.frame + this.delta * 0.2) % 3;
-	this.frame_row = 0;
-	this.flip = this.force.x < 0;
 	
 	var dir = this.position.subtract(_player.position);
-	this.force.y += ( dir.y > -56 ? -.2 : .2 ) * this.delta;
 	
-	if( this.states.cooldown <= 0 ) {
-		this.states.cooldown = Game.DELTASECOND * 1.0;
-		var fire = new Fire(this.position.x, this.position.y);
-		fire.team = this.team;
-		fire.damage = this.damage;
-		game.addObject(fire);
+	if(this.life > 0){
+		this.states.wave += this.delta * this.times.waveSpeed;
+		this.force.y += Math.sin(this.states.wave) * this.times.forceHeight * this.delta;
+		
+		if(this.states.turn > 0){
+			var progress = 1 - this.states.turn / this.times.turn;
+			this.frame.x = progress * 4;
+			this.frame.y = 1;
+			this.states.turn -= this.delta;
+			if(this.states.turn <= 0){
+				this.flip = !this.flip;
+			}
+		} else {
+			if(this.isBehind(_player.position)){
+				this.states.turn = this.times.turn;
+			}
+			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+			this.frame.y = 0;
+			this.force.x += this.forward() * this.speed * this.delta;
+		}
+		
+		this.states.cooldown -= this.delta;
+		
+		if( this.states.cooldown <= 0 ) {
+			this.states.cooldown = Game.DELTASECOND * 1.0;
+			var fire = new Fire(this.position.x, this.position.y+20);
+			fire.team = this.team;
+			game.addObject(fire);
+		}
+		
+	} else {
+		this.frame.x = 0;
+		this.frame.y = 2;
+		this.gravity = 1.0;
+		this.force.x = this.forward() * 2;
 	}
-	this.states.cooldown -= this.delta;
 }
 
  /* platformer\enemy_warbus.js*/ 
@@ -14541,10 +14801,10 @@ WeaponStats.bloodsickle.standing.alwaysqueue = 1;
 WeaponStats.bloodsickle.standing.length = 2;
 WeaponStats.bloodsickle.onEquip = function(player){ player.perks.lifeSteal += 0.06; },
 
-WeaponStats.burningblade.damage = 1.2;
+WeaponStats.burningblade.damage = 1.0;
 WeaponStats.burningblade.standing.alwaysqueue = 1;
 WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);
-WeaponStats.burningblade.onEquip = function(player){ player.damageFire += 5; },
+WeaponStats.burningblade.onEquip = function(player){ player.damageFire += Math.floor(_player.stats.attack * 0.5); },
 
  /* platformer\exit.js*/ 
 
@@ -14931,9 +15191,33 @@ i18n_messages = {
 		"english" : ["Anahilt Fortress","The Gardens of Benburb", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"],
 		"engrish" : ["Anahilt Fortress","Benburb Gardens", "Carncastle", "Dunore Keep", "Edenmore Temple", "Foyal Palace"]
 	},
-	"speeds" : {
-		"english" : ["Very slow","Slow","Normal","Fast","Very Fast"],
-		"engrish" : ["Very slow","Slow","Normal","Fast","Very Fast"]
+	"map_unknown" : {
+		"english" : "Unknown",
+		"engrish" : "Nowhere."
+	},
+	"maps" : {
+		"english" : {
+			"gateway.tmx"	:"Gateway", 
+			"townhub.tmx"	:"Town",
+			"firepits.tmx"	:"Furnace",
+			"fridge.tmx"	:"Cooler",
+			"temple1.tmx"	:"Palace",
+			"temple2.tmx"	:"Anglemyer",
+			"temple3.tmx"	:"Sanctuary",
+			"temple4.tmx"	:"Residence"
+		},
+	},
+	"maps_full" : {
+		"engrish" : {
+			"gateway.tmx"	:"Beast City Gateway", 
+			"townhub.tmx"	:"Kinallen Town",
+			"firepits.tmx"	:"Krafla Furnace",
+			"fridge.tmx"	:"Grand Cooler",
+			"temple1.tmx"	:"Chort's Palace",
+			"temple2.tmx"	:"Anglemyer Tower",
+			"temple3.tmx"	:"Rainer Sanctuary",
+			"temple4.tmx"	:"Beast City Residence"
+		},
 	},
 	"mayor_intro" : {
 		"english" : [
@@ -15203,12 +15487,15 @@ function Item(x,y,d, ops){
 			if( this.name == "mana_fruit") { obj.manaMax += 6; obj.manaHeal = 999; audio.play("gulp"); DemoThanks.items++; }
 			
 			if( this.isWeapon ) {
+				NPC.set(this.name, 1);
+				/*
 				var currentWeapon = _player.equip_sword;
 				obj.equip(this, obj.equip_shield);
 				game.addObject(currentWeapon);
 				currentWeapon.force = new Point(0,0);
 				currentWeapon.gravity = 0;
 				audio.play("equip");
+				*/
 			}
 			
 			if( this.isShield ) {
@@ -16362,6 +16649,312 @@ MapDebug.prototype.hudrender = function(g,c){
 }
 MapDebug.prototype.idle = function(){}
 
+ /* platformer\menu_attribute.js*/ 
+
+AttributeMenu = {
+	"cursor" : 0,
+	"cursorSlot" : 0,
+	"cursorMagic" : 0,
+	"cursorEquip" : 0,
+	"testPlayer" : false,
+	"spellMenuOpen" : false,
+	"weaponMenuOpen" : false,
+	"weaponList" : false,
+	"shieldList" : false,
+	"update" : function(){
+		if(this.spellMenuOpen){
+			if(input.state("jump")==1){
+				this.spellMenuOpen = false;
+			} else if(input.state("fire")==1){
+				if(_player.shieldSlots[this.cursorSlot] == _player.spells[this.cursorMagic]){
+					_player.shieldSlots[this.cursorSlot] = undefined;
+					_player.equip();
+					audio.play("equip");
+					this.spellMenuOpen = false;
+				} else {
+					var usedIndex = _player.shieldSlots.indexOf(_player.spells[this.cursorMagic]);
+					if(usedIndex >= 0){
+						_player.shieldSlots[usedIndex] = undefined;
+					}
+					_player.shieldSlots[this.cursorSlot] = _player.spells[this.cursorMagic];
+					_player.equip();
+					audio.play("equip");
+					this.spellMenuOpen = false;
+				} 
+			} else if(input.state("up")==1){
+				this.cursorMagic = Math.max(this.cursorMagic-1, 0);
+				audio.play("cursor");
+			} else if( input.state("down")==1){
+				this.cursorMagic = Math.min(this.cursorMagic+1, _player.spells.length-1);
+				audio.play("cursor");
+			}
+			
+			this.testPlayer = this.createTestPlayer();
+			var cursorSpell = _player.spells[this.cursorMagic];
+			var spellsCurrentOccupation = _player.shieldSlots.indexOf(cursorSpell);
+			if(spellsCurrentOccupation >= 0 ){ this.testPlayer.shieldSlots[spellsCurrentOccupation] = undefined; }
+			this.testPlayer.shieldSlots[this.cursorSlot] = cursorSpell;
+			if(cursorSpell == this.testPlayer.shieldSlots[this.cursorSlot]){ this.testPlayer.shieldSlots[spellsCurrentOccupation] = undefined; }
+			Player.prototype.equip.apply(this.testPlayer);
+		} else if(this.weaponMenuOpen) {
+			var currentSword = this.weaponList[this.cursorEquip];
+			if(input.state("jump") == 1){
+				this.weaponMenuOpen = false;
+			} else if(input.state("fire") == 1){
+				_player.equip(currentSword, _player.equip_shield);
+				audio.play("equip");
+				this.weaponMenuOpen = false;
+			} else if(input.state("up") == 1){
+				this.cursorEquip = Math.max(this.cursorEquip-1, 0);
+				audio.play("cursor");
+			} else if(input.state("down") == 1){
+				this.cursorEquip = Math.min(this.cursorEquip+1, this.weaponList.length-1);
+				audio.play("cursor");
+			}
+			this.testPlayer = this.createTestPlayer();
+			this.testPlayer.equip_sword = currentSword;
+			Player.prototype.equip.apply(this.testPlayer);
+			
+		} else {
+			if(this.cursor == 0){
+				if(input.state("fire")==1){
+					this.weaponList = this.createWeaponList();
+					this.weaponMenuOpen = true;
+					this.cursorEquip = 0;
+					audio.play("pause");
+				}
+			} else if(this.cursor == 1){
+			} else if(this.cursor == 2){
+				if(input.state("fire")==1){
+					this.spellMenuOpen = true;
+					this.cursorMagic = Math.max(_player.spells.indexOf(_player.shieldSlots[this.cursorSlot]),0);
+					audio.play("pause");
+				} else if(input.state("left")==1){
+					this.cursorSlot = Math.max(this.cursorSlot-1, 0);
+					audio.play("cursor");
+				} else if( input.state("right")==1){
+					this.cursorSlot = Math.min(this.cursorSlot+1, _player.equip_shield.slots.length-1);
+					audio.play("cursor");
+				}
+			}
+			if(input.state("up") == 1){
+				this.cursor = Math.max(this.cursor-1,0);
+				audio.play("cursor");
+			} else if(input.state("down") == 1){
+				this.cursor = Math.min(this.cursor+1,2);
+				audio.play("cursor");
+			}
+			this.testPlayer = false;
+		}
+	},
+	"close" : function(){
+		this.spellMenuOpen = false;
+		this.weaponMenuOpen = false;
+		this.testPlayer = false;
+		this.weaponList = false;
+		this.shieldList = false;
+		this.cursor = 0;
+		this.cursorMagic = 0;
+		this.cursorSlot = 0;
+	},
+	"render" : function(g,c){
+		var pos = new Point(Math.floor(game.resolution.x/2)-112,8);
+		
+		if(this.spellMenuOpen || this.weaponMenuOpen){
+			var pos = new Point(Math.floor(game.resolution.x/2)-168,8);
+		}
+		
+		this.renderWindow(g, pos, this.testPlayer);
+		
+		if(this.spellMenuOpen){
+			this.renderSpellSelect(g,pos);
+		} else if(this.weaponMenuOpen){
+			this.renderWeaponSelect(g,pos);
+		}
+		
+		if(this.cursor == 0){
+			textArea(g,"@", pos.x+20,140);
+		} else if(this.cursor == 1){
+			textArea(g,"@", pos.x+20,152);
+		} else {
+			cursorArea(g, pos.x+12+this.cursorSlot*32, 224-36,32,32);
+		}
+	},
+	"renderSpellSelect" : function(g,c){
+		boxArea(g,c.x+224,8,112,224);
+		for(var i=0; i < _player.spells.length; i++){
+			var spell = _player.spells[i];
+			g.renderSprite("items",new Point(c.x+244,28+i*20),1,spell.frame);
+			textArea(g,"Lv."+spell.level, c.x+260,24+i*20);
+		}
+		g.color = [1,1,1,1];
+		g.scaleFillRect(c.x+234,26+this.cursorMagic*20,4,4);
+	},
+	"renderWeaponSelect" : function(g,c){
+		boxArea(g,c.x+224,8,112,224);
+		for(var i=0; i < this.weaponList.length; i++){
+			var weapon = this.weaponList[i];
+			g.renderSprite(weapon.sprite,new Point(c.x+244,28+i*20),1,weapon.frame);
+			textArea(g,weapon.name, c.x+260,24+i*20);
+		}
+		g.color = [1,1,1,1];
+		g.scaleFillRect(c.x+234,26+this.cursorEquip*20,4,4);
+	},
+	"renderWindow" : function(g,c,testPlayer){
+		var padding = 20;
+		var statX = 64;
+				
+		boxArea(g,c.x,c.y,224,224);
+		
+		textArea(g,"Attributes",c.x+64,c.y+12);
+		
+		//textArea(g,"Points: "+_player.stat_points ,c.x+20,36);
+		var attributeY = c.y+28;
+		
+		//Quick function for rendering stats
+		var r = function(g,x,y,player,vfunc){
+			var origVal = vfunc(_player);
+			if(!player){
+				textArea(g,""+origVal, x,y);
+			} else {
+				var sval = "" + vfunc(player);
+				var val = Number.parseInt(sval);
+				var xoff = 8 * (sval.length);
+				origVal = Number.parseInt(origVal);
+				textArea(g,sval, x,y);
+				if(val > origVal){
+					g.renderSprite("text",new Point(x+xoff,y),999,new Point(6,6));
+				} else if(val < origVal){
+					g.renderSprite("text",new Point(x+xoff,y),999,new Point(7,6));
+				}
+			}
+		}
+		
+		//attack
+		textArea(g,"Attack:", c.x+padding,attributeY);
+		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.attack;});
+		attributeY += 12;
+		
+		//magic
+		textArea(g,"Defence:", c.x+padding,attributeY);
+		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.defence;});
+		attributeY += 12;
+		
+		//magic
+		textArea(g,"Magic:", c.x+padding,attributeY);
+		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.magic;});
+		attributeY += 16;
+		
+		//magic
+		textArea(g,"Damage:", c.x+padding,attributeY);
+		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.damage + p.damageFire + p.damageSlime + p.damageIce + p.damageLight;});
+		attributeY += 16;
+		
+		var damages = _player.getDamage();
+		//Damage
+		textArea(g,"DMG / DEF", c.x+padding,attributeY);
+		attributeY += 12;
+		
+		//Physical
+		textArea(g,"P", c.x+padding,attributeY);
+		r(g,c.x+padding,attributeY+12,testPlayer,function(p){return Math.floor(p.damage);});
+		r(g,c.x+padding,attributeY+24,testPlayer,function(p){return Math.floor(p.defencePhysical*100)+"";});
+		
+		//Fire
+		textArea(g,"F", c.x+padding+24,attributeY);
+		r(g,c.x+padding+24,attributeY+12,testPlayer,function(p){return Math.floor(p.damageFire);});
+		r(g,c.x+padding+24,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceFire*100)+"";});
+		
+		//Fire
+		textArea(g,"S", c.x+padding+48,attributeY);
+		r(g,c.x+padding+48,attributeY+12,testPlayer,function(p){return Math.floor(p.damageSlime);});
+		r(g,c.x+padding+48,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceSlime*100)+"";});
+		
+		//Ice
+		textArea(g,"I", c.x+padding+72,attributeY);
+		r(g,c.x+padding+72,attributeY+12,testPlayer,function(p){return Math.floor(p.damageIce);});
+		r(g,c.x+padding+72,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceIce*100)+"";});
+		
+		//Light
+		textArea(g,"L", c.x+padding+96,attributeY);
+		r(g,c.x+padding+96,attributeY+12,testPlayer,function(p){return Math.floor(p.damageLight);});
+		r(g,c.x+padding+96,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceLight*100)+"";});
+		
+		attributeY += 36;
+		
+		//Weapon
+		var weapon = _player.equip_sword;
+		g.renderSprite(weapon.sprite,new Point(c.x+padding+16,attributeY+4),20,weapon.frame);
+		textArea(g,weapon.name, c.x+24+padding,attributeY);
+		attributeY += 12;
+		
+		//Shield
+		var shield = _player.equip_shield;
+		g.renderSprite(shield.sprite,new Point(c.x+padding+16,attributeY+4),20,shield.frame);
+		textArea(g,shield.name, c.x+24+padding,attributeY);
+		attributeY += 12;
+		
+		//Render perks
+		attributeY = c.y+28;
+		for(var i in _player.perks){
+			if(_player.perks[i] || (testPlayer && testPlayer.perks[i])){
+				textArea(g,i.slice(0,8), c.x+112,attributeY);
+				//textArea(g,""+Math.floor(_player.perks[i]*100), c.x+192,attributeY);
+				r(g,c.x+184,attributeY,testPlayer,function(p){return Math.floor(p.perks[i]*100);});
+				
+				attributeY += 12;
+			}
+		}
+		
+		//Shield slots
+		for(var i=0; i < _player.equip_shield.slots.length; i++){
+			var slotType = _player.equip_shield.slots[i];
+			g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
+			
+			if(i < _player.shieldSlots.length){
+				if(_player.shieldSlots[i] instanceof Spell){
+					_player.shieldSlots[i].render(g,new Point(8+c.x+padding+i*32,c.y+196));
+				}
+			}
+		}
+		
+	},
+	"createTestPlayer" : function(){
+		var output = {
+			"baseStats" : {},
+			"stats" : {},
+			"equip_sword" : _player.equip_sword,
+			"equip_shield" : _player.equip_shield,
+			"perks" : {},
+			"shieldSlots" : []
+		}
+		
+		for(var i=0; i < _player.shieldSlots.length; i++){
+			output.shieldSlots.push(_player.shieldSlots[i]);
+		}
+		for(perk in _player.perks){
+			output.perks[perk] = 0.0;
+		}
+		for(stat in _player.baseStats){
+			output.baseStats[stat] = _player.baseStats[stat];
+			output.stats[stat] = 0;
+		}
+		return output;
+	},
+	"createWeaponList" : function(){
+		out = [];
+		for(var i=0; i < this.weapons.length; i++){
+			var w = this.weapons[i];
+			if(NPC.get(w)){
+				out.push(new Item(0,0,0,{"name":w}));
+			}
+		}
+		return out;
+	},
+	"weapons" : ["short_sword", "long_sword", "broad_sword", "morningstar", "bloodsickle", "burningblade"],
+	"shields" : ["small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"]
+}
+
  /* platformer\menu_item.js*/ 
 
 ItemMenu.prototype = new GameObject();
@@ -16564,23 +17157,16 @@ PauseMenu.prototype.update = function(){
 				if(this.cursor == 3 ) game.setSetting("musvolume", Math.max(Settings.musvolume-0.25,0));
 			}
 		} else if( this.page == 1 ) {
-			//Map page
-			if( input.state("fire") ) {
-				if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
-				if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
-				if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
-			}
+			//Map page			
+			if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
+			if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
+			if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
+			if( input.state("down") == 1 ) { this.mapCursor.y -= 1; audio.play("cursor"); }
+			
 
 		} else if( this.page == 2 ){
 			//attributes page
-			if( _player.stat_points > 0 ) {
-				if( input.state("up") == 1 ) { this.stat_cursor -= 1; audio.play("cursor"); }
-				if( input.state("down") == 1 ) { this.stat_cursor += 1; audio.play("cursor"); }
-				this.stat_cursor = Math.max( Math.min( this.stat_cursor, Object.keys(_player.stats).length-1 ), 0 );
-				
-				if( input.state("fire") == 1 ) _player.levelUp(this.stat_cursor);
-			}
+			AttributeMenu.update();
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			if( input.state("up") == 1 ) { 
@@ -16649,8 +17235,8 @@ PauseMenu.prototype.update = function(){
 			
 			//Navigate pages
 			if( this.page != 1 || input.state("fire") <= 0 ) {
-				if( input.state("left") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
-				if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
+				if( input.state("select") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
+				//if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
 			}
 		}
 	} else {
@@ -16665,6 +17251,7 @@ PauseMenu.prototype.update = function(){
 			this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
 			audio.play("pause");
+			AttributeMenu.close();
 		}
 	}
 
@@ -16779,7 +17366,8 @@ PauseMenu.prototype.hudrender = function(g,c){
 			
 		} else if ( this.page == 2 ) {
 			//Stats page
-			PauseMenu.renderStatsPage(g,new Point(game.resolution.x*0.5 - 224*0.5, 8));
+			AttributeMenu.render(g, new Point(game.resolution.x*0.5 - 224*0.5, 8));
+			//PauseMenu.renderStatsPage(g,new Point(game.resolution.x*0.5 - 224*0.5, 8));
 		} else if ( this.page == 3 ) {
 			//Unique Items
 			leftx = game.resolution.x*0.5 - 224*0.5;
@@ -16859,155 +17447,30 @@ PauseMenu.prototype.hudrender = function(g,c){
 		}
 	} else {
 		if( _player instanceof Player ) {
+			//Minimap
 			g.color = [1.0,1.0,1.0,1.0];
-			g.scaleFillRect(game.resolution.x-41,7,34,26);
+			g.scaleFillRect(game.resolution.x-49,7,42,26);
 			g.color = [0.0,0.0,0.0,1.0];
-			g.scaleFillRect(game.resolution.x-40,8,32,24);
+			g.scaleFillRect(game.resolution.x-48,8,40,24);
 			this.renderMap(g,
 				new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
 				new Point(game.resolution.x-24,24), 
-				new Line(-16,-16,16,8)
+				new Line(-24,-16,16,8)
 			);
 		}
 	}
 }
 
-PauseMenu.renderStatsPage= function(g,c,testPlayer){
-	var padding = 20;
-	var statX = 64;
-			
-	boxArea(g,c.x,c.y,224,224);
-	
-	textArea(g,"Attributes",c.x+20,c.y+12);
-	
-	//textArea(g,"Points: "+_player.stat_points ,c.x+20,36);
-	var attributeY = c.y+28;
-	
-	//Quick function for rendering stats
-	var r = function(g,x,y,player,vfunc){
-		var origVal = vfunc(_player);
-		if(!player){
-			textArea(g,""+origVal, x,y);
-		} else {
-			var sval = "" + vfunc(player);
-			var val = Number.parseInt(sval);
-			var xoff = 8 * (sval.length);
-			origVal = Number.parseInt(origVal);
-			textArea(g,sval, x,y);
-			if(val > origVal){
-				g.renderSprite("text",new Point(x+xoff,y),999,new Point(6,6));
-			} else if(val < origVal){
-				g.renderSprite("text",new Point(x+xoff,y),999,new Point(7,6));
-			}
-		}
+PauseMenu.mapIcons = new Array();
+PauseMenu.pushIcon = function(icon){
+	if(icon instanceof MapIcon && PauseMenu.mapIcons.indexOf(icon) < 0){
+		PauseMenu.mapIcons.push(icon);
 	}
-	
-	//attack
-	textArea(g,"Attack:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.attack;});
-	attributeY += 12;
-	
-	//magic
-	textArea(g,"Defence:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.defence;});
-	attributeY += 12;
-	
-	//magic
-	textArea(g,"Magic:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.magic;});
-	attributeY += 20;
-	
-	//magic
-	textArea(g,"Damage:", c.x+padding,attributeY);
-	r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.damage + p.damageFire + p.damageSlime + p.damageIce + p.damageLight;});
-	attributeY += 20;
-	
-	var damages = _player.getDamage();
-	//Damage
-	textArea(g,"DMG / DEF", c.x+padding,attributeY);
-	attributeY += 12;
-	
-	//Physical
-	textArea(g,"P", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damage);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defencePhysical*100)+"%";});
-	attributeY += 12;
-	
-	//Fire
-	textArea(g,"F", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageFire);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceFire*100)+"%";});
-	attributeY += 12;
-	
-	//Fire
-	textArea(g,"S", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageSlime);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceSlime*100)+"%";});
-	attributeY += 12;
-	
-	//Ice
-	textArea(g,"I", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageIce);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceIce*100)+"%";});
-	attributeY += 12;
-	
-	//Light
-	textArea(g,"L", c.x+padding,attributeY);
-	r(g,c.x+padding+16,attributeY,testPlayer,function(p){return Math.floor(p.damageLight);});
-	r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceLight*100)+"%";});
-	attributeY += 20;
-	
-	//Render perks
-	attributeY = c.y+28;
-	for(var i in _player.perks){
-		if(_player.perks[i] || (testPlayer && testPlayer.perks[i])){
-			textArea(g,i.slice(0,8), c.x+112,attributeY);
-			//textArea(g,""+Math.floor(_player.perks[i]*100), c.x+192,attributeY);
-			r(g,c.x+184,attributeY,testPlayer,function(p){return Math.floor(p.perks[i]*100);});
-			
-			attributeY += 12;
-		}
-	}
-	
-	//Shield slots
-	for(var i=0; i < _player.equip_shield.slots.length; i++){
-		var slotType = _player.equip_shield.slots[i];
-		g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
-		
-		if(i < _player.shieldSlots.length){
-			if(_player.shieldSlots[i] instanceof Spell){
-				_player.shieldSlots[i].render(g,new Point(8+c.x+padding+i*32,c.y+196));
-			}
-		}
-	}
-	
 }
 
-PauseMenu.prototype.fetchDoors = function(g,cursor,offset,limits){
-	this.icons = new Array();
-	var doors = game.getObjects(Door);
-	var shops = game.getObjects(Shop);
-	for(var i=0; i < doors.length; i++){
-		if(doors[i].name.match(/(\d+)/)){
-			var id = doors[i].name.match(/(\d+)/)[0] - 0;
-			var x = Math.floor(doors[i].position.x/256) 
-			var y = Math.floor(doors[i].position.y/240)
-			this.icons.push({"x":x,"y":y,frame:new Point(8,id)});
-		}
-	}
-	for(var i=0; i < shops.length; i++){
-		var x = Math.floor(shops[i].position.x/256) 
-		var y = Math.floor(shops[i].position.y/240)
-		this.icons.push({"x":x,"y":y,frame:new Point(8,9)});
-	}
-}
 PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 	try {
 		var size = new Point(8,8);
-		
-		if(!this.icons){
-			this.fetchDoors();
-		}
 		var mapstart = new Point(0,0);
 		var mapwidth = Math.floor(game.map.width/16);
 		var map = game.map.map;
@@ -17028,27 +17491,28 @@ PauseMenu.prototype.renderMap = function(g,cursor,offset,limits){
 					var ytile = map[i] % 16;
 					if( this.map_reveal[i] < 2 ) xtile += 4;
 					g.renderSprite("map",pos.add(offset),this.zIndex,new Point(xtile,ytile));
-					
-					//Render icons
-					if( this.map_reveal[i] >= 2 ) {
-						for(var j=0; j < this.icons.length; j++ ){
-							if( tile.x == this.icons[j].x && tile.y == this.icons[j].y ){
-								g.renderSprite("map",pos.add(offset),this.zIndex,this.icons[j].frame);
-							}
-						}
-					}
 				}
 			}
 		}
-		//Draw player
-		var pos = new Point(
-			1+cursor.x*8 + Math.floor(_player.position.x/256)*8, 
-			(cursor.y*8) + Math.floor(_player.position.y/240)*8 -Math.abs(Math.sin(game.time*0.1)*2)
-		);
+		
+		for(var i=0; i < PauseMenu.mapIcons.length; i++){
+			var icon = PauseMenu.mapIcons[i];
+			var pos = icon.mapPosition().add(cursor).scale(8)
+			var reveal = this.map_reveal[icon.mapIndex()];
+			if(reveal >= icon.mapRevealMin){
+				if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
+					var c = new Point().subtract(cursor.scale(8)).subtract(offset);
+					icon.render(g,c);
+				}
+			}
+			
+		}
+		/*
 		if( pos.x >= limits.start.x && pos.x < limits.end.x && pos.y >= limits.start.y && pos.y < limits.end.y ) {
 			g.color = [1.0,0.0,0.0,1.0];
 			g.renderSprite("map",pos.add(offset),this.zIndex+1,new Point(9,0),false);
 		}
+		*/
 	} catch (err) {
 		var r = 0;
 	}
@@ -17088,6 +17552,34 @@ PauseMenu.attackspeedToName = function(speed){
 	} else {
 		return n[4];
 	}
+}
+
+function MapIcon(x,y){
+	this.position = new Point(x,y);
+	this.bobSpeed = 0;
+	this.bobHeight = 3;
+	this.sprite = "mapicons";
+	this.mapRevealMin = 2;
+	this.frame = new Point(0,0);
+}
+MapIcon.prototype.mapPosition = function(){
+	return new Point(Math.floor(this.position.x/(16*16)), Math.floor(this.position.y/(15*16)));
+}
+MapIcon.prototype.mapIndex = function(){
+	var mPos = this.mapPosition();
+	var mWidth = Math.floor(game.map.width / 16);
+	return mPos.x + mPos.y * mWidth;
+}
+MapIcon.prototype.render = function(g,c){
+	var bob = (1 + Math.sin(game.time * this.bobSpeed)) * 0.5 * this.bobHeight;
+	var p = this.mapPosition();
+	
+	g.renderSprite(
+		this.sprite,
+		p.scale(8).add(new Point(0,-bob)).subtract(c),
+		1000,
+		this.frame
+	)
 }
 
  /* platformer\menu_title.js*/ 
@@ -17135,11 +17627,7 @@ function TitleMenu(){
 		"start_help"
 	];
 	
-	/*
-	if(localStorage.getItem("debug_map")){
-		MapLoader.mapname = localStorage.getItem("debug_map")
-	}
-	*/
+	TitleMenu.fetchProfiles();
 }
 
 TitleMenu.prototype.update = function(){
@@ -17158,15 +17646,17 @@ TitleMenu.prototype.update = function(){
 		}
 	} else if( this.page == 1 ) {
 		this.progress = 10.0;
-		if( input.state("up") == 1 ) { this.cursor = 0; audio.play("cursor"); }
-		if( input.state("down") == 1 ) { this.cursor = 1; audio.play("cursor"); }
+		if( input.state("up") == 1 ) { 
+			this.cursor = Math.max(this.cursor-1, 0); 
+			audio.play("cursor"); 
+		}
+		if( input.state("down") == 1 ) { 
+			this.cursor = this.cursor = Math.min(this.cursor+1, 2); 
+			audio.play("cursor"); 
+		}
 		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
-			if(this.cursor == 0){
-				this.page = 2;
-				audio.play("pause");
-			} else if(this.cursor == 1){
-				this.startGame(); 
-			}
+			audio.play("pause");
+			this.startGame(this.cursor); 
 		}
 	} else if( this.page == 2 ) {
 		this.progress = 10.0;
@@ -17286,30 +17776,27 @@ TitleMenu.prototype.render = function(g,c){
 		g.renderSprite(this.bgsprite,new Point(xpos+107, Math.lerp(-480,32,pan)),this.zIndex, new Point(0,1));
 	}
 	
-	textArea(g,"Copyright Rattus/Rattus LLP 2016",8,4);
+	textArea(g,"Copyright Rattus/Rattus LLP 2017",8,4);
 	textArea(g,"Version "+version,8,228);
 }
 
 TitleMenu.prototype.hudrender = function(g,c){
 	if(this.page == 0){
+		//Press start
 		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
 		if( this.progress >= 9.0 && this.progress < 24.0  ){
 			boxArea(g,x_pos,168,120,40);
 			textArea(g,i18n("press_start"),x_pos+16,184);
 		}
 	} else if(this.page == 1) {
-		var x_pos = game.resolution.x * 0.5 - 192 * 0.5;
-		boxArea(g,x_pos,32,192,88);
-		textArea(g,i18n(this.options[this.cursor]),x_pos+16,48,160);
-		
-		var x_pos = game.resolution.x * 0.5 - 120 * 0.5;
-		boxArea(g,x_pos,146,120,56);
-		//textArea(g,i18n("introduction"),x_pos+24,162);
-		textArea(g,"Debug",x_pos+24,162);
-		textArea(g,i18n("new_game"),x_pos+24,178);
-		
-		g.renderSprite("text",new Point(x_pos+16,162+(16*this.cursor)),this.zIndex,new Point(15,5));
+		//Select profile
+		for(var i=0; i < 3; i++){
+			var pos = new Point(game.resolution.x * 0.5 - 90, 16 + i * 72);
+			this.renderProfile(g, pos, TitleMenu.profile_info[i]);
+		}
+		textArea(g,"@",game.resolution.x * 0.5 - 106,32+72*this.cursor);
 	} else if(this.page == 2){ 
+		//Debug
 		var x_pos = game.resolution.x * 0.5 - 200 * 0.5;
 		boxArea(g,x_pos,16,200,208);
 		textArea(g,"Map name",x_pos+32,32);
@@ -17335,23 +17822,86 @@ TitleMenu.prototype.hudrender = function(g,c){
 		textArea(g,i18n("intro_text"),x_pos,y_pos,256,240);
 	}	
 }
-TitleMenu.prototype.idle = function(){}
-
-TitleMenu.prototype.startGame = function(){
+TitleMenu.prototype.renderProfile = function(g,c, profile){
+	boxArea(g,c.x,c.y,180,64);
 	
-	if(this.cursor == 1) {
-		this.start = true;
-		audio.play("pause");
-		//WorldMap.newgame();
-		new Player(0,0);
-		WorldLocale.loadMap("gateway.tmx");
-	} else { 
-		audio.play("negative");
-		//ga("send","event","start_intro");
-		//dataManager.loadMap(game,_map_maps[0]);
-		//audio.stop("music_intro");
+	if(profile != undefined){
+		Player.renderLifebar(g,c.add(new Point(16,16)),profile.life,profile.lifeMax,0);
+		Player.renderManabar(g,c.add(new Point(16,28)),profile.mana, profile.manaMax);
+		
+		var timeHour = Math.floor(profile.time/3600);
+		var timeMinute = Math.floor(profile.time/60) % 60;
+		
+		timeMinute = (timeMinute < 10 ? "0" : "") + timeMinute;
+		
+		textArea(g,"$"+profile.money,c.x+90,c.y+16);
+		textArea(g,"T"+timeHour+":"+timeMinute,c.x+90,c.y+28);
+		textArea(g,profile.location,c.x+90,c.y+40);
+		
+		for(var i=0; i < 4; i++){
+			if(profile["stone" + i]){
+				textArea(g,"@",c.x+16+12*i,c.y+40);
+			}
+		}
+	} else {
+		var ng_text = i18n("new_game");
+		var textpos = 90 - ng_text.length * 4;
+		textArea(g,i18n("new_game"),c.x+textpos,c.y+28,256,240);
 	}
 }
+
+TitleMenu.prototype.idle = function(){}
+
+TitleMenu.prototype.startGame = function(profile){
+	if(TitleMenu.profile_info[profile]){
+		WorldLocale.profile = profile;
+		WorldLocale.load();
+	} else {
+		new Player();
+		WorldLocale.loadMap("gateway.tmx");
+	}
+}
+TitleMenu.fetchProfiles = function(){
+	game.load(function(data){
+		TitleMenu.profile_info = {};
+		
+		for(var i in data){
+			var d = data[i];
+			var areas = i18n("maps");
+			var map = i18n("map_unknown");
+			
+			if(d.location.map in areas){
+				map = areas[d.location.map];
+			}
+			
+			var out = {
+				"life" : d.player.life,
+				"lifeMax" : d.player.lifeMax,
+				"mana" : d.player.mana,
+				"manaMax" : d.player.manaMax,
+				"money" : d.player.money,
+				"stone0" : 0,
+				"stone1" : 0,
+				"stone2" : 0,
+				"stone3" : 0,
+				"time" : 5400,
+				"location" : map
+			};
+			
+			for(var stone = 0; stone < 4; stone++){
+				var tname = "templegate_" + stone;
+				if(tname in d.variables && d.variables[tname]){
+					out["stone" + stone] = 1;
+				}
+			}
+			
+			TitleMenu.profile_info[i] = out;
+		}
+		
+	},-1);
+}
+
+TitleMenu.profile_info = {};
 TitleMenu.mapname = "testmap.tmx";
 TitleMenu.level = 1;
 TitleMenu.grabLedges = false;
@@ -17931,21 +18481,7 @@ var mod_combat = {
 		
 		this.getDamage = Combat.getDamage;
 		
-		this.calcDamage = function(damage){
-			if(damage instanceof Object){
-				var fdamage = 0;
-				fdamage += damage.physical - (damage.physical * this.defencePhysical);
-				fdamage += damage.fire - (damage.fire * this.defenceFire);
-				fdamage += damage.slime - (damage.slime * this.defenceSlime);
-				fdamage += damage.ice - (damage.ice * this.defenceIce);
-				fdamage += damage.light - (damage.light * this.defenceLight);
-				
-				damage = Math.round(fdamage);
-			} else {
-				damage = Math.round(damage * (1 - this.defencePhysical));
-			}
-			return damage;
-		}
+		this.calcDamage = Combat.calcDamage;
 		
 		this.hurt = function(obj, damage){
 			//Turns damage object into a flat damage number
@@ -18170,6 +18706,21 @@ var Combat = {
 			"ice" : this.damageIce * mulitplier,
 			"light" : this.damageLight * mulitplier
 		};
+	},
+	"calcDamage" : function(damage){
+		if(damage instanceof Object){
+			var fdamage = 0;
+			fdamage += damage.physical - (damage.physical * this.defencePhysical);
+			fdamage += damage.fire - (damage.fire * this.defenceFire);
+			fdamage += damage.slime - (damage.slime * this.defenceSlime);
+			fdamage += damage.ice - (damage.ice * this.defenceIce);
+			fdamage += damage.light - (damage.light * this.defenceLight);
+			
+			damage = Math.round(fdamage);
+		} else {
+			damage = Math.round(damage * (1 - this.defencePhysical));
+		}
+		return damage;
 	}
 }
 
@@ -20428,6 +20979,8 @@ function Player(x, y){
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
 		
+		PauseMenu.pushIcon(this.mapIcon);
+		
 		Checkpoint.saveState(this);
 	});
 	this.on("collideObject", function(obj){
@@ -20501,7 +21054,9 @@ function Player(x, y){
 	this.dodgeSpeed = 15;
 	this.grabLedgeHeight = 12;
 	
-	this.superHurt = this.hurt;
+	this.mapIcon = new MapIcon(this.position.x, this.position.y);
+	this.mapIcon.bobSpeed = 0.05;
+	
 	
 	this.combatFinalDamage = function(d){
 		if(this.perks.slowWound > 0){
@@ -20510,10 +21065,7 @@ function Player(x, y){
 			this.life -= d;
 		}
 	}
-	this.hurt = function(obj,damage){
-		
-		this.superHurt(obj,damage);
-	}
+	
 	this.superGetDamage = this.getDamage;
 	this.getDamage = function(){
 		var damage = this.superGetDamage();
@@ -20967,6 +21519,9 @@ Player.prototype.update = function(){
 		this.stanima = Math.min(this.stanima + this.delta * this.stanimaRestore, this.stanimaMax);
 	}
 	
+	this.mapIcon.position.x = this.position.x;
+	this.mapIcon.position.y = this.position.y;
+	
 	this.states.justjumped -= this.delta;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
@@ -21155,20 +21710,15 @@ Player.prototype.equipCharm = function(c){
 }
 Player.prototype.equip = function(sword, shield){
 	try {
-		if(sword == undefined && shield == undefined){
-			sword = this.equip_sword;
-			shield = this.equip_shield;
-		}
 		
-		if( sword.isWeapon ){
-			NPC.set(sword.name, 1);
-			//this.attstates.stats = WeaponStats[sword.name];
-		} else {
-			throw "No valid weapon";
-		}
+		sword = sword || this.equip_sword;
+		shield = shield || this.equip_shield;
 		
 		//Shields
 		if(this instanceof Player){
+			if( sword != null){
+				NPC.set(sword.name, 1);
+			}
 			if( shield != null) {
 				if( "stats" in shield){
 					NPC.set(shield.name, 1);
@@ -21189,31 +21739,7 @@ Player.prototype.equip = function(sword, shield){
 				this.shieldProperties.stand = Number.MAX_VALUE;
 				this.shieldProperties.frame_row = 5;
 			}
-			
-			//Drop old weapon
-			if( this.equip_sword != undefined && this.equip_sword != sword ){
-				this.equip_sword.trigger("unequip",this);
-				this.equip_sword.sleep = Game.DELTASECOND * 2;
-				this.equip_sword.position.x = this.position.x;
-				this.equip_sword.position.y = this.position.y;
-				this.equip_sword.force = new Point(0,0);
-				this.equip_sword.gravity = 0;
-				//game.addObject( this.equip_sword );
-			}
-			
-			//Drop old shield
-			if( this.equip_shield != undefined && this.equip_shield != shield ){
-				this.equip_shield.trigger("unequip",this);
-				this.equip_shield.sleep = Game.DELTASECOND * 2;
-				this.equip_shield.position.x = this.position.x;
-				this.equip_shield.position.y = this.position.y;
-				
-				this.shieldSlots = new Array();
-			}
 		}
-		
-		if( this.equip_sword != sword && sword instanceof Item ) sword.trigger("equip", this);
-		if( this.equip_shield != shield && shield instanceof Item ) shield.trigger("equip", this);
 		
 		this.equip_sword = sword;
 		this.equip_shield = shield;
@@ -21236,7 +21762,7 @@ Player.prototype.equip = function(sword, shield){
 			this.perks[i] = 0.0;
 		}
 		
-		sword.stats.onEquip(this);
+		this.equip_sword.stats.onEquip(this);
 		
 		if(this.equip_shield != null){
 			for(var i=0; i < this.equip_shield.slots.length; i++){
@@ -21248,7 +21774,7 @@ Player.prototype.equip = function(sword, shield){
 			}
 		}
 		
-		this.damage = Math.floor(this.damage + this.stats.attack * sword.stats.damage);
+		this.damage = Math.floor(this.damage + this.stats.attack * this.equip_sword.stats.damage);
 		
 		if(this instanceof Player){
 			this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
@@ -21339,6 +21865,81 @@ Player.prototype.respawn = function(g,c){
 	game.pause = false;
 	PauseMenu.open = false; 
 }
+Player.prototype.toJson = function(){
+	var out = {};
+	out.life = this.life;
+	out.lifeMax = this.lifeMax;
+	out.mana = this.mana;
+	out.manaMax = this.manaMax;
+	out.stanimaMax = this.stanimaMax;
+	out.money = this.money;
+	
+	out.lightRadius = this.lightRadius;
+	out.downstab = this.downstab;
+	out.walljump = this.walljump;
+	out.doubleJump = this.doubleJump;
+	out.dodgeFlash = this.dodgeFlash;
+	
+	out.weapon = false;
+	out.shield = false;
+	
+	out.stats = {};
+	out.spells = new Array();
+	out.slots = new Array();
+	
+	if(this.equip_sword instanceof Item){
+		out.weapon = this.equip_sword.name;
+	}
+	if(this.equip_shield instanceof Item){
+		out.shield = this.equip_shield.name;
+	}
+	
+	for(var i=0; i < this.spells.length; i++){
+		out.spells[i] = {"name" : this.spells[i].objectName, "level" : this.spells[i].level};
+	}
+	
+	for(var i=0; i < this.shieldSlots.length; i++){
+		out.slots[i] = this.spells.indexOf(this.shieldSlots[i]);
+	}
+	
+	for(var i in this.baseStats){
+		out.stats[i] = this.baseStats[i];
+	}
+	return out;
+}
+Player.prototype.fromJson = function(data){
+	this.life = data.life;
+	this.lifeMax = data.lifeMax;
+	this.mana = data.mana;
+	this.manaMax = data.manaMax;
+	this.stanimaMax = data.stanimaMax;
+	this.money = data.money;
+	this.baseStats = data.stats;
+	
+	this.lightRadius = data.lightRadius;
+	this.downstab = data.downstab;
+	this.walljump = data.walljump;
+	this.doubleJump = data.doubleJump;
+	this.dodgeFlash = data.dodgeFlash;
+	
+	if(data.weapon){
+		this.equip_sword = new Item(0,0,0,{"name" : data.weapon});
+	}
+	if(data.shield){
+		this.equip_shield = new Item(0,0,0,{"name" : data.shield});
+	}
+	for(var i=0; i < data.spells.length; i++){
+		var spell = new self[data.spells[i].name];
+		spell.level = data.spells[i].level;
+		this.spells.push(spell);
+	}
+	for(var i=0; i < data.slots.length; i++){
+		this.shieldSlots[i] = this.spells[data.slots[i]];
+	}
+	
+	this.equip();
+}
+
 Player.prototype.render = function(g,c){	
 	/*
 	if(this.trot == undefined)this.trot = new Point(0,0);
@@ -21489,32 +22090,10 @@ Player.prototype.renderShield = function(g,c,ops){
 
 Player.prototype.hudrender = function(g,c){
 	/* Render HP */
-	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(7,7,(this.lifeMax)+2,10);
-	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,8,this.lifeMax,8);
-	g.color = [1.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,8,Math.max(this.life,0),8);
-	
-	/* Render Buffered Damage */
-	if(this.life > 0){
-		g.color = [0.65,0.0625,0.0,1.0];
-		var buffer_start = Math.max( 8 + (this.lifeMax-this.states.damageBuffer), 8)
-		g.scaleFillRect(
-			Math.max(this.life,0)+8,
-			8,
-			-Math.min(this.states.damageBuffer,this.life),
-			8
-		);
-	}
+	Player.renderLifebar(g,new Point(8,8),this.life, this.lifeMax, this.states.damageBuffer);
 	
 	/* Render Mana */
-	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(7,19,this.manaMax+2,4);
-	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,20,this.manaMax,2);
-	g.color = [0.23,0.73,0.98,1.0];
-	g.scaleFillRect(8,20,this.mana,2);
+	Player.renderManabar(g,new Point(8,20),this.mana, this.manaMax);
 	
 	/* Render stanima */
 	var stanimaLength = Math.floor( (this.stanimaMax / this.stanimaBase) * 24 );
@@ -21565,6 +22144,35 @@ Player.prototype.hudrender = function(g,c){
 		Background.pushLight( this.position, 56, [0.25,0.15,0.1,1.0] );
 	}
 	
+}
+Player.renderLifebar = function(g,c, life, max, buffer){
+	/* Render HP */
+	g.color = [1.0,1.0,1.0,1.0];
+	g.scaleFillRect(c.x-1,c.y-1,(max)+2,10);
+	g.color = [0.0,0.0,0.0,1.0];
+	g.scaleFillRect(c.x,c.y,max,8);
+	g.color = [1.0,0.0,0.0,1.0];
+	g.scaleFillRect(c.x,c.y,Math.max(life,0),8);
+	
+	/* Render Buffered Damage */
+	if(life > 0){
+		g.color = [0.65,0.0625,0.0,1.0];
+		g.scaleFillRect(
+			Math.max(life,0)+c.y,
+			c.y,
+			-Math.min(buffer,life),
+			8
+		);
+	}
+}
+Player.renderManabar = function(g,c, mana, max){
+	/* Render Mana */
+	g.color = [1.0,1.0,1.0,1.0];
+	g.scaleFillRect(c.x-1,c.y-1,max+2,4);
+	g.color = [0.0,0.0,0.0,1.0];
+	g.scaleFillRect(c.x,c.y,max,2);
+	g.color = [0.23,0.73,0.98,1.0];
+	g.scaleFillRect(c.x,c.y,mana,2);
 }
 
 Player.prototype.animtest = function(){
@@ -22563,7 +23171,7 @@ Spawn.damage = function(level,difficulty){
 		difficulty = Spawn.difficulty;
 	}
 	
-	var multi = 1 + difficulty * (1.0/3.0);
+	var multi = 1 + difficulty * (1.0/2.0);
 	damage = Math.floor( damage * multi );
 	return damage;
 }
@@ -22575,7 +23183,7 @@ Spawn.life = function(level, difficulty){
 	}
 	
 	if( level == 0 ) return 3; //Always one shot
-	var multi = 1 + difficulty * 0.5;
+	var multi = 1 + difficulty * 0.25;
 	return Math.floor( multi * level * 7 );
 }
 
@@ -22586,7 +23194,7 @@ Spawn.money = function(money, difficulty){
 	}
 	
 	var base = money * 0.66666 + money * 0.4 * Math.random();
-	var multi = 1 + difficulty * 1.6;
+	var multi = 1 + difficulty * 0.6;
 	var bonus = Math.round( multi * 20 );
 	var out = Math.round( multi * base );
 	if(Math.random() < 0.04){
@@ -22602,6 +23210,7 @@ Spawn.difficulty = 0;
 
 function Spell(){
 	this.name = "Spell";
+	this.objectName = "Spell";
 	this.level = 1;
 	this.levelMax = 5;
 	this.castTime = Game.DELTASECOND;
@@ -22655,6 +23264,7 @@ function SpellFire(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Fireball";
+	this.objectName = "SpellFire";
 	this.castTime = Game.DELTASECOND * 0.15;
 	this.frame = new Point(0,10);
 }
@@ -22688,6 +23298,7 @@ function SpellSlimeGernade(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Slime gernade";
+	this.objectName = "SpellSlimeGernade";
 	this.castTime = Game.DELTASECOND * 0.15;
 	this.frame = new Point(6,10);
 }
@@ -22720,6 +23331,7 @@ function SpellFlash(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Flash";
+	this.objectName = "SpellFlash";
 	this.castTime = Game.DELTASECOND * 0.3;
 	this.manaCost = 8;
 	this.frame = new Point(1,10);
@@ -22762,6 +23374,7 @@ function SpellHeal(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Heal";
+	this.objectName = "SpellHeal";
 	this.manaCost = 16;
 	this.frame = new Point(2,10);
 	this.priceBase = 8;
@@ -22795,6 +23408,7 @@ function SpellPurify(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Purify";
+	this.objectName = "SpellPurify";
 	this.manaCost = 12;
 	this.frame = new Point(3,10);
 	this.priceBase = 6;
@@ -22832,6 +23446,7 @@ function SpellShield(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Magic Shield";
+	this.objectName = "SpellShield";
 	this.manaCost = 3;
 	this.frame = new Point(4,10);
 	this.priceBase = 9;
@@ -22870,6 +23485,7 @@ function SpellStrength(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Strength";
+	this.objectName = "SpellStrength";
 	this.manaCost = 16;
 	this.frame = new Point(5,10);
 	this.priceBase = 8;
@@ -22950,7 +23566,7 @@ Spook.prototype.lightrender = function(g,c){
 
  /* platformer\start.js*/ 
 
-var version = "0.4.3";
+var version = "0.4.4";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -22972,8 +23588,8 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.walljump = true;
-		//WorldLocale.loadMap("townhub.tmx");
-		//WorldLocale.loadMap("gateway.tmx", "gatetemple2");
+		//WorldLocale.loadMap("test.tmx");
+		//WorldLocale.loadMap("temple2.tmx", "testme");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -23071,6 +23687,93 @@ TeleMarker.prototype.render = function(g,c){
 	this.timer += this.delta;
 	Background.pushLight( this.position.add(new Point(this.size/2,this.size/2)).subtract(c), 120 );
 }
+
+ /* platformer\tilerules.js*/ 
+
+tilerules.rules["world"] = {
+	959:tilerules.ignore,
+	960:tilerules.edge_right,
+	989:tilerules.ceil_1to0,
+	990:tilerules.ceil_0to1,
+	991:tilerules.edge_left,
+	992:tilerules.ignore,
+	1021:tilerules.slope_1to0,
+	1022:tilerules.slope_0to1
+};
+
+tilerules.rules["default"] = {
+	9:tilerules.slope_1tohalf,
+	10:tilerules.slope_halfto0,
+	11:tilerules.slope_1to0,
+	12:tilerules.slope_0to1,
+	13:tilerules.slope_0tohalf,
+	14:tilerules.slope_halfto1,
+	41:tilerules.ignore,
+	42:tilerules.ignore,
+	43:tilerules.ignore,
+	44:tilerules.ignore,
+	45:tilerules.ignore,
+	47:tilerules.ignore,
+	
+	73:tilerules.slope_1tohalf,
+	74:tilerules.slope_halfto0,
+	75:tilerules.slope_1to0,
+	76:tilerules.slope_0to1,
+	77:tilerules.slope_0tohalf,
+	78:tilerules.slope_halfto1,
+	105:tilerules.ignore,
+	106:tilerules.ignore,
+	107:tilerules.ignore,
+	108:tilerules.ignore,
+	109:tilerules.ignore,
+	110:tilerules.ignore,
+	
+	137:tilerules.slope_1tohalf,
+	138:tilerules.slope_halfto0,
+	139:tilerules.slope_1to0,
+	140:tilerules.slope_0to1,
+	141:tilerules.slope_0tohalf,
+	142:tilerules.slope_halfto1,
+	169:tilerules.ignore,
+	170:tilerules.ignore,
+	171:tilerules.ignore,
+	172:tilerules.ignore,
+	173:tilerules.ignore,
+	174:tilerules.ignore,
+	
+	201:tilerules.onewayup,
+	202:tilerules.onewayup,
+	203:tilerules.onewayup,
+	204:tilerules.onewayup,
+	205:tilerules.onewayup,
+	206:tilerules.onewayup,
+	233:tilerules.ignore,
+	234:tilerules.ignore,
+	235:tilerules.ignore,
+	236:tilerules.ignore,
+	237:tilerules.ignore,
+	238:tilerules.ignore,
+	
+	905:tilerules.ignore, 906:tilerules.ignore, 907:tilerules.ignore, 
+	908:tilerules.ignore, 909:tilerules.ignore, 910:tilerules.ignore, 
+	937:tilerules.ceil_1tohalf,
+	938:tilerules.ceil_halfto0,
+	939:tilerules.ceil_1to0,
+	940:tilerules.ceil_0to1,
+	941:tilerules.ceil_0tohalf,
+	942:tilerules.ceil_halfto1,
+	
+	1003:tilerules.ceil_1to0,
+	1004:tilerules.ceil_0to1,
+};
+
+tilerules.rules["firepits"] = mergeLists({
+	98:tilerules.ignore, 99:tilerules.ignore,
+	225:tilerules.ignore, 226:tilerules.ignore, 227:tilerules.ignore, 228:tilerules.ignore, 229:tilerules.ignore, 230:tilerules.ignore,
+	257:tilerules.ignore, 291:tilerules.ignore, 293:tilerules.ignore, 321:tilerules.ignore, 323:tilerules.ignore, 359:tilerules.ceil_1to0, 360:tilerules.ceil_0to1,
+	353:tilerules.ignore, 385:tilerules.ignore, 386:tilerules.ignore, 386:tilerules.ignore, 387:tilerules.ignore, 388:tilerules.ignore,
+	389:tilerules.ignore, 390:tilerules.ignore, 417:tilerules.ignore, 418:tilerules.ignore, 419:tilerules.ignore
+}, tilerules.rules["default"]);
 
  /* platformer\tiles.js*/ 
 
@@ -23172,6 +23875,9 @@ function BreakableTile(x, y, d, ops){
 	this.explode = 1;
 	this.triggersave = false;
 	
+	this.breakable = true;
+	this.fixable = true;
+	
 	this.startBroken = 0;
 	
 	ops = ops || {};
@@ -23217,8 +23923,11 @@ function BreakableTile(x, y, d, ops){
 	if("broken" in ops) {
 		this.startBroken = ops["broken"] * 1;
 	}
-	if("canunbreak" in ops) {
-		this.canUnbreak = ops["canunbreak"] * 1;
+	if("breakable" in ops){
+		this.breakable =  ops["breakable"] * 1;
+	}
+	if("fixable" in ops){
+		this.fixable =  ops["fixable"] * 1;
 	}
 	if("chain" in ops){
 		this.chain = ops["chain"] * 1;
@@ -23234,7 +23943,7 @@ function BreakableTile(x, y, d, ops){
 	}
 	
 	this.on("activate", function(obj,pos,damage){
-		if(this.broken && this.canUnbreak){
+		if(this.broken){
 			this.unbreak(this.explode);
 		}else{
 			this.break(this.explode);
@@ -23291,19 +24000,29 @@ function BreakableTile(x, y, d, ops){
 	}
 	if("triggersave" in ops){
 		this.triggersave = ops["triggersave"];
-		if(NPC.get(this.triggersave)){
-			this.trigger("activate");
+		if(NPC.get(this.triggersave) != undefined){
+			var tempChain = this.chain;
+			this.chain = 0;
+			if(NPC.get(this.triggersave)){
+				this.break(false);
+			} else {
+				this.unbreak(false);
+			}
+			this.chain = tempChain;
 		}
 	}
 }
 BreakableTile.prototype.unbreak = function(explode){
-	if(this.broken && this.undertile != 0){
+	if(this.broken && this.undertile != 0 && this.fixable){
 		if(this.chain) {
 			this.chainActive = true;
 			this.chaintype = "unbreak";
 		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave, 0);
 		}
 		if(this.undertile instanceof Array){
 			var i = 0;
@@ -23330,13 +24049,16 @@ BreakableTile.prototype.unbreak = function(explode){
 	}
 }
 BreakableTile.prototype.break = function(explode){
-	if(!this.broken && this.undertile != BreakableTile.unbreakable && this.undertile != 0){
+	if(!this.broken && this.breakable && this.undertile != 0){
 		if(this.chain) {
 			this.chainActive = true;
 			this.chaintype = "break";
 		}
 		if(explode){
 			game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave, 1);
 		}
 		if(this.undertile instanceof Array){
 			for(var x=0; x < this.width; x+= 16){
@@ -24012,6 +24734,11 @@ function AttackTrigger(x,y,d,o){
 	o = o || {};
 	this.team = 0;
 	this.lifeMax = this.life = 1;
+	this.defencePhysical = 0.0;
+	this.defenceFire = 0.0;
+	this.defenceSlime = 0.0;
+	this.defenceIce = 0.0;
+	this.defenceLight = 0.0;
 	
 	if(!("retrigger" in o)){
 		this.retrigger = 0;
@@ -24038,8 +24765,9 @@ function AttackTrigger(x,y,d,o){
 }
 AttackTrigger.prototype.hurt = function(obj,damage){
 	if(this.life > 0){
-		this.life -= damage;
-		this.trigger("hurt", obj, damage);
+		var flatDamage = Combat.calcDamage.apply(this,[damage]);
+		this.life -= flatDamage;
+		this.trigger("hurt", obj, flatDamage);
 		if(this.life <= 0){
 			this.trigger("death");
 		}
@@ -24547,23 +25275,7 @@ WorldMap = {
 		"Shop",
 		"WaystoneChest"
 	],
-	"save" : function(){
-		var q = {}
-		var i = 0;
-		while("q"+i in Quests){
-			q["q"+i] = Quests["q"+i];
-			i++;
-		}
-		
-		var data = {
-			"savedata" : new Date * 1,
-			"quests" : q,
-			"variables" : NPC.variables,
-			"settings" : Settings
-		}
-		
-		game.save(data);
-	}
+	
 };
 
 WorldPlayer.prototype = new GameObject();
@@ -24707,6 +25419,7 @@ WorldLocale.loadMap = function(map, start, callback){
 	}
 	
 	_player.keys = new Array();
+	PauseMenu.mapIcons = new Array();
 	
 	var file = map;
 	game.loadMap(file, function(starts){
@@ -24737,6 +25450,54 @@ WorldLocale.loadMap = function(map, start, callback){
 		}
 	});
 }
+WorldLocale.save = function(){
+	var q = {}
+	var i = 0;
+	while("q"+i in Quests){
+		q["q"+i] = Quests["q"+i];
+		i++;
+	}
+	
+	var location = {
+		"map" : game.newmapName,
+		"x" : _player.position.x,
+		"y" : _player.position.y
+		
+	}
+	
+	var data = {
+		"savedate" : new Date * 1,
+		"quests" : q,
+		"location" : location,
+		"variables" : NPC.variables,
+		"player" : _player.toJson(),
+		"settings" : Settings
+	}
+	
+	game.save(data);
+}
+WorldLocale.profile = 0;
+WorldLocale.load = function(){
+	game.load(function(data){
+		if(data){
+			new Player();
+			_player.fromJson(data.player);
+			
+			NPC.variables = data.variables;
+			
+			game.loadMap(data.location.map, function(starts){
+				_player.position.x = data.location.x;
+				_player.position.y = data.location.y;
+				
+				game.addObject(_player);
+				game.addObject(new PauseMenu(0,0));
+				game.addObject(new Background(0,0));
+			});
+		}
+		
+	}, WorldLocale.profile);
+}
+
 WorldLocale.getMapIndex = function(list,key){
 	for(var i=0; i < list.length; i++){
 		if(list[i].start == key){

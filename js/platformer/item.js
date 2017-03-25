@@ -71,12 +71,15 @@ function Item(x,y,d, ops){
 			if( this.name == "mana_fruit") { obj.manaMax += 6; obj.manaHeal = 999; audio.play("gulp"); DemoThanks.items++; }
 			
 			if( this.isWeapon ) {
+				NPC.set(this.name, 1);
+				/*
 				var currentWeapon = _player.equip_sword;
 				obj.equip(this, obj.equip_shield);
 				game.addObject(currentWeapon);
 				currentWeapon.force = new Point(0,0);
 				currentWeapon.gravity = 0;
 				audio.play("equip");
+				*/
 			}
 			
 			if( this.isShield ) {

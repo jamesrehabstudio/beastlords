@@ -37,6 +37,8 @@ Checkpoint.saveState = function(obj){
 	obj.checkpoint.y = obj.position.y;
 	
 	Checkpoint.state.money = obj.money;
+	
+	WorldLocale.save();
 }
 Checkpoint.loadState = function(obj){
 	obj.position.x = obj.checkpoint.x ;

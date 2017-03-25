@@ -1,5 +1,6 @@
 function Spell(){
 	this.name = "Spell";
+	this.objectName = "Spell";
 	this.level = 1;
 	this.levelMax = 5;
 	this.castTime = Game.DELTASECOND;
@@ -53,6 +54,7 @@ function SpellFire(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Fireball";
+	this.objectName = "SpellFire";
 	this.castTime = Game.DELTASECOND * 0.15;
 	this.frame = new Point(0,10);
 }
@@ -86,6 +88,7 @@ function SpellSlimeGernade(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Slime gernade";
+	this.objectName = "SpellSlimeGernade";
 	this.castTime = Game.DELTASECOND * 0.15;
 	this.frame = new Point(6,10);
 }
@@ -118,6 +121,7 @@ function SpellFlash(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Flash";
+	this.objectName = "SpellFlash";
 	this.castTime = Game.DELTASECOND * 0.3;
 	this.manaCost = 8;
 	this.frame = new Point(1,10);
@@ -160,6 +164,7 @@ function SpellHeal(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Heal";
+	this.objectName = "SpellHeal";
 	this.manaCost = 16;
 	this.frame = new Point(2,10);
 	this.priceBase = 8;
@@ -193,6 +198,7 @@ function SpellPurify(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Purify";
+	this.objectName = "SpellPurify";
 	this.manaCost = 12;
 	this.frame = new Point(3,10);
 	this.priceBase = 6;
@@ -230,6 +236,7 @@ function SpellShield(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Magic Shield";
+	this.objectName = "SpellShield";
 	this.manaCost = 3;
 	this.frame = new Point(4,10);
 	this.priceBase = 9;
@@ -268,6 +275,7 @@ function SpellStrength(){
 	//Fires a fireball
 	this.constructor();
 	this.name = "Strength";
+	this.objectName = "SpellStrength";
 	this.manaCost = 16;
 	this.frame = new Point(5,10);
 	this.priceBase = 8;

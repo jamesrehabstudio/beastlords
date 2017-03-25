@@ -136,6 +136,22 @@ Drain.prototype.update = function(){
 }
 
 Drain.prototype.render = function(g,c){
+	/*
+	g.renderSprite(
+		"ooze", 
+		this.position.subtract(new Point(0,this.height)).subtract(c),
+		this.zIndex,
+		new Point(),
+		false,
+		{
+			"u_time" : game.timeScaled * 0.01,
+			"u_size" : [this.width, this.height],
+			"scalex" : this.width / 64.0,
+			"scaley" : this.height / 64.0
+		}
+	)
+	return;
+	*/
 	if(this.active){
 		for(var x=0; x < this.width; x+=16){
 			var pos = new Point(

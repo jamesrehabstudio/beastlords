@@ -278,8 +278,19 @@ Game.prototype.onmessage = function(data){
 		var profile = data["loaddata"]["profile"] * 1;
 		var name = "profile_" + profile;
 		try{
-			var loaddata = JSON.parse(localStorage.getItem(name));
-			this.gameThread.postMessage({"loaddata":loaddata});
+			if(profile >= 0){
+				var loaddata = JSON.parse(localStorage.getItem(name));
+				this.gameThread.postMessage({"loaddata":loaddata});
+			} else {
+				var alldata = {};
+				for(var i=0; i < 3; i++){
+					var name = "profile_" + i;
+					if(localStorage.getItem(name)){
+						alldata[i] = JSON.parse(localStorage.getItem(name));
+					}
+				}
+				this.gameThread.postMessage({"loaddata":alldata});
+			}
 		} catch (err){}
 	}
 	if("savedata" in data){

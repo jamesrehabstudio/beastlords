@@ -132,6 +132,8 @@ Renderer.scaleFillRect = function(x,y,w,h,ops){
 //////////////////
 
 function Game(){
+	self.game = this;
+	
 	this.tileCollideLayer = 2;
 	this.camera = new Point(0,0);
 	this.resolution = new Point(320,240);
@@ -579,19 +581,22 @@ Game.prototype.prompt = function(message,value,callback){
 		}
 	});
 }
-Game.prototype.load = function(callback){
+Game.prototype.load = function(callback, profile){
 	this._loadCallback = callback;
+	if(profile == undefined){ profile = 0;}
+	
 	postMessage({
 		"loaddata" : {
-			"profile" : 0
+			"profile" : profile
 		}
 	});
 	
 }
-Game.prototype.save = function(data){
+Game.prototype.save = function(data, profile){
+	if(profile == undefined) { profile = 0; }
 	postMessage({
 		"savedata" : {
-			"profile" : 0,
+			"profile" : profile,
 			"data" : data
 		}
 	});
@@ -785,10 +790,10 @@ var tilerules = {
 	"VERTICAL" : 0,
 	"HORIZONTAL" : 1,
 	"currentrule" : function(){
-		if(game.map.tileset == "world"){
-			return tilerules.rules.world;
+		if(game.map.tileset in tilerules.rules){
+			return tilerules.rules[game.map.tileset];
 		} else {
-			return tilerules.rules.big;	
+			return tilerules.rules["default"];
 		}
 	},	
 	"rules" : {},
@@ -877,16 +882,44 @@ var tilerules = {
 		}
 		return limits;
 	},
+	"ceil_0tohalf" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.VERTICAL && v < 0 && hitbox.top > pos.y){
+			var peak = pos.y + Math.min((hitbox.right-pos.x)*0.5,8);
+			limits[3] = Math.max(limits[3], peak+1);
+		}
+		return limits;
+	},
+	"ceil_halfto1" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.VERTICAL && v < 0 && hitbox.top > pos.y){
+			var peak = pos.y + Math.min(8+(hitbox.right-pos.x)*0.5,16);
+			limits[3] = Math.max(limits[3], peak+1);
+		}
+		return limits;
+	},
 	"ceil_0to1" : function(axis,v,pos,hitbox,limits){
-		if(axis == tilerules.VERTICAL){
+		if(axis == tilerules.VERTICAL && hitbox.top > pos.y){
 			var peak = pos.y + Math.min(hitbox.right-pos.x,16);
 			limits[3] = Math.max(limits[3], peak+1);
 		}
 		return limits;
 	},
 	"ceil_1to0" : function(axis,v,pos,hitbox,limits){
-		if(axis == tilerules.VERTICAL){
+		if(axis == tilerules.VERTICAL && hitbox.top > pos.y){
 			var peak = (pos.y+tilerules.ts) - Math.max(hitbox.left-pos.x, 1);
+			limits[3] = Math.max(limits[3], peak+1);
+		}
+		return limits;
+	},
+	"ceil_1tohalf" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.VERTICAL && hitbox.top > pos.y){
+			var peak = pos.y + Math.min(Math.max(16-(hitbox.left-pos.x)*0.5,0),8);
+			limits[3] = Math.max(limits[3], peak+1);
+		}
+		return limits;
+	},
+	"ceil_halfto0" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.VERTICAL && v < 0 && hitbox.top > pos.y){
+			var peak = pos.y + Math.min(Math.max(8-(hitbox.left-pos.x)*0.5,8),16);
 			limits[3] = Math.max(limits[3], peak+1);
 		}
 		return limits;
@@ -921,69 +954,9 @@ var tilerules = {
 		return limits;
 	}
 }
-tilerules.rules["world"] = {
-	959:tilerules.ignore,
-	960:tilerules.edge_right,
-	989:tilerules.ceil_1to0,
-	990:tilerules.ceil_0to1,
-	991:tilerules.edge_left,
-	992:tilerules.ignore,
-	1021:tilerules.slope_1to0,
-	1022:tilerules.slope_0to1
-};
-tilerules.rules["big"] = {
-	9:tilerules.slope_1tohalf,
-	10:tilerules.slope_halfto0,
-	11:tilerules.slope_1to0,
-	12:tilerules.slope_0to1,
-	13:tilerules.slope_0tohalf,
-	14:tilerules.slope_halfto1,
-	41:tilerules.ignore,
-	42:tilerules.ignore,
-	43:tilerules.ignore,
-	44:tilerules.ignore,
-	45:tilerules.ignore,
-	47:tilerules.ignore,
-	
-	73:tilerules.slope_1tohalf,
-	74:tilerules.slope_halfto0,
-	75:tilerules.slope_1to0,
-	76:tilerules.slope_0to1,
-	77:tilerules.slope_0tohalf,
-	78:tilerules.slope_halfto1,
-	105:tilerules.ignore,
-	106:tilerules.ignore,
-	107:tilerules.ignore,
-	108:tilerules.ignore,
-	109:tilerules.ignore,
-	110:tilerules.ignore,
-	
-	137:tilerules.slope_1tohalf,
-	138:tilerules.slope_halfto0,
-	139:tilerules.slope_1to0,
-	140:tilerules.slope_0to1,
-	141:tilerules.slope_0tohalf,
-	142:tilerules.slope_halfto1,
-	169:tilerules.ignore,
-	170:tilerules.ignore,
-	171:tilerules.ignore,
-	172:tilerules.ignore,
-	173:tilerules.ignore,
-	174:tilerules.ignore,
-	
-	201:tilerules.onewayup,
-	202:tilerules.onewayup,
-	203:tilerules.onewayup,
-	204:tilerules.onewayup,
-	205:tilerules.onewayup,
-	206:tilerules.onewayup,
-	233:tilerules.ignore,
-	234:tilerules.ignore,
-	235:tilerules.ignore,
-	236:tilerules.ignore,
-	237:tilerules.ignore,
-	238:tilerules.ignore,
-};
+
+tilerules.rules["default"] = {};
+
 
 //////////////////
 //Base game object
@@ -1191,7 +1164,7 @@ importScripts("platformer.js");
 //Start
 _player = null;
 
-game = new Game();
+new Game();
 
 var Settings = {
 	"filter" : 0,

@@ -1,4 +1,4 @@
-var version = "0.4.3";
+var version = "0.4.4";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -20,8 +20,8 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.walljump = true;
-		//WorldLocale.loadMap("townhub.tmx");
-		//WorldLocale.loadMap("gateway.tmx", "gatetemple2");
+		//WorldLocale.loadMap("test.tmx");
+		//WorldLocale.loadMap("temple2.tmx", "testme");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;

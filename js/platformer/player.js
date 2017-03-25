@@ -323,6 +323,8 @@ function Player(x, y){
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
 		
+		PauseMenu.pushIcon(this.mapIcon);
+		
 		Checkpoint.saveState(this);
 	});
 	this.on("collideObject", function(obj){
@@ -396,7 +398,9 @@ function Player(x, y){
 	this.dodgeSpeed = 15;
 	this.grabLedgeHeight = 12;
 	
-	this.superHurt = this.hurt;
+	this.mapIcon = new MapIcon(this.position.x, this.position.y);
+	this.mapIcon.bobSpeed = 0.05;
+	
 	
 	this.combatFinalDamage = function(d){
 		if(this.perks.slowWound > 0){
@@ -405,10 +409,7 @@ function Player(x, y){
 			this.life -= d;
 		}
 	}
-	this.hurt = function(obj,damage){
-		
-		this.superHurt(obj,damage);
-	}
+	
 	this.superGetDamage = this.getDamage;
 	this.getDamage = function(){
 		var damage = this.superGetDamage();
@@ -862,6 +863,9 @@ Player.prototype.update = function(){
 		this.stanima = Math.min(this.stanima + this.delta * this.stanimaRestore, this.stanimaMax);
 	}
 	
+	this.mapIcon.position.x = this.position.x;
+	this.mapIcon.position.y = this.position.y;
+	
 	this.states.justjumped -= this.delta;
 	for(var i in this.spellsCounters ) {
 		this.spellsCounters[i] -= this.delta;
@@ -1050,20 +1054,15 @@ Player.prototype.equipCharm = function(c){
 }
 Player.prototype.equip = function(sword, shield){
 	try {
-		if(sword == undefined && shield == undefined){
-			sword = this.equip_sword;
-			shield = this.equip_shield;
-		}
 		
-		if( sword.isWeapon ){
-			NPC.set(sword.name, 1);
-			//this.attstates.stats = WeaponStats[sword.name];
-		} else {
-			throw "No valid weapon";
-		}
+		sword = sword || this.equip_sword;
+		shield = shield || this.equip_shield;
 		
 		//Shields
 		if(this instanceof Player){
+			if( sword != null){
+				NPC.set(sword.name, 1);
+			}
 			if( shield != null) {
 				if( "stats" in shield){
 					NPC.set(shield.name, 1);
@@ -1084,31 +1083,7 @@ Player.prototype.equip = function(sword, shield){
 				this.shieldProperties.stand = Number.MAX_VALUE;
 				this.shieldProperties.frame_row = 5;
 			}
-			
-			//Drop old weapon
-			if( this.equip_sword != undefined && this.equip_sword != sword ){
-				this.equip_sword.trigger("unequip",this);
-				this.equip_sword.sleep = Game.DELTASECOND * 2;
-				this.equip_sword.position.x = this.position.x;
-				this.equip_sword.position.y = this.position.y;
-				this.equip_sword.force = new Point(0,0);
-				this.equip_sword.gravity = 0;
-				//game.addObject( this.equip_sword );
-			}
-			
-			//Drop old shield
-			if( this.equip_shield != undefined && this.equip_shield != shield ){
-				this.equip_shield.trigger("unequip",this);
-				this.equip_shield.sleep = Game.DELTASECOND * 2;
-				this.equip_shield.position.x = this.position.x;
-				this.equip_shield.position.y = this.position.y;
-				
-				this.shieldSlots = new Array();
-			}
 		}
-		
-		if( this.equip_sword != sword && sword instanceof Item ) sword.trigger("equip", this);
-		if( this.equip_shield != shield && shield instanceof Item ) shield.trigger("equip", this);
 		
 		this.equip_sword = sword;
 		this.equip_shield = shield;
@@ -1131,7 +1106,7 @@ Player.prototype.equip = function(sword, shield){
 			this.perks[i] = 0.0;
 		}
 		
-		sword.stats.onEquip(this);
+		this.equip_sword.stats.onEquip(this);
 		
 		if(this.equip_shield != null){
 			for(var i=0; i < this.equip_shield.slots.length; i++){
@@ -1143,7 +1118,7 @@ Player.prototype.equip = function(sword, shield){
 			}
 		}
 		
-		this.damage = Math.floor(this.damage + this.stats.attack * sword.stats.damage);
+		this.damage = Math.floor(this.damage + this.stats.attack * this.equip_sword.stats.damage);
 		
 		if(this instanceof Player){
 			this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
@@ -1234,6 +1209,81 @@ Player.prototype.respawn = function(g,c){
 	game.pause = false;
 	PauseMenu.open = false; 
 }
+Player.prototype.toJson = function(){
+	var out = {};
+	out.life = this.life;
+	out.lifeMax = this.lifeMax;
+	out.mana = this.mana;
+	out.manaMax = this.manaMax;
+	out.stanimaMax = this.stanimaMax;
+	out.money = this.money;
+	
+	out.lightRadius = this.lightRadius;
+	out.downstab = this.downstab;
+	out.walljump = this.walljump;
+	out.doubleJump = this.doubleJump;
+	out.dodgeFlash = this.dodgeFlash;
+	
+	out.weapon = false;
+	out.shield = false;
+	
+	out.stats = {};
+	out.spells = new Array();
+	out.slots = new Array();
+	
+	if(this.equip_sword instanceof Item){
+		out.weapon = this.equip_sword.name;
+	}
+	if(this.equip_shield instanceof Item){
+		out.shield = this.equip_shield.name;
+	}
+	
+	for(var i=0; i < this.spells.length; i++){
+		out.spells[i] = {"name" : this.spells[i].objectName, "level" : this.spells[i].level};
+	}
+	
+	for(var i=0; i < this.shieldSlots.length; i++){
+		out.slots[i] = this.spells.indexOf(this.shieldSlots[i]);
+	}
+	
+	for(var i in this.baseStats){
+		out.stats[i] = this.baseStats[i];
+	}
+	return out;
+}
+Player.prototype.fromJson = function(data){
+	this.life = data.life;
+	this.lifeMax = data.lifeMax;
+	this.mana = data.mana;
+	this.manaMax = data.manaMax;
+	this.stanimaMax = data.stanimaMax;
+	this.money = data.money;
+	this.baseStats = data.stats;
+	
+	this.lightRadius = data.lightRadius;
+	this.downstab = data.downstab;
+	this.walljump = data.walljump;
+	this.doubleJump = data.doubleJump;
+	this.dodgeFlash = data.dodgeFlash;
+	
+	if(data.weapon){
+		this.equip_sword = new Item(0,0,0,{"name" : data.weapon});
+	}
+	if(data.shield){
+		this.equip_shield = new Item(0,0,0,{"name" : data.shield});
+	}
+	for(var i=0; i < data.spells.length; i++){
+		var spell = new self[data.spells[i].name];
+		spell.level = data.spells[i].level;
+		this.spells.push(spell);
+	}
+	for(var i=0; i < data.slots.length; i++){
+		this.shieldSlots[i] = this.spells[data.slots[i]];
+	}
+	
+	this.equip();
+}
+
 Player.prototype.render = function(g,c){	
 	/*
 	if(this.trot == undefined)this.trot = new Point(0,0);
@@ -1384,32 +1434,10 @@ Player.prototype.renderShield = function(g,c,ops){
 
 Player.prototype.hudrender = function(g,c){
 	/* Render HP */
-	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(7,7,(this.lifeMax)+2,10);
-	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,8,this.lifeMax,8);
-	g.color = [1.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,8,Math.max(this.life,0),8);
-	
-	/* Render Buffered Damage */
-	if(this.life > 0){
-		g.color = [0.65,0.0625,0.0,1.0];
-		var buffer_start = Math.max( 8 + (this.lifeMax-this.states.damageBuffer), 8)
-		g.scaleFillRect(
-			Math.max(this.life,0)+8,
-			8,
-			-Math.min(this.states.damageBuffer,this.life),
-			8
-		);
-	}
+	Player.renderLifebar(g,new Point(8,8),this.life, this.lifeMax, this.states.damageBuffer);
 	
 	/* Render Mana */
-	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(7,19,this.manaMax+2,4);
-	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(8,20,this.manaMax,2);
-	g.color = [0.23,0.73,0.98,1.0];
-	g.scaleFillRect(8,20,this.mana,2);
+	Player.renderManabar(g,new Point(8,20),this.mana, this.manaMax);
 	
 	/* Render stanima */
 	var stanimaLength = Math.floor( (this.stanimaMax / this.stanimaBase) * 24 );
@@ -1460,6 +1488,35 @@ Player.prototype.hudrender = function(g,c){
 		Background.pushLight( this.position, 56, [0.25,0.15,0.1,1.0] );
 	}
 	
+}
+Player.renderLifebar = function(g,c, life, max, buffer){
+	/* Render HP */
+	g.color = [1.0,1.0,1.0,1.0];
+	g.scaleFillRect(c.x-1,c.y-1,(max)+2,10);
+	g.color = [0.0,0.0,0.0,1.0];
+	g.scaleFillRect(c.x,c.y,max,8);
+	g.color = [1.0,0.0,0.0,1.0];
+	g.scaleFillRect(c.x,c.y,Math.max(life,0),8);
+	
+	/* Render Buffered Damage */
+	if(life > 0){
+		g.color = [0.65,0.0625,0.0,1.0];
+		g.scaleFillRect(
+			Math.max(life,0)+c.y,
+			c.y,
+			-Math.min(buffer,life),
+			8
+		);
+	}
+}
+Player.renderManabar = function(g,c, mana, max){
+	/* Render Mana */
+	g.color = [1.0,1.0,1.0,1.0];
+	g.scaleFillRect(c.x-1,c.y-1,max+2,4);
+	g.color = [0.0,0.0,0.0,1.0];
+	g.scaleFillRect(c.x,c.y,max,2);
+	g.color = [0.23,0.73,0.98,1.0];
+	g.scaleFillRect(c.x,c.y,mana,2);
 }
 
 Player.prototype.animtest = function(){

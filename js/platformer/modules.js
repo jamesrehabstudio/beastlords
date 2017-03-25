@@ -524,21 +524,7 @@ var mod_combat = {
 		
 		this.getDamage = Combat.getDamage;
 		
-		this.calcDamage = function(damage){
-			if(damage instanceof Object){
-				var fdamage = 0;
-				fdamage += damage.physical - (damage.physical * this.defencePhysical);
-				fdamage += damage.fire - (damage.fire * this.defenceFire);
-				fdamage += damage.slime - (damage.slime * this.defenceSlime);
-				fdamage += damage.ice - (damage.ice * this.defenceIce);
-				fdamage += damage.light - (damage.light * this.defenceLight);
-				
-				damage = Math.round(fdamage);
-			} else {
-				damage = Math.round(damage * (1 - this.defencePhysical));
-			}
-			return damage;
-		}
+		this.calcDamage = Combat.calcDamage;
 		
 		this.hurt = function(obj, damage){
 			//Turns damage object into a flat damage number
@@ -763,6 +749,21 @@ var Combat = {
 			"ice" : this.damageIce * mulitplier,
 			"light" : this.damageLight * mulitplier
 		};
+	},
+	"calcDamage" : function(damage){
+		if(damage instanceof Object){
+			var fdamage = 0;
+			fdamage += damage.physical - (damage.physical * this.defencePhysical);
+			fdamage += damage.fire - (damage.fire * this.defenceFire);
+			fdamage += damage.slime - (damage.slime * this.defenceSlime);
+			fdamage += damage.ice - (damage.ice * this.defenceIce);
+			fdamage += damage.light - (damage.light * this.defenceLight);
+			
+			damage = Math.round(fdamage);
+		} else {
+			damage = Math.round(damage * (1 - this.defencePhysical));
+		}
+		return damage;
 	}
 }
 
