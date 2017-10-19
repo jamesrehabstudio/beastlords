@@ -189,11 +189,11 @@ function AttackTrigger(x,y,d,o){
 	o = o || {};
 	this.team = 0;
 	this.lifeMax = this.life = 1;
-	this.defencePhysical = 0.0;
-	this.defenceFire = 0.0;
-	this.defenceSlime = 0.0;
-	this.defenceIce = 0.0;
-	this.defenceLight = 0.0;
+	this.defencePhysical = 0;
+	this.defenceFire = 0;
+	this.defenceSlime = 0;
+	this.defenceIce = 0;
+	this.defenceLight = 0;
 	
 	if(!("retrigger" in o)){
 		this.retrigger = 0;

@@ -255,7 +255,7 @@ Item.prototype.setName = function(n){
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.0,"guardlife":30,"height":16, "frame":0, "frame_row":0,"turn":0.15}
-		this.slots = [ShieldSmith.SLOT_NORMAL_MID,ShieldSmith.SLOT_NORMAL_LOW,ShieldSmith.SLOT_NORMAL_LOW];
+		this.slots = [ShieldSmith.SLOT_ATTACK_MID,ShieldSmith.SLOT_DEFENCE_LOW,ShieldSmith.SLOT_MAGIC_LOW];
 		return; 
 	}
 	if(n == "large_shield") { 
@@ -263,7 +263,7 @@ Item.prototype.setName = function(n){
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.1,"guardlife":50,"height":16, "frame":0, "frame_row":1,"turn":0.4}
-		this.slots = [ShieldSmith.SLOT_ELEMENT_MID,ShieldSmith.SLOT_NORMAL_MID,ShieldSmith.SLOT_NORMAL_LOW,ShieldSmith.SLOT_NORMAL_LOW];
+		this.slots = [ShieldSmith.SLOT_MAGIC_MID,ShieldSmith.SLOT_SPECIAL_MID,ShieldSmith.SLOT_SPECIAL_LOW,ShieldSmith.SLOT_SPECIAL_LOW];
 		return; 
 	}
 	if(n == "kite_shield") { 
@@ -328,11 +328,11 @@ Item.prototype.setName = function(n){
 	if( this.name == "spell_refill") { this.frame.x = 0; this.frame.y = 10; }
 	
 	//Special items
-	if(n == "lightradius") { this.frame.x = 7; this.frame.y = 5; this.message = "Magic eyes\nAllows user to see in the dark."; return; }
-	if(n == "downstab") { this.frame.x = 10; this.frame.y = 5; this.message = "Down Stab\nHold down in the air to stab downwards."; return; }
-	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; this.message = "Gauntlets\nAllow the user to wall jump."; return; }
-	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; this.message = "Magic boots\nAllow the user to perform a double jump."; return; }
-	if(n == "dodgeflash") { this.frame.x = 5; this.frame.y = 3; this.message = "Power Pauldrons\nAllow the user dash through the air."; return; }
+	if(n == "lightradius") { this.frame.x = 7; this.frame.y = 5; this.message = i18n("item_"+n); return; }
+	if(n == "downstab") { this.frame.x = 10; this.frame.y = 5; this.message = i18n("item_"+n); return; }
+	if(n == "gauntlets") { this.frame.x = 4; this.frame.y = 6; this.message = i18n("item_"+n); return; }
+	if(n == "doublejump") { this.frame.x = 0; this.frame.y = 5; this.message = i18n("item_"+n); return; }
+	if(n == "dodgeflash") { this.frame.x = 5; this.frame.y = 3; this.message = i18n("item_"+n); return; }
 	
 	//Charms
 	if( this.name == "charm_sword") { this.frame.x = 0; this.frame.y = 8; this.message = "Sword Charm\nEnchanted attack.";}

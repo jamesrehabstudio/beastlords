@@ -32,10 +32,10 @@ function Shop(x,y){
 
 Shop.prototype.update = function(g,c){
 	if( this.open > 0 ) {
+		/*
 		if(!DialogManger.show){
 			this.close();
-		}
-		/*
+		}*/
 		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
 			audio.playLock("unpause",0.3);
 			this.close();
@@ -53,7 +53,6 @@ Shop.prototype.update = function(g,c){
 		if( input.state("fire") == 1){
 			this.purchase();
 		}
-		*/
 	}
 	
 	/* animation */
@@ -105,13 +104,20 @@ Shop.prototype.render = function(g,c){
 }
 
 Shop.prototype.hudrender = function(g,c){	
+	let statname = "Attack";
+	if(this.cursor == 1) {
+		statname = "Defence";
+	} else if(this.cursor == 2){
+		statname = "Magic";
+	}
+	
 	if( this.open > 0 ){		
-		DialogManger.render(g);
-		/*
+		//DialogManger.render(g);
+		
 		var p = Shop.itemposition[this.cursor].add(this.position).subtract(c);
 		
 		cursorArea(g, p.x-16,p.y-16,32,32);
-		textArea(g, "$"+this.price(), p.x-16, p.y+24);
-		*/
+		textArea(g, "+1 "+statname, p.x-16, p.y+24);
+		textArea(g, "$"+this.price(), p.x-16, p.y+36);
 	}
 }

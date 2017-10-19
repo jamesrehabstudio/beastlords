@@ -19,8 +19,8 @@ function Pusher(x,y,d,ops){
 	this.on("collideObject", function(obj){
 		if(this.active){
 			if( obj.hasModule(mod_rigidbody) ) {
-				obj.position.x += this.force.x * this.delta;
-				obj.position.y += this.force.y * this.delta;
+				obj.position.x += this.force.x * 0.5 * this.delta;
+				obj.position.y += this.force.y * 0.5 * this.delta;
 			}
 		}
 	});

@@ -1,4 +1,4 @@
-var version = "0.4.4";
+var version = "0.4.8";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -10,7 +10,6 @@ function game_start(g){
 	g.pause = false;
 	
 	g.addObject( new TitleMenu() );
-	//dataManager.randomLevel(game,0);
 	//return;
 	
 	setTimeout(function(){
@@ -20,8 +19,8 @@ function game_start(g){
 		//_player.doubleJump = true;
 		//_player.dodgeFlash = true;
 		//_player.walljump = true;
-		//WorldLocale.loadMap("test.tmx");
-		//WorldLocale.loadMap("temple2.tmx", "testme");
+		//WorldLocale.loadMap("gateway.tmx");
+		//WorldLocale.loadMap("temple2.tmx", "gatetemple2");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -29,11 +28,13 @@ function game_start(g){
 			//_player.mana = _player.manaMax = 36;
 			//_player.money = 36000;
 			
-			//NPC.set("long_sword",1);
-			//NPC.set("broad_sword",1);
-			//NPC.set("morningstar",1);
-			//NPC.set("bloodsickle",1);
-			//NPC.set("burningblade",1);
+			/*
+			NPC.set("long_sword",1);
+			NPC.set("broad_sword",1);
+			NPC.set("morningstar",1);
+			NPC.set("bloodsickle",1);
+			NPC.set("burningblade",1);
+			*/
 			
 			//NPC.set("templeCompleted", 2);
 			//_player.spells.push( new SpellFire());

@@ -12,7 +12,7 @@ function Chest(x,y,d,ops){
 	this.empty = 0;
 	
 	this.startFrame = new Point(0,0);
-	this.openTime = Game.DELTASECOND * 1.5;
+	this.openTime = Game.DELTASECOND * 1.1;
 	this.spawnTime = 0.0;
 	
 	this.money = 50;
@@ -60,7 +60,7 @@ Chest.prototype.update = function(){
 	if(this.isOpen){
 		if(!this.empty){
 			if(this.openTime > 0){
-				var progress = 1 - (this.openTime / (Game.DELTASECOND * 1.5));
+				var progress = 1 - (this.openTime / (Game.DELTASECOND * 1.1));
 				this.frame.x = this.startFrame.x + Chest.anim_open.frame(progress).x;
 				this.frame.y = this.startFrame.y;
 				this.openTime -= this.delta;
@@ -92,7 +92,7 @@ Chest.prototype.update = function(){
 					} else {
 						this.empty = true;
 					}
-					this.spawnTime = Game.DELTASECOND * 0.15;
+					this.spawnTime = Game.DELTAFRAME30 * 2;
 				} else {
 					this.spawnTime -= this.delta;
 				}
@@ -108,5 +108,5 @@ Chest.anim_open = new Sequence([
 	[0,0,0.1],
 	[1,0,0.1],
 	[2,0,0.1],
-	[3,0,1.2],
+	[3,0,0.6],
 ]);

@@ -118,7 +118,8 @@ DialogManger = {
 		var rep = {
 			"%jump%" : "'K'",
 			"%fire%" : "'J'",
-			"%dodge%" : "'Space'"
+			"%select%" : "'Q'",
+			"%dodge%" : "'Space'",
 		};
 		
 		for(var i in rep){

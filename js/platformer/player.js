@@ -45,6 +45,8 @@ function Player(x, y){
 		"charge_multiplier" : false,
 		"stanimaLock" : false,
 		"rolling" : 0,
+		"dash" : 0.0,
+		"dash_direction" : 1,
 		"effectTimer" : 0.0,
 		"downStab" : false,
 		"jump_boost" : false,
@@ -85,7 +87,7 @@ function Player(x, y){
 	
 	
 	this.speeds = {
-		"baseSpeed" : 1.25,
+		"baseSpeed" : 1.20,
 		"inertiaGrounded" : 0.8,
 		"inertiaAir" : 0.4,
 		"frictionGrounded" : 0.2,
@@ -172,7 +174,7 @@ function Player(x, y){
 			this.states.ledgePosition = false;
 		}
 	});
-	this.on("block", function(obj,pos,damage){
+	this.on("block", function(obj,strike_rect,damage){
 		if( this.team == obj.team ) return;
 		if( this.invincible > 0 ) return;
 		
@@ -185,6 +187,10 @@ function Player(x, y){
 		//obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
 		this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
 		audio.playLock("block",0.1);
+		
+		var effect = new EffectBlock(this.position.x+18*this.forward(), strike_rect.center().y);
+		effect.flip = this.flip;
+		game.addObject(effect);
 	});
 	this.on("blocked", function(obj){
 		if(obj.hasModule(mod_combat)){
@@ -192,18 +198,29 @@ function Player(x, y){
 			obj.life -= fireDamage;
 			obj.displayDamage(fireDamage);
 			obj.isDead();
+			
+			if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
+				this.trigger("downstabTarget", obj, 0);
+			}
 		}
 	});
 	this.on("hurt", function(obj, damage){
-		shakeCamera(Game.DELTASECOND*0.5,str);
 		//this.states.ledge = null;
 		
-		var str = Math.min(Math.max(Math.round(damage*0.1),1),6);
+		var str = Math.min(Math.max(Math.round(damage*0.25),1),6);
 		var dir = this.position.subtract(obj.position);
+		
+		shakeCamera(Game.DELTASECOND*0.5,str);
 		
 		this.cancelAttack(this);
 		this.attstates.charge = 0.0;
 		this.states.ledgePosition = false;
+		
+		var effect = new EffectHurt(this.position.x, this.position.y);
+		var direction = obj.position.subtract(this.position);
+		effect.intensity = 0.6 + Math.min(0.32 * (damage/24),0.32);
+		effect.rotation = (Math.atan2(direction.y,direction.x)/Math.PI)*180;
+		game.addObject(effect);
 		
 		var knockback = this.grounded ? 7 : 3;
 		if(dir.x < 0){
@@ -213,8 +230,8 @@ function Player(x, y){
 		}
 		if(this.stun_time > 0 ){
 			this.states.spellCounter = 0.0;
-			this.stun = this.stun_time;
-			game.slow(0,5.0);
+			this.stun = this.stun_time * Math.max(1 - this.perks.painImmune, 0);
+			game.slow(0,3.0);
 		}
 		if( this.perks.thorns > 0 && obj.hurt instanceof Function){
 			obj.hurt(this,Math.floor(damage * this.perks.thorns));
@@ -273,13 +290,10 @@ function Player(x, y){
 		
 		if(this.states.roll > 0){
 			this.states.doubleJumpReady = true;
-		} else if(this.states.downStab){
+		} else if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
 			this.states.downStab = false;
-			this.force.y = -2;
-			this.jump();
-			this.trigger("downstabTarget", this, damage);
+			this.trigger("downstabTarget", obj, damage);
 			obj.trigger("downstabbed", this, damage);
-			this.states.doubleJumpReady = true;
 		} else {
 			if( !this.grounded ) {
 				//Add extra float
@@ -294,7 +308,7 @@ function Player(x, y){
 			
 			if( obj.ragdoll ) {
 				//Send the enemy flying
-				var dir = obj.position.subtract(this.position);
+				var dir = obj.position.add(new Point(0,-2)).subtract(this.position);
 				var aim = dir.normalize().add(new Point(dir.x>0?1:-1,0));
 				game.slow(0.1, Game.DELTASECOND * 0.5);
 				audio.playLock("explode3", 0.5);
@@ -314,11 +328,18 @@ function Player(x, y){
 			}
 		}
 	});
+	this.on("downstabTarget", function(obj, damage){
+		this.jump();
+		this.force.y -= 4;
+		this.states.doubleJumpReady = true;
+	});
 	this.on("added", function(){
 		this.states.damageBuffer = 0;
 		this.lock_overwrite = false;
-		this.force.x = this.force.y = 0;
+		this.force.x = this.force.y = 0.0;
 		this.states.doubleJumpReady = true;
+		
+		this.stun = this.invincible = 0.0;
 		
 		game.camera.x = this.position.x-128;
 		game.camera.y = Math.floor(this.position.y/240)*240;
@@ -370,6 +391,8 @@ function Player(x, y){
 		"painImmune" : 0.0,
 		"thorns" : 0.0,
 		"slowWound": 0.0,
+		"attackSpeed": 0.0,
+		"manaRegen" : 0.0,
 		"poisonResist" : 0.0
 	}
 	
@@ -462,10 +485,11 @@ Player.prototype.update = function(){
 	this.states.downStab = false;
 	this.states.canGrabLedges = false;
 	
-	this.states.manaRegenTime = Math.min(this.states.manaRegenTime-this.delta, this.speeds.manaRegen);
+	//this.states.manaRegenTime = Math.min(this.states.manaRegenTime-this.delta, this.speeds.manaRegen);
+	this.states.manaRegenTime -= this.delta * (1 + this.perks.manaRegen);
 	if(this.states.manaRegenTime <= 0){
 		this.mana = Math.min(this.mana + 1,this.manaMax );
-		this.states.manaRegenTime = this.speeds.manaRegen;
+		this.states.manaRegenTime = this.speeds.manaRegen - this.states.manaRegenTime;
 	}
 	if( this.manaHeal > 0 ){
 		this.mana = Math.min(this.mana + 1, this.manaMax);
@@ -503,14 +527,18 @@ Player.prototype.update = function(){
 		
 		//Update attack animation
 		if(this.attstates.currentAttack){
-			this.attstates.timer += this.delta;
+			this.attstates.timer += this.delta * (1.0 + this.perks.attackSpeed);
 			
 			if(Timer.isAt(this.attstates.timer,0,this.delta)){
 				if("force" in this.attstates.currentAttack){
 					this.force.x += this.attstates.currentAttack.force.x * this.forward();
 					this.force.y += this.attstates.currentAttack.force.y;
 				}
-				audio.play("swing");
+				if("audio" in this.attstates.currentAttack){
+					audio.play(this.attstates.currentAttack.audio);
+				} else {
+					audio.play("swing");
+				}
 			}
 			
 			if(this.attstates.timer >= this.attstates.attackEndTime){
@@ -542,14 +570,22 @@ Player.prototype.update = function(){
 			if(this.states.ledgePosition instanceof GameObject && this.states.ledgePosition.hasModule(mod_block)){
 				this.position = this.position.add(this.states.ledgePosition.blockChange);
 			}
-			if(input.state("jump") == 1){
-				this.jump();
-				this.states.ledgePosition = false;
-			} else if(input.state("down") > 0){
-				this.states.ledgePosition = false;
-			} else if(this.isStuck){
-				this.states.ledgePosition = false;
+			if(this.delta > 0){
+				if(input.state("jump") == 1){
+					this.jump();
+					this.states.ledgePosition = false;
+				} else if(input.state("down") > 0){
+					this.states.ledgePosition = false;
+				} else if(this.isStuck){
+					this.states.ledgePosition = false;
+				}
 			}
+		} else if(!this.states.stanimaLock && input.state("fire") == 1 && input.state("dodge") > 0){
+			this.attstates.charge = 1;
+			this.attack(this); 
+			this.stanima = Math.max(this.stanima - this.stanimaBase, 0);
+			this.attstates.charge = 0;
+		
 		} else if( this.states.rolling ) {
 			if(this.dodgeFlash){
 				this.force.y -= (0.2 + this.gravity) * this.delta;
@@ -558,15 +594,18 @@ Player.prototype.update = function(){
 				this.force.x = this.forward() * this.rollSpeed;
 			}
 			this.stanima -= this.delta;
-			this.invincible = this.delta * 2;
+			//this.invincible = this.delta * 2;
 			if( input.state("jump") == 1 ){
 				//Jump cancelAttack
 				if(this.grounded || (this.states.doubleJumpReady && this.doubleJump)){
 					this.jump();
 				}
 			}
-			
-			if(input.state("dodge") <= 0){
+			//if(input.state("dodge") <= 0){
+			if(
+				(this.states.dash_direction > 0 && input.state("right") <= 0) || 
+				(this.states.dash_direction < 0 && input.state("left") <= 0)
+			){
 				this.states.rolling = 0;
 			}
 			if( this.stanima <= 0 ) {
@@ -594,17 +633,18 @@ Player.prototype.update = function(){
 			if ( input.state('fire') == 1 ) { 
 				//Let the player queue more attacks
 				this.attack(this); 
-			} else if (input.state('fire') > 1){
+			} /*else if (input.state('fire') > 1){
 				//Keep building up the charge
 				this.attstates.charge += game.deltaUnscaled;
 			} else {
 				this.attstates.charge = 0.0;
-			}
+			}*/
 			
 			if(this.attstates.currentAttack){
 				//Strike ahead
 				if(this.attstates.timer < this.attstates.currentAttack.time){
-					this.strike(this.attstates.currentAttack.strike);
+					var multiplier = this.attstates.currentAttack.damage || 1.0;
+					this.strike(this.attstates.currentAttack.strike, {"multiplier" : multiplier});
 				}
 			}
 		} else if( this.delta > 0) {
@@ -664,16 +704,7 @@ Player.prototype.update = function(){
 				}
 			}
 						
-			if ( this.downstab && input.state("down") > 0 && !this.grounded) { 
-				//Down strike
-				this.states.downStab = true;
-				this.states.guard = false;
-				
-				if(this.force.y > 0){
-					this.strike(new Line( -4, 8, 4, 20));
-				}
-				
-			} else if ( input.state('fire') == 1 && input.state("up") > 0 ) { 
+			if ( input.state('fire') == 1 && input.state("up") > 0 ) { 
 				//Cast Spell
 				if(this.spells.length > 0){
 					var spell = this.spells[this.spellCursor];
@@ -687,7 +718,7 @@ Player.prototype.update = function(){
 			} else if ( input.state('fire') == 1 ) { 
 				//Attack and start combo
 				this.attack(this); 
-			} else if ( input.state('fire') > 0 ) { 
+			} /*else if ( input.state('fire') > 0 ) { 
 				//Charge attack
 				this.attstates.charge += game.deltaUnscaled;
 			} else {
@@ -697,7 +728,7 @@ Player.prototype.update = function(){
 					this.attack();
 				}
 				this.attstates.charge = 0.0;
-			}
+			}*/
 			
 			
 			//Apply jump boost
@@ -734,23 +765,28 @@ Player.prototype.update = function(){
 				this.stand(); 
 			}
 			
-			if ( input.state("dodge") > 0 && this.stanima > 0 ) {
-				//Dodge roll
+			if (this.dodgeFlash && input.state("dodge") > 0 && this.stanima > 0 ) {
+				//Flash forward
 				if(!this.states.stanimaLock){
-					if(this.dodgeFlash){
-						this.states.rolling = 1;
-						this.force.y = 0;
-						this.position.y -= 1;
-						this.grounded = false;
-					} else if(this.grounded){
-						this.states.rolling = 1;
-					}
+					this.states.dash_direction = this.forward();
+					this.states.rolling = 1;
+					this.force.y = 0;
+					this.position.y -= 1;
+					this.grounded = false;
+				}
+			} else if(this.grounded && !this.states.duck && !this.dodgeFlash && input.state("dodge") == 1 && this.states.dash <= 0){
+				//Dash
+				if(input.state("left") > 0 || input.state("right") > 0){
+					this.states.dash_direction = this.forward();
+					this.states.dash = Game.DELTASECOND * 0.5;
+					this.force.x = this.states.dash_direction * 15.0;
+					audio.play("dash");
 				}
 			} else if (strafe) {
 				//Limit speed and face current direction
 				this.force.x = Math.min( Math.max( this.force.x, -2), 2);
 				
-			} else {
+			} else if(this.states.dash <= 0){
 				//Change to face player's selected direction
 				if ( input.state('left') > 0 ) { 
 					if(!this.flip) this.states.turn = this.speeds.turn;
@@ -760,6 +796,8 @@ Player.prototype.update = function(){
 					if(this.flip) this.states.turn = this.speeds.turn;
 					this.flip = false;
 				}
+			} else {
+				this.states.guard = false;
 			}
 			
 			//Prep roll
@@ -802,13 +840,13 @@ Player.prototype.update = function(){
 			this.frame.y = 6;
 			this.frame.x = 8;
 		} else {
-			this.frame.y = 2;
-			this.frame.x = Math.max((this.frame.x + this.delta * 0.5)%5,1);
+			this.frame.y = 10;
+			if(this.grounded){
+				this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 8;
+			} else{
+				this.frame.x = this.force.y < -1 ? 8 : (this.force.y > 1 ? 10 : 9);
+			}
 		}
-	} else if( this.states.downStab ){
-		if(this.frame.x > 2) this.frame.x = 0;
-		this.frame.x = Math.min(this.frame.x + this.delta * 0.2,2);
-		this.frame.y = 3; 
 	} else {
 		if(this.attstates.currentAttack){
 			//Attack
@@ -820,6 +858,9 @@ Player.prototype.update = function(){
 			if(this.walljump && this.states.againstwall && this.force.y > 0){
 				this.frame.x = 7;
 				this.frame.y = 6;
+			} else if(this.states.dash > 0){
+				this.frame.y = 10;
+				this.frame.x = this.force.y < -1 ? 8 : (this.force.y > 1 ? 10 : 9);
 			} else if(!this.states.doubleJumpReady){
 				this.frame.y = 2;
 				this.frame.x = Math.max(1,(this.frame.x + this.delta * 0.3)%5);
@@ -845,8 +886,13 @@ Player.prototype.update = function(){
 				this.frame.x = 3 + 6 * (1-this.states.turn/this.speeds.turn);
 			} else if( Math.abs( this.force.x ) > 0.1 && this.grounded ) {
 				//Run animation
-				this.frame.y = 1;
-				this.frame.x = (this.frame.x + this.delta * 0.1 * Math.abs( this.force.x )) % 10;
+				if(this.states.dash > 0){
+					this.frame.y = 10;
+					this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 8;
+				} else {
+					this.frame.y = 1;
+					this.frame.x = (this.frame.x + this.delta * 0.1 * Math.abs( this.force.x )) % 10;
+				}
 			} else {
 				//Idle
 				this.frame.y = 0;
@@ -873,6 +919,17 @@ Player.prototype.update = function(){
 	this.states.effectTimer += this.delta;
 	this.states.turn -= this.delta;
 	
+	
+	if(this.states.dash > 0){
+		if(input.state("left") == 0 && input.state("right") == 0){
+			this.states.dash = 0.0;
+		}
+		if(Math.abs(this.force.x) < 0.2) {
+			this.states.dash = 0.0;
+		}
+		this.states.dash = Math.max(this.states.dash - this.delta, 0.0);
+	}
+	
 	if(Math.abs(this.states.againstwall) <= this.delta){
 		this.states.againstwall = 0;
 	} else {
@@ -886,6 +943,7 @@ Player.prototype.update = function(){
 Player.prototype.deltaSpeed = function(){
 	var speed = this.speeds.baseSpeed;
 	if( this.spellsCounters.haste > 0 ) speed *= 1.6;
+	if( this.states.dash > 0) speed *= 1.3;
 	return speed * this.inertia * this.delta;
 }
 Player.prototype.idle = function(){}
@@ -955,7 +1013,10 @@ Player.prototype.attack = function(){
 				this.attstates.timer = -this.attstates.currentAttack["warm"];
 				this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
 				
-				if(!this.grounded){
+				if("airtime" in this.attstates.currentAttack){
+					this.force.y = 0;
+					this.airtime = this.attstates.currentAttack["airtime"];
+				} else if(!this.grounded){
 					this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
 				}
 				
@@ -985,7 +1046,10 @@ Player.prototype.attack = function(){
 	this.attstates.timer = -this.attstates.currentAttack["warm"]
 	this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
 	
-	if(!this.grounded){
+	if("airtime" in this.attstates.currentAttack){
+		this.force.y = 0;
+		this.airtime = this.attstates.currentAttack["airtime"];
+	} else if(!this.grounded){
 		this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
 	}
 }
@@ -1092,11 +1156,11 @@ Player.prototype.equip = function(sword, shield){
 		this.stats.attack = this.baseStats.attack;
 		this.stats.defence = this.baseStats.defence;
 		this.stats.magic = this.baseStats.magic;
-		this.defencePhysical = this.stats.defence / 100.0;
-		this.defenceFire = this.stats.defence / 200.0;
-		this.defenceSlime = this.stats.defence / 200.0;
-		this.defenceIce = this.stats.defence / 200.0;
-		this.defenceLight = this.stats.defence / 200.0;
+		this.defencePhysical = 0;
+		this.defenceFire = 0;
+		this.defenceSlime = 0;
+		this.defenceIce = 0;
+		this.defenceLight = 0;
 		this.damage = 0;
 		this.damageFire = 0;
 		this.damageSlime = 0;
@@ -1117,6 +1181,12 @@ Player.prototype.equip = function(sword, shield){
 				}
 			}
 		}
+		
+		this.defencePhysical += Math.floor(this.stats.defence);
+		this.defenceFire += Math.floor(this.stats.defence * 0.2);
+		this.defenceSlime += Math.floor(this.stats.defence * 0.7);
+		this.defenceIce += Math.floor(this.stats.defence * 0.6);
+		this.defenceLight += Math.floor(this.stats.defence * 0.0);
 		
 		this.damage = Math.floor(this.damage + this.stats.attack * this.equip_sword.stats.damage);
 		
@@ -1295,45 +1365,43 @@ Player.prototype.render = function(g,c){
 	this.frame.y = this.trot.y;
 	*/
 	
+	
 	//Render player
-	if( !this.states.rolling ){
-		//Spell effects
-		if( this.spellsCounters.flight > 0 ){
-			var wings_offset = new Point((this.flip?8:-8),0);
-			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
-			if( this.grounded ) wings_frame = 0;
-			g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
-		}
-		if( this.spellsCounters.magic_armour > 0 ){
-			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
-		}
-		
-		//adjust for ledge offset
-		if(_player.states.ledge){
-			g.renderSprite(
-				this.sprite,
-				this.position.subtract(c).add(new Point(0,19)),
-				this.zIndex,
-				this.frame,
-				this.flip,
-				{"shader":this.filter}
-			);
-		} else {
-			GameObject.prototype.render.apply(this,[g,c]);
-		}
+	
+	//Spell effects
+	if( this.spellsCounters.flight > 0 ){
+		var wings_offset = new Point((this.flip?8:-8),0);
+		var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
+		if( this.grounded ) wings_frame = 0;
+		g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
+	}
+	if( this.spellsCounters.magic_armour > 0 ){
+		this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
+	}
+	
+	//adjust for ledge offset
+	if(_player.states.ledge){
+		g.renderSprite(
+			this.sprite,
+			this.position.subtract(c).add(new Point(0,19)),
+			this.zIndex,
+			this.frame,
+			this.flip,
+			{"shader":this.filter}
+		);
 	} else {
-		//When rolling, ignore flip and shader
-		if(this.dodgeFlash){
-			var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
-			g.color = [1,1,1,1];
-			g.scaleFillRect(
-				(this.position.x - (this.flip?0:flashLength)) - c.x,
-				(this.position.y - 6) - c.y,
-				flashLength,
-				12
-			);
-		}
-		g.renderSprite(this.sprite, this.position.subtract(c), this.zIndex, this.frame, this.flip);
+		GameObject.prototype.render.apply(this,[g,c]);
+	}
+	//When rolling, ignore flip and shader
+	if(this.dodgeFlash && this.states.rolling){
+		var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
+		g.color = [1,1,1,1];
+		g.scaleFillRect(
+			(this.position.x - (this.flip?0:flashLength)) - c.x,
+			(this.position.y - 6) - c.y,
+			flashLength,
+			12
+		);
 	}
 	
 	if( this.spellsCounters.thorns > 0 ){
@@ -1348,12 +1416,14 @@ Player.prototype.render = function(g,c){
 			this.renderWeapon(g,c);
 			this.renderShield(g,c);
 			
+			/*
 			if(this.attstates.charge > 0){
 				EffectList.charge.apply(this, [g,
 					this.position.subtract(c).add(new Point(this.forward()*16,0)),
 					this.attstates.charge / this.speeds.charge
 				]);
 			}
+			*/
 	}
 	
 	//Charge effect
@@ -1382,17 +1452,16 @@ Player.prototype.render = function(g,c){
 	*/
 }
 
-Player.prototype.renderWeapon = function(g,c,ops,eops){
+Player.prototype.renderWeapon = function(g,c,ops={},eops={}){
 	try{
-		ops = ops || {};
-		eops = eops || {};
+		let rangeScale = this.equip_sword.stats.range / 38;
 		
-		var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
-		var rotation = _t.r;
-		var sposition = _t.p;
-		var zPlus = _t.z;
-		var effect = _t.v;
-		var shield = _t.s;
+		let _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
+		let rotation = _t.r;
+		let sposition = _t.p;
+		let zPlus = _t.z;
+		let effect = _t.v;
+		let shield = _t.s;
 		
 		if(this.flip){
 			sposition = new Point(sposition.x*-1,sposition.y);
@@ -1400,8 +1469,18 @@ Player.prototype.renderWeapon = function(g,c,ops,eops){
 		ops["rotate"] = (this.flip ? -1 : 1) * rotation;
 		
 		g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
-		if(effect instanceof Point){
-			g.renderSprite("swordeffect", this.position.subtract(c), this.zIndex+2, effect, this.flip, eops);
+		if(effect){
+			eops["rotate"] = effect.r;
+			let effectFrame = new Point(effect.x, effect.y);
+			let spriteName = effect.s;
+			
+			if(spriteName == "swordeffect"){
+				eops.scalex = rangeScale;
+			} else {
+				eops.scaley = rangeScale;
+			}
+			
+			g.renderSprite(spriteName, this.position.subtract(c), this.zIndex+2, effectFrame, this.flip, eops);
 		}
 	} catch (e){
 		
@@ -1571,30 +1650,30 @@ var playerSwordPosition = {
 			8 : {p:new Point(-18,-1),s:new Point(16,2),r:-10,z:1,v:0},
 		},
 		4 : {
-			0 : {p:new Point(-14,0),r:-80,z:1,v:new Point(0,0)},
-			1 : {p:new Point(16,-6),r:70,z:1,v:new Point(1,0)},
-			2 : {p:new Point(12,-6),r:-45,z:-1,v:new Point(2,0)},
+			0 : {p:new Point(-14,0),r:-80,z:1,v:{x:0,y:0,r:0,s:"swordeffect"}},
+			1 : {p:new Point(16,-6),r:70,z:1,v:{x:1,y:0,r:0,s:"swordeffect"}},
+			2 : {p:new Point(12,-6),r:-45,z:-1,v:{x:2,y:0,r:0,s:"swordeffect"}},
 			3 : {p:new Point(12,-6),r:-50,z:-1,v:0},
 			4 : {p:new Point(12,-6),r:-45,z:-1,v:0},
-			5 : {p:new Point(-24,2),r:-60,z:1,v:new Point(0,1)},
-			6 : {p:new Point(-21,-1),r:-60,z:1,v:new Point(1,1)},
-			7 : {p:new Point(-23,0),r:-10,z:1,v:new Point(2,1)},
-			8 : {p:new Point(21,-4),r:90,z:-1,v:new Point(0,4)},
-			9 : {p:new Point(20,-4),r:90,z:-1,v:new Point(1,4)},
+			5 : {p:new Point(-24,2),r:-60,z:1,v:{x:0,y:1,r:0,s:"swordeffect"}},
+			6 : {p:new Point(-21,-1),r:-60,z:1,v:{x:1,y:1,r:0,s:"swordeffect"}},
+			7 : {p:new Point(-23,0),r:-10,z:1,v:{x:2,y:1,r:0,s:"swordeffect"}},
+			8 : {p:new Point(21,-4),r:90,z:-1,v:{x:0,y:4,r:0,s:"swordeffect"}},
+			9 : {p:new Point(20,-4),r:90,z:-1,v:{x:1,y:4,r:0,s:"swordeffect"}},
 			10 : {p:new Point(20,-4),r:90,z:-1,v:0}
 		},
 		5 : {
 			0 : {p:new Point(-16,1),r:-45,z:1,v:0},
 			1 : {p:new Point(-16,2),r:-90,z:1,v:0},
-			2 : {p:new Point(15,-2),r:90,z:1,v:new Point(0,2)},
-			3 : {p:new Point(12,-6),r:45,z:-1,v:new Point(1,2)},
-			4 : {p:new Point(6,-6),r:45,z:-1,v:new Point(2,2)},
-			5 : {p:new Point(14,-2),r:50,z:-1,v:new Point(3,2)},
+			2 : {p:new Point(15,-2),r:90,z:1,v:{x:0,y:2,r:0,s:"swordeffect"}},
+			3 : {p:new Point(12,-6),r:45,z:-1,v:{x:1,y:2,r:0,s:"swordeffect"}},
+			4 : {p:new Point(6,-6),r:45,z:-1,v:{x:2,y:2,r:0,s:"swordeffect"}},
+			5 : {p:new Point(14,-2),r:50,z:-1,v:{x:3,y:2,r:0,s:"swordeffect"}},
 			6 : {p:new Point(16,4),r:80,z:1,v:0},
 			7 : {p:new Point(-4,4),r:100,z:-1,v:0},
-			8 : {p:new Point(12,-26),r:10,z:-1,v:0,v:new Point(0,6)},
-			9 : {p:new Point(12,-27),r:0,z:-1,v:0,v:new Point(1,6)},
-			10 : {p:new Point(12,-27),r:0,z:-1,v:0,v:new Point(2,6)},
+			8 : {p:new Point(12,-26),r:10,z:-1,v:0,v:{x:0,y:6,r:0,s:"swordeffect"}},
+			9 : {p:new Point(12,-27),r:0,z:-1,v:0,v:{x:1,y:6,r:0,s:"swordeffect"}},
+			10 : {p:new Point(12,-27),r:0,z:-1,v:0,v:{x:2,y:6,r:0,s:"swordeffect"}},
 			11 : {p:new Point(12,-27),r:0,z:-1,v:0},
 		},
 		6 : {
@@ -1604,8 +1683,8 @@ var playerSwordPosition = {
 			0 : {p:new Point(-15,-2),r:-10,z:1,v:0},
 			1 : {p:new Point(-14,-5),r:-45,z:1,v:0},
 			2 : {p:new Point(-15,-2),r:-140,z:1,v:0},
-			3 : {p:new Point(12,-6),r:45,z:-1,v:new Point(0,3)},
-			4 : {p:new Point(-4,5),r:220,z:-1,v:new Point(1,3)},
+			3 : {p:new Point(12,-6),r:45,z:-1,v:{x:0,y:3,r:0,s:"swordeffect"}},
+			4 : {p:new Point(-4,5),r:220,z:-1,v:{x:1,y:3,r:0,s:"swordeffect"}},
 			5 : {p:new Point(9,2),r:110,z:1,v:0},
 			6 : {p:new Point(-20,-1),r:60,z:1,v:0},
 		},
@@ -1613,8 +1692,29 @@ var playerSwordPosition = {
 			0 : {p:new Point(-16,5),r:-80,z:1,v:0},
 			1 : {p:new Point(-20,2),r:45,z:1,v:0},
 			2 : {p:new Point(-20,2),r:90,z:1,v:0},
-			3 : {p:new Point(21,1),r:90,z:-1,v:new Point(0,5)},
-			4 : {p:new Point(17,2),r:90,z:-1,v:new Point(1,5)},
+			3 : {p:new Point(21,1),r:90,z:-1,v:{x:0,y:5,r:0,s:"swordeffect"}},
+			4 : {p:new Point(17,2),r:90,z:-1,v:{x:1,y:5,r:0,s:"swordeffect"}},
 			5 : {p:new Point(-20,1),r:55,z:1,v:0}
+		},
+		10 : {
+			0 : {p:new Point(-15,-3),r:-100,z:1,v:0},
+			1 : {p:new Point(-15,-3),r:-100,z:1,v:0},
+			2 : {p:new Point(-14,-3),r:-95,z:1,v:0},
+			3 : {p:new Point(-13,-3),r:-95,z:1,v:0},
+			4 : {p:new Point(-11,-3),r:-90,z:1,v:0},
+			5 : {p:new Point(-11,-3),r:-95,z:1,v:0},
+			6 : {p:new Point(-12,-3),r:-105,z:1,v:0},
+			7 : {p:new Point(-13,-3),r:-100,z:1,v:0},
+			
+			8 : {p:new Point(-13,-2),r:-50,z:1,v:0},
+			9 : {p:new Point(-12,-2),r:-45,z:1,v:0},
+			10 : {p:new Point(-12,-6),r:-40,z:1,v:0},
+		},
+		11 : {
+			0 : {p:new Point(-10,-23),r:24,z:1,v:{x:0,y:0,r:0,s:"swordeffectv"}},
+			1 : {p:new Point(2,4),r:120,z:1,v:{x:1,y:0,r:0,s:"swordeffectv"}},
+			2 : {p:new Point(4,1),r:80,z:1,v:{x:2,y:0,r:0,s:"swordeffectv"}},
+			3 : {p:new Point(4,1),r:75,z:1,v:{x:3,y:0,r:0,s:"swordeffectv"}},
+			4 : {p:new Point(4,1),r:75,z:1,v:0},
 		}
 	}

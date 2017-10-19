@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="64" height="15" tilewidth="16" tileheight="16" nextobjectid="90">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="64" height="15" tilewidth="16" tileheight="16" nextobjectid="92">
  <tileset firstgid="1" name="maptiles" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="../img/tiles/maptiles.gif" width="256" height="256"/>
  </tileset>
@@ -75,8 +75,7 @@
     <property name="size" value="360"/>
    </properties>
   </object>
-  <object id="81" name="MovingBlock" x="528" y="96" width="32" height="32"/>
-  <object id="82" name="Knior" x="320" y="160" width="32" height="48"/>
+  <object id="82" name="FlameSlime" x="320" y="160" width="32" height="48"/>
   <object id="83" name="Shrine" x="528" y="176" width="48" height="32">
    <properties>
     <property name="spells" value="SpellSlimeGernade"/>
@@ -109,5 +108,6 @@
     <property name="name" value="burningblade"/>
    </properties>
   </object>
+  <object id="90" name="FlameSlimeWalker" x="816" y="160" width="32" height="48"/>
  </objectgroup>
 </map>

@@ -4,13 +4,14 @@ function Bullet(x,y,d){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
-	this.rotation = 0;
+	this.rotation = undefined;
 	this.width = 10;
 	this.height = 6;
 	this.blockable = true;
 	this.ignoreInvincibility = false;
 	this.explode = false;
 	this.range = 512;
+	this.wallStop = true;
 	
 	this.delay = 0;
 	
@@ -33,8 +34,8 @@ function Bullet(x,y,d){
 	this.pushable = false;
 	
 	this.on("collideObject", Bullet.hit);
-	this.on("collideVertical", function(dir){ this.trigger("death"); });
-	this.on("collideHorizontal", function(dir){ this.trigger("death"); });
+	this.on("collideVertical", function(dir){ if(this.wallStop){ this.trigger("death"); } });
+	this.on("collideHorizontal", function(dir){ if(this.wallStop){ this.trigger("death"); } });
 	this.on("sleep", function(){ this.trigger("death"); });
 	this.on("death", function(){ this.destroy(); });
 	this.on("hurt_other", function(obj, damage){
@@ -78,7 +79,9 @@ Bullet.prototype.setDeflect = function(){
 }
 Bullet.prototype.update = function(){
 	this.range -= this.force.length() * this.delta;
-	this.flip = this.force.x < 0;
+	if(this.rotation == undefined){
+		this.flip = this.force.x < 0;
+	}
 	if( this.range <= 0 ) this.destroy();
 	
 	if( this.delay > 0 ) {
@@ -122,7 +125,7 @@ Bullet.hit = function(obj){
 			
 			if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
 				this.trigger("blocked",obj);
-				obj.trigger("block",this,this.position,this.damage);
+				obj.trigger("block",this,this.bounds(),this.damage);
 			} else {
 				if(this.ignoreInvincibility){
 					obj.invincible = 0.0;
@@ -143,7 +146,7 @@ Bullet.prototype.render = function(g,c){
 		this.frame,
 		this.flip,
 		{
-			"rotate" : this.rotation
+			"rotate" : this.rotation || 0
 		}
 	)
 }
@@ -244,7 +247,9 @@ function Fire(x,y){
 		this.destroy();
 	});
 	this.on("struck", function(obj, pos, damage){
-		if( damage > 0 ) this.life = 0;
+		if( obj instanceof Player ) {
+			this.life = 0;
+		}
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -314,6 +319,7 @@ function ExplodingEnemy(x,y, d, ops){
 	
 	this.position.x = x;
 	this.position.y = y;
+	this.startPos = new Point(x,y);
 	this.width = 24;
 	this.height = 24;
 	this.team = 1;
@@ -341,7 +347,6 @@ function ExplodingEnemy(x,y, d, ops){
 		
 	this.on("collideObject", function(obj){
 		if( this.launch && obj.hurt instanceof Function && this.team != obj.team ) {
-			this.life = 0;
 			obj.hurt( this, this.damage );
 		}
 	});
@@ -362,6 +367,16 @@ ExplodingEnemy.prototype.update = function(){
 	if( this.life <= 0 ){
 		this.trigger("death");
 	}
+}
+ExplodingEnemy.prototype.render = function(g,c){
+	let midPoint = this.position.add(this.startPos).scale(0.5);
+	let lengthPoint = this.position.subtract(this.startPos);
+	let distance = lengthPoint.length();
+	let height = (this.life / (Game.DELTASECOND * 0.5)) * 24;
+	let rotate = (Math.atan2(lengthPoint.y,lengthPoint.x)/ Math.PI) * 180;
+	
+	g.renderSprite("halo",midPoint.subtract(c),this.zIndex,new Point(),false,{"scalex":distance/240,"scaley":height/240,"rotate":rotate});
+	GameObject.prototype.render.apply(this,[g,c]);
 }
 
 Explosion.prototype = new GameObject();

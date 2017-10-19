@@ -120,9 +120,9 @@ AttributeMenu = {
 		}
 		
 		if(this.cursor == 0){
-			textArea(g,"@", pos.x+20,140);
+			textArea(g,"@", pos.x+20,156);
 		} else if(this.cursor == 1){
-			textArea(g,"@", pos.x+20,152);
+			textArea(g,"@", pos.x+20,168);
 		} else {
 			cursorArea(g, pos.x+12+this.cursorSlot*32, 224-36,32,32);
 		}
@@ -177,6 +177,64 @@ AttributeMenu = {
 			}
 		}
 		
+		//Damage
+		textArea(g,"Damage:", c.x+padding,attributeY);
+		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.damage + p.damageFire + p.damageSlime + p.damageIce + p.damageLight;});
+		attributeY += 12;
+		
+		//Physical
+		textArea(g,"P", c.x+padding,attributeY);
+		r(g,c.x+padding+8,attributeY,testPlayer,function(p){return Math.floor(p.damage);});
+		
+		//Ice
+		textArea(g,"I", c.x+padding+32,attributeY);
+		r(g,c.x+padding+40,attributeY,testPlayer,function(p){return Math.floor(p.damageIce);});
+		
+		//Slime
+		textArea(g,"S", c.x+padding+64,attributeY);
+		r(g,c.x+padding+72,attributeY,testPlayer,function(p){return Math.floor(p.damageSlime);});
+		
+		
+		attributeY += 12;
+		
+		//Fire
+		textArea(g,"F", c.x+padding,attributeY);
+		r(g,c.x+padding+8,attributeY,testPlayer,function(p){return Math.floor(p.damageFire);});
+		
+		//Light
+		textArea(g,"L", c.x+padding+32,attributeY);
+		r(g,c.x+padding+40,attributeY,testPlayer,function(p){return Math.floor(p.damageLight);});
+		
+		attributeY += 16;
+		
+		
+		textArea(g,"Defence", c.x+padding,attributeY);
+		attributeY += 12;
+		
+		//Physical
+		textArea(g,"P", c.x+padding,attributeY);
+		r(g,c.x+padding+8,attributeY,testPlayer,function(p){return Math.floor(p.defencePhysical)+"";});
+		
+		//Ice
+		textArea(g,"I", c.x+padding+32,attributeY);
+		r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceIce)+"";});
+		
+		//Slime
+		textArea(g,"S", c.x+padding+64,attributeY);
+		r(g,c.x+padding+72,attributeY,testPlayer,function(p){return Math.floor(p.defenceSlime)+"";});
+		
+		attributeY += 12;
+		
+		//Fire
+		textArea(g,"F", c.x+padding,attributeY);
+		r(g,c.x+padding+8,attributeY,testPlayer,function(p){return Math.floor(p.defenceFire)+"";});
+		
+		//Light
+		textArea(g,"L", c.x+padding+32,attributeY);
+		r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceLight)+"";});
+		
+		attributeY += 16;
+		
 		//attack
 		textArea(g,"Attack:", c.x+padding,attributeY);
 		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.attack;});
@@ -190,44 +248,8 @@ AttributeMenu = {
 		//magic
 		textArea(g,"Magic:", c.x+padding,attributeY);
 		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.stats.magic;});
+		
 		attributeY += 16;
-		
-		//magic
-		textArea(g,"Damage:", c.x+padding,attributeY);
-		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.damage + p.damageFire + p.damageSlime + p.damageIce + p.damageLight;});
-		attributeY += 16;
-		
-		var damages = _player.getDamage();
-		//Damage
-		textArea(g,"DMG / DEF", c.x+padding,attributeY);
-		attributeY += 12;
-		
-		//Physical
-		textArea(g,"P", c.x+padding,attributeY);
-		r(g,c.x+padding,attributeY+12,testPlayer,function(p){return Math.floor(p.damage);});
-		r(g,c.x+padding,attributeY+24,testPlayer,function(p){return Math.floor(p.defencePhysical*100)+"";});
-		
-		//Fire
-		textArea(g,"F", c.x+padding+24,attributeY);
-		r(g,c.x+padding+24,attributeY+12,testPlayer,function(p){return Math.floor(p.damageFire);});
-		r(g,c.x+padding+24,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceFire*100)+"";});
-		
-		//Fire
-		textArea(g,"S", c.x+padding+48,attributeY);
-		r(g,c.x+padding+48,attributeY+12,testPlayer,function(p){return Math.floor(p.damageSlime);});
-		r(g,c.x+padding+48,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceSlime*100)+"";});
-		
-		//Ice
-		textArea(g,"I", c.x+padding+72,attributeY);
-		r(g,c.x+padding+72,attributeY+12,testPlayer,function(p){return Math.floor(p.damageIce);});
-		r(g,c.x+padding+72,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceIce*100)+"";});
-		
-		//Light
-		textArea(g,"L", c.x+padding+96,attributeY);
-		r(g,c.x+padding+96,attributeY+12,testPlayer,function(p){return Math.floor(p.damageLight);});
-		r(g,c.x+padding+96,attributeY+24,testPlayer,function(p){return Math.floor(p.defenceLight*100)+"";});
-		
-		attributeY += 36;
 		
 		//Weapon
 		var weapon = _player.equip_sword;

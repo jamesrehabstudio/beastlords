@@ -82,3 +82,21 @@ tilerules.rules["firepits"] = mergeLists({
 	353:tilerules.ignore, 385:tilerules.ignore, 386:tilerules.ignore, 386:tilerules.ignore, 387:tilerules.ignore, 388:tilerules.ignore,
 	389:tilerules.ignore, 390:tilerules.ignore, 417:tilerules.ignore, 418:tilerules.ignore, 419:tilerules.ignore
 }, tilerules.rules["default"]);
+
+tilerules.rules["temple4"] = mergeLists({
+	51:tilerules.onewayup, 52:tilerules.onewayup, 53:tilerules.onewayup,
+	83:tilerules.ignore, 84:tilerules.ignore, 85:tilerules.ignore, 86:tilerules.ignore, 87:tilerules.ignore,
+	115:tilerules.ignore, 116:tilerules.ignore, 117:tilerules.ignore, 118:tilerules.ignore, 119:tilerules.ignore,
+	147:tilerules.ignore, 148:tilerules.ignore, 149:tilerules.ignore, 150:tilerules.ignore, 151:tilerules.ignore
+}, tilerules.rules["default"]);
+
+tilerules.rules["town"] = mergeLists({
+	39:tilerules.ignore, 40:tilerules.ignore, 136:tilerules.ignore, 321:tilerules.ignore, 326:tilerules.ignore,
+	331:tilerules.ignore, 358:tilerules.ignore, 359:tilerules.ignore, 360:tilerules.ignore, 361:tilerules.ignore, 393:tilerules.ignore,
+	425:tilerules.ignore, 457:tilerules.ignore, 491:tilerules.ignore, 492:tilerules.ignore
+}, tilerules.rules["default"]);
+
+tilerules.rules["lighthouse"] = mergeLists({
+	37:tilerules.ignore, 38:tilerules.ignore, 39:tilerules.ignore, 40:tilerules.ignore,
+	97:tilerules.ignore, 98:tilerules.ignore, 99:tilerules.ignore
+}, tilerules.rules["default"]);

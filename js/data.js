@@ -145,7 +145,9 @@ function load_sprites (){
 	sprites['dotmatcolors'] = new Sprite(RT+"img/dotmatcolors.png", {offset:new Point(0, 0),width:64,height:64});
 	
 	
+	sprites['effect_block'] = new Sprite(RT+"img/effect_block.png", {offset:new Point(0, 40),width:32,height:64,fragment:"fragment-sparks"});
 	sprites['effect_fire'] = new Sprite(RT+"img/effect_fire.png", {offset:new Point(32, 32),width:64,height:64});
+	sprites['effect_hurt'] = new Sprite(RT+"img/effect_hurt.png", {offset:new Point(0, 16),width:80,height:32,fragment:"fragment-sparks"});
 	
 	sprites['player'] = new Sprite(RT+"img/player.png", {
 		offset:new Point(32, 49),
@@ -205,9 +207,12 @@ function load_sprites (){
 	sprites['cryptkeeper'] = new Sprite(RT+"img/cryptkeeper.png", {offset:new Point(36, 36),width:64,height:64});
 	sprites['deckard'] = new Sprite(RT+"img/deckard.png", {offset:new Point(48, 52),width:96,height:80});
 	sprites['donkeyknife'] = new Sprite(RT+"img/donkeyknife.png", {offset:new Point(28, 42),width:64,height:64});
+	sprites['drillorb'] = new Sprite(RT+"img/drillorb.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['gear1'] = new Sprite(RT+"img/gear1.png", {offset:new Point(0, 0),width:16,height:64});
+	sprites['electrolizard'] = new Sprite(RT+"img/electrolizard.png", {offset:new Point(48, 64),width:160,height:96});
 	sprites['elevator'] = new Sprite(RT+"img/elevator.gif", {offset:new Point(16, 24),width:32,height:48});
 	sprites['flameman'] = new Sprite(RT+"img/flameman.png", {offset:new Point(40, 52),width:80,height:80});
+	sprites['flameslime'] = new Sprite(RT+"img/flameslime.png", {offset:new Point(32, 52),width:64,height:64});
 	sprites['flederknife'] = new Sprite(RT+"img/flederknife.gif", {offset:new Point(16, 32),width:48,height:48});
 	sprites['firebird'] = new Sprite(RT+"img/firebird.png", {offset:new Point(32, 48),width:64,height:64});
 	sprites['frogmonster'] = new Sprite(RT+"img/frogmonster.gif", {offset:new Point(72, 72),width:144,height:144});
@@ -215,6 +220,7 @@ function load_sprites (){
 	sprites['ghoul'] = new Sprite(RT+"img/ghoul.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['ending'] = new Sprite(RT+"img/ending.gif", {offset:new Point(48, 32),width:96,height:64});
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
+	sprites['hammerman'] = new Sprite(RT+"img/hammerman.png", {offset:new Point(40, 32),width:80,height:48});
 	sprites['igbo'] = new Sprite(RT+"img/igbo.png", {offset:new Point(32, 48),width:64,height:72});
 	sprites['knight'] = new Sprite(RT+"img/knight.png", {offset:new Point(32, 44),width:96,height:64});
 	sprites['knior'] = new Sprite(RT+"img/knior.png", {offset:new Point(24, 32),width:48,height:48});
@@ -231,22 +237,26 @@ function load_sprites (){
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48});
 	sprites['malsum'] = new Sprite(RT+"img/malsum.png", {offset:new Point(24, 23),width:48,height:32});
 	sprites['moleminer'] = new Sprite(RT+"img/moleminer.png", {offset:new Point(24, 20),width:48,height:32});
+	sprites['monsterlock'] = new Sprite(RT+"img/monsterlock.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['npc_smith'] = new Sprite(RT+"img/npc_smith.png", {offset:new Point(32, 32),width:64,height:64});
+	sprites['nolt'] = new Sprite(RT+"img/nolt.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(32, 40),width:64,height:64});
 	sprites['phantom'] = new Sprite(RT+"img/phantom.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['phantomgraves'] = new Sprite(RT+"img/phantomgraves.png", {offset:new Point(40, 40),width:80,height:80});
 	//sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48});
 	sprites['playerbath'] = new Sprite(RT+"img/playerbath.png", {offset:new Point(24, 48),width:48,height:48});
 	sprites['pothead'] = new Sprite(RT+"img/pothead.png", {offset:new Point(24, 34),width:48,height:48});
+	sprites['raindrops'] = new Sprite(RT+"img/raindrops.png", {offset:new Point(8, 16),width:16,height:16});
 	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(22, 20),width:48,height:32});
 	sprites['ring'] = new Sprite(RT+"img/ring.gif", {offset:new Point(120, 120),width:240,height:240});
+	sprites['riveteer'] = new Sprite(RT+"img/riveteer.png", {offset:new Point(24, 31),width:48,height:48});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
 	sprites['samrat'] = new Sprite(RT+"img/samrat.png", {offset:new Point(48, 40),width:128,height:64});
 	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16});
 	sprites['shields'] = new Sprite(RT+"img/shields.png", {offset:new Point(16, 16),width:32,height:32});
 	sprites['shieldslots'] = new Sprite(RT+"img/shieldslots.png", {offset:new Point(16, 16),width:32,height:32});
 	sprites['shooter'] = new Sprite(RT+"img/shooter.gif", {offset:new Point(32, 32),width:64,height:64});
-	sprites['shockowl'] = new Sprite(RT+"img/shockowl.png", {offset:new Point(24, 32),width:48,height:48});
+	sprites['shockowl'] = new Sprite(RT+"img/shockowl.png", {offset:new Point(32, 48),width:64,height:64});
 	sprites['shrine'] = new Sprite(RT+"img/shrine.png", {offset:new Point(32, 16),width:64,height:32});
 	sprites['slime'] = new Sprite(RT+"img/slime.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['slimerilla'] = new Sprite(RT+"img/slimerilla.gif", {offset:new Point(48, 48),width:96,height:64});
@@ -263,12 +273,17 @@ function load_sprites (){
 	sprites['treads'] = new Sprite(RT+"img/treads.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['trees'] = new Sprite(RT+"img/trees.png", {offset:new Point(28, 48),width:56,height:48});
 	sprites['owlwizzard'] = new Sprite(RT+"img/owlwizzard.png", {offset:new Point(24, 24),width:48,height:48});
+	sprites['walker'] = new Sprite(RT+"img/walker.png", {offset:new Point(32, 52),width:64,height:64});
 	sprites['warbus'] = new Sprite(RT+"img/warbus.png", {offset:new Point(32, 32),width:64,height:48});
+	sprites['wip'] = new Sprite(RT+"img/wip.png", {offset:new Point(24, 24),width:48,height:48});
+	sprites['worldmap'] = new Sprite(RT+"img/worldmap.png", {offset:new Point(0, 0),width:208,height:208});
+	sprites['white'] = new Sprite(RT+"img/white.png", {offset:new Point(0, 0),width:1,height:1});
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
 	
 	sprites['swordtest'] = new Sprite(RT+"img/sword_test.png", {offset:new Point(15, 56),width:32,height:64});
 	sprites['swordeffect'] = new Sprite(RT+"img/swordeffect.png", {offset:new Point(48, 49),width:112,height:64});
+	sprites['swordeffectv'] = new Sprite(RT+"img/swordeffectv.png", {offset:new Point(32, 49),width:64,height:112});
 	
 	sprites['bossface'] = new Sprite(RT+"img/bossface.gif", {offset:new Point(0, 0),width:90,height:120});
 	
@@ -306,7 +321,9 @@ function load_sprites (){
 	sprites['temple2'] = new Sprite(RT+"img/tiles/temple2.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['temple3'] = new Sprite(RT+"img/tiles/temple3.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['temple4'] = new Sprite(RT+"img/tiles/temple4.png", {offset:new Point(0, 0),width:16,height:16});
+	sprites['temple5'] = new Sprite(RT+"img/tiles/temple5.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['firepits'] = new Sprite(RT+"img/tiles/firepits.png", {offset:new Point(0, 0),width:16,height:16});
+	sprites['lighthouse'] = new Sprite(RT+"img/tiles/lighthouse.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['templeice'] = new Sprite(RT+"img/tiles/templeice.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['cave'] = new Sprite(RT+"img/tiles/cave.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['planes'] = new Sprite(RT+"img/tiles/planes.png", {offset:new Point(0, 0),width:16,height:16});
@@ -355,6 +372,8 @@ function load_sprites (){
 		1023 : {"frames":[1024], "speed":0.0}
 	});
 	tiles["temple2"] = new Tileset(sprites["temple2"],tileRules["big"], {
+		577 : {"frames":[1024], "speed":0.0},
+		
 		275 : {"frames":[275,277,279], "speed":9.0},
 		276 : {"frames":[276,278,280], "speed":9.0},
 		307 : {"frames":[307,309,311], "speed":9.0},
@@ -380,6 +399,8 @@ function load_sprites (){
 	tiles["temple4"] = new Tileset(sprites["temple4"],tileRules["big"], {
 		204 : {"frames":[1024], "speed":0.0},
 		1023 : {"frames":[1024], "speed":0.0}
+	});	
+	tiles["temple5"] = new Tileset(sprites["temple5"],tileRules["big"], {
 	});
 	tiles["cave"] = new Tileset(sprites["cave"],tileRules["big"], {
 		321 : {"frames":[321,322,323], "speed":6.0}
@@ -410,6 +431,8 @@ function load_sprites (){
 		204 : {"frames":[1024], "speed":0.0},
 		1023 : {"frames":[1024], "speed":0.0}
 	});
+	tiles["lighthouse"] = new Tileset(sprites["lighthouse"],tileRules["big"], {
+	});
 	tiles["templeice"] = new Tileset(sprites["templeice"],tileRules["big"], {
 		21 : {"frames":[21,24,27], "speed":8.0},
 		22 : {"frames":[22,25,28], "speed":8.0},
@@ -438,6 +461,7 @@ window.audio = new AudioPlayer({
 	"music_town" : {"url":RT+"sounds/music_town.ogg","music":true,"loop":0.0},
 	"music_firepits" : {"url":RT+"sounds/music_firepits.ogg","music":true,"loop":4.596},
 	"music_fridge" : {"url":RT+"sounds/music_fridge.ogg","music":true,"loop":0.0},
+	"music_sky_01" : {"url":RT+"sounds/music_sky_01.mp3","music":true,"loop":0.0},
 	//"music_town" : {"url":RT+"sounds/music_town.mp3","music":true,"loop":0.0},
 	"music_sleep" : {"url":RT+"sounds/music_sleep.mp3","music":true},
 	"music_world" : {"url":RT+"sounds/music_world.ogg","music":true,"loop":29.5384},
@@ -455,6 +479,7 @@ window.audio = new AudioPlayer({
 	"crash" : {"url":RT+"sounds/crash.wav"},
 	"cursor" : {"url":RT+"sounds/cursor.wav"},
 	"danger" : {"url":RT+"sounds/danger.wav"},
+	"dash" : {"url":RT+"sounds/dash.wav"},
 	"deathwarning" : {"url":RT+"sounds/deathwarning.wav"},
 	"equip" : {"url":RT+"sounds/equip.wav"},
 	"explode1" : {"url":RT+"sounds/explode1.wav"},
@@ -484,6 +509,7 @@ window.audio = new AudioPlayer({
 	"slash" : {"url":RT+"sounds/slash.wav"},
 	"spell" : {"url":RT+"sounds/spell.wav"},
 	"swing" : {"url":RT+"sounds/swing.wav"},
+	"swing2" : {"url":RT+"sounds/swing2.wav"},
 	"switch" : {"url":RT+"sounds/switch.wav"},
 	"text01" : {"url":RT+"sounds/text01.wav"},
 	"tink" : {"url":RT+"sounds/tink.wav"},

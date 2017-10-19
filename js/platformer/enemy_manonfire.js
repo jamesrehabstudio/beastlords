@@ -30,9 +30,9 @@ function ManOnFire(x, y, d, o){
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.damage = 0;
 	this.damageFire = Spawn.damage(3,this.difficulty);
-	this.defencePhysical = 0.6;
-	this.defenceFire = 1.2;
-	this.defenceIce = -1.0;
+	this.defencePhysical = Spawn.defence(2,this.difficulty);
+	this.defenceFire = Spawn.defence(4,this.difficulty);
+	this.defenceIce = Spawn.defence(-4,this.difficulty);
 	this.mass = 1.0;
 	
 	this.on("collideHorizontal", function(x){

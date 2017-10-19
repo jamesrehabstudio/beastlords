@@ -41,9 +41,10 @@ function Ammit(x,y,d,o){
 	this.moneyDrop = Spawn.money(40,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.damageSlime = Spawn.damage(3,this.difficulty);
-	this.defencePhysical = 0.5;
-	this.defenceFire = -0.5;
-	this.defenceSlime = 1.2;
+	
+	this.defencePhysical = Spawn.defence(2, this.difficulty);
+	this.defenceFire = Spawn.defence(-2, this.difficulty);
+	this.defenceSlime = Spawn.defence(4, this.difficulty);
 	
 	this.mass = 5.0;
 	this.death_time = Game.DELTASECOND * 3;

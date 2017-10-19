@@ -29,11 +29,11 @@ function Poseidon(x,y,d,o){
 	this.lifeMax = this.life;
 	this.collideDamage = 5;
 	
-	this.defencePhysical = 0.3;
-	this.defenceFire = 0.0;
-	this.defenceSlime = 0.1;
-	this.defenceIce = -0.2;
-	this.defenceLight = -0.2;
+	this.defencePhysical = Spawn.defence(1, this.difficulty);
+	this.defenceFire = Spawn.defence(0, this.difficulty);
+	this.defenceSlime = Spawn.defence(1, this.difficulty);
+	this.defenceIce = Spawn.defence(-1, this.difficulty);
+	this.defenceLight = Spawn.defence(-1, this.difficulty);
 	
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.landDamage = Spawn.damage(5,this.difficulty);

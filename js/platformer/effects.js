@@ -311,6 +311,87 @@ EffectCritical.prototype.render = function(g,c){
 	}
 }
 
+EffectHurt.prototype = new GameObject();
+EffectHurt.prototype.constructor = GameObject;
+function EffectHurt(x, y, obj){
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = "effect_hurt";
+	this.zIndex = 99;
+	this.frame.x = 0;
+	this.frame.y = 0;
+	this._frame = 0;
+	this.speed = 0.4;
+	this.intensity = 0.5;
+	this.rotation = 0.0;
+}
+EffectHurt.prototype.render = function(g,c){
+	//if(input.state("left")==1) this.intensity -= 0.05;
+	//if(input.state("right")==1) this.intensity += 0.05;
+	
+	this._frame += game.deltaUnscaled * this.speed;
+	this.frame.x = this._frame / 4;
+	this.frame.y = this._frame % 4;
+	
+	g.renderSprite(
+		this.sprite,
+		this.position.subtract(c),
+		this.zIndex,
+		this.frame,
+		this.flip,
+		{
+			"u_color_edge" : [1.0,0.8,0.8,1.0],
+			"u_color" : [0.8,0.0,0.0,1.0],
+			"u_size" : [1/256.0,1/256.0],
+			"u_intensity" : this.intensity,
+			"rotate" : this.rotation
+		}
+	);
+	
+	if(this._frame > 8){
+		//this._frame = 0.0;
+		this.destroy();
+	}
+}
+
+EffectBlock.prototype = new GameObject();
+EffectBlock.prototype.constructor = GameObject;
+function EffectBlock(x, y, obj){
+	this.constructor();
+	
+	this.position.x = x;
+	this.position.y = y;
+	this.sprite = "effect_block";
+	this.zIndex = 99;
+	this.frame.x = 0;
+	this.frame.y = 0;
+	this.speed = 0.38;
+	this.intensity = 0.5;
+}
+EffectBlock.prototype.render = function(g,c){
+	this.frame.x = (this.frame.x + this.delta * this.speed) % 6;
+	
+	g.renderSprite(
+		this.sprite,
+		this.position.subtract(c),
+		this.zIndex,
+		this.frame,
+		this.flip,
+		{
+			"u_color_edge" : [1.0,1.0,1.0,1.0],
+			"u_color" : [0.4,0.5,1.0,1.0],
+			"u_size" : [1/256.0,1/256.0],
+			"u_intensity" : this.intensity
+		}
+	);
+	
+	if(this.frame.x >= 5){
+		this.destroy();
+	}
+}
+
 EffectAfterImage.prototype = new GameObject();
 EffectAfterImage.prototype.constructor = GameObject;
 function EffectAfterImage(x, y, obj){

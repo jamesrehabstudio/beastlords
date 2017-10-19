@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="416" height="240" tilewidth="16" tileheight="16" nextobjectid="149">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="416" height="240" tilewidth="16" tileheight="16" nextobjectid="157">
  <tileset firstgid="1" name="map" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="../img/tiles/maptiles.gif" width="256" height="256"/>
  </tileset>
@@ -1232,13 +1232,12 @@
    <properties>
     <property name="background" value="sky"/>
     <property name="darkness" value="Math.min((c.y-816)/128.0,0.6)"/>
-    <property name="darknesscolor" value="0.03,0.002,0.0"/>
+    <property name="darknesscolor" value="0.0,0.0,0.0"/>
     <property name="music" value="music_gateway"/>
     <property name="retrigger" type="int" value="0"/>
     <property name="sealevel" value="0"/>
    </properties>
   </object>
-  <object id="4" name="Marquis" x="4560" y="592" width="80" height="96"/>
   <object id="5" name="Door" x="4352" y="608" width="16" height="64">
    <properties>
     <property name="open" value="1"/>
@@ -1551,9 +1550,9 @@
   <object id="74" name="Lamp" x="4720" y="1360" width="16" height="16"/>
   <object id="75" name="Lamp" x="4416" y="1360" width="16" height="16"/>
   <object id="76" name="Lamp" x="4208" y="1328" width="16" height="16"/>
-  <object id="77" name="Trigger" x="1280" y="1472" width="512" height="64">
+  <object id="77" name="Trigger" x="1280" y="1456" width="512" height="64">
    <properties>
-    <property name="darkness" value="Math.max((c.y-1472)/128,0.6)"/>
+    <property name="darkness" value="Math.max((c.y-1312)/128,0.6)"/>
    </properties>
   </object>
   <object id="78" name="Trigger" x="2816" y="1248" width="80" height="64">
@@ -1693,7 +1692,7 @@
   <object id="121" name="Lamp" x="720" y="880" width="32" height="16"/>
   <object id="122" name="Trigger" x="3120" y="1824" width="112" height="64">
    <properties>
-    <property name="darkness" value="Math.max((c.y-1472)/128,0.6)"/>
+    <property name="darkness" value="Math.max((c.y-1312)/128,0.6)"/>
    </properties>
   </object>
   <object id="123" name="Checkpoint" x="4272" y="608" width="16" height="64">
@@ -1716,7 +1715,7 @@
    <properties>
     <property name="background" value="sky"/>
     <property name="darkness" value="Math.min((c.y-816)/128.0,0.6)"/>
-    <property name="darknesscolor" value="0.03,0.002,0.0"/>
+    <property name="darknesscolor" value="0.0,0.0,0.0"/>
     <property name="music" value="music_gateway"/>
     <property name="retrigger" type="int" value="0"/>
     <property name="sealevel" value="0"/>
@@ -1737,7 +1736,7 @@
    <properties>
     <property name="background" value="sky"/>
     <property name="darkness" value="Math.min((c.y-816)/128.0,0.6)"/>
-    <property name="darknesscolor" value="0.03,0.002,0.0"/>
+    <property name="darknesscolor" value="0.0,0.0,0.0"/>
     <property name="music" value="music_gateway"/>
     <property name="retrigger" type="int" value="0"/>
     <property name="sealevel" value="0"/>
@@ -1758,7 +1757,7 @@
    <properties>
     <property name="background" value="sky"/>
     <property name="darkness" value="Math.min((c.y-816)/128.0,0.6)"/>
-    <property name="darknesscolor" value="0.03,0.002,0.0"/>
+    <property name="darknesscolor" value="0.0,0.0,0.0"/>
     <property name="music" value="music_gateway"/>
     <property name="retrigger" type="int" value="0"/>
     <property name="sealevel" value="0"/>
@@ -1837,5 +1836,20 @@
    </properties>
   </object>
   <object id="148" name="EnemyBlock" x="3056" y="1344" width="32" height="64"/>
+  <object id="150" name="Shrine" x="2912" y="896" width="64" height="32">
+   <properties>
+    <property name="spells" value="SpellBolt"/>
+   </properties>
+  </object>
+  <object id="151" name="Checkpoint" x="2480" y="1104" width="16" height="64">
+   <properties>
+    <property name="name" value="key_0"/>
+   </properties>
+  </object>
+  <object id="152" name="Chort" x="4624" y="624" width="48" height="64"/>
+  <object id="153" name="WIP" x="752" y="2352" width="32" height="32"/>
+  <object id="154" name="WIP" x="4384" y="2096" width="32" height="32"/>
+  <object id="155" name="WIP" x="2608" y="416" width="32" height="32"/>
+  <object id="156" name="WIP" x="1056" y="1264" width="32" height="32"/>
  </objectgroup>
 </map>

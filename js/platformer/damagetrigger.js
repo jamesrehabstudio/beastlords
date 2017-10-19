@@ -12,13 +12,13 @@ function DamageTrigger(x,y,d,o){
 	this.origin.y = 0;
 	
 	this.restTimer = 0.0;
-	this.damage = 12;
+	this.damageFixed = 12;
 	this.alwaysKill = 0;
 	this.alwaysHurt = 1;
 	
 	o = o || {};
 	if("damage" in o){
-		this.damage = o.damage * 1;
+		this.damageFixed = Math.floor(o.damage * 1);
 	}
 	if("kill" in o){
 		this.alwaysKill = o.kill * 1;
@@ -39,7 +39,7 @@ function DamageTrigger(x,y,d,o){
 				if(this.alwaysHurt && game.timeScaled > DamageTrigger.rest){
 					obj.invincible = -1;
 				}
-				obj.hurt( this, Math.floor( this.damage ) );
+				obj.hurt( this, Combat.getDamage.apply(this) );
 				if(obj instanceof Player){
 					DamageTrigger.rest = game.timeScaled + Game.DELTASECOND * 2;
 				}

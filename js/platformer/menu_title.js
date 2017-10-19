@@ -48,6 +48,7 @@ TitleMenu.prototype.update = function(){
 	//if( this.progress == 0 ) audio.playAs("music_intro","music");
 	
 	if( this.page == 0 ){
+		//Intro page
 		this.progress += this.delta / Game.DELTASECOND;
 		if( this.progress > 52 ) this.progress = 9.0;
 		if( input.state("pause") == 1 || input.state("fire") == 1 ) {
@@ -59,20 +60,38 @@ TitleMenu.prototype.update = function(){
 			}
 		}
 	} else if( this.page == 1 ) {
+		//Load game page
 		this.progress = 10.0;
 		if( input.state("up") == 1 ) { 
 			this.cursor = Math.max(this.cursor-1, 0); 
+			this.deleteProfileTimer = 0.0;
 			audio.play("cursor"); 
 		}
 		if( input.state("down") == 1 ) { 
 			this.cursor = this.cursor = Math.min(this.cursor+1, 2); 
+			this.deleteProfileTimer = 0.0;
 			audio.play("cursor"); 
+		}
+		if( input.state("jump") > 0  ) { 
+			this.deleteProfileTimer += this.delta;
+			if(this.deleteProfileTimer > TitleMenu.DELETETIME){
+				//Save blank data to delete old profile
+				game.save(false, this.cursor);
+				//Refetch profiles
+				TitleMenu.fetchProfiles();
+				
+				this.deleteProfileTimer = 0.0;
+				audio.play("playerdeath");
+			}
+		} else {
+			this.deleteProfileTimer = 0.0
 		}
 		if( input.state("pause") == 1 || input.state("fire") == 1 ) { 
 			audio.play("pause");
 			this.startGame(this.cursor); 
 		}
 	} else if( this.page == 2 ) {
+		//Debug page
 		this.progress = 10.0;
 		if( input.state("up") == 1 ) { this.cursor -= 1; audio.play("cursor"); }
 		if( input.state("down") == 1 ) { this.cursor += 1; audio.play("cursor"); }
@@ -239,7 +258,13 @@ TitleMenu.prototype.hudrender = function(g,c){
 TitleMenu.prototype.renderProfile = function(g,c, profile){
 	boxArea(g,c.x,c.y,180,64);
 	
-	if(profile != undefined){
+	if(profile != undefined){		
+		if(profile.id == this.cursor && this.deleteProfileTimer > 0){
+			let progress = Math.min(this.deleteProfileTimer / TitleMenu.DELETETIME, 1.0);
+			g.color = [0.8,0.1,0.0,1.0];
+			g.scaleFillRect(c.x,c.y,(180*progress),64);
+		}
+		
 		Player.renderLifebar(g,c.add(new Point(16,16)),profile.life,profile.lifeMax,0);
 		Player.renderManabar(g,c.add(new Point(16,28)),profile.mana, profile.manaMax);
 		
@@ -289,6 +314,7 @@ TitleMenu.fetchProfiles = function(){
 			}
 			
 			var out = {
+				"id" : i,
 				"life" : d.player.life,
 				"lifeMax" : d.player.lifeMax,
 				"mana" : d.player.mana,
@@ -321,3 +347,4 @@ TitleMenu.level = 1;
 TitleMenu.grabLedges = false;
 TitleMenu.doubleJump = false;
 TitleMenu.dodgeFlash = false;
+TitleMenu.DELETETIME = Game.DELTASECOND * 2;

@@ -57,6 +57,22 @@ i18n_messages = {
 			"temple4.tmx"	:"Beast City Residence"
 		},
 	},
+	"item_lightradius" : {
+		"english" : "Dark visions\nAllows user to see in the dark."
+	},
+	"item_downstab" : {
+		"english" : "Down stab\nWhile in the air hold down and press %fire% to perform a down stab."
+	},
+	"item_doublejump" : {
+		"english" : "Double Jump\nPress %jump% while in the air to perform a second jump."
+	},
+	"item_gauntlets" : {
+		"english" : "Gauntlets\nAllows the user to jump off against walls."
+	},
+	"item_dodgeflash" : {
+		"english" : "Dodge Flash\nPress %dodge% in the air to dash forward with great power."
+	},
+	
 	"mayor_intro" : {
 		"english" : [
 			"Hello. I'm the Mayor of our town. Life is hard here.",
@@ -87,10 +103,13 @@ i18n_messages = {
 		"english" : "Hold down the attack button with %fire% to unlease a powerful slash!"
 	},
 	"npc_dodgeman" : {
-		"english" : "Did you know you can perform a dodge roll by pressing %dodge%?"
+		"english" : "Did you know you can dash by pressing %dodge%?"
 	},
-	"npc_downstabman" : {
-		"english" : "Did you know you can perform a downstab while jumping? Just hold down while you are in the air"
+	"npc_spellcasting" : {
+		"english" : "You can cast spells by holding up and pressing %fire%. You can select a spell by pressing %select%."
+	},
+	"npc_spellmaster" : {
+		"english" : "I can level up your spells to increase their effectiveness. It'll cost you though."
 	},
 	"smith_intro" : {
 		"english" : "You there. Did you know you can only hold one weapon at a time? Don't worry, any weapon you leave behind I'll store it here for you. It'll be free of charge, because I'm kind like that."

@@ -126,6 +126,30 @@ Renderer.scaleFillRect = function(x,y,w,h,ops){
 		return 1;
 	});
 }
+Renderer.renderLine = function(start,end,thickness,color){
+	let center = start.add(end).scale(0.5);
+	let dot = start.subtract(end);
+	let angle = Math.atan2(dot.y, dot.x);
+	let length = dot.length();
+	
+	if(color == undefined){
+		color = [1.0,1.0,1.0,1.0];
+	}
+	
+	Renderer.renderSprite(
+		"white", 
+		end,
+		1,
+		new Point(),
+		false,
+		{
+			u_color : color,
+			scalex : length,
+			scaley : thickness,
+			rotate : (angle / Math.PI) * 180
+		}
+	)
+}
 
 //////////////////
 //Game controller
@@ -228,42 +252,7 @@ Game.prototype.update = function(){
 		if( obj.awake ) {
 			this.tree.remove(obj);
 			
-			var mods = obj.modules;
-			//Set any frame specific values
-			obj.deltaPrevious = obj.delta;
-			obj.delta = this.delta * obj.deltaScale;
-			obj.deltaUnscaled = this.delta;
-			
-			//Update Functions
-			if ( mods.length > 0 ) {
-				for ( var j = 0; j < mods.length; j++ ) {
-					if ( mods[j].beforeupdate instanceof Function ) {
-						mods[j].beforeupdate.apply(obj);
-					}
-				}
-				obj.update();
-				
-				//Update buffs
-				for(var j=0; j < obj.buffs.length; j++){
-					obj.buffs[j].time -= this.delta;
-					if(obj.buffs[j].time <= 0){
-						obj.buffs.remove(j);
-						j--;
-					}
-				}
-				obj.useBuff("update");
-				
-				if(obj.interactive){
-					this.collideObject(obj);
-				}
-				for ( var j = 0; j < mods.length; j++ ) {
-					if ( mods[j].update instanceof Function ) {
-						mods[j].update.apply(obj);
-					}
-				}
-			} else {
-				obj.update();
-			}
+			obj.fullUpdate();
 			
 			if(obj.interactive && this.objects.indexOf(obj) >= 0){
 				this.tree.push(obj);
@@ -557,6 +546,45 @@ Game.prototype.t_move = function(obj, x, y) {
 	}
 	return limits;
 }
+Game.prototype.t_raytrace = function(l,q, check){
+	if(l instanceof Point){
+		l = new Line(l, q);
+	} else {
+		check = q;
+	}
+	if(check == undefined){
+		check = function(p){
+			return this.getTileRule(p.x, p.y) != tilerules.ignore;
+		}
+	}
+	
+	
+	var output = {
+		"start" : l.start,
+		"distance" : l.length(),
+		"end" : l.end,
+		"collide" : false
+	};
+	
+	var l_distance = l.length();
+	var increment = 16;
+	
+	for(let d=0; d < l_distance; d += increment){
+		let percent = d/l_distance;
+		let p = Point.lerp(l.start,l.end,percent);
+		
+		if(check.apply(this,[p])){
+			if(increment < 16){
+				return p;
+			} else {
+				d -= increment;
+				increment = 1;
+			}
+		}
+	}
+	return false;
+}
+
 Game.prototype.collideObject = function(obj) {
 	if(obj.interactive){
 		var objs = this.tree.get(obj.bounds());
@@ -1101,6 +1129,46 @@ GameObject.prototype.intersects = function(a) {
 		return this.hitbox().intersects(a);
 	}
 }
+GameObject.prototype.fullUpdate = function(){ 
+	var mods = this.modules;
+	//Set any frame specific values
+	this.deltaPrevious = this.delta;
+	this.delta = game.delta * this.deltaScale;
+	this.deltaUnscaled = game.delta;
+
+	//Update Functions
+	if ( mods.length > 0 ) {
+		for ( var j = 0; j < mods.length; j++ ) {
+			if ( mods[j].beforeupdate instanceof Function ) {
+				mods[j].beforeupdate.apply(this);
+			}
+		}
+	}
+	
+	this.update();
+		
+	//Update buffs
+	for(var j=0; j < this.buffs.length; j++){
+		this.buffs[j].time -= game.delta;
+		if(this.buffs[j].time <= 0){
+			this.buffs.remove(j);
+			j--;
+		}
+	}
+	this.useBuff("update");
+		
+	if(this.interactive){
+		game.collideObject(this);
+	}
+	
+	if ( mods.length > 0 ) {
+		for ( var j = 0; j < mods.length; j++ ) {
+			if ( mods[j].update instanceof Function ) {
+				mods[j].update.apply(this);
+			}
+		}
+	}
+}
 GameObject.prototype.update = function(){ }
 GameObject.prototype.isOnscreen = function(){
 	var corners = this.corners();
@@ -1170,7 +1238,7 @@ var Settings = {
 	"filter" : 0,
 	"fullscreen" : false,
 	"sfxvolume" : 1.0,
-	"musvolume" : 1.0,
+	"musvolume" : 0.5,
 	"debugmap" : "testmap.tmx"
 }
 

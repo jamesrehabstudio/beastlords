@@ -35,19 +35,25 @@ function Baller(x, y, d, o){
 	
 	o = o || {};
 	
+	this.spinType = 0;
+	
 	this.difficulty = Spawn.difficulty;
 	if("difficulty" in o){
 		this.difficulty = o["difficulty"] * 1;
 	}
+	if("type" in o){
+		this.spinType = o["type"] * 1;
+	}
 	
 	this.death_time = Game.DELTASECOND * 1.0;
-	this.lifeMax = this.life = Spawn.life(7,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(6,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 4.0;
 	this.recoverySpeed = 6;
 	this.arcSize = 56;
 	this.archSpeed = 0.2;
+	this.spinSpeed = 0.07;
 	
 	game.addObject(this.ball);
 	
@@ -90,86 +96,102 @@ Baller.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		this.flip = dir.x > 0;
 		
-		if( this.ball.reflect ) {
-			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
-			var direction = this.ball.position.subtract(this.position).normalize(2 * this.delta * this.recoverySpeed);
-			this.ball.position = this.ball.position.subtract(direction);
-		} else if( this.states.retrieve > 0 ) {
-			this.states.retrieve -= this.delta;
-			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
-			if(this.bounds().overlaps(this.ball.bounds())){
-				this.anchorpoint = new Point(-16,-16);
-				this.ball.visible = false;
-				this.frame.x = 2;
-				this.frame.y = 2;
-			} else {
-				this.frame.x = 2;
-				this.frame.y = 0;
-				var direction = this.ball.position.subtract(this.position).normalize(this.delta * this.recoverySpeed);
+		
+		if(this.spinType == 0 ){
+			if( this.ball.reflect ) {
+				this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+				var direction = this.ball.position.subtract(this.position).normalize(2 * this.delta * this.recoverySpeed);
 				this.ball.position = this.ball.position.subtract(direction);
-				this.ball.flip = direction.x > 0;
-			} 
-			
-			if(this.states.retrieve <= 0){
-				this.states.swing = this.timers.swing;
-				this.ball.visible = true;
+			} else if( this.states.retrieve > 0 ) {
+				this.states.retrieve -= this.delta;
+				this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+				if(this.bounds().overlaps(this.ball.bounds())){
+					this.anchorpoint = new Point(-16,-16);
+					this.ball.visible = false;
+					this.frame.x = 2;
+					this.frame.y = 2;
+				} else {
+					this.frame.x = 2;
+					this.frame.y = 0;
+					var direction = this.ball.position.subtract(this.position).normalize(this.delta * this.recoverySpeed);
+					this.ball.position = this.ball.position.subtract(direction);
+					this.ball.flip = direction.x > 0;
+				} 
+				
+				if(this.states.retrieve <= 0){
+					this.states.swing = this.timers.swing;
+					this.ball.visible = true;
+				}
+			} else if( this.states.pull > 0 ) {
+				this.states.pull -= this.delta;
+				this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+				this.frame.x = Math.max((this.frame.x + this.delta * 0.1) % 3,1);
+				this.frame.y = 1;
+				
+				if(this.states.pull <= 0){
+					this.states.retrieve = this.timers.retrieve;
+				}
+				
+			} else if ( this.states.release > 0 ) {
+				this.states.release -= this.delta;
+				this.anchorpoint = new Point(0,0);
+				this.frame.x = Math.min(this.frame.x + this.delta * 0.01, 1);
+				this.frame.y = 1;
+				
+				if(this.states.release <= 0 || this.ball.grounded){
+					this.ball.strikeable = false;
+					this.states.pull = this.timers.pull;
+					this.states.release = 0.0;
+				}
+			} else if ( this.states.swing > 0 ) {
+				var distance = Math.sin(game.timeScaled * this.archSpeed) * this.arcSize;
+				this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
+				this.ball.position = this.position.add(new Point(distance, -16));
+				this.ball.flip = this.ball.position.x < this.position.x;
+				this.anchorpoint = new Point(-16,-16);
+				
+				this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
+				this.frame.y = 0;
+				
+				if(distance < this.forward() * this.arcSize * 0.98){
+					if(this.flip && this.ball.zIndex < this.zIndex ){
+						this.states.swing--;
+					}
+					this.ball.zIndex = this.zIndex + 1;
+				}
+				if(distance > this.forward() * this.arcSize * 0.98){
+					if(!this.flip && this.ball.zIndex >= this.zIndex){
+						this.states.swing--;
+					}
+					this.ball.zIndex = this.zIndex - 1;
+				}
+				
+				if(this.states.swing <= 0){
+					this.states.release = this.timers.release;
+					this.frame.x = 0;
+					this.ball.strikeable = true;
+					this.ball.force.x = this.forward() * 10;
+					this.ball.force.y = -3;
+					this.ball.flip = this.flip;
+					this.ball.gravity = 0.5;
+					this.ball.grounded = false;
+				}
+			} else {
+				
 			}
-		} else if( this.states.pull > 0 ) {
-			this.states.pull -= this.delta;
-			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
-			this.frame.x = Math.max((this.frame.x + this.delta * 0.1) % 3,1);
-			this.frame.y = 1;
+		} else if(this.spinType == 1){
 			
-			if(this.states.pull <= 0){
-				this.states.retrieve = this.timers.retrieve;
-			}
+			var radius = 80;
+			var angle = (game.timeScaled * this.spinSpeed) % (Math.PI * 2);
+			var ballPos = new Point(Math.sin(angle) * radius, Math.cos(angle) * radius);
 			
-		} else if ( this.states.release > 0 ) {
-			this.states.release -= this.delta;
-			this.anchorpoint = new Point(0,0);
-			this.frame.x = Math.min(this.frame.x + this.delta * 0.01, 1);
-			this.frame.y = 1;
-			
-			if(this.states.release <= 0 || this.ball.grounded){
-				this.ball.strikeable = false;
-				this.states.pull = this.timers.pull;
-				this.states.release = 0.0;
-			}
-		} else if ( this.states.swing > 0 ) {
-			var distance = Math.sin(game.timeScaled * this.archSpeed) * this.arcSize;
-			this.ball.gravity = this.ball.force.x = this.ball.force.y = 0.0;
-			this.ball.position = this.position.add(new Point(distance, -16));
-			this.ball.flip = this.ball.position.x < this.position.x;
 			this.anchorpoint = new Point(-16,-16);
+			this.ball.position = this.position.add(ballPos);
+			this.ball.rigidbodyActive = false;
+			this.ball.zIndex = this.zIndex + 1;
 			
 			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
 			this.frame.y = 0;
-			
-			if(distance < this.forward() * this.arcSize * 0.98){
-				if(this.flip && this.ball.zIndex < this.zIndex ){
-					this.states.swing--;
-				}
-				this.ball.zIndex = this.zIndex + 1;
-			}
-			if(distance > this.forward() * this.arcSize * 0.98){
-				if(!this.flip && this.ball.zIndex >= this.zIndex){
-					this.states.swing--;
-				}
-				this.ball.zIndex = this.zIndex - 1;
-			}
-			
-			if(this.states.swing <= 0){
-				this.states.release = this.timers.release;
-				this.frame.x = 0;
-				this.ball.strikeable = true;
-				this.ball.force.x = this.forward() * 10;
-				this.ball.force.y = -3;
-				this.ball.flip = this.flip;
-				this.ball.gravity = 0.5;
-				this.ball.grounded = false;
-			}
-		} else {
-			
 		}
 	} else {
 		this.frame.x = 1;
@@ -192,6 +214,14 @@ Baller.prototype.render = function(g,c){
 				this.links[i] = Point.lerp(this.links[i-1],this.links[i+1],0.5);
 			}
 			
+			if(i>0){
+				g.renderLine(
+					this.links[i-1].subtract(c),
+					this.links[i].subtract(c),
+					1
+				);
+			}
+			/*
 			g.renderSprite(
 				this.sprite,
 				this.links[i].subtract(c),
@@ -199,6 +229,7 @@ Baller.prototype.render = function(g,c){
 				linkFrame,
 				false
 			);
+			*/
 		}
 	}
 }
@@ -223,6 +254,12 @@ function BallerBall(x, y){
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
+	this.defencePhysical = 99;
+	this.defenceFire = 99;
+	this.defenceSlime = 99;
+	this.defenceIce = 99;
+	this.defenceLight = 99;
+	
 	this.on(["hurt_other","blocked"], function(obj, damage){
 		this.force.x = 0;
 		this.force.y = Math.max(this.force.y, 0);
@@ -232,6 +269,9 @@ function BallerBall(x, y){
 			this.reflect = false;
 			obj.hurt(this,obj.lifeMax);
 		}
+	});
+	this.on("hurt", function(obj, damage){
+		audio.play("hurt", this.position);
 	});
 	this.on("struck", function(obj) {
 		if(this.strikeable && obj instanceof Player){

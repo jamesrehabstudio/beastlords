@@ -7,6 +7,7 @@ function PauseMenu(){
 	
 	this.page = 1;
 	this.pageCount = 5;
+	this.mapflip = 0;
 	this.cursor = 0;
 	this.questscroll = 0;
 	this.mapCursor = new Point();
@@ -54,8 +55,8 @@ PauseMenu.prototype.update = function(){
 				audio.play("cursor");
 				if(this.cursor == 0 ) game.setSetting("fullscreen", !Settings.fullscreen);
 				if(this.cursor == 1 ) game.setSetting("filter", (Settings.filter+1) % PauseMenu.Filters.length);
-				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.min(Settings.sfxvolume+0.25,1));
-				if(this.cursor == 3 ) game.setSetting("musvolume", Math.min(Settings.musvolume+0.25,1));
+				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.min(Settings.sfxvolume+0.125,1));
+				if(this.cursor == 3 ) game.setSetting("musvolume", Math.min(Settings.musvolume+0.125,1));
 				if(this.cursor == 4 ){
 					PauseMenu.open = false;
 					game.clearAll();
@@ -66,11 +67,12 @@ PauseMenu.prototype.update = function(){
 				audio.play("cursor");
 				if(this.cursor == 0 ) game.setSetting("fullscreen", !Settings.fullscreen);
 				if(this.cursor == 1 ) game.setSetting("filter", (Settings.filter+1) % PauseMenu.Filters.length);
-				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.max(Settings.sfxvolume-0.25,0));
-				if(this.cursor == 3 ) game.setSetting("musvolume", Math.max(Settings.musvolume-0.25,0));
+				if(this.cursor == 2 ) game.setSetting("sfxvolume", Math.max(Settings.sfxvolume-0.125,0));
+				if(this.cursor == 3 ) game.setSetting("musvolume", Math.max(Settings.musvolume-0.125,0));
 			}
 		} else if( this.page == 1 ) {
 			//Map page			
+			if( input.state("jump") == 1) { this.mapflip = !this.mapflip; }
 			if( input.state("left") == 1 ) { this.mapCursor.x += 1; audio.play("cursor"); }
 			if( input.state("right") == 1 ) { this.mapCursor.x -= 1; audio.play("cursor"); }
 			if( input.state("up") == 1 ) { this.mapCursor.y += 1; audio.play("cursor"); }
@@ -82,36 +84,7 @@ PauseMenu.prototype.update = function(){
 			AttributeMenu.update();
 		} else if ( this.page == 3 ) {
 			//Unique Items
-			if( input.state("up") == 1 ) { 
-				this.cursor = (this.cursor > 0) ? this.cursor - 1 : 5; 
-				audio.play("cursor"); 
-			}
-			if( input.state("down") == 1 ) { 
-				this.cursor = (this.cursor + 1) % 6; 
-				audio.play("cursor"); 
-			}
-			if( input.state("fire") == 1 ) { 
-				if(this.cursor == 0){
-					_player.lightRadius = !_player.lightRadius;
-				}
-				if(this.cursor == 1){
-					if(_player.grabLedge){
-						_player.grabLedge = false;
-						_player.speeds.jump = 9.3;
-					} else {
-						_player.grabLedge = true;
-						_player.speeds.jump = 7.0;
-					}
-				} else if(this.cursor == 2){
-					_player.downstab = !_player.downstab;
-				} else if(this.cursor == 3){
-					_player.doubleJump = !_player.doubleJump;
-				} else if(this.cursor == 4){
-					_player.walljump = !_player.walljump;
-				} else if(this.cursor == 5){
-					_player.dodgeFlash = !_player.dodgeFlash;
-				}
-			}
+			DebugeMenu.update();
 			/*
 			if( input.state("fire") == 1 ) { 
 				_player.unique_item = _player.uniqueItems[this.cursor];
@@ -253,16 +226,15 @@ PauseMenu.prototype.hudrender = function(g,c){
 			textArea(g,PauseMenu.Filters[Settings.filter],leftx+20,84);
 			
 			textArea(g,"SFX Volume",leftx+16,104);
-			//g.fillStyle = "#e45c10";
-			g.color = [0.8,0.6,0.1,1.0];
+			g.color = [1.0,0.9,0.8,1.0];
 			
-			for(var i=0; i<Settings.sfxvolume*20; i++)
-				g.scaleFillRect(leftx+20+i*4, 116, 3, 8 );
+			for(var i=0; i<Math.floor(Settings.sfxvolume*8); i++)
+				g.scaleFillRect(leftx+20+i*8, 116, 7, 8 );
 			
 			textArea(g,"MUS Volume",leftx+16,136);
-			g.color = [0.8,0.6,0.1,1.0];
-			for(var i=0; i<Settings.musvolume*20; i++)
-				g.scaleFillRect(leftx+20+i*4, 148, 3, 8 );
+			g.color = [1.0,0.9,0.8,1.0];
+			for(var i=0; i<Math.floor(Settings.musvolume*8); i++)
+				g.scaleFillRect(leftx+20+i*8, 148, 7, 8 );
 			
 			textArea(g,"Game",leftx+16,168);
 			textArea(g,"Reset",leftx+20,180);
@@ -272,10 +244,33 @@ PauseMenu.prototype.hudrender = function(g,c){
 		} else if ( this.page == 1 ) {
 			//Map
 			leftx = game.resolution.x*0.5 - 224*0.5;
+			let name = game.newmapName;
+			var player_map_position = {
+				"gateway.tmx" : new Point(24,128),
+				"temple1.tmx" : new Point(178,110),
+				"temple2.tmx" : new Point(64,112),
+				"temple3.tmx" : new Point(88,168),
+				"temple4.tmx" : new Point(48,64),
+				"sky.tmx" : new Point(104,96),
+				"firepits.tmx" : new Point(176,160),
+				"townhub.tmx" : new Point(120,128),
+				"lighthouse.tmx" : new Point(200,104)
+			};
+			var map_position = player_map_position[name];
 			
-			boxArea(g,leftx,8,224,224);
-			textArea(g,"Map",leftx+102,20);
-			this.renderMap(g,this.mapCursor,new Point(leftx+16,24), new Line(0,0,24*8,24*8) );
+			if(this.mapflip){
+				boxArea(g,leftx,8,224,224);
+				let bounce = Math.sin(game.time * 0.1) * 2;
+				g.renderSprite("mapicons", map_position.add(new Point(leftx+4,10+bounce)),2,new Point());
+				g.renderSprite("worldmap", new Point(leftx+8,16),1,new Point(), false);
+				textArea(g,"Minimap (JUMP)",leftx+100,212);
+			} else {
+				boxArea(g,leftx,8,224,224);
+				textArea(g,"Map",leftx+102,20);
+				textArea(g,"Map",leftx+102,20);
+				this.renderMap(g,this.mapCursor,new Point(leftx+16,24), new Line(0,0,24*8,24*8) );
+				textArea(g,"Worldmap (JUMP)",leftx+96,212);
+			}
 			
 		} else if ( this.page == 2 ) {
 			//Stats page
@@ -283,50 +278,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			//PauseMenu.renderStatsPage(g,new Point(game.resolution.x*0.5 - 224*0.5, 8));
 		} else if ( this.page == 3 ) {
 			//Unique Items
-			leftx = game.resolution.x*0.5 - 224*0.5;
-			
-			boxArea(g,leftx,8,224,224);
-			//textArea(g,"Special Items",leftx+56,20);
-			textArea(g,"Debug",leftx+92,20);
-			
-			textArea(g,"@",leftx+16,32+this.cursor*12);
-			
-			var offy = 32;
-			textArea(g,"Light radius:",leftx+32,offy);
-			textArea(g,""+_player.lightRadius,leftx+144,offy);
-			offy += 12;
-			
-			textArea(g,"Grab Ledge:",leftx+32,offy);
-			textArea(g,""+_player.grabLedge,leftx+144,offy);
-			offy += 12;
-			
-			textArea(g,"Down Stab:",leftx+32,offy);
-			textArea(g,""+_player.downstab,leftx+144,offy);
-			offy += 12;
-			
-			textArea(g,"Double Jump:",leftx+32,offy);
-			textArea(g,""+_player.doubleJump,leftx+144,offy);
-			offy += 12;
-			
-			textArea(g,"Wall Jump:",leftx+32,offy);
-			textArea(g,""+_player.walljump,leftx+144,offy);
-			offy += 12;
-			
-			textArea(g,"Dodge Flash:",leftx+32,offy);
-			textArea(g,""+_player.dodgeFlash,leftx+144,offy);
-			offy += 12;
-			
-			
-			for(var i=0; i < _player.uniqueItems.length; i++){
-				var y_pos = 46 + 20 * i;
-				var item = _player.uniqueItems[i];
-				var name = item.message;
-				if(this.cursor == i){
-					textArea(g,"@",leftx+16,y_pos);
-				}
-				g.renderSprite("items",new Point(leftx+40,y_pos+4),this.zIndex,item.frame);
-				textArea(g,name,leftx+52,y_pos);
-			}
+			DebugeMenu.render(g, new Point(game.resolution.x*0.5 - 224*0.5, 8));
 		} else if ( this.page == 4 ){
 			//Quests
 			leftx = game.resolution.x*0.5 - 224*0.5;

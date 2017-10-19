@@ -138,7 +138,7 @@ var mod_rigidbody = {
 					this.currentlyStandingBlock = false;
 				} else if(this.grounded && this.currentlyStandingBlock.block_isWithinX(this)){
 					var c = this.currentlyStandingBlock.corners();
-					this.position.y = c.top - this.height * this.origin.y;
+					this.position.y = c.top - 0.1 - this.height * this.origin.y;
 					this.trigger("collideVertical", 1);
 				} else {
 					this.currentlyStandingBlock = false;
@@ -209,13 +209,14 @@ var mod_block = {
 		
 		this.on("collideTop", function(obj){
 			var c = this.corners();
+			let wg = obj.grounded;
 			if(obj.force.y > 0){
-				obj.position.y = (c.top - 0) - obj.height * obj.origin.y;
+				obj.position.y = (c.top - 0.1) - obj.height * obj.origin.y;
 				obj.trigger( "collideVertical", 1);
 				obj.trigger( "blockCollideVertical", 1, this);
 			}
 			this.trigger("blockLand",obj);
-			if(obj.currentlyStandingBlock !== this){
+			if(obj.currentlyStandingBlock !== this && !wg){
 				obj.trigger("land");
 			}
 			//this.blockOnboard.push(obj);
@@ -421,12 +422,13 @@ var mod_combat = {
 		this.damageSlime = 0;
 		this.damageIce = 0;
 		this.damageLight = 0;
+		this.damageFixed = 0;
 		
-		this.defencePhysical = 0.0;
-		this.defenceFire = 0.0;
-		this.defenceSlime = 0.0;
-		this.defenceIce = 0.0;
-		this.defenceLight = 0.0;
+		this.defencePhysical = 0;
+		this.defenceFire = 0;
+		this.defenceSlime = 0;
+		this.defenceIce = 0;
+		this.defenceLight = 0;
 		
 		this.criticalMultiplier = 4.0;
 		
@@ -438,6 +440,7 @@ var mod_combat = {
 		this.combat_stuncount = 0;
 		this.death_time = 0;
 		this._hurt_strobe = 0;
+		this._death_confirmed = false;
 		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
 				
 		this.showDamage = true;
@@ -469,10 +472,14 @@ var mod_combat = {
 		}
 		
 		this.isDead = function(){
-			if(!(this.life > 0)){
+			if(this.life <= 0){
 				//Remove effects
 				this.buffer_damage = 0;
 				this.hurtByDamageTriggers = false;
+				
+				if(!this._death_confirmed){
+					game.addObject(new EffectExplosion(this.position.x,this.position.y));
+				}
 				
 				//Trigger death
 				if( this.death_time > 0 ) {
@@ -490,8 +497,9 @@ var mod_combat = {
 					}
 				} else {
 					this.trigger("death");
-					game.addObject(new EffectExplosion(this.position.x,this.position.y));
+					
 				}
+				this._death_confirmed = true;
 			} else {
 				this.ragdoll = false;
 			}
@@ -527,6 +535,12 @@ var mod_combat = {
 		this.calcDamage = Combat.calcDamage;
 		
 		this.hurt = function(obj, damage){
+			
+			if(damage == undefined){
+				//If no damage is supplied, get it
+				damage = Combat.getDamage.apply(obj);
+			}
+			
 			//Turns damage object into a flat damage number
 			damage = this.calcDamage(damage);
 			
@@ -579,7 +593,7 @@ var mod_combat = {
 			}
 		}
 		
-		this.calculateXP = function(scale){}
+		this.calculateXP = function(){}
 	},
 	"update" : function(){
 		if( this._base_filter == undefined ) {
@@ -672,9 +686,15 @@ var Combat = {
 		}
 		
 		ops = ops || {};
+		var multiplier = 1.0;
 		var blockable = true;
-		var damage = Combat.getDamage.apply(this);
 		var direction = this.flip;
+		
+		if("multiplier" in ops){
+			multiplier = ops["multiplier"] * 1;
+		}
+		
+		var damage = Combat.getDamage.apply(this, [multiplier]);
 		
 		if("blockable" in ops){
 			blockable = ops["blockable"] * 1;
@@ -682,6 +702,7 @@ var Combat = {
 		if("damage" in ops){
 			damage = ops["damage"];
 		}
+		
 		if("direction" in ops){
 			direction = !!ops["direction"];
 		}
@@ -699,7 +720,7 @@ var Combat = {
 						obj.guard.invincible = Game.DELTASECOND * 0.5;
 						
 						this.trigger("blocked",obj);
-						obj.trigger("block",this,this.position,flatDamage);
+						obj.trigger("block",this,rect,flatDamage);
 						
 						this.useBuff("blocked", flatDamage, obj);
 						obj.useBuff("block", flatDamage, this);
@@ -731,9 +752,9 @@ var Combat = {
 		shield.correct();
 		return shield;
 	},
-	"getDamage" : function(mulitplier){
-		if(mulitplier == undefined){
-			mulitplier = 1.0;
+	"getDamage" : function(multiplier){
+		if(multiplier == undefined){
+			multiplier = 1.0;
 		}
 		
 		this.damage = this.damage || 0;
@@ -741,29 +762,41 @@ var Combat = {
 		this.damageSlime = this.damageSlime || 0;
 		this.damageIce = this.damageIce || 0;
 		this.damageLight = this.damageLight || 0;
+		this.damageFixed = this.damageFixed || 0;
 		
 		return {
-			"physical" : this.damage * mulitplier,
-			"fire" : this.damageFire * mulitplier,
-			"slime" : this.damageSlime * mulitplier,
-			"ice" : this.damageIce * mulitplier,
-			"light" : this.damageLight * mulitplier
+			"physical" : this.damage * multiplier,
+			"fire" : this.damageFire * multiplier,
+			"slime" : this.damageSlime * multiplier,
+			"ice" : this.damageIce * multiplier,
+			"light" : this.damageLight * multiplier,
+			"fixed" : this.damageFixed * multiplier
 		};
 	},
 	"calcDamage" : function(damage){
 		if(damage instanceof Object){
 			var fdamage = 0;
-			fdamage += damage.physical - (damage.physical * this.defencePhysical);
-			fdamage += damage.fire - (damage.fire * this.defenceFire);
-			fdamage += damage.slime - (damage.slime * this.defenceSlime);
-			fdamage += damage.ice - (damage.ice * this.defenceIce);
-			fdamage += damage.light - (damage.light * this.defenceLight);
-			
+			if(damage.physical > 0){
+				fdamage += Math.max(damage.physical - this.defencePhysical, 1);
+			}
+			if(damage.fire > 0){
+				fdamage += Math.max(damage.fire - this.defenceFire, 1);
+			}
+			if(damage.slime > 0){
+				fdamage += Math.max(damage.slime - this.defenceSlime, 1);
+			}
+			if(damage.ice > 0){
+				fdamage += Math.max(damage.ice - this.defenceIce, 1);
+			}
+			if(damage.light > 0){
+				fdamage += Math.max(damage.light - this.defenceLight, 1);
+			}
+			fdamage += damage.fixed;
 			damage = Math.round(fdamage);
 		} else {
-			damage = Math.round(damage * (1 - this.defencePhysical));
+			damage = Math.max(damage - this.defencePhysical, 1);
 		}
-		return damage;
+		return Math.min(damage, 9999);
 	}
 }
 

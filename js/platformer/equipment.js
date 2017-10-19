@@ -4,9 +4,12 @@ Weapon = {
 	"STATE_JUMPING" : "jumping",
 	"STATE_DUCKING" : "ducking",
 	"STATE_JUMPUP" : "jumpup",
+	"STATE_DOWNATTACK" : "downattack",
 	"playerState" : function(player){
 		var state = Weapon.STATE_STANDING;
-		if(player.attstates.charge >= player.speeds.charge){
+		if(player.downstab && !player.grounded && input.state("down") > 0){
+			state = Weapon.STATE_DOWNATTACK;
+		} else if(player.states.dash > 0){
 			state = Weapon.STATE_CHARGED;
 		} else if(!player.grounded){ 
 			if(player.states.justjumped > 0.0){
@@ -26,7 +29,8 @@ Weapon = {
 		new Sequence([[1,8,0.10],[2,8,0.10],[3,8,0.10],[4,8,0.10],[5,8,0.10]]),
 		new Sequence([[1,9,0.10],[2,9,0.10],[3,9,0.10],[4,9,0.10],[5,9,0.10]]),
 		new Sequence([[0,5,0.10],[1,5,0.10],[2,5,0.10],[3,5,0.10],[4,5,0.10],[5,5,0.10],[6,5,0.10]]),
-		new Sequence([[7,5,0.20],[8,5,0.20],[9,5,0.20],[10,5,0.20],[11,5,0.20]])
+		new Sequence([[7,5,0.20],[8,5,0.20],[9,5,0.20],[10,5,0.20],[11,5,0.20]]),
+		new Sequence([[0,11,0.12],[1,11,0.08],[2,11,0.08],[3,11,0.08],[4,11,0.12]])
 	]
 };
 
@@ -34,6 +38,7 @@ Weapon = {
 createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 	return {
 		"damage" : 3.0,
+		"range" : length,
 		"onEquip" : function(player){},
 		"standing" : {
 			"alwaysqueue" : 0,
@@ -144,15 +149,33 @@ createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
 			"length" : 1,
 			0 : {
 				"strike" : new Line(new Point(0,-8), new Point(length,12)),
-				"damage":2.5,
+				"damage":3.5,
 				"warm" : warmTime*Game.DELTASECOND,
 				"time" : 1.5*baseTime*Game.DELTASECOND,
 				"rest":0.8*restTime*Game.DELTASECOND,
 				"miss":1.0*restTime*Game.DELTASECOND,
 				"animation" : 5,
 				"stun" : 0.7 * Game.DELTASECOND,
-				"force" : new Point(4.5, 0.0),
-				"movement" : 0.0
+				"force" : new Point(12.0, 0.0),
+				"movement" : 0.1,
+				"audio" : "swing2"
+				//"airtime" : (warmTime+1.5*baseTime+restTime) * Game.DELTASECOND
+			}
+		},
+		"downattack" : {
+			"alwaysqueue" : 0,
+			"length" : 1,
+			0 : {
+				"strike" : new Line(new Point(-10,0), new Point(10,length)),
+				"damage":1.0,
+				"warm" : 0.05*Game.DELTASECOND,
+				"time" : 0.25*Game.DELTASECOND,
+				"rest": 0.08*Game.DELTASECOND,
+				"miss": 0.10*Game.DELTASECOND,
+				"animation" : 7,
+				"stun" : 0.7 * Game.DELTASECOND,
+				"movement" : 1.0,
+				//"airtime" : 0.3 * Game.DELTASECOND
 			}
 		}
 	};

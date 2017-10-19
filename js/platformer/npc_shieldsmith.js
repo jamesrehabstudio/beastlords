@@ -18,8 +18,6 @@ function ShieldSmith(x, y){
 	this.spellMenuOpen = false;
 	this.testPlayer = false;
 	
-	this.addModule( mod_talk );
-	this.text = i18n("smith_intro");
 	
 	
 	this.on("open", function(){
@@ -38,64 +36,6 @@ function ShieldSmith(x, y){
 
 
 ShieldSmith.prototype.update = function(){
-	if( this.open ) {
-		
-		if(this.spellMenuOpen){
-			if(input.state("jump")==1){
-				this.spellMenuOpen = false;
-			} else if(input.state("fire")==1){
-				if(_player.shieldSlots[this.cursorSlot] == _player.spells[this.cursorMagic]){
-					_player.shieldSlots[this.cursorSlot] = undefined;
-					_player.equip();
-					audio.play("equip");
-					this.spellMenuOpen = false;
-				} else {
-					var usedIndex = _player.shieldSlots.indexOf(_player.spells[this.cursorMagic]);
-					if(usedIndex >= 0){
-						_player.shieldSlots[usedIndex] = undefined;
-					}
-					_player.shieldSlots[this.cursorSlot] = _player.spells[this.cursorMagic];
-					_player.equip();
-					audio.play("equip");
-					this.spellMenuOpen = false;
-				} 
-			} else if(input.state("up")==1){
-				this.cursorMagic = Math.max(this.cursorMagic-1, 0);
-				audio.play("cursor");
-			} else if( input.state("down")==1){
-				this.cursorMagic = Math.min(this.cursorMagic+1, _player.spells.length-1);
-				audio.play("cursor");
-			}
-			
-			this.testPlayer = ShieldSmith.createTestPlayer();
-			var cursorSpell = _player.spells[this.cursorMagic];
-			var spellsCurrentOccupation = _player.shieldSlots.indexOf(cursorSpell);
-			if(spellsCurrentOccupation >= 0 ){ this.testPlayer.shieldSlots[spellsCurrentOccupation] = undefined; }
-			this.testPlayer.shieldSlots[this.cursorSlot] = cursorSpell;
-			if(cursorSpell == this.testPlayer.shieldSlots[this.cursorSlot]){ this.testPlayer.shieldSlots[spellsCurrentOccupation] = undefined; }
-			Player.prototype.equip.apply(this.testPlayer);
-		} else {
-			if(input.state("jump")==1){
-				this.close();
-			} else if(input.state("fire")==1){
-				this.spellMenuOpen = true;
-				this.cursorMagic = Math.max(_player.spells.indexOf(_player.shieldSlots[this.cursorSlot]),0);
-				audio.play("pause");
-			} else if(input.state("left")==1){
-				this.cursorSlot = Math.max(this.cursorSlot-1, 0);
-				audio.play("cursor");
-			} else if( input.state("right")==1){
-				this.cursorSlot = Math.min(this.cursorSlot+1, _player.equip_shield.slots.length-1);
-				audio.play("cursor");
-			}
-			this.testPlayer = false;
-		}
-		
-		if(PauseMenu.open){
-			this.close();
-		}
-	}
-	
 	this.animationProgress = (this.animationProgress + (this.delta / Game.DELTASECOND)) % 1.0;
 	this.frame = ShieldSmith.anim.frame(this.animationProgress);
 }
@@ -134,13 +74,13 @@ ShieldSmith.anim = new Sequence([
 	[2,1,0.1],
 ]);
 
-ShieldSmith.SLOT_NORMAL_LOW = 0;
-ShieldSmith.SLOT_NORMAL_MID = 1;
-ShieldSmith.SLOT_NORMAL_HIG = 2;
+ShieldSmith.SLOT_SPECIAL_LOW = 0;
+ShieldSmith.SLOT_SPECIAL_MID = 1;
+ShieldSmith.SLOT_SPECIAL_HIG = 2;
 
-ShieldSmith.SLOT_ELEMENT_LOW = 3;
-ShieldSmith.SLOT_ELEMENT_MID = 4;
-ShieldSmith.SLOT_ELEMENT_HIG = 5;
+ShieldSmith.SLOT_MAGIC_LOW = 3;
+ShieldSmith.SLOT_MAGIC_MID = 4;
+ShieldSmith.SLOT_MAGIC_HIG = 5;
 
 ShieldSmith.SLOT_ATTACK_LOW = 6;
 ShieldSmith.SLOT_ATTACK_MID = 7;

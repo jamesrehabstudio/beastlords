@@ -67,7 +67,7 @@ Shrine.prototype.use = function(){
 		for(var j=0; j < _player.spells.length; j++){
 			if(_player.spells[j].name == this.spells[i].name){
 				alreadyOwned = true;
-				_player.spells[j].stock = _player.spells[j].stockMax;
+				//_player.spells[j].stock = _player.spells[j].stockMax;
 			}
 		}
 		if(!alreadyOwned){

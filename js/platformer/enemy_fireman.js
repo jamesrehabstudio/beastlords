@@ -39,7 +39,7 @@ function Fireman(x,y,d,o){
 	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.damage = 0;
 	this.damageFire = Spawn.damage(5,this.difficulty);
-	this.defenceFire = 1.2;
+	this.defenceFire = Spawn.defence(4, this.difficulty);;
 	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);

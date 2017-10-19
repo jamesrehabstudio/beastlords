@@ -35,9 +35,7 @@ function Knior(x, y, d, o){
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	
-	this.defencePhysical = 0.0;
-	//this.defenceFire = 1.2;
-	//this.defenceIce = -1.0;
+	this.defencePhysical = Spawn.defence(1, this.difficulty);
 	this.mass = 1.0;
 	this.gravity = 0.5;
 	

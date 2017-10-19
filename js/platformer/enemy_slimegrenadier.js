@@ -29,9 +29,9 @@ function SlimeGrenadier(x,y,d,o){
 	this.life = Spawn.life(6, this.difficulty);
 	this.damage = 0;
 	this.damageSlime = Spawn.damage(3, this.difficulty);
-	this.defencePhysical = 0.3;
-	this.defenceFire = -0.5;
-	this.defenceSlime = 1.0;
+	this.defencePhysical = Spawn.defence(2,this.difficulty);
+	this.defenceFire = Spawn.defence(-2,this.difficulty);
+	this.defenceSlime = Spawn.defence(4,this.difficulty);
 	this.moneyDrop = Spawn.money(6,this.difficulty);
 	this.mass = 3.0;
 	this.death_time = Game.DELTASECOND * 0.5;

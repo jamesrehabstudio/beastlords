@@ -37,11 +37,12 @@ function FlyingSlime(x,y,d,o){
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.loopTime = 0.0;
 	this.loopTimeFull = Game.DELTASECOND;
+	this.hurtByDamageTriggers = false;
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;
 	this.friction = 0.8;
-	this.pushable = true;
+	this.pushable = false;
 }
 FlyingSlime.prototype.update = function(){
 	this.frame = 0;

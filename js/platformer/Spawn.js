@@ -330,9 +330,30 @@ Spawn.damage = function(level,difficulty){
 		difficulty = Spawn.difficulty;
 	}
 	
-	var multi = 1 + difficulty * (1.0/2.0);
+	var multi = 1 + difficulty * 0.25;
 	damage = Math.floor( damage * multi );
 	return damage;
+}
+
+Spawn.defence = function(level, difficulty){
+	//-4 kills in one shot
+	//-3 super vulnerable
+	//-2 very weak
+	//-1 some extra damage
+	//0 No change
+	// 1 a little resistant
+	// 2 Very strong, aim for half
+	// 3 very strong, hardly any damage
+	// 4 null all damage
+	if(level >= 4) {
+		return 9999;
+	}
+	if(level <= -4) {
+		return -9999;
+	}
+	var def = level * 3;
+	let multi = 1 + difficulty * 0.5;
+	return Math.floor(def*multi);
 }
 
 Spawn.life = function(level, difficulty){

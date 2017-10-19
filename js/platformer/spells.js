@@ -17,10 +17,20 @@ Spell.prototype.upgradePrice = function(){ return Math.floor(Math.pow(this.price
 Spell.prototype.render = function(g,p){
 	g.renderSprite("items",p,10,this.frame);
 }
-Spell.SLOTTYPE_NORMAL = 0;
-Spell.SLOTTYPE_ELEMENT = 1;
+Spell.SLOTTYPE_SPECIAL = 0;
+Spell.SLOTTYPE_MAGIC = 1;
 Spell.SLOTTYPE_ATTACK = 2;
 Spell.SLOTTYPE_DEFENCE = 3;
+Spell.NAMES = [
+	"SpellFire", 
+	"SpellBolt", 
+	"SpellFlash", 
+	"SpellHeal", 
+	"SpellPurify", 
+	"SpellShield", 
+	"SpellSlimeGernade", 
+	"SpellStrength"
+];
 /*
 Spell.randomRefill = function(player, nothingchance){
 	var total = nothingchance || 0.0;
@@ -69,16 +79,54 @@ SpellFire.prototype.use = function(player){
 	game.addObject(bullet);
 }
 SpellFire.prototype.modifyStats = function(player, type, power){
-	if(type == Spell.SLOTTYPE_NORMAL){
+	if(type == Spell.SLOTTYPE_SPECIAL){
 		player.stats.attack += this.level * (1+power);
-	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceFire += this.level * (0.025 + power*0.01);
 		player.damageFire += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
+		player.stats.magic += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
 		player.stats.attack += this.level * (1+power);
 		player.damageFire += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceFire += this.level * (0.05 + power*0.02);
+		player.stats.defence += 1 + Math.floor(this.level * (1 + power * 0.5));
+		player.defenceFire += 1 + Math.floor(this.level * (1 + power * 0.5));
+	}
+}
+
+SpellBolt.prototype = new Spell();
+SpellBolt.prototype.constructor = Spell;
+function SpellBolt(){
+	//Fires a fireball
+	this.constructor();
+	this.name = "Bolt";
+	this.objectName = "SpellBolt";
+	this.castTime = Game.DELTASECOND * 0.1;
+	this.frame = new Point(7,10);
+	this.manaCost = 1;
+}
+SpellBolt.prototype.use = function(player){
+	audio.play("cracking");
+	var bullet = new Bullet(player.position.x, player.position.y);
+	bullet.force.x = player.forward() * 8;
+	bullet.team = player.team;
+	bullet.frame = new Point(1,0);
+	bullet.ignoreInvincibility = true;
+	bullet.damage = 0;
+	bullet.damageLight = 5 + Math.floor(player.stats.magic * this.level * 0.666);
+	game.addObject(bullet);
+}
+SpellBolt.prototype.modifyStats = function(player, type, power){
+	if(type == Spell.SLOTTYPE_SPECIAL){
+		player.stats.attack += this.level * (1+power);
+		player.perks.attackSpeed += 0.05 + 0.03 * (this.level * (1+power));
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
+		player.stats.magic += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_ATTACK){
+		player.stats.attack += this.level * (1+power);
+		player.perks.attackSpeed += 0.05 + 0.03 * (this.level * (1+power));
+	} else if(type == Spell.SLOTTYPE_DEFENCE){
+		player.stats.defence += 1 + Math.floor(this.level * (1 + power * 0.5));
+		player.defenceLight += 1 + Math.floor(this.level * (1 + power * 0.5));
 	}
 }
 
@@ -101,16 +149,18 @@ SpellSlimeGernade.prototype.use = function(player){
 	nade.force.x *= player.flip ? -1.0 : 1.0;
 	game.addObject(nade);
 }
-SpellSlimeGernade.prototype.modifyStats = function(player, type, power){
-	if(type == Spell.SLOTTYPE_NORMAL){
-		player.damageSlime += this.level * (2+power);
-	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceSlime += this.level * (0.025 + power*0.01);
+SpellSlimeGernade.prototype.modifyStats = function(player, type, power){	
+	if(type == Spell.SLOTTYPE_SPECIAL){
+		player.stats.attack += this.level * (1+power);
 		player.damageSlime += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
+		player.stats.magic += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.damageSlime += this.level * (2+power);
+		player.stats.attack += this.level * (1+power);
+		player.damageSlime += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceSlime += this.level * (0.05 + power*0.02);
+		player.stats.defence += 2 + Math.floor(this.level * (1.5 + power * 0.5));
+		player.defenceSlime += 1 + Math.floor(this.level * (1 + power * 0.5));
 	}
 }
 
@@ -145,16 +195,18 @@ SpellFlash.prototype.use = function(player){
 	player.heal += heal;
 }
 SpellFlash.prototype.modifyStats = function(player, type, power){
-	if(type == Spell.SLOTTYPE_NORMAL){
+	
+	if(type == Spell.SLOTTYPE_SPECIAL){
+		player.stats.attack += this.level * (1+power);
 		player.stats.magic += this.level * (1+power);
-	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceLight += this.level * (0.025 + power*0.01);
-		player.damageLight += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
+		player.stats.magic += this.level * (1+power) * 2;
 	} else if(type == Spell.SLOTTYPE_ATTACK){
 		player.stats.attack += this.level * (1+power);
-		player.damageLight += this.level * (1+power);
+		player.perks.lifeSteal += 0.025 * this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceLight += this.level * (0.05 + power*0.02);
+		player.stats.defence += 1 + Math.floor(this.level * (1 + power * 0.5));
+		player.defenceLight += 1 + Math.floor(this.level * (1 + power * 0.5));
 	}
 }
 
@@ -178,16 +230,17 @@ SpellHeal.prototype.use = function(player){
 	player.heal += heal;
 }
 SpellHeal.prototype.modifyStats = function(player, type, power){
-	if(type == Spell.SLOTTYPE_NORMAL){
+	if(type == Spell.SLOTTYPE_SPECIAL){
 		player.perks.slowWound += this.level * (0.05 + power * 0.05);
-	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceFire += this.level * (0.015 + power*0.005);
-		player.defenceSlime += this.level * (0.015 + power*0.005);
-		player.defenceIce += this.level * (0.015 + power*0.005);
-		player.defenceLight += this.level * (0.015 + power*0.005);
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
+		player.defenceFire += Math.floor(1 + this.level * 0.5 * (1+power));
+		player.defenceSlime += Math.floor(1 + this.level * 0.5 * (1+power));
+		player.defenceIce += Math.floor(1 + this.level * 0.5 * (1+power));
+		player.defenceLight += Math.floor(1 + this.level * 0.5 * (1+power));
 	} else if(type == Spell.SLOTTYPE_ATTACK){
 		player.perks.lifeSteal += this.level * (0.02 + power*0.1);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
+		player.stats.defence += 1 + Math.floor(this.level * (1 + power * 0.5));
 		player.perks.slowWound += this.level * (0.05 + power*0.25);
 	}
 }
@@ -219,9 +272,9 @@ SpellPurify.prototype.use = function(player){
 	}
 }
 SpellPurify.prototype.modifyStats = function(player, type, power){
-	if(type == Spell.SLOTTYPE_NORMAL){
+	if(type == Spell.SLOTTYPE_SPECIAL){
 		player.stats.defence += this.level * (1+power);
-	} else if(type == Spell.SLOTTYPE_ELEMENT) {
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
 		player.perks.poisonResist += this.level * (0.05 + power * 0.02);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
 		player.perks.lifeSteal += this.level * (0.02 + power*0.1);
@@ -257,15 +310,16 @@ SpellShield.prototype.use = function(player){
 	audio.play("spell");
 }
 SpellShield.prototype.modifyStats = function(player, type, power){
-	if(type == Spell.SLOTTYPE_NORMAL){
+	if(type == Spell.SLOTTYPE_SPECIAL){
 		player.stats.magic += this.level * (1+power);
-	} else if(type == Spell.SLOTTYPE_ELEMENT) {
-		player.defenceLight += this.level * (0.025 + power*0.01);
-		player.damageLight += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
+		player.defenceLight += Math.floor(1 + this.level * 0.5 * (1+power));
+		player.perks.manaRegen += (this.level + power) * 0.25;
 	} else if(type == Spell.SLOTTYPE_ATTACK){
 		player.damageLight += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defenceLight += this.level * (0.05 + power*0.02);
+		player.perks.painImmune += this.level  * (1+power) * 0.2;
+		player.defenceLight += Math.floor(1 + this.level * 0.5 * (1+power));
 	}
 }
 
@@ -296,14 +350,14 @@ SpellStrength.prototype.use = function(player){
 	audio.play("spell");
 }
 SpellStrength.prototype.modifyStats = function(player, type, power){
-	if(type == Spell.SLOTTYPE_NORMAL){
+	if(type == Spell.SLOTTYPE_SPECIAL){
 		player.stats.attack += this.level * 2 * (1+power);
-	} else if(type == Spell.SLOTTYPE_ELEMENT) {
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
 		player.defencePhysical += this.level * (0.0125 + power*0.005);
 		player.stats.attack += this.level * (1+power);
 	} else if(type == Spell.SLOTTYPE_ATTACK){
-		player.perks.thorns += this.level * (0.10 + power * 0.04);
+		player.stats.attack += this.level * 2 * (1+power);
 	} else if(type == Spell.SLOTTYPE_DEFENCE){
-		player.defencePhysical += this.level * (0.025 + power*0.01);
+		player.perks.thorns += this.level * (0.10 + power * 0.04);
 	}
 }

@@ -14,13 +14,42 @@ function Drain(x,y,d,ops){
 	this.triggersave = false;
 	
 	this.fullheight = this.height;
-	
-	this.addModule(mod_block);
+
 	
 	this.active = 0;
 	this.filling = 0;
 	this.noFill = 0;
 	this.noDrain = 0;
+	this._drainTileTest = 0;
+	
+	this.drainPos = this.width * 0.5;
+	this.drainStr = 0.0;
+	this.stepPos = 0.5;
+	this.stepTime = 0.0;
+	this.stepTimeTotal = Game.DELTASECOND * 0.5;
+	this.stepStr = 5.0;
+	
+	this.on("collideObject", function(obj){
+		if( obj.hasModule(mod_rigidbody) && obj.gravity > 0){
+			let pos = obj.position.subtract(this.position);
+			let force = Math.min(obj.force.y, 5);
+			let p = this.stepTime / this.stepTimeTotal;
+			
+			if(force < 0.1){
+				if(Math.abs(obj.force.x) > 0.3){
+					force = 1;
+				}
+			}
+			
+			if(force > 0 && (force > this.stepStr * p)){
+				this.stepPos = pos.x / this.width;
+				this.stepTime = this.stepTimeTotal;
+				this.stepStr = force;
+			}
+		}
+	});
+		
+	this.addModule(mod_block);
 	
 	this.on("activate",function(obj){
 		if(this.height < 1){
@@ -48,18 +77,6 @@ function Drain(x,y,d,ops){
 		this.active = 0;
 		this.updateTiles();
 	});
-	
-	/*
-	this.on("collideObject", function(obj){
-		if(this.active){
-			if( obj.hasModule(mod_rigidbody) ) {
-				var base = _player.position.y - _player.corners().bottom;
-				obj.position.y = this.position.y - this.height + base;
-				obj.trigger( "collideVertical", 1);
-				this.onboard.push(obj);
-			}
-		}
-	});*/
 	
 	ops = ops || {};
 	
@@ -107,6 +124,16 @@ function Drain(x,y,d,ops){
 }
 
 Drain.prototype.update = function(){
+	/*
+	this.stepTime -= this.delta;
+	if(this.stepTime <= 0){
+		this.stepPos = Math.random();
+		this.stepTime = Game.DELTASECOND;
+	}
+	*/
+	this.stepTime = Math.max(this.stepTime - this.delta,0.0);
+	this.drainStr = 0.0;
+	
 	if(this.active){
 		var movement = 0;
 		if(this.filling){
@@ -124,6 +151,13 @@ Drain.prototype.update = function(){
 				this.height = 0;
 				this.active = 0;
 			}
+			
+			//Set drain position for bubbles
+			if(game.getTile(this.position.x+this._drainTileTest, this.position.y + 8) == 0){
+				this.drainPos = this._drainTileTest + 8;
+			}
+			this.drainStr = 1.0;
+			this._drainTileTest = (this._drainTileTest + 16) % this.width;
 		}
 		/*
 		for(var i=0; i < this.onboard.length; i++){
@@ -136,7 +170,8 @@ Drain.prototype.update = function(){
 }
 
 Drain.prototype.render = function(g,c){
-	/*
+	
+	
 	g.renderSprite(
 		"ooze", 
 		this.position.subtract(new Point(0,this.height)).subtract(c),
@@ -147,11 +182,13 @@ Drain.prototype.render = function(g,c){
 			"u_time" : game.timeScaled * 0.01,
 			"u_size" : [this.width, this.height],
 			"scalex" : this.width / 64.0,
-			"scaley" : this.height / 64.0
+			"scaley" : this.height / 64.0,
+			"u_bubbles" : [this.drainPos / this.width, this.drainStr],
+			"u_distortion" : [this.stepPos, this.stepTime / this.stepTimeTotal, this.stepStr ]
 		}
 	)
 	return;
-	*/
+	
 	if(this.active){
 		for(var x=0; x < this.width; x+=16){
 			var pos = new Point(
@@ -174,6 +211,7 @@ Drain.prototype.render = function(g,c){
 }
 
 Drain.prototype.updateTiles = function(){
+	/*
 	for(var x=0; x < this.width; x+=16){
 	for(var y=0; y < this.fullheight; y+=16){
 		var pos = new Point(
@@ -196,6 +234,7 @@ Drain.prototype.updateTiles = function(){
 			game.setTile(pos.x,pos.y,game.tileCollideLayer,0);
 		}
 	}}
+	*/
 }
 Drain.TILES = [321,322,322,353,354,355,385,386,387];
 
