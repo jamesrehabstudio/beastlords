@@ -13,6 +13,9 @@ varying vec2 v_position;
 
 const float pixsize = 0.015625;
 
+float inv(float a){
+	return abs(max(min(a,1.0),-1.0));
+}
 float saturate(float a){
 	return max(min(a,1.0),0.0);
 }
@@ -21,10 +24,12 @@ void main() {
 	vec2 uv = v_texCoord;
 	float xscale = 1.0 / u_size.x;
 	float yscale = 1.0 / u_size.y;
+	float stepDis = u_size.x * abs(u_distortion.x-uv.x);
 	
 	float uvWaveOff = (sin((v_texCoord.x+u_time*xscale) * (u_size.x * 0.1)) - 1.0) * (0.5/u_size.y);
-	float uvStepOff = u_distortion.z * yscale * saturate(u_size.x * 0.0625 * abs(u_distortion.x-uv.x)) - yscale * 2.0;
-	uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y);
+	float uvStepOff = u_distortion.z * yscale * saturate(stepDis * 0.0625 - 0.125) - yscale * 2.0;
+	//uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y);
+	uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y * (1.0-saturate(stepDis * 0.03125)));
 	
 	vec4 c_glow = vec4(0.8,1.0,0.6,1.0);
 	vec4 c_body = vec4(0.0,0.3,0.2,1.0);

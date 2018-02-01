@@ -46,7 +46,7 @@ function Baller(x, y, d, o){
 	}
 	
 	this.death_time = Game.DELTASECOND * 1.0;
-	this.lifeMax = this.life = Spawn.life(6,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 4.0;

@@ -237,10 +237,10 @@ function Game( elm ) {
 	this.g.beginPath = function(){};
 	this.g.closePath = function(){};
 	
-	this.finalBuffer = this.g.createF();
-	this.lightBuffer = this.g.createF();
-	this.hudBuffer = this.g.createF();
-	this.backBuffer = this.g.createF();
+	this.finalBuffer = new BackBuffer();
+	this.lightBuffer = new BackBuffer();
+	this.hudBuffer = new BackBuffer();
+	this.backBuffer = new BackBuffer();
 	
 	this._id_index = 0;
 	this._objectsDeleteList = new Array();
@@ -352,7 +352,6 @@ Game.prototype.renderObject = function(obj){
 			var sprite = window.sprites[obj.sprite];
 			
 			sprite.render(
-				this.g,
 				new Point(obj.x,obj.y),
 				obj.frame,
 				obj.frame_row,
@@ -360,12 +359,21 @@ Game.prototype.renderObject = function(obj){
 				obj.options
 			);
 		} else if(obj.type == 1){
+			//Render rectangle
 			this.g.color = obj.color;
 			this.g.scaleFillRect(
 				obj.x,
 				obj.y,
 				obj.w,
 				obj.h,
+				obj.options
+			);
+		} else if(obj.type == 2){
+			//Render sprite
+			var mesh = window.meshes[obj.mesh];
+			
+			mesh.render(
+				new Vector(obj.x,obj.y,obj.z),
 				obj.options
 			);
 		}
@@ -388,6 +396,7 @@ Game.prototype.render = function( ) {
 	});
 	
 	//this.resolution = new Point(512,512);
+	this.g.cullFace(this.g.BACK);
 	this.g.viewport(0,0,this.resolution.x,this.resolution.y);
 	
 	//var renderList = this.renderTree.sort(function(a,b){ return a.zIndex - b.zIndex; } );
@@ -400,7 +409,7 @@ Game.prototype.render = function( ) {
 	//this.g.clear(this.g.COLOR_BUFFER_BIT);
 	//this.lightBuffer.use(this.g);
 	//this.g.clear(this.g.COLOR_BUFFER_BIT);
-	this.hudBuffer.use(this.g);
+	this.hudBuffer.useBuffer();
 	this.g.clear(this.g.COLOR_BUFFER_BIT);
 	
 	this.g.enable(this.g.BLEND);
@@ -414,7 +423,7 @@ Game.prototype.render = function( ) {
 	
 	
 	if("prerender" in this.objects){
-		this.backBuffer.use(this.g);
+		this.backBuffer.useBuffer();
 		for(var i=0; i < this.objects["prerender"].length; i++){
 			this.renderObject( this.objects["prerender"][i] ); 
 		}
@@ -427,8 +436,9 @@ Game.prototype.render = function( ) {
 	}
 	
 	for(var order=0; order < renderOrder.length; order++){
-		this.backBuffer.use(this.g);
-		if(renderOrder[order] == "o"){
+		this.backBuffer.useBuffer();
+		let layer = renderOrder[order];
+		if(layer == "o"){
 			if("render" in this.objects){
 				for(var i=0; i < this.objects["render"].length; i++){
 					this.renderObject( this.objects["render"][i] ); 
@@ -437,10 +447,14 @@ Game.prototype.render = function( ) {
 		} else {
 			//Render Tile Layer
 			if(this.map && renderOrder[order] in this.map.layers){
+				var camera = this.camera.scale(1);
+				
+				tiles['testtile'].render(camera, this.map, layer);
+				/*
 				var layer = this.map.layers[renderOrder[order]];
 				var properties = this.map.layersProperties[renderOrder[order]];
 				var tilesprite = window.tiles[this.map.tileset];
-				var camera = this.camera.scale(1);
+				
 				
 				if("scrollscale" in properties){
 					camera = camera.scale(properties.scrollscale);
@@ -460,13 +474,14 @@ Game.prototype.render = function( ) {
 						this.map.width
 					);
 				}
+				*/
 			}
 		}
 		this.backBuffer.reset(this.g);
 	}
 	
 	if("postrender" in this.objects){
-		this.backBuffer.use(this.g);
+		this.backBuffer.useBuffer();
 		for(var i=0; i < this.objects["postrender"].length; i++){
 			this.renderObject( this.objects["postrender"][i] ); 
 		}
@@ -475,7 +490,7 @@ Game.prototype.render = function( ) {
 	
 	if("lightrender" in this.objects){
 		//Use light buffer to render lights
-		this.lightBuffer.use(this.g);
+		this.lightBuffer.useBuffer();
 		//Black out buffer, effectively clearing it
 		this.g.color = [0,0,0,1];
 		this.g.scaleFillRect(0,0,this.resolution.x,this.resolution.y);
@@ -492,7 +507,7 @@ Game.prototype.render = function( ) {
 	
 	
 	if("hudrender" in this.objects){
-		this.hudBuffer.use(this.g);
+		this.hudBuffer.useBuffer();
 		for(var i=0; i < this.objects["hudrender"].length; i++){
 			this.renderObject( this.objects["hudrender"][i] ); 
 		}
@@ -503,24 +518,29 @@ Game.prototype.render = function( ) {
 		this.hudBuffer.reset(this.g);
 	}
 	
-	this.finalBuffer.use(this.g);
+	this.finalBuffer.useBuffer();
 	
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA );
-	this.g.renderBackbuffer(this.backBuffer.texture);
+	//this.g.renderBackbuffer(this.backBuffer.texture);
+	this.backBuffer.render();
 	
 	if(useLightBuffer){
 		this.g.blendFunc(this.g.DST_COLOR, this.g.Zero );
-		this.g.renderBackbuffer(this.lightBuffer.texture);
+		this.lightBuffer.render();
+		//this.g.renderBackbuffer(this.lightBuffer.texture);
 	}
 	
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA );
-	this.g.renderBackbuffer(this.hudBuffer.texture);
+	this.hudBuffer.render();
+	//this.g.renderBackbuffer(this.hudBuffer.texture);
 	
 	this.g.viewport(0,0,this.element.width,this.element.height);
 	this.finalBuffer.reset(this.g);
+	this.finalBuffer.render(this.tint);
+	/*
 	this.g.renderBackbuffer(this.finalBuffer.texture, this.tint, {
 		"shader":Game.Filters[this.filter]
-	});
+	});*/
 	
 	this.g.flush();
 }
@@ -674,7 +694,7 @@ Tileset.prototype.collide = function(t,axis,v,pos,hitbox,limits,start_hitbox){
 }
 Tileset.prototype.render = function(g,c,tiles,width){
 	BLANK_TILE = this.blank;
-	this.sprite.renderTiles(g,tiles,width,c.x,c.y,this.animation);
+	//this.sprite.renderTiles(g,tiles,width,c.x,c.y,this.animation);
 }
 Tileset.ts = 16;
 Tileset.block = function(axis,v,pos,hitbox,limits){

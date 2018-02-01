@@ -94,15 +94,15 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 		"sprite" : sprite,
 		"x" : Math.round(pos.x),
 		"y" : Math.round(pos.y),
-		"z" : z,
+		"zIndex" : z,
 		"frame" : f,
 		"frame_row" : fr,
 		"flip" : flip,
 		"options" : options
 	},function(a,b){
-		if("z" in b && !isNaN(b.z)){
-			if("z" in a && !isNaN(a.z)){
-				return a.z - b.z;
+		if("zIndex" in b && !isNaN(b.zIndex)){
+			if("zIndex" in a && !isNaN(a.zIndex)){
+				return a.zIndex - b.zIndex;
 			} else {
 				return -1;
 			}
@@ -126,11 +126,40 @@ Renderer.scaleFillRect = function(x,y,w,h,ops){
 		return 1;
 	});
 }
+Renderer.renderMesh = function(mesh,pos,z,options){
+	pos.z = pos.z || 0;
+	Renderer.layers[Renderer.layer].insertSort({
+		"type" : 2,
+		"mesh" : mesh,
+		"x" : Math.round(pos.x),
+		"y" : Math.round(pos.y),
+		"z" : Math.round(pos.z),
+		"zIndex" : z,
+		"options" : options
+	},function(a,b){
+		if("zIndex" in b && !isNaN(b.zIndex)){
+			if("zIndex" in a && !isNaN(a.zIndex)){
+				return a.zIndex - b.zIndex;
+			} else {
+				return -1;
+			}
+		}
+		return 1;
+	});
+}
 Renderer.renderLine = function(start,end,thickness,color){
-	let center = start.add(end).scale(0.5);
-	let dot = start.subtract(end);
-	let angle = Math.atan2(dot.y, dot.x);
-	let length = dot.length();
+	let length = 0;
+	let angle = 0;
+	if(start instanceof Point){
+		let center = start.add(end).scale(0.5);
+		let dot = start.subtract(end);
+		angle = Math.atan2(dot.y, dot.x);
+		length = dot.length();
+	} else{
+		length = start.z;
+		angle = end;
+		end = new Point(start.x, start.y);
+	}
 	
 	if(color == undefined){
 		color = [1.0,1.0,1.0,1.0];
@@ -372,6 +401,7 @@ Game.prototype.addObject = function(obj){
 	if(obj instanceof GameObject && this.objects.indexOf(obj) < 0){
 		this.objects.push(obj);
 		obj.trigger("added");
+		obj._isAdded = true;
 	}
 }
 Game.prototype.removeObject = function( obj ) {
@@ -1015,6 +1045,8 @@ function GameObject() {
 	
 	this.visible = true;
 	this.modules = new Array();
+	
+	this._isAdded = false;
 }
 GameObject.prototype.on = function(name, func) {
 	if(name instanceof Array){
@@ -1218,6 +1250,7 @@ GameObject.prototype.forward = function() {
 }
 GameObject.prototype.destroy = function() {
 	this.trigger("destroy");
+	this._isAdded = false;
 	var index = game.objects.indexOf(this);
 	if( index >= 0 ) {
 		game.objects.remove( index );

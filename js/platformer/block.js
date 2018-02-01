@@ -17,7 +17,7 @@ function Block(x,y,d,ops){
 	this.gatherTiles();
 }
 
-Block.prototype.gatherTiles = function(){
+Block.prototype.gatherTiles = function(eraseOriginalTiles=true){
 	var ts = 16;
 	this.tiles = new Array();
 	this.tileWidth = Math.ceil(this.width / ts);
@@ -30,7 +30,10 @@ Block.prototype.gatherTiles = function(){
 			);
 			var tile = game.getTile(tilePos.x, tilePos.y);
 			this.tiles.push(tile);
-			game.setTile(tilePos.x, tilePos.y, game.tileCollideLayer, 0);
+			
+			if(eraseOriginalTiles){
+				game.setTile(tilePos.x, tilePos.y, game.tileCollideLayer, 0);
+			}
 		}
 	}
 }
@@ -94,6 +97,8 @@ function SinkingBlock(x,y,d,ops){
 	this.width = d[0];
 	this.height = d[1];
 	this.speed = 0.25;
+	this.force_y = 0.0;
+	this.gravity = 0.0;
 	this.sink = false;
 	this.resetOnSleep = 1;
 	this.triggerType = 0;
@@ -110,6 +115,10 @@ function SinkingBlock(x,y,d,ops){
 	}
 	if("maxy" in ops){
 		this.maxy = ops["maxy"] * 1;
+	}
+	if("gravity" in ops){
+		this.speed = 0.0;
+		this.gravity = ops["gravity"] * 1;
 	}
 	if("speed" in ops){
 		this.speed = ops["speed"] * 1;
@@ -140,10 +149,20 @@ function SinkingBlock(x,y,d,ops){
 		}
 	});
 	if(this.resetOnSleep){
+		this._sinkSleepTime = 0;
+		this.on("wakeup", function(){
+			if(this._sinkSleepTime <= game.time - 5){
+				this.interactive = this.visible = true;
+			}
+			
+		});
 		this.on("sleep", function(){
-			this.position.x = this.originalPosition.x;
-			this.position.y = this.originalPosition.y;
-			this.sink = false;
+			if(this.sink){
+				this.position.x = this.originalPosition.x;
+				this.position.y = this.originalPosition.y;
+				this.sink = this.interactive = this.visible = false;
+				this._sinkSleepTime = game.time;
+			}
 		});
 	}
 	
@@ -152,11 +171,14 @@ function SinkingBlock(x,y,d,ops){
 
 SinkingBlock.prototype.update = function(){
 	if(this.sink){
-		this.position.y += this.speed * this.delta;
+		this.force_y += this.gravity * this.delta;
+		this.position.y += ( this.speed + this.force_y ) * this.delta;
 		if(this.position.y >= this.maxy ){
 			this.sink = 0;
 			this.position.y = this.maxy;
 		}
+	} else {
+		this.force_y = 0.0;
 	}
 }
 

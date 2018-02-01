@@ -33,6 +33,9 @@ var mod_rigidbody = {
 		});
 		this.on("collideVertical", function(dir){
 			if( dir > 0 ) {
+				if(!this.grounded && this.force.y > 0.2){
+					this.trigger("land", this.force.y);
+				}
 				this.grounded = true;
 				this._groundedTimer = 2;
 			}
@@ -133,13 +136,16 @@ var mod_rigidbody = {
 			
 			if(this.currentlyStandingBlock){
 				this.position = this.position.add(this.currentlyStandingBlock.blockChange);
-				
-				if(this.isStuck){
+				if(!this.currentlyStandingBlock.interactive){
+					this.currentlyStandingBlock = false;
+				} else if(this.isStuck){
 					this.currentlyStandingBlock = false;
 				} else if(this.grounded && this.currentlyStandingBlock.block_isWithinX(this)){
+					this.force.y = 0.0;
 					var c = this.currentlyStandingBlock.corners();
 					this.position.y = c.top - 0.1 - this.height * this.origin.y;
 					this.trigger("collideVertical", 1);
+					this.currentlyStandingBlock.trigger("ontop", this);
 				} else {
 					this.currentlyStandingBlock = false;
 				}
@@ -151,10 +157,6 @@ var mod_rigidbody = {
 			this.force.y *= friction_y;
 			this.preventPlatFormSnap -= this.delta;
 			this.airtime -= this.delta;
-			
-			if( inair && this.grounded ) {
-				this.trigger("land");
-			}
 		}
 	},
 }
@@ -215,13 +217,15 @@ var mod_block = {
 				obj.trigger( "collideVertical", 1);
 				obj.trigger( "blockCollideVertical", 1, this);
 			}
-			this.trigger("blockLand",obj);
-			if(obj.currentlyStandingBlock !== this && !wg){
-				obj.trigger("land");
+			if(obj.gravity > 0){
+				this.trigger("blockLand",obj);
+				if(obj.currentlyStandingBlock !== this && !wg){
+					//obj.trigger("land");
+				}
+				//this.blockOnboard.push(obj);
+				obj.currentlyStandingBlock = this;
+				obj.preventPlatFormSnap = Game.DELTAFRAME30;
 			}
-			//this.blockOnboard.push(obj);
-			obj.currentlyStandingBlock = this;
-			obj.preventPlatFormSnap = Game.DELTAFRAME30;
 		});
 		this.on("collideBottom", function(obj){
 			var c = this.corners();
@@ -469,6 +473,14 @@ var mod_combat = {
 		
 		this.combatFinalDamage = function(damage){
 			this.life -= damage;
+		}
+		
+		this._combatTarget;
+		this.target = function(){
+			if(this._combatTarget == undefined){
+				this._combatTarget = _player;
+			}
+			return this._combatTarget;
 		}
 		
 		this.isDead = function(){

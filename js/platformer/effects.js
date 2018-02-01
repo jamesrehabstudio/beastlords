@@ -599,5 +599,7 @@ var EffectList = {
 	}
 };
 
+COLOR_WHITE = [1.0,1.0,1.0,1.0];
+COLOR_BLACK = [0.0,0.0,0.0,1.0];
 COLOR_LIGHTNING = [0.5,0.7,1.0,1.0];
 COLOR_FIRE = [1,0.8,0,1];

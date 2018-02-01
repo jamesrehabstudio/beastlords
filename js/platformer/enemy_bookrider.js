@@ -56,7 +56,7 @@ function Bookrider(x,y,d,o){
 		this.charged = o["charged"] * 1;
 	}
 	
-	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
+	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.damageLight = Spawn.damage(4,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
@@ -78,8 +78,8 @@ Bookrider.prototype.update = function(){
 			this.states.attack -= this.delta;
 			
 			if(Timer.isAt(this.states.attack, this.times.attack * 0.5, this.delta )){
-				var lightning1 = new LightningBolt(this.position.x,this.position.y);
-				var lightning2 = new LightningBolt(this.position.x,this.position.y);
+				var lightning1 = new GroundBolt(this.position.x,this.position.y);
+				var lightning2 = new GroundBolt(this.position.x,this.position.y);
 				lightning1.speed = -2;
 				lightning2.speed = 2;
 				lightning1.damageLight = lightning2.damageLight = this.damageLight;

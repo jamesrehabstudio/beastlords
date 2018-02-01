@@ -78,6 +78,7 @@ Bullet.prototype.setDeflect = function(){
 	});
 }
 Bullet.prototype.update = function(){
+	this.trigger("preupdate");
 	this.range -= this.force.length() * this.delta;
 	if(this.rotation == undefined){
 		this.flip = this.force.x < 0;
@@ -434,6 +435,90 @@ Explosion.prototype.render = function(g,c){
 	Background.pushLight( this.position.subtract(c), 360 * progress );
 }
 
+
+class CarpetBomb extends GameObject{
+	constructor(x,y,d,o){
+		super(x,y,d,o);
+		this.position.x = x;
+		this.position.y = y;
+		this.height = 12;
+		this.width = 12;
+		this.sprite = "bullets";
+		this.frame = new Point(5,1);
+		
+		this.damage = 0;
+		this.damageFire = 10;
+		this.damageSlime = 0;
+		this.damageIce = 0;
+		this.damageLight = 0;
+		
+		this.addModule(mod_rigidbody);
+		this.gravity = 0.4;
+		this.pushable = false;
+		this.friction = 0.02;
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				obj.hurt(this);
+				game.addObject(new EffectBang(this.position.x, this.position.y));
+				this.destroy();
+			}
+		});
+		this.on("collideHorizontal", function(h){
+			//Hit wall, explode into flames
+			this.burst();
+			this.destroy();
+		});
+		this.on("collideVertical", function(v){
+			if(v > 0){
+				//Hit floor, spread fire
+				this.spread();
+				this.destroy();
+			} else {
+				this.burst();
+				this.destroy();
+			}
+		});
+		this.on("sleep",function(){
+			this.destroy();
+		});
+	}
+	
+	spread(){
+		game.addObject(new EffectBang(this.position.x, this.position.y));
+		
+		for(let i=0; i < 3; i++){
+			for(let j=0; j < 2; j++){
+				let offset = (j > 0 ? -1 : 1) * (i+0.5) * 32;
+				var ftower = new FlameTower(this.position.x + offset, this.position.y);
+				ftower.damageFire = this.damageFire;
+				ftower.time = Game.DELTASECOND * i * -0.2;
+				game.addObject(ftower);
+			}
+		}
+	}
+	
+	burst(){
+		game.addObject(new EffectBang(this.position.x, this.position.y));
+		
+		for(let i=0; i < 6; i++){
+			var fire = new Fire(this.position.x, this.position.y);
+			fire.force = new Point(Math.random(), Math.random()).normalize(6);
+			game.addObject(fire);
+		}
+	}
+	
+	render(g,c){
+		let rot = Math.atan2(this.force.y, this.force.x) * Math.rad2deg;
+		this.frame.x = 5 + (game.time*0.5) % 3;
+		
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{
+			"rotate" : rot
+		});
+	}
+}
+self["CarpetBomb"] = CarpetBomb;
+
 FlameTower.prototype = new GameObject();
 FlameTower.prototype.constructor = GameObject;
 function FlameTower(x,y,d,o){
@@ -453,9 +538,9 @@ function FlameTower(x,y,d,o){
 	this.flameHeight = 88;
 	
 	this.timers = {
-		"wait" : Game.DELTASECOND,
-		"active" : Game.DELTASECOND * 2.5,
-		"destroy" : Game.DELTASECOND * 2.9
+		"wait" : Game.DELTASECOND * 0.0,
+		"active" : Game.DELTASECOND * 0.5,
+		"destroy" : Game.DELTASECOND * 0.9
 	};
 	
 	this.on("sleep", function(){

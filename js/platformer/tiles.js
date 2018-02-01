@@ -182,10 +182,7 @@ function BreakableTile(x, y, d, ops){
 				NPC.set(this.triggersave, 1);
 			}
 			if(!this.broken){
-				if(obj.states.downStab){
-					obj.force.y = -2;
-					obj.jump();
-				}
+				obj.trigger("break_tile", this, damage);
 				if(this.target instanceof Array){
 					Trigger.activate(this.target);
 				}

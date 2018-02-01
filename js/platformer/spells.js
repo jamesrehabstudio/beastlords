@@ -65,7 +65,7 @@ function SpellFire(){
 	this.constructor();
 	this.name = "Fireball";
 	this.objectName = "SpellFire";
-	this.castTime = Game.DELTASECOND * 0.15;
+	this.castTime = Game.DELTASECOND * 0.3;
 	this.frame = new Point(0,10);
 }
 SpellFire.prototype.use = function(player){
@@ -173,7 +173,7 @@ function SpellFlash(){
 	this.name = "Flash";
 	this.objectName = "SpellFlash";
 	this.castTime = Game.DELTASECOND * 0.3;
-	this.manaCost = 8;
+	this.manaCost = 4;
 	this.frame = new Point(1,10);
 }
 SpellFlash.prototype.use = function(player){
@@ -187,12 +187,18 @@ SpellFlash.prototype.use = function(player){
 	for(var i=0; i < objs.length; i++){
 		var obj = objs[i];
 		if(obj.hasModule(mod_combat) && obj.team != player.team && area.overlaps(obj.position)){
-			obj.hurt(player,damage);
-			heal += Math.round(damage*0.2);
-			game.addObject(new EffectAbsorb(obj.position.x,obj.position.y));
+			if(obj.life > 0){
+				obj.invincible = 0;
+				obj.hurt(player,damage);
+				heal += Math.round(damage*0.2);
+				game.addObject(new EffectAbsorb(obj.position.x,obj.position.y));
+			}
 		}
+		obj.trigger("spellFlash", this);
 	}
-	player.heal += heal;
+	if(player.life < player.lifeMax){
+		player.heal += heal;
+	}
 }
 SpellFlash.prototype.modifyStats = function(player, type, power){
 	

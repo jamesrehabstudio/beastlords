@@ -20,6 +20,7 @@ function BookReptile(x,y,d,o){
 	}
 	
 	this.states = {
+		"missile" : false,
 		"wakingup" : 1,
 		"attack" : 0,
 		"rest" : 0,
@@ -33,9 +34,6 @@ function BookReptile(x,y,d,o){
 	if("difficulty" in o){
 		this.difficulty = o["difficulty"] * 1;
 	}
-	if("background" in o){
-		this.states.background = this.times.background * o["background"];
-	}
 	
 	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.mass = 1;
@@ -43,6 +41,20 @@ function BookReptile(x,y,d,o){
 	this.moneyDrop = Spawn.money(1,this.difficulty);
 	this.pushable = false;
 	this.force.y = -12;
+	this.mForce = new Point();
+	
+	this.on(["collideHorizontal", "collideVertical"], function(h){
+		this.states.missile = false;
+	});
+	this.on("collideObject", function(obj){
+		if(this.states.missile){
+			if(obj instanceof Player){
+				obj.hurt(this);
+				this.life = 0;
+				this.destroy();
+			}
+		}
+	});
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
@@ -58,8 +70,13 @@ function BookReptile(x,y,d,o){
 BookReptile.prototype.update = function(){
 	if ( this.life > 0 ) {
 		var dir = this.position.subtract(_player.position);
-		
-		if(this.states.wakingup > 0){
+		if(this.states.missile){
+			this.frame.x = 0;
+			this.frame.y = 0;
+			
+			this.force.x = this.mForce.x;
+			this.force.y = this.mForce.y;
+		} else if(this.states.wakingup > 0){
 			this.interactive = false;
 			this.frame.x = this.force.y < 0 ? 0 : 1;
 			this.frame.y = 0;

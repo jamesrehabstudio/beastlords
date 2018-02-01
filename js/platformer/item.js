@@ -255,7 +255,7 @@ Item.prototype.setName = function(n){
 		this.isShield = true;
 		this.bonus_att=0; this.bonus_def=0;
 		this.stats = {"speed":1.0,"guardlife":30,"height":16, "frame":0, "frame_row":0,"turn":0.15}
-		this.slots = [ShieldSmith.SLOT_ATTACK_MID,ShieldSmith.SLOT_DEFENCE_LOW,ShieldSmith.SLOT_MAGIC_LOW];
+		this.slots = [ShieldSmith.SLOT_ATTACK_LOW,ShieldSmith.SLOT_DEFENCE_LOW,ShieldSmith.SLOT_MAGIC_LOW];
 		return; 
 	}
 	if(n == "large_shield") { 

@@ -71,24 +71,25 @@ AttributeMenu = {
 					audio.play("pause");
 				}
 			} else if(this.cursor == 1){
-			} else if(this.cursor == 2){
+			} else if(this.cursor >= 2){
 				if(input.state("fire")==1){
 					this.spellMenuOpen = true;
+					this.cursorSlot = this.cursor - 2;
 					this.cursorMagic = Math.max(_player.spells.indexOf(_player.shieldSlots[this.cursorSlot]),0);
 					audio.play("pause");
-				} else if(input.state("left")==1){
+				} /*else if(input.state("left")==1){
 					this.cursorSlot = Math.max(this.cursorSlot-1, 0);
 					audio.play("cursor");
 				} else if( input.state("right")==1){
 					this.cursorSlot = Math.min(this.cursorSlot+1, _player.equip_shield.slots.length-1);
 					audio.play("cursor");
-				}
+				}*/
 			}
 			if(input.state("up") == 1){
 				this.cursor = Math.max(this.cursor-1,0);
 				audio.play("cursor");
 			} else if(input.state("down") == 1){
-				this.cursor = Math.min(this.cursor+1,2);
+				this.cursor = Math.min(this.cursor+1,4);
 				audio.play("cursor");
 			}
 			this.testPlayer = false;
@@ -119,13 +120,16 @@ AttributeMenu = {
 			this.renderWeaponSelect(g,pos);
 		}
 		
+		textArea(g,"@", pos.x+20,156+this.cursor*14);
+		/*
 		if(this.cursor == 0){
-			textArea(g,"@", pos.x+20,156);
+			textArea(g,"@", pos.x+20,156+this.cursor*14);
 		} else if(this.cursor == 1){
 			textArea(g,"@", pos.x+20,168);
 		} else {
 			cursorArea(g, pos.x+12+this.cursorSlot*32, 224-36,32,32);
 		}
+		*/
 	},
 	"renderSpellSelect" : function(g,c){
 		boxArea(g,c.x+224,8,112,224);
@@ -253,15 +257,34 @@ AttributeMenu = {
 		
 		//Weapon
 		var weapon = _player.equip_sword;
+		g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(0,0));
 		g.renderSprite(weapon.sprite,new Point(c.x+padding+16,attributeY+4),20,weapon.frame);
 		textArea(g,weapon.name, c.x+24+padding,attributeY);
-		attributeY += 12;
+		attributeY += 14;
 		
 		//Shield
 		var shield = _player.equip_shield;
+		g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(1,0));
 		g.renderSprite(shield.sprite,new Point(c.x+padding+16,attributeY+4),20,shield.frame);
 		textArea(g,shield.name, c.x+24+padding,attributeY);
-		attributeY += 12;
+		attributeY += 14;
+		
+		//Shield slots
+		for(var i=0; i < _player.equip_shield.slots.length; i++){
+			var slotType = _player.equip_shield.slots[i];
+			g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(i,1));
+			//g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
+			//g.renderSprite("shieldslots",new Point(c.x+padding+16,attributeY+4),20,ShieldSmith.SLOT_FRAME[slotType]);
+			
+			if(i < _player.shieldSlots.length){
+				if(_player.shieldSlots[i] instanceof Spell){
+					_player.shieldSlots[i].render(g,new Point(c.x+padding+16,attributeY+4));
+				}
+			}
+			attributeY += 14;
+		}
+		
+		
 		
 		//Render perks
 		attributeY = c.y+28;
@@ -275,18 +298,9 @@ AttributeMenu = {
 			}
 		}
 		
-		//Shield slots
-		for(var i=0; i < _player.equip_shield.slots.length; i++){
-			var slotType = _player.equip_shield.slots[i];
-			g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
-			
-			if(i < _player.shieldSlots.length){
-				if(_player.shieldSlots[i] instanceof Spell){
-					_player.shieldSlots[i].render(g,new Point(8+c.x+padding+i*32,c.y+196));
-				}
-			}
-		}
+		/*
 		
+		*/
 	},
 	"createTestPlayer" : function(){
 		var output = {

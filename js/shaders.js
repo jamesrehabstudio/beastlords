@@ -46,25 +46,31 @@ window.shaders["2d-vertex-default"] = "attribute vec2 a_position;\nattribute vec
 
  /* platformer\shaders\2d-vertex-scale.shader*/ 
 
-window.shaders["2d-vertex-scale"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 scale;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position * scale + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
+window.shaders["2d-vertex-scale"] = "precision mediump float;\n\nattribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 scale;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position * scale + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
 
 
 
  /* platformer\shaders\2d-vertex-shader.shader*/ 
 
-window.shaders["2d-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
+window.shaders["2d-vertex-shader"] = "precision mediump float;\n\nattribute vec2 a_position;\nattribute vec2 a_texCoord;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvoid main() {\n	vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.y = u_resolution.y + pos.y*-1.0;\n	pos.y = pos.y*-1.0;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	v_texCoord = a_texCoord;\n	v_position = a_position;\n}";
 
 
 
  /* platformer\shaders\2d-vertex-tile.shader*/ 
 
-window.shaders["2d-vertex-tile"] = "attribute vec2 a_tilegrid;\nattribute vec2 a_tileuvs;\nattribute vec2 a_tile;\nuniform vec2 u_resolution;\nuniform vec2 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nvec2 tile(vec2 tile){\n	float t = tile.x;\n	float flag = tile.y;\n	bool flipd = false;\n	bool flipv = false;\n	bool fliph = false;\n	bool bottom = false;\n	bool right = false;\n	\n	if( flag - 32.0 >= 0.0){\n		fliph = true;\n		flag -= 32.0;\n	}\n	if( flag - 16.0 >= 0.0){\n		flipv = true;\n		flag -= 16.0;\n	}\n	if( flag - 8.0 >= 0.0){\n		flipd = true;\n		flag -= 8.0;\n	}\n	if( flag - 4.0 >= 0.0){\n		flag -= 4.0;\n	}\n	if( flag - 2.0 >= 0.0){\n		bottom = true;\n		flag -= 2.0;\n	}\n	if( flag - 1.0 >= 0.0){\n		right = true;\n		flag -= 1.0;\n	}\n	\n	float size = 32.0;\n	float ts = 1.0 / size;\n	\n	t = t - 1.0;\n	float x = min(mod(t, size) / size, 1.0-ts);\n	float y = min(floor(t / size) / size, 1.0-ts);\n	\n	bool xPlus = right;\n	bool yPlus = bottom;\n	\n	if(flipd){\n		if(bottom){\n			if(right){\n				xPlus = true;\n				yPlus = false;\n			} else{\n				xPlus = true;\n				yPlus = true;\n			}\n		} else {\n			if(right){\n				xPlus = false;\n				yPlus = false;\n			} else{\n				xPlus = false;\n				yPlus = true;\n			}\n		}\n	}\n	\n	if(flipv){\n		yPlus = !yPlus;\n	} \n	if(fliph){\n		xPlus = !xPlus;\n	}\n	\n	if(yPlus){\n		y += ts;\n	}\n	if(xPlus){\n		x += ts;\n	}\n	\n	\n	return vec2(x,y);\n}\n\n\nvoid main() {\n	//Adjust position with camera\n	vec2 pos = a_tilegrid + u_camera - u_resolution * 0.5;\n	\n	//Flip object\n	pos.y = pos.y*-1.0;\n	\n	//Set position\n	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);\n	\n	//Get UV from tile information\n	vec2 a_texCoord = tile(a_tile);\n	\n	\n	//Store new position for fragment shader\n	v_texCoord = a_texCoord;\n	v_position = a_tilegrid;\n}";
+window.shaders["2d-vertex-tile"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\nattribute vec2 a_tiles;\nuniform float u_uvtilewidth;\nuniform float u_tilesize;\nuniform mat3 u_world;\nuniform mat3 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\nvarying vec2 v_edges;\n\nvoid main() {\n	vec3 pos = u_camera * u_world * vec3(a_position,1);\n	gl_Position = vec4(pos,1);\n	\n	float f = u_tilesize / u_uvtilewidth;\n	float tsw = u_uvtilewidth / u_tilesize;\n	\n	vec2 texCoord = a_texCoord;\n\n	float tile = a_tiles.x;\n	float flag = a_tiles.y;\n	\n	bool flagH = flag >= 4.0;\n	if(flagH) { flag -= 4.0; }\n	bool flagV = flag >= 2.0;\n	if(flagV) { flag -= 2.0; }\n	bool flagD = flag >= 1.0;\n	\n	if(flagD){\n		float t = texCoord.x;\n		texCoord.x = f + texCoord.y * -1.0;\n		texCoord.y = f + t * -1.0;\n	}\n	if(flagH){\n		texCoord.x = f + texCoord.x * -1.0;\n	}\n	if(flagV){\n		texCoord.y = f + texCoord.y * -1.0;		\n	}\n	\n	\n	vec2 t = vec2(\n		f * floor(mod(tile, tsw)),\n		f * floor(tile / tsw)\n	);\n	v_texCoord = vec2(\n		(texCoord.x + t.x),\n		(texCoord.y + t.y)\n	);\n	v_position = a_position;\n	v_edges = vec2(0,0);\n	if(a_position.x > 0.0){\n		v_edges.x = 1.0;\n	}\n	if(a_position.y > 0.0){\n		v_edges.y = 1.0;\n	}\n}";
+
+
+
+ /* platformer\shaders\3d-vertex-default.shader*/ 
+
+window.shaders["3d-vertex-default"] = "attribute vec3 a_position;\nattribute vec2 a_texCoord;\nuniform mat4 u_world;\nuniform mat4 u_camera;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\nvarying vec2 v_edges;\n\nvoid main() {\n	vec4 pos = vec4(a_position,1.0);\n	\n	//Invert Y axis\n	pos.y = 1.0-pos.y;\n	\n	//pos = u_world * pos;\n	pos = u_camera * u_world * pos;\n	\n	//Compress Z plane\n	pos.z = pos.z * 0.001;\n	\n	v_texCoord = vec2(a_texCoord.x, 1.0-a_texCoord.y);\n	v_position = a_position.xy;\n	\n	gl_Position = vec4(pos.xyz,1);\n}";
 
 
 
  /* platformer\shaders\back-vertex-shader.shader*/ 
 
-window.shaders["back-vertex-shader"] = "attribute vec2 a_position;\nattribute vec2 a_texCoord;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(a_position, 0, 1);\n	v_texCoord = a_texCoord;\n}";
+window.shaders["back-vertex-shader"] = "precision mediump float;\n\nattribute vec2 a_position;\nattribute vec2 a_texCoord;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	//vec2 pos = a_position + u_camera - u_resolution * 0.5;\n	//pos.x = pos.x - u_resolution.x;\n	gl_Position = vec4(a_position, 0, 1);\n	v_texCoord = a_texCoord;\n}";
 
 
 
@@ -116,9 +122,15 @@ window.shaders["fragment-lightarea"] = "precision mediump float;\n\nuniform samp
 
 
 
+ /* platformer\shaders\fragment-mesh.shader*/ 
+
+window.shaders["fragment-mesh"] = "precision mediump float;\n\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\n\nuniform vec4 u_color;\n\nvoid main() {\n	gl_FragColor = texture2D(u_image, v_texCoord);\n}";
+
+
+
  /* platformer\shaders\fragment-ooze.shader*/ 
 
-window.shaders["fragment-ooze"] = "precision mediump float;\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\nuniform vec2 u_size;\nuniform vec2 u_bubbles;\nuniform vec3 u_distortion;\nuniform float u_time;\nuniform float scalex;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nconst float pixsize = 0.015625;\n\nfloat saturate(float a){\n	return max(min(a,1.0),0.0);\n}\n\nvoid main() {\n	vec2 uv = v_texCoord;\n	float xscale = 1.0 / u_size.x;\n	float yscale = 1.0 / u_size.y;\n	\n	float uvWaveOff = (sin((v_texCoord.x+u_time*xscale) * (u_size.x * 0.1)) - 1.0) * (0.5/u_size.y);\n	float uvStepOff = u_distortion.z * yscale * saturate(u_size.x * 0.0625 * abs(u_distortion.x-uv.x)) - yscale * 2.0;\n	uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y);\n	\n	vec4 c_glow = vec4(0.8,1.0,0.6,1.0);\n	vec4 c_body = vec4(0.0,0.3,0.2,1.0);\n	vec4 c_deep = vec4(0.0,0.0,0.1,1.0);\n	//vec4 c_deep = vec4(0.2,0.0,0.2,1.0);\n	\n	float drainStrength = u_bubbles.y - saturate(u_size.x * 0.125 * abs(uv.x - u_bubbles.x));\n	float bubbles = texture2D(u_image, mod((v_texCoord * u_size * pixsize) + vec2(0.0,u_time*8.0),1.0)).r * 0.2;\n	float edges = 0.0;\n	\n	//add left edge\n	edges += max(1.0-uv.x * u_size.x,0.0);\n	edges += max((uv.x-(1.0-xscale)) * u_size.x,0.0);\n	edges += max(1.0-uv.y * 0.25 * u_size.y,0.0);\n	\n	vec4 color = mix(c_body, c_deep, uv.y);\n	color = mix(color, c_glow, edges);\n	\n	color = mix(color, c_glow, bubbles * saturate(drainStrength));\n	//color = mix(color, c_glow, bubbles * (1.0-min(v_texCoord.y/yscale*0.015625,1.0)));\n	\n	\n	if(uv.y < 0.0){\n		color.a = 0.0;\n	}\n	\n	gl_FragColor = color;\n	//gl_FragColor = vec4(u_bubbles,0.0,1.0);\n	\n}\n";
+window.shaders["fragment-ooze"] = "precision mediump float;\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\nuniform vec2 u_size;\nuniform vec2 u_bubbles;\nuniform vec3 u_distortion;\nuniform float u_time;\nuniform float scalex;\n\nvarying vec2 v_texCoord;\nvarying vec2 v_position;\n\nconst float pixsize = 0.015625;\n\nfloat inv(float a){\n	return abs(max(min(a,1.0),-1.0));\n}\nfloat saturate(float a){\n	return max(min(a,1.0),0.0);\n}\n\nvoid main() {\n	vec2 uv = v_texCoord;\n	float xscale = 1.0 / u_size.x;\n	float yscale = 1.0 / u_size.y;\n	float stepDis = u_size.x * abs(u_distortion.x-uv.x);\n	\n	float uvWaveOff = (sin((v_texCoord.x+u_time*xscale) * (u_size.x * 0.1)) - 1.0) * (0.5/u_size.y);\n	float uvStepOff = u_distortion.z * yscale * saturate(stepDis * 0.0625 - 0.125) - yscale * 2.0;\n	//uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y);\n	uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y * (1.0-saturate(stepDis * 0.03125)));\n	\n	vec4 c_glow = vec4(0.8,1.0,0.6,1.0);\n	vec4 c_body = vec4(0.0,0.3,0.2,1.0);\n	vec4 c_deep = vec4(0.0,0.0,0.1,1.0);\n	//vec4 c_deep = vec4(0.2,0.0,0.2,1.0);\n	\n	float drainStrength = u_bubbles.y - saturate(u_size.x * 0.125 * abs(uv.x - u_bubbles.x));\n	float bubbles = texture2D(u_image, mod((v_texCoord * u_size * pixsize) + vec2(0.0,u_time*8.0),1.0)).r * 0.2;\n	float edges = 0.0;\n	\n	//add left edge\n	edges += max(1.0-uv.x * u_size.x,0.0);\n	edges += max((uv.x-(1.0-xscale)) * u_size.x,0.0);\n	edges += max(1.0-uv.y * 0.25 * u_size.y,0.0);\n	\n	vec4 color = mix(c_body, c_deep, uv.y);\n	color = mix(color, c_glow, edges);\n	\n	color = mix(color, c_glow, bubbles * saturate(drainStrength));\n	//color = mix(color, c_glow, bubbles * (1.0-min(v_texCoord.y/yscale*0.015625,1.0)));\n	\n	\n	if(uv.y < 0.0){\n		color.a = 0.0;\n	}\n	\n	gl_FragColor = color;\n	//gl_FragColor = vec4(u_bubbles,0.0,1.0);\n	\n}\n";
 
 
 
@@ -137,6 +149,12 @@ window.shaders["fragment-shifthue"] = "precision mediump float;\nuniform sampler
  /* platformer\shaders\fragment-sparks.shader*/ 
 
 window.shaders["fragment-sparks"] = "precision mediump float;\n\nuniform sampler2D u_image;\nuniform vec4 u_color;\nuniform vec4 u_color_edge;\nuniform vec2 u_size;\nuniform float u_intensity;\n\nvarying vec2 v_texCoord;\n\nvoid main() {\n	float color = texture2D(u_image, v_texCoord).r;\n	\n	float intensity = 1.0 - u_intensity;\n	\n	bool blank = false;\n	bool edge = false;\n	\n	if(color > intensity){\n		edge = texture2D(u_image, v_texCoord + vec2(u_size.x, 0)).r < intensity || edge;\n		edge = texture2D(u_image, v_texCoord + vec2(-u_size.x, 0)).r < intensity || edge;\n		edge = texture2D(u_image, v_texCoord + vec2(0,u_size.y)).r < intensity || edge;\n		edge = texture2D(u_image, v_texCoord + vec2(0,-u_size.y)).r < intensity || edge;\n	} else {\n		blank = true;\n	}\n	\n	if(blank){\n		gl_FragColor = vec4(0,0,0,0);\n	} else {\n		gl_FragColor = u_color;\n	}\n	if(edge){\n		gl_FragColor = u_color_edge;\n	}\n}";
+
+
+
+ /* platformer\shaders\fragment-sword.shader*/ 
+
+window.shaders["fragment-sword"] = "precision mediump float;\n\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\n\nuniform float u_time;\nuniform vec4 u_color;\nuniform vec4 u_color2;\n\nvoid main() {\n	vec4 color = mix(u_color,u_color2,u_time);\n	color.a = 0.0;\n	\n	if(u_time * 2.4 > v_texCoord.x){\n		color.a = 1.0;\n	}\n	if(u_time > v_texCoord.x){\n		color.a = 0.0;\n	}\n	\n	//texture2D(u_image, vec2(intensity, 1));\n	gl_FragColor = color;\n}";
 
 
 

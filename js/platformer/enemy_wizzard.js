@@ -405,8 +405,8 @@ WizzardLightning.prototype.update = function(){
 			//Attack			
 			this.states.attack -= this.delta;
 			if(this.states.attack <= 0){
-				var lightning1 = new LightningBolt(this.position.x,this.position.y);
-				var lightning2 = new LightningBolt(this.position.x,this.position.y);
+				var lightning1 = new GroundBolt(this.position.x,this.position.y);
+				var lightning2 = new GroundBolt(this.position.x,this.position.y);
 				lightning1.speed = -2;
 				lightning2.speed = 2;
 				lightning1.damage = lightning2.damage = this.damage;
@@ -432,9 +432,9 @@ WizzardLightning.prototype.update = function(){
 //Wizzard attacks
 
 
-LightningBolt.prototype = new GameObject();
-LightningBolt.prototype.constructor = GameObject;
-function LightningBolt(x,y,d,o){
+GroundBolt.prototype = new GameObject();
+GroundBolt.prototype.constructor = GameObject;
+function GroundBolt(x,y,d,o){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
@@ -461,7 +461,7 @@ function LightningBolt(x,y,d,o){
 	this.pushable = false;
 }
 
-LightningBolt.prototype.update = function(){
+GroundBolt.prototype.update = function(){
 	this.time += this.delta;
 	
 	if(this.grounded){
@@ -479,7 +479,7 @@ LightningBolt.prototype.update = function(){
 	}
 }
 	
-LightningBolt.prototype.render = function(g,c){
+GroundBolt.prototype.render = function(g,c){
 	g.color = [0.5,0.7,1.0,1.0];
 	g.scaleFillRect(
 		(this.position.x - this.width*0.5) - c.x,

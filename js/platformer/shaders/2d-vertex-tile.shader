@@ -1,109 +1,60 @@
-attribute vec2 a_tilegrid;
-attribute vec2 a_tileuvs;
-attribute vec2 a_tile;
-uniform vec2 u_resolution;
-uniform vec2 u_camera;
+attribute vec2 a_position;
+attribute vec2 a_texCoord;
+attribute vec2 a_tiles;
+uniform float u_uvtilewidth;
+uniform float u_tilesize;
+uniform mat3 u_world;
+uniform mat3 u_camera;
 
 varying vec2 v_texCoord;
 varying vec2 v_position;
-
-vec2 tile(vec2 tile){
-	float t = tile.x;
-	float flag = tile.y;
-	bool flipd = false;
-	bool flipv = false;
-	bool fliph = false;
-	bool bottom = false;
-	bool right = false;
-	
-	if( flag - 32.0 >= 0.0){
-		fliph = true;
-		flag -= 32.0;
-	}
-	if( flag - 16.0 >= 0.0){
-		flipv = true;
-		flag -= 16.0;
-	}
-	if( flag - 8.0 >= 0.0){
-		flipd = true;
-		flag -= 8.0;
-	}
-	if( flag - 4.0 >= 0.0){
-		flag -= 4.0;
-	}
-	if( flag - 2.0 >= 0.0){
-		bottom = true;
-		flag -= 2.0;
-	}
-	if( flag - 1.0 >= 0.0){
-		right = true;
-		flag -= 1.0;
-	}
-	
-	float size = 32.0;
-	float ts = 1.0 / size;
-	
-	t = t - 1.0;
-	float x = min(mod(t, size) / size, 1.0-ts);
-	float y = min(floor(t / size) / size, 1.0-ts);
-	
-	bool xPlus = right;
-	bool yPlus = bottom;
-	
-	if(flipd){
-		if(bottom){
-			if(right){
-				xPlus = true;
-				yPlus = false;
-			} else{
-				xPlus = true;
-				yPlus = true;
-			}
-		} else {
-			if(right){
-				xPlus = false;
-				yPlus = false;
-			} else{
-				xPlus = false;
-				yPlus = true;
-			}
-		}
-	}
-	
-	if(flipv){
-		yPlus = !yPlus;
-	} 
-	if(fliph){
-		xPlus = !xPlus;
-	}
-	
-	if(yPlus){
-		y += ts;
-	}
-	if(xPlus){
-		x += ts;
-	}
-	
-	
-	return vec2(x,y);
-}
-
+varying vec2 v_edges;
 
 void main() {
-	//Adjust position with camera
-	vec2 pos = a_tilegrid + u_camera - u_resolution * 0.5;
+	vec3 pos = u_camera * u_world * vec3(a_position,1);
+	gl_Position = vec4(pos,1);
 	
-	//Flip object
-	pos.y = pos.y*-1.0;
+	float f = u_tilesize / u_uvtilewidth;
+	float tsw = u_uvtilewidth / u_tilesize;
 	
-	//Set position
-	gl_Position = vec4(pos/(u_resolution*0.5), 0, 1);
+	vec2 texCoord = a_texCoord;
+
+	float tile = a_tiles.x;
+	float flag = a_tiles.y;
 	
-	//Get UV from tile information
-	vec2 a_texCoord = tile(a_tile);
+	bool flagH = flag >= 4.0;
+	if(flagH) { flag -= 4.0; }
+	bool flagV = flag >= 2.0;
+	if(flagV) { flag -= 2.0; }
+	bool flagD = flag >= 1.0;
+	
+	if(flagD){
+		float t = texCoord.x;
+		texCoord.x = f + texCoord.y * -1.0;
+		texCoord.y = f + t * -1.0;
+	}
+	if(flagH){
+		texCoord.x = f + texCoord.x * -1.0;
+	}
+	if(flagV){
+		texCoord.y = f + texCoord.y * -1.0;		
+	}
 	
 	
-	//Store new position for fragment shader
-	v_texCoord = a_texCoord;
-	v_position = a_tilegrid;
+	vec2 t = vec2(
+		f * floor(mod(tile, tsw)),
+		f * floor(tile / tsw)
+	);
+	v_texCoord = vec2(
+		(texCoord.x + t.x),
+		(texCoord.y + t.y)
+	);
+	v_position = a_position;
+	v_edges = vec2(0,0);
+	if(a_position.x > 0.0){
+		v_edges.x = 1.0;
+	}
+	if(a_position.y > 0.0){
+		v_edges.y = 1.0;
+	}
 }

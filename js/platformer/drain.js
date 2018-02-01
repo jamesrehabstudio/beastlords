@@ -27,28 +27,27 @@ function Drain(x,y,d,ops){
 	this.stepPos = 0.5;
 	this.stepTime = 0.0;
 	this.stepTimeTotal = Game.DELTASECOND * 0.5;
+	this.stepStrMultiplier = 1.0;
 	this.stepStr = 5.0;
+	
+	this.on("ontop", function(obj){
+		//Apply walking force
+		let pos = obj.position.subtract(this.position);
+		
+		if(Math.abs(obj.force.x) > 0.3){
+			this.applyForce(pos, 1);
+		}
+	});
 	
 	this.on("collideObject", function(obj){
 		if( obj.hasModule(mod_rigidbody) && obj.gravity > 0){
 			let pos = obj.position.subtract(this.position);
-			let force = Math.min(obj.force.y, 5);
-			let p = this.stepTime / this.stepTimeTotal;
+			let force = Math.min(obj.force.y, 8) * this.stepStrMultiplier;
 			
-			if(force < 0.1){
-				if(Math.abs(obj.force.x) > 0.3){
-					force = 1;
-				}
-			}
-			
-			if(force > 0 && (force > this.stepStr * p)){
-				this.stepPos = pos.x / this.width;
-				this.stepTime = this.stepTimeTotal;
-				this.stepStr = force;
-			}
+			this.applyForce(pos, force);
 		}
 	});
-		
+	
 	this.addModule(mod_block);
 	
 	this.on("activate",function(obj){
@@ -167,6 +166,17 @@ Drain.prototype.update = function(){
 		this.updateTiles();
 	}
 	//this.onboard = new Array();
+}
+
+Drain.prototype.applyForce = function(pos, force){
+	
+	let p = this.stepTime / this.stepTimeTotal;
+	
+	if(force > 0 && (force > this.stepStr * p)){
+		this.stepPos = pos.x / this.width;
+		this.stepTime = this.stepTimeTotal;
+		this.stepStr = force;
+	}
 }
 
 Drain.prototype.render = function(g,c){

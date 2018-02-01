@@ -17,13 +17,18 @@ function Igbo(x,y,d,o){
 		"fireball" : Game.DELTASECOND * 1.0,
 		"groundattack" : Game.DELTASECOND * 1.5,
 		"cooldown" : Game.DELTASECOND * 3.5,
+		"escape" : Game.DELTASECOND * 2.0,
+		"guarding" : Game.DELTASECOND * 2.0,
 	}
 	this.states = {
 		"chargeattack" : 0,
 		"charge" : 0,
 		"fireball" : 0,
 		"groundattack" : 0,
-		"cooldown" : this.times.cooldown
+		"cooldown" : this.times.cooldown,
+		"escape" : 0,
+		"guarding" : 0,
+		"blockCount" : 0
 	}
 	this.frame_swing = new Point(0,0);
 	
@@ -45,7 +50,7 @@ function Igbo(x,y,d,o){
 	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(10,this.difficulty);
 	this.death_time = Game.DELTASECOND;
-	this.speed = 0.3;
+	this.speed = 2.5;
 	this.mass = 3.0;
 	this.friction = 0.4;
 	
@@ -55,7 +60,13 @@ function Igbo(x,y,d,o){
 		
 		var dir = this.position.subtract(obj.position);
 		
-		this.states.block = Game.DELTASECOND * 0.5;
+		if(this.states.guarding > 0){
+			this.states.blockCount++;
+		} else {
+			this.states.blockCount=1;
+		}
+		
+		this.states.guarding = this.times.guarding;
 	
 		//blocked
 		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
@@ -74,6 +85,14 @@ function Igbo(x,y,d,o){
 	});
 	this.on("hurt", function(){
 		audio.play("hurt",this.position);
+		if(this.guard.active){
+			if(this.states.guarding) {
+				this.states.guarding = 0;
+				this.states.escape = this.times.escape;
+			} else {
+				this.states.guarding = this.times.guarding;
+			}
+		}
 	});
 	this.on("death", function(obj){
 		Item.drop(this,15);
@@ -94,17 +113,46 @@ Igbo.prototype.update = function(){
 			this.guard.active = false;
 			
 			if(this.frame_swing.x > 0){
-				this.strike(new Line(0,-24,48,8));
+				this.strike(new Line(0,-24,52,8));
 			}
 			
 			this.states.chargeattack -= this.delta;
+		} else if(this.states.escape > 0){
+			
+			if(this.states.escape == this.times.escape){
+				this.grounded = false;
+				this.force.y = -6;
+			}
+			
+			this.states.escape -= this.delta;
+			this.guard.active = false;
+			
+			if(this.grounded){
+				this.frame.x = 4;
+				this.frame.y = (this.frame.y + Math.abs(this.force.x) * 0.1 * this.delta) % 4;
+				this.force.x += this.forward() * this.speed * this.delta;
+				
+				if(Math.abs(dir.x) < 64 && Math.abs(dir.y) < 16){
+					this.flip = dir.x > 0;
+					this.states.escape = 0;
+					this.states.chargeattack = this.times.chargeattack;
+				} else if(this.states.escape <= 0){
+					this.flip = dir.x > 0;
+					this.states.groundattack = this.times.groundattack;
+				}
+			} else {
+				this.force.y -= 0.6 * this.delta;
+				this.force.x = this.forward() * -3;
+				this.frame.x = 4;
+				this.frame.y = 1;
+			}
 		} else if(this.states.charge > 0){
 			//Charge at player
 			this.states.charge -= this.delta;
 			
 			this.frame.x = 4;
 			this.frame.y = (this.frame.y + Math.abs(this.force.x) * 0.1 * this.delta) % 4;
-			this.force.x += this.forward() * this.speed;
+			this.force.x += this.forward() * this.speed * this.delta;
 			this.guard.active = false;
 			
 			if(Math.abs(dir.x) < 64){
@@ -132,22 +180,42 @@ Igbo.prototype.update = function(){
 			
 		} else if(this.states.groundattack > 0 ){
 			//Place fireballs on the ground
+			this.criticalChance = 1.0;
 			this.states.groundattack -= this.delta;
 			this.frame = Igbo.anim_attack.frame(1-this.states.groundattack/this.times.groundattack);
 			this.guard.active = false;
 			if(Timer.isAt(this.states.groundattack,this.times.groundattack*0.5,this.delta)){
 				this.fire(4,0.0);
 			}
+		} else if(this.states.guarding > 0){
+			this.states.guarding -= this.delta;
+			
+			this.criticalChance = 0.0;
+			this.flip = dir.x > 0;
+			this.guard.active = true;
+			this.guard.x = 6;
+			this.guard.y = -28;
+			
+			if(this.states.blockCount >= 3){
+				if(this.states.guarding <= this.times.guarding * 0.8){
+					this.states.escape = this.times.escape;
+					this.states.guarding = 0;
+				}
+			}
+			
 		} else {
 			this.states.cooldown -= this.delta;
 			
+			this.criticalChance = 0.0;
 			this.flip = dir.x > 0;
 			this.guard.active = true;
+			this.guard.x = 8;
+			this.guard.y = -20;
 			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
 			this.frame.y = 0;
 			
 			if(this.states.cooldown <= 0){
-				if(Math.random() > 0.4){
+				if(Math.random() > 0.4 && Math.abs(dir.x) > 80){
 					this.states.groundattack = this.times.groundattack;
 				} else {
 					this.states.charge = this.times.charge;
@@ -163,22 +231,20 @@ Igbo.prototype.update = function(){
 }
 
 Igbo.prototype.fire = function(amount, skiprandom){
-	var xoff = 32;
-	for(var i=0; i < amount; i++){
-		var xpos = this.forward() * xoff;
-		var ftower = new FlameTower(xpos+this.position.x, this.position.y);
-		ftower.damageFire = this.damage;
-		ftower.time = Game.DELTASECOND * i * -0.2;
-		game.addObject(ftower);
-		xoff += Math.random() > skiprandom ?  40 : 80;
-	}
+	
+	var ftower = new CarpetBomb(this.position.x, this.position.y);
+	ftower.damageFire = this.damage;
+	ftower.force = new Point(this.forward()*6, -8);
+	game.addObject(ftower);
 }
 
 Igbo.prototype.render = function(g,c){
 	if(this.guard.active){
+		xOff = this.guard.x + this.guard.w * 0.5;
+		yOff = this.guard.y + this.guard.h * 0.5;
 		g.renderSprite(
 			this.sprite,
-			this.position.add(new Point(this.forward() * 24, 0)).subtract(c),
+			this.position.add(new Point(this.forward() * xOff, yOff)).subtract(c),
 			this.zIndex + 1,
 			new Point(0,3),
 			this.flip

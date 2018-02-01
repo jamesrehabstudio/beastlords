@@ -189,6 +189,15 @@ Math.mod = function(x,n){
 Math.lerp = function(x,y,delta){
 	return x + (y-x) * delta;
 }
+Math.slerp = function(x,y,delta){
+	let dif = Math.abs(x-y);
+	if(Math.abs((x+360)-y) < dif){
+		return Math.lerp(x+360,y,delta);
+	} else if(Math.abs(x-(y+360)) < dif){
+		return Math.lerp(x,y+360,delta);
+	}
+	return Math.lerp(x,y,delta);
+}
 Math.roundTo = function(x,n){
 	return Math.floor(x/n)*n; 
 }
@@ -202,6 +211,10 @@ Math.subtractToZero = function(x,y){
 	}
 	return 0;
 }
+Math.rad2deg = 180 / Math.PI;
+Math.deg2rad = 1 / Math.rad2deg;
+Math.clamp = function(x,a,b){return Math.max(Math.min(x,b),a);}
+Math.clamp01 = function(x){return Math.max(Math.min(x,1),0);}
 
 function Matrix2D() {
 	this.data = [1,0,0,0,1,0,0,0,1];
@@ -232,6 +245,13 @@ Matrix2D.prototype.multiply = function (m){
 		m.data[Matrix2D.M20] * this.data[Matrix2D.M01] + m.data[Matrix2D.M21] * this.data[Matrix2D.M11] + m.data[Matrix2D.M22] * this.data[Matrix2D.M21],
 		m.data[Matrix2D.M20] * this.data[Matrix2D.M02] + m.data[Matrix2D.M21] * this.data[Matrix2D.M12] + m.data[Matrix2D.M22] * this.data[Matrix2D.M22]
 	];
+	return out;
+}
+Matrix2D.prototype.apply = function(v){
+	var out = new Point();
+	out.x = this.data[Matrix2D.M00] * v.x + this.data[Matrix2D.M10] * v.y + this.data[Matrix2D.M20];
+	out.y = this.data[Matrix2D.M01] * v.x + this.data[Matrix2D.M11] * v.y + this.data[Matrix2D.M21];
+	out.z = this.data[Matrix2D.M02] * v.x + this.data[Matrix2D.M12] * v.y + this.data[Matrix2D.M22];
 	return out;
 }
 Matrix2D.prototype.toFloatArray = function(){
@@ -277,25 +297,140 @@ Matrix2D.prototype.scale = function(x,y){
 	out.data[Matrix2D.M22] = out.data[Matrix2D.M22]
 	return out;
 }
-Matrix2D.prototype.rotate = function(a){
+Matrix2D.prototype.rotate = function(x=0,y=0,z=0){
 	var out = new Matrix2D();
-	var s = Math.sin(a);
-	var c = Math.cos(a);
+	var s = Math.sin(x);
+	var c = Math.cos(x);
 	
-	out.data[Matrix2D.M00] = c * this.data[Matrix2D.M00] + s * this.data[Matrix2D.M10];
-	out.data[Matrix2D.M01] = c * this.data[Matrix2D.M01] + s * this.data[Matrix2D.M11];
-	out.data[Matrix2D.M02] = c * this.data[Matrix2D.M02] + s * this.data[Matrix2D.M12];
+	var a = new Matrix2D();
+	a.data[Matrix2D.M00] = c;
+	a.data[Matrix2D.M10] = -s;
+	a.data[Matrix2D.M01] = s;
+	a.data[Matrix2D.M11] = c;
 	
-	out.data[Matrix2D.M10] = c * this.data[Matrix2D.M10] - s * this.data[Matrix2D.M00];
-	out.data[Matrix2D.M11] = c * this.data[Matrix2D.M11] - s * this.data[Matrix2D.M01];
-	out.data[Matrix2D.M12] = c * this.data[Matrix2D.M12] - s * this.data[Matrix2D.M02];
+	//return this;
+	return this.multiply(a);
+}
+Matrix2D.prototype.convert4x4 = function(){
+	var out = new Matrix4x4();
+	out.data[Matrix4x4.M00] = this.data[Matrix2D.M00];
+	out.data[Matrix4x4.M10] = this.data[Matrix2D.M10];
+	out.data[Matrix4x4.M30] = this.data[Matrix2D.M20];
 	
-	out.data[Matrix2D.M20] = this.data[Matrix2D.M20];
-	out.data[Matrix2D.M21] = this.data[Matrix2D.M21];
-	out.data[Matrix2D.M22] = this.data[Matrix2D.M22];
+	out.data[Matrix4x4.M01] = this.data[Matrix2D.M01];
+	out.data[Matrix4x4.M11] = this.data[Matrix2D.M11];
+	out.data[Matrix4x4.M31] = this.data[Matrix2D.M21];
 	
+	out.data[Matrix4x4.M02] = this.data[Matrix2D.M02];
+	out.data[Matrix4x4.M12] = this.data[Matrix2D.M12];
 	return out;
 }
+
+class Matrix4x4 {
+	constructor(){
+		this.data = [
+			1,0,0,0,
+			0,1,0,0,
+			0,0,1,0,
+			0,0,0,1
+		];
+	}
+	multiply(m){
+		var out = new Matrix4x4();
+		
+		for(let y=0; y < 4; y++){
+			for(let x=0; x < 4; x++){
+				let index = Matrix4x4.getIndex(x, y);
+				
+				out.data[index] = 0 + 
+					m.data[Matrix4x4.getIndex(x, 0)] * this.data[Matrix4x4.getIndex(0, y)] + 
+					m.data[Matrix4x4.getIndex(x, 1)] * this.data[Matrix4x4.getIndex(1, y)] + 
+					m.data[Matrix4x4.getIndex(x, 2)] * this.data[Matrix4x4.getIndex(2, y)] + 
+					m.data[Matrix4x4.getIndex(x, 3)] * this.data[Matrix4x4.getIndex(3, y)];
+			}
+		}
+		return out;
+	}
+	static getIndex(x,y){
+		return x + y * 4;
+	}
+	transition(x=0,y=0,z=0){
+		var a = new Matrix4x4();
+		a.data[Matrix4x4.M30] = x;
+		a.data[Matrix4x4.M31] = y;
+		a.data[Matrix4x4.M32] = z;
+		return this.multiply(a);
+	}
+	rotate(x=0,y=0,z=0){
+		var _x = new Matrix4x4();
+		let s = Math.sin(x);
+		let c = Math.cos(x);
+		
+		_x.data[Matrix4x4.M11] = c;
+		_x.data[Matrix4x4.M21] = s;
+		_x.data[Matrix4x4.M12] = -s;
+		_x.data[Matrix4x4.M22] = c;
+		
+		var _y = new Matrix4x4();
+		s = Math.sin(y);
+		c = Math.cos(y);
+		
+		_y.data[Matrix4x4.M00] = c;
+		_y.data[Matrix4x4.M20] = s;
+		_y.data[Matrix4x4.M02] = -s;
+		_y.data[Matrix4x4.M22] = c;
+		
+		var _z = new Matrix4x4();
+		s = Math.sin(z);
+		c = Math.cos(z);
+		
+		_z.data[Matrix4x4.M00] = c;
+		_z.data[Matrix4x4.M10] = -s;
+		_z.data[Matrix4x4.M01] = s;
+		_z.data[Matrix4x4.M11] = c;
+		//_z.data[Matrix4x4.M11] = c;
+		//_z.data[Matrix4x4.M21] = s;
+		
+		return this.multiply(_z).multiply(_x).multiply(_y);
+	}
+	scale(x=1,y=1,z=1){
+		var a = new Matrix4x4();
+		a.data[Matrix4x4.M00] = x;
+		a.data[Matrix4x4.M11] = y;
+		a.data[Matrix4x4.M22] = z;
+		return this.multiply(a);
+	}
+	apply(v){
+		var out = new Vector();
+		out.x = this.data[Matrix4x4.M00] * v.x + this.data[Matrix4x4.M10] * v.y + this.data[Matrix4x4.M20] * v.z + this.data[Matrix4x4.M30];
+		out.y = this.data[Matrix4x4.M01] * v.x + this.data[Matrix4x4.M11] * v.y + this.data[Matrix4x4.M21] * v.z + this.data[Matrix4x4.M31];
+		out.z = this.data[Matrix4x4.M02] * v.x + this.data[Matrix4x4.M12] * v.y + this.data[Matrix4x4.M22] * v.z + this.data[Matrix4x4.M32];
+		out.w = this.data[Matrix4x4.M03] * v.x + this.data[Matrix4x4.M13] * v.y + this.data[Matrix4x4.M23] * v.z + this.data[Matrix4x4.M33];
+		return out;
+	}
+	toFloatArray(){
+		return new Float32Array(this.data);
+	}
+}
+Matrix4x4.M00 = 0;
+Matrix4x4.M10 = 4;
+Matrix4x4.M20 = 8;
+Matrix4x4.M30 = 12;
+
+Matrix4x4.M01 = 1;
+Matrix4x4.M11 = 5;
+Matrix4x4.M21 = 9;
+Matrix4x4.M31 = 13;
+
+Matrix4x4.M02 = 2;
+Matrix4x4.M12 = 6;
+Matrix4x4.M22 = 10;
+Matrix4x4.M32 = 14;
+
+Matrix4x4.M03 = 3;
+Matrix4x4.M13 = 7;
+Matrix4x4.M23 = 11;
+Matrix4x4.M33 = 15;
 
 function Polygon(){
 	this.points = new Array();
@@ -357,6 +492,22 @@ Polygon.prototype.pointInside = function( p ){
 		}
 	}
 	return ( count % 2 == 1 );
+}
+
+Polygon.prototype.rotate = function( deg, origin ){
+	if(origin == undefined){
+		origin = new Point(0,0);
+	}
+	
+	var out = new Polygon();
+	let m = new Matrix2D().rotate(deg * Math.deg2rad);
+	
+	for(let i=0; i < this.points.length; i++){
+		let p = this.points[i].subtract(origin);
+		p = m.apply(p).add(origin);
+		out.addPoint(p);
+	}
+	return out;
 }
 		
 function Line ( p, q, r, s ) {
@@ -534,6 +685,14 @@ Line.prototype.overlaps = function( l ){
 	}
 	return false;
 }
+Line.prototype.toPolygon = function(){
+	var out = new Polygon();
+	out.addPoint(new Point(this.start.x, this.start.y));
+	out.addPoint(new Point(this.end.x, this.start.y));
+	out.addPoint(new Point(this.end.x, this.end.y));
+	out.addPoint(new Point(this.start.x, this.end.y));
+	return out;
+}
 
 Line.prototype.polyInstersects = function( pl ){
 	for( var i=0; i < pl._lines.length; i++ ){
@@ -556,6 +715,10 @@ Point.prototype.distance = function(b){
 }
 Point.prototype.length = function(){
 	return Math.sqrt(this.x * this.x + this.y * this.y);
+}
+Point.prototype.flip = function(f=true){
+	let fm = f ? -1 : 1;
+	return new Point(this.x * fm,this.y);
 }
 Point.prototype.add = function(a){
 	return new Point(this.x + a.x, this.y + a.y);
@@ -645,9 +808,111 @@ Point.lerp = function(a,b,d){
 		a.y + (b.y-a.y) * d
 	);
 }
+class Vector{
+	constructor(x=0,y=0,z=0){
+		this.x = x;
+		this.y = y;
+		this.z = z;
+	}
+	get xy(){
+		return new Point(this.x, this.y);
+	}
+	set xy(p){
+		this.x = p.x;
+		this.y = p.y;
+	}
+	add(pos=0,y=0,z=0){
+		var out = new Vector();
+		if(pos instanceof Vector){
+			out.x = this.x + pos.x;
+			out.y = this.y + pos.y;
+			out.z = this.z + pos.z;
+		} else if(pos instanceof Point){
+			out.x = this.x + pos.x;
+			out.y = this.y + pos.y;
+			out.z = this.z;
+		} else {
+			out.x = this.x + pos;
+			out.y = this.y + y;
+			out.z = this.z + z;
+		}
+		return out;
+	}
+	subtract(pos=0,y=0,z=0){
+		var out = new Vector();
+		if(pos instanceof Vector){
+			out.x = this.x - pos.x;
+			out.y = this.y - pos.y;
+			out.z = this.z - pos.z;
+		} else if(pos instanceof Point){
+			out.x = this.x - pos.x;
+			out.y = this.y - pos.y;
+			out.z = this.z;
+		} else {
+			out.x = this.x - x;
+			out.y = this.y - y;
+			out.z = this.z - z;
+		}
+		return out;
+	}
+	static lerp(a,b,d){
+		var out = new Vector();
+		out.x = Math.lerp(a.x, b.x, d);
+		out.y = Math.lerp(a.y, b.y, d);
+		
+		if("z" in b){
+			out.z = Math.lerp(a.z, b.z, d);
+		} else {
+			out.z = a.z;
+		}
+		
+		return out;
+	}
+	static rotate(v,x,y,z){
+		var m = new Matrix4x4().rotate(x,y,z);
+		return m.apply(v);
+	}
+}
+class Seed{
+	constructor(s){
+		this.seed = "" + s;
+		var seedAsNumber = "0.";
+		for(var i=0; i < this.seed.length; i++ ) {
+			seedAsNumber += "" + Math.abs( this.seed[i].charCodeAt(0) );
+		}
+		this.prev = seedAsNumber - 0.0;
+		this.constant1 = Math.PI * 1551651.0;
+		this.constant2 = Math.E * 21657.0;
+		this.random();
+	}
+	random(){
+		this.prev = (this.prev * 1.0 * this.constant1 + this.constant2) % 1.0;
+		return this.prev;
+	}
+	randomBool(oods){
+		odds = odds == undefined ? 0.5 : odds;
+		return this.random() < odds;
+	}
+	shuffle(arr){
+		let currentIndex = arr.length;
+		
+		while(currentIndex > 0){
+			var randomIndex = Math.floor(this.random()*currentIndex);
+			currentIndex--;
+			
+			var temp = arr[currentIndex];
+			arr[currentIndex] = arr[randomIndex];
+			arr[randomIndex] = temp;
+		}
+		return arr;
+	}
+}
+
+
 getTileData = function(t){
 	return {
 		"original" : t,
+		"flags" : Math.abs(t>>29),
 		"hflip" : !!(t&0x80000000),
 		"vflip" : !!(t&0x40000000),
 		"dflip" : !!(t&0x20000000), 

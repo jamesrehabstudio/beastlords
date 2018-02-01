@@ -33,6 +33,7 @@ function game_start(g){
 }
 
 var sprites = {};
+var meshes = {};
 var tiles = {};
 var audio = {};
 var RT = "";
@@ -124,6 +125,21 @@ var tileRules = {
 };
 
 function load_sprites (){	
+	meshes['slash1'] = new Mesh(RT+"mesh/slash1.json", {"fs":"fragment-sword"});
+	meshes['slash2'] = new Mesh(RT+"mesh/slash2.json", {"fs":"fragment-sword"});
+	meshes['slash3'] = new Mesh(RT+"mesh/slash3.json", {"fs":"fragment-sword"});
+	meshes['slashd'] = new Mesh(RT+"mesh/slashd.json", {"fs":"fragment-sword"});
+	meshes['slashu'] = new Mesh(RT+"mesh/slashu.json", {"fs":"fragment-sword"});
+	meshes['slashc'] = new Mesh(RT+"mesh/slashc.json", {"fs":"fragment-sword"});
+	
+	meshes['garmr_head'] = new Mesh(RT+"mesh/garmr_head.json", {"image":"garmr_texture"});
+	meshes['garmr_headscream'] = new Mesh(RT+"mesh/garmr_headscream.json", {"image":"garmr_texture"});
+	meshes['garmr_chest'] = new Mesh(RT+"mesh/garmr_chest.json", {"image":"garmr_texture"});
+	meshes['garmr_body'] = new Mesh(RT+"mesh/garmr_body.json", {"image":"garmr_texture"});
+	meshes['garmr_armupper'] = new Mesh(RT+"mesh/garmr_armupper.json", {"image":"garmr_texture"});
+	meshes['garmr_armlower'] = new Mesh(RT+"mesh/garmr_armlower.json", {"image":"garmr_texture"});
+	sprites['garmr_texture'] = new Sprite(RT+"img/garmr_texture.png", {offset:new Point(0, 0), width:256,height:256});
+
 	sprites['bgfirepit01'] = new Sprite(RT+"img/background/firepit01.png", {offset:new Point(0, 0),width:256,height:96});
 	sprites['bgfirepit02'] = new Sprite(RT+"img/background/firepit02.png", {offset:new Point(0, 0),width:256,height:256});
 	
@@ -184,6 +200,7 @@ function load_sprites (){
 	sprites['magic_effects'] = new Sprite(RT+"img/magic_effects.gif", {offset:new Point(16, 32),width:32,height:48});
 	
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(16, 16),width:32,height:32});
+	sprites['attrib_icons'] = new Sprite(RT+"img/attrib_icons.png", {offset:new Point(0, 0),width:12,height:12});
 	sprites['axedog'] = new Sprite(RT+"img/axedog.png", {offset:new Point(32, 30),width:64,height:48});
 	sprites['axesub'] = new Sprite(RT+"img/axesub.png", {offset:new Point(26, 49),width:64,height:64});
 	sprites['baller'] = new Sprite(RT+"img/baller.png", {offset:new Point(24, 32),width:48,height:48});
@@ -193,6 +210,7 @@ function load_sprites (){
 	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56});
 	sprites['bombbowler'] = new Sprite(RT+"img/bombbowler.png", {offset:new Point(40, 50),width:80,height:80});
 	sprites['bombjar'] = new Sprite(RT+"img/bombjar.png", {offset:new Point(32, 32),width:64,height:64});
+	sprites['booksummoner'] = new Sprite(RT+"img/booksummoner.png", {offset:new Point(32, 48),width:64,height:64});
 	sprites['bookreptile'] = new Sprite(RT+"img/bookreptile.png", {offset:new Point(32, 34),width:64,height:48});
 	sprites['boarbow'] = new Sprite(RT+"img/boarbow.png", {offset:new Point(28, 32),width:64,height:48});
 	sprites['cape1'] = new Sprite(RT+"img/cape1.gif", {offset:new Point(24, 24),width:48,height:48});
@@ -221,6 +239,7 @@ function load_sprites (){
 	sprites['ending'] = new Sprite(RT+"img/ending.gif", {offset:new Point(48, 32),width:96,height:64});
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
 	sprites['hammerman'] = new Sprite(RT+"img/hammerman.png", {offset:new Point(40, 32),width:80,height:48});
+	sprites['hooksailor'] = new Sprite(RT+"img/hooksailor.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['igbo'] = new Sprite(RT+"img/igbo.png", {offset:new Point(32, 48),width:64,height:72});
 	sprites['knight'] = new Sprite(RT+"img/knight.png", {offset:new Point(32, 44),width:96,height:64});
 	sprites['knior'] = new Sprite(RT+"img/knior.png", {offset:new Point(24, 32),width:48,height:48});
@@ -245,12 +264,15 @@ function load_sprites (){
 	sprites['phantomgraves'] = new Sprite(RT+"img/phantomgraves.png", {offset:new Point(40, 40),width:80,height:80});
 	//sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48});
 	sprites['playerbath'] = new Sprite(RT+"img/playerbath.png", {offset:new Point(24, 48),width:48,height:48});
+	sprites['polate'] = new Sprite(RT+"img/polate.png", {offset:new Point(68, 40),width:136,height:64});
+	sprites['portholeman'] = new Sprite(RT+"img/portholeman.png", {offset:new Point(16, 24),width:48,height:48});
 	sprites['pothead'] = new Sprite(RT+"img/pothead.png", {offset:new Point(24, 34),width:48,height:48});
 	sprites['raindrops'] = new Sprite(RT+"img/raindrops.png", {offset:new Point(8, 16),width:16,height:16});
 	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(22, 20),width:48,height:32});
 	sprites['ring'] = new Sprite(RT+"img/ring.gif", {offset:new Point(120, 120),width:240,height:240});
 	sprites['riveteer'] = new Sprite(RT+"img/riveteer.png", {offset:new Point(24, 31),width:48,height:48});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
+	sprites['sailorsmasher'] = new Sprite(RT+"img/sailorsmasher.png", {offset:new Point(40, 52),width:80,height:80});
 	sprites['samrat'] = new Sprite(RT+"img/samrat.png", {offset:new Point(48, 40),width:128,height:64});
 	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16});
 	sprites['shields'] = new Sprite(RT+"img/shields.png", {offset:new Point(16, 16),width:32,height:32});
@@ -270,6 +292,7 @@ function load_sprites (){
 	sprites['statues'] = new Sprite(RT+"img/statues.gif", {offset:new Point(32, 56),width:64,height:64});
 	sprites['svarog'] = new Sprite(RT+"img/svarog.png", {offset:new Point(24, 24),width:48,height:48});
 	sprites['switch'] = new Sprite(RT+"img/switch.gif", {offset:new Point(0, 4),width:16,height:40});
+	sprites['switch_pressure'] = new Sprite(RT+"img/switch_pressure.png", {offset:new Point(24, 24),width:48,height:48});
 	sprites['treads'] = new Sprite(RT+"img/treads.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['trees'] = new Sprite(RT+"img/trees.png", {offset:new Point(28, 48),width:56,height:48});
 	sprites['owlwizzard'] = new Sprite(RT+"img/owlwizzard.png", {offset:new Point(24, 24),width:48,height:48});
@@ -288,7 +311,7 @@ function load_sprites (){
 	sprites['bossface'] = new Sprite(RT+"img/bossface.gif", {offset:new Point(0, 0),width:90,height:120});
 	
 	sprites['ammit'] = new Sprite(RT+"img/ammit.gif", {offset:new Point(40, 40),width:80,height:64});
-	sprites['garmr'] = new Sprite(RT+"img/garmr.png", {offset:new Point(80, 68),width:160,height:136});
+	sprites['garmr'] = new Sprite(RT+"img/garmr.png", {offset:new Point(64, 72),width:144,height:144});
 	sprites['megaknight'] = new Sprite(RT+"img/megaknight.png", {offset:new Point(56, 40),width:160,height:72});
 	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80});
 	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64});
@@ -328,6 +351,8 @@ function load_sprites (){
 	sprites['cave'] = new Sprite(RT+"img/tiles/cave.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['planes'] = new Sprite(RT+"img/tiles/planes.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['town'] = new Sprite(RT+"img/tiles/town.png", {offset:new Point(0, 0),width:16,height:16});
+	
+	tiles['testtile'] = new Tilesheet(RT+"img/tiles/temple4.png");
 	
 	for( var i in sprites ) {
 		sprites[i].name = i;
@@ -469,6 +494,7 @@ window.audio = new AudioPlayer({
 	
 	"barrier" : {"url":RT+"sounds/barrier.wav"},
 	"block" : {"url":RT+"sounds/block.wav"},
+	"bullet1" : {"url":RT+"sounds/bullet1.wav"},
 	"burst1" : {"url":RT+"sounds/burst1.wav"},
 	"critical" : {"url":RT+"sounds/critical.wav"},
 	"clang" : {"url":RT+"sounds/clang.wav"},
@@ -488,6 +514,7 @@ window.audio = new AudioPlayer({
 	"explode4" : {"url":RT+"sounds/explode4.wav"},
 	"gasstart" : {"url":RT+"sounds/gasstart.wav"},
 	"gulp" : {"url":RT+"sounds/gulp.wav"},
+	"hardland" : {"url":RT+"sounds/hardland.wav"},
 	"heal" : {"url":RT+"sounds/heal.wav"},
 	"hurt" : {"url":RT+"sounds/hurt.wav"},
 	"item1" : {"url":RT+"sounds/item1.wav"},

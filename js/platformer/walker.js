@@ -8,6 +8,7 @@ function Walker(x, y, d, o){
 	this.height = 24;
 	this.sprite = "walker";
 	this.speed = 0.35;
+	this.speedBoost = 30.0;
 	this.zIndex = 13;
 	this.start = new Point(x,y);
 	
@@ -26,6 +27,7 @@ function Walker(x, y, d, o){
 	this.seatObj.addModule( mod_block );
 	//this.seatObj.visible = false;
 	
+	this.life = 256;
 	
 	
 	this.mass = 1.0;
@@ -35,12 +37,25 @@ function Walker(x, y, d, o){
 	this.stepAnim = 0.0;
 	this.standTime = 0.0;
 	this.walkerID = false;
+	this._wasOnboard = false;
+	this.isCharging = false;
 	
 	this.on("collideObject",function(obj){
 		if(obj instanceof Player){
 			this.seatObj.trigger("collideObject", obj);
 			obj.trigger("collideObject", this.seatObj);
+		} else if(obj instanceof PressureSwitch){
+			obj.press();
+		} else if(obj.hasModule(mod_combat)){
+			if(this.isCharging){
+				var d = Combat.getDamage();
+				d.fixed = Math.min(obj.life, this.life);
+				obj.hurt(this, d);
+			}
 		}
+	});
+	this.on("hurt_other", function(obj, damage){
+		this.life -= damage;
 	});
 	this.on("sleep", function(){
 		if(this.walkerID){
@@ -50,32 +65,50 @@ function Walker(x, y, d, o){
 			this.position.y = this.start.y;
 		}
 	})
-	
+	this.on("getOff", function(obj){
+		obj.force.x = this.force.x;
+	});
 	this.on("destroy", function(){
 		this.seatObj.destroy();
 	});
 }
 Walker.prototype.update = function(){
 	var progress = this.standTime / Walker.STAND_TIME;
+	this.isCharging = false;
 	
 	if(this.seatObj.block_isOnboard(_player)){
+		this._wasOnboard = _player;
 		if(this.standTime < Walker.STAND_TIME){
+			//standing up
 			this.frame = Walker.anim_stand.frame(progress);
 			this.standTime = Math.min(this.standTime+this.delta, Walker.STAND_TIME);
 			_player.position.x = Math.lerp(_player.position.x, this.position.x, progress);
 		} else {
-			if(input.state("left") > 0){
-				this.force.x -= this.speed * this.delta;
-				this.flip = true;
-			}
-			if(input.state("right") > 0){
-				this.force.x += this.speed * this.delta;
-				this.flip = false;
+			//Player on board
+			if(input.state("dodge") > 0){
+				this.force.x = this.forward() * this.speedBoost;
+				this.isCharging = true;
+				game.slow(0.35,3);
+				
+				this.frame.x = 0;
+				this.frame.y = 3;
+				
+			} else {				
+				if(input.state("left") > 0){
+					this.force.x -= this.speed * this.delta;
+					this.flip = true;
+				}
+				if(input.state("right") > 0){
+					this.force.x += this.speed * this.delta;
+					this.flip = false;
+				}
+				
+				this.stepAnim = (this.stepAnim + this.delta * Math.abs(this.force.x) * 0.2) % 6;
+				this.frame.x = this.stepAnim % 3;
+				this.frame.y = this.stepAnim / 3;
 			}
 			
-			this.stepAnim = (this.stepAnim + this.delta * Math.abs(this.force.x) * 0.2) % 6;
-			this.frame.x = this.stepAnim % 3;
-			this.frame.y = this.stepAnim / 3;
+			
 			
 			_player.position.x = this.position.x;
 			_player.force.x = 0;
@@ -85,8 +118,14 @@ Walker.prototype.update = function(){
 			}
 		}
 	} else {
+		//Sitting down
 		this.frame = Walker.anim_stand.frame(progress);
 		this.standTime = Math.max(this.standTime - this.delta, 0);
+		
+		if(this._wasOnboard){
+			this.trigger("getOff", this._wasOnboard);
+			this._wasOnboard = false;
+		}
 	}
 	
 	//Change seat position
@@ -101,3 +140,55 @@ Walker.anim_stand = new Sequence([
 	[1,2,0.333],
 	[0,2,0.333]
 ]);
+
+class Cart extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "walker";
+		
+		this.width = 24;
+		this.height = 24;
+		this.frame = new Point(3,0);
+		this.speed = 3;
+		this.damage = 10;
+		this.stunTime = Game.DELTASECOND * 0.125;
+		
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_block);
+		
+		this.pushable = false;
+		this.friction = 0.2;
+		this.moving = false;
+		
+		this.on("spellFlash", function(spell){
+			this.moving = true;
+		});
+		this.on("collideHorizontal", function(v){
+			this.moving = false;
+		});
+		this.on("collideObject", function(obj){
+			if(this.moving && obj.hasModule(mod_combat)){
+				
+				var topY = this.position.y - this.height * 0.5 + 1;
+				var botY = obj.position.y + this.origin.y * this.height;
+				
+				if(topY < botY && this.delta > 0){
+					obj.invincible = 0;
+					obj.hurt(this, this.damage);
+				}
+			}
+		});
+		this.on("hurt_other", function(obj, damage){
+			game.slow(0,this.stunTime);
+		});
+	}
+	update(){
+		if(this.moving){
+			this.force.x += this.forward() * this.speed * this.delta;
+		}
+	}
+}
+self["Cart"] = Cart;

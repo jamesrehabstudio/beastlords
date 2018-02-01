@@ -251,6 +251,12 @@ function Player(x, y){
 			this.doubleJumpReady = true;
 		}
 	})*/;
+	this.on("break_tile", function(obj, damage){
+		if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
+			this.trigger("downstabTarget", obj, damage);
+			obj.trigger("downstabbed", this, damage);
+		}
+	});
 	this.on("hurt_other", function(obj, damage){
 		var ls = Math.min(this.perks.lifeSteal, 1.0);
 		this.lifeStealCarry += Math.max(Math.min(damage * ls, obj.life),0);
@@ -557,6 +563,28 @@ Player.prototype.update = function(){
 			//Do nothing, just wait to recover
 		} else if (this.states.spellCounter > 0){
 			this.states.spellCounter -= this.delta;
+			
+			if(this.states.spellCurrent instanceof SpellFire){
+				this.states.spellCounter -= game.deltaUnscaled;
+				game.slow(0.0,0.02);
+			}
+			if(this.states.spellCurrent instanceof SpellBolt){
+				//Allow movement
+				if ( input.state('left') > 0 ) { this.force.x -= this.deltaSpeed(); }
+				if ( input.state('right') > 0 ) { this.force.x += this.deltaSpeed(); }
+				if ( input.state('jump') == 1 ) { this.jump(); }
+			}
+			if(this.states.spellCurrent instanceof SpellFlash){
+				//Float about
+				this.gravity = false;
+				this.force.y = -0.2;
+				let spell = this.states.spellCurrent;
+				if(spell.manaCost <= this.mana && this.states.spellCounter <= 0 && input.state('spell')){
+					this.castSpell();
+					this.states.spellCounter = this.states.spellCurrent.castTime;
+				}
+			}
+			
 			if(this.states.spellCounter <= 0){
 				//Cast Spell
 				this.castSpell();
@@ -642,7 +670,10 @@ Player.prototype.update = function(){
 			
 			if(this.attstates.currentAttack){
 				//Strike ahead
-				if(this.attstates.timer < this.attstates.currentAttack.time){
+				if(
+					this.attstates.timer >= this.attstates.currentAttack.warm &&
+					this.attstates.timer < this.attstates.currentAttack.time
+				){
 					var multiplier = this.attstates.currentAttack.damage || 1.0;
 					this.strike(this.attstates.currentAttack.strike, {"multiplier" : multiplier});
 				}
@@ -704,7 +735,7 @@ Player.prototype.update = function(){
 				}
 			}
 						
-			if ( input.state('fire') == 1 && input.state("up") > 0 ) { 
+			if ( input.state('spell') == 1 ) { 
 				//Cast Spell
 				if(this.spells.length > 0){
 					var spell = this.spells[this.spellCursor];
@@ -833,6 +864,7 @@ Player.prototype.update = function(){
 		this.frame.x = 0;
 		this.frame.y = 6;
 	} else if( this.states.spellCounter > 0 ) {
+		//Casting spell
 		this.frame.x = (1 - Math.min(this.states.spellCounter / Game.DELTASECOND, 1)) * 8;
 		this.frame.y = 7;
 	} else if( this.states.rolling ) {
@@ -1454,7 +1486,13 @@ Player.prototype.render = function(g,c){
 
 Player.prototype.renderWeapon = function(g,c,ops={},eops={}){
 	try{
-		let rangeScale = this.equip_sword.stats.range / 38;
+		let rangeScale = this.equip_sword.stats.range / 70;
+		let meshScale = 0.1;
+		let attackProgress = 0;
+		
+		if(this.attstates.currentAttack){
+			attackProgress = (this.attstates.timer) / this.attstates.currentAttack.time;
+		}
 		
 		let _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
 		let rotation = _t.r;
@@ -1469,21 +1507,28 @@ Player.prototype.renderWeapon = function(g,c,ops={},eops={}){
 		ops["rotate"] = (this.flip ? -1 : 1) * rotation;
 		
 		g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
-		if(effect){
-			eops["rotate"] = effect.r;
-			let effectFrame = new Point(effect.x, effect.y);
-			let spriteName = effect.s;
+		if(attackProgress > 0){
+			//eops["rotate"] = effect.r;
+			//let effectFrame = new Point(effect.x, effect.y);
+			//let spriteName = effect.s;
 			
-			if(spriteName == "swordeffect"){
-				eops.scalex = rangeScale;
-			} else {
-				eops.scaley = rangeScale;
-			}
+			//g.renderSprite(spriteName, this.position.subtract(c), this.zIndex+2, effectFrame, this.flip, eops);
+			let attackMeshName = this.attstates.currentAttack.mesh;
 			
-			g.renderSprite(spriteName, this.position.subtract(c), this.zIndex+2, effectFrame, this.flip, eops);
+			g.renderMesh(attackMeshName, this.position.subtract(c), this.zIndex+2, {
+				scale : [
+					rangeScale * meshScale,
+					meshScale,
+					meshScale
+				],
+				flip : this.flip,
+				u_time : attackProgress,
+				u_color : this.equip_sword.stats.color1,
+				u_color2 : this.equip_sword.stats.color2
+			});
 		}
 	} catch (e){
-		
+		//console.warn("Render weapon: "+e);
 	}
 }
 Player.prototype.renderShield = function(g,c,ops){

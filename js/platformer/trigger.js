@@ -281,4 +281,48 @@ function Switch(x,y,d,o){
 		}
 	}
 }
+
+class PressureSwitch extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 32;
+		this.height = 32;
+		
+		this.sprite = "switch_pressure";
+		this.playerover = false;
+		this.frame = new Point(0,0);
+		this.targets = new Array();
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				if(obj.grounded){
+					this.press();
+				}
+			}
+		});
+		
+		if("target" in ops){
+			this.targets = ops.target.split(",");
+		}
+	}
 	
+	press(){
+		if(!this.playerover){
+			Trigger.activate(this.targets);
+			this.playerover = true;
+		}
+	}
+	
+	update(){
+		if(this.playerover){
+			this.frame.x = Math.min(this.frame.x + this.delta * 0.5, 2);
+			this.playerover = false;
+		} else {
+			this.frame.x = Math.max(this.frame.x - this.delta * 0.5, 0);
+		}
+	}
+}
+
+self["PressureSwitch"] = PressureSwitch;

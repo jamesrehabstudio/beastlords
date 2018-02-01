@@ -83,8 +83,8 @@ Shockowl.prototype.update = function(){
 			this.frame = Shockowl.anim_attack.frame(progress);
 			
 			if(Timer.isAt(this.attack,this.attackTime * 0.8, this.delta)){
-				var lightning1 = new LightningBolt(this.position.x,this.position.y);
-				var lightning2 = new LightningBolt(this.position.x,this.position.y);
+				var lightning1 = new GroundBolt(this.position.x,this.position.y);
+				var lightning2 = new GroundBolt(this.position.x,this.position.y);
 				lightning1.speed = -2;
 				lightning2.speed = 2;
 				lightning1.damageLight = lightning2.damageLight = this.damageLight;
