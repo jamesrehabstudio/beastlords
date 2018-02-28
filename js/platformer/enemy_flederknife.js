@@ -7,7 +7,8 @@ function Flederknife(x, y, d, o){
 	this.width = 16;
 	this.height = 30;
 	this.sprite = "flederknife";
-	this.speed = 0.3;
+	this.speed = 3.0;
+	this.blockKnockback = 300;
 	this.turndelay = 0.0;
 	
 	this.addModule( mod_rigidbody );
@@ -33,8 +34,10 @@ function Flederknife(x, y, d, o){
 	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.mass = 1.0;
 	
-	this.on("struck", EnemyStruck);
-	
+	this.on("blocked", function(obj){
+		let d = obj.position.x > this.position.x ? -1 : 1;
+		this.force.x = this.blockKnockback;
+	});
 	this.on("hurt", function(){
 		audio.play("hurt",this.position);
 	});
@@ -60,7 +63,7 @@ function Flederknife(x, y, d, o){
 		}
 	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();
@@ -87,7 +90,7 @@ Flederknife.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		this.flip = this.states.direction < 0;
 		
-		this.force.x += this.delta * this.speed * this.states.direction;
+		this.addHorizontalForce(this.speed * this.forward());
 		
 		if(this.atLedge()){
 			this.changeDirection();
@@ -113,7 +116,7 @@ Flederknife.prototype.update = function(){
 			this.grounded = false;
 			this.states.direction = dir.x > 0 ? -1.0 : 1.0;
 			this.force.y = -12;
-			this.force.x = this.states.direction * 10;
+			this.force.x = this.forward() * 300;
 			this.states.jump_tick = 2 + Math.floor(Math.random()*3);
 		}
 		this.turndelay -= this.delta; 
@@ -125,7 +128,7 @@ Flederknife.prototype.update = function(){
 			this.frame.x = (this.frame.x + this.delta * 0.4) % 3;
 			this.frame.y = 2;
 		} else {
-			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.2) % 4;
+			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 6.0) % 4;
 			if(this.states.duck){
 				this.frame.y  = 0;
 			} else {

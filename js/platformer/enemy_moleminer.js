@@ -73,7 +73,7 @@ function Moleminer(x, y, d, o){
 		this.force.x = 5 * (dir.x > 0 ? 1 : -1);
 	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();

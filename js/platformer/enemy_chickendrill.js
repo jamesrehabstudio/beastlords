@@ -44,7 +44,7 @@ function ChickenDrill(x, y, d, o){
 		audio.play("hurt",this.position);
 	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();

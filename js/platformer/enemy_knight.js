@@ -69,7 +69,7 @@ function Knight(x,y,d,o){
 	});
 	this.on("death", function(){
 		Item.drop(this,this.money_award);
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		this.destroy();
 	});

@@ -2,6 +2,9 @@ Spawn.prototype = new GameObject();
 Spawn.prototype.constructor = GameObject;
 function Spawn(x,y,d,ops){
 	this.constructor();
+	
+	this.options = ops || new Options();
+	
 	this.position.x = x;
 	this.position.y = y;
 	this.visible = false;
@@ -22,14 +25,19 @@ function Spawn(x,y,d,ops){
 	this.idleMargin = 0;
 	this.spawnRest = Game.DELTASECOND * 20;
 	this.lastSpawn = Number.MIN_SAFE_INTEGER;
+	this.activateOnTrigger = this.options.getBool("activateontrigger", false);
 	
 	this.on("activate",function(obj){
 		this.clear();
 		this.spawn();
+		
+		if(this.activateOnTrigger){
+			this.active = true;
+		}
 	});
 	
-	this.options = ops || {};
 	var autospawn = 1;
+	
 	
 	if("enemies" in this.options){
 		this.specific = this.options["enemies"].split(",");

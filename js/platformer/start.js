@@ -1,4 +1,4 @@
-var version = "0.4.8";
+var version = "0.5.1";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -20,7 +20,7 @@ function game_start(g){
 		//_player.dodgeFlash = true;
 		_player.walljump = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("temple4.tmx", "test");
+		WorldLocale.loadMap("temple2.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;

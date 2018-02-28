@@ -13,7 +13,7 @@ function Slime(x,y,d,o){
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	this.sprite = "slime";
-	this.speed = 0.3;
+	this.speed = 3.0;
 	this.visible = false;
 	this.interactive = false;
 	this.pushable = false;
@@ -46,7 +46,7 @@ function Slime(x,y,d,o){
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		this.destroy();
 	});
@@ -75,13 +75,10 @@ Slime.prototype.update = function(){
 		this.frame.x = 0;
 		this.frame.y = 2;
 	} else if(this.times.move){
-		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 5;
+		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 3.0) % 5;
 		this.frame.y = 0;
-		if(this.flip){
-			this.force.x -= this.speed * this.delta;
-		} else{
-			this.force.x += this.speed * this.delta;
-		}
+		
+		this.addHorizontalForce(this.speed * this.forward());
 		
 		if(this.interactive){
 			this.strike(new Line(new Point(0,0), new Point(12,4)));
@@ -106,7 +103,7 @@ Slime.prototype.update = function(){
 	} else {
 		if(this.times.melt){
 			//
-			this.times.transition += this.delta * 0.1;
+			this.times.transition += this.delta * 3.0;
 			this.frame.x = Math.floor(this.times.transition * 5);
 			this.frame.y = 1;
 			if(this.times.transition >= 1){
@@ -118,7 +115,7 @@ Slime.prototype.update = function(){
 		} else {
 			//reform
 			this.visible = true;
-			this.times.transition += this.delta * 0.1;
+			this.times.transition += this.delta * 3.0;
 			this.frame.x = 5 - Math.floor(this.times.transition * 5);
 			this.frame.y = 1;
 			if(this.times.transition >= 1){

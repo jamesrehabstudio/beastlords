@@ -486,7 +486,9 @@ class Sprite extends Material {
 		}
 		if("rotate" in shaderOps){
 			rotate = shaderOps["rotate"] / 180 * Math.PI;
-			//r = r / 180 * Math.PI;
+		}
+		if("rotation" in shaderOps){
+			rotate = shaderOps["rotation"] / 180 * Math.PI;
 		}
 		for(var i in shaderOps){
 			if(i == "shader"){
@@ -969,12 +971,12 @@ class BackBuffer extends Material{
 		
 		var buffer = gl.createBuffer();
 		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-		gl.bufferData( gl.ARRAY_BUFFER, geo, gl.DYNAMIC_DRAW);
+		gl.bufferData( gl.ARRAY_BUFFER, geo, gl.STATIC_DRAW);
 		this.set("a_position", 2);
 		
 		var tbuffer = gl.createBuffer();
 		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, tex, gl.DYNAMIC_DRAW);
+		gl.bufferData( gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
 		this.set("a_texCoord", 2);
 		
 		this.set("u_color", tint[0],tint[1],tint[2],tint[3]);

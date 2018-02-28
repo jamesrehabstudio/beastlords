@@ -111,6 +111,14 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 	});
 }
 Renderer.scaleFillRect = function(x,y,w,h,ops){
+	if(x instanceof Point){
+		ops = h;
+		h = w;
+		w = y;
+		y = x.y;
+		x = x.x;
+	}
+	
 	Renderer.layers[Renderer.layer].insertSort({
 		"type" : 1,
 		"color" : [Renderer.color[0],Renderer.color[1],Renderer.color[2],Renderer.color[3]],
@@ -195,6 +203,7 @@ function Game(){
 	this.cycleTime = new Date() * 1;
 	this.interval = 7;
 	this.tree = new BSPTree(new Line(0,0,256,240));
+	this._firstEmptyIndex = -1;
 	this.tileDelta = {};
 	this.mainThreadReady = true;
 	this.settingsUpdated = false;
@@ -202,6 +211,7 @@ function Game(){
 	this.deltaScaleReset = 0.0;
 	this.deltaScalePause = 0;
 	
+	this.frameTime = 0;
 	this.delta = 1;
 	this.deltaUnscaled = 1;
 	this.deltaScale = 1.0;
@@ -222,7 +232,7 @@ function Game(){
 
 //constants
 
-Game.DELTASECOND = 30.0;
+Game.DELTASECOND = 1.0;
 Game.DELTAMINUTE = 60 * Game.DELTASECOND;
 Game.DELTAHOUR = 60 * Game.DELTAMINUTE;
 Game.DELTADAY = 24 * Game.DELTAHOUR;
@@ -249,15 +259,18 @@ Game.prototype.update = function(){
 	//Interval lock
 	//while((new Date() * 1)-this.cycleTime < this.interval){}
 	
-	var newTime = new Date() * 1;
-	var baseDelta = Math.min(
-		(newTime - this.cycleTime) * (0.001*Game.DELTASECOND),
-		0.1*Game.DELTASECOND
+	var newTime = performance.now();
+	this.frameTime = newTime - this.cycleTime;
+	var baseDelta = Math.clamp(
+		this.frameTime * 0.001,
+		
+		0,
+		0.1 * Game.DELTASECOND
 	);
 	this.deltaUnscaled = baseDelta;
 	this.delta = this.deltaUnscaled * this.deltaScale * (this.pause?0:1);
 	this.deltaScaleReset -= this.deltaUnscaled;
-	this.time += this.deltaUnscaled;
+	this.time = performance.now() * Game.DELTASECOND * 0.001;
 	this.timeScaled += this.delta;
 	if(this.deltaScaleReset <= 0){
 		this.deltaScale = 1.0;
@@ -274,39 +287,57 @@ Game.prototype.update = function(){
 		return 0;
 	}
 	
+	let lastValidObject = 0;
 	for(var i=0; i < this.objects.length; i++){
+		//Update logic loop
 		var obj = this.objects[i];
 		
-		obj.idle();
-		if( obj.awake ) {
-			this.tree.remove(obj);
-			
-			obj.fullUpdate();
-			
-			if(obj.interactive && this.objects.indexOf(obj) >= 0){
-				this.tree.push(obj);
+		if(obj != undefined){	
+			lastValidObject = i;
+			obj.idle();
+			if( obj.awake ) {
+				this.tree.remove(obj);
+				
+				obj.fullUpdate();
+				
+				if(obj.interactive && this.objects.indexOf(obj) >= 0){
+					this.tree.push(obj);
+				}
 			}
 		}
 	}
+	//Cut the empty tail
+	this.objects = this.objects.slice(0, lastValidObject+1);
+	if(this._firstEmptyIndex >= this.objects.length) {this._firstEmptyIndex = -1;}
+	
+	var fCamera = this.camera.floor();
 	
 	for(var i=0; i < this.objects.length; i++){
+		//Render loop
 		var obj = this.objects[i];
-		if(obj.shouldRender()){
+		
+		if(obj == undefined){
+			if(this._firstEmptyIndex < 0){
+				this._firstEmptyIndex = i;
+			} else {
+				this._firstEmptyIndex = Math.min(this._firstEmptyIndex, i);
+			}
+		} else if(obj.shouldRender()){
 			for(var j=0; j < RENDER_STEPS.length; j++){
 				//try{
 					var step = RENDER_STEPS[j];
 					Renderer.layer = j;
 					if(obj[step] instanceof Function){
-						obj[step](Renderer, this.camera);
+						obj[step](Renderer, fCamera);
 					}
 					
 					for(var m=0; m < obj.modules.length; m++){
 						if(step in obj.modules[m] ){
-							obj.modules[m][step].apply(obj,[Renderer, this.camera]);
+							obj.modules[m][step].apply(obj,[Renderer, fCamera]);
 						}
 					}
 					
-					obj.useBuff(step, Renderer, this.camera);
+					obj.useBuff(step, Renderer, fCamera);
 				//}catch(err){
 					
 				//}
@@ -323,10 +354,11 @@ Game.prototype.update = function(){
 			this.settingsUpdated = false;
 		}
 		
+		let fCamera = this.camera.floor();
 		postMessage({
 			"audio" : audio.serialize(),
 			"render" : Renderer.serialize(),
-			"camera" : {"x":this.camera.x, "y":this.camera.y},
+			"camera" : {"x":fCamera.x, "y":fCamera.y},
 			"tiles" : this.tileDelta
 		});
 		this.tileDelta = {};
@@ -353,7 +385,9 @@ Game.prototype.useMap = function(m){
 	for(var i=0; i < m.objects.length; i++){
 		var obj = m.objects[i];
 		if(obj.name in self){
-			var newobj = new self[obj.name](obj.x,obj.y,[obj.width,obj.height],obj.properties);
+			//Create and append new object
+			var options = new Options(obj.properties);
+			var newobj = new self[obj.name](obj.x,obj.y,[obj.width,obj.height],options);
 			this.addObject(newobj);
 		}
 	}
@@ -399,7 +433,13 @@ Game.prototype.getTileRule = function(x,y,layer){
 }
 Game.prototype.addObject = function(obj){
 	if(obj instanceof GameObject && this.objects.indexOf(obj) < 0){
-		this.objects.push(obj);
+		if(this._firstEmptyIndex < 0){
+			this.objects.push(obj);
+		} else {
+			this.objects[this._firstEmptyIndex] = obj;
+			this._firstEmptyIndex = -1;
+		}
+		
 		obj.trigger("added");
 		obj._isAdded = true;
 	}
@@ -421,6 +461,7 @@ Game.prototype.getObjects = function( type ) {
 }
 Game.prototype.clearAll = function(){
 	this.objects = [];
+	this._firstEmptyIndex = -1;
 	this.map = null;
 }
 Game.prototype.overlaps = function(l, end){
@@ -430,9 +471,10 @@ Game.prototype.overlaps = function(l, end){
 	} else if ( l instanceof Point ){
 		line = new Line(l, end);
 	}
+	var near = this.tree.get(line);
 	var out = [];
-	for(var i=0; i < this.objects.length; i++ ){
-		var a = this.objects[i];
+	for(var i=0; i < near.length; i++ ){
+		var a = near[i];
 		if( line.overlaps(a.bounds()) ) {
 			out.push( a );
 		}
@@ -792,6 +834,13 @@ BSPTree.prototype.remove = function(value){
 	}
 	return false;
 }
+BSPTree.prototype.toArray = function(){
+	let l = new Array();
+	let h = new Array();
+	if(this.lower instanceof BSPTree) {l = this.lower.toArray(); }
+	if(this.higher instanceof BSPTree) {h = this.higher.toArray(); }
+	return this.values.concat(l.concat(h));
+}
 BSPTree.prototype.nearest = function(position, conditions){
 	conditions = conditions || function(){ return true; };
 	
@@ -1042,6 +1091,7 @@ function GameObject() {
 	this.isStuck = false;
 	this.idleMargin = 32;
 	this.buffs = new Array();
+	this.tint = [1,1,1,1];
 	
 	this.visible = true;
 	this.modules = new Array();
@@ -1238,7 +1288,10 @@ GameObject.prototype.render = function( g, camera ){
 			this.zIndex,
 			this.frame,
 			this.flip,
-			{"shader":this.filter}
+			{
+				"shader":this.filter,
+				"u_color" : this.tint
+			}
 		);
 	}
 }
@@ -1253,7 +1306,14 @@ GameObject.prototype.destroy = function() {
 	this._isAdded = false;
 	var index = game.objects.indexOf(this);
 	if( index >= 0 ) {
-		game.objects.remove( index );
+		//game.objects.remove( index );
+		game.objects[index] = undefined;
+		if(game._firstEmptyIndex < 0){
+			game._firstEmptyIndex = index;
+		} else {
+			game._firstEmptyIndex = Math.min(game._firstEmptyIndex, index);
+		}
+		
 	}
 	game.tree.remove(this);
 }
@@ -1336,7 +1396,17 @@ self.onmessage = function(event){
 	}
 }
 
+var loopCount = 0;
+var lastTotalCount = 0;
+var nextSecond = 0;
 function loop(){
+	loopCount++;
+	if(performance.now() > nextSecond){
+		nextSecond = Math.floor(1+(performance.now()) * 0.001)*1000;
+		lastTotalCount = loopCount;
+		loopCount = 0;
+	}
+	
 	game.update();
 	input.update();
 	setTimeout(loop, 1);

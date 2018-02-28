@@ -27,7 +27,7 @@ function Oriax(x,y,d,o){
 	});
 	this.on("death", function(obj,pos,damage){
 		this.spawnSnakes(2);
-		_player.addXP(this.xp_award);
+		
 		Item.drop(this);
 		audio.play("kill",this.position);
 		this.destroy();
@@ -57,13 +57,13 @@ function Oriax(x,y,d,o){
 	this.calculateXP();
 	
 	this.states = {
-		"cooldown" : 50,
+		"cooldown" : Game.DELTASECOND * 2,
 		"attack" : new Timer(0),
 		"attack_lower" : false
 	};
 	this.attack = {
-		"warm" : 30,
-		"release" : 10
+		"warm" : Game.DELTASECOND,
+		"release" : Game.DELTASECOND * 0.3
 	};
 }
 Oriax.prototype.update = function(){

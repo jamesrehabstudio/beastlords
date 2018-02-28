@@ -34,7 +34,7 @@ function WizzardBolter(x,y,d,o){
 		this.states.backup = !this.states.backup;
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(this.xp_award);
+		
 		Item.drop(this);
 		audio.play("kill",this.position);
 		this.destroy();
@@ -165,7 +165,7 @@ function WizzardFlamer(x,y,d,o){
 		this.states.backup = !this.states.backup;
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(this.xp_award);
+		
 		Item.drop(this);
 		audio.play("kill",this.position);
 		this.destroy();
@@ -283,7 +283,7 @@ function WizzardSoldier(x,y,d,o){
 		this.states.backup = !this.states.backup;
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(this.xp_award);
+		
 		Item.drop(this);
 		audio.play("kill",this.position);
 		this.destroy();
@@ -373,7 +373,7 @@ function WizzardLightning(x,y,d,o){
 		this.states.backup = !this.states.backup;
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(this.xp_award);
+		
 		Item.drop(this);
 		audio.play("kill",this.position);
 		this.destroy();

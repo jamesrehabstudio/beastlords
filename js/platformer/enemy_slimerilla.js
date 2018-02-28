@@ -12,7 +12,9 @@ function Slimerilla(x,y,d,o){
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	this.sprite = "slimerilla";
-	this.speed = 0.3;
+	this.swrap = spriteWrap["slimerilla"];
+	this.speed = 2.0;
+	this.jumpSpeed = 4.0;
 	this.interactive = this.visible = false;
 	this.pushable = false;
 	this.startactive = true;
@@ -29,9 +31,7 @@ function Slimerilla(x,y,d,o){
 	}
 	
 	this.times = {
-		"attackWarm" : Game.DELTASECOND * 2,
-		"attackRelease" : Game.DELTASECOND,
-		"attackRest" : Game.DELTASECOND * 0.7777,
+		"attackTime" : Game.DELTASECOND * 3,
 		"attack" : 0.0,
 		"cooldown" : Game.DELTASECOND,
 		"timeBetweenAttacks" : Game.DELTASECOND * 1.5,
@@ -48,7 +48,7 @@ function Slimerilla(x,y,d,o){
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		this.destroy();
 	});
@@ -72,37 +72,23 @@ Slimerilla.prototype.update = function(){
 	var dir = _player.position.subtract(this.position);
 	
 	if(this.interactive){
+		var dir = this.target().position.subtract(this.position);
+		
 		if(this.times.attack > 0){
-			//once warming up for an attack, there's no stoping him!
-			if(this.times.attack < this.times.attackRest ){
-				this.frame.x = 3
-				this.frame.y = 1;
-			} else if(this.times.attack < this.times.attackRelease ){
-				this.strike(new Line(new Point(0,-24),new Point(48,24)));
-				this.frame.x = Math.min(this.frame.x+this.delta*0.5,3);
-				this.frame.y = 1;
-			} else {
-				this.force.x = 0;
-				this.frame.x = 0;
-				this.frame.y = 1;
-			}
+			let p = 1 - this.times.attack / this.times.attackTime;
+			this.frame = this.swrap.frame("attack", p);
 			this.times.attack -= this.delta;
-		} else if(this.stun > 0){
-			//Do nothing
 		} else if(this.times.jumpback){
 			//jump away from player
 			this.force.y = -6;
-			this.force.x = (dir.x>0?-1.0:1.0) * 10;
+			this.addHorizontalForce(this.jumpSpeed * (dir.x>0?-1.0:1.0), 99);
 			this.times.jumpback = false;
 		} else {
 			//move towards player
-			if(this.flip){
-				this.force.x -= this.speed * this.delta;
-			} else {
-				this.force.x += this.speed * this.delta;
-			}
+			this.addHorizontalForce(this.speed * this.forward());
+			
 			if(Math.abs(dir.x) < 48 && this.times.cooldown <= 0 ){
-				this.times.attack = this.times.attackWarm;
+				this.times.attack = this.times.attackTime;
 				this.times.cooldown = this.times.timeBetweenAttacks;
 				this.faceTarget();
 			}
@@ -154,6 +140,6 @@ Slimerilla.prototype.update = function(){
 	}
 }
 Slimerilla.prototype.faceTarget = function(){
-	var dir = _player.position.subtract(this.position);
+	var dir = this.target().position.subtract(this.position);
 	this.flip = dir.x < 0;
 }

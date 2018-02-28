@@ -449,7 +449,7 @@ Game.prototype.render = function( ) {
 			if(this.map && renderOrder[order] in this.map.layers){
 				var camera = this.camera.scale(1);
 				
-				tiles['testtile'].render(camera, this.map, layer);
+				tiles[this.map.tileset].render(camera, this.map, layer);
 				/*
 				var layer = this.map.layers[renderOrder[order]];
 				var properties = this.map.layersProperties[renderOrder[order]];

@@ -100,7 +100,7 @@ function Pothead(x,y,d,o){
 			Trigger.activate(this.deathtrigger);
 		}
 		
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();

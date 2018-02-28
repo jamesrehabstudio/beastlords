@@ -56,7 +56,7 @@ function Ghoul(x,y,d,o){
 		audio.play("hurt",this.position);
 	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
+		
 		Item.drop(this);
 		audio.play("kill",this.position);
 		this.destroy();

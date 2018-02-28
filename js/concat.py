@@ -13,7 +13,8 @@ minify = False
 watching = [
 	"platformer/*.js",
 	"platformer/**/*.js",
-	"platformer/**/*.shader"
+	"platformer/**/*.shader",
+	"platformer/**/*.janim"
 ]
 
 def convertShader(file):
@@ -28,7 +29,7 @@ def concat():
 	sh_out = ""
 	complete = []
 	
-	js_out += "/* Shader list */\n"
+	js_out += "self.spriteWrap = {};"
 	sh_out += "window.shaders = {};\n\n"
 	
 	for watch in watching:
@@ -40,6 +41,11 @@ def concat():
 					name = os.path.splitext(os.path.basename(file))[0]
 					sh_out += "\n\n /* " + file + "*/ \n\n"
 					sh_out += "window.shaders[\""+name+"\"] = \""+convertShader(file)+"\";\n\n"
+				elif ext == ".janim":
+					name = os.path.splitext(os.path.basename(file))[0]
+					f = open( file, 'r' )
+					js_out += "\n\n /* " + file + "*/ \n\n"
+					js_out += "self.spriteWrap[\""+name+"\"] = new SpriteWrapper("+f.read()+");\n\n"
 				else:
 					complete.append( file )
 					f = open( file, 'r' )

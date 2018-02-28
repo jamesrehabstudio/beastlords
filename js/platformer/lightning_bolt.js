@@ -12,21 +12,39 @@ class LightningBolt extends GameObject {
 		this.addModule(mod_rigidbody);
 		this.pushable = false;
 		
-		this.active = false;
-		this.countdown = Game.DELTASECOND * 2;
-		this.bolttime = Game.DELTASECOND * 0.125;
+		this.active = false; 
+		
+		ops = ops || new Options();
+		
+		this.loop = ops.getBool("loop", false);
+		this.startTime = ops.getFloat("time", 2) * Game.DELTASECOND;
+		
+		this.countdown = this.startTime;
+		this.bolttime = LightningBolt.BOLT_TME;
 		this.damage = 12;
 		
+		
 		this.on("sleep", function(){
-			this.destroy();
+			if(this.loop){
+				this.reset();
+			} else {
+				this.destroy();
+			}
 		})
+	}
+	
+	reset(){
+		this.countdown = this.startTime;
+		this.bolttime = LightningBolt.BOLT_TME;
 	}
 	
 	update(){
 		if(this.active){
 			if(this.countdown > 0){
-				
 				this.countdown -= this.delta;
+				if(this.countdown <= 0){
+					audio.play("lightning1", this.position);
+				}
 			} else if(this.bolttime > 0){
 				
 				if(_player.position.y < this.position.y && Math.abs(this.position.x-_player.position.x) <= 12){
@@ -35,7 +53,11 @@ class LightningBolt extends GameObject {
 				
 				this.bolttime -= this.delta;
 			} else {
-				this.destroy();
+				if(this.loop){
+					this.reset();
+				} else {
+					this.destroy();
+				}
 			}
 		} else {
 			if(this.grounded){
@@ -62,7 +84,9 @@ class LightningBolt extends GameObject {
 	render(g,c){
 		if(this.active){
 			
-			if(this.countdown > 0){
+			if(this.countdown > LightningBolt.WARNING_TME){
+				//Show nothing, getting ready
+			} else if(this.countdown > 0){
 				let r = (game.timeScaled/16) % 1;
 				for(let j=0; j < 4; j++){
 					let a = 1;
@@ -77,7 +101,7 @@ class LightningBolt extends GameObject {
 					]
 					this.renderRipple(g,c,r*16+j*10,color);
 				}
-			}else {
+			} else {
 				let s = new Seed(this.randomSeed);
 				let curr = new Point(this.position.x, this.position.y);
 				for(let i=0; i < 20; i++){
@@ -114,3 +138,6 @@ class LightningBolt extends GameObject {
 		}
 	}
 }
+LightningBolt.BOLT_TME = Game.DELTASECOND * 0.125;
+LightningBolt.WARNING_TME = Game.DELTASECOND * 2;
+self["LightningBolt"] = LightningBolt;

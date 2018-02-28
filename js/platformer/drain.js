@@ -8,7 +8,7 @@ function Drain(x,y,d,ops){
 	this.position.y = y + d[1]*0.5;
 	this.width = d[0];
 	this.height = d[1];
-	this.speed = 0.25;
+	this.speed = 0.25 * self.unitsPerMeter;
 	this.emptyOnStart = 0;
 	this.resetOnSleep = 0;
 	this.triggersave = false;
@@ -83,7 +83,7 @@ function Drain(x,y,d,ops){
 		this._tid = ops.trigger;
 	}
 	if("speed" in ops){
-		this.speed = ops["speed"] * 1;
+		this.speed = ops["speed"] * self.unitsPerMeter;
 	}
 	if("empty" in ops){
 		this.emptyOnStart = ops["empty"] * 1;
@@ -189,7 +189,7 @@ Drain.prototype.render = function(g,c){
 		new Point(),
 		false,
 		{
-			"u_time" : game.timeScaled * 0.01,
+			"u_time" : game.timeScaled,
 			"u_size" : [this.width, this.height],
 			"scalex" : this.width / 64.0,
 			"scaley" : this.height / 64.0,

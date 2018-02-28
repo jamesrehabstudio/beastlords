@@ -56,7 +56,6 @@ function GhostChort(x,y){
 		audio.play("hurt");
 	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
 		Quests.set("q2","complete");
 		
 		Item.drop(this,24);

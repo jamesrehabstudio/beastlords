@@ -22,38 +22,24 @@ class Crane extends GameObject {
 		
 		this.addModule(mod_block);
 		
-		this.move = 0;
-		this.speed = 1.0;
 		this.tension = 1.0;
-		this.radius = 180;
 		this.gravity = 1.0;
 		this.forceTransfer = 0.375;
 		this.friction = new Point(0.05, 0.01);
 		this._progress = 0.0;
-		this.loop = 1;
 		
 		this.force = new Point();
 		
-		if("autostart" in ops){
-			this.move = ops["autostart"] * 1;
-		}
+		this.move = ops.getBool("autostart", false);
+		this.loop = ops.getBool("loop", true);
+		this.wait = ops.getBool("wait", 0.0) * Game.DELTASECOND;
+		this.radius = ops.getFloat("radius", 180.0);
+		this.speed = ops.getFloat("speed", 1.0);
+		this.sync = ops.getFloat("sync", 0.0);
+		
 		if("trigger" in ops){
 			this._tid = ops.trigger;
 		}
-		if("speed" in ops){
-			this.speed = ops["speed"] * 1;
-		}
-		if("loop" in ops){
-			this.loop = ops["loop"] * 1;
-		}
-		if("radius" in ops){
-			this.radius = ops["radius"] * 1;
-		}
-		
-		if("sync" in ops){
-			this._progress = ops["sync"] * 1;
-		}
-		
 		this.on("activate", function(obj){
 			this.move = 1;
 		});
@@ -61,27 +47,30 @@ class Crane extends GameObject {
 		
 		this.start = this.position.add(new Point(0, -this.radius));
 		this.finish = this.position.add(new Point(0, -this.radius));
-		this.current = this.start.add(new Point(0, -this.radius));
+		this.finish.x += ops.getFloat("movex", 0.0);
+		this.finish.y += ops.getFloat("movey", 0.0);
 		
-		if("movex" in ops){
-			let x = ops["movex"] * 1;
-			this.finish.x += x;
-		}
-		if("movey" in ops){
-			let y = ops["movey"] * 1;
-			this.finish.y += y;
-		}
-		
+		this.current = Point.lerp(this.start, this.finish, this.sync);
 		this.distance = this.start.subtract(this.finish).magnitude();
+		this.time = this.distance / this.speed;
+		this.totalTime = this.time + this.wait;
 	}
 	idle(){}
+	
+	
 	update(){
 		if(this.move){
-			this._progress = Math.mod( (game.timeScaled * this.speed) / this.distance, 2);
+			let a = (this.sync + game.timeScaled / this.totalTime) % 1.0;
+			let d = Math.clamp01(MovingBlock.prototype.evaluate.apply(this,[a]));
+			//this.position = Point.lerp(this.startPosition, this.endPosition, d);
+			this.current = Point.lerp(this.start, this.finish, d);
+			
+			//this._progress = Math.mod( (game.timeScaled * this.speed) / this.distance, 2);
+			
 		}
 		
-		let p = this._progress < 1 ? this._progress : (2 - this._progress);
-		this.current = Point.lerp(this.start, this.finish, p);
+		//let p = this._progress < 1 ? this._progress : (2 - this._progress);
+		//this.current = Point.lerp(this.start, this.finish, p);
 		
 		//Apply friction
 		this.force = this.force.scale(new Point(1,1).subtract(this.friction.scale(this.delta)));
@@ -108,13 +97,13 @@ class Crane extends GameObject {
 		);
 		g.renderLine(
 			this.position.add(new Point(this.width * 0.1, 0)).subtract(c),
-			this.current.add(new Point(this.width * 0.1, -240)).subtract(c),
+			this.current.add(new Point(this.width * 0.1, 0)).subtract(c),
 			1,
 			COLOR_WHITE
 		);
 		g.renderLine(
 			this.position.add(new Point(this.width * 0.9, 0)).subtract(c),
-			this.current.add(new Point(this.width * 0.9, -240)).subtract(c),
+			this.current.add(new Point(this.width * 0.9, 0)).subtract(c),
 			1,
 			COLOR_WHITE
 		);

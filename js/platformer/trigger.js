@@ -166,8 +166,10 @@ Trigger.getTargets = function(name){
 	if(game instanceof Game){
 		for(var i=0; i < game.objects.length; i++){
 			var obj = game.objects[i];
-			if("_tid" in obj && obj._tid == name){
-				out.push(obj);
+			if(obj instanceof GameObject){
+				if("_tid" in obj && obj._tid == name){
+					out.push(obj);
+				}
 			}
 		}
 	}

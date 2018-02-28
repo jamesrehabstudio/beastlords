@@ -54,7 +54,6 @@ function Beaker(x, y, d, o){
 	this.on("death", function(){
 		//this.visible = false;
 		//this.interactive = false;
-		_player.addXP(this.xp_award);
 		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();

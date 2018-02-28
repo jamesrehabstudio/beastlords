@@ -83,7 +83,6 @@ function Baller(x, y, d, o){
 		this.ball.destroy();
 	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
 		audio.play("kill",this.position);
 		Item.drop(this);
 		this.destroy();

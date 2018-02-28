@@ -147,6 +147,7 @@ class Cart extends GameObject{
 		
 		this.position.x = x;
 		this.position.y = y;
+		this.start = new Point(x,y);
 		this.sprite = "walker";
 		
 		this.width = 24;
@@ -169,21 +170,31 @@ class Cart extends GameObject{
 		this.on("collideHorizontal", function(v){
 			this.moving = false;
 		});
+		this.on("sleep", function(){
+			this.position.x = this.start.x;
+			this.position.y = this.start.y;
+			this.force = new Point();
+			this.moving = false;
+		})
 		this.on("collideObject", function(obj){
 			if(this.moving && obj.hasModule(mod_combat)){
 				
-				var topY = this.position.y - this.height * 0.5 + 1;
-				var botY = obj.position.y + this.origin.y * this.height;
-				
-				if(topY < botY && this.delta > 0){
-					obj.invincible = 0;
-					obj.hurt(this, this.damage);
+				if(obj.life > 0){
+					var topY = this.position.y - this.height * 0.5 + 1;
+					var botY = obj.position.y + this.origin.y * this.height;
+					
+					if(topY < botY && this.delta > 0){
+						obj.invincible = 0;
+						obj.hurt(this, this.damage);
+					}
 				}
 			}
 		});
 		this.on("hurt_other", function(obj, damage){
 			game.slow(0,this.stunTime);
 		});
+		
+		this.flip = ops.getBool("flip", false);
 	}
 	update(){
 		if(this.moving){

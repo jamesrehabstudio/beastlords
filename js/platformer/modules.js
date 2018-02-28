@@ -8,6 +8,7 @@ var physicsLayer = {
 		2 : [2]
 	}
 }
+var unitsPerMeter = 32;
 var mod_rigidbody = {
 	'init' : function(){
 		this.interactive = true;
@@ -54,6 +55,13 @@ var mod_rigidbody = {
 			);
 			return game.getTile(p) == 0;
 			
+		}
+		this.addHorizontalForce = function(speed, acceleration=1.0){
+			//Adds horizontal force while also limiting top speed
+			let absSpeed = Math.abs(speed);
+			if(this.force.x > -absSpeed && this.force.x < absSpeed){
+				this.force.x += speed * this.delta * acceleration;
+			}
 		}
 		this.on("collideObject", function(obj){
 			if( obj.hasModule(mod_rigidbody) && this.pushable && obj.pushable ) {
@@ -108,8 +116,9 @@ var mod_rigidbody = {
 	'update' : function(){
 		if(this.delta > 0 && this.rigidbodyActive){
 			var inair = !this.grounded;
+			
 			if(this.airtime <= 0 || this.force.y < 0.0){
-				this.force.y += this.gravity * this.delta;
+				this.force.y += self.unitsPerMeter * this.gravity * this.delta;
 			}
 			//Max speed 
 			this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
@@ -119,13 +128,18 @@ var mod_rigidbody = {
 			if(Math.abs( this.force.y ) < 0.01 ) this.force.y = 0;
 			
 			//Add just enough force to lock them to the ground
-			if(this.grounded ) this.force.y += 0.01;
+			if(this.grounded ) { this.force.y += 0.1 };
 			//if(this.grounded ) this.force.y = 0.0;
 			
 			//The timer prevents landing errors
 			this._groundedTimer -= this.grounded ? 1 : 10;
 			this.grounded = this._groundedTimer > 0;
-			var limits = game.t_move( this, this.force.x * this.delta, this.force.y * this.delta );
+			
+			var limits = game.t_move( 
+				this, 
+				self.unitsPerMeter * this.force.x * this.delta, 
+				self.unitsPerMeter * this.force.y * this.delta 
+			);
 			
 			if(this.preventPlatFormSnap <= 0){
 				if(this.grounded && limits[1] > this.position.y && limits[1] - this.position.y < 16 ){
@@ -292,7 +306,7 @@ var mod_block = {
 		this.blockPrevious = new Point(this.position.x,this.position.y);
 	}
 }
-
+/*
 var mod_camera = {
 	'init' : function(){
 		this.cameraLock = false;
@@ -411,7 +425,7 @@ var mod_camera = {
 		}
 	}
 }
-
+*/
 var mod_combat = {
 	"init" : function() {
 		this.lifeMax = this.life = 100;
@@ -438,12 +452,11 @@ var mod_combat = {
 		
 		//Counters
 		this.invincible = 0;
-		this.invincible_time = 10.0;
+		this.invincible_time = Game.DELTASECOND * 0.35;
 		this.stun = 0;
 		this.stun_time = Game.DELTASECOND;
 		this.combat_stuncount = 0;
 		this.death_time = 0;
-		this._hurt_strobe = 0;
 		this._death_confirmed = false;
 		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
 				
@@ -608,17 +621,20 @@ var mod_combat = {
 		this.calculateXP = function(){}
 	},
 	"update" : function(){
-		if( this._base_filter == undefined ) {
-			this._base_filter = this.filter;
-		}
 		if( this.invincible > 0 ) {
-			this._hurt_strobe = (this._hurt_strobe + game.deltaUnscaled * 0.5 ) % 2;
-			this.filter = this._hurt_strobe < 1 ? "hurt" : this._base_filter;
+			
 		} else {
 			this.filter = this._base_filter;
 		}
 		if(this.stun <= 0){
 			this.combat_stuncount = 0;
+		}
+		
+		if(this.swrap instanceof SpriteWrapper){
+			let boxes = this.swrap.getAttackBoxes(this.frame, this);
+			for(let i=0; i < boxes.length; i++){
+				Combat.attackCheck.apply(this,[ boxes[i] ]);
+			}
 		}
 		
 		//this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
@@ -650,29 +666,70 @@ var mod_combat = {
 	},
 	"postrender" : function(g,c){
 		if(self.debug){
-			if(this.guard.active){
-				var shield = this.shieldArea();
-				g.color = [0.2,0.3,1.0,1.0];
-				g.scaleFillRect(
-					shield.start.x - c.x,
-					shield.start.y - c.y,
-					shield.width(),shield.height()
-				);
-			}
-			
-			if(this.ttest instanceof Line){
+			if(this.swrap instanceof SpriteWrapper){
+				let boxes1 = this.swrap.getHitBoxes(this.frame, this);
+				let boxes2 = this.swrap.getAttackBoxes(this.frame, this);
+				let boxes3 = this.swrap.getGuardBoxes(this.frame, this);
+				let nCam = c.scale(-1);
+				
+				g.color = [1.0,0.7,0.7,1.0];
+				for(let i=0; i < boxes1.length; i++){
+					let box = boxes1[i].transpose(nCam);
+					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+				}
 				g.color = [0.8,0.0,0.0,1.0];
-				g.scaleFillRect(
-					this.ttest.start.x - c.x,
-					this.ttest.start.y - c.y,
-					this.ttest.width(),this.ttest.height()
-				);
+				for(let i=0; i < boxes2.length; i++){
+					let box = boxes2[i].transpose(nCam);
+					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+				}
+				g.color = [0.0,0.2,0.8,1.0];
+				for(let i=0; i < boxes3.length; i++){
+					let box = boxes3[i].transpose(nCam);
+					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+				}
+				
 			}
 		}
 	}
 }
 
 var Combat = {
+	"attackCheck" : function(rect, ops){
+		let margin = new Point(32,32);
+		let checkArea = new Line(rect.start.subtract(margin), rect.end.add(margin));
+		let hits = game.overlaps(checkArea);
+		
+		for(let i=0; i < hits.length; i++) {
+			let hit = hits[i];
+			if(hit.interactive && hit != this){
+				
+				let enemAreas = Combat.getHitAreas.apply(hit);
+				
+				for(let j=0; j < enemAreas.length; j++){
+					if(enemAreas[j].overlaps(rect)){
+						//Triggers overlap, cause hit
+						
+						hit.trigger("struck",this);
+						Combat.hit.apply(this, [hit, ops, rect]);
+						return;
+					}
+				}
+			}
+		}
+		
+	},
+	"getHitAreas" : function(){
+		if(this.swrap instanceof SpriteWrapper){
+			return this.swrap.getHitBoxes(this.frame, this);
+		} else {
+			return [new Line(
+				this.position.x - this.width * this.origin.x,
+				this.position.y - this.width * this.origin.y,
+				this.position.x + this.height * (1-this.origin.x),
+				this.position.y + this.height * (1-this.origin.y)
+			)];
+		}
+	},
 	"strike" : function(rect, ops){
 		var offset = new Line( 
 			this.position.add( new Point( rect.start.x * (this.flip ? -1.0 : 1.0), rect.start.y) ),

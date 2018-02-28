@@ -70,7 +70,6 @@ function FrogBoss(x,y){
 	});
 
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this);

@@ -43,15 +43,20 @@ Block.prototype.render = function(g,c){
 	for(var x=0; x < this.tileWidth; x++){
 		for(var y=0; y < this.tileHeight; y++){
 			var tile = this.tiles[i];
+			var ts = 16;
 			
-			var pos = new Point(
-				this.position.x + x * 16,
-				this.position.y + y * 16
-			);
 				
 			if(tile > 0){
-				var t = tile-1;
-				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32));
+				let tileData = getTileData(tile);
+				let t = tileData.tile-1;
+				let f = tileData.hflip;
+				
+				var pos = new Point(
+					this.position.x + (x + (f?1:0)) * ts,
+					this.position.y + y * ts
+				);
+				
+				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(t%32,t/32),f);
 			}
 			i++;
 		}
@@ -93,15 +98,17 @@ function SinkingBlock(x,y,d,ops){
 	this.position.x = x - d[0]*0.5;
 	this.position.y = y - d[1]*0.5;
 	this.originalPosition = new Point(this.position.x,this.position.y);
-	this.maxy = Number.MAX_SAFE_INTEGER;
+	this.maxy = this.maxy = ops.getFloat("maxy",Number.MAX_SAFE_INTEGER);
 	this.width = d[0];
 	this.height = d[1];
 	this.speed = 0.25;
 	this.force_y = 0.0;
 	this.gravity = 0.0;
 	this.sink = false;
-	this.resetOnSleep = 1;
-	this.triggerType = 0;
+	this.sinkOnLedge = ops.getBool("sinkonledge", true);;
+	this.resetOnSleep = ops.getBool("resetonsleep", true);;
+	this.resetOnDeath = ops.getBool("resetondeath", false);
+	this.triggerType = ops.getInt("triggertype", 0);
 	
 	this.addModule(mod_block);
 	
@@ -109,12 +116,6 @@ function SinkingBlock(x,y,d,ops){
 	
 	if("trigger" in ops){
 		this._tid = ops.trigger;
-	}
-	if("triggertype" in ops){
-		this.triggerType = ops["triggertype"] * 1;
-	}
-	if("maxy" in ops){
-		this.maxy = ops["maxy"] * 1;
 	}
 	if("gravity" in ops){
 		this.speed = 0.0;
@@ -131,10 +132,19 @@ function SinkingBlock(x,y,d,ops){
 	if("empty" in ops && ops["empty"]){
 		this.height = 0;
 	}
-	if("resetonsleep" in ops){
-		this.resetOnSleep = ops["resetonsleep"] * 1;
-	}
-	
+	this.on("player_death", function(){
+		if(this.resetOnDeath){
+			this.position.x = this.originalPosition.x;
+			this.position.y = this.originalPosition.y;
+			this.interactive = this.visible = true;
+			this.sink = false;
+		}
+	});
+	this.on(["collideLeft","collideRight"], function(obj){
+		if(this.sinkOnLedge && obj instanceof Player){
+			this.sink = true;
+		}
+	});
 	this.on("activate", function(obj){
 		if(this.triggerType == SinkingBlock.TRIGGERTYPE_DESTROY){
 			this.destroy();
@@ -168,7 +178,6 @@ function SinkingBlock(x,y,d,ops){
 	
 	this.gatherTiles();
 }
-
 SinkingBlock.prototype.update = function(){
 	if(this.sink){
 		this.force_y += this.gravity * this.delta;
@@ -283,9 +292,11 @@ function MovingBlock(x,y,d,ops){
 	
 	ops = ops || {};
 	
-	if("autostart" in ops){
-		this.move = ops["autostart"] * 1;
-	}
+	this.move = ops.getBool("autostart", false);
+	this.loop = ops.getBool("loop", false);
+	this.wait = ops.getFloat("wait", 0.0) * Game.DELTASECOND;
+	this.sync = ops.getFloat("sync", 0,0);
+	
 	if("trigger" in ops){
 		this._tid = ops.trigger;
 	}
@@ -297,12 +308,6 @@ function MovingBlock(x,y,d,ops){
 	}
 	if("speed" in ops){
 		this.speed = ops["speed"] * 1;
-	}
-	if("loop" in ops){
-		this.loop = ops["loop"] * 1;
-	}
-	if("wait" in ops){
-		this.wait = ops["wait"] * Game.DELTASECOND;
 	}
 	if("killstuck" in ops){
 		this.killStuck = ops["killstuck"] * 1;
@@ -341,19 +346,33 @@ function MovingBlock(x,y,d,ops){
 	
 	this.gatherTiles();
 	
-	if("sync" in ops){
-		this.sync = true;
-		this.position = Point.lerp(this.startPosition, this.endPosition, ops["sync"] * 1);
-	}
+	this.time = this.startPosition.subtract(this.endPosition).magnitude() / this.speed;
+	this.totalTime = this.time + this.wait;
 }
 
-MovingBlock.prototype.idle = function(){
-	if(!this.sync){
-		GameObject.prototype.idle.apply(this);
+MovingBlock.prototype.evaluate = function(f){
+	let l = this.loop ? 2 : 1;
+	let r = this.time / this.totalTime;
+	
+	if(f < 0.5 || !this.loop){
+		return Math.clamp01(f * l) / r;
+	} else {
+		a = 1 + (1 / r);
+		return Math.clamp01(a - (f * l) / r);
+		//return a - Math.clamp01(f * l) / r;
 	}
+}
+MovingBlock.prototype.idle = function(){
 }
 
 MovingBlock.prototype.update = function(){
+	if(this.move){
+		let a = (this.sync + game.timeScaled / this.totalTime) % 1.0;
+		let d = Math.clamp01(this.evaluate(a));
+		this.position = Point.lerp(this.startPosition, this.endPosition, d);
+	}
+	return;
+	
 	if(this.waitTime > 0){
 		this.waitTime -= this.delta;
 	} else if(this.move){

@@ -25,7 +25,7 @@ function Chaz(x,y,d,o){
 		//if( obj.hurt instanceof Function ) obj.hurt( this, this.collideDamage );
 	});
 	this.on("death", function(obj,pos,damage){
-		_player.addXP(this.xp_award);
+		
 		Item.drop(this);
 		audio.play("kill",this.position);
 		this.destroy();

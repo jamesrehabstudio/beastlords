@@ -66,9 +66,9 @@ class Garmr extends GameObject{
 		};
 		
 		this.addModule( mod_combat );
-		//this.addModule( mod_boss );
+		this.addModule( mod_boss );
 		
-		ops = ops || {};
+		ops = ops || new Options();
 		
 		if("trigger" in ops){
 			this._tid = ops["trigger"];
@@ -104,7 +104,6 @@ class Garmr extends GameObject{
 			}
 		});
 		this.on("death", function(){
-			_player.addXP(this.xp_award);
 			audio.play("kill");
 			
 			Item.drop(this,140);
@@ -168,147 +167,152 @@ class Garmr extends GameObject{
 	}
 	
 	update(){
-		this.states.time -= this.delta;
-		let v = (game.timeScaled * 0.025) % 1;
-		let p = 1 - this.states.time / this.states.timeTotal;
-		
-		let dir = this.position.subtract(_player.position);
-		
-		this.trackRay.isOn = false;
-		
-		if(this.states.current == Garmr.STATE_IDLE){
-			//Move
-			this.gotoPos.xy = _player.position.add(new Point(this.forward()*-76,-16));
-			this.gotoPos.z = this.speed;
-				
-			this.states.animation = 0;
-			this.animate(v);
-			this.flip = dir.x > 0;
-		} else if(this.states.current == Garmr.STATE_UPPERCUT){
-			//Upper cutt
-			if(p < 0.5){
-				//Move under player
-				this.gotoPos.xy = _player.position.add(new Point(this.forward()*-48,80));
+		if(this.life > 0 && this.active){
+			
+			this.states.time -= this.delta;
+			let v = (game.timeScaled * 0.025) % 1;
+			let p = 1 - this.states.time / this.states.timeTotal;
+			
+			let dir = this.position.subtract(_player.position);
+			
+			this.trackRay.isOn = false;
+			
+			if(this.states.current == Garmr.STATE_IDLE){
+				//Move
+				this.gotoPos.xy = _player.position.add(new Point(this.forward()*-76,-16));
 				this.gotoPos.z = this.speed;
-								
-				this.states.animation = 1;
-				this.animate(p*5);
-			} else if(p < 0.7){
-				this.gotoPos.xy = this.position.add(new Point(0,-20));
-				this.gotoPos.z = this.speed*2;
-				
-				if(p > 0.57){
-					this.strike(this.fistRect(16));
-				}
-				this.states.animation = 2;
-				this.animate((p-0.5)*7);
-			}else{
-				this.gotoPos.z = 0;
-				this.animate(1);
-			}
-		} else if(this.states.current == Garmr.STATE_PUNCH){
-			//Punch
-			if(p < 0.3){
-				this.gotoPos.xy = _player.position.add(new Point(this.forward()*-64,24));
-				this.gotoPos.z = this.speed;
+					
+				this.states.animation = 0;
+				this.animate(v);
 				this.flip = dir.x > 0;
-			} else if(p < 0.5){
-				this.gotoPos.z = 0;
-			} else if(p < 0.7){
-				this.strike(this.fistRect(16));
-				this.gotoPos.xy = this.position.add(new Point(this.forward()*20,0));
-				this.gotoPos.z = this.speed * 2;
-			}
-			this.states.animation = 3;
-			this.animate(p*3);
-		} else if(this.states.current == Garmr.STATE_FIREBEAM){
-			//Beam
-			this.gotoPos.xy = this.start;
-			this.gotoPos.z = this.speed;
-			
-			if(p < 0.5){
-				this.states.animation = 4;
+			} else if(this.states.current == Garmr.STATE_UPPERCUT){
+				//Upper cutt
+				if(p < 0.5){
+					//Move under player
+					this.gotoPos.xy = _player.position.add(new Point(this.forward()*-48,80));
+					this.gotoPos.z = this.speed;
+									
+					this.states.animation = 1;
+					this.animate(p*5);
+				} else if(p < 0.7){
+					this.gotoPos.xy = this.position.add(new Point(0,-20));
+					this.gotoPos.z = this.speed*2;
+					
+					if(p > 0.57){
+						this.strike(this.fistRect(16));
+					}
+					this.states.animation = 2;
+					this.animate((p-0.5)*7);
+				}else{
+					this.gotoPos.z = 0;
+					this.animate(1);
+				}
+			} else if(this.states.current == Garmr.STATE_PUNCH){
+				//Punch
+				if(p < 0.3){
+					this.gotoPos.xy = _player.position.add(new Point(this.forward()*-64,24));
+					this.gotoPos.z = this.speed;
+					this.flip = dir.x > 0;
+				} else if(p < 0.5){
+					this.gotoPos.z = 0;
+				} else if(p < 0.7){
+					this.strike(this.fistRect(16));
+					this.gotoPos.xy = this.position.add(new Point(this.forward()*20,0));
+					this.gotoPos.z = this.speed * 2;
+				}
+				this.states.animation = 3;
 				this.animate(p*3);
-			} else {
-				let p2 = (p-0.5) * 2;
-				this.trackRay.isOn = true;
-				this.trackRay.length = 250 * Math.clamp01(p2*5);
-				this.states.animation = 5;
-				this.animate(p2*1.5);
-				this.trackRay.rotation = Math.lerp(20,-30,p2);
-			}
-		} else if(this.states.current == Garmr.STATE_BOLT){
-			this.gotoPos.xy = this.start;
-			this.gotoPos.z = this.speed;
-			
-			if(Timer.interval(this.states.time,Game.DELTASECOND*0.5,this.delta)){
-				let off = (Math.random()-0.5) * 470;
-				let l = new LightningBolt(this.position.x+off, this.position.y-80);
-				game.addObject(l);
-			}
-			
-			this.states.animation = 6;
-			this.animate(p*8);
-		} else if(this.states.current == Garmr.STATE_MISSILE){
-			//Missile
-			this.gotoPos.x = this.position.x + this.forward()*-20;
-			this.gotoPos.y = _player.position.y;
-			this.gotoPos.z = this.speed * 0.5;
-			this.flip = dir.x > 0;
-			
-			if(Timer.isAt(this.states.time, this.states.timeTotal*0.5,this.delta)){
-				this.fireball();
-			}
-			
-			if(p < 0.5){
-				this.states.animation = 7;
-				this.animate(p*3);
-			} else {
-				this.states.animation = 8;
-				this.animate((p-0.5)*3);
-			}
-		}
-		
-		if(this.gotoPos.z > 0){
-			let _s = this.gotoPos.z * this.delta;
-			if(Math.abs(this.position.x - this.gotoPos.x) >= _s){
-				this.force.x = this.gotoPos.z * (this.gotoPos.x > this.position.x ? 1 : -1);
-			}
-			if(Math.abs(this.position.y - this.gotoPos.y) >= _s){
-				this.force.y = this.gotoPos.z * (this.gotoPos.y > this.position.y ? 1 : -1);
-			}
-		}
-		this.position = this.position.add(this.force.scale(this.delta));
-		this.force = this.force.scale(1-(this.friction*this.delta));
-		
-		//Detect if laser is hitting the player
-		if(this.trackRay.isOn){
-			let r = this.flip ? 180 - this.trackRay.rotation : this.trackRay.rotation;
-			let rayPos = this.position.add(this.trackRay.position.flip(this.flip));
-			let laserHitbox = new Line(
-				rayPos,
-				rayPos.add(new Point(this.trackRay.length,24))
-			).toPolygon().rotate(r, rayPos);
-			
-			if(laserHitbox.intersects(_player.hitbox())){
-				this.trigger("hitWithRay",_player)
-			}
-		}
-		
-		
-		if(this.states.time <= 0 ){
-			if(this.states.count > 0){
-				this.states.count--;
-				this.states.time = this.states.timeTotal;
-			} else { 
-				if(this.states.current == Garmr.STATE_IDLE){
-					//this.setState(Garmr.STATE_BOLT);
-					this.setState(Math.floor(Math.random() * 7));
+			} else if(this.states.current == Garmr.STATE_FIREBEAM){
+				//Beam
+				this.gotoPos.xy = this.start;
+				this.gotoPos.z = this.speed;
+				
+				if(p < 0.5){
+					this.states.animation = 4;
+					this.animate(p*3);
 				} else {
-					this.setState(Garmr.STATE_IDLE);
+					let p2 = (p-0.5) * 2;
+					this.trackRay.isOn = true;
+					this.trackRay.length = 250 * Math.clamp01(p2*5);
+					this.states.animation = 5;
+					this.animate(p2*1.5);
+					this.trackRay.rotation = Math.lerp(20,-30,p2);
+				}
+			} else if(this.states.current == Garmr.STATE_BOLT){
+				this.gotoPos.xy = this.start;
+				this.gotoPos.z = this.speed;
+				
+				if(Timer.interval(this.states.time,Game.DELTASECOND*0.5,this.delta)){
+					let off = (Math.random()-0.5) * 470;
+					let l = new LightningBolt(this.position.x+off, this.position.y-80);
+					game.addObject(l);
+				}
+				
+				this.states.animation = 6;
+				this.animate(p*8);
+			} else if(this.states.current == Garmr.STATE_MISSILE){
+				//Missile
+				this.gotoPos.x = this.position.x + this.forward()*-20;
+				this.gotoPos.y = _player.position.y;
+				this.gotoPos.z = this.speed * 0.5;
+				this.flip = dir.x > 0;
+				
+				if(Timer.isAt(this.states.time, this.states.timeTotal*0.5,this.delta)){
+					this.fireball();
+				}
+				
+				if(p < 0.5){
+					this.states.animation = 7;
+					this.animate(p*3);
+				} else {
+					this.states.animation = 8;
+					this.animate((p-0.5)*3);
 				}
 			}
 			
+			if(this.gotoPos.z > 0){
+				let _s = this.gotoPos.z * this.delta;
+				if(Math.abs(this.position.x - this.gotoPos.x) >= _s){
+					this.force.x = this.gotoPos.z * (this.gotoPos.x > this.position.x ? 1 : -1);
+				}
+				if(Math.abs(this.position.y - this.gotoPos.y) >= _s){
+					this.force.y = this.gotoPos.z * (this.gotoPos.y > this.position.y ? 1 : -1);
+				}
+			}
+			this.position = this.position.add(this.force.scale(this.delta));
+			this.force = this.force.scale(1-(this.friction*this.delta));
+			
+			//Detect if laser is hitting the player
+			if(this.trackRay.isOn){
+				let r = this.flip ? 180 - this.trackRay.rotation : this.trackRay.rotation;
+				let rayPos = this.position.add(this.trackRay.position.flip(this.flip));
+				let laserHitbox = new Line(
+					rayPos,
+					rayPos.add(new Point(this.trackRay.length,24))
+				).toPolygon().rotate(r, rayPos);
+				
+				if(laserHitbox.intersects(_player.hitbox())){
+					this.trigger("hitWithRay",_player)
+				}
+			}
+			
+			
+			if(this.states.time <= 0 ){
+				if(this.states.count > 0){
+					this.states.count--;
+					this.states.time = this.states.timeTotal;
+				} else { 
+					if(this.states.current == Garmr.STATE_IDLE){
+						//this.setState(Garmr.STATE_BOLT);
+						this.setState(Math.floor(Math.random() * 7));
+					} else {
+						this.setState(Garmr.STATE_IDLE);
+					}
+				}
+				
+			}
+		} else {
+			//Dying!!
 		}
 		
 	}

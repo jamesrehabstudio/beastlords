@@ -83,7 +83,6 @@ function Ammit(x,y,d,o){
 		}
 	});
 	this.on("death", function(){
-		_player.addXP(this.xp_award);
 		audio.play("kill");
 		
 		Item.drop(this,65);

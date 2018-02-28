@@ -10,7 +10,7 @@ function EffectExplosion(x, y, sound){
 	this.zIndex = 99;
 	this.sprite = "bullets";
 	
-	this.speed = 0.3;	
+	this.speed = 9.0;	
 	sound = sound || "explode2";
 	audio.play(sound,this.position);
 	this.on("sleep",function(){ this.destroy(); } );
@@ -86,7 +86,7 @@ function EffectSmoke(x, y, d, ops){
 	this.zIndex = 2;
 	this.sprite = "bullets";
 	this.time = Game.DELTASECOND * Math.max(Math.random(),0.7);
-	this.speed = 1 + Math.random()*0.3;
+	this.speed = 30 + Math.random() * 9.0;
 	this.interactive = false;
 	this.frame.x = 0;
 	this.frame.y = 2;
@@ -257,14 +257,17 @@ function EffectNumber(x, y, value){
 
 EffectNumber.prototype.render = function(g,c){
 	var v = "" + this.value;
-	var x_off = v.length * 3;
+	var center = v.length * 3;
 	for(var i=0; i < v.length; i++){
-		var offset = Math.min(this.progress-(i*2),Math.PI);
-		var bounce = Math.sin(offset) * 8;
-		if(offset > 0){
+		let p = this.progress / this.timelimit;
+		let b = Math.PI * Math.clamp01(p * 3 - i * 0.125);
+		var bounce = Math.sin(b) * 8;
+		
+		if(b > 0){
 			this.frame.x = v[i] * 1;
 			this.frame.y = 1;
-			g.renderSprite(this.sprite,this.position.subtract(c).add(new Point(i*6-x_off,-bounce)),this.zIndex,this.frame);
+			let offset = new Point(i*6 - center, -bounce );
+			g.renderSprite(this.sprite,this.position.subtract(c).add(offset),this.zIndex,this.frame);
 		}
 	}
 	
@@ -323,7 +326,7 @@ function EffectHurt(x, y, obj){
 	this.frame.x = 0;
 	this.frame.y = 0;
 	this._frame = 0;
-	this.speed = 0.4;
+	this.speed = 12.0;
 	this.intensity = 0.5;
 	this.rotation = 0.0;
 }
@@ -367,7 +370,7 @@ function EffectBlock(x, y, obj){
 	this.zIndex = 99;
 	this.frame.x = 0;
 	this.frame.y = 0;
-	this.speed = 0.38;
+	this.speed = 11.5;
 	this.intensity = 0.5;
 }
 EffectBlock.prototype.render = function(g,c){

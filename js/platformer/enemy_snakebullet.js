@@ -7,7 +7,7 @@ function SnakeBullet(x,y,d,o){
 	this.width = 16;
 	this.height = 12;
 	
-	this.speed = 0.3;
+	this.speed = 4.0;
 	this.sprite = "snake";
 	
 	this.addModule( mod_rigidbody );
@@ -45,7 +45,7 @@ SnakeBullet.prototype.update = function(){
 	this.timeCounter -= this.delta;
 	
 	if(this.grounded){
-		this.force.x += this.speed * (this.flip ? -1 : 1) * this.delta;
+		this.addHorizontalForce(this.speed * this.forward());
 		this.strike(new Line(new Point(0,-3),new Point(12,3)));
 		this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
 		this.frame.y = 0;

@@ -73,7 +73,7 @@ CornerStone.prototype.update = function(){
 		
 		if( this.progress > Game.DELTASECOND * 7.0 ) {
 			game.pause = false;
-			_player.addXP(40);
+			
 			
 			//For demo only
 			if(this.gateNumber >= 4){

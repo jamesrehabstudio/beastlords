@@ -63,7 +63,7 @@ function Zoder(x,y){
 	});
 	this.on("death", function(){
 		Item.drop(this,40);
-		_player.addXP(50);
+		
 		audio.play("kill");
 		this.destroy();
 	});

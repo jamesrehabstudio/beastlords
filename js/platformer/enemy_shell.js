@@ -34,7 +34,7 @@ function Shell(x,y,d,o){
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		_player.addXP(this.xp_award);
+		
 		audio.play("kill",this.position);
 		this.destroy();
 	});

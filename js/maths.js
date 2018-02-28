@@ -795,6 +795,9 @@ Point.prototype.mod = function(l){
 	this.y = l.start.y + Math.mod(this.y - l.start.y,l.height());
 	return this;
 }
+Point.prototype.toAngle = function(){
+	return Math.atan2(-this.y, this.x);
+}
 Point.fromAngle = function(a,scale){
 	scale = scale || 1;
 	return new Point(
@@ -918,4 +921,38 @@ getTileData = function(t){
 		"dflip" : !!(t&0x20000000), 
 		"tile" : t & 0x0FFFFFF
 	};
+}
+
+class Options{
+	constructor(ops){
+		for(let i in ops){
+			this[i] = ops[i];
+		}
+	}
+	getString(name, defaultValue){
+		if(name in this) {
+			return this[name];
+		}
+		return defaultValue;
+	}
+	getFloat(name, defaultValue){
+		if(name in this) {
+			return this[name] * 1;
+		}
+		return defaultValue;
+	}
+	getInt(name, defaultValue){
+		if(name in this) {
+			return Math.floor(this[name] * 1);
+		}
+		return Math.floor(defaultValue);
+	}
+	getBool(name, defaultValue){
+		if(name in this) {
+			if(this[name].toLowerCase().trim() == "true"){return true;}
+			if(this[name].toLowerCase().trim() == "false"){return false;}
+			return !!this[name] * 1;
+		}
+		return !!defaultValue;
+	}
 }

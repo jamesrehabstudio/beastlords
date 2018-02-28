@@ -103,12 +103,12 @@ Batty.prototype.update = function(){
 			if( batty != null ){
 				var batty_dir = this.position.subtract(batty.position);
 				this.gravity = batty_dir.y > 0 ? -0.5 : 0.5;
-				this.force.x += this.speed * this.delta * (batty_dir.x > 0 ? -1 : 1);
+				this.addHorizontalForce(this.speed * (batty_dir.x > 0 ? -1 : 1));
 			} else {
 				if( this.states.lockon ) {
 					this.gravity = 0;
 					this.force.y = 0;
-					this.force.x += this.speed * this.delta * this.states.direction;
+					this.addHorizontalForce(this.speed * this.forward());
 					this.flip = this.force.x < 0; 
 				} else {
 					this.gravity = 0.6;
