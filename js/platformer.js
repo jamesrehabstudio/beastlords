@@ -7059,7 +7059,7 @@ function Batty(x,y,d,o){
 	this.width = 16;
 	this.height = 16;
 	this.sprite = "batty";
-	this.speed = 0.4;
+	this.speed = 3.5;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -7196,7 +7196,7 @@ Batty.prototype.update = function(){
 		if( this.force.y > 1.0 ) {
 			this.frame.x = 0;
 		} else {
-			this.frame.x = Math.max( (this.frame.x + this.delta * 0.3) % 5, 2);
+			this.frame.x = Math.max( (this.frame.x + this.delta * 9.0) % 5, 2);
 		}
 	}
 }
@@ -10665,7 +10665,7 @@ function Flederknife(x, y, d, o){
 	this.height = 30;
 	this.sprite = "flederknife";
 	this.speed = 3.0;
-	this.blockKnockback = 300;
+	this.blockKnockback = 6.0;
 	this.turndelay = 0.0;
 	
 	this.addModule( mod_rigidbody );
@@ -10693,7 +10693,7 @@ function Flederknife(x, y, d, o){
 	
 	this.on("blocked", function(obj){
 		let d = obj.position.x > this.position.x ? -1 : 1;
-		this.force.x = this.blockKnockback;
+		this.force.x += d * this.blockKnockback;
 	});
 	this.on("hurt", function(){
 		audio.play("hurt",this.position);
@@ -10701,6 +10701,8 @@ function Flederknife(x, y, d, o){
 	this.on("collideObject", function(obj){
 		if(obj.hasModule(mod_combat) && obj.hasModule(mod_rigidbody)){
 			this.changeDirection();
+			let d = obj.position.x > this.position.x ? -1 : 1;
+			this.force.x += d * this.blockKnockback;
 		}
 	});
 	this.on("collideHorizontal", function(dir){
@@ -10728,18 +10730,19 @@ function Flederknife(x, y, d, o){
 	
 	this.faceTarget();
 }
-Flederknife.prototype.changeDirection = function(){
+Flederknife.prototype.changeDirection = function(forceChange=false){
 	this.force.x = 0;
-	if(this.turndelay < 0){
+	if(this.turndelay <= 0 || forceChange){
 		this.states.direction *= -1.0;
 		this.turndelay = Game.DELTASECOND * 0.5;
-	}
 	
-	if(this.difficulty > 0){
-		this.states.duck = Math.round(Math.random());
-	}
-	if(this.difficulty > 99){
-		this.states.jump_tick--;
+	
+		if(this.difficulty > 0){
+			this.states.duck = Math.round(Math.random());
+		}
+		if(this.difficulty > 99){
+			this.states.jump_tick--;
+		}
 	}
 }
 Flederknife.prototype.update = function(){
@@ -10747,10 +10750,10 @@ Flederknife.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		this.flip = this.states.direction < 0;
 		
-		this.addHorizontalForce(this.speed * this.forward());
+		this.addHorizontalForce(this.speed * this.forward(), 0.5);
 		
 		if(this.atLedge()){
-			this.changeDirection();
+			this.changeDirection(true);
 		}
 		
 		if(this.states.jump && this.grounded){
@@ -14692,6 +14695,7 @@ Gernade.prototype.update = function(x,y,d,o){
 
  /* platformer\enemy_slimerilla.js*/ 
 
+/*
 Slimerilla.prototype = new GameObject();
 Slimerilla.prototype.constructor = GameObject;
 function Slimerilla(x,y,d,o){
@@ -14837,6 +14841,170 @@ Slimerilla.prototype.faceTarget = function(){
 	var dir = this.target().position.subtract(this.position);
 	this.flip = dir.x < 0;
 }
+*/
+class Slimerilla extends GameObject{
+	constructor(x,y,d,o){
+		super(x,y,d,o);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 32;
+		this.height = 32;
+		this.collideDamage = 0;
+		this.team = 0;
+		
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_combat);
+		
+		this.sprite = "slimerilla";
+		this.swrap = spriteWrap["slimerilla"];
+		this.speed = 2.0;
+		this.jumpSpeed = 4.0;
+		this.gravity = 0.5;
+		
+		o = o || {};
+		
+		this.difficulty = o.getInt("difficulty",Spawn.difficulty);
+		this.hidden = o.getBool("hidden",false);
+		
+		this.states = {
+			
+			"attack" : 0.0,
+			"cooldown" : Game.DELTASECOND,
+			"takeshape" : 0.0,
+			"reappear" : 0.0,
+			"turn" : 0.0,
+			"jumpCooldown" : 0.0,
+			"landed" : 0.0,
+			"walk" : 0.0,
+			"jumpback" : false
+		};
+		this.times = {
+			"attack" : Game.DELTASECOND * 3,
+			"cooldown" : Game.DELTASECOND * 2,
+			"takeshape" : Game.DELTASECOND * 0.5,
+			"reappear" : Game.DELTASECOND * 3,
+			"turn" : Game.DELTASECOND * 2,
+			"jumpCooldown" : Game.DELTASECOND * 7,
+			"landed" : Game.DELTASECOND * 0.125
+		};
+		
+		this.on("struck", EnemyStruck);
+		this.on("collideObject", function(obj){
+			if(this.hidden){ this.states.reappear = this.times.reappear; }
+		})
+		this.on("hurt",function(obj,damage){
+			audio.play("hurt",this.position);
+			this.states.jumpback = true;
+		});
+		this.on("land", function(){
+			this.states.landed = this.times.landed;
+		});
+		this.on("death", function(obj,pos,damage){
+			Item.drop(this);
+			
+			audio.play("kill",this.position);
+			this.destroy();
+		});
+		
+		if(this.hidden){
+			this.pushable = true;
+		}
+		
+		this.life = Spawn.life(8, this.difficulty);
+		this.moneyDrop = Spawn.money(8,this.difficulty);
+		this.damage = Spawn.damage(4,this.difficulty);
+		this.defencePhysical = Spawn.defence(2,this.difficulty);
+		this.defenceFire = Spawn.defence(-2,this.difficulty);
+		this.defenceSlime = Spawn.defence(4,this.difficulty);
+		this.death_time = Game.DELTASECOND * 0.5;
+	}
+	update(){
+		if(this.life > 0){
+			let dir = this.target().position.subtract(this.position);
+			
+			if(this.hidden){
+				//Waiting for player
+				this.frame.x = 3;
+				this.frame.y = 0;
+				this.pushable = false;
+				this.invincible = Math.max(this.invincible, 0.25);
+				
+				if(this.states.reappear > 0){
+					this.states.reappear -= this.delta;
+					if(this.states.reappear <= 0){ 
+						this.states.takeshape = this.times.takeshape;
+						this.hidden = false;
+						this.pushable = true;
+						this.jump();
+						this.flip = dir.x < 0;
+					}
+				}
+			} else {
+				if(this.states.takeshape > 0){
+					//Appearing
+					let p = 1 - this.states.takeshape / this.times.takeshape;
+					this.frame = this.swrap.frame("appear", p);
+					this.states.takeshape -= this.delta;
+				} else if(this.states.attack > 0){
+					//Attacking
+					let p = 1 - this.states.attack / this.times.attack;
+					this.frame = this.swrap.frame("attack", p);
+					this.states.attack -= this.delta;
+					this.force.x = 0;
+				} else if(!this.grounded){
+					//Jumping
+					this.addHorizontalForce(this.speed * -this.forward(), 0.5);
+					this.frame.x = (this.force.y < -0.25 ? 0 : (this.force.y > 0.25 ? 2 : 1));
+					this.frame.y = 3;
+				} else if(this.states.landed > 0){
+					this.states.landed -= this.delta;
+					this.frame.x = this.frame.y = 3;
+				} else {
+					//Idle state
+					this.states.jumpCooldown -= this.delta;
+					
+					if((this.flip && dir.x > 0) || (!this.flip && dir.x < 0)){
+						//Player is behind
+						this.states.turn += this.delta;
+						if(this.states.turn >= this.times.turn){
+							this.flip = dir.x < 0;
+						}
+					} else {
+						this.states.turn = 0.0;
+						this.states.cooldown -= this.delta;
+						
+						if(Math.abs(dir.x) < 80){
+							this.states.walk = (this.states.walk + 0.5 * this.delta) % 1;
+							this.frame = this.swrap.frame("idle", this.states.walk);
+						} else {
+							//Walk towards target
+							this.addHorizontalForce(this.speed * this.forward());
+							this.states.walk = (this.states.walk + Math.abs(this.force.x) * 1.5 * this.delta) % 1;
+							this.frame = this.swrap.frame("walk", this.states.walk);
+						}
+						if(this.states.jumpCooldown <= 0 && this.states.jumpback){
+							this.jump();
+							this.states.jumpback = false;
+							this.states.jumpCooldown = this.times.jumpCooldown;
+							this.force.x = this.speed * 2 * -this.forward();
+						} else if(this.states.cooldown <= 0){
+							this.states.cooldown = this.times.cooldown;
+							this.states.attack = this.times.attack;
+						}
+					}
+				}
+			}
+		} else {
+			this.frame.x = 1;
+			this.frame.y = 3;
+		}
+	}
+	jump(){
+		this.grounded = false;
+		this.force.y = -5;
+	}
+}
+self["Slimerilla"] = Slimerilla;
 
  /* platformer\enemy_slugplatform.js*/ 
 
@@ -16626,209 +16794,102 @@ Yeti.prototype.update = function(){
 
  /* platformer\equipment.js*/ 
 
-Weapon = {
-	"STATE_STANDING" : "standing",
-	"STATE_CHARGED" : "charged",
-	"STATE_JUMPING" : "jumping",
-	"STATE_DUCKING" : "ducking",
-	"STATE_JUMPUP" : "jumpup",
-	"STATE_DOWNATTACK" : "downattack",
-	"playerState" : function(player){
-		var state = Weapon.STATE_STANDING;
-		if(player.downstab && !player.grounded && input.state("down") > 0){
-			state = Weapon.STATE_DOWNATTACK;
-		} else if(player.states.dash > 0){
-			state = Weapon.STATE_CHARGED;
-		} else if(!player.grounded){ 
-			if(player.states.justjumped > 0.0){
-				state = Weapon.STATE_JUMPUP;
-			} else {
-				state = Weapon.STATE_JUMPING;
-			}
-		} else if(player.states.duck){
-			state = Weapon.STATE_DUCKING;
-		}
-		return state;
+var PlayerAttackList = [
+	{	//Standing attack 1
+		"damage":1.0,
+		"time" : Game.DELTASECOND,
+		"wait":Game.DELTASECOND,
+		"animation" : 0,
+		"pause" : Game.DELTAFRAME30,
+		"stun" : 0.5*Game.DELTASECOND,
+		"movement" : 0.3,
+		"audio" : "swing",
+		"mesh" : "slash1"
 	},
-	"animations" : [
-		new Sequence([[0,4,0.10],[1,4,0.10],[2,4,0.10],[3,4,0.10]]),
-		new Sequence([[4,4,0.10],[5,4,0.10],[6,4,0.10],[7,4,0.10]]),
-		new Sequence([[7,4,0.10],[8,4,0.10],[9,4,0.10],[10,4,0.10]]),
-		new Sequence([[1,8,0.10],[2,8,0.10],[3,8,0.10],[4,8,0.10],[5,8,0.10]]),
-		new Sequence([[1,9,0.10],[2,9,0.10],[3,9,0.10],[4,9,0.10],[5,9,0.10]]),
-		new Sequence([[0,5,0.10],[1,5,0.10],[2,5,0.10],[3,5,0.10],[4,5,0.10],[5,5,0.10],[6,5,0.10]]),
-		new Sequence([[7,5,0.20],[8,5,0.20],[9,5,0.20],[10,5,0.20],[11,5,0.20]]),
-		new Sequence([[0,11,0.12],[1,11,0.08],[2,11,0.08],[3,11,0.08],[4,11,0.12]])
-	]
-};
+	{	//Standing attack 2
+		"damage":1.2,
+		"time" : Game.DELTASECOND,
+		"wait":Game.DELTASECOND,
+		"animation" : 1,
+		"pause" : Game.DELTAFRAME30,
+		"stun" : 0.5*Game.DELTASECOND,
+		"movement" : 0.3,
+		"audio" : "swing",
+		"mesh" : "slash2"
+	},
+	{	//Standing attack 3
+		"damage":1.5,
+		"time" : Game.DELTASECOND,
+		"wait":1.2*Game.DELTASECOND,
+		"animation" : 2,
+		"force" : new Point(3.0, 0.0),
+		"pause" : Game.DELTAFRAME30 * 2,
+		"knockback" : new Point(15,0),
+		"stun" : 0.25 * Game.DELTASECOND,
+		"movement" : 0.0,
+		"audio" : "swing",
+		"mesh" : "slash3"
+	},
+	{	//Charge attack
+		"damage":3.5,
+		"time" : 1.5*Game.DELTASECOND,
+		"wait":1.0*Game.DELTASECOND,
+		"animation" : 3,
+		"stun" : 0.7 * Game.DELTASECOND,
+		"force" : new Point(12.0, 0.0),
+		"movement" : 0.1,
+		"audio" : "swing2",
+		"mesh" : "slashc"
+		//"airtime" : (warmTime+1.5*baseTime+restTime) * Game.DELTASECOND
+	},
+	{	//uppercut
+		"damage":0.8,
+		"time" : 1.5*Game.DELTASECOND,
+		"wait":Game.DELTASECOND,
+		"animation" : 4,
+		"pause" : Game.DELTAFRAME30 * 2,
+		"stun" : 0.5 * Game.DELTASECOND,
+		"knockback" : new Point(0.0, -14.0),
+		"force" : new Point(0, -14.0),
+		"movement" : 0.3,
+		"audio" : "swing2",
+		"mesh" : "slashu"
+	},
+	{	//duck attack
+		"damage":1.2,
+		"time" : Game.DELTASECOND,
+		"wait": Game.DELTASECOND,
+		"animation" : 5,
+		"force" : new Point(0.0, 0.0),
+		"stun" : 0.3 * Game.DELTASECOND,
+		"movement" : 0.0,
+		"audio" : "swing",
+		"mesh" : "slash3"
+	},
+	{	//Down stab
+		"damage":1.0,
+		"time" : Game.DELTASECOND,
+		"wait": 0.0,
+		"animation" : 6,
+		"stun" : 0.7 * Game.DELTASECOND,
+		"movement" : 1.0,
+		"audio" : "swing",
+		"mesh" : "slashd"
+		//"airtime" : 0.3 * Game.DELTASECOND
+	}
+];
 
-
-createWeaponTemplate = function(warmTime, baseTime, restTime, missTime, length){
-	return {
-		"color1" : [.7,.8,1,1],
-		"color2" : [1,1,1,1],
-		"damage" : 3.0,
-		"range" : length,
-		"onEquip" : function(player){},
-		"standing" : {
-			"alwaysqueue" : 0,
-			"length" : 3,
-			0 : {
-				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
-				"damage":1.0,
-				"warm" : warmTime*Game.DELTASECOND,
-				"time" : baseTime*Game.DELTASECOND,
-				"rest":restTime*Game.DELTASECOND,
-				"miss":missTime*Game.DELTASECOND,
-				"animation" : 0,
-				"pause" : Game.DELTAFRAME30,
-				"stun" : 0.5*Game.DELTASECOND,
-				"movement" : 0.3,
-				"mesh" : "slash1"
-			},
-			1 : {
-				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
-				"damage":1.2,
-				"warm" : warmTime*Game.DELTASECOND,
-				"time" : baseTime*Game.DELTASECOND,
-				"rest":restTime*Game.DELTASECOND,
-				"miss":missTime*Game.DELTASECOND,
-				"animation" : 1,
-				"pause" : Game.DELTAFRAME30,
-				"stun" : 0.5*Game.DELTASECOND,
-				"movement" : 0.3,
-				"mesh" : "slash2"
-			},
-			2 : {
-				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
-				"damage":1.5,
-				"warm" : 1.2*warmTime*Game.DELTASECOND,
-				"time" : baseTime*Game.DELTASECOND,
-				"rest":2.5*restTime*Game.DELTASECOND,
-				"miss":missTime*1.2*Game.DELTASECOND,
-				"animation" : 2,
-				"force" : new Point(3.0, 0.0),
-				"pause" : Game.DELTAFRAME30 * 2,
-				"knockback" : 5,
-				"stun" : 0.25 * Game.DELTASECOND,
-				"movement" : 0.3,
-				"mesh" : "slash3"
-			}
-		},
-		"ducking" : {
-			"alwaysqueue" : 0,
-			"length" : 1,
-			0 : {
-				"strike" : new Line(new Point(0,8), new Point(length,12)),
-				"damage":1.2,
-				"warm" : warmTime*Game.DELTASECOND,
-				"time" : baseTime*Game.DELTASECOND,
-				"rest": restTime*Game.DELTASECOND,
-				"miss": missTime*Game.DELTASECOND,
-				"animation" : 5,
-				"force" : new Point(0.0, 0.0),
-				"stun" : 0.3 * Game.DELTASECOND,
-				"movement" : 0.0,
-				"mesh" : "slash3"
-			}
-		},
-		"jumping" : {
-			"alwaysqueue" : 0,
-			"length" : 1,
-			0 : {
-				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
-				"damage":1.0,
-				"warm" : warmTime*Game.DELTASECOND,
-				"time" : baseTime*Game.DELTASECOND,
-				"rest":restTime*Game.DELTASECOND,
-				"miss":missTime*Game.DELTASECOND,
-				"animation" : 0,
-				"pause" : Game.DELTAFRAME30,
-				"stun" : 0.75*Game.DELTASECOND,
-				"movement" : 0.3,
-				"mesh" : "slash1"
-			},
-			1 : {
-				"strike" : new Line(new Point(0,-8), new Point(length,-4)),
-				"damage":1.2,
-				"warm" : warmTime*Game.DELTASECOND,
-				"time" : baseTime*Game.DELTASECOND,
-				"rest":restTime*Game.DELTASECOND,
-				"miss":missTime*Game.DELTASECOND,
-				"animation" : 1,
-				"pause" : Game.DELTAFRAME30,
-				"stun" : 0.75*Game.DELTASECOND,
-				"movement" : 0.3,
-				"mesh" : "slash1"
-			},
-		},
-		"jumpup" : {
-			"alwaysqueue" : 0,
-			"length" : 1,
-			0 : {
-				"strike" : new Line(new Point(0,-24), new Point(length,12)),
-				"damage":0.8,
-				"warm" :0,
-				"time" : 1.5*baseTime*Game.DELTASECOND,
-				"rest":restTime*Game.DELTASECOND*0.8,
-				"miss":restTime*Game.DELTASECOND,
-				"animation" : 4,
-				"pause" : Game.DELTAFRAME30 * 2,
-				"stun" : 0.5 * Game.DELTASECOND,
-				"knockback" : new Point(0.0, -14.0),
-				"force" : new Point(0, -2.0),
-				"movement" : 0.3,
-				"mesh" : "slashu"
-			}
-		},
-		"charged" : {
-			"alwaysqueue" : 0,
-			"length" : 1,
-			0 : {
-				"strike" : new Line(new Point(0,-8), new Point(length,12)),
-				"damage":3.5,
-				"warm" : warmTime*Game.DELTASECOND,
-				"time" : 1.5*baseTime*Game.DELTASECOND,
-				"rest":0.8*restTime*Game.DELTASECOND,
-				"miss":1.0*restTime*Game.DELTASECOND,
-				"animation" : 3,
-				"stun" : 0.7 * Game.DELTASECOND,
-				"force" : new Point(12.0, 0.0),
-				"movement" : 0.1,
-				"audio" : "swing2",
-				"mesh" : "slashc"
-				//"airtime" : (warmTime+1.5*baseTime+restTime) * Game.DELTASECOND
-			}
-		},
-		"downattack" : {
-			"alwaysqueue" : 0,
-			"length" : 1,
-			0 : {
-				"strike" : new Line(new Point(-10,0), new Point(10,length)),
-				"damage":1.0,
-				"warm" : 0.05*Game.DELTASECOND,
-				"time" : 0.25*Game.DELTASECOND,
-				"rest": 0.08*Game.DELTASECOND,
-				"miss": 0.10*Game.DELTASECOND,
-				"animation" : 6,
-				"stun" : 0.7 * Game.DELTASECOND,
-				"movement" : 1.0,
-				"mesh" : "slashd"
-				//"airtime" : 0.3 * Game.DELTASECOND
-			}
-		}
-	};
-}
-
+/*
 var WeaponStats = {
-	//warmTime, baseTime, restTime, missTime, length
-	"short_sword" : createWeaponTemplate(0.05,0.25,0.08,0.10,38),
-	"long_sword" : createWeaponTemplate(0.10,0.25,0.1,0.2,48),
-	"broad_sword" : createWeaponTemplate(0.20,0.25,0.1,0.3,42),
-	"morningstar" : createWeaponTemplate(0.08,0.35,0.08,0.35,40),
-	"bloodsickle" : createWeaponTemplate(0.05,0.25,0.08,0.15,36),
-	"burningblade" : createWeaponTemplate(0.05,0.25,0.1,0.2,38),
+	//baseTime, missTime, length
+	"short_sword" : createWeaponTemplate(0.25,0.10,38),
+	"long_sword" : createWeaponTemplate(0.25,0.2,48),
+	"broad_sword" : createWeaponTemplate(0.25,0.3,42),
+	"morningstar" : createWeaponTemplate(0.45,0.35,40),
+	"bloodsickle" : createWeaponTemplate(0.25,0.15,36),
+	"burningblade" : createWeaponTemplate(0.25,0.2,38),
 }
+
 
 WeaponStats.short_sword.damage = 1;
 WeaponStats.short_sword.standing.alwaysqueue = 1;
@@ -16855,6 +16916,68 @@ WeaponStats.burningblade.standing[2]["force"] = new Point(0.0,0.0);
 WeaponStats.burningblade.onEquip = function(player){ player.damageFire += Math.floor(_player.stats.attack * 0.5); },
 WeaponStats.burningblade.color1 = COLOR_FIRE;
 WeaponStats.burningblade.color2 = [1,0.5,0.0,1.0];
+*/
+
+class PlayerWeapon {
+	constructor(name, speed, missWait, damage, range) {
+		this.name = name;
+		this.speed = speed;
+		this.missWait = missWait;
+		this.damage = damage;
+		this.range = range;
+		
+		this.color1 = [1,1,1,1];
+		this.color2 = [1,1,1,1];
+		this.attacks = {
+			"standing" : 0,
+			"charged" : 3,
+			"jumpup" : 4,
+			"ducking" : 5,
+			"downattack" : 6,
+			"jumping" : 0,
+		};
+		this.combos = {
+			0 : {"standing" : 1, "jumping":1},
+			1 : {"standing" : 2}
+		};
+	}
+	onEquip(player){}
+	nextCombo(state, current){
+		if(current in this.combos){
+			if(state in this.combos[current]){
+				return this.combos[current][state];
+			}
+		}
+		return -1;
+	}
+	firstAttack(state){
+		if(state in this.attacks){
+			return this.attacks[state];
+		}
+	}
+	getAttack(current){
+		return PlayerAttackList[current];
+	}
+}
+PlayerWeapon.STATE_STANDING = "standing";
+PlayerWeapon.STATE_CHARGED = "charged";
+PlayerWeapon.STATE_JUMPING = "jumping";
+PlayerWeapon.STATE_DUCKING = "ducking";
+PlayerWeapon.STATE_JUMPUP = "jumpup";
+PlayerWeapon.STATE_DOWNATTACK = "downattack";
+PlayerWeapon.CHARGED_INDEX = 3;
+PlayerWeapon.DOWNATTACK_INDEX = 6;
+
+WeaponList = {
+	//name, speed, missWait, damage, range
+	"short_sword" : new PlayerWeapon("short sword", 0.25,0.10,1.0,38),
+	"long_sword" : new PlayerWeapon("long sword", 0.25,0.2,1.5,48),
+	"broad_sword" : new PlayerWeapon("broad_sword", 0.25,0.3,2.0,42),
+	"morningstar" : new PlayerWeapon("morning star", 0.45,0.35,2.0,40),
+	"bloodsickle" : new PlayerWeapon("blood sickle", 0.25,0.15,0.8,36),
+	"burningblade" : new PlayerWeapon("burning blade", 0.25,0.2,1.0,38),
+};
+
 
  /* platformer\exit.js*/ 
 
@@ -17690,7 +17813,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(0,0);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "long_sword") { 
@@ -17698,7 +17821,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,0);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "broad_sword") { 
@@ -17706,7 +17829,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(2,0);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "morningstar") { 
@@ -17714,7 +17837,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(0,1);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "bloodsickle") { 
@@ -17722,7 +17845,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,1);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "burningblade") { 
@@ -17730,7 +17853,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(2,1);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	
@@ -21049,7 +21172,8 @@ var mod_combat = {
 		
 		//Counters
 		this.invincible = 0;
-		this.invincible_time = Game.DELTASECOND * 0.35;
+		//this.invincible_time = Game.DELTASECOND * 0.35;
+		this.invincible_time = 0.0;
 		this.stun = 0;
 		this.stun_time = Game.DELTASECOND;
 		this.combat_stuncount = 0;
@@ -21263,23 +21387,30 @@ var mod_combat = {
 	},
 	"postrender" : function(g,c){
 		if(self.debug){
+			//Hit boxes
+			let nCam = c.scale(-1);
+			
+			let boxes1 = Combat.getHitAreas.apply(this);
+			g.color = [1.0,0.5,0.5,1.0];
+			if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
+			for(let i=0; i < boxes1.length; i++){
+				let box = boxes1[i].transpose(nCam);
+				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+			}
+			
 			if(this.swrap instanceof SpriteWrapper){
-				let boxes1 = this.swrap.getHitBoxes(this.frame, this);
 				let boxes2 = this.swrap.getAttackBoxes(this.frame, this);
 				let boxes3 = this.swrap.getGuardBoxes(this.frame, this);
-				let nCam = c.scale(-1);
 				
-				g.color = [1.0,0.7,0.7,1.0];
-				for(let i=0; i < boxes1.length; i++){
-					let box = boxes1[i].transpose(nCam);
-					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
-				}
+				
 				g.color = [0.8,0.0,0.0,1.0];
+				if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
 				for(let i=0; i < boxes2.length; i++){
 					let box = boxes2[i].transpose(nCam);
 					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
 				}
 				g.color = [0.0,0.2,0.8,1.0];
+				if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
 				for(let i=0; i < boxes3.length; i++){
 					let box = boxes3[i].transpose(nCam);
 					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
@@ -21294,7 +21425,7 @@ var Combat = {
 	"attackCheck" : function(rect, ops){
 		let margin = new Point(32,32);
 		let checkArea = new Line(rect.start.subtract(margin), rect.end.add(margin));
-		let hits = game.overlaps(checkArea);
+		let hits = game.overlaps(checkArea.correct());
 		
 		for(let i=0; i < hits.length; i++) {
 			let hit = hits[i];
@@ -21305,11 +21436,10 @@ var Combat = {
 				for(let j=0; j < enemAreas.length; j++){
 					if(enemAreas[j].overlaps(rect)){
 						//Triggers overlap, cause hit
-						
 						hit.trigger("struck",this);
 						Combat.hit.apply(this, [hit, ops, rect]);
-						return;
-					}
+						break;
+					} 
 				}
 			}
 		}
@@ -23617,6 +23747,16 @@ function PlatformGenerator(x,y,t,o){
  /* platformer\player.js*/ 
 
 class Player extends GameObject{
+	get isAttacking(){return this.attstates.currentAttack >= 0; }
+	get currentAttack(){
+		if(this.isAttacking){
+			return this.attstates.weapon.getAttack(this.attstates.currentAttack);
+		}
+		return null;
+	}
+	get attackProgress() {
+		return this.attstates.time / this.attstates.totalTime;
+	}
 	constructor(x,y){
 		super(x,y);
 		this.position.x = x;
@@ -23674,33 +23814,29 @@ class Player extends GameObject{
 			"canGrabLedges" : false,
 			"damageBuffer" : 0,
 			"damageBufferTick" : 0.0,
-			"animationProgress" : 0.0
+			"animationProgress" : 0.0,
+			"duckTime" : 0.0,
 		};
 		
 		this.attstates = {
-			"stats" : WeaponStats["short_sword"],
+			"weapon" : WeaponList["short_sword"],
 		
-			"currentAttack" : null,
-			"currentQueue" : null,
-			"currentQueuePosition" : 0,
-			"currentQueueState" : null,
-			"attackEndTime" : 0.0,
-			"hit" : false,
-			"charge" : 0.0,
-			
-			"timer" : 0.0,
-			"autostartNextAttack" : false
+			"currentAttack" : -1, // attack index
+			"queue" : null, // true if another press
+			"time" : 0.0, //current time in attack
+			"totalTime" : 0.0, //Time for the attack
+			"wait" : 0.0, //Time after attack
 		};
 		
 		this.shieldProperties = {
 			"duck" : 8.0,
 			"stand" : -8.0,
-			"frame_row" : 3
+			"frame_row" : 3,
 		};
 		
 		
 		this.speeds = {
-			"baseSpeed" : 10.0,
+			"baseSpeed" : 5.0,
 			"dashTime" : 1.0,
 			"baseSpeedMax" : 4.0,
 			"dashSpeedMax" : 12.0,
@@ -23715,7 +23851,8 @@ class Player extends GameObject{
 			"breaks": 16,
 			"manaRegen" : Game.DELTASECOND * 60,
 			"turn" : Game.DELTASECOND * 0.25,
-			"charge" : Game.DELTASECOND * 0.4
+			"charge" : Game.DELTASECOND * 0.4,
+			"duckTime" : Game.DELTASECOND * 0.25,
 		};
 		
 		this.on("pre_death", function(){
@@ -23821,7 +23958,7 @@ class Player extends GameObject{
 				obj.displayDamage(fireDamage);
 				obj.isDead();
 				
-				if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
+				if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
 					this.trigger("downstabTarget", obj, 0);
 				}
 			}
@@ -23834,8 +23971,7 @@ class Player extends GameObject{
 			
 			shakeCamera(Game.DELTASECOND*0.5,str);
 			
-			this.cancelAttack(this);
-			this.attstates.charge = 0.0;
+			this.cancelAttack();
 			this.states.ledgePosition = false;
 			
 			var effect = new EffectHurt(this.position.x, this.position.y);
@@ -23874,7 +24010,7 @@ class Player extends GameObject{
 			}
 		})*/;
 		this.on("break_tile", function(obj, damage){
-			if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
+			if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
 				this.trigger("downstabTarget", obj, damage);
 				obj.trigger("downstabbed", this, damage);
 			}
@@ -23885,26 +24021,27 @@ class Player extends GameObject{
 			this.life = Math.min( this.life + Math.floor(this.lifeStealCarry), this.lifeMax );
 			this.lifeStealCarry -= Math.floor(this.lifeStealCarry);
 			
-			if(this.attstates.currentAttack){
-				this.attstates.attackEndTime = this.attstates.currentAttack.time + this.attstates.currentAttack.rest;
-				this.attstates.hit = true;
+			if(this.isAttacking){
+				this.attstates.wait = 0.0;
 				this.hitIgnoreList.push(obj);
 				
-				if("pause" in this.attstates.currentAttack){
-					game.slow(0.0, this.attstates.currentAttack.pause);
+				let attack = this.currentAttack;
+				
+				if("pause" in attack){
+					game.slow(0.0, attack.pause);
 				}
-				if("shake" in this.attstates.currentAttack){
-					shakeCamera(Game.DELTASECOND*0.25, this.attstates.currentAttack.shake);
+				if("shake" in attack){
+					shakeCamera(Game.DELTASECOND*0.25, attack.shake);
 				}
-				if("stun" in this.attstates.currentAttack){
-					obj.stun = this.attstates.currentAttack.stun;
+				if("stun" in attack){
+					obj.stun = attack.stun;
 					if(!this.grounded && obj.life > 0 && obj.hasModule(mod_rigidbody)){
-						obj.airtime = this.attstates.currentAttack.stun * this.perks.attackairboost;
+						obj.airtime = attack.stun * this.perks.attackairboost;
 					}
 				}
-				if("knockback" in this.attstates.currentAttack && obj.hasModule(mod_rigidbody)){
+				if("knockback" in attack && obj.hasModule(mod_rigidbody)){
 					var scale = 1.0 / Math.max(obj.mass, 1.0);
-					var knock = new Point(this.forward() * this.attstates.currentAttack.knockback.x, this.attstates.currentAttack.knockback.y).scale(scale);
+					var knock = new Point(this.forward() * attack.knockback.x, attack.knockback.y).scale(scale);
 					obj.force.x += knock.x;
 					obj.force.y += knock.y;
 				}
@@ -23916,21 +24053,17 @@ class Player extends GameObject{
 				this.states.afterImage.set(Game.DELTASECOND * 3);
 			}
 			
-			if(this.states.roll > 0){
-				this.states.doubleJumpReady = true;
-			} else if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
-				this.states.downStab = false;
+			if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
+				//this.states.downStab = false;
 				this.trigger("downstabTarget", obj, damage);
 				obj.trigger("downstabbed", this, damage);
-			} else {
-				if( !this.grounded ) {
-					//Add extra float
-					this.force.y -= this.speeds.jump * this.speeds.airGlide;
-				}
+			} else if( !this.grounded ) {
+				//Add extra float
+				this.force.y -= this.speeds.jump * this.speeds.airGlide;
 			}
 			
 			//Charge kill explosion!
-			if( this.attstates.currentQueueState == Weapon.STATE_CHARGED ){
+			if( this.attstates.currentAttack == PlayerWeapon.CHARGED_INDEX ){
 				//A little shake
 				shakeCamera(Game.DELTASECOND*0.3,5);
 				
@@ -24062,6 +24195,7 @@ class Player extends GameObject{
 			}
 		}
 		
+		/*
 		this.superGetDamage = this.getDamage;
 		this.getDamage = function(){
 			var damage = this.superGetDamage();
@@ -24070,6 +24204,7 @@ class Player extends GameObject{
 			}
 			return damage;
 		}
+		*/
 		
 		//Stats
 		this.stat_points = 0;
@@ -24145,34 +24280,6 @@ class Player extends GameObject{
 		if ( this.life > 0 ) {
 			var strafe = input.state('block') > 0;
 			
-			//Update attack animation
-			if(this.attstates.currentAttack){
-				this.attstates.timer += this.delta * (1.0 + this.perks.attackSpeed);
-				
-				if(Timer.isAt(this.attstates.timer,0,this.delta)){
-					if("force" in this.attstates.currentAttack){
-						this.force.x += this.attstates.currentAttack.force.x * this.forward();
-						this.force.y += this.attstates.currentAttack.force.y;
-					}
-					if("audio" in this.attstates.currentAttack){
-						audio.play(this.attstates.currentAttack.audio);
-					} else {
-						audio.play("swing");
-					}
-				}
-				
-				if(this.attstates.timer >= this.attstates.attackEndTime){
-					if(this.attstates.autostartNextAttack){
-						this.attack();
-						this.attstates.autostartNextAttack = false;
-					} else {
-						//No more attacks, end queue
-						this.cancelAttack();
-					}
-					
-				}
-			}
-			
 			if (this.stun > 0 ){
 				//Do nothing, just wait to recover
 				this.frame.x = 10; this.frame.y = 1;
@@ -24222,32 +24329,38 @@ class Player extends GameObject{
 						this.states.ledgePosition = false;
 					}
 				}
-			} else if(input.state("fire") == 1 && input.state("dodge") > 0){
-				//Charge attack
-				this.attstates.charge = 1;
-				this.attack(this); 
-				//this.stanima = Math.max(this.stanima - this.stanimaBase, 0);
-				this.attstates.charge = 0;
-			
-			} else if( this.attstates.timer > 0 ){
+			} else if( this.isAttacking ){
 				//Player in attack animation
 				
-				if(this.attstates.currentAttack){
-					var attackMovementSpeed = this.speeds.baseSpeed * this.delta * this.attstates.currentAttack.movement;
-					var attackProgress = (this.attstates.timer) / this.attstates.currentAttack.time;
-					
-					let attackName = "attack" + (this.attstates.currentAttack.animation);
-					this.frame = this.swrap.frame(attackName, attackProgress);
-					
-					if ( input.state('left') > 0 ) { this.force.x -= attackMovementSpeed; }
-					if ( input.state('right') > 0 ) { this.force.x += attackMovementSpeed; }
-					
+				let attack = this.currentAttack;
+				let hAxis = 0;
+				if(input.state("left") > 0) { hAxis -= 1;}
+				if(input.state("right") > 0) { hAxis += 1;}
+				
+				//Allow player movement during attack
+				this.move(hAxis * attack.movement);
+				
+				//Let the player queue more attacks
+				if ( input.state('fire') == 1 ) { this.attstates.queue = true; }
+				
+				//Animation
+				let attackName = "attack" + (attack.animation);
+				this.frame = this.swrap.frame(attackName, this.attackProgress);
+				
+				
+				this.attstates.time += this.delta * (1.0 + this.perks.attackSpeed);
+				
+				//End attack
+				if(this.attstates.time > this.attstates.totalTime + this.attstates.wait){
+					let nextAttackIndex = this.attstates.weapon.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
+					if(this.attstates.queue && nextAttackIndex >= 0){
+						this.attack(nextAttackIndex);
+					} else {
+						this.cancelAttack();
+					}
 				}
 				
-				if ( input.state('fire') == 1 ) { 
-					//Let the player queue more attacks
-					this.attack(this); 
-				}
+				
 			} else if( this.delta > 0) {
 				//Player is in move/idle state
 				
@@ -24258,12 +24371,14 @@ class Player extends GameObject{
 					this.spellCursor = (this.spellCursor+1)%this.spells.length;
 				}
 				
-				//Move
-				if( !this.states.duck ) {
-					this.move(input.state('left') > 0 ? -1 : (input.state('right') > 0 ? 1 : 0) );
-				} else {
+				//Player Movement
+				let hAxis = input.state("left") > 0 ? -1 : (input.state("right") ? 1 : 0);
+				if( this.states.duck ) {
 					this.states.turn = 0.0;
+				} else {
+					this.move(hAxis);
 				}
+				
 				
 				if(this.states.turn > 0){
 					//Block disabled while turning
@@ -24304,7 +24419,7 @@ class Player extends GameObject{
 				
 				//Attack and start combo
 				if ( input.state('fire') == 1 ) { 
-					this.attack(this); 
+					this.attack(); 
 				}
 				
 				//Apply jump boost
@@ -24357,7 +24472,9 @@ class Player extends GameObject{
 							}
 						}
 					} else if(this.states.duck){
-						this.frame = this.swrap.frame("duck", 0);
+						this.states.duckTime = this.speeds.duckTime;
+						this.states.animationProgress = Math.min(this.states.animationProgress+this.delta*4, 1);
+						this.frame = this.swrap.frame("duck", this.states.animationProgress);
 					} else if(this.grounded && input.state("dodge") == 1){
 						//DASH LIKE A FIEND!
 						if(input.state("left") > 0 || input.state("right") > 0){
@@ -24371,10 +24488,15 @@ class Player extends GameObject{
 						let tProg = 1 - (this.states.turn / this.speeds.turn);
 						this.frame = this.swrap.frame("turn", tProg);
 					} else if(!this.grounded){
-						this.frame.x = 7;
-						if(this.force.y < -0.5){ this.frame.x = 6; }
-						if(this.force.y > 0.5){ this.frame.x = 8; }
-						this.frame.y = 2;
+						if(this.states.doubleJumpReady){
+							this.frame.x = 7;
+							if(this.force.y < -0.5){ this.frame.x = 6; }
+							if(this.force.y > 0.5){ this.frame.x = 8; }
+							this.frame.y = 2;
+						} else {
+							this.states.animationProgress = (this.states.animationProgress + this.delta * 4) % 1;
+							this.frame = this.swrap.frame("jump2", this.states.animationProgress);
+						}
 					} else if(Math.abs(this.force.x) < 1.0){
 						//Idle
 						this.states.animationProgress = (this.states.animationProgress + this.delta * 0.67) % 1;
@@ -24438,6 +24560,7 @@ class Player extends GameObject{
 		}
 		this.states.effectTimer += this.delta;
 		this.states.turn -= this.delta;
+		this.states.duckTime -= this.delta;
 		
 		
 		if(this.states.dash > 0){
@@ -24462,11 +24585,20 @@ class Player extends GameObject{
 		
 		this._prevPosition = this.position.scale(1);
 	}
-	move(direction){
-		if ( direction < 0 ) { this.force.x -= this.speeds.baseSpeed * this.delta; }
-		if ( direction > 0 ) { this.force.x += this.speeds.baseSpeed * this.delta; }
-		if ( direction == 0 ) { this.force.x = this.force.x * (1.0 - this.speeds.breaks * this.delta); }
-		this.force.x = Math.clamp(this.force.x, -this.speeds.baseSpeedMax, this.speeds.baseSpeedMax);
+	move(hAxis, acceleration = 1.0){
+		if(!this.grounded){
+			//Moving in the air
+			if(hAxis != 0){
+				this.addHorizontalForce(hAxis * this.speeds.baseSpeed, 5.0 * acceleration);
+			}
+		} else {
+			//Moveing on the ground
+			if(hAxis != 0){
+				this.addHorizontalForce(hAxis * this.speeds.baseSpeed, 10.0 * acceleration);
+			} else {
+				this.force.x *= 1.0 - this.speeds.breaks * this.delta;
+			}
+		}
 	}
 	idle(){}
 	testLedgeTiles(){
@@ -24507,6 +24639,7 @@ class Player extends GameObject{
 		if( !this.states.duck ) {
 			this.position.y += 3.0;
 			this.states.duck = true;
+			this.states.animationProgress = 0;
 		}
 	}
 	jump(){ 
@@ -24544,79 +24677,58 @@ class Player extends GameObject{
 		this.stand(); 
 		audio.play("jump");
 	}
-	attack(){
+	attack(attackIndex = -1){
 		//Player has pressed the attack button or an attack has been queued
+		this.cancelAttack();
 		
-		if(this.attstates.currentQueue){
-			//Chain up next attack
-			if(this.attstates.timer >= this.attstates.attackEndTime){
-				//Previous attack complete, start next attack
-				var state = Weapon.playerState(this);
-				this.attstates.hit = false;
-				if(this.attstates.currentQueueState == state && this.attstates.currentQueuePosition+1 < this.attstates.currentQueue.length){
-					this.attstates.currentQueuePosition++;
-					
-					this.hitIgnoreList = new Array();
-					this.attstates.currentAttack = this.attstates.currentQueue[this.attstates.currentQueuePosition];
-					this.attstates.timer = -this.attstates.currentAttack["warm"];
-					this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
-					
-					if("airtime" in this.attstates.currentAttack){
-						this.force.y = 0;
-						this.airtime = this.attstates.currentAttack["airtime"];
-					} else if(!this.grounded){
-						this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
-					}
-					
-					return;
-				} else {
-					this.cancelAttack();
-					return;
-				}
-			} else {
-				if(this.attstates.hit || this.attstates.currentQueue.alwaysqueue){
-					this.attstates.autostartNextAttack = true;
-				}
-				return;
-			}
+		let weapon = this.attstates.weapon;
+		if(attackIndex < 0){
+			attackIndex = weapon.firstAttack(this.getWeaponState());
 		}
 		
-		//Start new queue
-		var state = Weapon.playerState(this);
+		let attack = weapon.getAttack(attackIndex);
+		this.attstates.currentAttack = attackIndex;
+		this.attstates.totalTime = attack.time * weapon.speed;
+		this.attstates.wait = attack.wait * weapon.missWait;
+		this.attstates.queue = false;
+		this.attstates.time = 0.0;
 		
-		this.hitIgnoreList = new Array();
-		this.attstates.currentQueuePosition = 0;
-		this.attstates.currentQueueState = state;
-		this.attstates.currentQueue = this.equip_sword.stats[this.attstates.currentQueueState];
-		this.attstates.currentAttack = this.attstates.currentQueue[this.attstates.currentQueuePosition];
 		
-		//Attack ends after the attack + miss
-		this.attstates.timer = -this.attstates.currentAttack["warm"]
-		this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
-		
-		if("airtime" in this.attstates.currentAttack){
-			this.force.y = 0;
-			this.airtime = this.attstates.currentAttack["airtime"];
-		} else if(!this.grounded){
-			this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
+		if("force" in attack){
+			let addForce = new Point(this.forward() * attack.force.x, attack.force.y);
+			this.grounded = this.grounded && addForce.y < 0;
+			this.force = this.force.add(addForce);
 		}
+		
+		audio.play(attack.audio, this.position);
 	}
 	cancelAttack(){
-		this.attstates.currentAttack = null;
-		this.attstates.currentQueue = null;
-		this.attstates.currentQueuePosition = 0;
-		this.attstates.currentQueueState = null;
+		this.attstates.currentAttack = -1;
+		this.attstates.time = 0.0;
+		this.attstates.queue = false;
 		this.hitIgnoreList = new Array();
-		this.attstates.hit = false;
-		
-		this.attstates.timer = 0.0;
+	}
+	getWeaponState(){
+		var state = PlayerWeapon.STATE_STANDING;
+		if(this.downstab && !this.grounded && input.state("down") > 0){
+			state = PlayerWeapon.STATE_DOWNATTACK;
+		} else if(this.states.dash > 0){
+			state = PlayerWeapon.STATE_CHARGED;
+		} else if(!this.grounded){ 
+			state = PlayerWeapon.STATE_JUMPING;
+		} else if(this.states.duck){
+			state = PlayerWeapon.STATE_DUCKING;
+		} else if(this.states.duckTime > 0 && Math.abs(this.force.x) > 0.06125) {
+			state = PlayerWeapon.STATE_JUMPUP;
+		}
+		return state;
 	}
 	baseDamage(){
 		return Math.round(8 + this.stats.attack * this.equip_sword.stats.damage);
 	}
 	currentDamage(){
-		if(this.attstates.currentAttack) {
-			return Math.round(this.baseDamage() * this.attstates.currentAttack["damage"]);
+		if(this.isAttacking) {
+			return Math.round(this.baseDamage() * this.currentAttack.damage);
 		} else {
 			return this.baseDamage();
 		}
@@ -24849,6 +24961,7 @@ class Player extends GameObject{
 		}
 		
 		//adjust for ledge offset
+		/*
 		if(_player.states.ledge){
 			g.renderSprite(
 				this.sprite,
@@ -24861,6 +24974,13 @@ class Player extends GameObject{
 		} else {
 			GameObject.prototype.render.apply(this,[g,c]);
 		}
+		*/
+		let color = COLOR_WHITE;
+		if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
+		g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
+			"u_color" : color
+		});
+		
 		//When rolling, ignore flip and shader
 		if(this.dodgeFlash && this.states.rolling){
 			var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
@@ -24886,11 +25006,6 @@ class Player extends GameObject{
 		try{
 			let rangeScale = this.equip_sword.stats.range / 70;
 			let meshScale = 0.1;
-			let attackProgress = 0;
-			
-			if(this.attstates.currentAttack){
-				attackProgress = (this.attstates.timer) / this.attstates.currentAttack.time;
-			}
 			
 			let _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
 			let rotation = _t.r;
@@ -24905,13 +25020,15 @@ class Player extends GameObject{
 			ops["rotate"] = (this.flip ? -1 : 1) * rotation;
 			
 			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
-			if(attackProgress > 0){
+			
+			if(this.isAttacking && this.attackProgress > 0){
 				//eops["rotate"] = effect.r;
 				//let effectFrame = new Point(effect.x, effect.y);
 				//let spriteName = effect.s;
 				
 				//g.renderSprite(spriteName, this.position.subtract(c), this.zIndex+2, effectFrame, this.flip, eops);
-				let attackMeshName = this.attstates.currentAttack.mesh;
+				let attack = this.currentAttack;
+				let attackMeshName = attack.mesh;
 				
 				g.renderMesh(attackMeshName, this.position.subtract(c), this.zIndex+2, {
 					scale : [
@@ -24920,7 +25037,7 @@ class Player extends GameObject{
 						meshScale
 					],
 					flip : this.flip,
-					u_time : attackProgress,
+					u_time : this.attackProgress,
 					u_color : this.equip_sword.stats.color1,
 					u_color2 : this.equip_sword.stats.color2
 				});
@@ -29917,7 +30034,7 @@ self.spriteWrap["axedog"] = new SpriteWrapper({"name":"axedog","sprite":"axedog.
 
  /* platformer\animations\player.janim*/ 
 
-self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":45,"y":35,"u":72,"v":46,"type":2,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":45,"y":35,"u":65,"v":46,"type":2,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":16,"y":31,"u":40,"v":64,"type":0,"rotation":0},{"x":20,"y":38,"u":68,"v":46,"type":2,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0},{"x":54,"y":41,"u":85,"v":49,"type":2,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":25,"y":28,"u":50,"v":64,"type":0,"rotation":0},{"x":50,"y":40,"u":77,"v":54,"type":2,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0},{"x":51,"y":36,"u":69,"v":45,"type":2,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":55,"u":64,"v":62,"type":2,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":64,"v":53,"type":2,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":64,"v":25,"type":2,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":18,"u":41,"v":55,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}]},"7":{"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}]},"10":{"2":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":32,"y":51,"u":47,"v":74,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.4375}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":1,"y":8,"t":0.15625},{"x":10,"y":10,"t":0.15625},{"x":2,"y":10,"t":0.625},{"x":1,"y":5,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"new_anim","time":1,"frames":[{"x":1,"y":11,"t":1}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
+self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":45,"y":35,"u":65,"v":46,"type":2,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":31,"u":48,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":52,"type":2,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0},{"x":51,"y":36,"u":69,"v":45,"type":2,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":55,"u":64,"v":62,"type":2,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":77,"v":53,"type":2,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":72,"v":25,"type":2,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":18,"u":41,"v":55,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}]},"7":{"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}]},"10":{"2":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":89,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":31,"y":51,"u":50,"v":89,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.4375}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":1,"y":8,"t":0.15625},{"x":10,"y":10,"t":0.15625},{"x":2,"y":10,"t":0.625},{"x":1,"y":5,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"new_anim","time":1,"frames":[{"x":1,"y":11,"t":1}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
 
 
 

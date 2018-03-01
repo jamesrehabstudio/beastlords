@@ -205,7 +205,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(0,0);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "long_sword") { 
@@ -213,7 +213,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,0);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "broad_sword") { 
@@ -221,7 +221,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(2,0);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "morningstar") { 
@@ -229,7 +229,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(0,1);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "bloodsickle") { 
@@ -237,7 +237,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,1);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	if(n == "burningblade") { 
@@ -245,7 +245,7 @@ Item.prototype.setName = function(n){
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(2,1);
 		this.message = Item.weaponDescription;
-		this.stats = WeaponStats[n];
+		this.stats = WeaponList[n];
 		return; 
 	}
 	

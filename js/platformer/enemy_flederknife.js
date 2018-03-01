@@ -8,7 +8,7 @@ function Flederknife(x, y, d, o){
 	this.height = 30;
 	this.sprite = "flederknife";
 	this.speed = 3.0;
-	this.blockKnockback = 300;
+	this.blockKnockback = 6.0;
 	this.turndelay = 0.0;
 	
 	this.addModule( mod_rigidbody );
@@ -36,7 +36,7 @@ function Flederknife(x, y, d, o){
 	
 	this.on("blocked", function(obj){
 		let d = obj.position.x > this.position.x ? -1 : 1;
-		this.force.x = this.blockKnockback;
+		this.force.x += d * this.blockKnockback;
 	});
 	this.on("hurt", function(){
 		audio.play("hurt",this.position);
@@ -44,6 +44,8 @@ function Flederknife(x, y, d, o){
 	this.on("collideObject", function(obj){
 		if(obj.hasModule(mod_combat) && obj.hasModule(mod_rigidbody)){
 			this.changeDirection();
+			let d = obj.position.x > this.position.x ? -1 : 1;
+			this.force.x += d * this.blockKnockback;
 		}
 	});
 	this.on("collideHorizontal", function(dir){
@@ -71,18 +73,19 @@ function Flederknife(x, y, d, o){
 	
 	this.faceTarget();
 }
-Flederknife.prototype.changeDirection = function(){
+Flederknife.prototype.changeDirection = function(forceChange=false){
 	this.force.x = 0;
-	if(this.turndelay < 0){
+	if(this.turndelay <= 0 || forceChange){
 		this.states.direction *= -1.0;
 		this.turndelay = Game.DELTASECOND * 0.5;
-	}
 	
-	if(this.difficulty > 0){
-		this.states.duck = Math.round(Math.random());
-	}
-	if(this.difficulty > 99){
-		this.states.jump_tick--;
+	
+		if(this.difficulty > 0){
+			this.states.duck = Math.round(Math.random());
+		}
+		if(this.difficulty > 99){
+			this.states.jump_tick--;
+		}
 	}
 }
 Flederknife.prototype.update = function(){
@@ -90,10 +93,10 @@ Flederknife.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		this.flip = this.states.direction < 0;
 		
-		this.addHorizontalForce(this.speed * this.forward());
+		this.addHorizontalForce(this.speed * this.forward(), 0.5);
 		
 		if(this.atLedge()){
-			this.changeDirection();
+			this.changeDirection(true);
 		}
 		
 		if(this.states.jump && this.grounded){

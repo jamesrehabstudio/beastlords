@@ -560,6 +560,7 @@ Line.prototype.correct = function(){
 		this.start.y = this.end.y;
 		this.end.y = y;
 	}
+	return this;
 }
 
 Line.prototype.render = function(g, camera){

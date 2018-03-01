@@ -1,4 +1,14 @@
 class Player extends GameObject{
+	get isAttacking(){return this.attstates.currentAttack >= 0; }
+	get currentAttack(){
+		if(this.isAttacking){
+			return this.attstates.weapon.getAttack(this.attstates.currentAttack);
+		}
+		return null;
+	}
+	get attackProgress() {
+		return this.attstates.time / this.attstates.totalTime;
+	}
 	constructor(x,y){
 		super(x,y);
 		this.position.x = x;
@@ -56,33 +66,29 @@ class Player extends GameObject{
 			"canGrabLedges" : false,
 			"damageBuffer" : 0,
 			"damageBufferTick" : 0.0,
-			"animationProgress" : 0.0
+			"animationProgress" : 0.0,
+			"duckTime" : 0.0,
 		};
 		
 		this.attstates = {
-			"stats" : WeaponStats["short_sword"],
+			"weapon" : WeaponList["short_sword"],
 		
-			"currentAttack" : null,
-			"currentQueue" : null,
-			"currentQueuePosition" : 0,
-			"currentQueueState" : null,
-			"attackEndTime" : 0.0,
-			"hit" : false,
-			"charge" : 0.0,
-			
-			"timer" : 0.0,
-			"autostartNextAttack" : false
+			"currentAttack" : -1, // attack index
+			"queue" : null, // true if another press
+			"time" : 0.0, //current time in attack
+			"totalTime" : 0.0, //Time for the attack
+			"wait" : 0.0, //Time after attack
 		};
 		
 		this.shieldProperties = {
 			"duck" : 8.0,
 			"stand" : -8.0,
-			"frame_row" : 3
+			"frame_row" : 3,
 		};
 		
 		
 		this.speeds = {
-			"baseSpeed" : 10.0,
+			"baseSpeed" : 5.0,
 			"dashTime" : 1.0,
 			"baseSpeedMax" : 4.0,
 			"dashSpeedMax" : 12.0,
@@ -97,7 +103,8 @@ class Player extends GameObject{
 			"breaks": 16,
 			"manaRegen" : Game.DELTASECOND * 60,
 			"turn" : Game.DELTASECOND * 0.25,
-			"charge" : Game.DELTASECOND * 0.4
+			"charge" : Game.DELTASECOND * 0.4,
+			"duckTime" : Game.DELTASECOND * 0.25,
 		};
 		
 		this.on("pre_death", function(){
@@ -203,7 +210,7 @@ class Player extends GameObject{
 				obj.displayDamage(fireDamage);
 				obj.isDead();
 				
-				if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
+				if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
 					this.trigger("downstabTarget", obj, 0);
 				}
 			}
@@ -216,8 +223,7 @@ class Player extends GameObject{
 			
 			shakeCamera(Game.DELTASECOND*0.5,str);
 			
-			this.cancelAttack(this);
-			this.attstates.charge = 0.0;
+			this.cancelAttack();
 			this.states.ledgePosition = false;
 			
 			var effect = new EffectHurt(this.position.x, this.position.y);
@@ -256,7 +262,7 @@ class Player extends GameObject{
 			}
 		})*/;
 		this.on("break_tile", function(obj, damage){
-			if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
+			if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
 				this.trigger("downstabTarget", obj, damage);
 				obj.trigger("downstabbed", this, damage);
 			}
@@ -267,26 +273,27 @@ class Player extends GameObject{
 			this.life = Math.min( this.life + Math.floor(this.lifeStealCarry), this.lifeMax );
 			this.lifeStealCarry -= Math.floor(this.lifeStealCarry);
 			
-			if(this.attstates.currentAttack){
-				this.attstates.attackEndTime = this.attstates.currentAttack.time + this.attstates.currentAttack.rest;
-				this.attstates.hit = true;
+			if(this.isAttacking){
+				this.attstates.wait = 0.0;
 				this.hitIgnoreList.push(obj);
 				
-				if("pause" in this.attstates.currentAttack){
-					game.slow(0.0, this.attstates.currentAttack.pause);
+				let attack = this.currentAttack;
+				
+				if("pause" in attack){
+					game.slow(0.0, attack.pause);
 				}
-				if("shake" in this.attstates.currentAttack){
-					shakeCamera(Game.DELTASECOND*0.25, this.attstates.currentAttack.shake);
+				if("shake" in attack){
+					shakeCamera(Game.DELTASECOND*0.25, attack.shake);
 				}
-				if("stun" in this.attstates.currentAttack){
-					obj.stun = this.attstates.currentAttack.stun;
+				if("stun" in attack){
+					obj.stun = attack.stun;
 					if(!this.grounded && obj.life > 0 && obj.hasModule(mod_rigidbody)){
-						obj.airtime = this.attstates.currentAttack.stun * this.perks.attackairboost;
+						obj.airtime = attack.stun * this.perks.attackairboost;
 					}
 				}
-				if("knockback" in this.attstates.currentAttack && obj.hasModule(mod_rigidbody)){
+				if("knockback" in attack && obj.hasModule(mod_rigidbody)){
 					var scale = 1.0 / Math.max(obj.mass, 1.0);
-					var knock = new Point(this.forward() * this.attstates.currentAttack.knockback.x, this.attstates.currentAttack.knockback.y).scale(scale);
+					var knock = new Point(this.forward() * attack.knockback.x, attack.knockback.y).scale(scale);
 					obj.force.x += knock.x;
 					obj.force.y += knock.y;
 				}
@@ -298,21 +305,17 @@ class Player extends GameObject{
 				this.states.afterImage.set(Game.DELTASECOND * 3);
 			}
 			
-			if(this.states.roll > 0){
-				this.states.doubleJumpReady = true;
-			} else if(this.attstates.currentQueueState == Weapon.STATE_DOWNATTACK){
-				this.states.downStab = false;
+			if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
+				//this.states.downStab = false;
 				this.trigger("downstabTarget", obj, damage);
 				obj.trigger("downstabbed", this, damage);
-			} else {
-				if( !this.grounded ) {
-					//Add extra float
-					this.force.y -= this.speeds.jump * this.speeds.airGlide;
-				}
+			} else if( !this.grounded ) {
+				//Add extra float
+				this.force.y -= this.speeds.jump * this.speeds.airGlide;
 			}
 			
 			//Charge kill explosion!
-			if( this.attstates.currentQueueState == Weapon.STATE_CHARGED ){
+			if( this.attstates.currentAttack == PlayerWeapon.CHARGED_INDEX ){
 				//A little shake
 				shakeCamera(Game.DELTASECOND*0.3,5);
 				
@@ -444,6 +447,7 @@ class Player extends GameObject{
 			}
 		}
 		
+		/*
 		this.superGetDamage = this.getDamage;
 		this.getDamage = function(){
 			var damage = this.superGetDamage();
@@ -452,6 +456,7 @@ class Player extends GameObject{
 			}
 			return damage;
 		}
+		*/
 		
 		//Stats
 		this.stat_points = 0;
@@ -527,34 +532,6 @@ class Player extends GameObject{
 		if ( this.life > 0 ) {
 			var strafe = input.state('block') > 0;
 			
-			//Update attack animation
-			if(this.attstates.currentAttack){
-				this.attstates.timer += this.delta * (1.0 + this.perks.attackSpeed);
-				
-				if(Timer.isAt(this.attstates.timer,0,this.delta)){
-					if("force" in this.attstates.currentAttack){
-						this.force.x += this.attstates.currentAttack.force.x * this.forward();
-						this.force.y += this.attstates.currentAttack.force.y;
-					}
-					if("audio" in this.attstates.currentAttack){
-						audio.play(this.attstates.currentAttack.audio);
-					} else {
-						audio.play("swing");
-					}
-				}
-				
-				if(this.attstates.timer >= this.attstates.attackEndTime){
-					if(this.attstates.autostartNextAttack){
-						this.attack();
-						this.attstates.autostartNextAttack = false;
-					} else {
-						//No more attacks, end queue
-						this.cancelAttack();
-					}
-					
-				}
-			}
-			
 			if (this.stun > 0 ){
 				//Do nothing, just wait to recover
 				this.frame.x = 10; this.frame.y = 1;
@@ -604,32 +581,38 @@ class Player extends GameObject{
 						this.states.ledgePosition = false;
 					}
 				}
-			} else if(input.state("fire") == 1 && input.state("dodge") > 0){
-				//Charge attack
-				this.attstates.charge = 1;
-				this.attack(this); 
-				//this.stanima = Math.max(this.stanima - this.stanimaBase, 0);
-				this.attstates.charge = 0;
-			
-			} else if( this.attstates.timer > 0 ){
+			} else if( this.isAttacking ){
 				//Player in attack animation
 				
-				if(this.attstates.currentAttack){
-					var attackMovementSpeed = this.speeds.baseSpeed * this.delta * this.attstates.currentAttack.movement;
-					var attackProgress = (this.attstates.timer) / this.attstates.currentAttack.time;
-					
-					let attackName = "attack" + (this.attstates.currentAttack.animation);
-					this.frame = this.swrap.frame(attackName, attackProgress);
-					
-					if ( input.state('left') > 0 ) { this.force.x -= attackMovementSpeed; }
-					if ( input.state('right') > 0 ) { this.force.x += attackMovementSpeed; }
-					
+				let attack = this.currentAttack;
+				let hAxis = 0;
+				if(input.state("left") > 0) { hAxis -= 1;}
+				if(input.state("right") > 0) { hAxis += 1;}
+				
+				//Allow player movement during attack
+				this.move(hAxis * attack.movement);
+				
+				//Let the player queue more attacks
+				if ( input.state('fire') == 1 ) { this.attstates.queue = true; }
+				
+				//Animation
+				let attackName = "attack" + (attack.animation);
+				this.frame = this.swrap.frame(attackName, this.attackProgress);
+				
+				
+				this.attstates.time += this.delta * (1.0 + this.perks.attackSpeed);
+				
+				//End attack
+				if(this.attstates.time > this.attstates.totalTime + this.attstates.wait){
+					let nextAttackIndex = this.attstates.weapon.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
+					if(this.attstates.queue && nextAttackIndex >= 0){
+						this.attack(nextAttackIndex);
+					} else {
+						this.cancelAttack();
+					}
 				}
 				
-				if ( input.state('fire') == 1 ) { 
-					//Let the player queue more attacks
-					this.attack(this); 
-				}
+				
 			} else if( this.delta > 0) {
 				//Player is in move/idle state
 				
@@ -640,12 +623,14 @@ class Player extends GameObject{
 					this.spellCursor = (this.spellCursor+1)%this.spells.length;
 				}
 				
-				//Move
-				if( !this.states.duck ) {
-					this.move(input.state('left') > 0 ? -1 : (input.state('right') > 0 ? 1 : 0) );
-				} else {
+				//Player Movement
+				let hAxis = input.state("left") > 0 ? -1 : (input.state("right") ? 1 : 0);
+				if( this.states.duck ) {
 					this.states.turn = 0.0;
+				} else {
+					this.move(hAxis);
 				}
+				
 				
 				if(this.states.turn > 0){
 					//Block disabled while turning
@@ -686,7 +671,7 @@ class Player extends GameObject{
 				
 				//Attack and start combo
 				if ( input.state('fire') == 1 ) { 
-					this.attack(this); 
+					this.attack(); 
 				}
 				
 				//Apply jump boost
@@ -739,7 +724,9 @@ class Player extends GameObject{
 							}
 						}
 					} else if(this.states.duck){
-						this.frame = this.swrap.frame("duck", 0);
+						this.states.duckTime = this.speeds.duckTime;
+						this.states.animationProgress = Math.min(this.states.animationProgress+this.delta*4, 1);
+						this.frame = this.swrap.frame("duck", this.states.animationProgress);
 					} else if(this.grounded && input.state("dodge") == 1){
 						//DASH LIKE A FIEND!
 						if(input.state("left") > 0 || input.state("right") > 0){
@@ -753,10 +740,15 @@ class Player extends GameObject{
 						let tProg = 1 - (this.states.turn / this.speeds.turn);
 						this.frame = this.swrap.frame("turn", tProg);
 					} else if(!this.grounded){
-						this.frame.x = 7;
-						if(this.force.y < -0.5){ this.frame.x = 6; }
-						if(this.force.y > 0.5){ this.frame.x = 8; }
-						this.frame.y = 2;
+						if(this.states.doubleJumpReady){
+							this.frame.x = 7;
+							if(this.force.y < -0.5){ this.frame.x = 6; }
+							if(this.force.y > 0.5){ this.frame.x = 8; }
+							this.frame.y = 2;
+						} else {
+							this.states.animationProgress = (this.states.animationProgress + this.delta * 4) % 1;
+							this.frame = this.swrap.frame("jump2", this.states.animationProgress);
+						}
 					} else if(Math.abs(this.force.x) < 1.0){
 						//Idle
 						this.states.animationProgress = (this.states.animationProgress + this.delta * 0.67) % 1;
@@ -820,6 +812,7 @@ class Player extends GameObject{
 		}
 		this.states.effectTimer += this.delta;
 		this.states.turn -= this.delta;
+		this.states.duckTime -= this.delta;
 		
 		
 		if(this.states.dash > 0){
@@ -844,11 +837,20 @@ class Player extends GameObject{
 		
 		this._prevPosition = this.position.scale(1);
 	}
-	move(direction){
-		if ( direction < 0 ) { this.force.x -= this.speeds.baseSpeed * this.delta; }
-		if ( direction > 0 ) { this.force.x += this.speeds.baseSpeed * this.delta; }
-		if ( direction == 0 ) { this.force.x = this.force.x * (1.0 - this.speeds.breaks * this.delta); }
-		this.force.x = Math.clamp(this.force.x, -this.speeds.baseSpeedMax, this.speeds.baseSpeedMax);
+	move(hAxis, acceleration = 1.0){
+		if(!this.grounded){
+			//Moving in the air
+			if(hAxis != 0){
+				this.addHorizontalForce(hAxis * this.speeds.baseSpeed, 5.0 * acceleration);
+			}
+		} else {
+			//Moveing on the ground
+			if(hAxis != 0){
+				this.addHorizontalForce(hAxis * this.speeds.baseSpeed, 10.0 * acceleration);
+			} else {
+				this.force.x *= 1.0 - this.speeds.breaks * this.delta;
+			}
+		}
 	}
 	idle(){}
 	testLedgeTiles(){
@@ -889,6 +891,7 @@ class Player extends GameObject{
 		if( !this.states.duck ) {
 			this.position.y += 3.0;
 			this.states.duck = true;
+			this.states.animationProgress = 0;
 		}
 	}
 	jump(){ 
@@ -926,79 +929,58 @@ class Player extends GameObject{
 		this.stand(); 
 		audio.play("jump");
 	}
-	attack(){
+	attack(attackIndex = -1){
 		//Player has pressed the attack button or an attack has been queued
+		this.cancelAttack();
 		
-		if(this.attstates.currentQueue){
-			//Chain up next attack
-			if(this.attstates.timer >= this.attstates.attackEndTime){
-				//Previous attack complete, start next attack
-				var state = Weapon.playerState(this);
-				this.attstates.hit = false;
-				if(this.attstates.currentQueueState == state && this.attstates.currentQueuePosition+1 < this.attstates.currentQueue.length){
-					this.attstates.currentQueuePosition++;
-					
-					this.hitIgnoreList = new Array();
-					this.attstates.currentAttack = this.attstates.currentQueue[this.attstates.currentQueuePosition];
-					this.attstates.timer = -this.attstates.currentAttack["warm"];
-					this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
-					
-					if("airtime" in this.attstates.currentAttack){
-						this.force.y = 0;
-						this.airtime = this.attstates.currentAttack["airtime"];
-					} else if(!this.grounded){
-						this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
-					}
-					
-					return;
-				} else {
-					this.cancelAttack();
-					return;
-				}
-			} else {
-				if(this.attstates.hit || this.attstates.currentQueue.alwaysqueue){
-					this.attstates.autostartNextAttack = true;
-				}
-				return;
-			}
+		let weapon = this.attstates.weapon;
+		if(attackIndex < 0){
+			attackIndex = weapon.firstAttack(this.getWeaponState());
 		}
 		
-		//Start new queue
-		var state = Weapon.playerState(this);
+		let attack = weapon.getAttack(attackIndex);
+		this.attstates.currentAttack = attackIndex;
+		this.attstates.totalTime = attack.time * weapon.speed;
+		this.attstates.wait = attack.wait * weapon.missWait;
+		this.attstates.queue = false;
+		this.attstates.time = 0.0;
 		
-		this.hitIgnoreList = new Array();
-		this.attstates.currentQueuePosition = 0;
-		this.attstates.currentQueueState = state;
-		this.attstates.currentQueue = this.equip_sword.stats[this.attstates.currentQueueState];
-		this.attstates.currentAttack = this.attstates.currentQueue[this.attstates.currentQueuePosition];
 		
-		//Attack ends after the attack + miss
-		this.attstates.timer = -this.attstates.currentAttack["warm"]
-		this.attstates.attackEndTime = this.attstates.currentAttack["miss"] + this.attstates.currentAttack["time"];
-		
-		if("airtime" in this.attstates.currentAttack){
-			this.force.y = 0;
-			this.airtime = this.attstates.currentAttack["airtime"];
-		} else if(!this.grounded){
-			this.airtime = this.attstates.attackEndTime * this.perks.attackairboost;
+		if("force" in attack){
+			let addForce = new Point(this.forward() * attack.force.x, attack.force.y);
+			this.grounded = this.grounded && addForce.y < 0;
+			this.force = this.force.add(addForce);
 		}
+		
+		audio.play(attack.audio, this.position);
 	}
 	cancelAttack(){
-		this.attstates.currentAttack = null;
-		this.attstates.currentQueue = null;
-		this.attstates.currentQueuePosition = 0;
-		this.attstates.currentQueueState = null;
+		this.attstates.currentAttack = -1;
+		this.attstates.time = 0.0;
+		this.attstates.queue = false;
 		this.hitIgnoreList = new Array();
-		this.attstates.hit = false;
-		
-		this.attstates.timer = 0.0;
+	}
+	getWeaponState(){
+		var state = PlayerWeapon.STATE_STANDING;
+		if(this.downstab && !this.grounded && input.state("down") > 0){
+			state = PlayerWeapon.STATE_DOWNATTACK;
+		} else if(this.states.dash > 0){
+			state = PlayerWeapon.STATE_CHARGED;
+		} else if(!this.grounded){ 
+			state = PlayerWeapon.STATE_JUMPING;
+		} else if(this.states.duck){
+			state = PlayerWeapon.STATE_DUCKING;
+		} else if(this.states.duckTime > 0 && Math.abs(this.force.x) > 0.06125) {
+			state = PlayerWeapon.STATE_JUMPUP;
+		}
+		return state;
 	}
 	baseDamage(){
 		return Math.round(8 + this.stats.attack * this.equip_sword.stats.damage);
 	}
 	currentDamage(){
-		if(this.attstates.currentAttack) {
-			return Math.round(this.baseDamage() * this.attstates.currentAttack["damage"]);
+		if(this.isAttacking) {
+			return Math.round(this.baseDamage() * this.currentAttack.damage);
 		} else {
 			return this.baseDamage();
 		}
@@ -1231,6 +1213,7 @@ class Player extends GameObject{
 		}
 		
 		//adjust for ledge offset
+		/*
 		if(_player.states.ledge){
 			g.renderSprite(
 				this.sprite,
@@ -1243,6 +1226,13 @@ class Player extends GameObject{
 		} else {
 			GameObject.prototype.render.apply(this,[g,c]);
 		}
+		*/
+		let color = COLOR_WHITE;
+		if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
+		g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
+			"u_color" : color
+		});
+		
 		//When rolling, ignore flip and shader
 		if(this.dodgeFlash && this.states.rolling){
 			var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
@@ -1268,11 +1258,6 @@ class Player extends GameObject{
 		try{
 			let rangeScale = this.equip_sword.stats.range / 70;
 			let meshScale = 0.1;
-			let attackProgress = 0;
-			
-			if(this.attstates.currentAttack){
-				attackProgress = (this.attstates.timer) / this.attstates.currentAttack.time;
-			}
 			
 			let _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
 			let rotation = _t.r;
@@ -1287,13 +1272,15 @@ class Player extends GameObject{
 			ops["rotate"] = (this.flip ? -1 : 1) * rotation;
 			
 			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
-			if(attackProgress > 0){
+			
+			if(this.isAttacking && this.attackProgress > 0){
 				//eops["rotate"] = effect.r;
 				//let effectFrame = new Point(effect.x, effect.y);
 				//let spriteName = effect.s;
 				
 				//g.renderSprite(spriteName, this.position.subtract(c), this.zIndex+2, effectFrame, this.flip, eops);
-				let attackMeshName = this.attstates.currentAttack.mesh;
+				let attack = this.currentAttack;
+				let attackMeshName = attack.mesh;
 				
 				g.renderMesh(attackMeshName, this.position.subtract(c), this.zIndex+2, {
 					scale : [
@@ -1302,7 +1289,7 @@ class Player extends GameObject{
 						meshScale
 					],
 					flip : this.flip,
-					u_time : attackProgress,
+					u_time : this.attackProgress,
 					u_color : this.equip_sword.stats.color1,
 					u_color2 : this.equip_sword.stats.color2
 				});

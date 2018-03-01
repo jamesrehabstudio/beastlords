@@ -452,7 +452,8 @@ var mod_combat = {
 		
 		//Counters
 		this.invincible = 0;
-		this.invincible_time = Game.DELTASECOND * 0.35;
+		//this.invincible_time = Game.DELTASECOND * 0.35;
+		this.invincible_time = 0.0;
 		this.stun = 0;
 		this.stun_time = Game.DELTASECOND;
 		this.combat_stuncount = 0;
@@ -666,23 +667,30 @@ var mod_combat = {
 	},
 	"postrender" : function(g,c){
 		if(self.debug){
+			//Hit boxes
+			let nCam = c.scale(-1);
+			
+			let boxes1 = Combat.getHitAreas.apply(this);
+			g.color = [1.0,0.5,0.5,1.0];
+			if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
+			for(let i=0; i < boxes1.length; i++){
+				let box = boxes1[i].transpose(nCam);
+				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+			}
+			
 			if(this.swrap instanceof SpriteWrapper){
-				let boxes1 = this.swrap.getHitBoxes(this.frame, this);
 				let boxes2 = this.swrap.getAttackBoxes(this.frame, this);
 				let boxes3 = this.swrap.getGuardBoxes(this.frame, this);
-				let nCam = c.scale(-1);
 				
-				g.color = [1.0,0.7,0.7,1.0];
-				for(let i=0; i < boxes1.length; i++){
-					let box = boxes1[i].transpose(nCam);
-					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
-				}
+				
 				g.color = [0.8,0.0,0.0,1.0];
+				if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
 				for(let i=0; i < boxes2.length; i++){
 					let box = boxes2[i].transpose(nCam);
 					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
 				}
 				g.color = [0.0,0.2,0.8,1.0];
+				if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
 				for(let i=0; i < boxes3.length; i++){
 					let box = boxes3[i].transpose(nCam);
 					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
@@ -697,7 +705,7 @@ var Combat = {
 	"attackCheck" : function(rect, ops){
 		let margin = new Point(32,32);
 		let checkArea = new Line(rect.start.subtract(margin), rect.end.add(margin));
-		let hits = game.overlaps(checkArea);
+		let hits = game.overlaps(checkArea.correct());
 		
 		for(let i=0; i < hits.length; i++) {
 			let hit = hits[i];
@@ -708,11 +716,10 @@ var Combat = {
 				for(let j=0; j < enemAreas.length; j++){
 					if(enemAreas[j].overlaps(rect)){
 						//Triggers overlap, cause hit
-						
 						hit.trigger("struck",this);
 						Combat.hit.apply(this, [hit, ops, rect]);
-						return;
-					}
+						break;
+					} 
 				}
 			}
 		}

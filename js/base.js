@@ -1278,6 +1278,7 @@ GameObject.prototype.shouldRender = function(){
 GameObject.prototype.render = function( g, camera ){
 	if( self.debug ) {
 		var bounds = this.bounds();
+		g.color = [1.0,0.5,1.0,1.0];
 		g.scaleFillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
 	}
 	

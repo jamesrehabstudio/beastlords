@@ -7,7 +7,7 @@ function Batty(x,y,d,o){
 	this.width = 16;
 	this.height = 16;
 	this.sprite = "batty";
-	this.speed = 0.4;
+	this.speed = 3.5;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -144,7 +144,7 @@ Batty.prototype.update = function(){
 		if( this.force.y > 1.0 ) {
 			this.frame.x = 0;
 		} else {
-			this.frame.x = Math.max( (this.frame.x + this.delta * 0.3) % 5, 2);
+			this.frame.x = Math.max( (this.frame.x + this.delta * 9.0) % 5, 2);
 		}
 	}
 }

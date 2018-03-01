@@ -1,3 +1,4 @@
+/*
 Slimerilla.prototype = new GameObject();
 Slimerilla.prototype.constructor = GameObject;
 function Slimerilla(x,y,d,o){
@@ -143,3 +144,167 @@ Slimerilla.prototype.faceTarget = function(){
 	var dir = this.target().position.subtract(this.position);
 	this.flip = dir.x < 0;
 }
+*/
+class Slimerilla extends GameObject{
+	constructor(x,y,d,o){
+		super(x,y,d,o);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 32;
+		this.height = 32;
+		this.collideDamage = 0;
+		this.team = 0;
+		
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_combat);
+		
+		this.sprite = "slimerilla";
+		this.swrap = spriteWrap["slimerilla"];
+		this.speed = 2.0;
+		this.jumpSpeed = 4.0;
+		this.gravity = 0.5;
+		
+		o = o || {};
+		
+		this.difficulty = o.getInt("difficulty",Spawn.difficulty);
+		this.hidden = o.getBool("hidden",false);
+		
+		this.states = {
+			
+			"attack" : 0.0,
+			"cooldown" : Game.DELTASECOND,
+			"takeshape" : 0.0,
+			"reappear" : 0.0,
+			"turn" : 0.0,
+			"jumpCooldown" : 0.0,
+			"landed" : 0.0,
+			"walk" : 0.0,
+			"jumpback" : false
+		};
+		this.times = {
+			"attack" : Game.DELTASECOND * 3,
+			"cooldown" : Game.DELTASECOND * 2,
+			"takeshape" : Game.DELTASECOND * 0.5,
+			"reappear" : Game.DELTASECOND * 3,
+			"turn" : Game.DELTASECOND * 2,
+			"jumpCooldown" : Game.DELTASECOND * 7,
+			"landed" : Game.DELTASECOND * 0.125
+		};
+		
+		this.on("struck", EnemyStruck);
+		this.on("collideObject", function(obj){
+			if(this.hidden){ this.states.reappear = this.times.reappear; }
+		})
+		this.on("hurt",function(obj,damage){
+			audio.play("hurt",this.position);
+			this.states.jumpback = true;
+		});
+		this.on("land", function(){
+			this.states.landed = this.times.landed;
+		});
+		this.on("death", function(obj,pos,damage){
+			Item.drop(this);
+			
+			audio.play("kill",this.position);
+			this.destroy();
+		});
+		
+		if(this.hidden){
+			this.pushable = true;
+		}
+		
+		this.life = Spawn.life(8, this.difficulty);
+		this.moneyDrop = Spawn.money(8,this.difficulty);
+		this.damage = Spawn.damage(4,this.difficulty);
+		this.defencePhysical = Spawn.defence(2,this.difficulty);
+		this.defenceFire = Spawn.defence(-2,this.difficulty);
+		this.defenceSlime = Spawn.defence(4,this.difficulty);
+		this.death_time = Game.DELTASECOND * 0.5;
+	}
+	update(){
+		if(this.life > 0){
+			let dir = this.target().position.subtract(this.position);
+			
+			if(this.hidden){
+				//Waiting for player
+				this.frame.x = 3;
+				this.frame.y = 0;
+				this.pushable = false;
+				this.invincible = Math.max(this.invincible, 0.25);
+				
+				if(this.states.reappear > 0){
+					this.states.reappear -= this.delta;
+					if(this.states.reappear <= 0){ 
+						this.states.takeshape = this.times.takeshape;
+						this.hidden = false;
+						this.pushable = true;
+						this.jump();
+						this.flip = dir.x < 0;
+					}
+				}
+			} else {
+				if(this.states.takeshape > 0){
+					//Appearing
+					let p = 1 - this.states.takeshape / this.times.takeshape;
+					this.frame = this.swrap.frame("appear", p);
+					this.states.takeshape -= this.delta;
+				} else if(this.states.attack > 0){
+					//Attacking
+					let p = 1 - this.states.attack / this.times.attack;
+					this.frame = this.swrap.frame("attack", p);
+					this.states.attack -= this.delta;
+					this.force.x = 0;
+				} else if(!this.grounded){
+					//Jumping
+					this.addHorizontalForce(this.speed * -this.forward(), 0.5);
+					this.frame.x = (this.force.y < -0.25 ? 0 : (this.force.y > 0.25 ? 2 : 1));
+					this.frame.y = 3;
+				} else if(this.states.landed > 0){
+					this.states.landed -= this.delta;
+					this.frame.x = this.frame.y = 3;
+				} else {
+					//Idle state
+					this.states.jumpCooldown -= this.delta;
+					
+					if((this.flip && dir.x > 0) || (!this.flip && dir.x < 0)){
+						//Player is behind
+						this.states.turn += this.delta;
+						if(this.states.turn >= this.times.turn){
+							this.flip = dir.x < 0;
+						}
+					} else {
+						this.states.turn = 0.0;
+						this.states.cooldown -= this.delta;
+						
+						if(Math.abs(dir.x) < 80){
+							this.states.walk = (this.states.walk + 0.5 * this.delta) % 1;
+							this.frame = this.swrap.frame("idle", this.states.walk);
+						} else {
+							//Walk towards target
+							this.addHorizontalForce(this.speed * this.forward());
+							this.states.walk = (this.states.walk + Math.abs(this.force.x) * 1.5 * this.delta) % 1;
+							this.frame = this.swrap.frame("walk", this.states.walk);
+						}
+						if(this.states.jumpCooldown <= 0 && this.states.jumpback){
+							this.jump();
+							this.states.jumpback = false;
+							this.states.jumpCooldown = this.times.jumpCooldown;
+							this.force.x = this.speed * 2 * -this.forward();
+						} else if(this.states.cooldown <= 0){
+							this.states.cooldown = this.times.cooldown;
+							this.states.attack = this.times.attack;
+						}
+					}
+				}
+			}
+		} else {
+			this.frame.x = 1;
+			this.frame.y = 3;
+		}
+	}
+	jump(){
+		this.grounded = false;
+		this.force.y = -5;
+	}
+}
+self["Slimerilla"] = Slimerilla;
