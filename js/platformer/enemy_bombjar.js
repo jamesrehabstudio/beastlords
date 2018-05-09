@@ -49,7 +49,10 @@ function Bombjar(x, y, d, o){
 		var explosion = new EffectBang(this.position.x,this.position.y);
 		game.addObject(explosion);
 		
+		let dir = this.target().position.subtract(this.position);
+		
 		var free = new BombjarFree(this.position.x, this.position.y);
+		free.force = dir.normalize(-8);
 		game.addObject(free);
 		
 		/*
@@ -91,11 +94,12 @@ Bombjar.prototype.update = function(){
 				var fire = new Fire(this.position.x, this.position.y - this.height * 0.5);
 				fire.grounded = false;
 				fire.force.y = -5;
+				fire.damageFire = this.damage;
 				game.addObject(fire);
 			}
 		}
 		
-		this.walkcycle = (this.walkcycle + this.delta * 0.3) % 6;
+		this.walkcycle = (this.walkcycle + this.delta * 9.0) % 6;
 		this.frame.x = this.walkcycle % 3;
 		this.frame.y = this.walkcycle / 3;
 		
@@ -114,14 +118,16 @@ class BombjarFree extends GameObject {
 		this.width = 16;
 		this.height = 16;
 		
-		this.speed = 1.5;
-		this.rotSpeed = 6.0;
+		this.speed = 9.0;
+		this.rotSpeed = 130.0;
 		
 		this.sprite = "bombjar";
 		this.rotation = 0;
 		this.tailTrans = 0;
 		this.frame = new Point(0,2);
 		this.force = new Point();
+		this.wakeuptime = 2.0;
+		this.lifeTime = 8.0;
 		
 		this.addModule(mod_combat);
 		this.friction = 0.1;
@@ -132,54 +138,68 @@ class BombjarFree extends GameObject {
 		this.defenceIce = 99;
 		this.defenceLight = 99;
 		
+		this.damage = 0;
+		this.damageFire = 10;
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				if(this.wakeuptime <= 0){
+					obj.hurt(this);
+				}
+			}
+		});
+		
 		this.on("hurt", function(obj, damage){
 			audio.play("hurt",this.position);
 			this.force = this.position.subtract(obj.position).normalize(6);
 		});
 		
 		this.tail = [
-			new Vector(-4,-8),
-			new Vector(-8,-12),
-			new Vector(-16,-10),
-			new Vector(-24,-8),
-			new Vector(-4,8),
-			new Vector(-8,12),
-			new Vector(-16,10),
-			new Vector(-24,8)
+			new Vector(-4,-8,0),
+			new Vector(-8,-12,0),
+			new Vector(-16,-10,0),
+			new Vector(-24,-8,0),
+			new Vector(-4,8,0),
+			new Vector(-8,12,0),
+			new Vector(-16,10,0),
+			new Vector(-24,8,0)
 		];
 	}
 	update(){
-		var dir = this.position.subtract(_player.position);
-		let r = Math.atan2(-dir.y, -dir.x) * Math.rad2deg;
+		let dir = this.position.subtract(_player.position);
+		let angle = Math.atan2(-dir.y, -dir.x) * Math.rad2deg;
 		
-		if(r < -45 && this.rotation > 45){
-			r = 180 - r;
-		}
-		
-		if(r > this.rotation+this.rotSpeed){
-			this.rotation += this.rotSpeed * this.delta;
-		} else if(r < this.rotation-this.rotSpeed){
-			this.rotation -= this.rotSpeed * this.delta;
-		}
-		if(this.rotation < -180){
-			this.rotation = 360 + this.rotation;
+		let rdif = Math.sdif(angle, this.rotation);
+			
+		if(Math.abs(rdif) > this.rotSpeed * this.delta){
+			let rdir = rdif > 0 ? 1 : -1;
+			this.rotation += rdir * this.rotSpeed * this.delta;
+		} else {
+			this.rotation = angle;
 		}
 		
 		for(let i=0; i < this.tail.length; i++){
 			this.tail[i].z = Math.slerp(
 				this.tail[i].z,
 				this.rotation,
-				this.delta*(1/Math.abs(this.tail[i].x))
+				this.delta * Math.abs(0.5 + this.tail[i].x / 24)
 			);
 		}
 		
-		this.position.x += Math.cos(this.rotation * Math.deg2rad) * this.delta * this.speed;
-		this.position.y += Math.sin(this.rotation * Math.deg2rad) * this.delta * this.speed;
+		this.wakeuptime -= this.delta;
+		this.lifeTime -= this.delta;
+		
+		this.force.x += Math.cos(this.rotation * Math.deg2rad) * this.delta * this.speed;
+		this.force.y += Math.sin(this.rotation * Math.deg2rad) * this.delta * this.speed;
+		this.force = this.force.scale( 1.0-(this.friction * UNITS_PER_METER * this.delta) );
 		
 		//Apply force
-		this.position.x += this.force.x * this.delta;
-		this.position.y += this.force.y * this.delta;
-		this.force = this.force.scale(1.0-(this.friction*this.delta));
+		this.position.x += this.force.x * this.delta * UNITS_PER_METER;
+		this.position.y += this.force.y * this.delta * UNITS_PER_METER;
+		
+		if(this.lifeTime <= 0){
+			this.destroy();
+		}
 		
 		Background.pushLight( this.position, 180, COLOR_FIRE );
 	}
@@ -192,13 +212,14 @@ class BombjarFree extends GameObject {
 		}*/
 		for(let i=0; i < this.tail.length; i++){
 			let t = this.tail[i];
+			let n = 5 + (game.timeScaled * 16) % 3;
 			let r = t.z * Math.deg2rad;
-			let a = new Point(t.x*Math.cos(r), t.y*Math.sin(r));
+			let a = new Point( t.x * Math.cos(r) + t.y * Math.sin(r), t.x * Math.sin(r) + t.y * Math.cos(r) );
 			g.renderSprite(
 				"bullets",
 				this.position.add(a).subtract(c),
 				this.zIndex-1,
-				new Point(5,1),
+				new Point(n,1),
 				this.flip,
 				{
 					"rotate" : t.z

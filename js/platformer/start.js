@@ -17,10 +17,10 @@ function game_start(g){
 		_player.lightRadius = true;
 		_player.downstab = true;
 		_player.doubleJump = true;
-		//_player.dodgeFlash = true;
+		_player.dodgeFlash = true;
 		_player.walljump = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("temple2.tmx", "test");
+		WorldLocale.loadMap("mills.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;

@@ -28,7 +28,7 @@ class Axedog extends GameObject {
 		this.damage = Spawn.damage(2,this.difficulty);
 		this.moneyDrop = Spawn.money(4,this.difficulty);
 		this.mass = 1.0;
-		this.speed = 2.0;
+		this.speed = 5.0;
 		
 		this.on("collideHorizontal", function(x){
 			this.force.x = 0;

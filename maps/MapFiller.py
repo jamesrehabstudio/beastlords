@@ -75,10 +75,10 @@ def transform(indata):
 			shape = int(_t / 16)
 			door = int(_t % 16)
 			
-			east = not (shape & 0b0001)
-			west = not (shape & 0b0010)
-			south = shape & 0b0100
-			north = not (shape & 0b1000)
+			east = (shape & 0b0010)
+			west = (shape & 0b0001)
+			south = shape & 0b1000
+			north = (shape & 0b0100)
 			
 			door_west = door & 0b01
 			door_east = door & 0b10
@@ -97,10 +97,10 @@ def transform(indata):
 					if east and x > 14:
 						out[index] = TILE_DEFAULT
 						
-					if door_west and x < 1 and y < 13 and y > 8:
-						out[index] = 0
-					if door_east and x >= 14 and y < 13 and y > 8:
-						out[index] = 0
+					#if door_west and x < 1 and y < 13 and y > 8:
+					#	out[index] = 0
+					#if door_east and x >= 14 and y < 13 and y > 8:
+					#	out[index] = 0
 		i+=1
 	
 	return out
@@ -138,8 +138,8 @@ def main():
 			"map" : makebig(map)
 		},
 		"tiles" : [
-			("map","../img/tiles/maptiles.gif",256,1,16,256),
-			("tilesgoo","../img/tiles/tilesgoo.gif",1024,257,32,512)
+			("map","../img/tiles/maptiles2.png",256,1,16,256),
+			("temple1","../img/tiles/temple1.png",1024,257,32,512)
 		]
 	}
 	

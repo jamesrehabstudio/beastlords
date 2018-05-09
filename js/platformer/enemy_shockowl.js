@@ -85,8 +85,8 @@ Shockowl.prototype.update = function(){
 			if(Timer.isAt(this.attack,this.attackTime * 0.8, this.delta)){
 				var lightning1 = new GroundBolt(this.position.x,this.position.y);
 				var lightning2 = new GroundBolt(this.position.x,this.position.y);
-				lightning1.speed = -2;
-				lightning2.speed = 2;
+				lightning1.speed = -21;
+				lightning2.speed = 21;
 				lightning1.damageLight = lightning2.damageLight = this.damageLight;
 				lightning1.force.x = lightning2.force.x = this.forward() * 6;
 				lightning1.force.y = lightning2.force.y = -12;
@@ -98,7 +98,11 @@ Shockowl.prototype.update = function(){
 			this.frame.y = 0;
 			
 			if(this.grounded){
-				this.force.x = this.forward() * this.speed;
+				if(Math.abs(dir.x) < 64){
+					this.force.x = -this.forward() * this.speed;
+				} else {
+					this.force.x = this.forward() * this.speed;
+				}
 				this.force.y = -4;
 				this.grounded = false;
 				this.bounceCount--

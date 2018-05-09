@@ -261,8 +261,9 @@ MapLoader.parseMap = function(xml){
 		var name = obj.getAttribute("name");
 		var x = obj.getAttribute("x") * 1;
 		var y = obj.getAttribute("y") * 1;
-		var w = 16;
-		var h = 16;
+		var w = 0;
+		var h = 0;
+		var points = new Array();
 		
 		if(obj.getAttribute("width")){
 			w = obj.getAttribute("width") * 1;
@@ -278,6 +279,32 @@ MapLoader.parseMap = function(xml){
 		}else{
 			x += Math.floor(w/2); 
 			y -= Math.floor(h/2);
+		}
+		
+		let polygon = obj.getElementsByTagName("polygon")[0];
+		if(polygon){
+			let coord = polygon.getAttribute("points").split(" ");
+			for(let j=0; j < coord.length; j++){
+				let xy = coord[j].split(",");
+				points.push({
+					x: xy[0] * 1.0,
+					y: xy[1] * 1.0
+				});
+			}
+			
+		}
+		
+		let polyline = obj.getElementsByTagName("polyline")[0];
+		if(polyline){
+			let coord = polyline.getAttribute("points").split(" ");
+			for(let j=0; j < coord.length; j++){
+				let xy = coord[j].split(",");
+				points.push({
+					x: xy[0] * 1.0,
+					y: xy[1] * 1.0
+				});
+			}
+			
 		}
 		
 		//Build properties
@@ -306,7 +333,7 @@ MapLoader.parseMap = function(xml){
 				out.starts.push(player);
 				playerStart.push(player);
 			} else {
-				out.objects.push({"name":name,"x":x,"y":y,"width":w,"height":h,"properties":properties});
+				out.objects.push({"name":name,"x":x,"y":y,"width":w,"height":h,"properties":properties, "points":points});
 			}
 		} catch(err){
 			console.error("Cannot add object: "+name+", "+err);

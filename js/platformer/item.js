@@ -60,7 +60,7 @@ function Item(x,y,d, ops){
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
-			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
+			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,0.3); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
 			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; DemoThanks.items++; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }

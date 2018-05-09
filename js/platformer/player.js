@@ -2,7 +2,7 @@ class Player extends GameObject{
 	get isAttacking(){return this.attstates.currentAttack >= 0; }
 	get currentAttack(){
 		if(this.isAttacking){
-			return this.attstates.weapon.getAttack(this.attstates.currentAttack);
+			return this.equip_sword.stats.getAttack(this.attstates.currentAttack);
 		}
 		return null;
 	}
@@ -22,6 +22,8 @@ class Player extends GameObject{
 		this.spellCursor = 0;
 		this.uniqueItems = [];
 		this.pause = false;
+		this.canmove = true;
+		this.showplayer = true;
 		
 		this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 		this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
@@ -51,6 +53,8 @@ class Player extends GameObject{
 			"rolling" : 0,
 			"dash" : 0.0,
 			"dash_direction" : 1,
+			"airdash" : 0,
+			"airdashReady" : true,
 			"effectTimer" : 0.0,
 			"downStab" : false,
 			"jump_boost" : false,
@@ -71,8 +75,6 @@ class Player extends GameObject{
 		};
 		
 		this.attstates = {
-			"weapon" : WeaponList["short_sword"],
-		
 			"currentAttack" : -1, // attack index
 			"queue" : null, // true if another press
 			"time" : 0.0, //current time in attack
@@ -88,16 +90,18 @@ class Player extends GameObject{
 		
 		
 		this.speeds = {
-			"baseSpeed" : 5.0,
-			"dashTime" : 1.0,
+			"baseSpeed" : 4.4,
+			"dashTime" : 0.5,
+			"airdashTime" : 0.5,
+			"airdashStopTime" : 0.7,
 			"baseSpeedMax" : 4.0,
-			"dashSpeedMax" : 12.0,
+			"dashSpeed" : 12.0,
 			"inertiaGrounded" : 0.8,
 			"inertiaAir" : 0.4,
 			"frictionGrounded" : 0.2,
 			"frictionAir" : 0.1,
-			//"jump" : 9.3,
-			"jump" : 7.0,
+			"jump" : 8.4,
+			//"jump" : 7.0,
 			"airBoost" : 13,
 			"airGlide" : 0.0,
 			"breaks": 16,
@@ -175,6 +179,15 @@ class Player extends GameObject{
 		});
 		this.on("collideHorizontal", function(h){
 			this.states.againstwall = (h>0?1:-1) * Game.DELTASECOND * 0.1;
+			
+			if(this.walljump){
+				this.states.airdashReady = true;
+			}
+			
+			if(this.states.airdash > 0){
+				this.states.airdash = 0;
+				shakeCamera(Game.DELTASECOND*0.3,3);
+			}
 		});
 		this.on("collideVertical", function(v){
 			if(v>0) this.knockedout = false;
@@ -220,6 +233,7 @@ class Player extends GameObject{
 			
 			var str = Math.min(Math.max(Math.round(damage*0.25),1),6);
 			var dir = this.position.subtract(obj.position);
+			this.airtime = this.states.airdash = 0;
 			
 			shakeCamera(Game.DELTASECOND*0.5,str);
 			
@@ -272,6 +286,8 @@ class Player extends GameObject{
 			this.lifeStealCarry += Math.max(Math.min(damage * ls, obj.life),0);
 			this.life = Math.min( this.life + Math.floor(this.lifeStealCarry), this.lifeMax );
 			this.lifeStealCarry -= Math.floor(this.lifeStealCarry);
+			
+			this.states.airdashReady = true;
 			
 			if(this.isAttacking){
 				this.attstates.wait = 0.0;
@@ -362,10 +378,15 @@ class Player extends GameObject{
 			Checkpoint.saveState(this);
 		});
 		this.on("collideObject", function(obj){
-			if( this.states.rolling && this.dodgeFlash){
-				if("hurt" in obj && obj.hurt instanceof Function){
+			if( this.states.airdash > 0 && this.states.airdash < this.speeds.airdashTime * this.speeds.airdashStopTime){
+				if("hurt" in obj && obj.hasModule(mod_combat)){
 					var damage = this.baseDamage();
 					obj.hurt(this, damage);
+					
+					this.airtime = this.states.airdash = 0;
+					this.force.x = -this.force.x;
+					this.force.y = -this.speeds.jump;
+					
 				}
 			}
 		});
@@ -412,8 +433,8 @@ class Player extends GameObject{
 		}
 		
 		this.gravity = 1;
-		this.life = 24;
-		this.lifeMax = 24;
+		this.life = 48;
+		this.lifeMax = 48;
 		this.mana = 24;
 		this.manaMax = 24;
 		this.stanimaBase = Game.DELTASECOND * 0.5;
@@ -529,12 +550,25 @@ class Player extends GameObject{
 			}
 		}
 		
-		if ( this.life > 0 ) {
+		if ( this.life > 0) {
 			var strafe = input.state('block') > 0;
 			
 			if (this.stun > 0 ){
 				//Do nothing, just wait to recover
 				this.frame.x = 10; this.frame.y = 1;
+			} else if(!this.canmove){
+				//Player loses control
+				if(this.grounded){
+					if(Math.abs(this.force.x) < 0.1){
+						this.frame = this.swrap.frame("idle", (game.time * 0.65) % 1);
+					} else {
+						this.states.animationProgress = (this.states.animationProgress + this.delta * Math.abs(this.force.x) * 0.32) % 1;
+						this.frame = this.swrap.frame("run", this.states.animationProgress);
+					}
+				} else {
+					this.frame.x = 7;
+					this.frame.y = 2;
+				}
 			} else if (this.states.spellCounter > 0){
 				this.states.spellCounter -= this.delta;
 				this.frame = this.swrap.frame("spell", 0);
@@ -550,7 +584,7 @@ class Player extends GameObject{
 				}
 				if(this.states.spellCurrent instanceof SpellFlash){
 					//Float about
-					this.force.y -= (this.gravity+0.05) * self.unitsPerMeter * this.delta;
+					this.force.y -= (this.gravity+0.05) * self.UNITS_PER_METER * this.delta;
 					let spell = this.states.spellCurrent;
 					if(spell.manaCost <= this.mana && this.states.spellCounter <= 0 && input.state('spell')){
 						this.castSpell();
@@ -566,7 +600,7 @@ class Player extends GameObject{
 				//Holding onto a ledge
 				this.frame = this.swrap.frame("grab", 0);
 				this.force.x = 0;
-				this.force.y = this.gravity * -self.unitsPerMeter * this.delta;
+				this.force.y = this.gravity * -self.UNITS_PER_METER * this.delta;
 				
 				if(this.states.ledgePosition instanceof GameObject && this.states.ledgePosition.hasModule(mod_block)){
 					this.position = this.position.add(this.states.ledgePosition.blockChange);
@@ -581,6 +615,41 @@ class Player extends GameObject{
 						this.states.ledgePosition = false;
 					}
 				}
+			} else if( this.states.airdash > 0 ){
+				//Air dashing
+				if(this.grounded){
+					//Landed
+					this.states.airdash = 0;
+					shakeCamera(Game.DELTASECOND*0.3,3);
+				} else if(this.states.airdash > this.speeds.airdashTime * this.speeds.airdashStopTime){
+					//Spin in the air
+					this.states.airdash -= this.delta;
+					this.force.x = this.force.y = 0;
+					
+					let p = 1 - (this.states.airdash / this.speeds.airdashTime - this.speeds.airdashStopTime) / (1-this.speeds.airdashStopTime);
+					this.frame = this.swrap.frame("airdash", p);
+					
+					if(this.states.airdash <= this.speeds.airdashTime * this.speeds.airdashStopTime){
+						//Transition
+						this.states.dash_direction = this.forward();
+						if(input.state("left") > 0){this.states.dash_direction = -1;}
+						if(input.state("right") > 0){this.states.dash_direction = 1;}
+						if(input.state("down") > 0){this.states.dash_direction = 0;}
+					}
+				} else {
+					//Fly off
+					this.states.airdash -= this.delta;
+					if(this.states.dash_direction == 0){
+						this.force.x = 0;
+						this.force.y = this.speeds.baseSpeed * 2;
+						this.frame = new Point(0,11);
+					} else {
+						this.flip = this.states.dash_direction < 0;
+						this.force.x = this.states.dash_direction * this.speeds.baseSpeed * 2;
+						this.frame = new Point(0,8);
+					}
+				}
+				
 			} else if( this.isAttacking ){
 				//Player in attack animation
 				
@@ -604,7 +673,7 @@ class Player extends GameObject{
 				
 				//End attack
 				if(this.attstates.time > this.attstates.totalTime + this.attstates.wait){
-					let nextAttackIndex = this.attstates.weapon.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
+					let nextAttackIndex = this.equip_sword.stats.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
 					if(this.attstates.queue && nextAttackIndex >= 0){
 						this.attack(nextAttackIndex);
 					} else {
@@ -685,7 +754,6 @@ class Player extends GameObject{
 					}
 				} else {
 					this.states.jump_boost = false;
-					this.airtime = 0.0;
 				}
 				
 				//Jump?
@@ -727,14 +795,15 @@ class Player extends GameObject{
 						this.states.duckTime = this.speeds.duckTime;
 						this.states.animationProgress = Math.min(this.states.animationProgress+this.delta*4, 1);
 						this.frame = this.swrap.frame("duck", this.states.animationProgress);
-					} else if(this.grounded && input.state("dodge") == 1){
+					} else if(this.dodgeFlash && this.states.airdashReady && !this.grounded && input.state("dodge") == 1 && this.states.airdash <= 0){
+						this.airtime = this.states.airdash = this.speeds.airdashTime;
+						this.states.airdashReady = false;
+					} else if(this.grounded && input.state("dodge") == 1 && this.states.dash <= 0){
 						//DASH LIKE A FIEND!
-						if(input.state("left") > 0 || input.state("right") > 0){
-							this.states.dash_direction = this.forward();
-							this.states.dash = this.speeds.dashTime;
-							this.force.x = this.states.dash_direction * this.speeds.dashSpeedMax;
-							audio.play("dash");
-						}
+						this.states.dash_direction = this.forward();
+						this.states.dash = this.speeds.dashTime;
+						this.force.x = this.states.dash_direction * this.speeds.dashSpeed;
+						audio.play("dash");
 					} else if(this.states.turn > 0){
 						this.force.x = this.force.x * (1.0 - this.speeds.breaks * this.delta);
 						let tProg = 1 - (this.states.turn / this.speeds.turn);
@@ -762,14 +831,15 @@ class Player extends GameObject{
 				} else {
 					//Player is dashing
 					let dProg = 1 - this.states.dash / this.speeds.dashTime;
-					let stopPoint = 1 / (this.speeds.dashSpeedMax / this.speeds.baseSpeedMax);
+					let speedCoefficient = this.speeds.dashTime * this.speeds.baseSpeed / this.speeds.dashSpeed;
+					
+					//Magic equation that smoothes the dash
+					let dSpeed = speedCoefficient * Math.PI *  Math.cos(dProg*0.5*Math.PI);
 					
 					this.frame = this.swrap.frame("dash", dProg);
-					if(dProg < stopPoint){
-						this.force.x = this.states.dash_direction * this.speeds.dashSpeedMax;
-					} else {
-						this.force.x = 0.0;
-					}
+					this.force.x = this.states.dash_direction * this.speeds.dashSpeed * dSpeed;
+					
+					
 					this.states.guard = false;
 				}
 				
@@ -785,6 +855,7 @@ class Player extends GameObject{
 			}
 			
 			this.states.doubleJumpReady = this.states.doubleJumpReady || this.grounded;
+			this.states.airdashReady = this.states.airdashReady || this.grounded;
 			this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 			this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 			this.height = this.states.duck ? 24 : 30;
@@ -813,17 +884,7 @@ class Player extends GameObject{
 		this.states.effectTimer += this.delta;
 		this.states.turn -= this.delta;
 		this.states.duckTime -= this.delta;
-		
-		
-		if(this.states.dash > 0){
-			if(input.state("left") == 0 && input.state("right") == 0){
-				this.states.dash = 0.0;
-			}
-			if(Math.abs(this.force.x) < 0.2) {
-				this.states.dash = 0.0;
-			}
-			this.states.dash = Math.max(this.states.dash - this.delta, 0.0);
-		}
+		this.states.dash -= this.delta;
 		
 		if(Math.abs(this.states.againstwall) <= this.delta){
 			this.states.againstwall = 0;
@@ -866,7 +927,7 @@ class Player extends GameObject{
 			//getTileRule
 			//tilerules.ignore
 			
-			let tBelow = game.getTileRule(testPosition.add(new Point(0, ts*2)));
+			let tBelow = game.getTileRule(testPosition.add(new Point(0, ts*3)));
 			let tHole = game.getTileRule(testPosition.add(new Point(this.forward() * ts, 0)));
 			let tLedge = game.getTileRule(testPosition.add(new Point(this.forward() * ts, ts)));
 			let tFeetRest = game.getTileRule(testPosition.add(new Point(this.forward() * ts, ts*2)));
@@ -882,10 +943,12 @@ class Player extends GameObject{
 	stand(){
 		if( this.states.duck ) {
 			this.position.y -= 4;
+			this.grounded = true;
 			this.states.duck = false;
 		}
 	}
 	duck(){
+		this.states.dash = 0.0;
 		this.force.x = 0.0;
 		this.states.dash = 0.0;
 		if( !this.states.duck ) {
@@ -896,6 +959,7 @@ class Player extends GameObject{
 	}
 	jump(){ 
 		var force = this.speeds.jump * this.gravity;
+		this.states.dash = 0.0;
 		
 		if(this.states.duck){
 			//Fall through floor
@@ -918,27 +982,26 @@ class Player extends GameObject{
 			}
 		}
 		
-		
-		if( this.spellsCounters.flight > 0 ) force = 2;
-		
+		this.stand(); 
 		this.states.justjumped = Game.DELTASECOND * 0.2;
-		this.states.dash = 0;
 		this.force.y = -force; 
 		this.grounded = false; 
 		this.states.jump_boost = true; 
-		this.stand(); 
+		
 		audio.play("jump");
 	}
 	attack(attackIndex = -1){
 		//Player has pressed the attack button or an attack has been queued
 		this.cancelAttack();
 		
-		let weapon = this.attstates.weapon;
+		//let weapon = this.attstates.weapon;
+		let weapon = this.equip_sword.stats;
 		if(attackIndex < 0){
 			attackIndex = weapon.firstAttack(this.getWeaponState());
 		}
 		
 		let attack = weapon.getAttack(attackIndex);
+		this.damageMultiplier = attack.damage;
 		this.attstates.currentAttack = attackIndex;
 		this.attstates.totalTime = attack.time * weapon.speed;
 		this.attstates.wait = attack.wait * weapon.missWait;
@@ -948,10 +1011,10 @@ class Player extends GameObject{
 		
 		if("force" in attack){
 			let addForce = new Point(this.forward() * attack.force.x, attack.force.y);
-			this.grounded = this.grounded && addForce.y < 0;
 			this.force = this.force.add(addForce);
+			this.grounded = this.grounded && addForce.y >= 0;
 		}
-		
+		this.states.dash = 0.0;
 		audio.play(attack.audio, this.position);
 	}
 	cancelAttack(){
@@ -1199,59 +1262,61 @@ class Player extends GameObject{
 	}
 
 	render(g,c){
-		//Render player
-		
-		//Spell effects
-		if( this.spellsCounters.flight > 0 ){
-			var wings_offset = new Point((this.flip?8:-8),0);
-			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
-			if( this.grounded ) wings_frame = 0;
-			g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
-		}
-		if( this.spellsCounters.magic_armour > 0 ){
-			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
-		}
-		
-		//adjust for ledge offset
-		/*
-		if(_player.states.ledge){
-			g.renderSprite(
-				this.sprite,
-				this.position.subtract(c).add(new Point(0,19)),
-				this.zIndex,
-				this.frame,
-				this.flip,
-				{"shader":this.filter}
-			);
-		} else {
-			GameObject.prototype.render.apply(this,[g,c]);
-		}
-		*/
-		let color = COLOR_WHITE;
-		if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
-		g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
-			"u_color" : color
-		});
-		
-		//When rolling, ignore flip and shader
-		if(this.dodgeFlash && this.states.rolling){
-			var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
-			g.color = [1,1,1,1];
-			g.scaleFillRect(
-				(this.position.x - (this.flip?0:flashLength)) - c.x,
-				(this.position.y - 6) - c.y,
-				flashLength,
-				12
-			);
-		}
-		
-		if( this.spellsCounters.thorns > 0 ){
-			g.renderSprite("magic_effects",this.position.subtract(c),this.zIndex, new Point(3, 0), this.flip);
-		}
-		//Render current sword
-		if(!this.states.rolling){
-				this.renderWeapon(g,c);
-				this.renderShield(g,c);
+		if(this.showplayer){
+			//Render player
+			
+			//Spell effects
+			if( this.spellsCounters.flight > 0 ){
+				var wings_offset = new Point((this.flip?8:-8),0);
+				var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
+				if( this.grounded ) wings_frame = 0;
+				g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
+			}
+			if( this.spellsCounters.magic_armour > 0 ){
+				this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
+			}
+			
+			//adjust for ledge offset
+			/*
+			if(_player.states.ledge){
+				g.renderSprite(
+					this.sprite,
+					this.position.subtract(c).add(new Point(0,19)),
+					this.zIndex,
+					this.frame,
+					this.flip,
+					{"shader":this.filter}
+				);
+			} else {
+				GameObject.prototype.render.apply(this,[g,c]);
+			}
+			*/
+			let color = COLOR_WHITE;
+			if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
+			g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
+				"u_color" : color
+			});
+			
+			//When rolling, ignore flip and shader
+			if(this.dodgeFlash && this.states.rolling){
+				var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
+				g.color = [1,1,1,1];
+				g.scaleFillRect(
+					(this.position.x - (this.flip?0:flashLength)) - c.x,
+					(this.position.y - 6) - c.y,
+					flashLength,
+					12
+				);
+			}
+			
+			if( this.spellsCounters.thorns > 0 ){
+				g.renderSprite("magic_effects",this.position.subtract(c),this.zIndex, new Point(3, 0), this.flip);
+			}
+			//Render current sword
+			if(!this.states.rolling){
+					this.renderWeapon(g,c);
+					this.renderShield(g,c);
+			}
 		}
 	}
 	renderWeapon(g,c,ops={},eops={}){
@@ -1388,6 +1453,11 @@ class Player extends GameObject{
 }
 Player.renderLifebar = function(g,c, life, max, buffer){
 	/* Render HP */
+	let scale = 1.0;
+	life *= scale;
+	max *= scale;
+	buffer *= scale;
+	
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(c.x-1,c.y-1,(max)+2,10);
 	g.color = [0.0,0.0,0.0,1.0];

@@ -2,16 +2,24 @@ precision mediump float;
 
 uniform sampler2D u_image;
 uniform vec4 u_color;
+uniform vec4 u_highlight;
 uniform vec2 u_size;
-uniform vec2 u_bubbles;
-uniform vec3 u_distortion;
+uniform vec3 u_buldge1;
+uniform vec3 u_buldge2;
+uniform vec3 u_buldge3;
+uniform vec3 u_buldge4;
+uniform vec3 u_buldge5;
+uniform vec3 u_buldge6;
+uniform float u_waves;
+uniform float u_wavefreq;
 uniform float u_time;
-uniform float scalex;
 
 varying vec2 v_texCoord;
 varying vec2 v_position;
 
-const float pixsize = 0.015625;
+const float colordepth = 8.0;
+const float margin = 32.0;
+const float pi = 3.1415926535897932384626433832795;
 
 float inv(float a){
 	return abs(max(min(a,1.0),-1.0));
@@ -19,41 +27,53 @@ float inv(float a){
 float saturate(float a){
 	return max(min(a,1.0),0.0);
 }
-
+/*
+float floorFloat(float a){
+	return floor(a*colordepth) / colordepth;
+}
+float roundFloat(float a){
+	if(mod(a, 1.0) >= 0.5) {
+		return ceil(a*colordepth) / colordepth;
+	}
+	return floor(a*colordepth) / colordepth;
+}
+vec4 downsampleColor(vec4 a){
+	bool oddVline = mod(gl_FragCoord.y,2.0) < 1.0;
+	bool oddHline = mod(gl_FragCoord.x,2.0) < 1.0;
+	bool ditter = (oddHline && !oddVline) || (!oddHline && oddVline);
+	
+	if(ditter){
+		return vec4(floorFloat(a.x),floorFloat(a.y),floorFloat(a.z),a.a);
+	}
+	return vec4(roundFloat(a.x),roundFloat(a.y),roundFloat(a.z),a.a);
+}
+*/
+float smooth(float f){
+	//return cos(max(f, 0.0) * pi * 0.5);
+	return 0.5 + atan(pi * (max(f,0.0)-0.5)) / (pi*0.6666);
+}
 void main() {
 	vec2 uv = v_texCoord;
-	float xscale = 1.0 / u_size.x;
-	float yscale = 1.0 / u_size.y;
-	float stepDis = u_size.x * abs(u_distortion.x-uv.x);
+	vec2 xy = uv * u_size;
+	vec4 color = u_color;
 	
-	float uvWaveOff = (sin((v_texCoord.x+u_time*xscale) * (u_size.x * 0.1)) - 1.0) * (0.5/u_size.y);
-	float uvStepOff = u_distortion.z * yscale * saturate(stepDis * 0.0625 - 0.125) - yscale * 2.0;
-	//uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y);
-	uv.y = uv.y + mix(uvWaveOff, uvStepOff, u_distortion.y * (1.0-saturate(stepDis * 0.03125)));
+	float rise = ( 1.0 + sin(u_time + xy.x * u_wavefreq) ) * u_waves * 0.5;
 	
-	vec4 c_glow = vec4(0.8,1.0,0.6,1.0);
-	vec4 c_body = vec4(0.0,0.3,0.2,1.0);
-	vec4 c_deep = vec4(0.0,0.0,0.1,1.0);
-	//vec4 c_deep = vec4(0.2,0.0,0.2,1.0);
+	rise = max( u_buldge1.z * smooth(1.0 - (abs(xy.x-u_buldge1.x)) / u_buldge1.y), rise);
+	rise = max( u_buldge2.z * smooth(1.0 - (abs(xy.x-u_buldge2.x)) / u_buldge2.y), rise);
+	rise = max( u_buldge3.z * smooth(1.0 - (abs(xy.x-u_buldge3.x)) / u_buldge3.y), rise);
+	rise = max( u_buldge4.z * smooth(1.0 - (abs(xy.x-u_buldge4.x)) / u_buldge4.y), rise);
+	rise = max( u_buldge5.z * smooth(1.0 - (abs(xy.x-u_buldge5.x)) / u_buldge5.y), rise);
+	rise = max( u_buldge6.z * smooth(1.0 - (abs(xy.x-u_buldge6.x)) / u_buldge6.y), rise);
 	
-	float drainStrength = u_bubbles.y - saturate(u_size.x * 0.125 * abs(uv.x - u_bubbles.x));
-	float bubbles = texture2D(u_image, mod((v_texCoord * u_size * pixsize) + vec2(0.0,u_time*8.0),1.0)).r * 0.2;
-	float edges = 0.0;
+	float level = margin - rise;
 	
-	//add left edge
-	edges += max(1.0-uv.x * u_size.x,0.0);
-	edges += max((uv.x-(1.0-xscale)) * u_size.x,0.0);
-	edges += max(1.0-uv.y * 0.25 * u_size.y,0.0);
-	
-	vec4 color = mix(c_body, c_deep, uv.y);
-	color = mix(color, c_glow, edges);
-	
-	color = mix(color, c_glow, bubbles * saturate(drainStrength));
-	//color = mix(color, c_glow, bubbles * (1.0-min(v_texCoord.y/yscale*0.015625,1.0)));
-	
-	
-	if(uv.y < 0.0){
-		color.a = 0.0;
+	if(xy.y < level ){
+		color = vec4(0.0,0.0,0.0,0.0);
+	} else if (xy.y < level + 1.0){
+		color = u_highlight + texture2D(u_image, gl_FragCoord.xy / 240.0);
+	} else if (xy.y < level + 6.0 || xy.x < 2.0 || xy.x > u_size.x - 2.0){
+		color = mix(u_color, u_highlight, 0.4);
 	}
 	
 	gl_FragColor = color;

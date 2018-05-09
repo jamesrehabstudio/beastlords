@@ -127,6 +127,9 @@ BombBowl.prototype.explode = function(){
 	list = game.overlaps(l);
 	for(var i=0; i < list.length; i++){
 		var obj = list[i];
+		
+		obj.trigger("blasted", this);
+		
 		if(obj instanceof Player){
 			obj.hurt(this, this.damage);
 		} else if(obj.hasModule(mod_combat)){
@@ -143,7 +146,7 @@ BombBowl.prototype.explode = function(){
 	this.destroy();
 }
 BombBowl.prototype.render = function(g,c){
-	this.rotate = (this.rotate + this.delta * 5 * this.force.x) % 360;
+	this.rotate = (this.rotate + this.delta * 90 * this.force.x) % 360;
 	
 	if(this.timer <= 0){
 		this.explode();
@@ -173,3 +176,136 @@ BombBowl.prototype.render = function(g,c){
 		}
 	)
 }
+
+class Fuse extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.totalLength = 0.0;
+		this.spark = 0.0;
+		this.playing = false;
+		
+		this.sparkPoint = new Array();
+		this.fushPoints = new Array();
+		for(let i=0; i < d.length; i++){
+			let distance = 0.0;
+			let direction = new Point();
+			let seg = 3;
+			
+			this.sparkPoint.push( d[i].add(this.position) );
+			
+			if(i > 0){ 
+				distance = d[i-1].subtract(d[i]).magnitude(); 
+				direction = d[i-1].subtract(d[i]).normalize();
+				this.totalLength += distance;
+			}
+			
+			for(let dis = 0; dis <= distance; dis += seg){
+				let pos = d[i].add( this.position ).add( direction.scale(seg) );
+				let mpos = new Point( pos.x + Math.cos(pos.y) * 2, pos.y + Math.cos(pos.x) * 2 );
+				this.fushPoints.push( mpos );
+			}
+		}
+		
+		this.on("activate", function(){
+			this.spark = 0.0;
+			this.playing = true;
+		});
+		
+		this._tid = ops.getString("trigger", null);
+		this.speed = ops.getFloat("speed", 2.0);
+	}
+	getSparkPos(delta=0.0){
+		let ddis = this.totalLength * delta;
+		
+		let curdis = 0.0;
+		for(let i=1; i < this.sparkPoint.length; i++){
+			let distance = this.sparkPoint[i-1].subtract(this.sparkPoint[i]).magnitude(); 
+			
+			if(curdis + distance >= ddis){
+				let d = ddis - curdis;
+				let e = 1.0 - ( d / distance );
+				let direction = this.sparkPoint[i-1].subtract( this.sparkPoint[i] ); 
+				
+				return this.sparkPoint[i].add( direction.scale( e ) );
+			}
+			
+			curdis += distance;
+		}
+		return this.position;
+	}
+	render(g,c){
+		if(this.playing){
+			this.spark += this.delta / this.speed;
+			if(this.spark > 1){
+				this.spark = 0.0;
+				this.playing = false;
+			}
+		}
+		
+		for(let i=0; i < this.fushPoints.length - 1; i++){
+			g.renderLine( this.fushPoints[i].subtract(c), this.fushPoints[i+1].subtract(c), 1, COLOR_WHITE );
+		}
+		
+		if(this.spark > 0 && this.playing){
+			let sparkPos = this.getSparkPos( this.spark );
+			g.renderSprite("items",sparkPos.subtract(c),this.zIndex, new Point(10,1), this.flip);
+		}
+		
+	}
+}
+self["Fuse"] = Fuse;
+
+class Bomb extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "bullets";
+		this.frame.x = 6;
+		this.frame.y = 0;
+		
+		this.zIndex = 20;
+		
+		this.width = this.height = 24;
+		
+		this.delay = ops.getFloat("delay", 0.0);
+		this.start = ops.getBool("startactive", false);
+		this.radius = ops.getInt("radius", 24);
+		this.destroyOnExplode = ops.getBool("destroyonexplode", true);
+		this._tid = ops.getString("trigger", null);
+		
+		this.on("activate",function(){
+			this.start = true;
+		});
+	}
+	update(){
+		if(this.start){
+			if(this.delay > 0.0){
+				this.delay -= this.delta;
+			} else {
+				this.explode();
+				this.start = false;
+			}
+		}
+	}
+	explode(){
+		let radP = new Point(this.radius, this.radius);
+		let hits = game.overlaps(this.position.subtract(radP), this.position.add(radP));
+		
+		for(let i = 0; i < hits.length; i++){
+			hits[i].trigger("blasted", this);
+			if( hits[i].hasModule(mod_combat) ){
+				
+			}
+			
+		}
+		
+		if(this.destroyOnExplode){
+			this.destroy();
+		}
+	}
+}
+self["Bomb"] = Bomb;

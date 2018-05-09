@@ -320,10 +320,12 @@ Background.presets = {
 		
 		Background.renderRepeatingTiles(g,"bgfirepit02",c.scale(-0.5),new Point(256,256),new Point(),1);
 		
+		/*
 		if(_player.cameraLock.height() <= 240){
 			Background.renderRepeatingTiles(g,"bgfirepit01",new Point(c.x*-0.7,0),new Point(256,0),new Point(),1);
 			Background.renderRepeatingTiles(g,"bgfirepit01",new Point(c.x*-0.7,144),new Point(128,0),new Point(0,1),1);
 		}
+		*/
 		
 		//var _c = new Point(128-game.resolution.x*0.5, (c.y*0.7) % (240+96));
 		//g.renderSprite("bgfirepit01", new Point(0,240).subtract(_c), 1, new Point(0,0));

@@ -284,6 +284,58 @@ function Switch(x,y,d,o){
 	}
 }
 
+class GearSwitch extends GameObject{
+	constructor(x, y, d, o){
+		super(x,y,d,o);
+		this.origin = new Point();
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 24;
+		this.height = 24;
+		
+		this.rotation = 0.0;
+		this.rotation_to = 0.0;
+		
+		this.sprite = "switch_pressure";
+		
+		this.targets = o.getString("target","").split(",");
+		this.turnAmount = o.getFloat("turnamount", 12);
+		this.speed = o.getFloat("speed", 1.0) * 24;
+		
+		this.addModule(mod_combat);
+		this.life = this.lifeMax = 999;
+		
+		this.on("hurt", function(obj){
+			this.rotation_to += 12;
+			this.life = this.lifeMax;
+			Trigger.activate(this.targets);
+		});
+	}
+	update(){
+		if(this.rotation < this.rotation_to){
+			this.rotation += this.delta * this.speed;
+			
+			if(this.rotation >= this.rotation_to){
+				this.rotation = this.rotation_to;
+			}
+		}
+	}
+	render(g,c){
+		g.renderSprite(
+			this.sprite,
+			this.position.subtract(c),
+			this.zIndex,
+			this.frame,
+			this.flip,
+			{
+				"rotate" : this.rotation
+			}
+		);
+	}
+}
+
+self["GearSwitch"] = GearSwitch;
+
 class PressureSwitch extends GameObject{
 	constructor(x,y,d,ops){
 		super(x,y,d,ops);

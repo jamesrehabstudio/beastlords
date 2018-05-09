@@ -8,7 +8,7 @@ function Drain(x,y,d,ops){
 	this.position.y = y + d[1]*0.5;
 	this.width = d[0];
 	this.height = d[1];
-	this.speed = 0.25 * self.unitsPerMeter;
+	this.speed = 0.25 * self.UNITS_PER_METER;
 	this.emptyOnStart = 0;
 	this.resetOnSleep = 0;
 	this.triggersave = false;
@@ -22,29 +22,37 @@ function Drain(x,y,d,ops){
 	this.noDrain = 0;
 	this._drainTileTest = 0;
 	
+	this._stepTime = this.stepTimeTotal = 0.25;
 	this.drainPos = this.width * 0.5;
 	this.drainStr = 0.0;
-	this.stepPos = 0.5;
-	this.stepTime = 0.0;
-	this.stepTimeTotal = Game.DELTASECOND * 0.5;
-	this.stepStrMultiplier = 1.0;
-	this.stepStr = 5.0;
+	
+	this.buldges = [
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+	];
+	
 	
 	this.on("ontop", function(obj){
 		//Apply walking force
-		let pos = obj.position.subtract(this.position);
+		let xpos = obj.position.x - this.position.x;
 		
-		if(Math.abs(obj.force.x) > 0.3){
-			this.applyForce(pos, 1);
+		if(this._stepTime <= 0 && Math.abs(obj.force.x) > 1){
+			this.addBuldge(xpos, obj.force.x * obj.mass);
 		}
 	});
 	
 	this.on("collideObject", function(obj){
 		if( obj.hasModule(mod_rigidbody) && obj.gravity > 0){
-			let pos = obj.position.subtract(this.position);
-			let force = Math.min(obj.force.y, 8) * this.stepStrMultiplier;
+			let xpos = obj.position.x - this.position.x;
+			if(obj.force.y > 2){
+				this.addBuldge(xpos, obj.force.y * obj.mass);
+			}
 			
-			this.applyForce(pos, force);
+			
 		}
 	});
 	
@@ -83,7 +91,7 @@ function Drain(x,y,d,ops){
 		this._tid = ops.trigger;
 	}
 	if("speed" in ops){
-		this.speed = ops["speed"] * self.unitsPerMeter;
+		this.speed = ops["speed"] * self.UNITS_PER_METER;
 	}
 	if("empty" in ops){
 		this.emptyOnStart = ops["empty"] * 1;
@@ -130,7 +138,6 @@ Drain.prototype.update = function(){
 		this.stepTime = Game.DELTASECOND;
 	}
 	*/
-	this.stepTime = Math.max(this.stepTime - this.delta,0.0);
 	this.drainStr = 0.0;
 	
 	if(this.active){
@@ -165,40 +172,91 @@ Drain.prototype.update = function(){
 		*/
 		this.updateTiles();
 	}
+	
+	if(this._stepTime <= 0) {this._stepTime = this.stepTimeTotal; }
+	this._stepTime -= this.delta;
+	
+	for(let j=0; j < this.buldges.length; j++){
+		if(this.buldges[j].height > 0){
+			this.buldges[j].time += this.delta;
+			this.buldges[j].height -= this.delta * 4;
+			this.buldges[j].x += this.buldges[j].speed * this.delta * UNITS_PER_METER;
+			
+			if(this.buldges[j].x < 0) {
+				this.buldges[j].x = 0;
+				this.buldges[j].speed *= -0.8
+			}
+			if(this.buldges[j].x > this.width) {
+				this.buldges[j].x = this.width;
+				this.buldges[j].speed *= -0.8
+			}
+		}
+	}
 	//this.onboard = new Array();
 }
 
-Drain.prototype.applyForce = function(pos, force){
+Drain.prototype.addBuldge = function(xpos, force){
+	force = Math.abs(force);
 	
-	let p = this.stepTime / this.stepTimeTotal;
+	let w = Math.min(force, 16) * 2;
+	let h = w * 0.5;
+	let s = 4 * force * 0.06125;
+	let a = [ 
+		{x:xpos-8,speed:s,width:w,height:h,time:0},
+		{x:xpos+8,speed:-s,width:w,height:h,time:0},
+	];
 	
-	if(force > 0 && (force > this.stepStr * p)){
-		this.stepPos = pos.x / this.width;
-		this.stepTime = this.stepTimeTotal;
-		this.stepStr = force;
+	for(let i=0; i < a.length; i++){
+		
+		let lowest = a[i].height;
+		let lowestIndex = -1;
+		
+		for(let j=0; j < this.buldges.length; j++){
+			if(this.buldges[j].height < lowest ){
+				lowest = this.buldges[j].height;
+				lowestIndex = j;
+			}
+		}
+		
+		if(lowestIndex >= 0){
+			this.buldges[lowestIndex] = a[i];
+		}
 	}
 }
 
+Drain.prototype.buldgeToArray = function(i){
+	return [
+		this.buldges[i].x,
+		this.buldges[i].width,
+		this.buldges[i].height * Math.clamp01(this.buldges[i].time * 5),
+	]
+}
 Drain.prototype.render = function(g,c){
-	
+	let margin = 32;
 	
 	g.renderSprite(
 		"ooze", 
-		this.position.subtract(new Point(0,this.height)).subtract(c),
+		this.position.subtract(new Point(0,this.height+margin)).subtract(c),
 		this.zIndex,
 		new Point(),
 		false,
 		{
 			"u_time" : game.timeScaled,
-			"u_size" : [this.width, this.height],
-			"scalex" : this.width / 64.0,
-			"scaley" : this.height / 64.0,
-			"u_bubbles" : [this.drainPos / this.width, this.drainStr],
-			"u_distortion" : [this.stepPos, this.stepTime / this.stepTimeTotal, this.stepStr ]
+			"u_size" : [this.width, this.height+margin],
+			"scalex" : this.width / 256.0,
+			"scaley" : (this.height+margin) / 256.0,
+			"u_color" : [0.08,0.17,0.2,1.0],
+			"u_highlight" : [0.16,0.66,0.58,1.0],
+			"u_buldge1" : this.buldgeToArray(0),
+			"u_buldge2" : this.buldgeToArray(1),
+			"u_buldge3" : this.buldgeToArray(2),
+			"u_buldge4" : this.buldgeToArray(3),
+			"u_buldge5" : this.buldgeToArray(4),
+			"u_buldge6" : this.buldgeToArray(5),
 		}
 	)
-	return;
 	
+	/*
 	if(this.active){
 		for(var x=0; x < this.width; x+=16){
 			var pos = new Point(
@@ -218,6 +276,7 @@ Drain.prototype.render = function(g,c){
 			g.renderSprite(game.map.tileset,this.position.add(new Point(x,0)).subtract(c),this.zIndex,new Point(tile%32,tile/32));
 		}
 	}
+	*/
 }
 
 Drain.prototype.updateTiles = function(){

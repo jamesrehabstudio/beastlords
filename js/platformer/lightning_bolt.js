@@ -18,15 +18,18 @@ class LightningBolt extends GameObject {
 		
 		this.loop = ops.getBool("loop", false);
 		this.startTime = ops.getFloat("time", 2) * Game.DELTASECOND;
+		this.firstTime = ops.getFloat("firsttime", this.startTime);
 		
-		this.countdown = this.startTime;
+		this.countdown = this.firstTime;
 		this.bolttime = LightningBolt.BOLT_TME;
-		this.damage = 12;
+		this.damage = 24;
+		this._ignorelist = new Array();
 		
 		
 		this.on("sleep", function(){
 			if(this.loop){
 				this.reset();
+				this.countdown = this.firstTime;
 			} else {
 				this.destroy();
 			}
@@ -36,6 +39,7 @@ class LightningBolt extends GameObject {
 	reset(){
 		this.countdown = this.startTime;
 		this.bolttime = LightningBolt.BOLT_TME;
+		this._ignorelist = new Array();
 	}
 	
 	update(){
@@ -47,8 +51,9 @@ class LightningBolt extends GameObject {
 				}
 			} else if(this.bolttime > 0){
 				
-				if(_player.position.y < this.position.y && Math.abs(this.position.x-_player.position.x) <= 12){
-					this.struck(_player);
+				let hits = game.overlaps(new Point(this.position.x-12, game.camera.y), new Point(this.position.x+12, this.position.y));
+				for(let i=0; i < hits.length; i++){
+					this.struck(hits[i]);
 				}
 				
 				this.bolttime -= this.delta;
@@ -67,10 +72,14 @@ class LightningBolt extends GameObject {
 	}
 	
 	struck(obj){
-		if(obj instanceof Player){
+		if(obj.hasModule(mod_combat) && this._ignorelist.indexOf(obj) < 0){
 			let d = Combat.getDamage();
 			d.light = this.damage;
 			obj.hurt(this, d);
+			this._ignorelist.push(obj);
+			
+			//Stun enemies
+			if(!(obj instanceof Player)){ obj.stun = Game.DELTASECOND * 1.25; }
 		}
 	}
 	
@@ -87,7 +96,7 @@ class LightningBolt extends GameObject {
 			if(this.countdown > LightningBolt.WARNING_TME){
 				//Show nothing, getting ready
 			} else if(this.countdown > 0){
-				let r = (game.timeScaled/16) % 1;
+				let r = (game.timeScaled*2) % 1;
 				for(let j=0; j < 4; j++){
 					let a = 1;
 					if(j==0) a = r;

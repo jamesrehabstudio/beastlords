@@ -76,6 +76,8 @@ function BreakableTile(x, y, d, ops){
 	this.center = new Point(x,y);
 	this.position.x = x;
 	this.position.y = y;
+	this.width = d[0];
+	this.height = d[1];
 	this.broken = 0;
 	this.spawn = false;
 	this.death_time = Game.DELTASECOND * 0.15;
@@ -106,28 +108,11 @@ function BreakableTile(x, y, d, ops){
 		this.tileLayer = ops["tilelayer"] * 1;
 	}
 	
-	if(d[0] > 16 || d[1] > 16){
-		this.origin = new Point(0.0, 0.0);
-		this.width = Math.round(d[0]/16)*16;
-		this.height = Math.round(d[1]/16)*16;
-		this.position.x -= this.width * 0.5;
-		this.position.y -= this.height * 0.5;
-		
-		this.undertile = new Array();
-		for(var x=0; x < this.width; x+= 16){
-			for(var y=0; y < this.height; y+= 16){
-				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y, this.tileLayer);
-				this.undertile.push(tile);
-			}
-		}
-	} else {
-		this.width = this.height = 16;
-		this.undertile = game.getTile(this.position.x, this.position.y, this.tileLayer);
-	}
+	this.gatherTiles(false);
 	
-	if( "strikeable" in ops ) {
-		this.strikeable = ops["strikeable"] * 1;
-	}
+	this.strikeable = ops.getBool("strikeable", true);
+	this.blastable = ops.getBool("blastable", true);
+	
 	if("spawn" in ops) {
 		this.spawn = ops["spawn"].split(",");
 	}
@@ -190,6 +175,20 @@ function BreakableTile(x, y, d, ops){
 			}
 		}
 	});
+	this.on("blasted", function(obj){
+		if( this.blastable ) {
+			if(this.triggersave){
+				NPC.set(this.triggersave, 1);
+			}
+			if(!this.broken){
+				obj.trigger("break_tile", this, 0);
+				if(this.target instanceof Array){
+					Trigger.activate(this.target);
+				}
+				this.break(this.explode);
+			}
+		}
+	});
 	
 	//Set first state
 	if(this.startBroken){
@@ -214,7 +213,7 @@ function BreakableTile(x, y, d, ops){
 			}else{
 				this.unbreak(false);
 			}
-		});
+		}); 
 	}
 	if("triggersave" in ops){
 		this.triggersave = ops["triggersave"];
@@ -230,6 +229,28 @@ function BreakableTile(x, y, d, ops){
 		}
 	}
 }
+BreakableTile.prototype.gatherTiles = function(removeOriginal=false){
+	let ts = 16;
+	if(this.width > ts || this.height > ts){
+		this.origin = new Point(0.0, 0.0);
+		this.width = Math.round(this.width/ts)*ts;
+		this.height = Math.round(this.height/ts)*ts;
+		this.position.x -= this.width * 0.5;
+		this.position.y -= this.height * 0.5;
+		
+		this.undertile = new Array();
+		for(var x=0; x < this.width; x+= ts){
+			for(var y=0; y < this.height; y+= ts){
+				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y, this.tileLayer);
+				this.undertile.push(tile);
+			}
+		}
+	} else {
+		this.width = this.height = ts;
+		this.undertile = game.getTile(this.position.x, this.position.y, this.tileLayer);
+	}
+}
+
 BreakableTile.prototype.unbreak = function(explode){
 	if(this.broken && this.undertile != 0 && this.fixable){
 		if(this.chain) {

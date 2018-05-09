@@ -1,3 +1,92 @@
+class Lava extends Puddle{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		
+		this.viscosity = 0.125;
+		this.fireDamage = 1;
+		this.damageTickTimer = Game.DELTASECOND * 0.3;
+		
+		this.color1 = [0.8,0.25,0.0,1.0];
+		this.color2 = [1.0,0.5,0.0,1.0];
+		
+		this.waveSize = 4;
+		this.waveFrequency = 0.05;
+		this.waveSpeed = 0.5;
+		
+		this.raisedHeight = d[1];
+		this.lowerHeight = ops.getInt("triggerheight", this.raisedHeight);
+		this.speed = ops.getFloat("drainspeed", 1.0) * ( 32 / Math.abs(this.raisedHeight - this.lowerHeight) );
+		this.delay = ops.getFloat("delay", 0.0);
+		
+		this._tid = ops.getString("trigger", null);
+		
+		this._damageTick = false;
+		this._damageTickTimer = 0.0;
+		this._drained = false;
+		this._drainLevel = 0.0;
+		
+		this.on(["sleep","wakeup"], function(){
+			if(this._drained){
+				this._drainLevel = 1.0;
+				this.height = this.lowerHeight;
+			} else {
+				this._drainLevel = 0.0;
+				this.height = this.raisedHeight;
+			}
+		});
+		
+		this.on("activate", function(){
+			this._drained = true;
+		});
+		
+		this.on("collideObject", function(obj){
+			if(this.height > 0){
+				//Only hurt if it has volume
+				if(obj.hasModule(mod_rigidbody)){
+					this.floatObject(obj);
+				}
+				if(this._damageTick && obj.hasModule(mod_combat)){
+					audio.play("burn", obj.position);
+					obj.life -= this.fireDamage;
+					obj.displayDamage(this.fireDamage);
+					obj.isDead();
+					
+				}
+			}
+		});
+	}
+	update(){
+		super.update();
+		this.glow(64,COLOR_FIRE);
+		
+		this._damageTickTimer -= this.delta;
+		this._damageTick = false;
+		if(this._damageTickTimer <= 0){
+			this._damageTickTimer = this.damageTickTimer + this._damageTickTimer;
+			this._damageTick = true;
+		}
+		
+		if(this._drained){
+			if(this.delay > 0){
+				this.delay -= this.delta;
+			} else {
+				this._drainLevel = Math.clamp01( this._drainLevel + this.speed * this.delta );
+			}
+		} else {
+			this._drainLevel = Math.clamp01( this._drainLevel - this.speed * this.delta );
+		}
+		this.height = Math.lerp( this.raisedHeight, this.lowerHeight, this._drainLevel);
+	}
+	render(g,c){
+		if(this.height > 0){
+			super.render(g,c);
+		}
+	}
+}
+
+self["Lava"] = Lava;
+
+/*
 Lava.prototype = new GameObject();
 Lava.prototype.constructor = GameObject;
 function Lava(x,y,d,ops){

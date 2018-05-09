@@ -64,7 +64,7 @@ AudioPlayer.prototype.isReady = function(l, gain){
 	}
 	var time = game.time * 1;
 	if(l in this.list){
-		if(this.list[l]["lastplayed"] + 250 > time){
+		if(this.list[l]["lastplayed"] + 32 > time){
 			this.list[l]["playcount"] += gain;
 			if(this.list[l]["playcount"] > 4){
 				return false;
@@ -545,15 +545,27 @@ Game.prototype.render = function( ) {
 	this.g.flush();
 }
 Game.prototype.renderFPS = function(){
-	var frameTime = new Date() - this.time;
-	this.time = new Date();
+	if(this.frameCounter == undefined){
+		this.frameCounter = 0;
+		this.lastFrameCount = 0;
+		this.time = new Date() * 1;
+	}
 	
-	this.fps = Math.lerp(this.fps, frameTime,0.1);
-	var length = (1 / this.fps) * 400;
-	var clerp = length / 24;
+	this.frameCounter++;
+	let now = new Date() * 1;
 	
-	var start = this.resolution.x - 32;
-	var fps = this.delta;
+	if(now - this.time >= 1000){
+		this.time = now;
+		this.lastFrameCount = "" + this.frameCounter;
+		this.frameCounter = 0;
+	}
+	for(let i=0; i < this.lastFrameCount.length; i++){
+		let code = this.lastFrameCount.charCodeAt(i) - 48;
+		let frame = new Point(code, 1);
+		sprites.text.render(new Point(i*8,0),frame.x,frame.y,false,{});
+	}
+	
+	
 	
 	/*
 	this.g.color = [1,1,1,1];

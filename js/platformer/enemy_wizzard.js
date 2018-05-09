@@ -465,7 +465,7 @@ GroundBolt.prototype.update = function(){
 	this.time += this.delta;
 	
 	if(this.grounded){
-		this.force.x += this.speed * this.delta;
+		this.addHorizontalForce(this.speed);
 		this.flip = this.force.x < 0; 
 		Combat.strike.apply(this,[new Line(0,0,8,4)]);
 	} else {

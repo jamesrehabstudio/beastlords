@@ -175,6 +175,9 @@ function load_sprites (){
 	});
 	
 	
+	sprites['test_temple4'] = new Sprite(RT+"maps/temple4.png", {offset:new Point(0, 0),width:4096,height:1800});
+	
+	
 	sprites['items'] = new Sprite(RT+"img/items.png", {offset:new Point(8, 8),width:16,height:16});
 	sprites['waystones'] = new Sprite(RT+"img/waystones.gif", {offset:new Point(16, 24),width:32,height:48});
 	sprites['alter'] = new Sprite(RT+"img/alter.gif", {offset:new Point(32, 128),width:64,height:128});
@@ -217,6 +220,7 @@ function load_sprites (){
 	sprites['cape1'] = new Sprite(RT+"img/cape1.gif", {offset:new Point(24, 24),width:48,height:48});
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['characters2'] = new Sprite(RT+"img/characters2.gif", {offset:new Point(24, 32),width:48,height:48});
+	sprites['chainface'] = new Sprite(RT+"img/chainface.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['chaz'] = new Sprite(RT+"img/chaz.gif", {offset:new Point(18, 25),width:48,height:40});
 	sprites['checkpoint'] = new Sprite(RT+"img/checkpoint.gif", {offset:new Point(8, 32),width:16,height:64});
 	sprites['chests'] = new Sprite(RT+"img/chests.png", {offset:new Point(24, 32),width:48,height:48});
@@ -248,7 +252,7 @@ function load_sprites (){
 	sprites['landingpage'] = new Sprite(RT+"img/landingpage.png", {offset:new Point(0, 0),width:215,height:120});
 	sprites['laughing'] = new Sprite(RT+"img/laughing.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['lava'] = new Sprite(RT+"img/lava.png", {offset:new Point(0, 0),width:64,height:64,fs:"fragment-lavapool"});
-	sprites['ooze'] = new Sprite(RT+"img/lava.png", {offset:new Point(0, 0),width:64,height:64,fs:"fragment-ooze"});
+	sprites['ooze'] = new Sprite(RT+"img/ooze.png", {offset:new Point(0, 0),width:256,height:256,fs:"fragment-ooze"});
 	sprites['lavafalls'] = new Sprite(RT+"img/lavafalls.png", {offset:new Point(0, 112),width:32,height:112,fs:"fragment-lava"});
 	sprites['lavasnake'] = new Sprite(RT+"img/lavasnake.png", {offset:new Point(56, 32),width:80,height:80});
 	sprites['lilghost'] = new Sprite(RT+"img/lilghost.gif", {offset:new Point(16, 16),width:32,height:32});
@@ -256,6 +260,7 @@ function load_sprites (){
 	sprites['manonfire'] = new Sprite(RT+"img/manonfire.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['malphas'] = new Sprite(RT+"img/malphas.gif", {offset:new Point(16, 32),width:48,height:48});
 	sprites['malsum'] = new Sprite(RT+"img/malsum.png", {offset:new Point(24, 23),width:48,height:32});
+	sprites['mech'] = new Sprite(RT+"img/mech.png", {offset:new Point(56, 72),width:112,height:144});
 	sprites['moleminer'] = new Sprite(RT+"img/moleminer.png", {offset:new Point(24, 20),width:48,height:32});
 	sprites['monsterlock'] = new Sprite(RT+"img/monsterlock.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['npc_smith'] = new Sprite(RT+"img/npc_smith.png", {offset:new Point(32, 32),width:64,height:64});
@@ -275,7 +280,7 @@ function load_sprites (){
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
 	sprites['sailorsaturn'] = new Sprite(RT+"img/sailorsaturn.png", {offset:new Point(32, 48),width:64,height:64});
 	sprites['sailorsmasher'] = new Sprite(RT+"img/sailorsmasher.png", {offset:new Point(40, 52),width:80,height:80});
-	sprites['samrat'] = new Sprite(RT+"img/samrat.png", {offset:new Point(48, 40),width:128,height:64});
+	sprites['samrat'] = new Sprite(RT+"img/samrat.png", {offset:new Point(32, 49),width:64,height:64});
 	sprites['shell'] = new Sprite(RT+"img/shell.gif", {offset:new Point(8, 8),width:16,height:16});
 	sprites['shields'] = new Sprite(RT+"img/shields.png", {offset:new Point(16, 16),width:32,height:32});
 	sprites['shieldslots'] = new Sprite(RT+"img/shieldslots.png", {offset:new Point(16, 16),width:32,height:32});
@@ -295,6 +300,7 @@ function load_sprites (){
 	sprites['svarog'] = new Sprite(RT+"img/svarog.png", {offset:new Point(24, 24),width:48,height:48});
 	sprites['switch'] = new Sprite(RT+"img/switch.gif", {offset:new Point(0, 4),width:16,height:40});
 	sprites['switch_pressure'] = new Sprite(RT+"img/switch_pressure.png", {offset:new Point(24, 24),width:48,height:48});
+	sprites['thunderlizard'] = new Sprite(RT+"img/thunderlizard.png", {offset:new Point(64, 100),width:160,height:128});
 	sprites['treads'] = new Sprite(RT+"img/treads.png", {offset:new Point(0, 0),width:16,height:16});
 	sprites['trees'] = new Sprite(RT+"img/trees.png", {offset:new Point(28, 48),width:56,height:48});
 	sprites['owlwizzard'] = new Sprite(RT+"img/owlwizzard.png", {offset:new Point(24, 24),width:48,height:48});
@@ -305,6 +311,9 @@ function load_sprites (){
 	sprites['white'] = new Sprite(RT+"img/white.png", {offset:new Point(0, 0),width:1,height:1});
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
+	
+	sprites['cutscene_wedding'] = new Sprite(RT+"img/cutscene_wedding.png", {offset:new Point(128, 72),width:256,height:144});
+	sprites['cutscene_wedding_guests'] = new Sprite(RT+"img/cutscene_wedding_guests.png", {offset:new Point(128, 64),width:256,height:128});
 	
 	sprites['swordtest'] = new Sprite(RT+"img/sword_test.png", {offset:new Point(15, 56),width:32,height:64});
 	sprites['swordeffect'] = new Sprite(RT+"img/swordeffect.png", {offset:new Point(48, 49),width:112,height:64});
@@ -494,6 +503,7 @@ window.audio = new AudioPlayer({
 	"barrier" : {"url":RT+"sounds/barrier.wav"},
 	"block" : {"url":RT+"sounds/block.wav"},
 	"bullet1" : {"url":RT+"sounds/bullet1.wav"},
+	"burn" : {"url":RT+"sounds/burn.wav"},
 	"burst1" : {"url":RT+"sounds/burst1.wav"},
 	"critical" : {"url":RT+"sounds/critical.wav"},
 	"clang" : {"url":RT+"sounds/clang.wav"},

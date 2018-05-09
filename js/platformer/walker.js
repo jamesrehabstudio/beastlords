@@ -7,7 +7,7 @@ function Walker(x, y, d, o){
 	this.width = 24;
 	this.height = 24;
 	this.sprite = "walker";
-	this.speed = 0.35;
+	this.speed = 9.0;
 	this.speedBoost = 30.0;
 	this.zIndex = 13;
 	this.start = new Point(x,y);
@@ -85,7 +85,7 @@ Walker.prototype.update = function(){
 			_player.position.x = Math.lerp(_player.position.x, this.position.x, progress);
 		} else {
 			//Player on board
-			if(input.state("dodge") > 0){
+			if(input.state("dodge") > 0 && false){
 				this.force.x = this.forward() * this.speedBoost;
 				this.isCharging = true;
 				game.slow(0.35,3);
@@ -95,15 +95,15 @@ Walker.prototype.update = function(){
 				
 			} else {				
 				if(input.state("left") > 0){
-					this.force.x -= this.speed * this.delta;
+					this.addHorizontalForce(-this.speed);
 					this.flip = true;
 				}
 				if(input.state("right") > 0){
-					this.force.x += this.speed * this.delta;
+					this.addHorizontalForce(this.speed);
 					this.flip = false;
 				}
 				
-				this.stepAnim = (this.stepAnim + this.delta * Math.abs(this.force.x) * 0.2) % 6;
+				this.stepAnim = (this.stepAnim + this.delta * Math.abs(this.force.x) * 6.0) % 6;
 				this.frame.x = this.stepAnim % 3;
 				this.frame.y = this.stepAnim / 3;
 			}

@@ -101,7 +101,7 @@ function SinkingBlock(x,y,d,ops){
 	this.maxy = this.maxy = ops.getFloat("maxy",Number.MAX_SAFE_INTEGER);
 	this.width = d[0];
 	this.height = d[1];
-	this.speed = 0.25;
+	this.speed = 0.25 * UNITS_PER_METER;
 	this.force_y = 0.0;
 	this.gravity = 0.0;
 	this.sink = false;
@@ -122,7 +122,7 @@ function SinkingBlock(x,y,d,ops){
 		this.gravity = ops["gravity"] * 1;
 	}
 	if("speed" in ops){
-		this.speed = ops["speed"] * 1;
+		this.speed = ops["speed"] * UNITS_PER_METER;
 	}
 	if("sleep" in ops){
 		if(!(ops["sleep"] * 1)){
@@ -682,3 +682,78 @@ Crusher.prototype.shouldRender = MovingBlock.prototype.shouldRender;
 Crusher.prototype.dotDirection = MovingBlock.prototype.dotDirection;
 Crusher.prototype.gatherTiles = Block.prototype.gatherTiles;
 Crusher.prototype.render = Block.prototype.render;
+
+class CollapsingBlock extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x - d[0]*0.5;
+		this.position.y = y - d[1]*0.5;		
+		this.startPosition = this.position.scale(1);
+		this.origin.x = 0;
+		this.origin.y = 0;
+		this.width = d[0];
+		this.height = d[1];
+		
+		this.addModule(mod_block);
+		
+		this.collapseTime = ops.getFloat("timer", 1) * Game.DELTASECOND;
+		this.speed = ops.getFloat("speed", 2.0);
+		this.playerOnly = ops.getBool("playeronly", true);
+		this.autoCancel = ops.getBool("autocancel", true);
+		this.blockTopOnly = ops.getBool("toponly", true);
+		
+		Block.prototype.gatherTiles.apply(this);
+		
+		this._cTime = this.collapseTime;
+		this._fTime = 0.0;
+		this._falling = false;
+		
+		this.on("ontop", function(obj){
+			if(!this.playerOnly || obj instanceof Player){
+				this._fTime = Game.DELTASECOND * 0.0625;
+			}
+		});
+		
+		this.on("sleep", function(){
+			this.position.y = this.startPosition.y;
+			this._fTime = 0.0;
+			this._cTime = this.collapseTime;
+			
+			if(!game.insideScreen(this.position)){
+				//If the respawn is on screen hide it
+				this._falling = false;
+			}
+		});
+		
+		this.on("wakeup", function(){
+			if(this._falling){
+				this.visible = this.interactive = false;
+			} else {
+				this.visible = this.interactive = true;
+			}
+			this._falling = false;
+		});
+	}
+	update(){
+		if(this._falling){
+			this.position.y += this.speed * this.delta * UNITS_PER_METER;
+		} else {
+			if(this._fTime > 0){
+				this._fTime -= this.delta;
+				this._cTime -= this.delta;
+				if(this._cTime <= 0){
+					this._falling = true;
+				}
+			} else {
+				this._cTime = this.collapseTime;
+			}
+		}
+	}
+	render(g,c){
+		if(this._fTime > 0 && !this._falling){
+			c = c.add( new Point( (Math.random()-0.5) * 4, (Math.random()-0.5) * 4 ) );
+		}
+		Block.prototype.render.apply(this,[g,c]);
+	}
+}
+self["CollapsingBlock"] = CollapsingBlock;

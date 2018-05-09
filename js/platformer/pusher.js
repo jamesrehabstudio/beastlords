@@ -34,9 +34,9 @@ function Pusher(x,y,d,ops){
 		this._tid = ops.trigger;
 	}
 	if("forcex" in ops){
-		this.force.x = ops["forcex"] * 1;
+		this.force.x = ops["forcex"] * UNITS_PER_METER;
 	}
 	if("forcey" in ops){
-		this.force.y = ops["forcey"] * 1;
+		this.force.y = ops["forcey"] * UNITS_PER_METER;
 	}
 }

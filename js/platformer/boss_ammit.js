@@ -7,7 +7,7 @@ function Ammit(x,y,d,o){
 	this.width = 32;
 	this.height = 48;
 	this.sprite = "ammit";
-	this.speed = 0.25;
+	this.speed = 2.5;
 	
 	this.start_x = x;
 	this.active = false;
@@ -172,7 +172,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else {
 				//idle
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.x = (this.frame.x + this.delta * 9.0) % 4;
 				this.frame.y = 0;
 			}
 			this.states.transition -= this.delta;
@@ -194,7 +194,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_BOUNCE){
 				//Bounce
-				this.force.x += this.speed * 1.5 * this.delta * (this.flip?-1:1);
+				this.addHorizontalForce(this.speed * this.forward());
 				this.force.y -= this.delta * 0.5;
 				if(
 					(offpos.x < -Ammit.BOUNCE_DISTANCE && this.flip) ||
@@ -252,7 +252,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_MOVE){
 				//Change side
-				this.force.x += this.speed * 2 * this.delta * (this.flip?-1:1);
+				this.addHorizontalForce(this.speed * 2 * this.forward());
 				if(
 					(offpos.x < -Ammit.DISTANCE && this.flip) ||
 					(offpos.x > Ammit.DISTANCE && !this.flip)
@@ -264,7 +264,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_SPAWN){
 				//spawn enemies
-				this.force.x += this.speed * this.delta * (this.flip?-1:1);
+				this.addHorizontalForce(this.speed * this.forward());
 				if(
 					(offpos.x < -Ammit.DISTANCE && this.flip) ||
 					(offpos.x > Ammit.DISTANCE && !this.flip)
@@ -278,7 +278,7 @@ Ammit.prototype.update = function(){
 					Spawn.addToList(this.position,this.slimes,Slime,5);
 				}
 				this.states.attack += this.delta;
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.x = (this.frame.x + this.delta * 9.0) % 4;
 				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_IDLE){
 				//idle
@@ -307,7 +307,7 @@ Ammit.prototype.update = function(){
 					}
 				}
 				this.states.cooldown -= this.delta;
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.x = (this.frame.x + this.delta * 9.0) % 4;
 				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_BURST){
 				if(this.states.cooldown < 0){
@@ -321,7 +321,7 @@ Ammit.prototype.update = function(){
 					this.changeState(Ammit.STATE_HIDDEN);
 				}
 				this.states.cooldown -= this.delta;
-				this.frame.x = Math.max((this.frame.x + this.delta * 0.5) % 6, 4);
+				this.frame.x = Math.max((this.frame.x + this.delta * 15.0) % 6, 4);
 				this.frame.y = 0;
 			}
 		}

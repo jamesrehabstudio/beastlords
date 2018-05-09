@@ -15,7 +15,7 @@ function Ragdoll(x,y,d,o){
 	this.isDead();
 	
 	this.rotation = 0.0;
-	this.rotationSpeed = 1.0;
+	this.rotationSpeed = 30.0;
 	this.frame.x = 0;
 	this.frame.y = 0;
 	this.frames = false;

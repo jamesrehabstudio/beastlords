@@ -37,7 +37,7 @@ class Temple4Transport extends GameObject {
 			if(this._waitTime < this.launchTime){
 				this._waitTime += this.delta;
 			} else {
-				this._progress = Math.clamp01(this._progress + this.movementSpeed * this.delta);
+				this._progress = Math.clamp01(this._progress + this.movementSpeed * this.delta * UNITS_PER_METER);
 				this.position = Point.lerp(this.startPosition, this.stopPosition, this._progress);
 			}
 			

@@ -8,7 +8,7 @@ var physicsLayer = {
 		2 : [2]
 	}
 }
-var unitsPerMeter = 32;
+var UNITS_PER_METER = 32;
 var mod_rigidbody = {
 	'init' : function(){
 		this.interactive = true;
@@ -118,7 +118,7 @@ var mod_rigidbody = {
 			var inair = !this.grounded;
 			
 			if(this.airtime <= 0 || this.force.y < 0.0){
-				this.force.y += self.unitsPerMeter * this.gravity * this.delta;
+				this.force.y += self.UNITS_PER_METER * this.gravity * this.delta;
 			}
 			//Max speed 
 			this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
@@ -137,8 +137,8 @@ var mod_rigidbody = {
 			
 			var limits = game.t_move( 
 				this, 
-				self.unitsPerMeter * this.force.x * this.delta, 
-				self.unitsPerMeter * this.force.y * this.delta 
+				self.UNITS_PER_METER * this.force.x * this.delta, 
+				self.UNITS_PER_METER * this.force.y * this.delta 
 			);
 			
 			if(this.preventPlatFormSnap <= 0){
@@ -165,8 +165,8 @@ var mod_rigidbody = {
 				}
 			}
 			
-			var friction_x = 1.0 - this.friction * this.delta;
-			var friction_y = 1.0 - 0.02 * this.delta;
+			var friction_x = 1.0 - this.friction * UNITS_PER_METER * this.delta;
+			var friction_y = 1.0 - 0.02 * UNITS_PER_METER * this.delta;
 			this.force.x *= friction_x;
 			this.force.y *= friction_y;
 			this.preventPlatFormSnap -= this.delta;
@@ -269,28 +269,37 @@ var mod_block = {
 		this.on("collideObject", function(obj){
 			if(this.blockCollide && this.width > 0 && this.height > 0){
 				if( this.blockCollideCriteria(obj) ) {
-					var prepos = obj.position.subtract(obj.force.scale(obj.delta));
+					var e = this.corners();
 					var d = this.corners(this.blockPrevious);
-					//var b = obj.corners();
-					var c = obj.corners(prepos);
 					
-					if(!this.block_isWithin(obj)){
-						//Object outside of bounds, do nothing
-					} else if(c.bottom <= d.top){
-						//Top
-						this.trigger("collideTop", obj);
-					} else if(c.top >= d.bottom){
-						//Bottom
-						this.trigger("collideBottom", obj);
-					} else if(c.right <= d.left){
-						//left
-						this.trigger("collideLeft", obj);
-					} else if(c.left >= d.right){
-						//right
-						this.trigger("collideRight", obj);
-					} else {
-						//Stuck inside
-						this.blockStuck.push(obj);
+					var b = obj.corners();
+					var c = obj.corners(obj.positionPrevious);
+					
+					if(this.blockTopOnly){
+						//Only collide with top
+						if(b.bottom >= e.top && c.bottom < d.top){
+							this.trigger("collideTop", obj);
+						}
+						
+					} else {					
+						if(!this.block_isWithin(obj)){
+							//Object outside of bounds, do nothing
+						} else if(c.bottom <= d.top){
+							//Top
+							this.trigger("collideTop", obj);
+						} else if(c.top >= d.bottom){
+							//Bottom
+							this.trigger("collideBottom", obj);
+						} else if(c.right <= d.left){
+							//left
+							this.trigger("collideLeft", obj);
+						} else if(c.left >= d.right){
+							//right
+							this.trigger("collideRight", obj);
+						} else {
+							//Stuck inside
+							this.blockStuck.push(obj);
+						}
 					}
 				}
 			}
@@ -441,6 +450,7 @@ var mod_combat = {
 		this.damageIce = 0;
 		this.damageLight = 0;
 		this.damageFixed = 0;
+		this.damageMultiplier = 1.0;
 		
 		this.defencePhysical = 0;
 		this.defenceFire = 0;
@@ -631,10 +641,12 @@ var mod_combat = {
 			this.combat_stuncount = 0;
 		}
 		
+		let ops = {"multiplier" : this.damageMultiplier};
+		
 		if(this.swrap instanceof SpriteWrapper){
 			let boxes = this.swrap.getAttackBoxes(this.frame, this);
 			for(let i=0; i < boxes.length; i++){
-				Combat.attackCheck.apply(this,[ boxes[i] ]);
+				Combat.attackCheck.apply(this,[ boxes[i], ops ]);
 			}
 		}
 		
@@ -731,8 +743,8 @@ var Combat = {
 		} else {
 			return [new Line(
 				this.position.x - this.width * this.origin.x,
-				this.position.y - this.width * this.origin.y,
-				this.position.x + this.height * (1-this.origin.x),
+				this.position.y - this.height * this.origin.y,
+				this.position.x + this.width * (1-this.origin.x),
 				this.position.y + this.height * (1-this.origin.y)
 			)];
 		}

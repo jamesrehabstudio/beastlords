@@ -13,7 +13,7 @@ function Slime(x,y,d,o){
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	this.sprite = "slime";
-	this.speed = 3.0;
+	this.speed = 6.0;
 	this.visible = false;
 	this.interactive = false;
 	this.pushable = false;

@@ -110,6 +110,13 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 		return 1;
 	});
 }
+Renderer.drawRect = function(x,y,w,h,z,ops){
+	Renderer.renderSprite("white",new Point(x,y),z,new Point(),false,{
+		scalex : w,
+		scaley : h,
+		u_color : Renderer.color
+	});
+}
 Renderer.scaleFillRect = function(x,y,w,h,ops){
 	if(x instanceof Point){
 		ops = h;
@@ -386,8 +393,14 @@ Game.prototype.useMap = function(m){
 		var obj = m.objects[i];
 		if(obj.name in self){
 			//Create and append new object
+			
+			//Convert to Points
+			let points = new Array();
+			for(let j=0; j < obj.points.length;j++){points.push(new Point(obj.points[j].x*1.0, obj.points[j].y*1.0));}
+			
 			var options = new Options(obj.properties);
-			var newobj = new self[obj.name](obj.x,obj.y,[obj.width,obj.height],options);
+			var dimensions = points.length > 0 ? points : [obj.width,obj.height];
+			var newobj = new self[obj.name](obj.x,obj.y,dimensions,options);
 			this.addObject(newobj);
 		}
 	}
@@ -1072,6 +1085,7 @@ tilerules.rules["default"] = {};
 function GameObject() {
 	this.id = -1;
 	this.position = new Point();
+	this.positionPrevious = new Point();
 	this.origin = new Point(0.5, 0.5);
 	this.sprite;
 	this.width = 8;
@@ -1215,6 +1229,7 @@ GameObject.prototype.fullUpdate = function(){
 	var mods = this.modules;
 	//Set any frame specific values
 	this.deltaPrevious = this.delta;
+	this.positionPrevious = this.position.scale(1);
 	this.delta = game.delta * this.deltaScale;
 	this.deltaUnscaled = game.delta;
 

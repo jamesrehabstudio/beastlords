@@ -692,10 +692,12 @@ Background.presets = {
 		
 		Background.renderRepeatingTiles(g,"bgfirepit02",c.scale(-0.5),new Point(256,256),new Point(),1);
 		
+		/*
 		if(_player.cameraLock.height() <= 240){
 			Background.renderRepeatingTiles(g,"bgfirepit01",new Point(c.x*-0.7,0),new Point(256,0),new Point(),1);
 			Background.renderRepeatingTiles(g,"bgfirepit01",new Point(c.x*-0.7,144),new Point(128,0),new Point(0,1),1);
 		}
+		*/
 		
 		//var _c = new Point(128-game.resolution.x*0.5, (c.y*0.7) % (240+96));
 		//g.renderSprite("bgfirepit01", new Point(0,240).subtract(_c), 1, new Point(0,0));
@@ -872,7 +874,7 @@ function SinkingBlock(x,y,d,ops){
 	this.maxy = this.maxy = ops.getFloat("maxy",Number.MAX_SAFE_INTEGER);
 	this.width = d[0];
 	this.height = d[1];
-	this.speed = 0.25;
+	this.speed = 0.25 * UNITS_PER_METER;
 	this.force_y = 0.0;
 	this.gravity = 0.0;
 	this.sink = false;
@@ -893,7 +895,7 @@ function SinkingBlock(x,y,d,ops){
 		this.gravity = ops["gravity"] * 1;
 	}
 	if("speed" in ops){
-		this.speed = ops["speed"] * 1;
+		this.speed = ops["speed"] * UNITS_PER_METER;
 	}
 	if("sleep" in ops){
 		if(!(ops["sleep"] * 1)){
@@ -1454,6 +1456,81 @@ Crusher.prototype.dotDirection = MovingBlock.prototype.dotDirection;
 Crusher.prototype.gatherTiles = Block.prototype.gatherTiles;
 Crusher.prototype.render = Block.prototype.render;
 
+class CollapsingBlock extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x - d[0]*0.5;
+		this.position.y = y - d[1]*0.5;		
+		this.startPosition = this.position.scale(1);
+		this.origin.x = 0;
+		this.origin.y = 0;
+		this.width = d[0];
+		this.height = d[1];
+		
+		this.addModule(mod_block);
+		
+		this.collapseTime = ops.getFloat("timer", 1) * Game.DELTASECOND;
+		this.speed = ops.getFloat("speed", 2.0);
+		this.playerOnly = ops.getBool("playeronly", true);
+		this.autoCancel = ops.getBool("autocancel", true);
+		this.blockTopOnly = ops.getBool("toponly", true);
+		
+		Block.prototype.gatherTiles.apply(this);
+		
+		this._cTime = this.collapseTime;
+		this._fTime = 0.0;
+		this._falling = false;
+		
+		this.on("ontop", function(obj){
+			if(!this.playerOnly || obj instanceof Player){
+				this._fTime = Game.DELTASECOND * 0.0625;
+			}
+		});
+		
+		this.on("sleep", function(){
+			this.position.y = this.startPosition.y;
+			this._fTime = 0.0;
+			this._cTime = this.collapseTime;
+			
+			if(!game.insideScreen(this.position)){
+				//If the respawn is on screen hide it
+				this._falling = false;
+			}
+		});
+		
+		this.on("wakeup", function(){
+			if(this._falling){
+				this.visible = this.interactive = false;
+			} else {
+				this.visible = this.interactive = true;
+			}
+			this._falling = false;
+		});
+	}
+	update(){
+		if(this._falling){
+			this.position.y += this.speed * this.delta * UNITS_PER_METER;
+		} else {
+			if(this._fTime > 0){
+				this._fTime -= this.delta;
+				this._cTime -= this.delta;
+				if(this._cTime <= 0){
+					this._falling = true;
+				}
+			} else {
+				this._cTime = this.collapseTime;
+			}
+		}
+	}
+	render(g,c){
+		if(this._fTime > 0 && !this._falling){
+			c = c.add( new Point( (Math.random()-0.5) * 4, (Math.random()-0.5) * 4 ) );
+		}
+		Block.prototype.render.apply(this,[g,c]);
+	}
+}
+self["CollapsingBlock"] = CollapsingBlock;
+
  /* platformer\boss_ammit.js*/ 
 
 Ammit.prototype = new GameObject();
@@ -1465,7 +1542,7 @@ function Ammit(x,y,d,o){
 	this.width = 32;
 	this.height = 48;
 	this.sprite = "ammit";
-	this.speed = 0.25;
+	this.speed = 2.5;
 	
 	this.start_x = x;
 	this.active = false;
@@ -1630,7 +1707,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else {
 				//idle
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.x = (this.frame.x + this.delta * 9.0) % 4;
 				this.frame.y = 0;
 			}
 			this.states.transition -= this.delta;
@@ -1652,7 +1729,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 3;
 			} else if(this.states.current == Ammit.STATE_BOUNCE){
 				//Bounce
-				this.force.x += this.speed * 1.5 * this.delta * (this.flip?-1:1);
+				this.addHorizontalForce(this.speed * this.forward());
 				this.force.y -= this.delta * 0.5;
 				if(
 					(offpos.x < -Ammit.BOUNCE_DISTANCE && this.flip) ||
@@ -1710,7 +1787,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_MOVE){
 				//Change side
-				this.force.x += this.speed * 2 * this.delta * (this.flip?-1:1);
+				this.addHorizontalForce(this.speed * 2 * this.forward());
 				if(
 					(offpos.x < -Ammit.DISTANCE && this.flip) ||
 					(offpos.x > Ammit.DISTANCE && !this.flip)
@@ -1722,7 +1799,7 @@ Ammit.prototype.update = function(){
 				this.frame.y = 1;
 			} else if(this.states.current == Ammit.STATE_SPAWN){
 				//spawn enemies
-				this.force.x += this.speed * this.delta * (this.flip?-1:1);
+				this.addHorizontalForce(this.speed * this.forward());
 				if(
 					(offpos.x < -Ammit.DISTANCE && this.flip) ||
 					(offpos.x > Ammit.DISTANCE && !this.flip)
@@ -1736,7 +1813,7 @@ Ammit.prototype.update = function(){
 					Spawn.addToList(this.position,this.slimes,Slime,5);
 				}
 				this.states.attack += this.delta;
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.x = (this.frame.x + this.delta * 9.0) % 4;
 				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_IDLE){
 				//idle
@@ -1765,7 +1842,7 @@ Ammit.prototype.update = function(){
 					}
 				}
 				this.states.cooldown -= this.delta;
-				this.frame.x = (this.frame.x + this.delta * 0.3) % 4;
+				this.frame.x = (this.frame.x + this.delta * 9.0) % 4;
 				this.frame.y = 0;
 			} else if(this.states.current == Ammit.STATE_BURST){
 				if(this.states.cooldown < 0){
@@ -1779,7 +1856,7 @@ Ammit.prototype.update = function(){
 					this.changeState(Ammit.STATE_HIDDEN);
 				}
 				this.states.cooldown -= this.delta;
-				this.frame.x = Math.max((this.frame.x + this.delta * 0.5) % 6, 4);
+				this.frame.x = Math.max((this.frame.x + this.delta * 15.0) % 6, 4);
 				this.frame.y = 0;
 			}
 		}
@@ -2484,14 +2561,15 @@ class Garmr extends GameObject{
 		this.on("hurt", function(obj, damage){
 			audio.play("hurt");
 			
-			if(this.states.current == Garmr.STATE_BOLT){
+			/*
+			if(this.states.current == Garmr.STATE_BOLT && obj instanceof Player){
 				if(this.states.time < this.states.timeTotal * 0.7){
 					let d = this.getDamage(0);
-					d.light = Math.ceil(this.damage*0.6);
+					d.light = Math.ceil(this.damage * 0.6);
 					obj.hurt(this, d);
 				}
 			}
-			
+			*/
 		});
 		this.on("hitWithRay", function(obj){
 			if(obj instanceof Player){
@@ -2654,7 +2732,7 @@ class Garmr extends GameObject{
 				this.gotoPos.z = this.speed * 0.5;
 				this.flip = dir.x > 0;
 				
-				if(Timer.isAt(this.states.time, this.states.timeTotal*0.5,this.delta)){
+				if(Timer.isAt(this.states.time, this.states.timeTotal*0.5, this.delta)){
 					this.fireball();
 				}
 				
@@ -2676,8 +2754,8 @@ class Garmr extends GameObject{
 					this.force.y = this.gotoPos.z * (this.gotoPos.y > this.position.y ? 1 : -1);
 				}
 			}
-			this.position = this.position.add(this.force.scale(this.delta));
-			this.force = this.force.scale(1-(this.friction*this.delta));
+			this.position = this.position.add( this.force.scale( this.delta * UNITS_PER_METER ) );
+			this.force = this.force.scale( 1 - (this.friction * this.delta * UNITS_PER_METER ) );
 			
 			//Detect if laser is hitting the player
 			if(this.trackRay.isOn){
@@ -2735,7 +2813,7 @@ class Garmr extends GameObject{
 		if(this.states.animation == 0){
 			//Idle
 			let p = Math.sin(progress * Math.PI * 2);
-			this.trackChest.scale = 1 + Math.sin(game.timeScaled * 0.05) * 0.03125;
+			this.trackChest.scale = 1 + Math.sin(game.timeScaled * 1.5) * 0.03125;
 			
 			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.35,0.78,0), new Vector(2.40,0.78,0), p);
 			this.trackLowerRightArm.rotation = Math.lerp(0.65,0.55, p);
@@ -2833,13 +2911,13 @@ class Garmr extends GameObject{
 	}
 	
 	render(g,c){
-		this.trackHead.rotation = Math.lerp(this.trackHead.rotation, Math.PI * this.forward() * this.trackHead.turnStrength, this.delta*0.125);
-		this.trackChest.rotation = Math.lerp(this.trackChest.rotation, this.trackHead.rotation, this.delta*0.25);
-		this.trackBody.rotation = Math.lerp(this.trackBody.rotation, this.trackChest.rotation, this.delta*0.125);
+		this.trackHead.rotation = Math.lerp(this.trackHead.rotation, Math.PI * this.forward() * this.trackHead.turnStrength, this.delta * 3.75);
+		this.trackChest.rotation = Math.lerp(this.trackChest.rotation, this.trackHead.rotation, this.delta * 6.5);
+		this.trackBody.rotation = Math.lerp(this.trackBody.rotation, this.trackChest.rotation, this.delta * 3.25);
 		
 		this.trackHead.position = new Vector(this.position.x, this.position.y, 0);
-		this.trackChest.position = Vector.lerp(this.trackChest.position, this.position, this.delta*0.4);
-		this.trackBody.position = Vector.lerp(this.trackBody.position, this.trackChest.position, this.delta*0.4);
+		this.trackChest.position = Vector.lerp(this.trackChest.position, this.position, this.delta * 12.0);
+		this.trackBody.position = Vector.lerp(this.trackBody.position, this.trackChest.position, this.delta * 12.0);
 		
 		let offset = Vector.rotate(this.trackHead.offset,0,this.trackHead.rotation,0);
 		let headModel = this.trackHead.scream ? "garmr_headscream" : "garmr_head";
@@ -4188,6 +4266,8 @@ function Bullet(x,y,d){
 	this.effect = null;
 	this.effect_time = 0;
 	
+	this.controlAI = function(){}
+	
 	this.attackEffects = {
 		"slow" : [0,10],
 		"poison" : [0,10],
@@ -4208,12 +4288,7 @@ function Bullet(x,y,d){
 	this.on("collideHorizontal", function(dir){ if(this.wallStop){ this.trigger("death"); } });
 	this.on("sleep", function(){ this.trigger("death"); });
 	this.on("death", function(){ this.destroy(); });
-	this.on("hurt_other", function(obj, damage){
-		if(this.explode){
-			game.addObject(new EffectBang(this.position.x, this.position.y));
-			this.explode = false;
-		}
-	});
+	this.on("hurt_other", function(obj, damage){});
 	this.on("struck", function(obj){ 
 		if(this.blockable && obj.team!=this.team) {
 			this.trigger("deflect");
@@ -4240,6 +4315,7 @@ function Bullet(x,y,d){
 Bullet.prototype.setDeflect = function(){
 	this.on("deflect", function(){
 		var rag = new Ragdoll(this.position.x, this.position.y);
+		rag.force = this.force.scale(-0.5);
 		rag.width = rag.height = 12;
 		rag.sprite = this.sprite;
 		rag.frame = this.frame;
@@ -4253,7 +4329,7 @@ Bullet.prototype.update = function(){
 	if(this.rotation == undefined){
 		this.flip = this.force.x < 0;
 	}
-	if( this.range <= 0 ) this.destroy();
+	if( this.range <= 0 ) { this.destroy(); }
 	
 	if( this.delay > 0 ) {
 		this.deltaScale = 0.0;
@@ -4338,7 +4414,56 @@ Bullet.createFireball = function(x,y,ops){
 	if("damage" in ops){
 		bullet.damageFire = ops.damage * 1;
 	}
+	
+	bullet.on("death", function(){
+		game.addObject(new EffectBang(this.position.x, this.position.y));
+	});
+	
 	return bullet;
+}
+Bullet.createHomingMissile = function(x,y,ops){
+	ops = ops || new Options();
+	var missile = new Bullet(x,y);
+	missile.frame = new Point(3,3);
+	missile.blockable = false;
+	missile.light = 48;
+	missile.lightColor = COLOR_WHITE;
+	missile.team = ops.getInt("team", 0);
+	missile.damage = ops.getInt("damage", 10);
+	missile.rotation = ops.getFloat("rotation", 0.0);
+	missile.speed = ops.getFloat("speed", 5.0);
+	missile.sleepTime = Game.DELTASECOND * ops.getFloat("sleepTime", 0.6);
+	missile.turnSpeed = ops.getFloat("turnSpeed", 90.0);
+	missile.target = _player;
+	missile.setDeflect();
+	
+	missile.on("death", function(){
+		game.addObject(new EffectBang(this.position.x, this.position.y));
+	});
+	
+	missile.on("preupdate", function(){
+		if(this.sleepTime > 0){
+			this.sleepTime -= this.delta;
+			this.gravity = 0.125;
+		} else {
+			this.gravity = 0.0;
+			let targetdif = this.target.position.subtract(this.position);
+			let angle = Math.atan2(targetdif.y, targetdif.x) * Math.rad2deg;
+			let rdif = Math.sdif(angle, this.rotation);
+			
+			if(Math.abs(rdif) > this.turnSpeed * this.delta){
+				let rdir = rdif > 0 ? 1 : -1;
+				this.rotation += rdir * this.turnSpeed * this.delta;
+			} else {
+				this.rotation = angle;
+			}
+			let radAngle = this.rotation * Math.deg2rad;
+			this.force.x = Math.cos(radAngle) * this.speed;
+			this.force.y = Math.sin(radAngle) * this.speed;
+		}
+	});
+	
+	return missile;
 }
 
 PhantomBullet.prototype = new GameObject();
@@ -4438,7 +4563,7 @@ function Fire(x,y){
 Fire.prototype.update = function(){
 	Background.pushLight( this.position, 48, [1,0.8,0,1] );
 	
-	this.frame.x = (this.frame.x + (this.delta * 0.5)) % 3;
+	this.frame.x = (this.frame.x + (this.delta * 15.0)) % 3;
 	this.life -= this.delta;
 	if( this.life <= 0 ){
 		this.trigger("death");
@@ -5180,6 +5305,249 @@ class Crane extends GameObject {
 }
 self["Crane"] = Crane;
 
+ /* platformer\cutscene_wedding.js*/ 
+
+class Wedding extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = d[0];
+		this.height = d[1];
+		this.zIndex = -5;
+		
+		this.sprite = "cutscene_wedding";
+		this.sprite_guests = "cutscene_wedding_guests";
+		this.lover_sprite = "bear";
+		
+		this.stage = -1;
+		this.lovePower = 16.0;
+		this.transitionTime = 3.0;
+		this.startDelay = 4.0;
+		this.shake = new Point();
+		this.anim = 0.0;
+		
+		this.throwForce = new Point(6,-12);
+		this.engine = new Point();
+		this.bouquet = new Point(16,0);
+		this.bride = new Point();
+		this.crowd = new Point();
+		this.lover = new Point(-16,48);
+		this.kiss1 = new Point(-24,0);
+		this.kiss2 = new Point(24,0);
+		this.rejected = false;
+		
+		this.text_resist = "Hammer attack to resist love";
+		this.text_love = "A love that'll last forever";
+		
+		this.on("player_death", function(){
+			this.reset();
+		});
+	}
+	reset(){
+		this.stage = -1;
+		this.anim = 0.0;
+		this.lovePower = 16.0;
+		this.transitionTime = 3.0;
+		this.startDelay = 4.0;
+		this.bouquet = new Point(16,0);
+		this.throwForce = new Point(6,-12);
+		this.lover = new Point(-16,48);
+		this.rejected = false;
+	}
+	rejectLover(){
+		this.rejected = true;
+		let rd = new Ragdoll(0,0);
+		rd.sprite = this.lover_sprite;
+		rd.position = this.position.add(this.lover);
+		rd.force = new Point(-6, -4);
+		rd.frame = new Point(1,2);
+		rd.zIndex = this.zIndex + 5;
+		rd.on("death", function(){
+			this.moneyDrop = 5;
+			Item.drop(this);
+		});
+		game.addObject(rd);
+		game.slow(0.0,2.0);
+	}
+	update(){
+		this.shake = Point.lerp(this.shake, new Point(), this.delta * 4.0);
+		this.engine.y = Math.floor((game.time * 16) % 2);
+		
+		if(this.stage < 0){
+			this.anim += this.delta;
+			
+			if(this.anim < 5){
+				//wait
+			} else if(this.anim < 8){
+				//move in for a kiss
+				let p = Math.clamp01((this.anim-5) / 2);
+				this.bride.x = Math.lerp(0,-24,p);
+				this.bouquet.x = 16 + this.bride.x;
+			} else if(this.anim < 10){
+				//move out
+				let p = Math.clamp01((this.anim-8) / 1);
+				this.bride.x = Math.lerp(-24,0,p);
+				this.bouquet.x = 16 + this.bride.x;
+			} else if(this.bouquet.y < 80){
+				//Throw
+				let drate = this.delta * 0.3;
+				this.throwForce.y += UNITS_PER_METER * drate;
+				this.throwForce.x *= 1 - (0.125 * drate);
+				
+				this.bouquet = this.bouquet.add(this.throwForce.scale(drate).scale(UNITS_PER_METER));
+				
+				let area1 = _player.bounds();
+				let area2 = new Line(this.bouquet.add(this.position).subtract(new Point(-8,-8)), this.bouquet.add(this.position).subtract(new Point(+8,+8)));
+				
+				if(area1.overlaps(area2)){
+					this.stage = 0;
+					this.anim = 0.0;
+					_player.flip = true;
+					_player.force.x = 0;
+					_player.canmove = false;
+				}
+			}
+			
+		} else if(this.stage == 0){
+			this.anim += this.delta;
+			
+			let p = Math.clamp01( (this.anim-1.5) / 2 );
+			let playerdif = _player.position.subtract(this.position);
+			
+			this.bouquet = playerdif.add(new Point(_player.forward()*16,0));
+			this.lover.x = Math.lerp(-16, playerdif.x - 48, p);
+			
+			if(this.anim > 5){
+				this.stage = 1;
+				this.bouquet.y = 80;
+			}
+		} else if(this.stage == 1){
+			if(input.state("fire") == 1){
+				this.shake = new Point( Math.random() - 0.5, Math.random() - 0.5).normalize(3);
+				this.lovePower += 1.0;
+				this.startDelay = 0.0;
+			}
+			
+			if(this.startDelay <= 0){
+				this.lovePower -= this.delta * 4.0;
+			} else {
+				this.startDelay -= this.delta;
+			}
+			
+			if(this.lovePower <= 0){
+				//lose
+				this.stage = 2;
+			} else if(this.lovePower > 32){
+				//win
+				this.stage = 3;
+			}
+		} else {
+			if(this.transitionTime < 0){
+				if(this.stage == 2){
+					this.stage = 4;
+					this.transitionTime = 4.0;
+				} else if(this.stage == 3){
+					_player.canmove = true;
+					this.stage = 999;
+					this.rejectLover();
+				} else if(this.stage == 4){
+					this.stage = 5;
+					this.transitionTime = 6.0;
+				} else if(this.stage == 5){
+					_player.canmove = true;
+					_player.life = 0;
+					_player.trigger("death");
+				}
+			} else {
+				this.transitionTime -= this.delta;
+			}
+			
+			if(this.stage == 5){
+				let p = 1 - this.transitionTime / 6;
+				this.kiss1.x = Math.lerp(-24,-4,p);
+				this.kiss2.x = Math.lerp(24,4,p);
+			}
+		}
+	}
+	render(g,c){
+		
+		g.renderSprite(this.sprite_guests,this.position.add(this.bouquet).subtract(c),this.zIndex+2,new Point(1,1),false);
+		
+		g.renderSprite(this.sprite_guests,this.position.add(this.bride).subtract(c),this.zIndex,new Point(0,0),false);
+		g.renderSprite(this.sprite_guests,this.position.add(this.engine).subtract(c),this.zIndex-1,new Point(1,0),false);
+		
+		g.renderSprite(this.sprite_guests,this.position.add(this.crowd).subtract(c),this.zIndex+1,new Point(0,1),false);
+		
+		if(!this.rejected){
+			g.renderSprite(this.lover_sprite,this.position.add(this.lover).subtract(c),this.zIndex+2,new Point(1,2),false);
+		}
+		
+	}
+	hudrender(g,c){
+		let center = game.resolution.scale(0.5).floor();
+		
+		if(this.stage >= 1 && this.stage < 8){
+			let margin = (game.resolution.x - 256) * 0.5;
+			g.color = COLOR_BLACK;
+			g.drawRect(0,0,game.resolution.x,48,this.zIndex+5);
+			g.drawRect(0,192,game.resolution.x,48,this.zIndex+5);
+			g.drawRect(0,48,margin,144,this.zIndex+5);
+			g.drawRect(margin+256,48,margin,144,this.zIndex+5);
+		}
+		
+		if(this.stage == 1){
+		
+			g.renderSprite(this.sprite, center, this.zIndex, new Point(0,2), false);
+			
+			g.renderSprite(this.sprite, center.add(this.shake), this.zIndex+1, new Point(0,0), false);
+			g.renderSprite(this.sprite, center, this.zIndex+2, new Point(0,1), false);
+			
+			textArea(g, this.text_resist, center.x - (this.text_resist.length*4), 200);
+			
+			g.color = COLOR_BLACK;
+			g.scaleFillRect(center.x-17,159,34,10);
+			g.color = [1.0,0.0,0.0,1.0];
+			g.scaleFillRect(center.x-16,160,Math.floor(this.lovePower),8);
+			
+		} else if(this.stage == 2){
+			//love
+			g.renderSprite(this.sprite, center, this.zIndex, new Point(0,2), false);
+			
+			g.renderSprite(this.sprite, center, this.zIndex+1, new Point(1,0), false);
+			g.renderSprite(this.sprite, center, this.zIndex+2, new Point(1,1), false);
+		} else if(this.stage == 3){
+			//break up
+			g.renderSprite(this.sprite, center, this.zIndex, new Point(0,2), false);
+			
+			g.renderSprite(this.sprite, center, this.zIndex+1, new Point(2,0), false);
+			g.renderSprite(this.sprite, center, this.zIndex+2, new Point(2,1), false);
+		} else if(this.stage == 4){
+			//Wedding photo
+			g.renderSprite(this.sprite, center, this.zIndex, new Point(1,2), false);
+		} else if(this.stage == 5){
+			g.renderSprite(this.sprite, center, this.zIndex, new Point(0,2), false);
+			
+			g.renderSprite(this.sprite, center.add(this.kiss1), this.zIndex+1, new Point(0,3), false);
+			g.renderSprite(this.sprite, center.add(this.kiss2), this.zIndex+1, new Point(1,3), false);
+			
+			for(let i=0; i < Wedding.roses.length; i++){
+				let p = 1 - Math.clamp01(this.transitionTime * 0.5 - i * 0.2 - 1.5);
+				g.renderSprite(this.sprite,center.add(Wedding.roses[i]),this.zIndex+6,new Point(2,2),false,{
+					scalex : p,
+					scaley : p
+				});
+			}
+			
+			textArea(g, this.text_love, center.x - (this.text_love.length*4), 200);
+		}
+		
+	}
+}
+Wedding.roses = [new Point(140,-16),new Point(-140,32),new Point(-64,-80),new Point(-128,-96),new Point(96,-96)]
+
+self["Wedding"] = Wedding;
+
  /* platformer\damagetrigger.js*/ 
 
 DamageTrigger.prototype = new GameObject();
@@ -5624,7 +5992,7 @@ function Drain(x,y,d,ops){
 	this.position.y = y + d[1]*0.5;
 	this.width = d[0];
 	this.height = d[1];
-	this.speed = 0.25 * self.unitsPerMeter;
+	this.speed = 0.25 * self.UNITS_PER_METER;
 	this.emptyOnStart = 0;
 	this.resetOnSleep = 0;
 	this.triggersave = false;
@@ -5638,29 +6006,37 @@ function Drain(x,y,d,ops){
 	this.noDrain = 0;
 	this._drainTileTest = 0;
 	
+	this._stepTime = this.stepTimeTotal = 0.25;
 	this.drainPos = this.width * 0.5;
 	this.drainStr = 0.0;
-	this.stepPos = 0.5;
-	this.stepTime = 0.0;
-	this.stepTimeTotal = Game.DELTASECOND * 0.5;
-	this.stepStrMultiplier = 1.0;
-	this.stepStr = 5.0;
+	
+	this.buldges = [
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+		{x:0,speed:0,width:0,height:0,time:0},
+	];
+	
 	
 	this.on("ontop", function(obj){
 		//Apply walking force
-		let pos = obj.position.subtract(this.position);
+		let xpos = obj.position.x - this.position.x;
 		
-		if(Math.abs(obj.force.x) > 0.3){
-			this.applyForce(pos, 1);
+		if(this._stepTime <= 0 && Math.abs(obj.force.x) > 1){
+			this.addBuldge(xpos, obj.force.x * obj.mass);
 		}
 	});
 	
 	this.on("collideObject", function(obj){
 		if( obj.hasModule(mod_rigidbody) && obj.gravity > 0){
-			let pos = obj.position.subtract(this.position);
-			let force = Math.min(obj.force.y, 8) * this.stepStrMultiplier;
+			let xpos = obj.position.x - this.position.x;
+			if(obj.force.y > 2){
+				this.addBuldge(xpos, obj.force.y * obj.mass);
+			}
 			
-			this.applyForce(pos, force);
+			
 		}
 	});
 	
@@ -5699,7 +6075,7 @@ function Drain(x,y,d,ops){
 		this._tid = ops.trigger;
 	}
 	if("speed" in ops){
-		this.speed = ops["speed"] * self.unitsPerMeter;
+		this.speed = ops["speed"] * self.UNITS_PER_METER;
 	}
 	if("empty" in ops){
 		this.emptyOnStart = ops["empty"] * 1;
@@ -5746,7 +6122,6 @@ Drain.prototype.update = function(){
 		this.stepTime = Game.DELTASECOND;
 	}
 	*/
-	this.stepTime = Math.max(this.stepTime - this.delta,0.0);
 	this.drainStr = 0.0;
 	
 	if(this.active){
@@ -5781,40 +6156,91 @@ Drain.prototype.update = function(){
 		*/
 		this.updateTiles();
 	}
+	
+	if(this._stepTime <= 0) {this._stepTime = this.stepTimeTotal; }
+	this._stepTime -= this.delta;
+	
+	for(let j=0; j < this.buldges.length; j++){
+		if(this.buldges[j].height > 0){
+			this.buldges[j].time += this.delta;
+			this.buldges[j].height -= this.delta * 4;
+			this.buldges[j].x += this.buldges[j].speed * this.delta * UNITS_PER_METER;
+			
+			if(this.buldges[j].x < 0) {
+				this.buldges[j].x = 0;
+				this.buldges[j].speed *= -0.8
+			}
+			if(this.buldges[j].x > this.width) {
+				this.buldges[j].x = this.width;
+				this.buldges[j].speed *= -0.8
+			}
+		}
+	}
 	//this.onboard = new Array();
 }
 
-Drain.prototype.applyForce = function(pos, force){
+Drain.prototype.addBuldge = function(xpos, force){
+	force = Math.abs(force);
 	
-	let p = this.stepTime / this.stepTimeTotal;
+	let w = Math.min(force, 16) * 2;
+	let h = w * 0.5;
+	let s = 4 * force * 0.06125;
+	let a = [ 
+		{x:xpos-8,speed:s,width:w,height:h,time:0},
+		{x:xpos+8,speed:-s,width:w,height:h,time:0},
+	];
 	
-	if(force > 0 && (force > this.stepStr * p)){
-		this.stepPos = pos.x / this.width;
-		this.stepTime = this.stepTimeTotal;
-		this.stepStr = force;
+	for(let i=0; i < a.length; i++){
+		
+		let lowest = a[i].height;
+		let lowestIndex = -1;
+		
+		for(let j=0; j < this.buldges.length; j++){
+			if(this.buldges[j].height < lowest ){
+				lowest = this.buldges[j].height;
+				lowestIndex = j;
+			}
+		}
+		
+		if(lowestIndex >= 0){
+			this.buldges[lowestIndex] = a[i];
+		}
 	}
 }
 
+Drain.prototype.buldgeToArray = function(i){
+	return [
+		this.buldges[i].x,
+		this.buldges[i].width,
+		this.buldges[i].height * Math.clamp01(this.buldges[i].time * 5),
+	]
+}
 Drain.prototype.render = function(g,c){
-	
+	let margin = 32;
 	
 	g.renderSprite(
 		"ooze", 
-		this.position.subtract(new Point(0,this.height)).subtract(c),
+		this.position.subtract(new Point(0,this.height+margin)).subtract(c),
 		this.zIndex,
 		new Point(),
 		false,
 		{
 			"u_time" : game.timeScaled,
-			"u_size" : [this.width, this.height],
-			"scalex" : this.width / 64.0,
-			"scaley" : this.height / 64.0,
-			"u_bubbles" : [this.drainPos / this.width, this.drainStr],
-			"u_distortion" : [this.stepPos, this.stepTime / this.stepTimeTotal, this.stepStr ]
+			"u_size" : [this.width, this.height+margin],
+			"scalex" : this.width / 256.0,
+			"scaley" : (this.height+margin) / 256.0,
+			"u_color" : [0.08,0.17,0.2,1.0],
+			"u_highlight" : [0.16,0.66,0.58,1.0],
+			"u_buldge1" : this.buldgeToArray(0),
+			"u_buldge2" : this.buldgeToArray(1),
+			"u_buldge3" : this.buldgeToArray(2),
+			"u_buldge4" : this.buldgeToArray(3),
+			"u_buldge5" : this.buldgeToArray(4),
+			"u_buldge6" : this.buldgeToArray(5),
 		}
 	)
-	return;
 	
+	/*
 	if(this.active){
 		for(var x=0; x < this.width; x+=16){
 			var pos = new Point(
@@ -5834,6 +6260,7 @@ Drain.prototype.render = function(g,c){
 			g.renderSprite(game.map.tileset,this.position.add(new Point(x,0)).subtract(c),this.zIndex,new Point(tile%32,tile/32));
 		}
 	}
+	*/
 }
 
 Drain.prototype.updateTiles = function(){
@@ -6546,6 +6973,62 @@ COLOR_BLACK = [0.0,0.0,0.0,1.0];
 COLOR_LIGHTNING = [0.5,0.7,1.0,1.0];
 COLOR_FIRE = [1,0.8,0,1];
 
+ /* platformer\electrict_wire.js*/ 
+
+class ElectricWire extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.startPosition = this.position.scale(1);
+		
+		this.sprite = "items";
+		this.frame = new Point(10,1);
+		
+		this.speed = 1;
+		
+		this.width = 12;
+		this.height = 12;
+		
+		this.path = d;
+		
+		this._progress = 0.0;
+		this._point = -1;
+		this._distance = 1.0;
+		
+		this.damage = this.damageFire = this.damageSlime = this.damageIce = this.damageFixed = 0;
+		this.damageLight = 12;
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				obj.hurt(this);
+			}
+		});
+		
+		this.next();
+	}
+	next(){
+		this._progress = 0;
+		this._point = (this._point+1) % this.path.length;
+		let last = this.path[ this._point ];
+		let next = this.path[ this._point < this.path.length-1 ? this._point+1 : 0 ];
+		this._distance = Math.max( last.subtract(next).length(), 0.1);
+	}
+	update(){
+		this._progress += (this.speed * this.delta) / (this._distance / UNITS_PER_METER);
+		if(this._progress >= 1){ this.next(); }
+		
+		let last = this.path[ this._point ];
+		let next = this.path[ this._point < this.path.length-1 ? this._point+1 : 0 ];
+		
+		this.position = Point.lerp(last,next,this._progress).add(this.startPosition);
+	}
+	
+}
+
+self["ElectricWire"] = ElectricWire;
+
  /* platformer\enemy_amon.js*/ 
 
 Amon.prototype = new GameObject();
@@ -6688,7 +7171,7 @@ class Axedog extends GameObject {
 		this.damage = Spawn.damage(2,this.difficulty);
 		this.moneyDrop = Spawn.money(4,this.difficulty);
 		this.mass = 1.0;
-		this.speed = 2.0;
+		this.speed = 5.0;
 		
 		this.on("collideHorizontal", function(x){
 			this.force.x = 0;
@@ -6803,10 +7286,10 @@ function Baller(x, y, d, o){
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 4.0;
-	this.recoverySpeed = 6;
+	this.recoverySpeed = 180;
 	this.arcSize = 56;
-	this.archSpeed = 0.2;
-	this.spinSpeed = 0.07;
+	this.archSpeed = 6.0;
+	this.spinSpeed = 2.1;
 	
 	game.addObject(this.ball);
 	
@@ -7059,7 +7542,7 @@ function Batty(x,y,d,o){
 	this.width = 16;
 	this.height = 16;
 	this.sprite = "batty";
-	this.speed = 3.5;
+	this.speed = 9.5;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -8305,6 +8788,9 @@ BombBowl.prototype.explode = function(){
 	list = game.overlaps(l);
 	for(var i=0; i < list.length; i++){
 		var obj = list[i];
+		
+		obj.trigger("blasted", this);
+		
 		if(obj instanceof Player){
 			obj.hurt(this, this.damage);
 		} else if(obj.hasModule(mod_combat)){
@@ -8321,7 +8807,7 @@ BombBowl.prototype.explode = function(){
 	this.destroy();
 }
 BombBowl.prototype.render = function(g,c){
-	this.rotate = (this.rotate + this.delta * 5 * this.force.x) % 360;
+	this.rotate = (this.rotate + this.delta * 90 * this.force.x) % 360;
 	
 	if(this.timer <= 0){
 		this.explode();
@@ -8351,6 +8837,139 @@ BombBowl.prototype.render = function(g,c){
 		}
 	)
 }
+
+class Fuse extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.totalLength = 0.0;
+		this.spark = 0.0;
+		this.playing = false;
+		
+		this.sparkPoint = new Array();
+		this.fushPoints = new Array();
+		for(let i=0; i < d.length; i++){
+			let distance = 0.0;
+			let direction = new Point();
+			let seg = 3;
+			
+			this.sparkPoint.push( d[i].add(this.position) );
+			
+			if(i > 0){ 
+				distance = d[i-1].subtract(d[i]).magnitude(); 
+				direction = d[i-1].subtract(d[i]).normalize();
+				this.totalLength += distance;
+			}
+			
+			for(let dis = 0; dis <= distance; dis += seg){
+				let pos = d[i].add( this.position ).add( direction.scale(seg) );
+				let mpos = new Point( pos.x + Math.cos(pos.y) * 2, pos.y + Math.cos(pos.x) * 2 );
+				this.fushPoints.push( mpos );
+			}
+		}
+		
+		this.on("activate", function(){
+			this.spark = 0.0;
+			this.playing = true;
+		});
+		
+		this._tid = ops.getString("trigger", null);
+		this.speed = ops.getFloat("speed", 2.0);
+	}
+	getSparkPos(delta=0.0){
+		let ddis = this.totalLength * delta;
+		
+		let curdis = 0.0;
+		for(let i=1; i < this.sparkPoint.length; i++){
+			let distance = this.sparkPoint[i-1].subtract(this.sparkPoint[i]).magnitude(); 
+			
+			if(curdis + distance >= ddis){
+				let d = ddis - curdis;
+				let e = 1.0 - ( d / distance );
+				let direction = this.sparkPoint[i-1].subtract( this.sparkPoint[i] ); 
+				
+				return this.sparkPoint[i].add( direction.scale( e ) );
+			}
+			
+			curdis += distance;
+		}
+		return this.position;
+	}
+	render(g,c){
+		if(this.playing){
+			this.spark += this.delta / this.speed;
+			if(this.spark > 1){
+				this.spark = 0.0;
+				this.playing = false;
+			}
+		}
+		
+		for(let i=0; i < this.fushPoints.length - 1; i++){
+			g.renderLine( this.fushPoints[i].subtract(c), this.fushPoints[i+1].subtract(c), 1, COLOR_WHITE );
+		}
+		
+		if(this.spark > 0 && this.playing){
+			let sparkPos = this.getSparkPos( this.spark );
+			g.renderSprite("items",sparkPos.subtract(c),this.zIndex, new Point(10,1), this.flip);
+		}
+		
+	}
+}
+self["Fuse"] = Fuse;
+
+class Bomb extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "bullets";
+		this.frame.x = 6;
+		this.frame.y = 0;
+		
+		this.zIndex = 20;
+		
+		this.width = this.height = 24;
+		
+		this.delay = ops.getFloat("delay", 0.0);
+		this.start = ops.getBool("startactive", false);
+		this.radius = ops.getInt("radius", 24);
+		this.destroyOnExplode = ops.getBool("destroyonexplode", true);
+		this._tid = ops.getString("trigger", null);
+		
+		this.on("activate",function(){
+			this.start = true;
+		});
+	}
+	update(){
+		if(this.start){
+			if(this.delay > 0.0){
+				this.delay -= this.delta;
+			} else {
+				this.explode();
+				this.start = false;
+			}
+		}
+	}
+	explode(){
+		let radP = new Point(this.radius, this.radius);
+		let hits = game.overlaps(this.position.subtract(radP), this.position.add(radP));
+		
+		for(let i = 0; i < hits.length; i++){
+			hits[i].trigger("blasted", this);
+			if( hits[i].hasModule(mod_combat) ){
+				
+			}
+			
+		}
+		
+		if(this.destroyOnExplode){
+			this.destroy();
+		}
+	}
+}
+self["Bomb"] = Bomb;
 
  /* platformer\enemy_bombjar.js*/ 
 
@@ -8405,7 +9024,10 @@ function Bombjar(x, y, d, o){
 		var explosion = new EffectBang(this.position.x,this.position.y);
 		game.addObject(explosion);
 		
+		let dir = this.target().position.subtract(this.position);
+		
 		var free = new BombjarFree(this.position.x, this.position.y);
+		free.force = dir.normalize(-8);
 		game.addObject(free);
 		
 		/*
@@ -8447,11 +9069,12 @@ Bombjar.prototype.update = function(){
 				var fire = new Fire(this.position.x, this.position.y - this.height * 0.5);
 				fire.grounded = false;
 				fire.force.y = -5;
+				fire.damageFire = this.damage;
 				game.addObject(fire);
 			}
 		}
 		
-		this.walkcycle = (this.walkcycle + this.delta * 0.3) % 6;
+		this.walkcycle = (this.walkcycle + this.delta * 9.0) % 6;
 		this.frame.x = this.walkcycle % 3;
 		this.frame.y = this.walkcycle / 3;
 		
@@ -8470,14 +9093,16 @@ class BombjarFree extends GameObject {
 		this.width = 16;
 		this.height = 16;
 		
-		this.speed = 1.5;
-		this.rotSpeed = 6.0;
+		this.speed = 9.0;
+		this.rotSpeed = 130.0;
 		
 		this.sprite = "bombjar";
 		this.rotation = 0;
 		this.tailTrans = 0;
 		this.frame = new Point(0,2);
 		this.force = new Point();
+		this.wakeuptime = 2.0;
+		this.lifeTime = 8.0;
 		
 		this.addModule(mod_combat);
 		this.friction = 0.1;
@@ -8488,54 +9113,68 @@ class BombjarFree extends GameObject {
 		this.defenceIce = 99;
 		this.defenceLight = 99;
 		
+		this.damage = 0;
+		this.damageFire = 10;
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				if(this.wakeuptime <= 0){
+					obj.hurt(this);
+				}
+			}
+		});
+		
 		this.on("hurt", function(obj, damage){
 			audio.play("hurt",this.position);
 			this.force = this.position.subtract(obj.position).normalize(6);
 		});
 		
 		this.tail = [
-			new Vector(-4,-8),
-			new Vector(-8,-12),
-			new Vector(-16,-10),
-			new Vector(-24,-8),
-			new Vector(-4,8),
-			new Vector(-8,12),
-			new Vector(-16,10),
-			new Vector(-24,8)
+			new Vector(-4,-8,0),
+			new Vector(-8,-12,0),
+			new Vector(-16,-10,0),
+			new Vector(-24,-8,0),
+			new Vector(-4,8,0),
+			new Vector(-8,12,0),
+			new Vector(-16,10,0),
+			new Vector(-24,8,0)
 		];
 	}
 	update(){
-		var dir = this.position.subtract(_player.position);
-		let r = Math.atan2(-dir.y, -dir.x) * Math.rad2deg;
+		let dir = this.position.subtract(_player.position);
+		let angle = Math.atan2(-dir.y, -dir.x) * Math.rad2deg;
 		
-		if(r < -45 && this.rotation > 45){
-			r = 180 - r;
-		}
-		
-		if(r > this.rotation+this.rotSpeed){
-			this.rotation += this.rotSpeed * this.delta;
-		} else if(r < this.rotation-this.rotSpeed){
-			this.rotation -= this.rotSpeed * this.delta;
-		}
-		if(this.rotation < -180){
-			this.rotation = 360 + this.rotation;
+		let rdif = Math.sdif(angle, this.rotation);
+			
+		if(Math.abs(rdif) > this.rotSpeed * this.delta){
+			let rdir = rdif > 0 ? 1 : -1;
+			this.rotation += rdir * this.rotSpeed * this.delta;
+		} else {
+			this.rotation = angle;
 		}
 		
 		for(let i=0; i < this.tail.length; i++){
 			this.tail[i].z = Math.slerp(
 				this.tail[i].z,
 				this.rotation,
-				this.delta*(1/Math.abs(this.tail[i].x))
+				this.delta * Math.abs(0.5 + this.tail[i].x / 24)
 			);
 		}
 		
-		this.position.x += Math.cos(this.rotation * Math.deg2rad) * this.delta * this.speed;
-		this.position.y += Math.sin(this.rotation * Math.deg2rad) * this.delta * this.speed;
+		this.wakeuptime -= this.delta;
+		this.lifeTime -= this.delta;
+		
+		this.force.x += Math.cos(this.rotation * Math.deg2rad) * this.delta * this.speed;
+		this.force.y += Math.sin(this.rotation * Math.deg2rad) * this.delta * this.speed;
+		this.force = this.force.scale( 1.0-(this.friction * UNITS_PER_METER * this.delta) );
 		
 		//Apply force
-		this.position.x += this.force.x * this.delta;
-		this.position.y += this.force.y * this.delta;
-		this.force = this.force.scale(1.0-(this.friction*this.delta));
+		this.position.x += this.force.x * this.delta * UNITS_PER_METER;
+		this.position.y += this.force.y * this.delta * UNITS_PER_METER;
+		
+		if(this.lifeTime <= 0){
+			this.destroy();
+		}
 		
 		Background.pushLight( this.position, 180, COLOR_FIRE );
 	}
@@ -8548,13 +9187,14 @@ class BombjarFree extends GameObject {
 		}*/
 		for(let i=0; i < this.tail.length; i++){
 			let t = this.tail[i];
+			let n = 5 + (game.timeScaled * 16) % 3;
 			let r = t.z * Math.deg2rad;
-			let a = new Point(t.x*Math.cos(r), t.y*Math.sin(r));
+			let a = new Point( t.x * Math.cos(r) + t.y * Math.sin(r), t.x * Math.sin(r) + t.y * Math.cos(r) );
 			g.renderSprite(
 				"bullets",
 				this.position.add(a).subtract(c),
 				this.zIndex-1,
-				new Point(5,1),
+				new Point(n,1),
 				this.flip,
 				{
 					"rotate" : t.z
@@ -9060,6 +9700,149 @@ class BookSummoner extends GameObject{
 self["BookSummoner"] = BookSummoner;
 
 
+
+ /* platformer\enemy_chainface.js*/ 
+
+class ChainFace extends GameObject {
+	get reach(){ if(this.direction % 2 == 0){ return this.height; } return this.width; } 
+	set reach(v){ if(this.direction % 2 == 0){ return this.height = v; } return this.width = v; } 
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "chainface";
+		
+		this.addModule(mod_combat);
+		
+		this.direction = ops.getInt("direction",0);
+		this.speed = ops.getFloat("speed",6.0);
+		this.delay = ops.getFloat("delay",2.5);
+		this.damage = ops.getInt("damage",10);
+		
+		this.rotation = 0.0;
+		this.fullreach = 24;
+		this.minreach = 16;
+		
+		this.width = this.minreach;
+		this.height = this.minreach;
+		
+		if(this.direction == 0){
+			this.fullreach = d[1];
+			this.origin.y = 1;
+			this.width = 48;
+			this.position.y = y + d[1] * 0.5;
+		} else if(this.direction == 1){
+			this.fullreach = d[0];
+			this.origin.x = 0;
+			this.height = 48;
+			this.position.x = x - d[0] * 0.5;
+			this.rotation = 90;
+		} else if(this.direction == 2){
+			this.fullreach = d[1];
+			this.origin.y = 0;
+			this.width = 48;
+			this.position.y = y - d[1] * 0.5;
+			this.rotation = 180;
+		} else if(this.direction == 3){
+			this.fullreach = d[0];
+			this.origin.x = 1;
+			this.height = 48;
+			this.position.x = x + d[0] * 0.5;
+			this.rotation = 270;
+		}
+		
+		this._delay = 0.0;
+		this._extend = true;
+		this._extending = false;
+		this._overshoot = 0.0;
+		
+		this.on("collideObject", function(obj){
+			if(obj.hasModule(mod_combat) && obj.team != this.team){
+				obj.hurt(this, this.getDamage());
+			}
+		});
+	}
+	update(){
+		if(this._overshoot > 0){
+			this._overshoot -= this.delta * ChainFace.OVERSHOOT_RECALL;
+		}
+		
+		if(this._delay > 0){
+			this._delay -= this.delta;
+		} else if(!this._extend) {
+			//Withdraw
+			this.reach = this.reach - this.delta * this.speed * UNITS_PER_METER;
+			if(this.reach <= this.minreach){
+				this.reach = this.minreach;
+				this._extend = true;
+				this._delay = this.delay;
+			}
+		} else if( this._extending || this.targetInRange( this.target().position ) ) {
+			//Target within area
+			this.reach = this.reach + this.delta * this.speed * UNITS_PER_METER;
+			this._extending = true;
+			if(this.reach >= this.fullreach){
+				this.reach = this.fullreach;
+				this._extend = false;
+				this._delay = this.delay;
+				this._extending = false;
+				this._overshoot = ChainFace.OVERSHOOT;
+				shakeCamera(0.2, 1);
+			}
+		} else {
+			//Idle
+		}
+	}
+	targetInRange(pos){
+		if(this.direction % 2 == 0){
+			//vert
+			return Math.abs(this.position.x - pos.x) < 56;
+		} else {
+			//Horz
+			return Math.abs(this.position.y - pos.y) < 56;
+		}
+	}
+	render(g,c){
+		if(this.direction == 0){
+			//Bottom to top
+			let top = this.corners().top;
+			g.renderSprite(this.sprite, new Point(this.position.x,top).subtract(c), this.zIndex, this.frame, false, {"rotation":this.rotation});
+			for(let i=24; i < this.reach; i+=24){
+				let os = Math.lerp(-this._overshoot,0, Math.clamp01(i/ChainFace.OVERSHOOT_RANGE)) + i;
+				g.renderSprite(this.sprite, new Point(this.position.x,top+os).subtract(c), this.zIndex, new Point(0,1), false, {"rotation":this.rotation});
+			}
+		} else if(this.direction == 1){
+			//Right to left
+			let right = this.corners().right;
+			g.renderSprite(this.sprite, new Point(right,this.position.y).subtract(c), this.zIndex, this.frame, false, {"rotation":this.rotation});
+			for(let i=24; i < this.reach; i+=24){
+				let os = Math.lerp(-this._overshoot,0, Math.clamp01(i/ChainFace.OVERSHOOT_RANGE)) + i;
+				g.renderSprite(this.sprite, new Point(right-os,this.position.y).subtract(c), this.zIndex, new Point(0,1), false, {"rotation":this.rotation});
+			}
+		} else if(this.direction == 2){
+			//Top to bottom
+			let bottom = this.corners().bottom;
+			g.renderSprite(this.sprite, new Point(this.position.x,bottom).subtract(c), this.zIndex, this.frame, false, {"rotation":this.rotation});
+			for(let i=24; i < this.reach; i+=24){
+				let os = Math.lerp(-this._overshoot,0, Math.clamp01(i/ChainFace.OVERSHOOT_RANGE)) + i;
+				g.renderSprite(this.sprite, new Point(this.position.x,bottom-os).subtract(c), this.zIndex, new Point(0,1), false, {"rotation":this.rotation});
+			}
+		} else {
+			//Left to right
+			let left = this.corners().left;
+			g.renderSprite(this.sprite, new Point(left,this.position.y).subtract(c), this.zIndex, this.frame, false, {"rotation":this.rotation});
+			for(let i=24; i < this.reach; i+=24){
+				let os = Math.lerp(-this._overshoot,0, Math.clamp01(i/ChainFace.OVERSHOOT_RANGE)) + i;
+				g.renderSprite(this.sprite, new Point(left+os,this.position.y).subtract(c), this.zIndex, new Point(0,1), false, {"rotation":this.rotation});
+			}
+		}
+	}
+}
+ChainFace.OVERSHOOT = 16;
+ChainFace.OVERSHOOT_RANGE = 128;
+ChainFace.OVERSHOOT_RECALL = 40;
+
+self["ChainFace"] = ChainFace;
 
  /* platformer\enemy_chaz.js*/ 
 
@@ -10664,8 +11447,9 @@ function Flederknife(x, y, d, o){
 	this.width = 16;
 	this.height = 30;
 	this.sprite = "flederknife";
-	this.speed = 3.0;
-	this.blockKnockback = 6.0;
+	this.speed = 6.0;
+	this.blockKnockback = 8.0;
+	this.collideKnockback = 3.0;
 	this.turndelay = 0.0;
 	
 	this.addModule( mod_rigidbody );
@@ -10702,7 +11486,7 @@ function Flederknife(x, y, d, o){
 		if(obj.hasModule(mod_combat) && obj.hasModule(mod_rigidbody)){
 			this.changeDirection();
 			let d = obj.position.x > this.position.x ? -1 : 1;
-			this.force.x += d * this.blockKnockback;
+			this.force.x += d * this.collideKnockback;
 		}
 	});
 	this.on("collideHorizontal", function(dir){
@@ -10750,7 +11534,7 @@ Flederknife.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		this.flip = this.states.direction < 0;
 		
-		this.addHorizontalForce(this.speed * this.forward(), 0.5);
+		this.addHorizontalForce(this.speed * this.forward());
 		
 		if(this.atLedge()){
 			this.changeDirection(true);
@@ -12642,7 +13426,7 @@ Nolt.prototype.update = function(){
 			}
 		}
 	} else {
-		this.frame.x += this.delta * 0.25;
+		this.frame.x += this.delta * 7.5;
 		this.frame.y = 3;
 		if(this.frame.x >= 4){
 			this.visible = false;
@@ -12656,6 +13440,86 @@ Nolt.anim_attack = new Sequence([
 	[1,1,0.1],
 	[2,1,0.8]
 ]);
+
+class NoltMissile extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 24;
+		this.height = 32;
+		
+		this.sprite = "nolt";
+		this.addModule( mod_combat );
+	
+		this.on("wakeup", function(obj,damage){
+			this.life = this.lifeMax;
+			this.frame.x = 0;
+			this.frame.y = 0;
+		});
+		this.on("hurt", function(obj,damage){
+			audio.play("hurt",this.position);
+		});
+		this.on("death", function(obj,pos,damage){
+			Item.drop(this);
+			audio.play("kill",this.position);
+			this.interactive = false;
+			this.frame.x = 0;
+		});
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.homingMissile =  ops.getBool("homing", false);
+		
+		this.life = this.lifeMax = Spawn.life(0,this.difficulty);
+		this.damage = Spawn.damage(6,this.difficulty);
+		this.moneyDrop = Spawn.money(1,this.difficulty);
+		
+		this.states = {
+			"attack" : 0.0,
+			"cooldown" : 0.0,
+			"block" : 0.0
+		};
+	}
+	update(){
+		if(this.life > 0){
+			this.visible = true;
+			this.interactive = true;
+			
+			if(this.states.attack > 0){
+				
+				this.states.attack -= this.delta;
+				
+				if(Timer.isAt(this.states.attack,0.25,this.delta)){
+					this.fire();
+				}
+			} else {
+				this.states.cooldown -= this.delta;
+				if(this.states.cooldown <= 0){
+					this.flip = this.position.x > this.target().position.x;
+					this.states.cooldown = Game.DELTASECOND * 3;
+					this.states.attack = Game.DELTASECOND * 1;
+				}
+			}
+			
+		} else {
+			this.frame.x += this.delta * 7.5;
+			this.frame.y = 3;
+			if(this.frame.x >= 4){
+				this.visible = false;
+			}
+		}
+	}
+	fire(){
+		let ops = new Options();
+		ops["team"] = this.team;
+		ops["damage"] = this.damage;
+		ops["rotation"] = this.flip ? 180 : 0;
+		let missile = Bullet.createHomingMissile(this.position.x + this.forward() * 16, this.position.y, ops);
+		game.addObject(missile);
+	}
+}
+
+self["NoltMissile"] = NoltMissile;
 
  /* platformer\enemy_oriax.js*/ 
 
@@ -13598,169 +14462,193 @@ self["SailorSmasher"] = SailorSmasher;
 
  /* platformer\enemy_samrat.js*/ 
 
-Samrat.prototype = new GameObject();
-Samrat.prototype.constructor = GameObject;
-function Samrat(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 24;
-	this.height = 48;
-	this.charged = false;
-	
-	this.start = new Point(x,y);
-	this.range = 80;
-	
-	this.speed = 0.8;
-	this.sprite = "samrat";
-	
-	this.addModule( mod_rigidbody );
-	this.addModule( mod_combat );
-	
-	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
-	});
-	this.on("collideObject", function(obj){
-		if(obj instanceof Player && this.isCharged){
-			obj.hurt(this,this.damage);
-		}
-	});
-	this.on("struck", function(obj,pos,damage){
-		EnemyStruck.apply(this,arguments);
-		if(obj instanceof Player && this.isCharged){
-			obj.hurt(this,this.damage);
-		}
-	});
-	this.on("hurt_other", function(obj){
-		this.force.x *= -1;
-	});
-	this.on("death", function(obj,pos,damage){
-		Item.drop(this);
+class Samrat extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 24;
+		this.height = 30;
+		this.sprite = "samrat";
+		this.swrap = spriteWrap["samrat"];
+		this.frame = new Point();
 		
-		audio.play("kill",this.position);
-		this.destroy();
-	});
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
+		this.speed = 12.0;
+		this.jumpStrength = 8;
+		
+		this.addModule(mod_combat);
+		this.addModule(mod_rigidbody);
+		
+		this.gravity = 0.5;
+		this.pushable = false;
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.alwayAlert = ops.getBool("alert", false);
+		
+		this.life = this.lifeMax = Spawn.life(2,this.difficulty);
+		this.damage = Spawn.damage(3,this.difficulty);
+		
+		this.states = {
+			anim : 0.0,
+			land : 0.0,
+			jump : 0.0,
+			dive : 0,
+			kick : 0.0,
+			escape : 0.0,
+			active : 0.0,
+			backoff : 0.0,
+			cooldown : 3.0,
+		}
+		
+		this.on("hurt", function(obj, damage){
+			audio.play("hurt",this.position);
+			
+			this.gravity = 0.5;
+			this.states.dive = 0;
+			this.states.active = Samrat.TIME_ALERT;
+			if(this.life > 0 && this.states.escape <= 0){
+				this.states.escape = Game.DELTASECOND * 0.5;
+				this.flip = this.target().position.x < this.position.x;
+				this.force.x = this.speed * -this.forward();
+			}
+		});
+		this.on("death", function(obj,pos,damage){
+			Item.drop(this);
+			audio.play("kill",this.position);
+			this.destroy();
+		});
+		
+		this.on("collideHorizontal", function(){
+			this.force.x = 0;
+			if(this.states.backoff > 0){
+				this.states.backoff = 0;
+			} else {
+				this.states.backoff = Samrat.TIME_BACKOFF;
+			}
+		});
+		this.on("land", function(){
+			this.force.x = 0;
+			this.states.land = Samrat.TIME_LAND;
+			this.states.dive = 0;
+			this.gravity = 0.5;
+		});
 	}
 	
-	this.life = Spawn.life(6,this.difficulty);
-	this.damage = Spawn.damage(4,this.difficulty);
-	this.moneyDrop = Spawn.money(9,this.difficulty);
-	
-	this.states = {
-		"attack" : 0.0,
-		"cooldown" : 0.0,
-		"jump" : false,
-		"jumpBehind" : Game.DELTASECOND,
-		"dash" : 0
-	};
-	this.times = {
-		"jumpBehind" : Game.DELTASECOND * 0.3333
-	}
-}
-Samrat.prototype.update = function(){
-	dir = this.position.subtract(_player.position);
-	
-	if(this.life > 0){
-		if(this.states.attack > 0){
-			var progress = 1 - Math.min(this.states.attack / (Game.DELTASECOND * 1.0),1);
-			this.frame = Samrat.attackanim.frame(progress);
-			this.states.attack -= this.delta;
+	update(){
+		if(this.life > 0 ){
+			let dif = this.target().position.subtract(this.position);
 			
-			if(this.frame.x == 2 || this.frame.x == 3){
-				this.strike(Samrat.attackrange);
-			}
-			
-		} else if(this.states.jump){
-			this.force.y -= this.delta * 0.2;
-			if((this.flip && dir.x > 0) || (!this.flip && dir.x < 0)){
-				this.force.x += (this.flip?-1:1) * this.speed * 2.0 * this.delta;
-			}
-			
-			if(this.grounded){
-				this.states.cooldown = 0.0;
-				this.states.jumpBehind = this.times.jumpBehind;
-				this.states.jump = false;
-			}
-		} else if(this.states.dash > 0){
-			this.force.x += (this.flip?-1:1) * this.speed * this.delta * 2;
-			this.states.dash -= this.delta;
-			if((this.flip && this.position.x < this.start.x - this.range) || (!this.flip && this.position.x > this.start.x + this.range)){
-				this.states.dash = 0.0;
-				this.force.x = 0.0;
-			}
-		} else {
-			this.frame.x = 0;
-			this.frame.y = 0;
-			
-			this.flip = dir.x > 0;
-			
-			if(Math.abs(dir.x) < 80){
-				if(this.flip){
-					if(this.position.x < this.start.x + this.range){
-						this.states.jumpBehind = Math.min(this.states.jumpBehind+this.delta,this.times.jumpBehind);
-						this.force.x += this.speed * this.delta;
+			if ( this.states.active <= 0.0 && !this.alwayAlert) {
+				//Pray
+				this.frame = this.swrap.frame("pray", game.time % 1);
+				if(Math.abs(dif.x) < 88 && Math.abs(dif.y) < 32){
+					this.states.active = Samrat.TIME_ALERT;
+				}
+			} else if(this.states.escape > 0){
+				//Escape
+				this.states.escape -= this.delta;
+				this.frame = new Point(0,3);
+			} else if(this.states.land > 0.0){
+				//Land animation
+				this.states.land -= this.delta;
+				let p = 1 - (this.states.land / Samrat.TIME_LAND);
+				this.frame = this.swrap.frame("land", p);
+			} else if(this.states.jump > 0.0){
+				//jump into the air
+				if(this.grounded){
+					this.grounded = false;
+					this.force.y = -this.jumpStrength;
+				}
+				this.states.jump -= this.delta;
+				this.frame = this.swrap.frame("jump" , 1 - (this.states.jump / Samrat.TIME_JUMP));
+			} else if(this.states.dive > 0){
+				//dive kick attack
+				if(this.states.anim >= 1){
+					if(this.states.dive == 1){
+						this.force.x = this.forward() * this.speed;
+						this.force.y = Math.abs(this.force.x) * 0.5;
 					} else {
-						this.states.jumpBehind -= this.delta;
 						this.force.x = 0;
+						this.force.y = this.speed;
 					}
 				} else {
-					if(this.position.x > this.start.x - this.range){
-						this.states.jumpBehind = Math.min(this.states.jumpBehind+this.delta,this.times.jumpBehind);
-						this.force.x -= this.speed * this.delta;
+					this.states.anim += this.delta;
+					this.frame = this.swrap.frame("dive" + this.states.dive, this.states.anim);
+				}
+				
+			} else if(!this.grounded){
+				if(this.force.y >= 0){
+					//Transition into dive kick
+					if(Math.abs(dif.x) > 64){
+						this.states.dive = 1;
 					} else {
-						this.states.jumpBehind -= this.delta;
-						this.force.x = 0;
+						this.states.dive = 2;
 					}
+					
+					this.states.anim = 0.0;
+					this.force.y = 0;
+					this.gravity = 0.0;
+				} else {
+					this.frame = new Point(0,6);
+				}
+			} else if(this.states.kick > 0.0){
+				//Kick attack
+				let p = 1 - this.states.kick / Samrat.TIME_KICK;
+				this.frame = this.swrap.frame("kick", p);
+				this.states.kick -= this.delta;
+			} else {
+				//Active
+				this.states.anim = this.states.anim + this.delta * Math.abs(this.force.x) * 1.0;
+				
+				if(this.states.anim >= 1){
+					this.states.anim = this.states.anim % 1;
+					this.flip = dif.x < 0;
 				}
 				
-				if(dir.y > 40){
-					this.flip = Math.abs((this.start.x - this.range)-this.position.x) > Math.abs((this.start.x + this.range)-this.position.x);
-					this.states.dash = Game.DELTASECOND * 0.8;
-				}
+				let speed = this.speed * Math.max( Math.sin( this.states.anim * Math.PI ), 0.25 );
 				
-				if(this.states.jumpBehind <= 0){
-					this.force.y = -10;
-					this.states.jump = true;
-					this.grounded = false;
-				}
-				
-				if(this.states.cooldown <= 0){
-					this.states.cooldown = Game.DELTASECOND;
-					this.states.attack = Game.DELTASECOND * 1;
-					this.force.x = (this.flip?-1:1) * this.speed * 5;
+				if(this.states.backoff > 0.0){
+					this.frame = this.swrap.frame("backward", this.states.anim);
+					this.addHorizontalForce(this.forward() * -speed);
+					this.states.backoff -= this.delta;
+				} else {
+					this.frame = this.swrap.frame("forward", this.states.anim);
+					this.addHorizontalForce(this.forward() * speed);
 				}
 				
 				this.states.cooldown -= this.delta;
 				
-			} else {
+				if(this.states.backoff <= 0 && Math.abs(dif.x) < 48 && Math.abs(dif.y) < 32){
+					this.states.backoff = Samrat.TIME_BACKOFF;
+				}
+				
 				if(this.states.cooldown <= 0){
-					if(this.flip){
-						this.force.x -= this.speed * this.delta;
+					
+					if(Math.abs(dif.x) < 40 && Math.abs(dif.y) < 32){
+						this.states.kick = Samrat.TIME_KICK;
+					} else if(game.time > Samrat.last_jump){
+						this.states.jump = Samrat.TIME_JUMP;
+						this.states.cooldown = Game.DELTASECOND * 4;
+						Samrat.last_jump = game.time + Game.DELTASECOND * 1.0;
 					} else {
-						this.force.x += this.speed * this.delta;
+						this.states.cooldown = Game.DELTASECOND * 0.5;
 					}
 				}
 				
-				this.states.cooldown -= this.delta * 0.2;
 			}
+		} else {
+			this.frame = new Point(0,3);
 		}
 	}
 }
-Samrat.attackrange = new Line(16,-32,58,6);
-Samrat.attackanim = new Sequence([
-	[0,1,.2],
-	[1,1,.1],
-	[2,1,.1],
-	[3,1,.1],
-	[4,1,.1],
-	[5,1,.5],
-]);
+Samrat.last_jump = 0;
+Samrat.TIME_JUMP = Game.DELTASECOND * 0.3;
+Samrat.TIME_LAND = Game.DELTASECOND * 0.4;
+Samrat.TIME_BACKOFF = Game.DELTASECOND * 1.5;
+Samrat.TIME_KICK = Game.DELTASECOND * 1.75;
+Samrat.TIME_ALERT = Game.DELTASECOND * 3;
+
+self["Samrat"] = Samrat;
 
  /* platformer\enemy_sentry.js*/ 
 
@@ -14028,8 +14916,8 @@ Shockowl.prototype.update = function(){
 			if(Timer.isAt(this.attack,this.attackTime * 0.8, this.delta)){
 				var lightning1 = new GroundBolt(this.position.x,this.position.y);
 				var lightning2 = new GroundBolt(this.position.x,this.position.y);
-				lightning1.speed = -2;
-				lightning2.speed = 2;
+				lightning1.speed = -21;
+				lightning2.speed = 21;
 				lightning1.damageLight = lightning2.damageLight = this.damageLight;
 				lightning1.force.x = lightning2.force.x = this.forward() * 6;
 				lightning1.force.y = lightning2.force.y = -12;
@@ -14041,7 +14929,11 @@ Shockowl.prototype.update = function(){
 			this.frame.y = 0;
 			
 			if(this.grounded){
-				this.force.x = this.forward() * this.speed;
+				if(Math.abs(dir.x) < 64){
+					this.force.x = -this.forward() * this.speed;
+				} else {
+					this.force.x = this.forward() * this.speed;
+				}
 				this.force.y = -4;
 				this.grounded = false;
 				this.bounceCount--
@@ -14424,7 +15316,7 @@ function Slime(x,y,d,o){
 	this.addModule(mod_rigidbody);
 	this.addModule(mod_combat);
 	this.sprite = "slime";
-	this.speed = 3.0;
+	this.speed = 6.0;
 	this.visible = false;
 	this.interactive = false;
 	this.pushable = false;
@@ -15025,7 +15917,7 @@ function SlugPlatform(x,y,d,o){
 	this.loop = true;
 	this.leftStart = false;
 	
-	this.speed = 1.5;
+	this.speed = 30.5;
 	this.sprite = "slugplatform";
 	this.waitforplayer = 0;
 	
@@ -15672,6 +16564,184 @@ Svarog.prototype.update = function(){
 		this.force.x = this.forward() * 2;
 	}
 }
+
+ /* platformer\enemy_thunderlizard.js*/ 
+
+class ThunderLizard extends GameObject {
+	
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "thunderlizard";
+		this.swrap = self.spriteWrap["thunderlizard"];
+		this.width = 40;
+		this.height = 56;
+		
+		this.speed = 12.0;
+		this.airSpeed = 1;
+		this.timer = 0;
+		this.ground_y = 0;
+		
+		this.states = {
+			"phase" : 4,
+			"cooldown" : 0.0,
+			"time" : 0.0,
+			"spin" : 0.0,
+			"timeTotal" : 1.0,
+			"hurttime" : 0.0,
+			"downstabbed" : 0.0,
+			"upattackwait" : 0.0
+		}
+		
+		this.addModule( mod_rigidbody );
+		this.addModule( mod_combat );
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		
+		this.lifeMax = this.life = Spawn.life(8,this.difficulty);
+		this.damage = Spawn.damage(3,this.difficulty);
+		this.moneyDrop = Spawn.money(4,this.difficulty);
+		this.mass = 5.0;
+		this.death_time = 2 * Game.DELTASECOND;
+		
+		this.on("land", function(){
+			if(this.force.y > 4){
+				audio.play("hardland",this.position);
+				shakeCamera(Game.DELTASECOND*0.5,5);
+			}
+		});
+		this.on("hurt", function(){
+			audio.play("hurt",this.position);
+			this.timer = Math.max(this.timer, SailorSmasher.phase_idle);
+			this.states.hurttime += Game.DELTASECOND;
+			if(this.states.hurttime > 2.2){
+				this.states.hurttime = 0.0;
+				this.setState(3, true);
+			}
+		});
+		this.on("downstabbed", function(obj,damage){
+			this.states.downstabbed = Game.DELTASECOND * 2;
+		});
+		this.on("death", function(){
+			audio.play("kill",this.position);
+			Item.drop(this);
+			this.destroy();
+		});
+	}
+	update(){
+		if(this.life > 0){
+			let dir = this.position.subtract(this.target().position);
+			
+			this.states.upattackwait = Math.max(this.states.upattackwait - this.delta, 0);
+			this.states.downstabbed = Math.max(this.states.downstabbed - this.delta, 0);
+			this.states.hurttime = Math.max(this.states.hurttime - this.delta, 0);
+			
+			if(this.states.spin > 0){
+				//Spinning attack
+				if(this.states.spin > 0.5){
+					this.frame = new Point(4,4);
+				} else {
+					this.frame = this.swrap.frame("spin", (game.time*3.0) % 1);
+				}
+				this.states.spin -= this.delta;
+			} else if(this.states.phase == 1){
+				//Charge attack
+				this.frame = this.swrap.frame("run", (game.time*2.0) % 1);
+				this.states.time -= this.delta;
+				this.addHorizontalForce(this.forward() * this.speed);
+				
+				if(Math.abs(dir.x) < 64){
+					this.setState(3, false);
+				}
+				
+				if(this.states.time <= 0){
+					this.setState(4);
+				}
+			} else if(this.states.phase == 2){
+				//Lightning attack
+				let p = 1 - this.states.time / this.states.timeTotal;
+				this.frame = this.swrap.frame("lightning", p);
+				
+				this.states.time -= this.delta;
+				
+				if(this.states.time <= 0){
+					this.setState(4);
+				}
+			} else if(this.states.phase == 3){
+				//Up attack
+				let p = 1 - this.states.time / this.states.timeTotal;
+				this.frame = this.swrap.frame("upatt", p);
+				
+				this.states.time -= this.delta;
+				
+				if(this.states.time <= 0){
+					this.setState(4);
+				}
+			} else {
+				//Idle
+				this.frame = this.swrap.frame("idle", (game.time*0.5) % 1);
+				this.states.cooldown -= this.delta;
+				
+				if(this.states.cooldown <= 0){
+					this.states.cooldown = Game.DELTASECOND;
+					this.setState();
+				}
+			}
+		} else {
+			this.frame.x = 4;
+			this.frame.y = 4;
+		}
+	}
+	setState(s = -1, allowSpin = true){
+		let dir = this.position.subtract(this.target().position);
+		this.flip = dir.x > 0;
+		
+		if(s < 0){
+			//No state specified, pick one
+			if(Math.abs(dir.x) > 80 ){
+				//Far away
+				let roll = Math.random() * 3;
+				if(roll > 2){
+					s = 2;
+				} else if(roll > 1){
+					s = 1;
+				} else {
+					s = 4;
+				}
+			} else if(this.states.upattackwait <= 0 && this.states.downstabbed > 0){
+				//Defend down stabbing enemy
+				s = 3;
+				this.states.upattackwait = 3;
+				allowSpin = false;
+			} else {
+				s = 1 + Math.floor(Math.random() * 2);
+			}
+		}
+		
+		this.states.phase = s;
+		if(s == 1){
+			//Charge
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2;
+			this.states.cooldown = Game.DELTASECOND * 3;
+		} else if(s == 2) { 
+			//Lightning
+			this.states.spin = Game.DELTASECOND * 1;
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2;
+			this.states.cooldown = Game.DELTASECOND * 3;
+		} else if(s == 3) {
+			//Up attack
+			if(allowSpin) { this.states.spin = Game.DELTASECOND * 1; }
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2;
+			this.states.cooldown = Game.DELTASECOND * 1;
+		} else {
+			this.states.cooldown = Game.DELTASECOND * 3;
+		}
+		
+	}
+}
+
+self["ThunderLizard"] = ThunderLizard;
 
  /* platformer\enemy_wallnolt.js*/ 
 
@@ -16542,7 +17612,7 @@ GroundBolt.prototype.update = function(){
 	this.time += this.delta;
 	
 	if(this.grounded){
-		this.force.x += this.speed * this.delta;
+		this.addHorizontalForce(this.speed);
 		this.flip = this.force.x < 0; 
 		Combat.strike.apply(this,[new Line(0,0,8,4)]);
 	} else {
@@ -16823,19 +17893,20 @@ var PlayerAttackList = [
 		"wait":1.2*Game.DELTASECOND,
 		"animation" : 2,
 		"force" : new Point(3.0, 0.0),
-		"pause" : Game.DELTAFRAME30 * 2,
-		"knockback" : new Point(15,0),
+		"pause" : Game.DELTAFRAME30 * 4,
+		"knockback" : new Point(4,0),
 		"stun" : 0.25 * Game.DELTASECOND,
 		"movement" : 0.0,
 		"audio" : "swing",
 		"mesh" : "slash3"
 	},
 	{	//Charge attack
-		"damage":3.5,
+		"damage":3.0,
 		"time" : 1.5*Game.DELTASECOND,
 		"wait":1.0*Game.DELTASECOND,
 		"animation" : 3,
 		"stun" : 0.7 * Game.DELTASECOND,
+		"pause" : Game.DELTASECOND * 0.25,
 		"force" : new Point(12.0, 0.0),
 		"movement" : 0.1,
 		"audio" : "swing2",
@@ -16849,8 +17920,8 @@ var PlayerAttackList = [
 		"animation" : 4,
 		"pause" : Game.DELTAFRAME30 * 2,
 		"stun" : 0.5 * Game.DELTASECOND,
-		"knockback" : new Point(0.0, -14.0),
-		"force" : new Point(0, -14.0),
+		"knockback" : new Point(0.0, -8.0),
+		"force" : new Point(0, -8.0),
 		"movement" : 0.3,
 		"audio" : "swing2",
 		"mesh" : "slashu"
@@ -16975,8 +18046,19 @@ WeaponList = {
 	"broad_sword" : new PlayerWeapon("broad_sword", 0.25,0.3,2.0,42),
 	"morningstar" : new PlayerWeapon("morning star", 0.45,0.35,2.0,40),
 	"bloodsickle" : new PlayerWeapon("blood sickle", 0.25,0.15,0.8,36),
-	"burningblade" : new PlayerWeapon("burning blade", 0.25,0.2,1.0,38),
+	"burningblade" : new PlayerWeapon("burning blade", 0.25,0.2,0.85,38),
 };
+
+WeaponList.morningstar.combos = {
+	0 : {"standing" : 1, "jumping":1},
+	1 : {"standing" : 0}
+};
+
+WeaponList.bloodsickle.combos = {
+	0 : {"standing" : 1, "jumping":1},
+	1 : {"standing" : 0}
+};
+WeaponList.burningblade.onEquip = function(player){ player.perks.fireDamage += 0.05; }
 
 
  /* platformer\exit.js*/ 
@@ -17668,7 +18750,7 @@ function Item(x,y,d, ops){
 	
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && this.interactive ){
-			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,10.0); audio.play("key"); }
+			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,0.3); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
 			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; DemoThanks.items++; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
@@ -18452,266 +19534,6 @@ Lamp.prototype.idle = function(){
 	}
 }
 
- /* platformer\lava.js*/ 
-
-Lava.prototype = new GameObject();
-Lava.prototype.constructor = GameObject;
-function Lava(x,y,d,ops){
-	this.constructor();
-	this.origin.x = 0;
-	this.origin.y = 0;
-	this.position.x = x - d[0]*0.5;
-	this.position.y = y - d[1]*0.5;
-	this.width = d[0];
-	this.height = d[1];
-	this.zIndex = 999;
-	this.idleMargin = Lava.lightradius;
-	
-	this.drain = 0;
-	this.bottom = this.position.y + this.height;
-	this.triggerheight = 4;
-	this.triggerdelete = 0;
-	this.triggerdelay = 0;
-	this.triggersave = 0;
-	this.speed = 2;
-	
-	if("trigger" in ops) {
-		this._tid = ops["trigger"];
-	}
-	if("triggerheight" in ops){
-		this.triggerheight = ops["triggerheight"] * 1;
-	}
-	if("triggerdelete" in ops){
-		this.triggerdelete = ops["triggerdelete"] * 1;
-	}
-	if("triggerdelay" in ops){
-		this.triggerdelay = ops["triggerdelay"] * Game.DELTASECOND;
-	}
-	
-	if("triggersave" in ops){
-		this.triggersave = ops["triggersave"];
-		if(NPC.get(this.triggersave)){
-			this.height = this.triggerheight;
-			this.drain = true;
-		}
-	}
-	
-	this.on("collideObject", function(obj){
-		if(obj.hasModule(mod_combat)){
-			if(obj.life > 0){
-				obj.life = 0;
-				obj.stun = 1;
-				obj.trigger("hurt", this, 0)
-				obj.isDead();
-			}
-		}
-	});
-	
-	this.on("activate", function(){
-		this.drain = 1;
-		if(this.triggersave){
-			NPC.set(this.triggersave, 1);
-		}
-	});
-	
-	this.on("wakeup", function(){
-		if(this.drain){
-			this.height = this.triggerheight;
-			this.position.y = this.bottom - this.height;
-		}
-	})
-}
-
-Lava.prototype.update = function(){
-	if(this.drain){
-		if(this.height > this.triggerheight){
-			if(this.triggerdelay > 0){
-				this.triggerdelay -= this.delta;
-			} else {
-				this.height -= this.speed * this.delta;
-			}
-		} else {
-			this.height = this.triggerheight;
-			if(this.triggerdelete){
-				this.destroy();
-			}
-		}
-		this.position.y = this.bottom - this.height;
-	}
-	
-	Background.pushLightArea(new Line(this.position,this.position.add(new Point(this.width,this.height))),Lava.lightradius,[1.0,0.6,0.2,1.0]);
-	this.interactive = this.width > 0 && this.height > 0;
-}
-
-Lava.prototype.render = function(g,c){
-	g.renderSprite(
-		"lava", 
-		this.position.subtract(c),
-		this.zIndex,
-		new Point(),
-		false,
-		{
-			"u_time" : game.timeScaled * 0.1,
-			"u_size" : [this.width, this.height],
-			"scalex" : this.width / 64.0,
-			"scaley" : this.height / 64.0
-		}
-	)
-	return;
-	if(this.interactive){
-		g.color = [1.0,0.5,0.0,1.0];
-		Renderer.scaleFillRect(
-			this.position.x - c.x,
-			this.position.y - c.y,
-			this.width,
-			this.height
-		)
-	}
-}
-Lava.lightradius = 64;
-
-/*
-Lava.prototype.lightrender = function(g,c){
-	if(this.interactive){
-		g.color = [0.2,0.1,0.0,1.0];
-		for(var i=0; i < 8; i++){
-			var extra = 2 * Math.sin(i *0.5 + game.timeScaled * 0.1) + (8 * i+1);
-			Renderer.scaleFillRect(
-				this.position.x - extra - c.x,
-				this.position.y - extra- c.y,
-				this.width + extra * 2,
-				this.height  + extra * 2
-			)
-		}
-	}
-}
-*/
-
-Lavafalls.prototype = new GameObject();
-Lavafalls.prototype.constructor = GameObject;
-function Lavafalls(x,y,d,ops){
-	this.constructor();
-	this.origin.x = 0;
-	this.origin.y = 0;
-	this.position.x = x - d[0]*0.5;
-	this.position.y = y - d[1]*0.5;
-	this.width = d[0];
-	this.height = d[1];
-	this.zIndex = 898;
-	
-	this.sprite = "lavafalls";
-	this.speed = 12.0;
-	this.ends = new Point(0, 0);
-	
-	this.damage = 12;
-	this.yexcess = 72;
-	this.ystep = 72;
-	this.waketime = Game.DELTASECOND * 1.0;
-	this.sleeptime = Game.DELTASECOND * 2.0;
-	this.timer = 0;
-	this.active = true;
-	
-	if("waketime" in ops){
-		this.waketime = ops["waketime"] * 1;
-	}
-	if("sleeptime" in ops){
-		this.waketime = ops["sleeptime"] * 1;
-	}
-	
-	this.on("activate", function(){
-		this.active = !this.active;
-	});
-	
-	this.on("collideObject", function(obj){
-		if(obj.hasModule(mod_combat)){
-			var c_top = obj.position.y - obj.height * obj.origin.y;
-			var c_bot = obj.position.y + obj.height * obj.origin.y;
-			if(
-				c_bot > this.position.y + this.ends.x && 
-				c_top < this.position.y + this.ends.y
-			){
-				obj.hurt(this, this.damage);
-			}
-		}
-	});
-}
-
-Lavafalls.bloboffset = [
-	{x:0,y:0,z:2,f:0,g:Math.random()*16},
-	{x:0,y:16,z:1,f:1,g:Math.random()*16},
-	{x:0,y:4,z:2,f:2,g:Math.random()*16},
-	{x:-24,y:24,z:0,f:3,g:Math.random()*16}
-];
-
-Lavafalls.prototype.update = function(g,c){
-	if(this.ends.x >= this.height+this.yexcess){
-		//Go to sleep
-		if(this.timer >= this.sleeptime){
-			this.timer = this.ends.x = this.ends.y = 0;
-		}
-	} else {
-		this.ends.y += this.speed * this.delta;
-		if(this.timer >= this.waketime){
-			this.ends.x += this.speed * this.delta;
-		}
-		if(this.ends.x >= this.height+this.yexcess){
-			this.timer = 0;
-		}
-	}
-	
-	if(this.active){
-		this.timer += this.delta;
-	}
-	
-	Background.pushLightArea(
-		new Line(
-			this.position.add(new Point(0, this.ends.x)), 
-			this.position.add(new Point(
-				this.width,
-				Math.min(this.height, this.ends.y - this.ends.x)
-			)
-		)),
-		Lava.lightradius,
-		[1.0,0.6,0.2,1.0]
-	);
-}
-
-Lavafalls.prototype.render = function(g,c){
-	var bottom = this.ends.y;
-	if(this.ends.y > this.height){
-		bottom = this.height + ((this.ends.y-this.height) % this.ystep);
-	}
-	
-	for(var y=bottom; y >= this.ends.x; y-=this.ystep){
-		var i = 0;
-		for(var x=0; x < this.width; x+=16){
-			blob = Lavafalls.bloboffset[i];
-			g.renderSprite(
-				this.sprite,
-				this.position.add(new Point(x+blob.x, y+blob.y)).subtract(c).floor(),
-				this.zIndex + blob.z - y,
-				new Point(blob.f,0),
-				this.flip, 
-				{
-					"u_intensity" : 1 + Math.abs(0.5*Math.sin(blob.g + game.timeScaled*0.125))
-				}
-			)
-			i = (i+1) % 4;
-		}
-	}
-}
-Lavafalls.prototype.lightrender = function(g,c){
-	/*
-	g.color = COLOR_FIRE;
-	g.scaleFillRect(
-		this.position.x - c.x,
-		this.position.y + this.ends.x - c.y,
-		this.width,
-		Math.min(this.height, this.ends.y - this.ends.x)
-	);
-	*/
-}
-
  /* platformer\lift.js*/ 
 
 Lift.prototype = new GameObject();
@@ -18804,15 +19626,18 @@ class LightningBolt extends GameObject {
 		
 		this.loop = ops.getBool("loop", false);
 		this.startTime = ops.getFloat("time", 2) * Game.DELTASECOND;
+		this.firstTime = ops.getFloat("firsttime", this.startTime);
 		
-		this.countdown = this.startTime;
+		this.countdown = this.firstTime;
 		this.bolttime = LightningBolt.BOLT_TME;
-		this.damage = 12;
+		this.damage = 24;
+		this._ignorelist = new Array();
 		
 		
 		this.on("sleep", function(){
 			if(this.loop){
 				this.reset();
+				this.countdown = this.firstTime;
 			} else {
 				this.destroy();
 			}
@@ -18822,6 +19647,7 @@ class LightningBolt extends GameObject {
 	reset(){
 		this.countdown = this.startTime;
 		this.bolttime = LightningBolt.BOLT_TME;
+		this._ignorelist = new Array();
 	}
 	
 	update(){
@@ -18833,8 +19659,9 @@ class LightningBolt extends GameObject {
 				}
 			} else if(this.bolttime > 0){
 				
-				if(_player.position.y < this.position.y && Math.abs(this.position.x-_player.position.x) <= 12){
-					this.struck(_player);
+				let hits = game.overlaps(new Point(this.position.x-12, game.camera.y), new Point(this.position.x+12, this.position.y));
+				for(let i=0; i < hits.length; i++){
+					this.struck(hits[i]);
 				}
 				
 				this.bolttime -= this.delta;
@@ -18853,10 +19680,14 @@ class LightningBolt extends GameObject {
 	}
 	
 	struck(obj){
-		if(obj instanceof Player){
+		if(obj.hasModule(mod_combat) && this._ignorelist.indexOf(obj) < 0){
 			let d = Combat.getDamage();
 			d.light = this.damage;
 			obj.hurt(this, d);
+			this._ignorelist.push(obj);
+			
+			//Stun enemies
+			if(!(obj instanceof Player)){ obj.stun = Game.DELTASECOND * 1.25; }
 		}
 	}
 	
@@ -18873,7 +19704,7 @@ class LightningBolt extends GameObject {
 			if(this.countdown > LightningBolt.WARNING_TME){
 				//Show nothing, getting ready
 			} else if(this.countdown > 0){
-				let r = (game.timeScaled/16) % 1;
+				let r = (game.timeScaled*2) % 1;
 				for(let j=0; j < 4; j++){
 					let a = 1;
 					if(j==0) a = r;
@@ -18986,6 +19817,285 @@ MapDebug.prototype.hudrender = function(g,c){
 	} catch (err) {}
 }
 MapDebug.prototype.idle = function(){}
+
+ /* platformer\mech.js*/ 
+
+class Mech extends GameObject {
+	
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.startPosition = new Point(x,y);
+		this.sprite = "mech";
+		this.width = 64;
+		this.height = 56;
+		this.speed = UNITS_PER_METER * 3.0;
+		
+		this.rotLeg1 = 0.0;
+		this.walkCycle = 0.0;
+		this.headPos = this.position.y + Mech.BODY_MID;
+		this.pilotSleep = 0.0;
+		this.damage = 36;
+		this.team = 1;
+		this.armor = 16;
+		this.missiles = [null, null, null];
+		
+		this.flip = ops.getBool("flip", true);
+		
+		this.onboard = null;
+		
+		this.on(["player_death", "sleep"], function(){
+			this.pilotSleep = 0.0;
+			this.position = this.startPosition.floor();
+		});
+		this.on("collideObject", function(obj){
+			if(this.pilotSleep <= 0 && obj instanceof Player){
+				if(!obj.grounded && obj.force.y > 0){
+					this.onboard = obj;
+				}
+			}
+		});
+		this.on("hurt", function(obj, damage){
+			if(this.onboard instanceof Player){
+				audio.play("playerhurt");
+				
+				game.slow(0.0, 0.25);
+				damage = Math.max(obj.damage - this.armor, 1);
+				if(damage >= this.onboard.life){
+					this.onboard.life = 1;
+					this.pilotSleep = Game.DELTASECOND;
+					this.eject();
+				} else {
+					this.onboard.life -= damage;
+				}
+			}
+		});
+		this.on("block", function(obj){
+			game.slow(0.0, Game.DELTAFRAME30);
+			audio.play("block", this.position);
+		});
+	}
+	
+	update(){
+		if(this.onboard instanceof Player){
+			
+			if(input.state("jump") == 1 ){
+				//Eject!!
+				this.eject();
+				
+			} else {
+				let move = Math.min( Math.sin(this.rotLeg1 * Math.deg2rad), Math.sin((this.rotLeg1+180) * Math.deg2rad) );
+				let dis = 56 - move * 24;
+				
+				if(input.state("right")){
+					let l = game.t_raytrace(new Line(this.position, this.position.add(new Point(this.width*0.5, this.height))));
+					if(!l){
+						this.rotLeg1 -= this.delta * 180;
+						this.position.x += Math.abs(move) * this.speed * this.delta;
+					}
+				} else if(input.state("left")){
+					let l = game.t_raytrace(new Line(this.position, this.position.add(new Point(-this.width*0.5, this.height))));
+					if(!l){
+						this.rotLeg1 += this.delta * 180;
+						this.position.x -= Math.abs(move) * this.speed * this.delta;
+					}
+				}
+				
+				if(input.state("fire") == 1){
+					this.fire();
+				}
+				
+				let headOffset = Mech.BODY_MID;
+				if(input.state("up") > 0 ){
+					headOffset = Mech.BODY_HIG;
+				} else if(input.state("down") > 0){
+					headOffset = Mech.BODY_LOW;
+				}
+				
+				
+				//Move head
+				let headTarget = this.position.y + headOffset;
+				this.headPos = Math.clamp(this.headPos, headTarget-48, headTarget+48);
+				this.headPos = Math.lerp(this.headPos, headTarget, this.delta * 3.0);
+				
+				let p = game.t_raytrace(new Line(this.position.floor(), this.position.floor().add(new Point(0,200))), Rain.BlockOnly);
+				
+				if(p){
+					let dif = p.subtract(this.position);
+					this.position.y = p.y - dis;
+				} else {
+					this.position.y += UNITS_PER_METER * this.delta;
+				}
+				
+				this.onboard.position.x = Math.lerp(this.onboard.position.x, this.position.x, this.delta * 10);
+				this.onboard.position.y = this.position.y;
+				this.onboard.force.y = 0;
+				
+				//Test shield
+				let shield = new Line(this.forward()*16,-50,this.forward()*48,24).correct().transpose(new Point(this.position.x, this.headPos));
+				let blocks = game.overlaps(shield); 
+				for(let i=0; i < blocks.length; i++){
+					if(blocks[i] instanceof Bullet && blocks[i].team != this.team){
+						this.trigger("block", blocks[i]);
+						blocks[i].trigger("deflect", this);
+						blocks[i].range = -1;
+					}
+				}
+				
+				//Test for missiles and core
+				let corn = this.corners();
+				let hits = game.overlaps(new Point(corn.left,corn.top), new Point(corn.right,corn.bottom));
+				for(let i=0; i < hits.length; i++){
+					if(hits[i] instanceof Bullet && hits[i].team != this.team){
+						this.trigger("hurt", hits[i]);
+						hits[i].trigger("death", this);
+					}
+				}
+			}
+		} else {
+			this.pilotSleep -= this.delta;
+		}
+	}
+	
+	eject(){
+		this.onboard.jump();
+		this.onboard = null;
+	}
+	
+	fire(){
+		for(let i=0; i < this.missiles.length; i++){
+			if(this.missiles[i] instanceof Bullet){
+				if(!this.missiles[i]._isAdded) { this.missiles[i] = null; }
+			}
+			
+			if(this.missiles[i] == null){
+				let ops = new Options();
+				ops["team"] = this.team;
+				ops["damage"] = this.damage;
+				ops["rotation"] = this.flip ? 180 : 0;
+				ops["turnSpeed"] = 0.0;
+				ops["speed"] = 10.0;
+				
+				let missile = Bullet.createHomingMissile(this.position.x + this.forward() * 64, this.headPos - 12, ops);
+				missile.frame = new Point(4,3);
+				
+				game.addObject(missile);
+				this.missiles[i] = missile;
+				
+				return;
+			}
+		}
+		
+		
+	}
+	
+	render(g,c){
+		let vflip = new Point(this.forward(), 1);
+		let rot1 = this.flip ? (180-this.rotLeg1) : (this.rotLeg1);
+		let rot2 = 180 + rot1;
+		
+		//head
+		g.renderSprite(this.sprite, new Point(this.position.x + 16 * this.forward(), this.headPos).subtract(c), this.zIndex, this.frame, this.flip);
+		
+		//Body
+		g.renderSprite(this.sprite, this.position.subtract(c), this.zIndex+1, new Point(3,0), this.flip);
+		
+		
+		//Leg1
+		g.renderSprite(this.sprite, this.position.add(Mech.THIGH_OFF.scale(vflip)).subtract(c), this.zIndex+2, new Point(2,0), this.flip, {"rotate" : rot1});
+		
+		let angle1 = ((this.flip ? -35 : 145) - rot1) * Math.deg2rad;
+		
+		let legoff1 = new Point(
+			(Mech.THIGH_OFF.x + 32 * Math.cos(angle1)) * this.forward(),
+			Mech.THIGH_OFF.y + 32 * Math.sin(angle1)
+		);
+		
+		g.renderSprite(this.sprite, this.position.add(legoff1).subtract(c), this.zIndex+3, new Point(1,0), this.flip);
+		
+		//Leg2
+		g.renderSprite(this.sprite, this.position.add(Mech.THIGH_OFF.scale(vflip)).subtract(c), this.zIndex-1, new Point(2,0), this.flip, {"rotate" : rot2});
+		
+		let angle2 = ((this.flip ? -35 : 145) - rot2) * Math.deg2rad;
+		
+		let legoff2 = new Point(
+			(Mech.THIGH_OFF.x + 32 * Math.cos(angle2)) * this.forward(),
+			Mech.THIGH_OFF.y + 32 * Math.sin(angle2)
+		);
+		
+		g.renderSprite(this.sprite, this.position.add(legoff2).subtract(c), this.zIndex-2, new Point(1,0), this.flip);
+	}
+	
+	leg1pos(){
+		let rot1 = this.flip ? (180-this.rotLeg1) : (this.rotLeg1);
+		let angle = ((this.flip ? -35 : 145) + rot1) * Math.deg2rad;
+		
+		let legoff = new Point(
+			(Mech.THIGH_OFF.x + -32 * Math.cos(angle)) * this.forward(),
+			Mech.THIGH_OFF.y + -32 * Math.sin(angle)
+		);
+	}
+	
+}
+Mech.THIGH_OFF = new Point(24,8);
+Mech.BODY_LOW = -20;
+Mech.BODY_MID = -48;
+Mech.BODY_HIG = -72;
+
+self["Mech"] = Mech;
+
+ /* platformer\mechanical_door.js*/ 
+
+class MechanicalDoor extends GameObject{
+	constructor(x, y, d, o){
+		super(x,y,d,o);
+		this.origin = new Point();
+		this.position.x = x - d[0] * 0.5;
+		this.position.y = y - d[1] * 0.5;
+		this.width = d[0];
+		this.height = d[1];
+		this.startPos = new Point(this.position.x,this.position.y);
+		
+		this.direction = o.getInt("direction", 1);
+		this.notches = o.getInt("notches", Math.floor(this.height/16));
+		this.speed = o.getFloat("speed", 2.0);
+		this.restoreSpeed = o.getFloat("restorespeed", 0.5);
+		this._tid = o.getString("trigger", null);
+		
+		this.addModule(mod_block);
+		
+		this.notchCount = 0;
+		
+		Block.prototype.gatherTiles.apply(this,[true]);
+		
+		this.on("activate", function(){
+			this.notchCount = Math.min(this.notchCount+1, this.notches);
+		});
+	}
+	update(){
+		let ypos = this.startPos.y + this.notchCount * (this.height / this.notches) * this.direction;
+		let dif = Math.abs(ypos - this.position.y);
+		
+		if(dif > 0.01){
+			let dir = ypos > this.position.y ? 1 : -1;
+			let dspeed = this.delta * this.speed * UNITS_PER_METER;
+			
+			if(dspeed >= dif){
+				this.position.y = ypos;
+			} else {
+				this.position.y += dspeed * dir;
+			}
+		} else {
+			this.position.y = ypos;
+		}
+	}
+	render(g,c){
+		Block.prototype.render.apply(this,[g,c]);
+	}
+}
+
+self["MechanicalDoor"] = MechanicalDoor;
 
  /* platformer\menu_attribute.js*/ 
 
@@ -20728,7 +21838,7 @@ var physicsLayer = {
 		2 : [2]
 	}
 }
-var unitsPerMeter = 32;
+var UNITS_PER_METER = 32;
 var mod_rigidbody = {
 	'init' : function(){
 		this.interactive = true;
@@ -20838,7 +21948,7 @@ var mod_rigidbody = {
 			var inair = !this.grounded;
 			
 			if(this.airtime <= 0 || this.force.y < 0.0){
-				this.force.y += self.unitsPerMeter * this.gravity * this.delta;
+				this.force.y += self.UNITS_PER_METER * this.gravity * this.delta;
 			}
 			//Max speed 
 			this.force.x = Math.max( Math.min ( this.force.x, 50), -50 );
@@ -20857,8 +21967,8 @@ var mod_rigidbody = {
 			
 			var limits = game.t_move( 
 				this, 
-				self.unitsPerMeter * this.force.x * this.delta, 
-				self.unitsPerMeter * this.force.y * this.delta 
+				self.UNITS_PER_METER * this.force.x * this.delta, 
+				self.UNITS_PER_METER * this.force.y * this.delta 
 			);
 			
 			if(this.preventPlatFormSnap <= 0){
@@ -20885,8 +21995,8 @@ var mod_rigidbody = {
 				}
 			}
 			
-			var friction_x = 1.0 - this.friction * this.delta;
-			var friction_y = 1.0 - 0.02 * this.delta;
+			var friction_x = 1.0 - this.friction * UNITS_PER_METER * this.delta;
+			var friction_y = 1.0 - 0.02 * UNITS_PER_METER * this.delta;
 			this.force.x *= friction_x;
 			this.force.y *= friction_y;
 			this.preventPlatFormSnap -= this.delta;
@@ -20989,28 +22099,37 @@ var mod_block = {
 		this.on("collideObject", function(obj){
 			if(this.blockCollide && this.width > 0 && this.height > 0){
 				if( this.blockCollideCriteria(obj) ) {
-					var prepos = obj.position.subtract(obj.force.scale(obj.delta));
+					var e = this.corners();
 					var d = this.corners(this.blockPrevious);
-					//var b = obj.corners();
-					var c = obj.corners(prepos);
 					
-					if(!this.block_isWithin(obj)){
-						//Object outside of bounds, do nothing
-					} else if(c.bottom <= d.top){
-						//Top
-						this.trigger("collideTop", obj);
-					} else if(c.top >= d.bottom){
-						//Bottom
-						this.trigger("collideBottom", obj);
-					} else if(c.right <= d.left){
-						//left
-						this.trigger("collideLeft", obj);
-					} else if(c.left >= d.right){
-						//right
-						this.trigger("collideRight", obj);
-					} else {
-						//Stuck inside
-						this.blockStuck.push(obj);
+					var b = obj.corners();
+					var c = obj.corners(obj.positionPrevious);
+					
+					if(this.blockTopOnly){
+						//Only collide with top
+						if(b.bottom >= e.top && c.bottom < d.top){
+							this.trigger("collideTop", obj);
+						}
+						
+					} else {					
+						if(!this.block_isWithin(obj)){
+							//Object outside of bounds, do nothing
+						} else if(c.bottom <= d.top){
+							//Top
+							this.trigger("collideTop", obj);
+						} else if(c.top >= d.bottom){
+							//Bottom
+							this.trigger("collideBottom", obj);
+						} else if(c.right <= d.left){
+							//left
+							this.trigger("collideLeft", obj);
+						} else if(c.left >= d.right){
+							//right
+							this.trigger("collideRight", obj);
+						} else {
+							//Stuck inside
+							this.blockStuck.push(obj);
+						}
 					}
 				}
 			}
@@ -21161,6 +22280,7 @@ var mod_combat = {
 		this.damageIce = 0;
 		this.damageLight = 0;
 		this.damageFixed = 0;
+		this.damageMultiplier = 1.0;
 		
 		this.defencePhysical = 0;
 		this.defenceFire = 0;
@@ -21351,10 +22471,12 @@ var mod_combat = {
 			this.combat_stuncount = 0;
 		}
 		
+		let ops = {"multiplier" : this.damageMultiplier};
+		
 		if(this.swrap instanceof SpriteWrapper){
 			let boxes = this.swrap.getAttackBoxes(this.frame, this);
 			for(let i=0; i < boxes.length; i++){
-				Combat.attackCheck.apply(this,[ boxes[i] ]);
+				Combat.attackCheck.apply(this,[ boxes[i], ops ]);
 			}
 		}
 		
@@ -21451,8 +22573,8 @@ var Combat = {
 		} else {
 			return [new Line(
 				this.position.x - this.width * this.origin.x,
-				this.position.y - this.width * this.origin.y,
-				this.position.x + this.height * (1-this.origin.x),
+				this.position.y - this.height * this.origin.y,
+				this.position.x + this.width * (1-this.origin.x),
 				this.position.y + this.height * (1-this.origin.y)
 			)];
 		}
@@ -23750,7 +24872,7 @@ class Player extends GameObject{
 	get isAttacking(){return this.attstates.currentAttack >= 0; }
 	get currentAttack(){
 		if(this.isAttacking){
-			return this.attstates.weapon.getAttack(this.attstates.currentAttack);
+			return this.equip_sword.stats.getAttack(this.attstates.currentAttack);
 		}
 		return null;
 	}
@@ -23770,6 +24892,8 @@ class Player extends GameObject{
 		this.spellCursor = 0;
 		this.uniqueItems = [];
 		this.pause = false;
+		this.canmove = true;
+		this.showplayer = true;
 		
 		this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 		this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
@@ -23799,6 +24923,8 @@ class Player extends GameObject{
 			"rolling" : 0,
 			"dash" : 0.0,
 			"dash_direction" : 1,
+			"airdash" : 0,
+			"airdashReady" : true,
 			"effectTimer" : 0.0,
 			"downStab" : false,
 			"jump_boost" : false,
@@ -23819,8 +24945,6 @@ class Player extends GameObject{
 		};
 		
 		this.attstates = {
-			"weapon" : WeaponList["short_sword"],
-		
 			"currentAttack" : -1, // attack index
 			"queue" : null, // true if another press
 			"time" : 0.0, //current time in attack
@@ -23836,16 +24960,18 @@ class Player extends GameObject{
 		
 		
 		this.speeds = {
-			"baseSpeed" : 5.0,
-			"dashTime" : 1.0,
+			"baseSpeed" : 4.4,
+			"dashTime" : 0.5,
+			"airdashTime" : 0.5,
+			"airdashStopTime" : 0.7,
 			"baseSpeedMax" : 4.0,
-			"dashSpeedMax" : 12.0,
+			"dashSpeed" : 12.0,
 			"inertiaGrounded" : 0.8,
 			"inertiaAir" : 0.4,
 			"frictionGrounded" : 0.2,
 			"frictionAir" : 0.1,
-			//"jump" : 9.3,
-			"jump" : 7.0,
+			"jump" : 8.4,
+			//"jump" : 7.0,
 			"airBoost" : 13,
 			"airGlide" : 0.0,
 			"breaks": 16,
@@ -23923,6 +25049,15 @@ class Player extends GameObject{
 		});
 		this.on("collideHorizontal", function(h){
 			this.states.againstwall = (h>0?1:-1) * Game.DELTASECOND * 0.1;
+			
+			if(this.walljump){
+				this.states.airdashReady = true;
+			}
+			
+			if(this.states.airdash > 0){
+				this.states.airdash = 0;
+				shakeCamera(Game.DELTASECOND*0.3,3);
+			}
 		});
 		this.on("collideVertical", function(v){
 			if(v>0) this.knockedout = false;
@@ -23968,6 +25103,7 @@ class Player extends GameObject{
 			
 			var str = Math.min(Math.max(Math.round(damage*0.25),1),6);
 			var dir = this.position.subtract(obj.position);
+			this.airtime = this.states.airdash = 0;
 			
 			shakeCamera(Game.DELTASECOND*0.5,str);
 			
@@ -24020,6 +25156,8 @@ class Player extends GameObject{
 			this.lifeStealCarry += Math.max(Math.min(damage * ls, obj.life),0);
 			this.life = Math.min( this.life + Math.floor(this.lifeStealCarry), this.lifeMax );
 			this.lifeStealCarry -= Math.floor(this.lifeStealCarry);
+			
+			this.states.airdashReady = true;
 			
 			if(this.isAttacking){
 				this.attstates.wait = 0.0;
@@ -24110,10 +25248,15 @@ class Player extends GameObject{
 			Checkpoint.saveState(this);
 		});
 		this.on("collideObject", function(obj){
-			if( this.states.rolling && this.dodgeFlash){
-				if("hurt" in obj && obj.hurt instanceof Function){
+			if( this.states.airdash > 0 && this.states.airdash < this.speeds.airdashTime * this.speeds.airdashStopTime){
+				if("hurt" in obj && obj.hasModule(mod_combat)){
 					var damage = this.baseDamage();
 					obj.hurt(this, damage);
+					
+					this.airtime = this.states.airdash = 0;
+					this.force.x = -this.force.x;
+					this.force.y = -this.speeds.jump;
+					
 				}
 			}
 		});
@@ -24160,8 +25303,8 @@ class Player extends GameObject{
 		}
 		
 		this.gravity = 1;
-		this.life = 24;
-		this.lifeMax = 24;
+		this.life = 48;
+		this.lifeMax = 48;
 		this.mana = 24;
 		this.manaMax = 24;
 		this.stanimaBase = Game.DELTASECOND * 0.5;
@@ -24277,12 +25420,25 @@ class Player extends GameObject{
 			}
 		}
 		
-		if ( this.life > 0 ) {
+		if ( this.life > 0) {
 			var strafe = input.state('block') > 0;
 			
 			if (this.stun > 0 ){
 				//Do nothing, just wait to recover
 				this.frame.x = 10; this.frame.y = 1;
+			} else if(!this.canmove){
+				//Player loses control
+				if(this.grounded){
+					if(Math.abs(this.force.x) < 0.1){
+						this.frame = this.swrap.frame("idle", (game.time * 0.65) % 1);
+					} else {
+						this.states.animationProgress = (this.states.animationProgress + this.delta * Math.abs(this.force.x) * 0.32) % 1;
+						this.frame = this.swrap.frame("run", this.states.animationProgress);
+					}
+				} else {
+					this.frame.x = 7;
+					this.frame.y = 2;
+				}
 			} else if (this.states.spellCounter > 0){
 				this.states.spellCounter -= this.delta;
 				this.frame = this.swrap.frame("spell", 0);
@@ -24298,7 +25454,7 @@ class Player extends GameObject{
 				}
 				if(this.states.spellCurrent instanceof SpellFlash){
 					//Float about
-					this.force.y -= (this.gravity+0.05) * self.unitsPerMeter * this.delta;
+					this.force.y -= (this.gravity+0.05) * self.UNITS_PER_METER * this.delta;
 					let spell = this.states.spellCurrent;
 					if(spell.manaCost <= this.mana && this.states.spellCounter <= 0 && input.state('spell')){
 						this.castSpell();
@@ -24314,7 +25470,7 @@ class Player extends GameObject{
 				//Holding onto a ledge
 				this.frame = this.swrap.frame("grab", 0);
 				this.force.x = 0;
-				this.force.y = this.gravity * -self.unitsPerMeter * this.delta;
+				this.force.y = this.gravity * -self.UNITS_PER_METER * this.delta;
 				
 				if(this.states.ledgePosition instanceof GameObject && this.states.ledgePosition.hasModule(mod_block)){
 					this.position = this.position.add(this.states.ledgePosition.blockChange);
@@ -24329,6 +25485,41 @@ class Player extends GameObject{
 						this.states.ledgePosition = false;
 					}
 				}
+			} else if( this.states.airdash > 0 ){
+				//Air dashing
+				if(this.grounded){
+					//Landed
+					this.states.airdash = 0;
+					shakeCamera(Game.DELTASECOND*0.3,3);
+				} else if(this.states.airdash > this.speeds.airdashTime * this.speeds.airdashStopTime){
+					//Spin in the air
+					this.states.airdash -= this.delta;
+					this.force.x = this.force.y = 0;
+					
+					let p = 1 - (this.states.airdash / this.speeds.airdashTime - this.speeds.airdashStopTime) / (1-this.speeds.airdashStopTime);
+					this.frame = this.swrap.frame("airdash", p);
+					
+					if(this.states.airdash <= this.speeds.airdashTime * this.speeds.airdashStopTime){
+						//Transition
+						this.states.dash_direction = this.forward();
+						if(input.state("left") > 0){this.states.dash_direction = -1;}
+						if(input.state("right") > 0){this.states.dash_direction = 1;}
+						if(input.state("down") > 0){this.states.dash_direction = 0;}
+					}
+				} else {
+					//Fly off
+					this.states.airdash -= this.delta;
+					if(this.states.dash_direction == 0){
+						this.force.x = 0;
+						this.force.y = this.speeds.baseSpeed * 2;
+						this.frame = new Point(0,11);
+					} else {
+						this.flip = this.states.dash_direction < 0;
+						this.force.x = this.states.dash_direction * this.speeds.baseSpeed * 2;
+						this.frame = new Point(0,8);
+					}
+				}
+				
 			} else if( this.isAttacking ){
 				//Player in attack animation
 				
@@ -24352,7 +25543,7 @@ class Player extends GameObject{
 				
 				//End attack
 				if(this.attstates.time > this.attstates.totalTime + this.attstates.wait){
-					let nextAttackIndex = this.attstates.weapon.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
+					let nextAttackIndex = this.equip_sword.stats.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
 					if(this.attstates.queue && nextAttackIndex >= 0){
 						this.attack(nextAttackIndex);
 					} else {
@@ -24433,7 +25624,6 @@ class Player extends GameObject{
 					}
 				} else {
 					this.states.jump_boost = false;
-					this.airtime = 0.0;
 				}
 				
 				//Jump?
@@ -24475,14 +25665,15 @@ class Player extends GameObject{
 						this.states.duckTime = this.speeds.duckTime;
 						this.states.animationProgress = Math.min(this.states.animationProgress+this.delta*4, 1);
 						this.frame = this.swrap.frame("duck", this.states.animationProgress);
-					} else if(this.grounded && input.state("dodge") == 1){
+					} else if(this.dodgeFlash && this.states.airdashReady && !this.grounded && input.state("dodge") == 1 && this.states.airdash <= 0){
+						this.airtime = this.states.airdash = this.speeds.airdashTime;
+						this.states.airdashReady = false;
+					} else if(this.grounded && input.state("dodge") == 1 && this.states.dash <= 0){
 						//DASH LIKE A FIEND!
-						if(input.state("left") > 0 || input.state("right") > 0){
-							this.states.dash_direction = this.forward();
-							this.states.dash = this.speeds.dashTime;
-							this.force.x = this.states.dash_direction * this.speeds.dashSpeedMax;
-							audio.play("dash");
-						}
+						this.states.dash_direction = this.forward();
+						this.states.dash = this.speeds.dashTime;
+						this.force.x = this.states.dash_direction * this.speeds.dashSpeed;
+						audio.play("dash");
 					} else if(this.states.turn > 0){
 						this.force.x = this.force.x * (1.0 - this.speeds.breaks * this.delta);
 						let tProg = 1 - (this.states.turn / this.speeds.turn);
@@ -24510,14 +25701,15 @@ class Player extends GameObject{
 				} else {
 					//Player is dashing
 					let dProg = 1 - this.states.dash / this.speeds.dashTime;
-					let stopPoint = 1 / (this.speeds.dashSpeedMax / this.speeds.baseSpeedMax);
+					let speedCoefficient = this.speeds.dashTime * this.speeds.baseSpeed / this.speeds.dashSpeed;
+					
+					//Magic equation that smoothes the dash
+					let dSpeed = speedCoefficient * Math.PI *  Math.cos(dProg*0.5*Math.PI);
 					
 					this.frame = this.swrap.frame("dash", dProg);
-					if(dProg < stopPoint){
-						this.force.x = this.states.dash_direction * this.speeds.dashSpeedMax;
-					} else {
-						this.force.x = 0.0;
-					}
+					this.force.x = this.states.dash_direction * this.speeds.dashSpeed * dSpeed;
+					
+					
 					this.states.guard = false;
 				}
 				
@@ -24533,6 +25725,7 @@ class Player extends GameObject{
 			}
 			
 			this.states.doubleJumpReady = this.states.doubleJumpReady || this.grounded;
+			this.states.airdashReady = this.states.airdashReady || this.grounded;
 			this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 			this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 			this.height = this.states.duck ? 24 : 30;
@@ -24561,17 +25754,7 @@ class Player extends GameObject{
 		this.states.effectTimer += this.delta;
 		this.states.turn -= this.delta;
 		this.states.duckTime -= this.delta;
-		
-		
-		if(this.states.dash > 0){
-			if(input.state("left") == 0 && input.state("right") == 0){
-				this.states.dash = 0.0;
-			}
-			if(Math.abs(this.force.x) < 0.2) {
-				this.states.dash = 0.0;
-			}
-			this.states.dash = Math.max(this.states.dash - this.delta, 0.0);
-		}
+		this.states.dash -= this.delta;
 		
 		if(Math.abs(this.states.againstwall) <= this.delta){
 			this.states.againstwall = 0;
@@ -24614,7 +25797,7 @@ class Player extends GameObject{
 			//getTileRule
 			//tilerules.ignore
 			
-			let tBelow = game.getTileRule(testPosition.add(new Point(0, ts*2)));
+			let tBelow = game.getTileRule(testPosition.add(new Point(0, ts*3)));
 			let tHole = game.getTileRule(testPosition.add(new Point(this.forward() * ts, 0)));
 			let tLedge = game.getTileRule(testPosition.add(new Point(this.forward() * ts, ts)));
 			let tFeetRest = game.getTileRule(testPosition.add(new Point(this.forward() * ts, ts*2)));
@@ -24630,10 +25813,12 @@ class Player extends GameObject{
 	stand(){
 		if( this.states.duck ) {
 			this.position.y -= 4;
+			this.grounded = true;
 			this.states.duck = false;
 		}
 	}
 	duck(){
+		this.states.dash = 0.0;
 		this.force.x = 0.0;
 		this.states.dash = 0.0;
 		if( !this.states.duck ) {
@@ -24644,6 +25829,7 @@ class Player extends GameObject{
 	}
 	jump(){ 
 		var force = this.speeds.jump * this.gravity;
+		this.states.dash = 0.0;
 		
 		if(this.states.duck){
 			//Fall through floor
@@ -24666,27 +25852,26 @@ class Player extends GameObject{
 			}
 		}
 		
-		
-		if( this.spellsCounters.flight > 0 ) force = 2;
-		
+		this.stand(); 
 		this.states.justjumped = Game.DELTASECOND * 0.2;
-		this.states.dash = 0;
 		this.force.y = -force; 
 		this.grounded = false; 
 		this.states.jump_boost = true; 
-		this.stand(); 
+		
 		audio.play("jump");
 	}
 	attack(attackIndex = -1){
 		//Player has pressed the attack button or an attack has been queued
 		this.cancelAttack();
 		
-		let weapon = this.attstates.weapon;
+		//let weapon = this.attstates.weapon;
+		let weapon = this.equip_sword.stats;
 		if(attackIndex < 0){
 			attackIndex = weapon.firstAttack(this.getWeaponState());
 		}
 		
 		let attack = weapon.getAttack(attackIndex);
+		this.damageMultiplier = attack.damage;
 		this.attstates.currentAttack = attackIndex;
 		this.attstates.totalTime = attack.time * weapon.speed;
 		this.attstates.wait = attack.wait * weapon.missWait;
@@ -24696,10 +25881,10 @@ class Player extends GameObject{
 		
 		if("force" in attack){
 			let addForce = new Point(this.forward() * attack.force.x, attack.force.y);
-			this.grounded = this.grounded && addForce.y < 0;
 			this.force = this.force.add(addForce);
+			this.grounded = this.grounded && addForce.y >= 0;
 		}
-		
+		this.states.dash = 0.0;
 		audio.play(attack.audio, this.position);
 	}
 	cancelAttack(){
@@ -24947,59 +26132,61 @@ class Player extends GameObject{
 	}
 
 	render(g,c){
-		//Render player
-		
-		//Spell effects
-		if( this.spellsCounters.flight > 0 ){
-			var wings_offset = new Point((this.flip?8:-8),0);
-			var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
-			if( this.grounded ) wings_frame = 0;
-			g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
-		}
-		if( this.spellsCounters.magic_armour > 0 ){
-			this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
-		}
-		
-		//adjust for ledge offset
-		/*
-		if(_player.states.ledge){
-			g.renderSprite(
-				this.sprite,
-				this.position.subtract(c).add(new Point(0,19)),
-				this.zIndex,
-				this.frame,
-				this.flip,
-				{"shader":this.filter}
-			);
-		} else {
-			GameObject.prototype.render.apply(this,[g,c]);
-		}
-		*/
-		let color = COLOR_WHITE;
-		if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
-		g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
-			"u_color" : color
-		});
-		
-		//When rolling, ignore flip and shader
-		if(this.dodgeFlash && this.states.rolling){
-			var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
-			g.color = [1,1,1,1];
-			g.scaleFillRect(
-				(this.position.x - (this.flip?0:flashLength)) - c.x,
-				(this.position.y - 6) - c.y,
-				flashLength,
-				12
-			);
-		}
-		
-		if( this.spellsCounters.thorns > 0 ){
-			g.renderSprite("magic_effects",this.position.subtract(c),this.zIndex, new Point(3, 0), this.flip);
-		}
-		//Render current sword
-		if(!this.states.rolling){
-				this.renderWeapon(g,c);
-				this.renderShield(g,c);
+		if(this.showplayer){
+			//Render player
+			
+			//Spell effects
+			if( this.spellsCounters.flight > 0 ){
+				var wings_offset = new Point((this.flip?8:-8),0);
+				var wings_frame = 3-(this.spellsCounters.flight*0.2)%3;
+				if( this.grounded ) wings_frame = 0;
+				g.renderSprite("magic_effects",this.position.subtract(c).add(wings_offset),this.zIndex, new Point(wings_frame, 0), this.flip);
+			}
+			if( this.spellsCounters.magic_armour > 0 ){
+				this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
+			}
+			
+			//adjust for ledge offset
+			/*
+			if(_player.states.ledge){
+				g.renderSprite(
+					this.sprite,
+					this.position.subtract(c).add(new Point(0,19)),
+					this.zIndex,
+					this.frame,
+					this.flip,
+					{"shader":this.filter}
+				);
+			} else {
+				GameObject.prototype.render.apply(this,[g,c]);
+			}
+			*/
+			let color = COLOR_WHITE;
+			if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
+			g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
+				"u_color" : color
+			});
+			
+			//When rolling, ignore flip and shader
+			if(this.dodgeFlash && this.states.rolling){
+				var flashLength = Math.max(1 - this.states.roll/this.dodgeTime,0) * 96;
+				g.color = [1,1,1,1];
+				g.scaleFillRect(
+					(this.position.x - (this.flip?0:flashLength)) - c.x,
+					(this.position.y - 6) - c.y,
+					flashLength,
+					12
+				);
+			}
+			
+			if( this.spellsCounters.thorns > 0 ){
+				g.renderSprite("magic_effects",this.position.subtract(c),this.zIndex, new Point(3, 0), this.flip);
+			}
+			//Render current sword
+			if(!this.states.rolling){
+					this.renderWeapon(g,c);
+					this.renderShield(g,c);
+			}
 		}
 	}
 	renderWeapon(g,c,ops={},eops={}){
@@ -25136,6 +26323,11 @@ class Player extends GameObject{
 }
 Player.renderLifebar = function(g,c, life, max, buffer){
 	/* Render HP */
+	let scale = 1.0;
+	life *= scale;
+	max *= scale;
+	buffer *= scale;
+	
 	g.color = [1.0,1.0,1.0,1.0];
 	g.scaleFillRect(c.x-1,c.y-1,(max)+2,10);
 	g.color = [0.0,0.0,0.0,1.0];
@@ -25493,6 +26685,582 @@ Prisoner.prototype.postrender = function(g,c){
 	}
 }
 
+ /* platformer\puddle.js*/ 
+
+
+class Puddle extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		
+		this.origin.x = 0;
+		this.origin.y = 1;
+		this.position.x = x - d[0]*0.5;
+		this.position.y = y + d[1]*0.5;
+		
+		this.width = d[0];
+		this.height = d[1];
+		this.speed = 0.25 * self.UNITS_PER_METER;
+		this.emptyOnStart = 0;
+		this.resetOnSleep = 0;
+		this.triggersave = false;
+		this.waterBuoyancy = 2.0;
+		
+		this.fullheight = this.height;
+		this.waveSize = 0;
+		this.waveFrequency = 0;
+		this.waveSpeed = 0;
+		
+		this.active = 0;
+		this.filling = 0;
+		this.noFill = 0;
+		this.noDrain = 0;
+		this._drainTileTest = 0;
+		
+		this.color1 = [0.74,0.75,0.8,1.0];
+		this.color2 = [0.95,0.96,1.0,1.0];		
+		
+		this._ignoreList = new Array();
+		this._nextIgnoreList = new Array();
+		
+		this._stepTime = this.stepTimeTotal = 0.0625;
+		this.drainPos = this.width * 0.5;
+		this.viscosity = 0.25;
+		this.electrified = 0.0;
+		
+		this.buldges = [
+			{x:0,speed:0,width:0,height:0,time:0},
+			{x:0,speed:0,width:0,height:0,time:0},
+			{x:0,speed:0,width:0,height:0,time:0},
+			{x:0,speed:0,width:0,height:0,time:0},
+			{x:0,speed:0,width:0,height:0,time:0},
+			{x:0,speed:0,width:0,height:0,time:0},
+		];
+		
+		
+		this.on("collideObject", function(obj){
+			let xpos = obj.position.x - this.position.x;
+			
+			if( obj.hasModule(mod_rigidbody) && obj.gravity > 0){
+				if(this._ignoreList.indexOf(obj) < 0){
+					if(obj.force.y > 2){
+						this._nextIgnoreList.push(obj);
+						this.addBuldge(xpos, obj.force.y * obj.mass);
+					}
+				}
+			}
+			if(this.electrified > 0 && obj.hasModule(mod_combat)){
+				let damage = Combat.getDamage.apply(this);
+				damage.light = 15;
+				obj.hurt(this, damage);
+			}
+			if(obj instanceof ElectricWire){
+				this.electrified = 0.25;
+				if(this._stepTime <= 0){
+					this.addBuldge(xpos, 8 + Math.random() * 5);
+				}
+			}
+		});
+		
+		ops = ops || new Options();
+		
+		if("trigger" in ops){
+			this._tid = ops.trigger;
+		}
+	}
+	update(){
+		this._ignoreList = this._nextIgnoreList;
+		this._nextIgnoreList = new Array();
+		
+		if(this._stepTime <= 0) {this._stepTime = this.stepTimeTotal; }
+		this._stepTime -= this.delta;
+		
+		for(let j=0; j < this.buldges.length; j++){
+			if(this.buldges[j].height > 0){
+				this.buldges[j].time += this.delta;
+				this.buldges[j].height -= this.delta * 16 * this.viscosity;
+				this.buldges[j].x += this.buldges[j].speed * this.delta * UNITS_PER_METER;
+				
+				if(this.buldges[j].x < 0) {
+					this.buldges[j].x = 0;
+					this.buldges[j].speed *= -0.8
+				}
+				if(this.buldges[j].x > this.width) {
+					this.buldges[j].x = this.width;
+					this.buldges[j].speed *= -0.8
+				}
+			}
+		}
+		
+		this.electrified -= this.delta;
+		
+		if(this.electrified > 0.0){
+			this.glow(64,COLOR_LIGHTNING);
+		}
+	}
+	glow(radius, color){
+		Background.pushLightArea(new Line(
+			this.position.x,
+			this.position.y - this.height,
+			this.position.x + this.width,
+			this.position.y 
+		),radius,color);
+	}
+	addBuldge(xpos, force){
+		force = Math.abs(force);
+		
+		let w = Math.min(force, 16) * 2;
+		let h = w * 1 * this.viscosity;
+		let s = 4 * force * (this.viscosity * 0.5);
+		let a = [ 
+			{x:xpos-8,speed:s,width:w,height:h,time:0},
+			{x:xpos+8,speed:-s,width:w,height:h,time:0},
+		];
+		
+		for(let i=0; i < a.length; i++){
+			
+			let lowest = a[i].height;
+			let lowestIndex = -1;
+			
+			for(let j=0; j < this.buldges.length; j++){
+				if(this.buldges[j].height < lowest ){
+					lowest = this.buldges[j].height;
+					lowestIndex = j;
+				}
+			}
+			
+			if(lowestIndex >= 0){
+				this.buldges[lowestIndex] = a[i];
+			}
+		}
+	}
+	floatObject(obj){
+		let top = this.corners().top;
+		let buoyancy = Math.clamp01( ( (obj.position.y + 16) - top ) / 80 );
+		let pushUp = Math.lerp(0.0, this.waterBuoyancy, buoyancy);
+		
+		if(obj.grounded){
+			obj.grounded = false;
+			obj.force.y = 0.0;
+		}
+		
+		obj.force.y -= pushUp * UNITS_PER_METER * this.delta;
+		obj.force.y = Math.clamp( obj.force.y, -10, 5 );
+		
+		if(obj instanceof Player){
+			obj.states.doubleJumpReady = true;
+			obj.states.ledgePosition = false;
+		}
+	}
+	buldgeToArray(i){
+		return [
+			this.buldges[i].x,
+			this.buldges[i].width,
+			this.buldges[i].height * Math.clamp01(this.buldges[i].time * 5),
+		];
+	}
+	render(g,c){
+		let margin = 32;
+		
+		g.renderSprite(
+			"ooze", 
+			this.position.subtract(new Point(0,this.height+margin)).subtract(c),
+			this.zIndex,
+			new Point(),
+			false,
+			{
+				"u_time" : game.timeScaled,
+				"u_size" : [this.width, this.height+margin],
+				"scalex" : this.width / 256.0,
+				"scaley" : (this.height+margin) / 256.0,
+				"u_color" : this.color1,
+				"u_highlight" : this.color2,
+				"u_buldge1" : this.buldgeToArray(0),
+				"u_buldge2" : this.buldgeToArray(1),
+				"u_buldge3" : this.buldgeToArray(2),
+				"u_buldge4" : this.buldgeToArray(3),
+				"u_buldge5" : this.buldgeToArray(4),
+				"u_buldge6" : this.buldgeToArray(5),
+				"u_wavefreq" : this.waveFrequency,
+				"u_waves" : this.waveSize,
+				"u_time" : game.timeScaled * this.waveSpeed
+			}
+		)
+		
+		
+		/*
+		if(this.active){
+			for(var x=0; x < this.width; x+=16){
+				var pos = new Point(
+					x + Math.round(this.position.x/16)*16,
+					this.position.y - this.height
+				);
+				var _t = 0;
+				if(x>0) _t += 1;
+				if(x+16>=this.width) _t += 1;
+				var tile = Drain.TILES[_t]-1;
+				var tilex = tile%32;
+				var tiley = Math.floor(tile/32);
+				g.renderSprite(game.map.tileset,pos.subtract(c),this.zIndex,new Point(tilex,tiley));
+				
+				//Render bottom row of tiles to hide edge
+				var tile = game.getTile(this.position.x+x,this.position.y+8,game.tileCollideLayer) - 1;
+				g.renderSprite(game.map.tileset,this.position.add(new Point(x,0)).subtract(c),this.zIndex,new Point(tile%32,tile/32));
+			}
+		}
+		*/
+	}
+}
+self["Puddle"] = Puddle;
+
+ /* platformer\puddle_lava.js*/ 
+
+class Lava extends Puddle{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		
+		this.viscosity = 0.125;
+		this.fireDamage = 1;
+		this.damageTickTimer = Game.DELTASECOND * 0.3;
+		
+		this.color1 = [0.8,0.25,0.0,1.0];
+		this.color2 = [1.0,0.5,0.0,1.0];
+		
+		this.waveSize = 4;
+		this.waveFrequency = 0.05;
+		this.waveSpeed = 0.5;
+		
+		this.raisedHeight = d[1];
+		this.lowerHeight = ops.getInt("triggerheight", this.raisedHeight);
+		this.speed = ops.getFloat("drainspeed", 1.0) * ( 32 / Math.abs(this.raisedHeight - this.lowerHeight) );
+		this.delay = ops.getFloat("delay", 0.0);
+		
+		this._tid = ops.getString("trigger", null);
+		
+		this._damageTick = false;
+		this._damageTickTimer = 0.0;
+		this._drained = false;
+		this._drainLevel = 0.0;
+		
+		this.on(["sleep","wakeup"], function(){
+			if(this._drained){
+				this._drainLevel = 1.0;
+				this.height = this.lowerHeight;
+			} else {
+				this._drainLevel = 0.0;
+				this.height = this.raisedHeight;
+			}
+		});
+		
+		this.on("activate", function(){
+			this._drained = true;
+		});
+		
+		this.on("collideObject", function(obj){
+			if(this.height > 0){
+				//Only hurt if it has volume
+				if(obj.hasModule(mod_rigidbody)){
+					this.floatObject(obj);
+				}
+				if(this._damageTick && obj.hasModule(mod_combat)){
+					audio.play("burn", obj.position);
+					obj.life -= this.fireDamage;
+					obj.displayDamage(this.fireDamage);
+					obj.isDead();
+					
+				}
+			}
+		});
+	}
+	update(){
+		super.update();
+		this.glow(64,COLOR_FIRE);
+		
+		this._damageTickTimer -= this.delta;
+		this._damageTick = false;
+		if(this._damageTickTimer <= 0){
+			this._damageTickTimer = this.damageTickTimer + this._damageTickTimer;
+			this._damageTick = true;
+		}
+		
+		if(this._drained){
+			if(this.delay > 0){
+				this.delay -= this.delta;
+			} else {
+				this._drainLevel = Math.clamp01( this._drainLevel + this.speed * this.delta );
+			}
+		} else {
+			this._drainLevel = Math.clamp01( this._drainLevel - this.speed * this.delta );
+		}
+		this.height = Math.lerp( this.raisedHeight, this.lowerHeight, this._drainLevel);
+	}
+	render(g,c){
+		if(this.height > 0){
+			super.render(g,c);
+		}
+	}
+}
+
+self["Lava"] = Lava;
+
+/*
+Lava.prototype = new GameObject();
+Lava.prototype.constructor = GameObject;
+function Lava(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.width = d[0];
+	this.height = d[1];
+	this.zIndex = 999;
+	this.idleMargin = Lava.lightradius;
+	
+	this.drain = 0;
+	this.bottom = this.position.y + this.height;
+	this.triggerheight = 4;
+	this.triggerdelete = 0;
+	this.triggerdelay = 0;
+	this.triggersave = 0;
+	this.speed = 2;
+	
+	if("trigger" in ops) {
+		this._tid = ops["trigger"];
+	}
+	if("triggerheight" in ops){
+		this.triggerheight = ops["triggerheight"] * 1;
+	}
+	if("triggerdelete" in ops){
+		this.triggerdelete = ops["triggerdelete"] * 1;
+	}
+	if("triggerdelay" in ops){
+		this.triggerdelay = ops["triggerdelay"] * Game.DELTASECOND;
+	}
+	
+	if("triggersave" in ops){
+		this.triggersave = ops["triggersave"];
+		if(NPC.get(this.triggersave)){
+			this.height = this.triggerheight;
+			this.drain = true;
+		}
+	}
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_combat)){
+			if(obj.life > 0){
+				obj.life = 0;
+				obj.stun = 1;
+				obj.trigger("hurt", this, 0)
+				obj.isDead();
+			}
+		}
+	});
+	
+	this.on("activate", function(){
+		this.drain = 1;
+		if(this.triggersave){
+			NPC.set(this.triggersave, 1);
+		}
+	});
+	
+	this.on("wakeup", function(){
+		if(this.drain){
+			this.height = this.triggerheight;
+			this.position.y = this.bottom - this.height;
+		}
+	})
+}
+
+Lava.prototype.update = function(){
+	if(this.drain){
+		if(this.height > this.triggerheight){
+			if(this.triggerdelay > 0){
+				this.triggerdelay -= this.delta;
+			} else {
+				this.height -= this.speed * this.delta;
+			}
+		} else {
+			this.height = this.triggerheight;
+			if(this.triggerdelete){
+				this.destroy();
+			}
+		}
+		this.position.y = this.bottom - this.height;
+	}
+	
+	Background.pushLightArea(new Line(this.position,this.position.add(new Point(this.width,this.height))),Lava.lightradius,[1.0,0.6,0.2,1.0]);
+	this.interactive = this.width > 0 && this.height > 0;
+}
+
+Lava.prototype.render = function(g,c){
+	g.renderSprite(
+		"lava", 
+		this.position.subtract(c),
+		this.zIndex,
+		new Point(),
+		false,
+		{
+			"u_time" : game.timeScaled * 0.1,
+			"u_size" : [this.width, this.height],
+			"scalex" : this.width / 64.0,
+			"scaley" : this.height / 64.0
+		}
+	)
+	return;
+	if(this.interactive){
+		g.color = [1.0,0.5,0.0,1.0];
+		Renderer.scaleFillRect(
+			this.position.x - c.x,
+			this.position.y - c.y,
+			this.width,
+			this.height
+		)
+	}
+}
+Lava.lightradius = 64;
+
+/*
+Lava.prototype.lightrender = function(g,c){
+	if(this.interactive){
+		g.color = [0.2,0.1,0.0,1.0];
+		for(var i=0; i < 8; i++){
+			var extra = 2 * Math.sin(i *0.5 + game.timeScaled * 0.1) + (8 * i+1);
+			Renderer.scaleFillRect(
+				this.position.x - extra - c.x,
+				this.position.y - extra- c.y,
+				this.width + extra * 2,
+				this.height  + extra * 2
+			)
+		}
+	}
+}
+*/
+
+Lavafalls.prototype = new GameObject();
+Lavafalls.prototype.constructor = GameObject;
+function Lavafalls(x,y,d,ops){
+	this.constructor();
+	this.origin.x = 0;
+	this.origin.y = 0;
+	this.position.x = x - d[0]*0.5;
+	this.position.y = y - d[1]*0.5;
+	this.width = d[0];
+	this.height = d[1];
+	this.zIndex = 898;
+	
+	this.sprite = "lavafalls";
+	this.speed = 12.0;
+	this.ends = new Point(0, 0);
+	
+	this.damage = 12;
+	this.yexcess = 72;
+	this.ystep = 72;
+	this.waketime = Game.DELTASECOND * 1.0;
+	this.sleeptime = Game.DELTASECOND * 2.0;
+	this.timer = 0;
+	this.active = true;
+	
+	if("waketime" in ops){
+		this.waketime = ops["waketime"] * 1;
+	}
+	if("sleeptime" in ops){
+		this.waketime = ops["sleeptime"] * 1;
+	}
+	
+	this.on("activate", function(){
+		this.active = !this.active;
+	});
+	
+	this.on("collideObject", function(obj){
+		if(obj.hasModule(mod_combat)){
+			var c_top = obj.position.y - obj.height * obj.origin.y;
+			var c_bot = obj.position.y + obj.height * obj.origin.y;
+			if(
+				c_bot > this.position.y + this.ends.x && 
+				c_top < this.position.y + this.ends.y
+			){
+				obj.hurt(this, this.damage);
+			}
+		}
+	});
+}
+
+Lavafalls.bloboffset = [
+	{x:0,y:0,z:2,f:0,g:Math.random()*16},
+	{x:0,y:16,z:1,f:1,g:Math.random()*16},
+	{x:0,y:4,z:2,f:2,g:Math.random()*16},
+	{x:-24,y:24,z:0,f:3,g:Math.random()*16}
+];
+
+Lavafalls.prototype.update = function(g,c){
+	if(this.ends.x >= this.height+this.yexcess){
+		//Go to sleep
+		if(this.timer >= this.sleeptime){
+			this.timer = this.ends.x = this.ends.y = 0;
+		}
+	} else {
+		this.ends.y += this.speed * this.delta;
+		if(this.timer >= this.waketime){
+			this.ends.x += this.speed * this.delta;
+		}
+		if(this.ends.x >= this.height+this.yexcess){
+			this.timer = 0;
+		}
+	}
+	
+	if(this.active){
+		this.timer += this.delta;
+	}
+	
+	Background.pushLightArea(
+		new Line(
+			this.position.add(new Point(0, this.ends.x)), 
+			this.position.add(new Point(
+				this.width,
+				Math.min(this.height, this.ends.y - this.ends.x)
+			)
+		)),
+		Lava.lightradius,
+		[1.0,0.6,0.2,1.0]
+	);
+}
+
+Lavafalls.prototype.render = function(g,c){
+	var bottom = this.ends.y;
+	if(this.ends.y > this.height){
+		bottom = this.height + ((this.ends.y-this.height) % this.ystep);
+	}
+	
+	for(var y=bottom; y >= this.ends.x; y-=this.ystep){
+		var i = 0;
+		for(var x=0; x < this.width; x+=16){
+			blob = Lavafalls.bloboffset[i];
+			g.renderSprite(
+				this.sprite,
+				this.position.add(new Point(x+blob.x, y+blob.y)).subtract(c).floor(),
+				this.zIndex + blob.z - y,
+				new Point(blob.f,0),
+				this.flip, 
+				{
+					"u_intensity" : 1 + Math.abs(0.5*Math.sin(blob.g + game.timeScaled*0.125))
+				}
+			)
+			i = (i+1) % 4;
+		}
+	}
+}
+Lavafalls.prototype.lightrender = function(g,c){
+	/*
+	g.color = COLOR_FIRE;
+	g.scaleFillRect(
+		this.position.x - c.x,
+		this.position.y + this.ends.x - c.y,
+		this.width,
+		Math.min(this.height, this.ends.y - this.ends.x)
+	);
+	*/
+}
+
  /* platformer\pusher.js*/ 
 
 Pusher.prototype = new GameObject();
@@ -25531,10 +27299,10 @@ function Pusher(x,y,d,ops){
 		this._tid = ops.trigger;
 	}
 	if("forcex" in ops){
-		this.force.x = ops["forcex"] * 1;
+		this.force.x = ops["forcex"] * UNITS_PER_METER;
 	}
 	if("forcey" in ops){
-		this.force.y = ops["forcey"] * 1;
+		this.force.y = ops["forcey"] * UNITS_PER_METER;
 	}
 }
 
@@ -25557,7 +27325,7 @@ function Ragdoll(x,y,d,o){
 	this.isDead();
 	
 	this.rotation = 0.0;
-	this.rotationSpeed = 1.0;
+	this.rotationSpeed = 30.0;
 	this.frame.x = 0;
 	this.frame.y = 0;
 	this.frames = false;
@@ -25615,15 +27383,11 @@ function Rain(x, y, d, o){
 	this.dropSize = 1.0;
 	this.dropSpeed = 1.0;
 	
-	if("dropdensity" in o){
-		this.dropDensity = o["dropdensity"] * 1;
-	}	
-	if("dropsize" in o){
-		this.dropSize = o["dropsize"] * 1;
-	}
-	if("dropspeed" in o){
-		this.dropSpeed = o["dropspeed"] * 1;
-	}
+	this.dropDensity = o.getFloat("dropdensity", 1.0);
+	this.dropSize = o.getFloat("dropsize", 1.0);
+	this.dropSpeed = o.getFloat("dropspeed", 1.0);
+	this.angle = o.getFloat("angle", -17.2) * Math.deg2rad;
+	
 	
 	this.lines = new Array();
 	this._addLinePosition = 0.0;
@@ -25673,7 +27437,7 @@ Rain.prototype.render = function(g,c){
 		let top = (game.camera.y - l.start.y) / Math.abs(l.start.y - l.end.y);
 		let bot = (game.camera.y + 240 - l.start.y) / Math.abs(l.start.y - l.end.y);
 		
-		l.dropPosition = Math.max(l.dropPosition + this.delta * l.dropSpeed, top);
+		l.dropPosition = Math.max(l.dropPosition + this.delta * UNITS_PER_METER * l.dropSpeed, top);
 		
 		if(l.dropPosition < 1 && l.dropPosition + l.dropLength > 1){
 			//drop made contact with end, draw splash
@@ -25719,6 +27483,10 @@ Rain.prototype.render = function(g,c){
 		}
 		
 	}
+}
+Rain.BlockOnly = function(p){
+	let tr = this.getTileRule(p.x, p.y);
+	return tr != tilerules.ignore && tr != tilerules.onewayup;
 }
 Rain.Color = [1.0,1.0,1.0,0.6];
 
@@ -25923,6 +27691,191 @@ DialogManger = {
 		return out;
 	}
 }
+
+ /* platformer\seesaw.js*/ 
+
+class SeeSaw extends GameObject {
+	constructor(x,y,path,ops){
+		super(x,y,path,ops);
+		
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.sprite = "elevator";
+		
+		this.platformDistance = ops.getFloat("platformdistance", 88.0);
+		this.force = ops.getFloat("force", 0.0);
+		this.maxspeed = ops.getFloat("maxspeed", 16.0);
+		this.canmove = ops.getBool("canmove",true);
+		this._tid = ops.getString("trigger",null);
+		
+		this.points = new Array();
+		this.platforms = new Array();
+		this.platformPosition = 0.0;
+		this.moveForce = ops.getFloat("startforce", this.force);
+		
+		this.totalLength = 0.0;
+		
+		let top = 9999;
+		let bot = -9999;
+		let left = 9999;
+		let right = -9999;
+		
+		for(let i=0; i < path.length; i++){
+			let distance = 0.0;
+			
+			if(i > 0){
+				distance = path[i-1].subtract(path[i]).magnitude();
+				this.totalLength += distance;
+			}
+			
+			this.points.push ( path[i].add( this.position ) );
+			
+			top = Math.min(this.points[i].y, top);
+			bot = Math.max(this.points[i].y, bot);
+			left = Math.min(this.points[i].x, left);
+			right = Math.max(this.points[i].x, right);
+		}
+		
+		let margin = 16;
+		this.width = Math.abs(left - right) + margin * 2;
+		this.height = Math.abs(top - bot) + margin * 2;
+		this.position.x = Math.lerp(left,right,0.5) - margin;
+		this.position.y = Math.lerp(top,bot,0.5) - margin;
+		
+		
+		let div = this.totalLength / Math.round(this.totalLength / this.platformDistance);
+		
+		for(let i=0; i < this.totalLength; i += div){
+			this.platforms.push( {
+				"wiggle" : 0.0,
+				"delta" : (i / this.totalLength),
+				"standing" : new Array(),
+				"lastx" : this.position.x
+			} );
+		}
+		
+		this.on("activate", function(){
+			this.canmove = true;
+		});
+		
+		this.on("collideObject", function(obj){
+			if( obj.hasModule(mod_rigidbody) && obj.gravity > 0){
+				if(!obj.grounded && obj.force.y > 0){
+					
+					for(let i=0; i < this.platforms.length; i++){
+						let p = this.getPlatformPosition(i);
+						
+						if( Math.abs( p.x - obj.position.x ) < (obj.width*0.5+16) ) {
+							
+							let f = obj.force.y * UNITS_PER_METER * obj.deltaPrevious * 1.2;
+							let b = obj.corners().bottom;
+							
+							if(b >= p.y && obj.positionPrevious.y <= p.y){
+								this.platforms[i].wiggle = Math.clamp01(obj.force.y * 0.125);
+								
+								obj.trigger("collideVertical", 1);
+								obj.grounded = true;
+								this.platforms[i].standing.push(obj);
+								
+							}
+						}
+						
+					}
+					
+				}
+			}
+		});
+	}
+	getPlatformPosition(index){
+		return this.getPosition( Math.mod( this.platforms[index].delta + this.platformPosition, 1.0 ) );
+	}
+	getPosition(delta=0.0){
+		let ddis = this.totalLength * delta;
+		
+		let curdis = 0.0;
+		for(let i=1; i < this.points.length; i++){
+			let distance = this.points[i-1].subtract(this.points[i]).magnitude(); 
+			
+			if(curdis + distance >= ddis){
+				let d = ddis - curdis;
+				let e = 1.0 - ( d / distance );
+				let direction = this.points[i-1].subtract( this.points[i] ); 
+				
+				return this.points[i].add( direction.scale( e ) );
+			}
+			
+			curdis += distance;
+		}
+		return this.position;
+	}
+	getPositionNormal(delta=0.0){
+		let ddis = this.totalLength * delta;
+		
+		let curdis = 0.0;
+		for(let i=1; i < this.points.length; i++){
+			let distance = this.points[i-1].subtract(this.points[i]).magnitude(); 
+			
+			if(curdis + distance >= ddis){
+				return this.points[i-1].subtract(this.points[i]).normalize();
+			}
+			
+			curdis += distance;
+		}
+		return this.position;
+	}
+	update(){
+		
+		this.moveForce = Math.clamp ( this.moveForce + this.delta * this.force * 8.0, -this.maxspeed, this.maxspeed );
+		
+		for(let i=0; i < this.platforms.length; i++){
+			if(this.platforms[i].standing.length >= 0){
+			
+				let d = Math.mod( this.platforms[i].delta + this.platformPosition, 1.0 );
+				let p = this.getPosition(d);
+				let n = this.getPositionNormal(d);
+				
+				for(let j=0; j < this.platforms[i].standing.length; j++){
+					let obj = this.platforms[i].standing[j];
+					
+					if( (!obj.grounded && obj.force.y < 0) || Math.abs(p.x - obj.position.x) > (obj.width*0.5+16) ){
+						//Remove object
+						this.platforms[i].standing.remove(j);
+						j--;
+					} else {
+						//Apply weight
+						obj.position.y = p.y - obj.height * ( 1 - obj.origin.y );
+						obj.position.x += p.x - this.platforms[i].lastx;
+						obj.force.y = 0;
+						obj.grounded = true;
+						
+						let dot = n.dot( new Point(0.0,-1.0) );
+						this.moveForce = Math.clamp ( this.moveForce + this.delta * dot * 8.0, -this.maxspeed, this.maxspeed );
+					}
+				}
+				this.platforms[i].wiggle *= 1.0 - 0.8 * this.delta;
+				this.platforms[i].lastx = p.x;
+			}
+		}
+		
+		let friction = 1 - this.delta * 0.3; 
+		this.moveForce = this.moveForce * friction;
+		let speed = this.moveForce * this.delta * ( 8.0 / this.totalLength );
+		
+		if(this.canmove){
+			this.platformPosition = Math.mod( this.platformPosition + speed, 1.0);
+		}
+	}
+	render(g,c){
+		
+		for(let i=0; i < this.platforms.length; i++){
+			let rotation = Math.sin(i + game.timeScaled * 8) * this.platforms[i].wiggle * 45;
+			g.renderSprite(this.sprite, this.getPlatformPosition(i).subtract(c), this.zIndex, this.frame, this.flip, {"rotation":rotation} );
+		}
+	}
+}
+
+self["SeeSaw"] = SeeSaw;
 
  /* platformer\shrine.js*/ 
 
@@ -26879,6 +28832,72 @@ Spook.prototype.lightrender = function(g,c){
 	}
 }
 
+ /* platformer\sprite.js*/ 
+
+class Sprite extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.scale = new Point(1,1);
+		this.parallax = new Point(1,1);
+		
+		this.origin = new Point();
+		
+		
+		this.sprite = ops.getString("sprite","white");
+		this.zIndex = ops.getInt("zindex",0);
+		this.frame.x = ops.getInt("framex",0);
+		this.frame.y = ops.getInt("framey",0);
+		this.scale.x = ops.getFloat("scalex",1.0);
+		this.scale.y = ops.getFloat("scaley",1.0);
+		this.parallax.x = ops.getFloat("parallaxx",1.0);
+		this.parallax.y = ops.getFloat("parallaxy",1.0);
+		this.flip = ops.getBool("flip",false);
+		
+		this.prerend = ops.getBool("prerender",false);
+		this.rendrend = ops.getBool("render",true);
+		this.postrend = ops.getBool("postrender",false);
+		this.hudrend = ops.getBool("hudrender",false);
+		this.lightrend = ops.getBool("lightrender",false);
+	}
+	idle(){}
+	shouldRender(){
+		if(this.alwaysRender){
+			true;
+		}
+		return GameObject.prototype.shouldRender.apply(this);
+	}
+	render(g,c, force=false){
+		if(this.rendrend || force){
+			g.renderSprite(
+				this.sprite,
+				this.position.subtract(c.scale(this.parallax)),
+				this.zIndex,
+				this.frame,
+				this.flip,
+				{
+					"scalex" : this.scale.x,
+					"scaley" : this.scale.y,
+				}
+			);
+		}
+	}
+	prerender(g,c){
+		if(this.prerend){ this.render(g,c,true); }
+	}
+	postrender(g,c){
+		if(this.postrend){ this.render(g,c,true); }
+	}
+	hudrender(g,c){
+		if(this.hudrend){ this.render(g,c,true); }
+	}
+	lightrender(g,c){
+		if(this.lightrend){ this.render(g,c,true); }
+	}
+}
+self["Sprite"] = Sprite;
+
  /* platformer\sprite_wrapper.js*/ 
 
 class SpriteWrapper {
@@ -26995,10 +29014,10 @@ function game_start(g){
 		_player.lightRadius = true;
 		_player.downstab = true;
 		_player.doubleJump = true;
-		//_player.dodgeFlash = true;
+		_player.dodgeFlash = true;
 		_player.walljump = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("temple2.tmx", "test");
+		WorldLocale.loadMap("mills.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -27141,7 +29160,7 @@ class Temple4Transport extends GameObject {
 			if(this._waitTime < this.launchTime){
 				this._waitTime += this.delta;
 			} else {
-				this._progress = Math.clamp01(this._progress + this.movementSpeed * this.delta);
+				this._progress = Math.clamp01(this._progress + this.movementSpeed * this.delta * UNITS_PER_METER);
 				this.position = Point.lerp(this.startPosition, this.stopPosition, this._progress);
 			}
 			
@@ -27240,6 +29259,7 @@ tilerules.rules["default"] = {
 };
 
 tilerules.rules["firepits"] = mergeLists({
+	271:tilerules.ignore, 272:tilerules.ignore,303:tilerules.ignore, 304:tilerules.ignore,
 	98:tilerules.ignore, 99:tilerules.ignore,
 	225:tilerules.ignore, 226:tilerules.ignore, 227:tilerules.ignore, 228:tilerules.ignore, 229:tilerules.ignore, 230:tilerules.ignore,
 	257:tilerules.ignore, 291:tilerules.ignore, 293:tilerules.ignore, 321:tilerules.ignore, 323:tilerules.ignore, 359:tilerules.ceil_1to0, 360:tilerules.ceil_0to1,
@@ -27345,6 +29365,8 @@ function BreakableTile(x, y, d, ops){
 	this.center = new Point(x,y);
 	this.position.x = x;
 	this.position.y = y;
+	this.width = d[0];
+	this.height = d[1];
 	this.broken = 0;
 	this.spawn = false;
 	this.death_time = Game.DELTASECOND * 0.15;
@@ -27375,28 +29397,11 @@ function BreakableTile(x, y, d, ops){
 		this.tileLayer = ops["tilelayer"] * 1;
 	}
 	
-	if(d[0] > 16 || d[1] > 16){
-		this.origin = new Point(0.0, 0.0);
-		this.width = Math.round(d[0]/16)*16;
-		this.height = Math.round(d[1]/16)*16;
-		this.position.x -= this.width * 0.5;
-		this.position.y -= this.height * 0.5;
-		
-		this.undertile = new Array();
-		for(var x=0; x < this.width; x+= 16){
-			for(var y=0; y < this.height; y+= 16){
-				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y, this.tileLayer);
-				this.undertile.push(tile);
-			}
-		}
-	} else {
-		this.width = this.height = 16;
-		this.undertile = game.getTile(this.position.x, this.position.y, this.tileLayer);
-	}
+	this.gatherTiles(false);
 	
-	if( "strikeable" in ops ) {
-		this.strikeable = ops["strikeable"] * 1;
-	}
+	this.strikeable = ops.getBool("strikeable", true);
+	this.blastable = ops.getBool("blastable", true);
+	
 	if("spawn" in ops) {
 		this.spawn = ops["spawn"].split(",");
 	}
@@ -27459,6 +29464,20 @@ function BreakableTile(x, y, d, ops){
 			}
 		}
 	});
+	this.on("blasted", function(obj){
+		if( this.blastable ) {
+			if(this.triggersave){
+				NPC.set(this.triggersave, 1);
+			}
+			if(!this.broken){
+				obj.trigger("break_tile", this, 0);
+				if(this.target instanceof Array){
+					Trigger.activate(this.target);
+				}
+				this.break(this.explode);
+			}
+		}
+	});
 	
 	//Set first state
 	if(this.startBroken){
@@ -27483,7 +29502,7 @@ function BreakableTile(x, y, d, ops){
 			}else{
 				this.unbreak(false);
 			}
-		});
+		}); 
 	}
 	if("triggersave" in ops){
 		this.triggersave = ops["triggersave"];
@@ -27499,6 +29518,28 @@ function BreakableTile(x, y, d, ops){
 		}
 	}
 }
+BreakableTile.prototype.gatherTiles = function(removeOriginal=false){
+	let ts = 16;
+	if(this.width > ts || this.height > ts){
+		this.origin = new Point(0.0, 0.0);
+		this.width = Math.round(this.width/ts)*ts;
+		this.height = Math.round(this.height/ts)*ts;
+		this.position.x -= this.width * 0.5;
+		this.position.y -= this.height * 0.5;
+		
+		this.undertile = new Array();
+		for(var x=0; x < this.width; x+= ts){
+			for(var y=0; y < this.height; y+= ts){
+				var tile = game.getTile(4+this.position.x+x, 4+this.position.y+y, this.tileLayer);
+				this.undertile.push(tile);
+			}
+		}
+	} else {
+		this.width = this.height = ts;
+		this.undertile = game.getTile(this.position.x, this.position.y, this.tileLayer);
+	}
+}
+
 BreakableTile.prototype.unbreak = function(explode){
 	if(this.broken && this.undertile != 0 && this.fixable){
 		if(this.chain) {
@@ -28316,6 +30357,58 @@ function Switch(x,y,d,o){
 	}
 }
 
+class GearSwitch extends GameObject{
+	constructor(x, y, d, o){
+		super(x,y,d,o);
+		this.origin = new Point();
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 24;
+		this.height = 24;
+		
+		this.rotation = 0.0;
+		this.rotation_to = 0.0;
+		
+		this.sprite = "switch_pressure";
+		
+		this.targets = o.getString("target","").split(",");
+		this.turnAmount = o.getFloat("turnamount", 12);
+		this.speed = o.getFloat("speed", 1.0) * 24;
+		
+		this.addModule(mod_combat);
+		this.life = this.lifeMax = 999;
+		
+		this.on("hurt", function(obj){
+			this.rotation_to += 12;
+			this.life = this.lifeMax;
+			Trigger.activate(this.targets);
+		});
+	}
+	update(){
+		if(this.rotation < this.rotation_to){
+			this.rotation += this.delta * this.speed;
+			
+			if(this.rotation >= this.rotation_to){
+				this.rotation = this.rotation_to;
+			}
+		}
+	}
+	render(g,c){
+		g.renderSprite(
+			this.sprite,
+			this.position.subtract(c),
+			this.zIndex,
+			this.frame,
+			this.flip,
+			{
+				"rotate" : this.rotation
+			}
+		);
+	}
+}
+
+self["GearSwitch"] = GearSwitch;
+
 class PressureSwitch extends GameObject{
 	constructor(x,y,d,ops){
 		super(x,y,d,ops);
@@ -28545,7 +30638,7 @@ function Walker(x, y, d, o){
 	this.width = 24;
 	this.height = 24;
 	this.sprite = "walker";
-	this.speed = 0.35;
+	this.speed = 9.0;
 	this.speedBoost = 30.0;
 	this.zIndex = 13;
 	this.start = new Point(x,y);
@@ -28623,7 +30716,7 @@ Walker.prototype.update = function(){
 			_player.position.x = Math.lerp(_player.position.x, this.position.x, progress);
 		} else {
 			//Player on board
-			if(input.state("dodge") > 0){
+			if(input.state("dodge") > 0 && false){
 				this.force.x = this.forward() * this.speedBoost;
 				this.isCharging = true;
 				game.slow(0.35,3);
@@ -28633,15 +30726,15 @@ Walker.prototype.update = function(){
 				
 			} else {				
 				if(input.state("left") > 0){
-					this.force.x -= this.speed * this.delta;
+					this.addHorizontalForce(-this.speed);
 					this.flip = true;
 				}
 				if(input.state("right") > 0){
-					this.force.x += this.speed * this.delta;
+					this.addHorizontalForce(this.speed);
 					this.flip = false;
 				}
 				
-				this.stepAnim = (this.stepAnim + this.delta * Math.abs(this.force.x) * 0.2) % 6;
+				this.stepAnim = (this.stepAnim + this.delta * Math.abs(this.force.x) * 6.0) % 6;
 				this.frame.x = this.stepAnim % 3;
 				this.frame.y = this.stepAnim / 3;
 			}
@@ -30034,11 +32127,23 @@ self.spriteWrap["axedog"] = new SpriteWrapper({"name":"axedog","sprite":"axedog.
 
  /* platformer\animations\player.janim*/ 
 
-self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":45,"y":35,"u":65,"v":46,"type":2,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":31,"u":48,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":52,"type":2,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0},{"x":51,"y":36,"u":69,"v":45,"type":2,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":55,"u":64,"v":62,"type":2,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":77,"v":53,"type":2,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":72,"v":25,"type":2,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":18,"u":41,"v":55,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}]},"7":{"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}]},"10":{"2":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":89,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":31,"y":51,"u":50,"v":89,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.4375}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":1,"y":8,"t":0.15625},{"x":10,"y":10,"t":0.15625},{"x":2,"y":10,"t":0.625},{"x":1,"y":5,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"new_anim","time":1,"frames":[{"x":1,"y":11,"t":1}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
+self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0},{"x":45,"y":35,"u":65,"v":46,"type":2,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":42,"type":2,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":31,"u":48,"v":64,"type":0,"rotation":0},{"x":28,"y":35,"u":82,"v":52,"type":2,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0},{"x":51,"y":36,"u":69,"v":45,"type":2,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":55,"u":64,"v":62,"type":2,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":77,"v":53,"type":2,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0},{"x":44,"y":7,"u":72,"v":25,"type":2,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":18,"u":41,"v":55,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}]},"7":{"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}]},"10":{"2":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":89,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":31,"y":51,"u":50,"v":89,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.4375}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":1,"y":8,"t":0.15625},{"x":10,"y":10,"t":0.15625},{"x":2,"y":10,"t":0.625},{"x":1,"y":5,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"airdash","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
+
+
+
+ /* platformer\animations\samrat.janim*/ 
+
+self.spriteWrap["samrat"] = new SpriteWrapper({"name":"samrat","sprite":"samrat.png","data":{"0":{"0":[{"x":19,"y":24,"u":42,"v":59,"type":0,"rotation":0}],"1":[{"x":19,"y":34,"u":45,"v":64,"type":0,"rotation":0}],"2":[{"x":19,"y":32,"u":45,"v":64,"type":0,"rotation":0}],"3":[{"x":19,"y":31,"u":45,"v":64,"type":0,"rotation":0}]},"1":{"0":[{"x":16,"y":34,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":20,"y":23,"u":45,"v":64,"type":0,"rotation":0}],"2":[{"x":20,"y":23,"u":44,"v":64,"type":0,"rotation":0}]},"2":{"0":[{"x":19,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"1":[{"x":19,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"2":[{"x":19,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"3":[{"x":19,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"4":[{"x":19,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"5":[{"x":19,"y":27,"u":43,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":18,"y":28,"u":41,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":18,"y":33,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":19,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"2":[{"x":19,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"3":[{"x":19,"y":26,"u":46,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":19,"y":24,"u":42,"v":60,"type":0,"rotation":0}],"1":[{"x":19,"y":24,"u":42,"v":60,"type":0,"rotation":0}],"2":[{"x":19,"y":24,"u":42,"v":60,"type":0,"rotation":0}],"3":[{"x":19,"y":24,"u":42,"v":60,"type":0,"rotation":0},{"x":28,"y":50,"u":41,"v":69,"type":2,"rotation":0}]},"6":{"0":[{"x":19,"y":24,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":19,"y":24,"u":42,"v":60,"type":0,"rotation":0}],"2":[{"x":19,"y":24,"u":46,"v":60,"type":0,"rotation":0}],"3":[{"x":15,"y":24,"u":40,"v":60,"type":0,"rotation":0},{"x":40,"y":51,"u":55,"v":67,"type":2,"rotation":0}]},"7":{"0":[{"x":18,"y":28,"u":41,"v":64,"type":0,"rotation":0}],"1":[{"x":18,"y":28,"u":41,"v":64,"type":0,"rotation":0}],"2":[{"x":18,"y":28,"u":41,"v":64,"type":0,"rotation":0}],"3":[{"x":18,"y":28,"u":41,"v":64,"type":0,"rotation":0}]},"8":{"0":[{"x":17,"y":30,"u":43,"v":64,"type":0,"rotation":0}],"1":[{"x":18,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"2":[{"x":18,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"3":[{"x":18,"y":29,"u":44,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":8,"y":32,"u":37,"v":64,"type":0,"rotation":0}],"1":[{"x":8,"y":32,"u":37,"v":64,"type":0,"rotation":0}],"2":[{"x":14,"y":32,"u":40,"v":64,"type":0,"rotation":0},{"x":21,"y":28,"u":55,"v":64,"type":2,"rotation":0}],"3":[{"x":11,"y":32,"u":37,"v":64,"type":0,"rotation":0},{"x":21,"y":43,"u":55,"v":64,"type":2,"rotation":0}],"4":[{"x":11,"y":32,"u":37,"v":64,"type":0,"rotation":0}]}},"animation":[{"name":"pray","time":1,"frames":[{"x":0,"y":7,"t":0.15625},{"x":1,"y":7,"t":0.15625},{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.15625}]},{"name":"idle","time":1,"frames":[{"x":0,"y":2,"t":0.15625},{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625},{"x":5,"y":2,"t":0.15625}]},{"name":"kick","time":2.5,"frames":[{"x":0,"y":9,"t":0.09375},{"x":1,"y":9,"t":0.625},{"x":2,"y":9,"t":0.0625},{"x":3,"y":9,"t":0.0625},{"x":4,"y":9,"t":0.4375}]},{"name":"forward","time":0.5,"frames":[{"x":0,"y":4,"t":0.15625},{"x":1,"y":4,"t":0.15625},{"x":2,"y":4,"t":0.15625},{"x":3,"y":4,"t":0.15625}]},{"name":"backward","time":0.5,"frames":[{"x":0,"y":8,"t":0.15625},{"x":1,"y":8,"t":0.15625},{"x":2,"y":8,"t":0.15625},{"x":3,"y":8,"t":0.15625}]},{"name":"jump","time":1,"frames":[{"x":0,"y":1,"t":0.3125},{"x":1,"y":1,"t":0.0625},{"x":2,"y":1,"t":0.46875}]},{"name":"land","time":1,"frames":[{"x":0,"y":0,"t":0.15625},{"x":1,"y":0,"t":0.15625},{"x":2,"y":0,"t":0.15625},{"x":3,"y":0,"t":0.15625}]},{"name":"dive1","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.15625},{"x":3,"y":6,"t":0.8125}]},{"name":"dive2","time":1,"frames":[{"x":0,"y":5,"t":0.15625},{"x":1,"y":5,"t":0.15625},{"x":2,"y":5,"t":0.15625},{"x":3,"y":5,"t":0.8125}]},{"name":"hurt","time":1,"frames":[{"x":0,"y":3,"t":0.46875}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
 
 
 
  /* platformer\animations\slimerilla.janim*/ 
 
 self.spriteWrap["slimerilla"] = new SpriteWrapper({"name":"slimerilla","sprite":"slimerilla.gif","data":{"0":{"0":[{"x":39,"y":18,"u":63,"v":64,"type":0,"rotation":0}],"1":[{"x":39,"y":18,"u":63,"v":64,"type":0,"rotation":0}],"2":[{"x":39,"y":18,"u":63,"v":64,"type":0,"rotation":0}]},"1":{"0":[{"x":32,"y":17,"u":61,"v":64,"type":0,"rotation":0}],"1":[{"x":37,"y":21,"u":64,"v":64,"type":0,"rotation":0},{"x":29,"y":0,"u":96,"v":64,"type":2,"rotation":0}],"2":[{"x":37,"y":21,"u":64,"v":64,"type":0,"rotation":0}],"3":[{"x":37,"y":21,"u":64,"v":64,"type":0,"rotation":0}]},"2":{"0":[{"x":39,"y":21,"u":63,"v":64,"type":0,"rotation":0}],"1":[{"x":39,"y":21,"u":63,"v":64,"type":0,"rotation":0}],"2":[{"x":39,"y":21,"u":63,"v":64,"type":0,"rotation":0}],"3":[{"x":39,"y":21,"u":63,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":39,"y":21,"u":63,"v":64,"type":0,"rotation":0}],"1":[{"x":39,"y":20,"u":63,"v":63,"type":0,"rotation":0}],"2":[{"x":39,"y":19,"u":63,"v":62,"type":0,"rotation":0}],"3":[{"x":35,"y":32,"u":66,"v":64,"type":0,"rotation":0}]}},"animation":[{"name":"idle","time":2,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.125},{"x":2,"y":0,"t":0.125},{"x":1,"y":0,"t":0.125}]},{"name":"attack","time":3,"frames":[{"x":0,"y":1,"t":1.0625},{"x":1,"y":1,"t":0.0625},{"x":2,"y":1,"t":0.0625},{"x":3,"y":1,"t":0.625}]},{"name":"appear","time":0.8,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.125},{"x":2,"y":3,"t":0.28125},{"x":3,"y":3,"t":0.125},{"x":0,"y":0,"t":0.125}]},{"name":"walk","time":0.5,"frames":[{"x":0,"y":2,"t":0.25},{"x":1,"y":2,"t":0.25},{"x":2,"y":2,"t":0.25},{"x":3,"y":2,"t":0.25}]}],"slicex":96,"slicey":64,"offsetx":"48","offsety":"48"});
+
+
+
+ /* platformer\animations\thunderlizard.janim*/ 
+
+self.spriteWrap["thunderlizard"] = new SpriteWrapper({"name":"thunderlizard","sprite":"thunderlizard.png","data":{"0":{"0":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"1":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"2":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"3":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"4":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"5":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}]},"1":{"0":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"1":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"2":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"3":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"4":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"5":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}]},"2":{"0":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":86,"y":66,"u":134,"v":117,"type":2,"rotation":0}],"1":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":86,"y":66,"u":134,"v":117,"type":2,"rotation":0}],"2":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":86,"y":66,"u":134,"v":117,"type":2,"rotation":0}],"3":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":86,"y":66,"u":134,"v":117,"type":2,"rotation":0}]},"3":{"0":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"1":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"2":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":132,"y":103,"u":161,"v":111,"type":2,"rotation":0}],"3":[{"x":39,"y":72,"u":83,"v":128,"type":0,"rotation":0}]},"4":{"0":[{"x":37,"y":72,"u":79,"v":128,"type":0,"rotation":0}],"1":[{"x":33,"y":72,"u":75,"v":128,"type":0,"rotation":0}],"2":[{"x":41,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":133,"y":120,"u":160,"v":128,"type":2,"rotation":0}],"3":[{"x":41,"y":72,"u":83,"v":128,"type":0,"rotation":0}]},"5":{"0":[{"x":41,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"1":[{"x":41,"y":72,"u":83,"v":128,"type":0,"rotation":0}],"2":[{"x":41,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":44,"y":17,"u":160,"v":94,"type":2,"rotation":0}],"3":[{"x":41,"y":72,"u":83,"v":128,"type":0,"rotation":0},{"x":83,"y":104,"u":160,"v":128,"type":2,"rotation":0}],"4":[{"x":41,"y":72,"u":83,"v":128,"type":0,"rotation":0}]}},"animation":[{"name":"idle","time":1,"frames":[{"x":0,"y":0,"t":0.15625},{"x":1,"y":0,"t":0.15625},{"x":2,"y":0,"t":0.15625},{"x":3,"y":0,"t":0.15625},{"x":4,"y":0,"t":0.15625},{"x":5,"y":0,"t":0.15625}]},{"name":"run","time":0.5,"frames":[{"x":0,"y":1,"t":0.15625},{"x":1,"y":1,"t":0.15625},{"x":2,"y":1,"t":0.15625},{"x":3,"y":1,"t":0.15625},{"x":4,"y":1,"t":0.15625},{"x":5,"y":1,"t":0.15625}]},{"name":"spin","time":0.3,"frames":[{"x":0,"y":2,"t":0.15625},{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625}]},{"name":"charge","time":1,"frames":[{"x":0,"y":3,"t":0.3125},{"x":1,"y":3,"t":0.09375},{"x":2,"y":3,"t":0.09375},{"x":3,"y":3,"t":0.53125}]},{"name":"lightning","time":1,"frames":[{"x":0,"y":4,"t":0.3125},{"x":1,"y":4,"t":0.1875},{"x":2,"y":4,"t":0.09375},{"x":3,"y":4,"t":0.4375}]},{"name":"upatt","time":1,"frames":[{"x":0,"y":5,"t":0.5},{"x":1,"y":5,"t":0.1875},{"x":2,"y":5,"t":0.09375},{"x":3,"y":5,"t":0.09375},{"x":4,"y":5,"t":0.34375}]}],"slicex":160,"slicey":128,"offsetx":"64","offsety":"100"});
 

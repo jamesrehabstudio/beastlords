@@ -7,7 +7,7 @@ function Batty(x,y,d,o){
 	this.width = 16;
 	this.height = 16;
 	this.sprite = "batty";
-	this.speed = 3.5;
+	this.speed = 9.5;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );

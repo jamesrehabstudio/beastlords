@@ -27,19 +27,20 @@ var PlayerAttackList = [
 		"wait":1.2*Game.DELTASECOND,
 		"animation" : 2,
 		"force" : new Point(3.0, 0.0),
-		"pause" : Game.DELTAFRAME30 * 2,
-		"knockback" : new Point(15,0),
+		"pause" : Game.DELTAFRAME30 * 4,
+		"knockback" : new Point(4,0),
 		"stun" : 0.25 * Game.DELTASECOND,
 		"movement" : 0.0,
 		"audio" : "swing",
 		"mesh" : "slash3"
 	},
 	{	//Charge attack
-		"damage":3.5,
+		"damage":3.0,
 		"time" : 1.5*Game.DELTASECOND,
 		"wait":1.0*Game.DELTASECOND,
 		"animation" : 3,
 		"stun" : 0.7 * Game.DELTASECOND,
+		"pause" : Game.DELTASECOND * 0.25,
 		"force" : new Point(12.0, 0.0),
 		"movement" : 0.1,
 		"audio" : "swing2",
@@ -53,8 +54,8 @@ var PlayerAttackList = [
 		"animation" : 4,
 		"pause" : Game.DELTAFRAME30 * 2,
 		"stun" : 0.5 * Game.DELTASECOND,
-		"knockback" : new Point(0.0, -14.0),
-		"force" : new Point(0, -14.0),
+		"knockback" : new Point(0.0, -8.0),
+		"force" : new Point(0, -8.0),
 		"movement" : 0.3,
 		"audio" : "swing2",
 		"mesh" : "slashu"
@@ -179,5 +180,16 @@ WeaponList = {
 	"broad_sword" : new PlayerWeapon("broad_sword", 0.25,0.3,2.0,42),
 	"morningstar" : new PlayerWeapon("morning star", 0.45,0.35,2.0,40),
 	"bloodsickle" : new PlayerWeapon("blood sickle", 0.25,0.15,0.8,36),
-	"burningblade" : new PlayerWeapon("burning blade", 0.25,0.2,1.0,38),
+	"burningblade" : new PlayerWeapon("burning blade", 0.25,0.2,0.85,38),
 };
+
+WeaponList.morningstar.combos = {
+	0 : {"standing" : 1, "jumping":1},
+	1 : {"standing" : 0}
+};
+
+WeaponList.bloodsickle.combos = {
+	0 : {"standing" : 1, "jumping":1},
+	1 : {"standing" : 0}
+};
+WeaponList.burningblade.onEquip = function(player){ player.perks.fireDamage += 0.05; }

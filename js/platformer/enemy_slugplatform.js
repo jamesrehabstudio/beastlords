@@ -15,7 +15,7 @@ function SlugPlatform(x,y,d,o){
 	this.loop = true;
 	this.leftStart = false;
 	
-	this.speed = 1.5;
+	this.speed = 30.5;
 	this.sprite = "slugplatform";
 	this.waitforplayer = 0;
 	

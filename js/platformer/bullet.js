@@ -18,6 +18,8 @@ function Bullet(x,y,d){
 	this.effect = null;
 	this.effect_time = 0;
 	
+	this.controlAI = function(){}
+	
 	this.attackEffects = {
 		"slow" : [0,10],
 		"poison" : [0,10],
@@ -38,12 +40,7 @@ function Bullet(x,y,d){
 	this.on("collideHorizontal", function(dir){ if(this.wallStop){ this.trigger("death"); } });
 	this.on("sleep", function(){ this.trigger("death"); });
 	this.on("death", function(){ this.destroy(); });
-	this.on("hurt_other", function(obj, damage){
-		if(this.explode){
-			game.addObject(new EffectBang(this.position.x, this.position.y));
-			this.explode = false;
-		}
-	});
+	this.on("hurt_other", function(obj, damage){});
 	this.on("struck", function(obj){ 
 		if(this.blockable && obj.team!=this.team) {
 			this.trigger("deflect");
@@ -70,6 +67,7 @@ function Bullet(x,y,d){
 Bullet.prototype.setDeflect = function(){
 	this.on("deflect", function(){
 		var rag = new Ragdoll(this.position.x, this.position.y);
+		rag.force = this.force.scale(-0.5);
 		rag.width = rag.height = 12;
 		rag.sprite = this.sprite;
 		rag.frame = this.frame;
@@ -83,7 +81,7 @@ Bullet.prototype.update = function(){
 	if(this.rotation == undefined){
 		this.flip = this.force.x < 0;
 	}
-	if( this.range <= 0 ) this.destroy();
+	if( this.range <= 0 ) { this.destroy(); }
 	
 	if( this.delay > 0 ) {
 		this.deltaScale = 0.0;
@@ -168,7 +166,56 @@ Bullet.createFireball = function(x,y,ops){
 	if("damage" in ops){
 		bullet.damageFire = ops.damage * 1;
 	}
+	
+	bullet.on("death", function(){
+		game.addObject(new EffectBang(this.position.x, this.position.y));
+	});
+	
 	return bullet;
+}
+Bullet.createHomingMissile = function(x,y,ops){
+	ops = ops || new Options();
+	var missile = new Bullet(x,y);
+	missile.frame = new Point(3,3);
+	missile.blockable = false;
+	missile.light = 48;
+	missile.lightColor = COLOR_WHITE;
+	missile.team = ops.getInt("team", 0);
+	missile.damage = ops.getInt("damage", 10);
+	missile.rotation = ops.getFloat("rotation", 0.0);
+	missile.speed = ops.getFloat("speed", 5.0);
+	missile.sleepTime = Game.DELTASECOND * ops.getFloat("sleepTime", 0.6);
+	missile.turnSpeed = ops.getFloat("turnSpeed", 90.0);
+	missile.target = _player;
+	missile.setDeflect();
+	
+	missile.on("death", function(){
+		game.addObject(new EffectBang(this.position.x, this.position.y));
+	});
+	
+	missile.on("preupdate", function(){
+		if(this.sleepTime > 0){
+			this.sleepTime -= this.delta;
+			this.gravity = 0.125;
+		} else {
+			this.gravity = 0.0;
+			let targetdif = this.target.position.subtract(this.position);
+			let angle = Math.atan2(targetdif.y, targetdif.x) * Math.rad2deg;
+			let rdif = Math.sdif(angle, this.rotation);
+			
+			if(Math.abs(rdif) > this.turnSpeed * this.delta){
+				let rdir = rdif > 0 ? 1 : -1;
+				this.rotation += rdir * this.turnSpeed * this.delta;
+			} else {
+				this.rotation = angle;
+			}
+			let radAngle = this.rotation * Math.deg2rad;
+			this.force.x = Math.cos(radAngle) * this.speed;
+			this.force.y = Math.sin(radAngle) * this.speed;
+		}
+	});
+	
+	return missile;
 }
 
 PhantomBullet.prototype = new GameObject();
@@ -268,7 +315,7 @@ function Fire(x,y){
 Fire.prototype.update = function(){
 	Background.pushLight( this.position, 48, [1,0.8,0,1] );
 	
-	this.frame.x = (this.frame.x + (this.delta * 0.5)) % 3;
+	this.frame.x = (this.frame.x + (this.delta * 15.0)) % 3;
 	this.life -= this.delta;
 	if( this.life <= 0 ){
 		this.trigger("death");

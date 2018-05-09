@@ -50,10 +50,10 @@ function Baller(x, y, d, o){
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.moneyDrop = Spawn.money(7,this.difficulty);
 	this.mass = 4.0;
-	this.recoverySpeed = 6;
+	this.recoverySpeed = 180;
 	this.arcSize = 56;
-	this.archSpeed = 0.2;
-	this.spinSpeed = 0.07;
+	this.archSpeed = 6.0;
+	this.spinSpeed = 2.1;
 	
 	game.addObject(this.ball);
 	

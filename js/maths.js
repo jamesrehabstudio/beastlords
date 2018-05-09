@@ -198,6 +198,18 @@ Math.slerp = function(x,y,delta){
 	}
 	return Math.lerp(x,y,delta);
 }
+Math.sdif = function(a,b){
+	let d = a - b;
+	let e = a - (b+360);
+	let f = (a+360) - b;
+	
+	if(Math.abs(d) < Math.abs(e) && Math.abs(d) < Math.abs(f)){
+		return d;
+    } else if(Math.abs(e) < Math.abs(d) && Math.abs(e) < Math.abs(f)){
+		return e;
+	}
+	return f;
+}
 Math.roundTo = function(x,n){
 	return Math.floor(x/n)*n; 
 }

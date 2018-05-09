@@ -7,8 +7,9 @@ function Flederknife(x, y, d, o){
 	this.width = 16;
 	this.height = 30;
 	this.sprite = "flederknife";
-	this.speed = 3.0;
-	this.blockKnockback = 6.0;
+	this.speed = 6.0;
+	this.blockKnockback = 8.0;
+	this.collideKnockback = 3.0;
 	this.turndelay = 0.0;
 	
 	this.addModule( mod_rigidbody );
@@ -45,7 +46,7 @@ function Flederknife(x, y, d, o){
 		if(obj.hasModule(mod_combat) && obj.hasModule(mod_rigidbody)){
 			this.changeDirection();
 			let d = obj.position.x > this.position.x ? -1 : 1;
-			this.force.x += d * this.blockKnockback;
+			this.force.x += d * this.collideKnockback;
 		}
 	});
 	this.on("collideHorizontal", function(dir){
@@ -93,7 +94,7 @@ Flederknife.prototype.update = function(){
 		var dir = this.position.subtract( _player.position );
 		this.flip = this.states.direction < 0;
 		
-		this.addHorizontalForce(this.speed * this.forward(), 0.5);
+		this.addHorizontalForce(this.speed * this.forward());
 		
 		if(this.atLedge()){
 			this.changeDirection(true);

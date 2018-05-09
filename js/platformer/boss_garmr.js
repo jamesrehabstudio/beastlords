@@ -87,14 +87,15 @@ class Garmr extends GameObject{
 		this.on("hurt", function(obj, damage){
 			audio.play("hurt");
 			
-			if(this.states.current == Garmr.STATE_BOLT){
+			/*
+			if(this.states.current == Garmr.STATE_BOLT && obj instanceof Player){
 				if(this.states.time < this.states.timeTotal * 0.7){
 					let d = this.getDamage(0);
-					d.light = Math.ceil(this.damage*0.6);
+					d.light = Math.ceil(this.damage * 0.6);
 					obj.hurt(this, d);
 				}
 			}
-			
+			*/
 		});
 		this.on("hitWithRay", function(obj){
 			if(obj instanceof Player){
@@ -257,7 +258,7 @@ class Garmr extends GameObject{
 				this.gotoPos.z = this.speed * 0.5;
 				this.flip = dir.x > 0;
 				
-				if(Timer.isAt(this.states.time, this.states.timeTotal*0.5,this.delta)){
+				if(Timer.isAt(this.states.time, this.states.timeTotal*0.5, this.delta)){
 					this.fireball();
 				}
 				
@@ -279,8 +280,8 @@ class Garmr extends GameObject{
 					this.force.y = this.gotoPos.z * (this.gotoPos.y > this.position.y ? 1 : -1);
 				}
 			}
-			this.position = this.position.add(this.force.scale(this.delta));
-			this.force = this.force.scale(1-(this.friction*this.delta));
+			this.position = this.position.add( this.force.scale( this.delta * UNITS_PER_METER ) );
+			this.force = this.force.scale( 1 - (this.friction * this.delta * UNITS_PER_METER ) );
 			
 			//Detect if laser is hitting the player
 			if(this.trackRay.isOn){
@@ -338,7 +339,7 @@ class Garmr extends GameObject{
 		if(this.states.animation == 0){
 			//Idle
 			let p = Math.sin(progress * Math.PI * 2);
-			this.trackChest.scale = 1 + Math.sin(game.timeScaled * 0.05) * 0.03125;
+			this.trackChest.scale = 1 + Math.sin(game.timeScaled * 1.5) * 0.03125;
 			
 			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.35,0.78,0), new Vector(2.40,0.78,0), p);
 			this.trackLowerRightArm.rotation = Math.lerp(0.65,0.55, p);
@@ -436,13 +437,13 @@ class Garmr extends GameObject{
 	}
 	
 	render(g,c){
-		this.trackHead.rotation = Math.lerp(this.trackHead.rotation, Math.PI * this.forward() * this.trackHead.turnStrength, this.delta*0.125);
-		this.trackChest.rotation = Math.lerp(this.trackChest.rotation, this.trackHead.rotation, this.delta*0.25);
-		this.trackBody.rotation = Math.lerp(this.trackBody.rotation, this.trackChest.rotation, this.delta*0.125);
+		this.trackHead.rotation = Math.lerp(this.trackHead.rotation, Math.PI * this.forward() * this.trackHead.turnStrength, this.delta * 3.75);
+		this.trackChest.rotation = Math.lerp(this.trackChest.rotation, this.trackHead.rotation, this.delta * 6.5);
+		this.trackBody.rotation = Math.lerp(this.trackBody.rotation, this.trackChest.rotation, this.delta * 3.25);
 		
 		this.trackHead.position = new Vector(this.position.x, this.position.y, 0);
-		this.trackChest.position = Vector.lerp(this.trackChest.position, this.position, this.delta*0.4);
-		this.trackBody.position = Vector.lerp(this.trackBody.position, this.trackChest.position, this.delta*0.4);
+		this.trackChest.position = Vector.lerp(this.trackChest.position, this.position, this.delta * 12.0);
+		this.trackBody.position = Vector.lerp(this.trackBody.position, this.trackChest.position, this.delta * 12.0);
 		
 		let offset = Vector.rotate(this.trackHead.offset,0,this.trackHead.rotation,0);
 		let headModel = this.trackHead.scream ? "garmr_headscream" : "garmr_head";

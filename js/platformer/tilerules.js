@@ -76,6 +76,7 @@ tilerules.rules["default"] = {
 };
 
 tilerules.rules["firepits"] = mergeLists({
+	271:tilerules.ignore, 272:tilerules.ignore,303:tilerules.ignore, 304:tilerules.ignore,
 	98:tilerules.ignore, 99:tilerules.ignore,
 	225:tilerules.ignore, 226:tilerules.ignore, 227:tilerules.ignore, 228:tilerules.ignore, 229:tilerules.ignore, 230:tilerules.ignore,
 	257:tilerules.ignore, 291:tilerules.ignore, 293:tilerules.ignore, 321:tilerules.ignore, 323:tilerules.ignore, 359:tilerules.ceil_1to0, 360:tilerules.ceil_0to1,

@@ -16,15 +16,11 @@ function Rain(x, y, d, o){
 	this.dropSize = 1.0;
 	this.dropSpeed = 1.0;
 	
-	if("dropdensity" in o){
-		this.dropDensity = o["dropdensity"] * 1;
-	}	
-	if("dropsize" in o){
-		this.dropSize = o["dropsize"] * 1;
-	}
-	if("dropspeed" in o){
-		this.dropSpeed = o["dropspeed"] * 1;
-	}
+	this.dropDensity = o.getFloat("dropdensity", 1.0);
+	this.dropSize = o.getFloat("dropsize", 1.0);
+	this.dropSpeed = o.getFloat("dropspeed", 1.0);
+	this.angle = o.getFloat("angle", -17.2) * Math.deg2rad;
+	
 	
 	this.lines = new Array();
 	this._addLinePosition = 0.0;
@@ -74,7 +70,7 @@ Rain.prototype.render = function(g,c){
 		let top = (game.camera.y - l.start.y) / Math.abs(l.start.y - l.end.y);
 		let bot = (game.camera.y + 240 - l.start.y) / Math.abs(l.start.y - l.end.y);
 		
-		l.dropPosition = Math.max(l.dropPosition + this.delta * l.dropSpeed, top);
+		l.dropPosition = Math.max(l.dropPosition + this.delta * UNITS_PER_METER * l.dropSpeed, top);
 		
 		if(l.dropPosition < 1 && l.dropPosition + l.dropLength > 1){
 			//drop made contact with end, draw splash
@@ -120,5 +116,9 @@ Rain.prototype.render = function(g,c){
 		}
 		
 	}
+}
+Rain.BlockOnly = function(p){
+	let tr = this.getTileRule(p.x, p.y);
+	return tr != tilerules.ignore && tr != tilerules.onewayup;
 }
 Rain.Color = [1.0,1.0,1.0,0.6];
