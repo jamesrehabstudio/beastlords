@@ -90,10 +90,12 @@ function Batty(x,y,d,o){
 }
 Batty.prototype.update = function(){
 	if ( this.stun <= 0 && this.life > 0 ) {
-		var dir = this.position.subtract( _player.position );
+		var dir = this.position.subtract( this.target().position );
 		
 		if( this.states.cooldown <= 0 ) {
+			
 			var batty = null;
+			
 			if( this.fuse ){
 				var batties = game.getObjects(Batty);
 				for(var i=0; i < batties.length; i++ ) if( batties[i] != this && batties[i].awake ) 
@@ -101,22 +103,25 @@ Batty.prototype.update = function(){
 			}
 			
 			if( batty != null ){
+				//near by bat, move to it and fuse.
 				var batty_dir = this.position.subtract(batty.position);
 				this.gravity = batty_dir.y > 0 ? -0.5 : 0.5;
 				this.addHorizontalForce(this.speed * (batty_dir.x > 0 ? -1 : 1));
 			} else {
 				if( this.states.lockon ) {
+					//Fly horizontal toward target
 					this.gravity = 0;
 					this.force.y = 0;
 					this.addHorizontalForce(this.speed * this.forward());
 					this.flip = this.force.x < 0; 
 				} else {
+					//Fall down seeking target
 					this.gravity = 0.6;
 					this.criticalChance = 1.0;
 					if( dir.y + 16.0 > 0 ) {
 						this.states.lockon = true;
 						this.criticalChance = 0.0;
-						this.states.direction = dir.x > 0 ? -1 : 1;
+						this.flip = dir.x > 0;
 					}
 				}
 				
@@ -133,7 +138,7 @@ Batty.prototype.update = function(){
 		} else {
 			this.states.cooldown -= this.delta;
 			if( this.states.cooldown <= 0 ) this.states.attack = Game.DELTASECOND * 2.5;
-			this.states.direction = dir.x > 0 ? -1 : 1;
+			this.flip = dir.x > 0;
 		}
 	} 
 	

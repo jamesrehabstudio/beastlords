@@ -285,7 +285,7 @@ Game.prototype.update = function(){
 	this.cycleTime = newTime;
 	
 	if(this.newmap){
-		this.clearAll();
+		this.clearAll(false);
 		postMessage({
 			"loadmap" : this.newmapName
 		});
@@ -366,6 +366,7 @@ Game.prototype.update = function(){
 			"audio" : audio.serialize(),
 			"render" : Renderer.serialize(),
 			"camera" : {"x":fCamera.x, "y":fCamera.y},
+			"times" : {"time":this.time, "timeScaled":this.timeScaled},
 			"tiles" : this.tileDelta
 		});
 		this.tileDelta = {};
@@ -375,7 +376,7 @@ Game.prototype.update = function(){
 	input.update();
 }
 Game.prototype.useMap = function(m){
-	this.clearAll();
+	this.clearAll(false);
 	
 	this.map = {
 		"layers" : m.layers,
@@ -472,7 +473,11 @@ Game.prototype.getObjects = function( type ) {
 	}
 	return out;
 }
-Game.prototype.clearAll = function(){
+Game.prototype.clearAll = function(tellEngine = true){
+	if(tellEngine){
+		postMessage({"clearAll":true});
+	}
+	
 	this.objects = [];
 	this._firstEmptyIndex = -1;
 	this.map = null;
@@ -685,6 +690,16 @@ Game.prototype.collideObject = function(obj) {
 		}
 	}
 }
+Game.prototype.ga_event = function(){
+	let e = new Array();
+	for(let a=0; a < arguments.length; a++){
+		e.push(arguments[a]);
+	}
+	postMessage({
+		"ga_event" : e
+	})
+}
+	
 Game.prototype.prompt = function(message,value,callback){
 	this._promptCallback = callback;
 	postMessage({

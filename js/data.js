@@ -38,92 +38,6 @@ var tiles = {};
 var audio = {};
 var RT = "";
 
-var tileRules = { 
-	"big" : {
-		9:Tileset.slope_1tohalf,
-		10:Tileset.slope_halfto0,
-		11:Tileset.slope_1to0,
-		12:Tileset.slope_0to1,
-		13:Tileset.slope_0tohalf,
-		14:Tileset.slope_halfto1,
-		41:Tileset.ignore,
-		42:Tileset.ignore,
-		43:Tileset.ignore,
-		44:Tileset.ignore,
-		45:Tileset.ignore,
-		47:Tileset.ignore,
-		
-		73:Tileset.slope_1tohalf,
-		74:Tileset.slope_halfto0,
-		75:Tileset.slope_1to0,
-		76:Tileset.slope_0to1,
-		77:Tileset.slope_0tohalf,
-		78:Tileset.slope_halfto1,
-		105:Tileset.ignore,
-		106:Tileset.ignore,
-		107:Tileset.ignore,
-		108:Tileset.ignore,
-		109:Tileset.ignore,
-		110:Tileset.ignore,
-		
-		137:Tileset.slope_1tohalf,
-		138:Tileset.slope_halfto0,
-		139:Tileset.slope_1to0,
-		140:Tileset.slope_0to1,
-		141:Tileset.slope_0tohalf,
-		142:Tileset.slope_halfto1,
-		169:Tileset.ignore,
-		170:Tileset.ignore,
-		171:Tileset.ignore,
-		172:Tileset.ignore,
-		173:Tileset.ignore,
-		174:Tileset.ignore,
-		
-		201:Tileset.onewayup,
-		202:Tileset.onewayup,
-		203:Tileset.onewayup,
-		204:Tileset.onewayup,
-		205:Tileset.onewayup,
-		206:Tileset.onewayup,
-		233:Tileset.ignore,
-		234:Tileset.ignore,
-		235:Tileset.ignore,
-		236:Tileset.ignore,
-		237:Tileset.ignore,
-		238:Tileset.ignore,
-	},
-	"small" : {
-		65:Tileset.onewayup,
-		66:Tileset.onewayup,
-		67:Tileset.onewayup,
-		81:Tileset.ignore,
-		82:Tileset.ignore,
-		83:Tileset.ignore,
-		137:Tileset.slope_1tohalf,
-		138:Tileset.slope_halfto0,
-		139:Tileset.slope_1to0,
-		140:Tileset.slope_0to1,
-		141:Tileset.slope_0tohalf,
-		142:Tileset.slope_halfto1,
-		169:Tileset.ignore,
-		170:Tileset.ignore,
-		171:Tileset.ignore,
-		172:Tileset.ignore,
-		173:Tileset.ignore,
-		174:Tileset.ignore
-	},
-	"world" : {
-		959:Tileset.ignore,
-		960:Tileset.edge_right,
-		989:Tileset.ceil_1to0,
-		990:Tileset.ceil_0to1,
-		991:Tileset.edge_left,
-		992:Tileset.ignore,
-		1021:Tileset.slope_1to0,
-		1022:Tileset.slope_0to1
-	}
-};
-
 function load_sprites (){	
 	meshes['slash1'] = new Mesh(RT+"mesh/slash1.json", {"fs":"fragment-sword"});
 	meshes['slash2'] = new Mesh(RT+"mesh/slash2.json", {"fs":"fragment-sword"});
@@ -176,9 +90,11 @@ function load_sprites (){
 	
 	
 	sprites['test_temple4'] = new Sprite(RT+"maps/temple4.png", {offset:new Point(0, 0),width:4096,height:1800});
+	sprites['demo_tut'] = new Sprite(RT+"img/demo_tut.png", {offset:new Point(32, 32),width:64,height:64});
 	
 	
 	sprites['items'] = new Sprite(RT+"img/items.png", {offset:new Point(8, 8),width:16,height:16});
+	sprites['items_glow'] = new Sprite(RT+"img/items.png", {offset:new Point(8, 8),width:16,height:16,"fs":"2d-fragment-glow"});
 	sprites['waystones'] = new Sprite(RT+"img/waystones.gif", {offset:new Point(16, 24),width:32,height:48});
 	sprites['alter'] = new Sprite(RT+"img/alter.gif", {offset:new Point(32, 128),width:64,height:128});
 	sprites['arena'] = new Sprite(RT+"img/arena.gif", {offset:new Point(64, 128),width:128,height:128});
@@ -187,6 +103,7 @@ function load_sprites (){
 	sprites['bullets'] = new Sprite(RT+"img/bullets.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['explosion'] = new Sprite(RT+"img/explosion.gif", {offset:new Point(64, 64),width:128,height:128});
 	sprites['halo'] = new Sprite(RT+"img/halo.gif", {offset:new Point(120, 120),width:240,height:240});
+	sprites['lighthalo'] = new Sprite(RT+"img/halo.gif", {offset:new Point(120, 120),width:240,height:240,mixtype:Material.MIX_ADDITIVE});
 	sprites['haloarea'] = new Sprite(RT+"img/haloarea.gif", {offset:new Point(0, 0),width:256,height:256,"fs":"fragment-lightarea"});
 	sprites['cornerstones'] = new Sprite(RT+"img/cornerstones.gif", {offset:new Point(48, 48),width:96,height:96});
 	//sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
@@ -212,11 +129,12 @@ function load_sprites (){
 	sprites['beaker'] = new Sprite(RT+"img/beaker.gif", {offset:new Point(12, 16),width:24,height:24});
 	sprites['bear'] = new Sprite(RT+"img/bear.png", {offset:new Point(40, 32),width:80,height:48});
 	sprites['bigbones'] = new Sprite(RT+"img/bigbones.gif", {offset:new Point(24, 28),width:77,height:56});
+	sprites['boarbow'] = new Sprite(RT+"img/boarbow.png", {offset:new Point(28, 32),width:64,height:48});
 	sprites['bombbowler'] = new Sprite(RT+"img/bombbowler.png", {offset:new Point(40, 50),width:80,height:80});
 	sprites['bombjar'] = new Sprite(RT+"img/bombjar.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['booksummoner'] = new Sprite(RT+"img/booksummoner.png", {offset:new Point(32, 48),width:64,height:64});
 	sprites['bookreptile'] = new Sprite(RT+"img/bookreptile.png", {offset:new Point(32, 34),width:64,height:48});
-	sprites['boarbow'] = new Sprite(RT+"img/boarbow.png", {offset:new Point(28, 32),width:64,height:48});
+	sprites['botomire'] = new Sprite(RT+"img/botomire.png", {offset:new Point(40, 32),width:80,height:64});
 	sprites['cape1'] = new Sprite(RT+"img/cape1.gif", {offset:new Point(24, 24),width:48,height:48});
 	sprites['characters'] = new Sprite(RT+"img/characters.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['characters2'] = new Sprite(RT+"img/characters2.gif", {offset:new Point(24, 32),width:48,height:48});
@@ -228,8 +146,10 @@ function load_sprites (){
 	sprites['chickenchain'] = new Sprite(RT+"img/chickenchain.png", {offset:new Point(20, 32),width:48,height:48});
 	sprites['chickendrill'] = new Sprite(RT+"img/chickendrill.png", {offset:new Point(20, 33),width:56,height:56});
 	sprites['cryptkeeper'] = new Sprite(RT+"img/cryptkeeper.png", {offset:new Point(36, 36),width:64,height:64});
+	sprites['crowd01'] = new Sprite(RT+"img/crowd01.png", {offset:new Point(64, 24),width:128,height:48});
 	sprites['deckard'] = new Sprite(RT+"img/deckard.png", {offset:new Point(48, 52),width:96,height:80});
 	sprites['donkeyknife'] = new Sprite(RT+"img/donkeyknife.png", {offset:new Point(28, 42),width:64,height:64});
+	sprites['drillerkiller'] = new Sprite(RT+"img/drillerkiller.png", {offset:new Point(32, 72),width:96,height:96});
 	sprites['drillorb'] = new Sprite(RT+"img/drillorb.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['gear1'] = new Sprite(RT+"img/gear1.png", {offset:new Point(0, 0),width:16,height:64});
 	sprites['electrolizard'] = new Sprite(RT+"img/electrolizard.png", {offset:new Point(48, 64),width:160,height:96});
@@ -275,7 +195,7 @@ function load_sprites (){
 	sprites['pothead'] = new Sprite(RT+"img/pothead.png", {offset:new Point(24, 34),width:48,height:48});
 	sprites['raindrops'] = new Sprite(RT+"img/raindrops.png", {offset:new Point(8, 16),width:16,height:16});
 	sprites['ratgut'] = new Sprite(RT+"img/ratgut.gif", {offset:new Point(22, 20),width:48,height:32});
-	sprites['ring'] = new Sprite(RT+"img/ring.gif", {offset:new Point(120, 120),width:240,height:240,"fs":"2d-fragment-redasalpha"});
+	sprites['ring'] = new Sprite(RT+"img/ring.gif", {offset:new Point(120, 120),width:240,height:240,mixtype:Material.MIX_ADDITIVE});
 	sprites['riveteer'] = new Sprite(RT+"img/riveteer.png", {offset:new Point(24, 31),width:48,height:48});
 	sprites['retailers'] = new Sprite(RT+"img/retailers.gif", {offset:new Point(24, 48),width:48,height:64});
 	sprites['sailorsaturn'] = new Sprite(RT+"img/sailorsaturn.png", {offset:new Point(32, 48),width:64,height:64});
@@ -325,6 +245,7 @@ function load_sprites (){
 	sprites['garmr'] = new Sprite(RT+"img/garmr.png", {offset:new Point(64, 72),width:144,height:144});
 	sprites['megaknight'] = new Sprite(RT+"img/megaknight.png", {offset:new Point(56, 40),width:160,height:72});
 	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80});
+	sprites['pigbossknight'] = new Sprite(RT+"img/pigbossknight.png", {offset:new Point(32, 44),width:64,height:88});
 	sprites['pigboss'] = new Sprite(RT+"img/pigboss.gif", {offset:new Point(32, 36),width:64,height:64});
 	sprites['poseidon'] = new Sprite(RT+"img/poseidon.png", {offset:new Point(84, 88),width:160,height:120});
 	sprites['zoder'] = new Sprite(RT+"img/zoder.gif", {offset:new Point(32, 32),width:80,height:64});
@@ -369,6 +290,7 @@ function load_sprites (){
 		sprites[i].name = i;
 	}
 	
+	/*
 	tiles["tilesintro"] = new Tileset(sprites["tilesintro"],tileRules["small"]);
 	tiles["town"] = new Tileset(sprites["town"],tileRules["small"]); tiles["town"].blank = 16;
 	
@@ -395,47 +317,78 @@ function load_sprites (){
 		1022 : {"frames":[1024], "speed":0.0},
 		1023 : {"frames":[1024], "speed":0.0}
 	});
+	*/
 	
 	tiles["gateway"] = new Tilesheet(RT+"img/tiles/gateway.png", {
-		1023 : {"frames":[1024], "speed":0.0}
+		"animations" : {
+			1023 : {"frames":[1024], "speed":0.0}
+		}
 	});
 	tiles["phantom"] = new Tilesheet(RT+"img/tiles/phantom.png", {
-		1023 : {"frames":[1024], "speed":0.0}
+		"animations" : {
+			1023 : {"frames":[1024], "speed":0.0}
+		}
 	});
 	tiles["temple1"] = new Tilesheet(RT+"img/tiles/temple1.png", {
-		357 : {"frames":[357,357,357,357,357,357,357,357,357,357,358,359,360,361,362], "speed":8.0},
-		499 : {"frames":[499,499,499,499,499,499,499,500,501,502,503,504,499,499,499], "speed":8.0},
-		1023 : {"frames":[1024], "speed":0.0}
+		"animations" : {
+			357 : {"frames":[357,357,357,357,357,357,357,357,357,357,358,359,360,361,362], "speed":8.0},
+			499 : {"frames":[499,499,499,499,499,499,499,500,501,502,503,504,499,499,499], "speed":8.0},
+			1023 : {"frames":[1024], "speed":0.0}
+		}
 	});
-	tiles["temple2"] = new Tilesheet(RT+"img/tiles/temple2.png", {
-		577 : {"frames":[1024], "speed":0.0},
-		
-		275 : {"frames":[275,277,279], "speed":9.0},
-		276 : {"frames":[276,278,280], "speed":9.0},
-		307 : {"frames":[307,309,311], "speed":9.0},
-		308 : {"frames":[308,310,312], "speed":9.0},
-		//slime flow
-		326 : {"frames":[326,327,328], "speed":9.0},
-		327 : {"frames":[326,327,328], "speed":6.0},
-		328 : {"frames":[326,327,328], "speed":3.0},
-		
-		358 : {"frames":[358,359,360], "speed":18.0},
-		390 : {"frames":[390,391,392], "speed":9.0},
-		422 : {"frames":[422,423,424], "speed":9.0}
+	tiles["temple2"] = new Tilesheet(RT+"img/tiles/temple2.png", {		
+		"animations" : {
+			577 : {"frames":[1024], "speed":0.0},
+			
+			275 : {"frames":[275,277,279], "speed":9.0},
+			276 : {"frames":[276,278,280], "speed":9.0},
+			307 : {"frames":[307,309,311], "speed":9.0},
+			308 : {"frames":[308,310,312], "speed":9.0},
+			//slime flow
+			326 : {"frames":[326,327,328], "speed":9.0},
+			327 : {"frames":[326,327,328], "speed":6.0},
+			328 : {"frames":[326,327,328], "speed":3.0},
+			
+			358 : {"frames":[358,359,360], "speed":18.0},
+			390 : {"frames":[390,391,392], "speed":9.0},
+			422 : {"frames":[422,423,424], "speed":9.0}
+		}
 	});
 	tiles["temple3"] = new Tilesheet(RT+"img/tiles/temple3.png", {
-		385 : {"frames":[385,386,387,388,389], "speed":5.0},
-		
-		195 : {"frames":[195,196,197,197,196,195], "speed":3.0},
-		196 : {"frames":[196,197,197,196,195,195], "speed":3.0},
-		197 : {"frames":[197,197,196,195,195,196], "speed":3.0},
-		
-		203 : {"frames":[1024], "speed":0.0},
+		"animations" : {
+			385 : {"frames":[385,386,387,388,389], "speed":5.0},
+			
+			195 : {"frames":[195,196,197,197,196,195], "speed":3.0},
+			196 : {"frames":[196,197,197,196,195,195], "speed":3.0},
+			197 : {"frames":[197,197,196,195,195,196], "speed":3.0},
+			
+			203 : {"frames":[1024], "speed":0.0},
+		}
 	});
 	tiles["temple4"] = new Tilesheet(RT+"img/tiles/temple4.png", {
-		204 : {"frames":[1024], "speed":0.0},
-		1023 : {"frames":[1024], "speed":0.0}
+		"animations" : {
+			//204 : {"frames":[1024], "speed":0.0},
+			1023 : {"frames":[1024], "speed":0.0}
+		}
 	});	
+	tiles["firepits"] = new Tilesheet(RT+"img/tiles/firepits.png", {
+		"animations" : {}
+	});
+	tiles["town"] = new Tilesheet(RT+"img/tiles/town.png", {
+		"animations" : {
+			201 : {"frames":[1024], "speed":0.0},
+			15 : {"frames":[15,79,143,143,79,15], "speed":5.0},
+			16 : {"frames":[16,80,144,144,80,16], "speed":5.0},
+			17 : {"frames":[17,81,145,145,81,17], "speed":5.0},
+			47 : {"frames":[47,111,175,175,111,47], "speed":5.0},
+			48 : {"frames":[48,112,176,176,112,48], "speed":5.0},
+			49 : {"frames":[49,113,177,177,113,49], "speed":5.0},
+			
+			321 : {"frames":[321,322,323], "speed":5.0},
+		}
+	});
+	
+	/*
 	tiles["temple5"] = new Tileset(sprites["temple5"],tileRules["big"], {
 	});
 	tiles["cave"] = new Tileset(sprites["cave"],tileRules["big"], {
@@ -446,24 +399,7 @@ function load_sprites (){
 		322 : {"frames":[322,323,321], "speed":4.0},
 		323 : {"frames":[323,321,322], "speed":4.0}
 	});
-	tiles["town"] = new Tilesheet(RT+"img/tiles/town.png", {
-		201 : {"frames":[1024], "speed":0.0},
-		15 : {"frames":[15,79,143,143,79,15], "speed":5.0},
-		16 : {"frames":[16,80,144,144,80,16], "speed":5.0},
-		17 : {"frames":[17,81,145,145,81,17], "speed":5.0},
-		47 : {"frames":[47,111,175,175,111,47], "speed":5.0},
-		48 : {"frames":[48,112,176,176,112,48], "speed":5.0},
-		49 : {"frames":[49,113,177,177,113,49], "speed":5.0},
-		
-		321 : {"frames":[321,322,323], "speed":5.0},
-	});
-	tiles["firepits"] = new Tilesheet(RT+"img/tiles/firepits.png", {
-		98:Tileset.ignore, 99:Tileset.ignore,
-		225:Tileset.ignore, 226:Tileset.ignore, 227:Tileset.ignore, 228:Tileset.ignore, 229:Tileset.ignore,
-		257:Tileset.ignore, 291:Tileset.ignore, 293:Tileset.ignore, 321:Tileset.ignore, 323:Tileset.ignore,
-		353:Tileset.ignore, 385:Tileset.ignore, 386:Tileset.ignore, 386:Tileset.ignore, 387:Tileset.ignore,
-		388:Tileset.ignore, 417:Tileset.ignore, 418:Tileset.ignore, 419:Tileset.ignore
-	});
+	
 	tiles["lighthouse"] = new Tileset(sprites["lighthouse"],tileRules["big"], {
 	});
 	tiles["templeice"] = new Tileset(sprites["templeice"],tileRules["big"], {
@@ -480,6 +416,7 @@ function load_sprites (){
 		204 : {"frames":[1024], "speed":0.0},
 		1023 : {"frames":[1024], "speed":0.0}
 	});
+	*/
 }
 
 window.audio = new AudioPlayer({
@@ -491,6 +428,7 @@ window.audio = new AudioPlayer({
 	"music_temple2" : {"url":RT+"sounds/music_temple2.ogg","music":true,"loop":28.822},
 	"music_temple3" : {"url":RT+"sounds/music_temple3.ogg","music":true,"loop":0},
 	"music_temple4" : {"url":RT+"sounds/music_temple4.ogg","music":true,"loop":32.011},
+	"music_boss01" : {"url":RT+"sounds/music_boss01.ogg","music":true,"loop":13.430},
 	"music_town" : {"url":RT+"sounds/music_town.ogg","music":true,"loop":0.0},
 	"music_firepits" : {"url":RT+"sounds/music_firepits.ogg","music":true,"loop":4.596},
 	"music_fridge" : {"url":RT+"sounds/music_fridge.ogg","music":true,"loop":0.0},

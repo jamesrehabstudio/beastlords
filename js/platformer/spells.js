@@ -186,7 +186,7 @@ SpellFlash.prototype.use = function(player){
 	var heal = 0;
 	for(var i=0; i < objs.length; i++){
 		var obj = objs[i];
-		if(obj.hasModule(mod_combat) && obj.team != player.team && area.overlaps(obj.position)){
+		if(obj.hasModule(mod_combat) && obj.combat_shootable && obj.team != player.team && area.overlaps(obj.position)){
 			if(obj.life > 0){
 				obj.invincible = 0;
 				obj.hurt(player,damage);

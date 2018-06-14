@@ -139,7 +139,7 @@ Background.prototype.lightrender = function(g,c){
 			var position = light[0];
 			var radius = light[1];
 			var color = light[2];
-			g.renderSprite("halo",position.subtract(c),this.zIndex,new Point(),false,{"scale":radius/240,"u_color":color});
+			g.renderSprite("lighthalo",position.subtract(c),this.zIndex,new Point(),false,{"scale":radius/240,"u_color":color});
 		} else if(light[3] == 1) {
 			//Area light
 			var rect = light[0];

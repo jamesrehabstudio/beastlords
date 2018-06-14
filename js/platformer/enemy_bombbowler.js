@@ -106,7 +106,8 @@ function BombBowl(x,y,d,o){
 				//test if shield is hit
 				var c = this.corners();
 				var bottom = new Line(c.left,c.bottom-8,c.right,c.bottom);
-				if(bottom.overlaps(obj.shieldArea())){
+				var shields = obj.combat_shieldArea();
+				if( shields.length > 0 && bottom.overlaps(shields[0]) ){
 					this.cooldown = Game.DELTASECOND * 0.5;
 					this.force.x *= -1;
 					audio.play("block")

@@ -122,6 +122,11 @@ PauseMenu.prototype.update = function(){
 			//Navigate pages
 			if( this.page != 1 || input.state("fire") <= 0 ) {
 				if( input.state("select") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
+				
+				//Skip debug menu
+				if( this.page == 3) { this.page = 4;}
+				
+				
 				//if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
 			}
 		}
@@ -252,16 +257,21 @@ PauseMenu.prototype.hudrender = function(g,c){
 				"temple3.tmx" : new Point(88,168),
 				"temple4.tmx" : new Point(48,64),
 				"sky.tmx" : new Point(104,96),
-				"firepits.tmx" : new Point(176,160),
+				"mills.tmx" : new Point(176,160),
 				"townhub.tmx" : new Point(120,128),
 				"lighthouse.tmx" : new Point(200,104)
 			};
-			var map_position = player_map_position[name];
+			
 			
 			if(this.mapflip){
 				boxArea(g,leftx,8,224,224);
-				let bounce = Math.sin(game.time * 0.1) * 2;
-				g.renderSprite("mapicons", map_position.add(new Point(leftx+4,10+bounce)),2,new Point());
+
+				if(name in player_map_position){
+					var map_position = player_map_position[name];				
+					let bounce = Math.sin(game.time * 0.1) * 2;
+					g.renderSprite("mapicons", map_position.add(new Point(leftx+4,10+bounce)),2,new Point());
+				}
+				
 				g.renderSprite("worldmap", new Point(leftx+8,16),1,new Point(), false);
 				textArea(g,"Minimap (JUMP)",leftx+100,212);
 			} else {
@@ -436,7 +446,7 @@ MapIcon.prototype.mapIndex = function(){
 	return mPos.x + mPos.y * mWidth;
 }
 MapIcon.prototype.render = function(g,c){
-	var bob = (1 + Math.sin(game.time * this.bobSpeed)) * 0.5 * this.bobHeight;
+	var bob = Math.abs(Math.sin(game.time * this.bobSpeed)) * this.bobHeight;
 	var p = this.mapPosition();
 	
 	g.renderSprite(

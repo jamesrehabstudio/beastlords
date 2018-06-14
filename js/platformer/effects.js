@@ -506,22 +506,22 @@ EffectItemPickup.prototype.render = function(g,c){
 		}
 		var progress = (this.time-this.phase1Time) / (this.totalTime-this.phase1Time);
 		var scale = (1-progress);
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":2*progress});
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"scale":2*progress});
 		
 		Background.pushLight(this.position,240*scale);
 	} else {
 		//Suck in
 		var progress = this.time / this.phase1Time;
 		var scale = (1-progress);
-		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":.1 + 0.5*scale});
+		g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false,{"scale":.1 + 0.5*scale});
 		
-		g.renderSprite("halo",this.position.subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":0.5*progress});
+		g.renderSprite("lighthalo",this.position.subtract(c),this.zIndex,this.frame,false,{"scale":0.5*progress});
 		
 		for(var i=0; i < this.particles.length; i++){
 			var p = this.particles[i];
 			var r = p.radius * scale;
 			var pos = new Point(r * Math.sin(p.angle), r * Math.cos(p.angle));
-			g.renderSprite("halo",this.position.add(pos).subtract(c),this.zIndex,this.frame,false,{"shader":"halo","scale":0.06*scale});
+			g.renderSprite("lighthalo",this.position.add(pos).subtract(c),this.zIndex,this.frame,false,{"scale":0.06*scale});
 		}
 		
 		Background.pushLight(this.position,progress*360);
@@ -602,7 +602,88 @@ var EffectList = {
 	}
 };
 
+class SparkEffect extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.thickness = 1.0;
+		this.color = [1.0,1.0,1.0,1.0];
+		this.radius = 12;
+		this.speed = 4.0;
+		
+		this._progress = 0.0;
+	}
+	update(){
+		if(this._progress < 1){
+			this._progress = this._progress + game.deltaUnscaled * this.speed;
+		} else {
+			this.destroy();
+		}
+	}
+	render(g,c){}
+	postrender(g,c){
+		for(let i=0; i < SparkEffect.ring.length; i++){
+			let radius = this.radius * (0.5 + this._progress ** 0.8);
+			let seg = radius * (3.14 / 512);
+			let thickness =  this.thickness * (1-this._progress);
+			let range = SparkEffect.ring[i].range * (1 - this._progress * 0.8);
+			let start = SparkEffect.ring[i].angle - range * 0.5;
+			
+			for(let j=0; j < range; j+= seg){
+				let _a = new Point( Math.cos(start+j), Math.sin(start+j) ).scale(radius);
+				let _b = new Point( Math.cos(start+j+seg), Math.sin(start+j+seg) ).scale(radius);
+				
+				g.renderLine(
+					_a.add(this.position).subtract(c),
+					_b.add(this.position).subtract(c),
+				
+					this.thickness,
+					this.color
+				);
+				
+				let burst = SparkEffect.ring[i].burst;
+				let _p = this._progress ** 0.6;
+				let _c = new Point( Math.cos(start), Math.sin(start) ).scale(radius * (_p * burst + 0.25) );
+				let _d = new Point( Math.cos(start), Math.sin(start) ).scale(radius * (_p * 0.25 + 1.0) );
+				
+				g.renderLine(
+					_c.add(this.position).subtract(c),
+					_d.add(this.position).subtract(c),
+					
+					thickness,
+					this.color
+				)
+			}
+			
+		}
+	}
+}
+SparkEffect.create = function(pos, radius = 12){
+	var se = new SparkEffect(pos.x, pos.y);
+	se.radius = radius;
+	game.addObject(se);
+	
+}
+SparkEffect.ring = [
+	{angle: 1.1, range: 0.4, burst:1.50},
+	{angle: 0.1, range: 0.2, burst:2.50},
+	{angle: 0.55, range: 0.3, burst:2.00},
+	{angle: 1.8, range: 0.7, burst:1.00},
+	{angle: 2.5, range: 0.4, burst:1.50},
+	{angle: 3, range: 0.3, burst:3.00},
+	{angle: 3.7, range: 0.9, burst:1.50},
+	{angle: 4, range: 0.1, burst:1.50},
+	{angle: 4.6, range: 0.6, burst:1.50},
+	{angle: 5.2, range: 0.2, burst:3.00},
+	{angle: 5.8, range: 0.7, burst:1.00}
+];
+self["SparkEffect"] = SparkEffect;
+
+
 COLOR_WHITE = [1.0,1.0,1.0,1.0];
 COLOR_BLACK = [0.0,0.0,0.0,1.0];
 COLOR_LIGHTNING = [0.5,0.7,1.0,1.0];
 COLOR_FIRE = [1,0.8,0,1];
+COLOR_HURT = [0.8,0.1,0.2,1];

@@ -112,9 +112,9 @@ Door.prototype.open = function(){
 Door.prototype.update = function(){
 	
 	if( this.isOpen ) {
-		this.openAnimation = Math.min(this.openAnimation + this.delta * 0.5, 3);
+		this.openAnimation = Math.min(this.openAnimation + this.delta * 15.0, 3);
 	} else {
-		this.openAnimation = Math.max(this.openAnimation - this.delta * 0.5, 0);
+		this.openAnimation = Math.max(this.openAnimation - this.delta * 15.0, 0);
 	}
 }
 Door.prototype.render = function(g,c){
@@ -135,3 +135,83 @@ Door.prototype.render = function(g,c){
 		);
 	}
 }
+
+class BossDoor extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 32;
+		this.height = 64;
+		this.sprite = "doors";
+		this.frame = new Point(0,2);
+		this.speed = 1.0;
+		this._tid = "boss_door";
+		
+		this.condition = ops.getString("condition", false);
+		
+		this._open = false;
+		this._fight = false;
+		this._pos = 0.0;
+		
+		this.setBackTiles(1024);
+		
+		this.on("activate", function(){
+			this._fight = !this._fight;
+		});
+	}
+	open(){
+		if(!this._open){
+			this.setBackTiles(0);
+			this._open = true;
+			this.trigger("open");
+		}
+	}
+	close(){
+		if(this._open){
+			this.setBackTiles(1024);
+			this._open = false;
+			this.trigger("close");
+		}
+	}
+	setBackTiles(tile=0){
+		let c = this.corners();
+		let ts = 16;
+		let ms = ts * 0.5;
+		
+		for(let x = c.left; x < c.right; x += ts){
+			for(let y = c.top; y < c.bottom; y += ts){
+				game.setTile(x+ms, y+ms, game.tileCollideLayer, tile);
+			}
+		}
+	}
+	update(){
+		let difx = _player.position.x - this.position.x;
+		
+		if(this.condition && NPC.get(this.condition)){
+			//Boss is dead
+			this.open();
+		} else if(this._fight){
+			//Currently in boss fight
+			this.close();
+		} else if( Math.abs(difx) < 88 ){
+			//Near door
+			this.open();
+		} else {
+			//Closed
+			this.close();
+		}
+		
+		
+		if(this._open){
+			this._pos = Math.clamp( this._pos + this.speed, 0, 56 );
+		} else {
+			this._pos = Math.clamp( this._pos - this.speed, 0, 56 );
+		}
+	}
+	render(g,c){
+		g.renderSprite(this.sprite, this.position.add(new Point(-16,-this._pos)).subtract(c),this.zIndex,this.frame,this.flip);
+	}
+}
+
+self["BossDoor"] = BossDoor;

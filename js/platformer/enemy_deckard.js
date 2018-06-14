@@ -7,7 +7,7 @@ function Deckard(x,y,d,o){
 	this.width = 32;
 	this.height = 56;
 	this.sprite = "deckard";
-	this.speed = 0.7;
+	this.speed = 21.0;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -117,9 +117,9 @@ Deckard.prototype.update = function(){
 					
 				}
 			} else if(this.states.current == Deckard.STATE_CHARGE){
-				this.force.x += this.forward() * this.speed * this.delta;
+				this.addHorizontalForce(this.speed * this.forward());
 				this.states.time -= this.delta;
-				this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.1) % 4;
+				this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 3.0) % 4;
 				this.frame.y = 4;
 				
 				if(this.states.time <= 0 || Math.abs(dir.x) < 64){
@@ -137,7 +137,7 @@ Deckard.prototype.update = function(){
 				
 				if(this.frame.x == 1){
 					this.grounded = false;
-					this.force.x += this.forward() * this.speed * this.delta;
+					this.addHorizontalForce(this.speed * this.forward());
 					this.force.y = Math.min(this.force.y - this.delta, -1);
 				} else if(this.frame.x == 2){
 					this.strike(Deckard.attack_rect);
@@ -189,7 +189,7 @@ Deckard.prototype.update = function(){
 					if((Math.abs(dir.x) < 32) ||(dir.x < 0 && this.forward() < 0) || (dir.x > 0 && this.forward() > 0)){
 						
 					} else {
-						this.force.x += this.forward() * this.speed * this.delta * 1.2;
+						this.addHorizontalForce(this.speed * this.forward() * 1.2);
 					}
 					this.force.y -= 0.2 * this.delta;
 				}

@@ -51,9 +51,13 @@ var mod_rigidbody = {
 			var c = this.corners();
 			var p = new Point(
 				f > 0 ? c.right : c.left,
-				c.bottom + 16
+				c.bottom + 12
 			);
-			return game.getTile(p) == 0;
+			var q = new Point(
+				f > 0 ? c.right : c.left,
+				c.bottom + 0
+			);
+			return game.getTileRule(p) == tilerules.ignore && game.getTileRule(q) == tilerules.ignore;
 			
 		}
 		this.addHorizontalForce = function(speed, acceleration=1.0){
@@ -69,7 +73,7 @@ var mod_rigidbody = {
 					var dir = this.position.subtract( obj.position ).normalize();
 					
 					if(this.resistObjects){
-						this.force = this.force.add(dir.normalize(this.resistObjects * this.delta));
+						this.force = this.force.add(dir.normalize(this.resistObjects * UNITS_PER_METER * this.delta));
 					} else {
 						var obj_corners = obj.corners();
 						var ths_corners = this.corners();
@@ -467,10 +471,15 @@ var mod_combat = {
 		this.stun = 0;
 		this.stun_time = Game.DELTASECOND;
 		this.combat_stuncount = 0;
+		this.combat_knockback = new Point();
+		this.combat_knockback_speed = 8.0;
+		this.combat_knockback_friction = 0.125;
+		
 		this.death_time = 0;
 		this._death_confirmed = false;
 		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
 				
+		this.combat_shootable = true;
 		this.showDamage = true;
 		this._damageCounter = new EffectNumber(0,0,0);
 		this.hitIgnoreList = new Array();
@@ -493,7 +502,17 @@ var mod_combat = {
 		
 			
 		this.strike = Combat.strike;
-		this.shieldArea = Combat.shieldArea;
+		this.combat_shieldArea = Combat.shieldArea;
+		this.combat_getHitAreas = Combat.getHitAreas;
+		
+		this.checkAttackArea = function(ops){
+			if(this.swrap instanceof SpriteWrapper){
+				let boxes = this.swrap.getAttackBoxes(this.frame, this);
+				for(let i=0; i < boxes.length; i++){
+					Combat.attackCheck.apply(this,[ boxes[i], ops ]);
+				}
+			}
+		}
 		
 		this.combatFinalDamage = function(damage){
 			this.life -= damage;
@@ -632,10 +651,11 @@ var mod_combat = {
 		this.calculateXP = function(){}
 	},
 	"update" : function(){
-		if( this.invincible > 0 ) {
-			
+		if( this.stun > 0 ) {
+			let flash = (game.time % 0.125) > 0.0625;
+			this.tint = flash ? COLOR_HURT : COLOR_WHITE;
 		} else {
-			this.filter = this._base_filter;
+			this.tint = COLOR_WHITE;
 		}
 		if(this.stun <= 0){
 			this.combat_stuncount = 0;
@@ -643,18 +663,20 @@ var mod_combat = {
 		
 		let ops = {"multiplier" : this.damageMultiplier};
 		
-		if(this.swrap instanceof SpriteWrapper){
-			let boxes = this.swrap.getAttackBoxes(this.frame, this);
-			for(let i=0; i < boxes.length; i++){
-				Combat.attackCheck.apply(this,[ boxes[i], ops ]);
-			}
-		}
+		this.checkAttackArea(ops);
 		
 		//this.deltaScale = this.statusEffects.slow > 0 ? 0.5 : 1.0;
+		
+		if(this.force instanceof Point){
+			//Additional knockback force
+			this.force = this.force.add(this.combat_knockback.scale(this.delta * this.combat_knockback_speed));
+			this.combat_knockback = this.combat_knockback.scale( 1 - this.combat_knockback_friction * UNITS_PER_METER * this.delta );
+		}
 		
 		
 		//Handle death
 		if(this.life <= 0 ){
+			
 			if(this.ragdoll){
 				if(this.grounded){
 					this.trigger("death");
@@ -682,7 +704,8 @@ var mod_combat = {
 			//Hit boxes
 			let nCam = c.scale(-1);
 			
-			let boxes1 = Combat.getHitAreas.apply(this);
+			let boxes1 = this.combat_getHitAreas(this);
+			
 			g.color = [1.0,0.5,0.5,1.0];
 			if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
 			for(let i=0; i < boxes1.length; i++){
@@ -690,24 +713,30 @@ var mod_combat = {
 				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
 			}
 			
-			if(this.swrap instanceof SpriteWrapper){
-				let boxes2 = this.swrap.getAttackBoxes(this.frame, this);
-				let boxes3 = this.swrap.getGuardBoxes(this.frame, this);
-				
-				
+			if(this._combat_attackarea instanceof Line){
 				g.color = [0.8,0.0,0.0,1.0];
-				if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
-				for(let i=0; i < boxes2.length; i++){
-					let box = boxes2[i].transpose(nCam);
-					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
-				}
-				g.color = [0.0,0.2,0.8,1.0];
-				if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
-				for(let i=0; i < boxes3.length; i++){
-					let box = boxes3[i].transpose(nCam);
-					g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
-				}
-				
+				let box = this._combat_attackarea.transpose(nCam);
+				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+			}
+			
+			//let boxes2 = this.swrap.getAttackBoxes(this.frame, this);
+			//let boxes3 = this.swrap.getGuardBoxes(this.frame, this);
+			let boxes3 = this.combat_shieldArea();
+			
+			
+			/*
+			g.color = [0.8,0.0,0.0,1.0];
+			if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
+			for(let i=0; i < boxes2.length; i++){
+				let box = boxes2[i].transpose(nCam);
+				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+			}
+			*/
+			g.color = [0.0,0.2,0.8,1.0];
+			if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
+			for(let i=0; i < boxes3.length; i++){
+				let box = boxes3[i].transpose(nCam);
+				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
 			}
 		}
 	}
@@ -719,19 +748,45 @@ var Combat = {
 		let checkArea = new Line(rect.start.subtract(margin), rect.end.add(margin));
 		let hits = game.overlaps(checkArea.correct());
 		
+		this._combat_attackarea = rect.transpose();
+		ops = Options.convert(ops);
+		
+		let blockable = ops.getBool("blockable", true);
+		
 		for(let i=0; i < hits.length; i++) {
 			let hit = hits[i];
 			if(hit.interactive && hit != this){
 				
-				let enemAreas = Combat.getHitAreas.apply(hit);
+				if( hit.hasModule(mod_combat)) {
+					//Standard behavior
+					let enemAreas = hit.combat_getHitAreas();
+					let enemBlock = hit.combat_shieldArea();
+					
+					if(blockable && (hit.guard.omidirectional || hit.flip != this.flip) ){
+						for(let j=0; j < enemBlock.length; j++){
+							if(enemBlock[j].overlaps(rect)){
+								Combat.block.apply(this, [hit, ops, rect]);
+								return;
+							}
+						}
+					}
+					
+					for(let j=0; j < enemAreas.length; j++){
+						if(enemAreas[j].overlaps(rect)){
+							//Triggers overlap, cause hit
+							hit.trigger("struck",this);
+							Combat.hit.apply(this, [hit, ops, rect]);
+							break;
+						} 
+					}
 				
-				for(let j=0; j < enemAreas.length; j++){
-					if(enemAreas[j].overlaps(rect)){
-						//Triggers overlap, cause hit
+				} else {
+					//Non combatant 
+					if( hit.bounds().overlaps(rect) ){
 						hit.trigger("struck",this);
 						Combat.hit.apply(this, [hit, ops, rect]);
-						break;
-					} 
+					}
+					
 				}
 			}
 		}
@@ -756,6 +811,8 @@ var Combat = {
 		);
 		
 		offset.correct();
+		ops = Options.convert(ops);
+		
 		this.ttest = offset;
 		var hits = game.overlaps(offset);
 		for(var i=0; i < hits.length; i++){
@@ -764,7 +821,21 @@ var Combat = {
 				Combat.hit.apply(this, [hits[i], ops, offset]);
 			}
 		}
-	},	
+	},
+	"block" : function(obj, ops, rect){
+		if(obj.guard.invincible <= 0){
+			obj.guard.invincible = Game.DELTASECOND * 0.5;
+			
+			//let flatDamage = Combat.getDamage.apply(this, [ops.getFloat("multiplier",1.0)]);
+			let flatDamage = 10;
+			
+			this.trigger("blocked",obj);
+			obj.trigger("block",this,rect,flatDamage);
+			
+			this.useBuff("blocked", flatDamage, obj);
+			obj.useBuff("block", flatDamage, this);
+		}
+	},
 	"hit"  : function(obj, ops, rect){
 		if(this.hitIgnoreList instanceof Array){
 			if(this.hitIgnoreList.indexOf(obj) >= 0){
@@ -773,56 +844,27 @@ var Combat = {
 			}
 		}
 		
-		ops = ops || {};
-		var multiplier = 1.0;
-		var blockable = true;
-		var direction = this.flip;
-		
-		if("multiplier" in ops){
-			multiplier = ops["multiplier"] * 1;
-		}
+		var multiplier = ops.getFloat("multiplier",1.0);
+		var blockable = ops.getBool("blockable",true);
+		var direction = ops.getBool("direction",this.flip);
 		
 		var damage = Combat.getDamage.apply(this, [multiplier]);
 		
-		if("blockable" in ops){
-			blockable = ops["blockable"] * 1;
-		}
-		if("damage" in ops){
-			damage = ops["damage"];
-		}
-		
-		if("direction" in ops){
-			direction = !!ops["direction"];
-		}
-		
 		if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
-			if( !blockable || !obj.hasModule(mod_combat) ) {
-				obj.hurt( this, damage );
-			} else {
-				var flip = obj.flip ? -1:1;
-				var shield = obj.shieldArea();
-				var flatDamage = obj.calcDamage(damage);
-				
-				if( obj.guard.active && (obj.guard.omidirectional||(direction!=obj.flip)) && shield.overlaps(rect) ){
-					if(obj.guard.invincible <= 0){
-						obj.guard.invincible = Game.DELTASECOND * 0.5;
-						
-						this.trigger("blocked",obj);
-						obj.trigger("block",this,rect,flatDamage);
-						
-						this.useBuff("blocked", flatDamage, obj);
-						obj.useBuff("block", flatDamage, this);
-					}
-				} else {
-					//this.trigger("hurt_other",obj, damage);
-					obj.hurt( this, damage );
-				}
-				
-			}
+			
+			obj.hurt( this, damage );
+			
 			this.trigger("struckTarget", obj);
 		}
 	},
 	"shieldArea" : function(){
+		if(this.swrap instanceof SpriteWrapper){
+			return this.swrap.getGuardBoxes(this.frame, this);
+		} else {
+			return Combat.shieldAreaOld.apply(this);
+		}
+	},
+	"shieldAreaOld" : function(){
 		shield = new Line( 
 			this.position.add( 
 				new Point( 
@@ -838,7 +880,7 @@ var Combat = {
 			)
 		);
 		shield.correct();
-		return shield;
+		return [ shield ];
 	},
 	"getDamage" : function(multiplier){
 		if(multiplier == undefined){
@@ -928,6 +970,7 @@ var mod_boss = {
 			if( !this.active ) {
 				this.interactive = false;
 				var dir = this.position.subtract( _player.position );
+				
 				if( Math.abs( dir.x ) < 120 && Math.abs( dir.y ) < 64 ){
 					this.trigger("activate");
 				}
@@ -937,10 +980,11 @@ var mod_boss = {
 		if(NPC.get(this.boss_id)){
 			this.on("added", function(){
 				this.destroy();
-			})
+			});
 		}
 		
 		this.on("player_death", function(){
+			audio.stopAs("music");
 			this.reset_boss();
 		});
 		this.on("activate", function() {
@@ -956,8 +1000,15 @@ var mod_boss = {
 			//_player.lock_overwrite = this.boss_lock;
 			this.active = true;
 			this.interactive = true;
+			
+			audio.playAs("music_boss01","music");
 		});
 		this.on("death", function() {
+			
+			audio.stopAs("music");
+			
+			game.ga_event("boss", this.boss_id);
+			
 			if(this.boss_shutdoors){
 				Trigger.activate("boss_door");
 			}

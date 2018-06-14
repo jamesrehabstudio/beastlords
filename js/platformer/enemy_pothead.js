@@ -7,7 +7,7 @@ function Pothead(x,y,d,o){
 	this.width = 24;
 	this.height = 28;
 	this.sprite = "pothead";
-	this.speed = .21;
+	this.speed = 6.3;
 	this.deathtrigger = false;
 	
 	this.addModule( mod_rigidbody );
@@ -124,7 +124,7 @@ Pothead.prototype.update = function(){
 		} else if(!this.grounded){
 			this.frame.y = 1;
 			this.states.cooldown = Game.DELTASECOND * 2.0;
-			this.force.x += this.forward() * this.speed * this.delta * 0.5;
+			this.addHorizontalForce(this.forward() * this.speed * 0.5);
 			if(this.force.y < -0.5){
 				this.frame.x = 2;
 			} else if(this.force.y > 0.5){
@@ -158,9 +158,9 @@ Pothead.prototype.update = function(){
 			//Walk
 			this.flip = dir.x > 0;
 			if(Math.abs(dir.x) > 40 ){
-				this.force.x += this.forward() * this.speed * this.delta;
+				this.addHorizontalForce(this.forward() * this.speed);
 			}
-			this.frame.x = (this.frame.x + Math.abs(this.force.x) * 0.2 * this.delta) % 6;
+			this.frame.x = (this.frame.x + Math.abs(this.force.x) * 6.0 * this.delta) % 6;
 			this.frame.y = 0;
 			
 			if(Math.abs(dir.x) < 64 ){

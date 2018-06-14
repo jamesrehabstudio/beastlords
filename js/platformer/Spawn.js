@@ -38,6 +38,8 @@ function Spawn(x,y,d,ops){
 	
 	var autospawn = 1;
 	
+	this.condition = this.options.getString("condition",false);
+	
 	
 	if("enemies" in this.options){
 		this.specific = this.options["enemies"].split(",");
@@ -108,6 +110,9 @@ Spawn.prototype.update = function(){
 Spawn.prototype.spawn = function(){
 	try{
 		if(this.lastSpawn + this.spawnRest > game.timeScaled){
+			return;
+		}
+		if(this.condition && !NPC.get(this.condition)){
 			return;
 		}
 		
@@ -338,7 +343,7 @@ Spawn.damage = function(level,difficulty){
 		difficulty = Spawn.difficulty;
 	}
 	
-	var multi = 1 + difficulty * 0.25;
+	var multi = 1 + difficulty * 0.5;
 	damage = Math.floor( damage * multi );
 	return damage;
 }
@@ -372,7 +377,7 @@ Spawn.life = function(level, difficulty){
 	
 	if( level == 0 ) return 3; //Always one shot
 	var multi = 1 + difficulty * 0.25;
-	return Math.floor( multi * level * 7 );
+	return Math.floor( multi * level * 9 );
 }
 
 Spawn.money = function(money, difficulty){

@@ -1,13 +1,13 @@
 Bear.prototype = new GameObject();
 Bear.prototype.constructor = GameObject;
-function Bear(x,y,d,o){
+function Bear(x,y,d,ops){
 	this.constructor();
 	this.position.x = x;
 	this.position.y = y;
 	this.width = 32;
 	this.height = 32;
 	this.sprite = "bear";
-	this.speed = 0.2;
+	this.speed = 6.0;
 	this.active = false;
 	this.start = new Point(x,y);
 	
@@ -20,16 +20,11 @@ function Bear(x,y,d,o){
 	this.states = {
 		"attackTotal" : Game.DELTASECOND * 1.5,
 		"attack" : 0,
-		"cooldown" : 100.0,
+		"cooldown" : Game.DELTASECOND * 4.0,
 		"block" : 0.0
 	}
 	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
-	}
+	this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 	
 	this.life = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
@@ -74,7 +69,7 @@ Bear.prototype.update = function(){
 			if(this.states.attack > 0){
 				this.guard.active = false;
 				this.states.attack -= this.delta;
-				this.frame.x = Math.min(this.frame.x + this.delta * 0.4, 2);
+				this.frame.x = Math.min(this.frame.x + this.delta * 12.0, 2);
 				this.frame.y = 1;
 				
 				if(this.frame.x < 2){
@@ -92,13 +87,13 @@ Bear.prototype.update = function(){
 					if(Math.abs(dir.x) < 128){
 						this.states.cooldown -= this.delta;
 						if(Math.abs(dis.x) < 180 && Math.abs(dir.x) > 48){
-							this.force.x += this.forward() * this.speed * this.delta;
+							this.addHorizontalForce(this.forward() * this.speed);
 						} 
 					} else {
-						this.force.x += (dis.x>0?-1:1) * this.speed * this.delta;
+						this.addHorizontalForce((dis.x>0?-1:1) * this.speed);
 					}
 					
-					this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.2) % 4;
+					this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 6.0) % 4;
 					this.frame.y = 0;
 				}
 				

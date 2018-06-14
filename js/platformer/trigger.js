@@ -31,7 +31,9 @@ function Trigger(x,y,d,o){
 	
 	this._isover = false
 	
-	o = o || {};
+	
+	this.requirements = o.getList("requirements",new Array());
+	
 	
 	if("target" in o){
 		this.targets = o.target.split(",");
@@ -78,6 +80,11 @@ function Trigger(x,y,d,o){
 	this.on("activate", function(obj){
 		if(this.retrigger || this.triggerCount == 0){
 			this.triggerCount++;
+			
+			if(this.triggersave){
+				NPC.set(this.triggersave, this.triggerCount);
+			}
+			
 			if(this.retriggertimeCooldown <= 0){
 				this.retriggertimeCooldown = this.retriggertime;
 				if(
@@ -133,14 +140,27 @@ function Trigger(x,y,d,o){
 	
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player){
-			if(this.time <= 0){
-				this.trigger("activate");
-			}else{
-				this.countdown = true;
-				this._isover = true;
+			if(this.hasRequirments()){
+				//Trigger doesn't activate until certain requirements have been met.
+				
+				if(this.time <= 0){
+					this.trigger("activate");
+				}else{
+					this.countdown = true;
+					this._isover = true;
+				}
 			}
 		}
 	});
+}
+
+Trigger.prototype.hasRequirments = function(){
+	for(let i=0; i < this.requirements.length; i++){
+		if( !NPC.get(this.requirements[i]) ){
+			return false;
+		}
+	}
+	return true;
 }
 
 Trigger.prototype.update = function(){

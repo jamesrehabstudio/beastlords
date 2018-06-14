@@ -158,8 +158,10 @@ class Puddle extends GameObject{
 		obj.force.y = Math.clamp( obj.force.y, -10, 5 );
 		
 		if(obj instanceof Player){
-			obj.states.doubleJumpReady = true;
 			obj.states.ledgePosition = false;
+			if(obj.delta > 0 && input.state("jump") == 1){
+				obj.jump();
+			}
 		}
 	}
 	buldgeToArray(i){
@@ -179,7 +181,6 @@ class Puddle extends GameObject{
 			new Point(),
 			false,
 			{
-				"u_time" : game.timeScaled,
 				"u_size" : [this.width, this.height+margin],
 				"scalex" : this.width / 256.0,
 				"scaley" : (this.height+margin) / 256.0,

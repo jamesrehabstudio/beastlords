@@ -9,6 +9,9 @@ class Player extends GameObject{
 	get attackProgress() {
 		return this.attstates.time / this.attstates.totalTime;
 	}
+	get isDownstabbing(){
+		return this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX;
+	}
 	constructor(x,y){
 		super(x,y);
 		this.position.x = x;
@@ -28,7 +31,7 @@ class Player extends GameObject{
 		this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
 		this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 		
-		_player = this;
+		self._player = this;
 		this.sprite = "player";
 		this.swrap = spriteWrap["player"];
 		
@@ -51,6 +54,7 @@ class Player extends GameObject{
 			"charge_multiplier" : false,
 			"stanimaLock" : false,
 			"rolling" : 0,
+			"back_dash" : 0,
 			"dash" : 0.0,
 			"dash_direction" : 1,
 			"airdash" : 0,
@@ -67,7 +71,7 @@ class Player extends GameObject{
 			"spellCurrent" : undefined,
 			"justjumped" : 0.0,
 			"ledgePosition" : false,
-			"canGrabLedges" : false,
+			"canGrabLedges" : 0.0,
 			"damageBuffer" : 0,
 			"damageBufferTick" : 0.0,
 			"animationProgress" : 0.0,
@@ -114,7 +118,9 @@ class Player extends GameObject{
 		this.on("pre_death", function(){
 			this.heal = 0;
 			game.slow(0,this.death_time);
-			//audio.stopAs("music");
+			
+			game.ga_event("death", game.newmapName, this.position.floor(256,240).toString());
+			
 		});
 		this.on("death", function(){
 			DemoThanks.deaths++;
@@ -159,15 +165,16 @@ class Player extends GameObject{
 			}
 		});
 		this.on("blockCollideHorizontal", function(h,block){
-			if(this.grabLedge && this.states.canGrabLedges){
+			if(this.grabLedge && this.states.canGrabLedges <= 0.0){
+				let grabHeight = 12;
 				var blockC =  block.corners();
 				var blockTop = blockC.top;
-				var currentTop = this.position.y - this.grabLedgeHeight;
-				var previousTop = currentTop - this.force.y * this.deltaPrevious;
+				var currentTop = this.position.y - grabHeight;
+				var nextTop = (this.position.y + this.force.y * UNITS_PER_METER * this.delta ) - grabHeight;
 				
-				if(currentTop >= blockTop && previousTop < blockTop){
+				if(nextTop >= blockTop && currentTop < blockTop){
 					this.states.ledgePosition = block;
-					this.gravity = this.force.x = this.force.y = 0;
+					this.force.x = this.force.y = 0;
 					
 					if(h > 0){
 						this.position.x = blockC.left - this.width * this.origin.x - 1;
@@ -223,7 +230,7 @@ class Player extends GameObject{
 				obj.displayDamage(fireDamage);
 				obj.isDead();
 				
-				if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
+				if(this.isDownstabbing){
 					this.trigger("downstabTarget", obj, 0);
 				}
 			}
@@ -276,7 +283,7 @@ class Player extends GameObject{
 			}
 		})*/;
 		this.on("break_tile", function(obj, damage){
-			if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
+			if(this.isDownstabbing){
 				this.trigger("downstabTarget", obj, damage);
 				obj.trigger("downstabbed", this, damage);
 			}
@@ -290,16 +297,22 @@ class Player extends GameObject{
 			this.states.airdashReady = true;
 			
 			if(this.isAttacking){
-				this.attstates.wait = 0.0;
+				
+				SparkEffect.create(this.position.add(obj.position).scale(0.5), 8);
+				
+				if(obj.life > 0 && this.grounded){
+					//Lock player into combo unless target is dead or player is moving
+					this.attstates.wait = this.attstates.hitWait;
+				}
+				
 				this.hitIgnoreList.push(obj);
 				
 				let attack = this.currentAttack;
 				
+				shakeCamera(Game.DELTASECOND * 0.25, 2.0 * attack.damage);
+				
 				if("pause" in attack){
 					game.slow(0.0, attack.pause);
-				}
-				if("shake" in attack){
-					shakeCamera(Game.DELTASECOND*0.25, attack.shake);
 				}
 				if("stun" in attack){
 					obj.stun = attack.stun;
@@ -307,21 +320,16 @@ class Player extends GameObject{
 						obj.airtime = attack.stun * this.perks.attackairboost;
 					}
 				}
-				if("knockback" in attack && obj.hasModule(mod_rigidbody)){
+				if("knockback" in attack && obj.hasModule(mod_combat)){
 					var scale = 1.0 / Math.max(obj.mass, 1.0);
 					var knock = new Point(this.forward() * attack.knockback.x, attack.knockback.y).scale(scale);
-					obj.force.x += knock.x;
-					obj.force.y += knock.y;
+					obj.combat_knockback.x += knock.x;
+					obj.combat_knockback.y += knock.y;
 				}
 				
 			}
 			
-			if( "life" in obj && obj.life <= 0 ) {
-				//Glow after a kill
-				this.states.afterImage.set(Game.DELTASECOND * 3);
-			}
-			
-			if(this.attstates.currentAttack == PlayerWeapon.DOWNATTACK_INDEX){
+			if(this.isDownstabbing){
 				//this.states.downStab = false;
 				this.trigger("downstabTarget", obj, damage);
 				obj.trigger("downstabbed", this, damage);
@@ -457,8 +465,30 @@ class Player extends GameObject{
 		this.grabLedgeHeight = 12;
 		
 		this.mapIcon = new MapIcon(this.position.x, this.position.y);
-		this.mapIcon.bobSpeed = 0.05;
+		this.mapIcon.bobSpeed = 4.0;
 		
+		this.checkAttackArea = function(ops){
+			if(this.attstates.time > 0 && this.attstates.time < this.attstates.totalTime){
+				let range = this.equip_sword.stats.range;
+				let path = this.currentAttack.path;
+				let area = new Point(6,6);
+				let i = Math.floor( (path.length-1) * this.attackProgress );
+				let d = ( this.attackProgress * (path.length-1) ) % 1.0;
+				let p = Point.lerp(path[i], path[i+1], d).scale(this.forward() * range, 1);
+				if(this.flip) {p.x -= area.x;}
+				
+				let box = new Line( this.position.add(p), this.position.add(p).add(area) )
+				
+				Combat.attackCheck.apply(this,[ box, ops ]);
+			} else {
+				//Use default attack tracking
+				let boxes = this.swrap.getAttackBoxes(this.frame, this);
+				for(let i=0; i < boxes.length; i++){
+					Combat.attackCheck.apply(this,[ boxes[i], ops ]);
+				}
+			}
+			
+		}
 		
 		this.combatFinalDamage = function(d){
 			if(this.perks.slowWound > 0){
@@ -516,7 +546,6 @@ class Player extends GameObject{
 		//Reset states
 		this.states.guard = false;
 		this.states.downStab = false;
-		this.states.canGrabLedges = false;
 		
 		//this.states.manaRegenTime = Math.min(this.states.manaRegenTime-this.delta, this.speeds.manaRegen);
 		this.states.manaRegenTime -= this.delta * (1 + this.perks.manaRegen);
@@ -601,6 +630,7 @@ class Player extends GameObject{
 				this.frame = this.swrap.frame("grab", 0);
 				this.force.x = 0;
 				this.force.y = this.gravity * -self.UNITS_PER_METER * this.delta;
+				this.states.canGrabLedges = Game.DELTASECOND * 0.125;
 				
 				if(this.states.ledgePosition instanceof GameObject && this.states.ledgePosition.hasModule(mod_block)){
 					this.position = this.position.add(this.states.ledgePosition.blockChange);
@@ -668,14 +698,34 @@ class Player extends GameObject{
 				let attackName = "attack" + (attack.animation);
 				this.frame = this.swrap.frame(attackName, this.attackProgress);
 				
-				
-				this.attstates.time += this.delta * (1.0 + this.perks.attackSpeed);
-				
-				//End attack
-				if(this.attstates.time > this.attstates.totalTime + this.attstates.wait){
+				if(input.state("dodge") == 1){
+					this.cancelAttack();
+					this.dodge();
+				} else if(this.attstates.warmTime > 0){
+					//Warm
+					this.attstates.warmTime -= this.delta;
+					
+				} else if(this.attstates.time < this.attstates.totalTime){
+					//Attacking
+					this.attstates.time += this.delta * (1.0 + this.perks.attackSpeed);
+					
+				} else if(this.attstates.coolTime > 0){
+					//Cool
+					this.attstates.coolTime -= this.delta;
+					
+				} else {
+					//End attack
 					let nextAttackIndex = this.equip_sword.stats.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
+					
 					if(this.attstates.queue && nextAttackIndex >= 0){
 						this.attack(nextAttackIndex);
+					} else if(input.state("jump") == 1 && this.grounded){
+						this.cancelAttack();
+						this.jump();
+					} else if((this.flip && input.state("right") > 0) || (!this.flip && input.state("left") > 0) ){
+						this.cancelAttack();
+					} else if(this.attstates.wait > 0){
+						this.attstates.wait -= this.delta;
 					} else {
 						this.cancelAttack();
 					}
@@ -686,6 +736,7 @@ class Player extends GameObject{
 				//Player is in move/idle state
 				
 				this.states.guard = ( input.state('block') > 0 || this.autoblock );
+				this.states.canGrabLedges = Math.clamp01(this.states.canGrabLedges - this.delta);
 				
 				if(input.state("select") == 1 && this.spells.length > 0){
 					audio.play("equip");
@@ -706,15 +757,11 @@ class Player extends GameObject{
 					this.states.guard = false;
 				}
 				
-				this.states.canGrabLedges = true;
-				if(this.grabLedge && this.states.againstwall && input.state('down') < 1 && !this.grounded && this.force.y > 0){
+				if(this.grabLedge && this.states.canGrabLedges <= 0 && this.states.againstwall && input.state('down') < 1 && !this.grounded && this.force.y > 0){
 					//Detect edge
 					if(this.testLedgeTiles()){
-						this.states.ledgePosition = new Point(
-							Math.floor(this.position.x/16) * 16,
-							Math.floor(this.position.y/16) * 16
-						);
-						this.position.y = 12 + Math.floor(this.position.y/16) * 16;
+						this.states.ledgePosition = this._prevPosition.scale(1/16).floor().scale(16);
+						this.position.y = 12 + this.states.ledgePosition.y;
 						/*
 						this.position = new Point(
 							this.states.ledgePosition.x + (this.flip?17+halfwidth:-halfwidth-1),
@@ -800,10 +847,7 @@ class Player extends GameObject{
 						this.states.airdashReady = false;
 					} else if(this.grounded && input.state("dodge") == 1 && this.states.dash <= 0){
 						//DASH LIKE A FIEND!
-						this.states.dash_direction = this.forward();
-						this.states.dash = this.speeds.dashTime;
-						this.force.x = this.states.dash_direction * this.speeds.dashSpeed;
-						audio.play("dash");
+						this.dodge();
 					} else if(this.states.turn > 0){
 						this.force.x = this.force.x * (1.0 - this.speeds.breaks * this.delta);
 						let tProg = 1 - (this.states.turn / this.speeds.turn);
@@ -836,7 +880,13 @@ class Player extends GameObject{
 					//Magic equation that smoothes the dash
 					let dSpeed = speedCoefficient * Math.PI *  Math.cos(dProg*0.5*Math.PI);
 					
-					this.frame = this.swrap.frame("dash", dProg);
+					if(this.states.back_dash){
+						this.frame = this.swrap.frame("back_dash", dProg);
+					} else {
+						this.frame = this.swrap.frame("dash", dProg);
+					}
+					
+					
 					this.force.x = this.states.dash_direction * this.speeds.dashSpeed * dSpeed;
 					
 					
@@ -1003,10 +1053,18 @@ class Player extends GameObject{
 		let attack = weapon.getAttack(attackIndex);
 		this.damageMultiplier = attack.damage;
 		this.attstates.currentAttack = attackIndex;
+		this.attstates.warmTime = attack.warm * weapon.warm;
+		this.attstates.coolTime = attack.cool * weapon.warm;
 		this.attstates.totalTime = attack.time * weapon.speed;
-		this.attstates.wait = attack.wait * weapon.missWait;
+		this.attstates.hitWait = attack.wait;
+		this.attstates.wait = 0.0;
 		this.attstates.queue = false;
 		this.attstates.time = 0.0;
+		
+		if(attack.prepause > 0){
+			game.slow(0.0, attack.prepause);
+			SparkEffect.create(this.position.add(new Point( this.forward()*-12, 0 )), 16);
+		}
 		
 		
 		if("force" in attack){
@@ -1022,6 +1080,13 @@ class Player extends GameObject{
 		this.attstates.time = 0.0;
 		this.attstates.queue = false;
 		this.hitIgnoreList = new Array();
+	}
+	dodge(){
+		this.states.back_dash = input.state("left") < 1 && input.state("right") < 1;
+		this.states.dash_direction = this.forward() * (this.states.back_dash ? -1 : 1);
+		this.states.dash = this.speeds.dashTime;
+		this.force.x = this.states.dash_direction * this.speeds.dashSpeed;
+		audio.play("dash");
 	}
 	getWeaponState(){
 		var state = PlayerWeapon.STATE_STANDING;
@@ -1291,7 +1356,7 @@ class Player extends GameObject{
 				GameObject.prototype.render.apply(this,[g,c]);
 			}
 			*/
-			let color = COLOR_WHITE;
+			let color = this.tint;
 			if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
 			g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
 				"u_color" : color

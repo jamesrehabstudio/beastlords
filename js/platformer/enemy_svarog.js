@@ -7,7 +7,7 @@ function Svarog(x,y,d,o){
 	this.width = 32;
 	this.height = 32;
 	
-	this.speed = 0.25;
+	this.speed = 7.5;
 	this.sprite = "svarog";
 	
 	this.addModule( mod_rigidbody );
@@ -96,7 +96,7 @@ Svarog.prototype.update = function(){
 			}
 			this.frame.x = (this.frame.x + this.delta * 0.2) % 4;
 			this.frame.y = 0;
-			this.force.x += this.forward() * this.speed * this.delta;
+			this.addHorizontalForce(this.forward() * this.speed);
 		}
 		
 		this.states.cooldown -= this.delta;

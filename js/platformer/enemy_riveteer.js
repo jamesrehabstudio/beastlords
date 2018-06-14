@@ -39,11 +39,13 @@ function Riveteer(x,y,d,o){
 		this.charged = o["charged"] * 1;
 	}
 	
+	/*
 	this.guard.x = -16;
 	this.guard.y = -20;
 	this.guard.w = 32;
 	this.guard.h = 16;
 	this.guard.omidirectional = true;
+	*/
 	
 	this.life = this.lifeMax = Spawn.life(1,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
@@ -62,6 +64,8 @@ Riveteer.prototype.update = function(){
 			this.frame.x = this.frame.y = 2;
 			if(this.states.attack <= 0){
 				if(this.states.chain > 0){
+					
+					audio.play("bullet1", this.position);
 					
 					var bullet = new Bullet(this.position.x + this.forward() * 24, this.position.y);
 					bullet.team = this.team;

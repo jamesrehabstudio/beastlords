@@ -42,6 +42,11 @@ class Material{
 		this.properties = {};
 		//this.textureSlots = {};
 		
+		this.mixtype = Material.MIX_ALPHA;
+		if("mixtype" in options){ 
+			this.mixtype = options["mixtype"];
+		}
+		
 		this.settings = [];
 		if( "settings" in options ) for( var i in options.settings ){
 			if(options.settings[i] instanceof Array){
@@ -159,11 +164,28 @@ class Material{
 		for(var i = 0; i < this.settings.length; i++){
 			this.set.apply(this, this.settings[i]);
 		}
+		
+		if(this.mixtype == Material.MIX_ADDITIVE){
+			//Additive
+			this.gl.blendFunc(this.gl.ONE, this.gl.ONE );
+			
+		} else if(this.mixtype == Material.MIX_ALPHA){
+			//Alpha
+			this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA );
+			
+		} else if(this.mixtype == Material.MIX_MULTIPLY){
+			//Multiply
+			this.gl.blendFunc(this.gl.DST_COLOR, this.gl.Zero );
+		}
+		
 		return this;
 	}
 	
 	render(){}
 }
+Material.MIX_ALPHA = 0;
+Material.MIX_ADDITIVE = 1;
+Material.MIX_MULTIPLY = 2;
 /*
 Material.prototype.setOptions = function(ops) {
 	for(var i in ops){
@@ -551,6 +573,7 @@ class Tilesheet extends Material{
 			}
 			*/
 		}
+		this.animations = options["animations"] || {};
 	}
 	
 	buildGeometry() {
@@ -676,6 +699,12 @@ class Tilesheet extends Material{
 			let mapIndex = Math.floor( x + (fpos.x / this.ts) + (y + Math.floor(fpos.y / this.ts)) * map.width );
 			let tile = getTileData(cLayer[mapIndex]);
 			let index = tile.tile;
+			
+			if(index in this.animations){
+				let tanim = this.animations[index];
+				let findex = Math.floor( game.gameTimeScaled * tanim.speed ) % tanim.frames.length;
+				index = tanim.frames[findex];
+			}
 			
 			if(index <= 0) index = 1024;
 			index--;

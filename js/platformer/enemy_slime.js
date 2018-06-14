@@ -71,59 +71,64 @@ function Slime(x,y,d,o){
 	this.calculateXP();
 }
 Slime.prototype.update = function(){
-	if(!this.grounded){
-		this.frame.x = 0;
-		this.frame.y = 2;
-	} else if(this.times.move){
-		this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 3.0) % 5;
-		this.frame.y = 0;
-		
-		this.addHorizontalForce(this.speed * this.forward());
-		
-		if(this.interactive){
-			this.strike(new Line(new Point(0,0), new Point(12,4)));
-		}
-		
-		
-		var forwardTile = game.getTile(this.position.add(new Point(this.flip?-16:16,0)));
-		var underTile = game.getTile(this.position.add(new Point(0,16)));
-		if(forwardTile > 0){
-			this.flip = !this.flip;
-		}
-		this.times.cooldown -= this.delta;
-		if(this.times.cooldown <= 0){
-			//Stop moving and reappear
-			this.times.move = 0;
-			this.force.x = 0;
-			this.times.transition = 0.0;
-			//If it's interactive, it means it's currently alive
-			this.times.melt = this.interactive;
-			this.interactive = false;
-		}
-	} else {
-		if(this.times.melt){
-			//
-			this.times.transition += this.delta * 3.0;
-			this.frame.x = Math.floor(this.times.transition * 5);
-			this.frame.y = 1;
-			if(this.times.transition >= 1){
-				this.visible = false;
-				this.times.move = 1;
-				this.times.cooldown = this.times.cooldownTime * 0.5;
-				this.flip = Math.random() > 0.5;
+	if(this.life > 0){
+		if(!this.grounded){
+			this.frame.x = 0;
+			this.frame.y = 2;
+		} else if(this.times.move){
+			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 3.0) % 5;
+			this.frame.y = 0;
+			
+			this.addHorizontalForce(this.speed * this.forward());
+			
+			if(this.interactive){
+				this.strike(new Line(new Point(0,0), new Point(12,4)));
+			}
+			
+			
+			var forwardTile = game.getTileRule(this.position.add(new Point(this.flip?-16:16,0)));
+			//var underTile = game.getTile(this.position.add(new Point(0,16)));
+			if(forwardTile != tilerules.ignore){
+				this.flip = !this.flip;
+			}
+			this.times.cooldown -= this.delta;
+			if(this.times.cooldown <= 0){
+				//Stop moving and reappear
+				this.times.move = 0;
+				this.force.x = 0;
+				this.times.transition = 0.0;
+				//If it's interactive, it means it's currently alive
+				this.times.melt = this.interactive;
+				this.interactive = false;
 			}
 		} else {
-			//reform
-			this.visible = true;
-			this.times.transition += this.delta * 3.0;
-			this.frame.x = 5 - Math.floor(this.times.transition * 5);
-			this.frame.y = 1;
-			if(this.times.transition >= 1){
-				this.interactive = true;
-				this.times.move = 1;
-				this.times.cooldown = this.times.cooldownTime;
+			if(this.times.melt){
+				//
+				this.times.transition += this.delta * 3.0;
+				this.frame.x = Math.floor(this.times.transition * 5);
+				this.frame.y = 1;
+				if(this.times.transition >= 1){
+					this.visible = false;
+					this.times.move = 1;
+					this.times.cooldown = this.times.cooldownTime * 0.5;
+					this.flip = Math.random() > 0.5;
+				}
+			} else {
+				//reform
+				this.visible = true;
+				this.times.transition += this.delta * 3.0;
+				this.frame.x = 5 - Math.floor(this.times.transition * 5);
+				this.frame.y = 1;
+				if(this.times.transition >= 1){
+					this.interactive = true;
+					this.times.move = 1;
+					this.times.cooldown = this.times.cooldownTime;
+				}
 			}
 		}
+	} else {
+		this.frame.x = 0;
+		this.frame.y = 2;
 	}
 }
 Slime.prototype.faceTarget = function(){

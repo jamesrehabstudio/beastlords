@@ -1,6 +1,6 @@
 DebugeMenu = {
 	"cursor" : 0,
-	"cursorItems" : 15,
+	"cursorItems" : 14,
 	"update" : function(){
 		if( input.state("up") == 1 ) { 
 			this.cursor = (this.cursor > 0) ? this.cursor - 1 : (this.cursorItems - 1); 
@@ -13,28 +13,19 @@ DebugeMenu = {
 		if( input.state("fire") == 1 ) { 
 			if(this.cursor == 0){
 				_player.lightRadius = !_player.lightRadius;
-			}
-			if(this.cursor == 1){
-				if(_player.grabLedge){
-					_player.grabLedge = false;
-					_player.speeds.jump = 9.3;
-				} else {
-					_player.grabLedge = true;
-					_player.speeds.jump = 7.0;
-				}
-			} else if(this.cursor == 2){
+			} else if(this.cursor == 1){
 				_player.downstab = !_player.downstab;
-			} else if(this.cursor == 3){
+			} else if(this.cursor == 2){
 				_player.doubleJump = !_player.doubleJump;
-			} else if(this.cursor == 4){
+			} else if(this.cursor == 3){
 				_player.walljump = !_player.walljump;
-			} else if(this.cursor == 5){
+			} else if(this.cursor == 4){
 				_player.dodgeFlash = !_player.dodgeFlash;
-			} else if(this.cursor == 6){
+			} else if(this.cursor == 5){
 				_player.lifeMax += 6;
 				_player.life += 6;
-			} else if(this.cursor >= 7){
-				var spellName = Spell.NAMES[this.cursor-7];
+			} else if(this.cursor >= 6){
+				var spellName = Spell.NAMES[this.cursor-6];
 				let spell = _player.spells.find(function(a){ return a.objectName == spellName; });
 				if(spell){
 					spell.level += 1;
@@ -44,11 +35,11 @@ DebugeMenu = {
 			}
 		}
 		if( input.state("jump") == 1) {
-			if(this.cursor == 6){
+			if(this.cursor == 5){
 				_player.lifeMax = Math.max(_player.lifeMax-6, 6);
 				_player.life = Math.min(_player.life, _player.lifeMax);
-			} else if(this.cursor >= 7){
-				var spellName = Spell.NAMES[this.cursor-7];
+			} else if(this.cursor >= 6){
+				var spellName = Spell.NAMES[this.cursor-6];
 				let spell = _player.spells.find(function(a){ return a.objectName == spellName; });
 				if(spell){
 					if(spell.level > 1){
@@ -71,10 +62,6 @@ DebugeMenu = {
 		var offy = 32;
 		textArea(g,"Light radius:",c.x+32,offy);
 		textArea(g,""+_player.lightRadius,c.x+144,offy);
-		offy += 12;
-		
-		textArea(g,"Grab Ledge:",c.x+32,offy);
-		textArea(g,""+_player.grabLedge,c.x+144,offy);
 		offy += 12;
 		
 		textArea(g,"Down Stab:",c.x+32,offy);

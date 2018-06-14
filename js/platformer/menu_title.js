@@ -180,8 +180,8 @@ TitleMenu.prototype.render = function(g,c){
 	
 	//Render foreground
 	var fpos = xpos + pan * 240 - 240;
-	g.renderSprite(this.bgsprite,new Point(fpos, tileSize.y),this.zIndex, new Point((game.time*0.333)%4,2));
-	g.renderSprite(this.bgsprite,new Point(fpos+60, tileSize.y-24),this.zIndex, new Point((game.time*0.2)%3,3));
+	g.renderSprite(this.bgsprite,new Point(fpos, tileSize.y),this.zIndex, new Point((game.time*10.0)%4,2));
+	g.renderSprite(this.bgsprite,new Point(fpos+60, tileSize.y-24),this.zIndex, new Point((game.time*6.0)%3,3));
 	
 	//Random twinkling stars
 	for(var i=0; i<this.stars.length; i++) {
@@ -209,7 +209,7 @@ TitleMenu.prototype.render = function(g,c){
 		g.renderSprite(this.bgsprite,new Point(xpos+107, Math.lerp(-480,32,pan)),this.zIndex, new Point(0,1));
 	}
 	
-	textArea(g,"Copyright Rattus/Rattus LLP 2017",8,4);
+	textArea(g,"Copyright 2018",8,4);
 	textArea(g,"Version "+version,8,228);
 }
 
@@ -292,6 +292,20 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(profile){
+	game.ga_event("newgame","demo");
+	
+	NPC.variables = {};
+	
+	new Player();
+	WorldLocale.loadMap("demo.tmx", "test");
+	
+	_player.lightRadius = true;
+	_player.downstab = true;
+	_player.dodgeFlash = true;
+	_player.baseStats.attack = 12;
+	_player.equip();
+	
+	/*
 	if(TitleMenu.profile_info[profile]){
 		WorldLocale.profile = profile;
 		WorldLocale.load();
@@ -299,6 +313,7 @@ TitleMenu.prototype.startGame = function(profile){
 		new Player();
 		WorldLocale.loadMap("gateway.tmx");
 	}
+	*/
 }
 TitleMenu.fetchProfiles = function(){
 	game.load(function(data){

@@ -752,11 +752,12 @@ Point.prototype.scale = function(x,y){
 	}
 	return new Point(this.x * x, this.y * y);
 }
-Point.prototype.floor = function(nearest){
-	if(!nearest) { nearest = 1;}
+Point.prototype.floor = function(nearest_x, nearest_y){
+	if(!nearest_x) { nearest_x = 1;}
+	if(!nearest_y) { nearest_y = nearest_x;}
 	return new Point(
-		Math.floor(this.x / nearest) * nearest, 
-		Math.floor(this.y / nearest) * nearest
+		Math.floor(this.x / nearest_x) * nearest_x, 
+		Math.floor(this.y / nearest_y) * nearest_y
 	);
 }
 Point.prototype.ceil = function(nearest){
@@ -810,6 +811,9 @@ Point.prototype.mod = function(l){
 }
 Point.prototype.toAngle = function(){
 	return Math.atan2(-this.y, this.x);
+}
+Point.prototype.toString = function(){
+	return this.x +"_"+ this.y;
 }
 Point.fromAngle = function(a,scale){
 	scale = scale || 1;
@@ -962,10 +966,24 @@ class Options{
 	}
 	getBool(name, defaultValue){
 		if(name in this) {
-			if(this[name].toLowerCase().trim() == "true"){return true;}
-			if(this[name].toLowerCase().trim() == "false"){return false;}
-			return !!this[name] * 1;
+			if(typeof this[name] == "string"){
+				if(this[name].toLowerCase().trim() == "true"){return true;}
+				if(this[name].toLowerCase().trim() == "false"){return false;}
+			}
+			return !!(this[name] * 1);
 		}
 		return !!defaultValue;
 	}
+	getList(name, defaultValue){
+		let s = this.getString(name, undefined);
+		if(s){
+			return s.split(",");
+		}
+		return defaultValue;
+	}
+}
+Options.convert = function(a){
+	if(a == undefined) { return new Options({}); }
+	if(a instanceof Options) { return a; }
+	return new Options(a);
 }

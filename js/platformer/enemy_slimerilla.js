@@ -160,7 +160,7 @@ class Slimerilla extends GameObject{
 		
 		this.sprite = "slimerilla";
 		this.swrap = spriteWrap["slimerilla"];
-		this.speed = 2.0;
+		this.speed = 4.0;
 		this.jumpSpeed = 4.0;
 		this.gravity = 0.5;
 		
@@ -193,7 +193,9 @@ class Slimerilla extends GameObject{
 		
 		this.on("struck", EnemyStruck);
 		this.on("collideObject", function(obj){
-			if(this.hidden){ this.states.reappear = this.times.reappear; }
+			if(obj instanceof Player){
+				if(this.hidden){ this.states.reappear = this.times.reappear; }
+			}
 		})
 		this.on("hurt",function(obj,damage){
 			audio.play("hurt",this.position);
@@ -231,6 +233,7 @@ class Slimerilla extends GameObject{
 				this.frame.y = 0;
 				this.pushable = false;
 				this.invincible = Math.max(this.invincible, 0.25);
+				this.combat_shootable = false;
 				
 				if(this.states.reappear > 0){
 					this.states.reappear -= this.delta;
@@ -243,6 +246,8 @@ class Slimerilla extends GameObject{
 					}
 				}
 			} else {
+				this.combat_shootable = true;
+				
 				if(this.states.takeshape > 0){
 					//Appearing
 					let p = 1 - this.states.takeshape / this.times.takeshape;

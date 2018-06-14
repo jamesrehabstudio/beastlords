@@ -253,6 +253,9 @@ Drain.prototype.render = function(g,c){
 			"u_buldge4" : this.buldgeToArray(3),
 			"u_buldge5" : this.buldgeToArray(4),
 			"u_buldge6" : this.buldgeToArray(5),
+			"u_wavefreq" : 0.0,
+			"u_waves" : 0.0,
+			"u_time" : game.timeScaled * this.waveSpeed
 		}
 	)
 	

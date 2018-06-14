@@ -7,7 +7,7 @@ function BookReptile(x,y,d,o){
 	this.width = 24;
 	this.height = 28;
 	this.sprite = "bookreptile";
-	this.speed = 0.5;
+	this.speed = 15.0;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
@@ -95,7 +95,7 @@ BookReptile.prototype.update = function(){
 			}
 		} else if( this.states.attack > 0) {
 			//Leap and swing at the player
-			this.frame.x = Math.min(this.frame.x + this.delta * 0.3, 3);
+			this.frame.x = Math.min(this.frame.x + this.delta * 9.0, 3);
 			
 			if(this.frame.x >= 1 && this.frame.x < 3){
 				this.strike(Axesub.attackRect);
@@ -109,11 +109,11 @@ BookReptile.prototype.update = function(){
 		} else {
 			//Run at player
 			if(this.grounded){
-				this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 0.1) % 6;
+				this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 3.0) % 6;
 				this.frame.y = 1;
 				
 				this.flip = dir.x > 0;
-				this.force.x += this.forward() * this.speed * this.delta;
+				this.addHorizontalForce(this.forward() * this.speed);
 			} else {
 				this.frame.x = 1 + Math.max(Math.min(this.force.y,1),-1) * 0.1;
 				this.frame.y = 3;

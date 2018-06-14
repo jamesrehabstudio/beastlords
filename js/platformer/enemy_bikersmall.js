@@ -7,23 +7,19 @@ function BikerSmall(x,y,d,o){
 	this.width = 32;
 	this.height = 32;
 	this.sprite = "biker";
-	this.speed = 0.2;
+	this.speed = 6.0;
 	this.topspeed = this.speed * 20;
 	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
 	this.states = {
+		"backtrack" : 0,
 		"cooldown" : 0,
 		"attack" : 0
 	}
 	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
-	}
+	this.difficulty = o.getInt("difficulty", Spawn.difficulty);
 	
 	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.mass = 1;
@@ -31,6 +27,16 @@ function BikerSmall(x,y,d,o){
 	this.pushable = false;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
+	
+	this.on("collideHorizontal", function(h){
+		if(this.states.backtrack <= 0){
+			var dir = this.position.subtract(this.target().position);
+			
+			if( (dir.x > 0 && h < 0) || (dir.x < 0 && h > 0) ){
+				this.states.backtrack = Game.DELTASECOND * 4.0;
+			}
+		}
+	});
 	
 	this.on("collideObject", function(obj){
 		if(this.life > 0 && obj instanceof Player){
@@ -50,18 +56,16 @@ function BikerSmall(x,y,d,o){
 
 BikerSmall.prototype.update = function(){
 	if ( this.life > 0 ) {
-		var dir = this.position.subtract(_player.position);
+		var dir = this.position.subtract(this.target().position);
 		
 		this.flip = this.force.x < 0;
+		this.states.backtrack -= this.delta;
 		this.states.cooldown -= this.delta;
 		this.states.attack -= this.delta;
 		
-		if(dir.x > 0){
-			this.force.x -= this.speed * this.delta;
-		} else {
-			this.force.x += this.speed * this.delta;
-		}
-		this.force.x = Math.min(Math.max(this.force.x, -this.topspeed), this.topspeed);
+		let f = (dir.x > 0 ? -1 : 1) * (this.states.backtrack > 0 ? -1 : 1);
+		this.addHorizontalForce(this.speed * f, 0.6);
+		
 		
 		if(this.states.cooldown <= 0 && Math.abs(dir.x) < 64){
 			this.states.attack = Game.DELTASECOND * 0.5;

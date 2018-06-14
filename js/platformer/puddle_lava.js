@@ -15,8 +15,9 @@ class Lava extends Puddle{
 		
 		this.raisedHeight = d[1];
 		this.lowerHeight = ops.getInt("triggerheight", this.raisedHeight);
-		this.speed = ops.getFloat("drainspeed", 1.0) * ( 32 / Math.abs(this.raisedHeight - this.lowerHeight) );
+		this.speed = ops.getFloat("drainspeed", 1.0) * Math.clamp( 32 / Math.abs(this.raisedHeight - this.lowerHeight), 1e-16, 1e16 );
 		this.delay = ops.getFloat("delay", 0.0);
+		this.triggersave = ops.getString("triggersave");
 		
 		this._tid = ops.getString("trigger", null);
 		
@@ -24,6 +25,14 @@ class Lava extends Puddle{
 		this._damageTickTimer = 0.0;
 		this._drained = false;
 		this._drainLevel = 0.0;
+		
+		if(this.triggersave){
+			if(NPC.get(this.triggersave)){
+				this.height = this.lowerHeight;
+				this._drained = true;
+				this._drainLevel = 1.0;
+			}
+		}
 		
 		this.on(["sleep","wakeup"], function(){
 			if(this._drained){
@@ -51,13 +60,19 @@ class Lava extends Puddle{
 					obj.displayDamage(this.fireDamage);
 					obj.isDead();
 					
+					obj.trigger("in_lava", this);
+					
+					
 				}
 			}
 		});
 	}
 	update(){
 		super.update();
-		this.glow(64,COLOR_FIRE);
+		
+		if(this.height > 0 && this.width > 0){
+			this.glow(64,COLOR_FIRE);
+		}
 		
 		this._damageTickTimer -= this.delta;
 		this._damageTick = false;

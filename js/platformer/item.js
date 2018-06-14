@@ -15,7 +15,7 @@ function Item(x,y,d, ops){
 	
 	this.frames = false;
 	this.animation_frame = Math.random() * 3;
-	this.animation_speed = 0.25;
+	this.animation_speed = 7.5;
 	this.enchantChance = 0.8;
 	this.itemid = null;
 	this.time = 0.0;
@@ -62,7 +62,7 @@ function Item(x,y,d, ops){
 		if( obj instanceof Player && this.interactive ){
 			if( this.name.match(/^key_\d+$/) ) if( obj.keys.indexOf( this ) < 0 ) { obj.keys.push( this ); game.slow(0,0.3); audio.play("key"); }
 			if( this.name == "life" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 24; }
-			if( this.name == "life_up" ) { obj.lifeMax += 6; obj.heal += 6; DemoThanks.items++; }
+			if( this.name == "life_up" ) { obj.lifeMax += 8; obj.heal += 999; DemoThanks.items++; }
 			if( this.name == "life_small" ) { if(obj.life >= obj.lifeMax) return; obj.heal = 5; }
 			if( this.name == "mana_small" ) { if(obj.mana >= obj.manaMax) return; obj.manaHeal = 12; audio.play("gulp"); }
 			if( this.name == "money_bag" ) { Item.dropMoney(obj.position, 50, Game.DELTASECOND*0.5); }
@@ -104,7 +104,7 @@ function Item(x,y,d, ops){
 			
 			if( this.name == "lightradius") { obj.lightRadius = true; this.pickupEffect(); DemoThanks.items++; }
 			if( this.name == "downstab") { obj.downstab = true; this.pickupEffect(); DemoThanks.items++;}
-			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); DemoThanks.items++;}
+			if( this.name == "doublejump") { obj.doubleJump = true; this.pickupEffect(); ItemGet.create(this.name); DemoThanks.items++;}
 			if( this.name == "gauntlets") { obj.walljump = true; this.pickupEffect(); DemoThanks.items++;}
 			if( this.name == "dodgeflash") { obj.dodgeFlash = true; this.pickupEffect(); DemoThanks.items++;}
 			
@@ -178,11 +178,8 @@ function Item(x,y,d, ops){
 				obj.equip();
 			}
 			
-			var pm = game.getObject(PauseMenu);
-			if( pm != null && this.message != undefined ) {
-				pm.message( this.getMessage() );
-			}
 			if(this.itemid){
+				game.ga_event("item", this.name, this.itemid);
 				NPC.set(this.itemid,1)
 			}
 			//this.interactive = false;
@@ -358,7 +355,7 @@ Item.prototype.setName = function(n){
 	if( this.name == "charm_soul") { this.frame.x = 8; this.frame.y = 8; this.message = "Soul Charm\nA magic seal will protect you.";}
 	
 	//All items below this point glow!
-	this.glowing=true;
+	this.glowing = true;
 		
 	if(n == "life_up") { this.frame.x = 6; this.frame.y = 1; return; }
 	if( this.name == "intro_item") { this.frame.x = 0; this.frame.y = 4; this.message = "Mysterious drink.";}
@@ -475,33 +472,15 @@ Item.prototype.update = function(){
 		this.flip = this.frame.x < 0;
 		this.frame.x = Math.abs(this.frame.x);
 	}
-}
-
-Item.prototype.render = function(g,c){
-	if( !this.glowing ) {
-		GameObject.prototype.render.apply(this,[g,c]);
-	} else {
-		this.glow += this.delta * 0.05;
-		
-		var a = (1.0 + Math.sin(this.glow)) * 0.5;
-		var o = new Point(0, (a-0.5) * 2);
-		
-		g.renderSprite(this.sprite, 
-			this.position.subtract(c).add(o),
-			this.zIndex,
-			this.frame,
-			false,
-			{
-				"shader":"item",
-				"u_frameSize" : [16,16],
-				"u_pixelSize" : 256,
-				"u_color":[0.8,0.1,1.0,a]
-			}
-		);
+	
+	if( this.glowing ) {
+		Background.pushLight(this.position, 128, COLOR_WHITE);
 	}
 }
 
 Item.drop = function(obj){
+	DemoThanks.kills++;
+	
 	if("moneyDrop" in obj){
 		Item.dropMoney(obj.position, obj.moneyDrop);
 	}

@@ -87,7 +87,7 @@ DemoThanks.prototype.render = function(g,c){
 	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
 	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
 	
-	textArea(g,"Copyright Rattus/Rattus LLP 2016",8,4);
+	textArea(g,"Copyright 2018",8,4);
 	textArea(g,"Version "+version,8,228);
 }
 

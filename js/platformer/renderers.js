@@ -6,6 +6,8 @@ var textLookup = [
 	"'","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o",
 	"p","q","r","s","t","u","v","w","x","y","z","{","}","\v","\b","@"
 ];
+CHAR_ESCAPE = "\u0003";
+
 var text_size = 8;
 var text_height = 12;
 
@@ -27,13 +29,14 @@ function cursorArea(g,x,y,w,h){
 	g.scaleFillRect(x+w-16, y+h-4, 16, 4 );
 }
 
-function boxArea(g,x,y,w,h){
+function boxArea(g,x,y,w,h,z=-99){
 	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(x, y, w, h );
+	g.drawRect(x, y, w, h, z );
+	g.drawRect(x+8, y+8, w-16, h-16, z+2 );
+	
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(x+7, y+7, w-14, h-14 );
-	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(x+8, y+8, w-16, h-16 );
+	g.drawRect(x+7, y+7, w-14, h-14, z+1 );
+	
 }
 function textArea(g,s,x,y,w,h){
 	var _x = 0;
@@ -55,7 +58,9 @@ function textArea(g,s,x,y,w,h){
 	}
 	
 	for(var i=0; i < s.length; i++ ){
-		if(s[i] == "\n") {
+		if(s[i] == CHAR_ESCAPE){
+			break;
+		} else if(s[i] == "\n") {
 			_x = 0; _y++;
 		} else {
 			var index = textLookup.indexOf(s[i]);

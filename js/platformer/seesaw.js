@@ -142,6 +142,10 @@ class SeeSaw extends GameObject {
 				for(let j=0; j < this.platforms[i].standing.length; j++){
 					let obj = this.platforms[i].standing[j];
 					
+					if(obj instanceof Player){
+						obj.camera_narrowVRange = 3.0;
+					}
+					
 					if( (!obj.grounded && obj.force.y < 0) || Math.abs(p.x - obj.position.x) > (obj.width*0.5+16) ){
 						//Remove object
 						this.platforms[i].standing.remove(j);

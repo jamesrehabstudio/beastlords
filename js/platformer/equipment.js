@@ -1,85 +1,113 @@
 var PlayerAttackList = [
 	{	//Standing attack 1
 		"damage":1.0,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait":Game.DELTASECOND,
+		"wait" : Game.DELTASECOND,
 		"animation" : 0,
-		"pause" : Game.DELTAFRAME30,
+		"prepause" : 0.0,
+		"pause" : 0.125 * Game.DELTASECOND,
 		"stun" : 0.5*Game.DELTASECOND,
 		"movement" : 0.3,
 		"audio" : "swing",
-		"mesh" : "slash1"
+		"mesh" : "slash1",
+		"path" : [new Point(0,-8), new Point(1,-12), new Point(0.5,-16)]
 	},
 	{	//Standing attack 2
 		"damage":1.2,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait":Game.DELTASECOND,
+		"wait" : Game.DELTASECOND,
 		"animation" : 1,
-		"pause" : Game.DELTAFRAME30,
+		"prepause" : 0.0,
+		"pause" : 0.125 * Game.DELTASECOND,
 		"stun" : 0.5*Game.DELTASECOND,
 		"movement" : 0.3,
 		"audio" : "swing",
-		"mesh" : "slash2"
+		"mesh" : "slash2",
+		"path" : [new Point(0.5,-16), new Point(1,-12), new Point(0,-8)]
 	},
 	{	//Standing attack 3
 		"damage":1.5,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait":1.2*Game.DELTASECOND,
+		"wait" : 0.0,
 		"animation" : 2,
 		"force" : new Point(3.0, 0.0),
-		"pause" : Game.DELTAFRAME30 * 4,
-		"knockback" : new Point(4,0),
+		"prepause" : 0.0,
+		"pause" : 0.25 * Game.DELTASECOND,
+		"knockback" : new Point(10,0),
 		"stun" : 0.25 * Game.DELTASECOND,
 		"movement" : 0.0,
 		"audio" : "swing",
-		"mesh" : "slash3"
+		"mesh" : "slash3",
+		"path" : [new Point(0,-12), new Point(1.2,-12), new Point(1,-12)]
 	},
 	{	//Charge attack
 		"damage":3.0,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
 		"time" : 1.5*Game.DELTASECOND,
-		"wait":1.0*Game.DELTASECOND,
+		"wait" : 0.0,
 		"animation" : 3,
+		"prepause" : 0.3 * Game.DELTASECOND,
 		"stun" : 0.7 * Game.DELTASECOND,
 		"pause" : Game.DELTASECOND * 0.25,
 		"force" : new Point(12.0, 0.0),
 		"movement" : 0.1,
 		"audio" : "swing2",
-		"mesh" : "slashc"
+		"mesh" : "slashc",
+		"path" : [new Point(-.25,-8), new Point(1,-12), new Point(0.5,-16)]
 		//"airtime" : (warmTime+1.5*baseTime+restTime) * Game.DELTASECOND
 	},
 	{	//uppercut
 		"damage":0.8,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
 		"time" : 1.5*Game.DELTASECOND,
-		"wait":Game.DELTASECOND,
+		"wait" : Game.DELTASECOND,
 		"animation" : 4,
-		"pause" : Game.DELTAFRAME30 * 2,
+		"prepause" : 0.0,
+		"pause" : Game.DELTASECOND * 0.3,
 		"stun" : 0.5 * Game.DELTASECOND,
 		"knockback" : new Point(0.0, -8.0),
 		"force" : new Point(0, -8.0),
 		"movement" : 0.3,
 		"audio" : "swing2",
-		"mesh" : "slashu"
+		"mesh" : "slashu",
+		"path" : [new Point(0,-8), new Point(1,-24), new Point(0.3,-32)]
 	},
 	{	//duck attack
 		"damage":1.2,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait": Game.DELTASECOND,
+		"wait" : Game.DELTASECOND,
 		"animation" : 5,
+		"prepause" : 0.0,
 		"force" : new Point(0.0, 0.0),
 		"stun" : 0.3 * Game.DELTASECOND,
 		"movement" : 0.0,
 		"audio" : "swing",
-		"mesh" : "slash3"
+		"mesh" : "slash3",
+		"path" : [new Point(0,6), new Point(1.2,6), new Point(0.5,6)]
 	},
 	{	//Down stab
 		"damage":1.0,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait": 0.0,
+		"wait" : 0.0,
 		"animation" : 6,
+		"prepause" : 0.0,
 		"stun" : 0.7 * Game.DELTASECOND,
 		"movement" : 1.0,
 		"audio" : "swing",
-		"mesh" : "slashd"
+		"mesh" : "slashd",
+		"path" : [new Point(-0.05,8), new Point(0,36), new Point(0.05,8)]
 		//"airtime" : 0.3 * Game.DELTASECOND
 	}
 ];
@@ -124,10 +152,11 @@ WeaponStats.burningblade.color2 = [1,0.5,0.0,1.0];
 */
 
 class PlayerWeapon {
-	constructor(name, speed, missWait, damage, range) {
+	constructor(name, warm, cool, speed, damage, range) {
 		this.name = name;
+		this.warm = warm;
+		this.cool = cool;
 		this.speed = speed;
-		this.missWait = missWait;
 		this.damage = damage;
 		this.range = range;
 		
@@ -143,7 +172,8 @@ class PlayerWeapon {
 		};
 		this.combos = {
 			0 : {"standing" : 1, "jumping":1},
-			1 : {"standing" : 2}
+			1 : {"standing" : 2},
+			5 : {"ducking" : 5}
 		};
 	}
 	onEquip(player){}
@@ -174,13 +204,13 @@ PlayerWeapon.CHARGED_INDEX = 3;
 PlayerWeapon.DOWNATTACK_INDEX = 6;
 
 WeaponList = {
-	//name, speed, missWait, damage, range
-	"short_sword" : new PlayerWeapon("short sword", 0.25,0.10,1.0,38),
-	"long_sword" : new PlayerWeapon("long sword", 0.25,0.2,1.5,48),
-	"broad_sword" : new PlayerWeapon("broad_sword", 0.25,0.3,2.0,42),
-	"morningstar" : new PlayerWeapon("morning star", 0.45,0.35,2.0,40),
-	"bloodsickle" : new PlayerWeapon("blood sickle", 0.25,0.15,0.8,36),
-	"burningblade" : new PlayerWeapon("burning blade", 0.25,0.2,0.85,38),
+	//name, warm, cool, speed, damage, range
+	"short_sword" : new PlayerWeapon("short sword", 	0.125,0.25,0.125, 		1.0,	38),
+	"long_sword" : new PlayerWeapon("long sword", 		0.125,0.25,0.25,		1.5,	48),
+	"broad_sword" : new PlayerWeapon("broad_sword", 	0.125,0.25,0.25,		2.0,	42),
+	"morningstar" : new PlayerWeapon("morning star", 	0.125,0.25,0.25,		2.0,	40),
+	"bloodsickle" : new PlayerWeapon("blood sickle", 	0.125,0.25,0.25,		0.8,	36),
+	"burningblade" : new PlayerWeapon("burning blade", 	0.125,0.25,0.25,		0.85,	38),
 };
 
 WeaponList.morningstar.combos = {

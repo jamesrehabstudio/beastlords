@@ -60,7 +60,7 @@ HammerMan.prototype.update = function(){
 		this.attackTime = (this.attackTime + this.delta) % this.attackTimeTotal;
 		this.frame = HammerMan.anim_attack.frame(this.attackTime/this.attackTimeTotal);
 		if(Timer.isAt(this.attackTime, this.attackTimeTotal*0.45, this.delta)){
-			this.strike(new Line(0,-20,42,-4));
+			this.strike(new Line(0,-24,42,-4));
 		}
 	} else {
 		this.frame.x = 2;

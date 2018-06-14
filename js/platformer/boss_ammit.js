@@ -83,6 +83,7 @@ function Ammit(x,y,d,o){
 		}
 	});
 	this.on("death", function(){
+		NPC.set("ammit", NPC.get("ammit")+1);
 		audio.play("kill");
 		
 		Item.drop(this,65);

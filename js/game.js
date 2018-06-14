@@ -210,6 +210,8 @@ function Game( elm ) {
 	this.filter = 0;
 	this.objects = {};
 	this.map = null;
+	this.gameTime = 0.0;
+	this.gameTimeScaled = 0.0;
 	
 	//Per frame datastructures
 	this.time = new Date();
@@ -238,7 +240,7 @@ function Game( elm ) {
 	this.g.closePath = function(){};
 	
 	this.finalBuffer = new BackBuffer();
-	this.lightBuffer = new BackBuffer();
+	this.lightBuffer = new BackBuffer(undefined, {"mixtype":Material.MIX_MULTIPLY});
 	this.hudBuffer = new BackBuffer();
 	this.backBuffer = new BackBuffer();
 	
@@ -306,6 +308,9 @@ Game.prototype.onmessage = function(data){
 		this.map = null;
 		MapLoader.loadMapTmx("maps/" + data.loadmap);
 	}
+	if("clearAll" in data){
+		this.map = null;
+	}
 	
 	if("prompt" in data){
 		var d = prompt(
@@ -329,11 +334,21 @@ Game.prototype.onmessage = function(data){
 		}
 	}
 	
+	if("ga_event" in data){		
+		let arg = ["send","event"].concat( data["ga_event"] );
+		ga.apply(window, arg);
+	}
+	
 	if("settings" in data){
 		this.applySettings( data["settings"] );
 	}
 	
-	if("tiles" in data){
+	if("times" in data){
+		this.gameTime = data["times"].time;
+		this.gameTimeScaled = data["times"].timeScaled;
+	}
+	
+	if("tiles" in data && game.map){
 		for(var layer in data["tiles"]){
 			for(var index in data["tiles"][layer]){
 				if(layer in game.map.layers && index in game.map.layers[layer]){
@@ -524,8 +539,9 @@ Game.prototype.render = function( ) {
 	//this.g.renderBackbuffer(this.backBuffer.texture);
 	this.backBuffer.render();
 	
+	
 	if(useLightBuffer){
-		this.g.blendFunc(this.g.DST_COLOR, this.g.Zero );
+		//this.g.blendFunc(this.g.DST_COLOR, this.g.Zero );
 		this.lightBuffer.render();
 		//this.g.renderBackbuffer(this.lightBuffer.texture);
 	}
@@ -533,6 +549,7 @@ Game.prototype.render = function( ) {
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA );
 	this.hudBuffer.render();
 	//this.g.renderBackbuffer(this.hudBuffer.texture);
+	
 	
 	this.g.viewport(0,0,this.element.width,this.element.height);
 	this.finalBuffer.reset(this.g);

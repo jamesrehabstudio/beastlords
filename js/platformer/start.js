@@ -1,4 +1,4 @@
-var version = "0.5.1";
+var version = "0.5.3";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -12,23 +12,27 @@ function game_start(g){
 	g.addObject( new TitleMenu() );
 	//return;
 	
+	
 	setTimeout(function(){
+		return;
+		
 		new Player(0,0);		
 		_player.lightRadius = true;
 		_player.downstab = true;
 		_player.doubleJump = true;
+		//_player.walljump = true;
 		_player.dodgeFlash = true;
-		_player.walljump = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("mills.tmx", "test");
+		WorldLocale.loadMap("demo.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
 			//_player.life = _player.lifeMax = 36;
-			_player.mana = _player.manaMax = 36;
+			//_player.mana = _player.manaMax = 36;
 			//_player.money = 36000;
 			
 			
+			/*
 			NPC.set("long_sword",1);
 			NPC.set("broad_sword",1);
 			NPC.set("morningstar",1);
@@ -45,7 +49,7 @@ function game_start(g){
 			_player.spells.push( new SpellPurify());
 			_player.spells.push( new SpellShield());
 			_player.spells.push( new SpellStrength());
+			*/
 		}, 1000);
 	},100);
-	/**/
 }

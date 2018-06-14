@@ -75,6 +75,14 @@ tilerules.rules["default"] = {
 	1004:tilerules.ceil_0to1,
 };
 
+tilerules.rules["gateway"] = mergeLists({
+	33:tilerules.ignore, 34:tilerules.ignore, 35:tilerules.ignore, 36:tilerules.ignore,37:tilerules.ignore, 38:tilerules.ignore,
+	65:tilerules.ignore, 97:tilerules.ignore, 129:tilerules.ignore, 131:tilerules.ignore, 133:tilerules.ignore,
+	161:tilerules.ignore, 193:tilerules.ignore, 225:tilerules.ignore, 
+	226:tilerules.ignore, 227:tilerules.ignore, 228:tilerules.ignore, 229:tilerules.ignore, 230:tilerules.ignore,
+	968:tilerules.ignore, 136:tilerules.ignore, 39:tilerules.ignore, 40:tilerules.ignore, 
+}, tilerules.rules["default"]);
+
 tilerules.rules["firepits"] = mergeLists({
 	271:tilerules.ignore, 272:tilerules.ignore,303:tilerules.ignore, 304:tilerules.ignore,
 	98:tilerules.ignore, 99:tilerules.ignore,
@@ -82,6 +90,13 @@ tilerules.rules["firepits"] = mergeLists({
 	257:tilerules.ignore, 291:tilerules.ignore, 293:tilerules.ignore, 321:tilerules.ignore, 323:tilerules.ignore, 359:tilerules.ceil_1to0, 360:tilerules.ceil_0to1,
 	353:tilerules.ignore, 385:tilerules.ignore, 386:tilerules.ignore, 386:tilerules.ignore, 387:tilerules.ignore, 388:tilerules.ignore,
 	389:tilerules.ignore, 390:tilerules.ignore, 417:tilerules.ignore, 418:tilerules.ignore, 419:tilerules.ignore
+}, tilerules.rules["default"]);
+
+tilerules.rules["temple2"] = mergeLists({
+	271:tilerules.ignore, 272:tilerules.ignore,303:tilerules.ignore, 304:tilerules.ignore,
+	275:tilerules.ignore, 307:tilerules.ignore, 308:tilerules.ignore, 
+	326:tilerules.ignore, 327:tilerules.ignore, 328:tilerules.ignore, 
+	358:tilerules.ignore, 390:tilerules.ignore, 422:tilerules.ignore, 
 }, tilerules.rules["default"]);
 
 tilerules.rules["temple4"] = mergeLists({

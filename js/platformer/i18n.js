@@ -1,8 +1,8 @@
-//♡
+//
 i18n_language = "english";
 i18n_messages = {
 	"intro_text" : {
-		"english" : "This is a closed alpha released on the 19th of June, 2016. This version is to be shared with close friends for a 'first impression' and to gather some feedback about the game. Is it too hard, too easy, no fun, too fun? Is there a part you found frustrating or something you think needs changed? This is what this demo is meant to assess. If you weren't explictly given this demo, then someone was naughty.",
+		"english" : "This is an open alpha demo released on the 12th of June, 2018. This version is to be shared with anyone for 'first impressions' and to gather some feedback about the game. Specifically any information about performance. Thanks for taking part. You can reach me on twitter 'pogamesuk'.",
 		"engrish" : "Distant war has hurt the land. The people will search for their home to a new land is safe from a distance dispute. Look out for poverty. In the castle of a mysterious Beast Lords take what is necessary for what is needed to survive. You will save the new home."
 	},
 	"introduction" : {
@@ -22,7 +22,7 @@ i18n_messages = {
 		"engrish" : "You will learn How to play. Please enjoy to the story of origin."
 	},
 	"start_help" : {
-		"english" : "Enter the world of Beast Lords. Play the closed alpha demo.",
+		"english" : "Enter the world of Monstervania. Play the closed alpha demo.",
 		"engrish" : "Play the game. Please note, death is permanent."
 	},
 	"templenames" : {
@@ -57,14 +57,19 @@ i18n_messages = {
 			"temple4.tmx"	:"Beast City Residence"
 		},
 	},
+	
+	"item_doublejump" : {
+		"english" : "Double Jump"
+	},
+	
 	"item_lightradius" : {
 		"english" : "Dark visions\nAllows user to see in the dark."
 	},
 	"item_downstab" : {
 		"english" : "Down stab\nWhile in the air hold down and press %fire% to perform a down stab."
 	},
-	"item_doublejump" : {
-		"english" : "Double Jump\nPress %jump% while in the air to perform a second jump."
+	"item_doublejump_desc" : {
+		"english" : "Press %jump% while in the air to perform a second jump. This can help you reach high locations."
 	},
 	"item_gauntlets" : {
 		"english" : "Gauntlets\nAllows the user to jump off against walls."
@@ -178,19 +183,12 @@ i18n_messages = {
 	},
 	"miner0" : {
 		"english" : [
-			"This is no good. We were sent up here to mine. But we found this big old relief in the way. We don't exactly wanna break it. Could you ask the professor for us? He'll know what to do.",
-			"Talk to the professor in NEARBYTOWN. He'll help us move this relief",
-			"You talked to him? He wants you to get a magic wand? Maybe the professor is losing his marbles.",
-			"I can't believe that actually worked. Here was me thinkin' we had the week off"
+			""
 		]	
 	},
 	"town01_professor" :{
 		"english" : [
-			"Thank you, young... man. Without Chort's minons running around the countryside, my research can continue unabated!",
-			"There's a large relief blocking the cave's entrence?! How amazing! That's a ancient door. Rather than have those brutes ruin it with their picks, find my brother in the south of the forest. He hides himself away, but he'll have the wand needed to open this cave.",
-			"Have you spoken with my brother? He lives south of here, on the other side of the forest.",
-			"You got the wand! It's certainly a marvel to see. It must be thousands of years old. Use it on the relief at the cave's entrence.",
-			"Hard to believe after so many years, these ancient gadgets still work."
+			""
 		]
 	},
 	"town02_hermit" :{
@@ -208,25 +206,7 @@ i18n_messages = {
 	},
 	"wailingwall" :{
 		"english" : [
-			"Are... are you okay there, friend?",
-			"Someone told you if you put your head against this rock and you'll end up in across the river?! I think someone might be having you on. Here. Come and join us by our fire.",
-			"My name is Lance, and this is my friend Carl. We're travelers in these parts. We don't see many people in these parts.",
-			"Yeah, especially Beasts.",
-			"Don't be rude, Carl.",
-			"I'm not being rude. I'm just saying... I've nothing against Beast Lords.",
-			"Some of your best friends are Beast Lords. Eh, Carl?",
-			"As a matter of fact, yes.",
-			"Carl is sweet on this Beast Lord girl, but she doesn't speak a word of the language.",
-			"People can have a very meaningful time together without actually talking, Lance.",
-			"Ooooh, look at you, boasting!",
-			"Knock it off, Lance. She's not like that. She's really sweet.",
-			"It's a good thing you two can't speak. She'd realise what an oaf you are.",
-			"Anyway, why do you want to cross the river for, stranger? Haven't you heard the land there is haunted?",
-			"He's not joking either. I heard there was a resentful spirit that strikes any trespassers dead with fright.",
-			"I think Carl's girl may be from that island. The only words in our language she can speak is this weird little prayer. How does it go, Carl?",
-			"I dunno if I should be telling you this. You seem friendly, the last thing I want is you rushing off into that acursed island...",
-			"...but if you really want to know it...",
-			"Good luck, friend. Don't mess with devils and ghosts."
+			""
 		]
 	},
 	
@@ -234,13 +214,7 @@ i18n_messages = {
 	//Phantom Pass
 	"phantompass" :{
 		"english" : [
-			"You're a strange one. You know the lament of the dead? It's a prayer for releasing lost souls, not many Mortals know it.",
-			"You want past? I cannot allow it. This is the land of the dead. No living creature can be permitted.",
-			"Perhaps there is a way for you to pass. There is something you can do for the dead to ease their weary souls. How about it?",
-			"This is Bardo, the land between life and death. Find the lost souls in this place and pray for their release.",
-			"I first wandered these lands, like you, as a living man. I wanted to help the ill and dying of this land. They were sent here to die, and offered respite.",
-			"But there were so many dead here, I haven't even half completed my task.",
-			"Good luck, young warrior. Return here once you have prayed for all the lost souls."
+			""
 		]
 	},
 	"phantomend" :{

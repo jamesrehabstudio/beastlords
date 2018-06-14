@@ -107,12 +107,17 @@ Bullet.prototype.update = function(){
 }
 
 Bullet.hit = function(obj){
-	if( "team" in obj && this.team != obj.team && obj.hurt instanceof Function ) {
-		if( !this.blockable || !obj.hasModule(mod_combat) ) {
+	if( obj.hasModule(mod_combat) && obj.combat_shootable && this.team != obj.team ) {
+		
+		if( !this.blockable ) {
+			
 			if(this.ignoreInvincibility){
 				obj.invincible = 0.0;
 			}
+			
 			obj.hurt( this, Combat.getDamage.apply(this) );
+			
+			this.trigger("death");
 		} else {
 			var flip = obj.flip ? -1:1;
 			var shield = new Line(
@@ -122,19 +127,29 @@ Bullet.hit = function(obj){
 				obj.position.y + (obj.guard.y + obj.guard.h)
 			);
 			
-			if( obj.guard.active && (this.flip!=obj.flip) && shield.overlaps(this.bounds()) ){
-				this.trigger("blocked",obj);
-				obj.trigger("block",this,this.bounds(),this.damage);
-			} else {
-				if(this.ignoreInvincibility){
-					obj.invincible = 0.0;
+			let blocked = false;
+			let sareas = obj.combat_shieldArea();
+			
+			for(let i=0; i < sareas.length; i++){
+				if( sareas[i].overlaps( this.bounds() ) ){
+					this.trigger("blocked",obj);
+					obj.trigger("block",this,this.bounds(),this.damage);
+					blocked = true;
+					break;
 				}
-				this.trigger("hurt_other",obj);
-				obj.hurt( this, Combat.getDamage.apply(this) );
 			}
 			
+			if(!blocked){
+				if(this.ignoreInvincibility){ obj.invincible = 0.0; }
+				
+				if(obj.invincible <= 0){
+					
+					obj.hurt( this, Combat.getDamage.apply(this) );
+				}
+			}
+			
+			this.trigger("death");
 		}
-		this.trigger("death");
 	}
 }
 Bullet.prototype.render = function(g,c){

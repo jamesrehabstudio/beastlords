@@ -14,6 +14,14 @@ function Checkpoint(x,y,d,ops){
 			this.activate(obj);
 		}
 	});
+	
+	this.on("added", function(){
+		if(false){
+			//Add a wizard! 
+			let sm = new SpellMaster(this.position.x + 32, this.position.y+8);
+			game.addObject(sm);
+		}
+	});
 }
 
 Checkpoint.prototype.activate = function(obj){
@@ -24,10 +32,13 @@ Checkpoint.prototype.activate = function(obj){
 	}
 	
 	this.activated = true;
+	
 	obj.heal = obj.lifeMax;
 	obj.manaHeal = obj.manaMax;
 	audio.play("item1");
 	game.slow(0,Game.DELTASECOND*0.3333);
+	
+	game.ga_event("checkpoint", game.newmapName, this.position.floor(256,240).toString());
 	
 	Checkpoint.saveState(obj);
 }
@@ -37,6 +48,7 @@ Checkpoint.saveState = function(obj){
 	obj.checkpoint.y = obj.position.y;
 	
 	Checkpoint.state.money = obj.money;
+	Checkpoint.state.music = audio.alias["music"];
 	
 	WorldLocale.save();
 }
@@ -44,10 +56,13 @@ Checkpoint.loadState = function(obj){
 	obj.position.x = obj.checkpoint.x ;
 	obj.position.y = obj.checkpoint.y ;
 	obj.money = Checkpoint.state.money;
+	
+	audio.playAs(Checkpoint.state.music, "music");
 }
 
 Checkpoint.state = {
-	"money" : 0
+	"money" : 0,
+	"music" : "",
 }
 
 Checkpoint.prototype.render = function(g,c){

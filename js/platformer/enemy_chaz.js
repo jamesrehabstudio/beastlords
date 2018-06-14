@@ -8,7 +8,7 @@ function Chaz(x,y,d,o){
 	this.height = 30;
 	this.start_x = x;
 	
-	this.speed = 0.1;
+	this.speed = 3.0;
 	this.sprite = "chaz";
 	
 	this.addModule( mod_rigidbody );
@@ -47,15 +47,15 @@ function Chaz(x,y,d,o){
 	this.mass = 1.3;
 	
 	this.states = {
-		"cooldown" : 50,
+		"cooldown" : Game.DELTASECOND * 2.0,
 		"attack" : 0,
 		"thrown" : false,
 		"backup" : false,
 		"attack_lower" : false
 	};
 	this.attack = {
-		"warm" : 30,
-		"release" : 15
+		"warm" : Game.DELTASECOND * 1,
+		"release" : Game.DELTASECOND * 0.5
 	};
 }
 Chaz.prototype.update = function(){
@@ -63,7 +63,7 @@ Chaz.prototype.update = function(){
 	if( this.stun < 0 && this.life > 0) {
 		if( this.states.attack < 0 ){
 			var direction = (this.states.backup ? -1 : 1);
-			this.force.x += this.speed * this.delta * direction;
+			this.addHorizontalForce(this.speed * direction);
 		}
 		this.flip = dir.x > 0;
 		if( this.position.x - this.start_x > 24 ) this.states.backup = true;
@@ -71,7 +71,7 @@ Chaz.prototype.update = function(){
 		
 		if( this.states.cooldown < 0 ){
 			this.states.attack = this.attack.warm;
-			this.states.cooldown = 50;
+			this.states.cooldown = Game.DELTASECOND * 2.0;
 			this.states.attack_lower = Math.random() > 0.5;
 		}
 		
@@ -116,7 +116,7 @@ Chaz.prototype.update = function(){
 				this.frame.y = 1;
 			}
 		} else {
-			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 0.3) % 2;
+			this.frame.x = (this.frame.x + this.delta * Math.abs(this.force.x) * 4.0) % 2;
 			if( Math.abs( this.force.x ) < 0.1 ){
 				this.frame.x = 0;
 			} 

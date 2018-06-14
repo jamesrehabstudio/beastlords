@@ -307,7 +307,7 @@ function MovingBlock(x,y,d,ops){
 		this.endPosition.y += ops["movey"] * 1;
 	}
 	if("speed" in ops){
-		this.speed = ops["speed"] * 1;
+		this.speed = ops["speed"] * 30;
 	}
 	if("killstuck" in ops){
 		this.killStuck = ops["killstuck"] * 1;
@@ -338,9 +338,12 @@ function MovingBlock(x,y,d,ops){
 			//if(obj.isStuck && obj instanceof Player && obj.states.ledgeObject == this){
 			//	obj.trigger("dropLedge");
 			//}
+			
+			/*
 			if(obj instanceof Player && obj.states.ledgeObject != this){
 				obj.trigger("dropLedge");
 			}
+			*/
 		}
 	});
 	
@@ -348,6 +351,7 @@ function MovingBlock(x,y,d,ops){
 	
 	this.time = this.startPosition.subtract(this.endPosition).magnitude() / this.speed;
 	this.totalTime = this.time + this.wait;
+	this._progress = 0.0;
 }
 
 MovingBlock.prototype.evaluate = function(f){
@@ -367,7 +371,15 @@ MovingBlock.prototype.idle = function(){
 
 MovingBlock.prototype.update = function(){
 	if(this.move){
-		let a = (this.sync + game.timeScaled / this.totalTime) % 1.0;
+		let a = 0;
+		
+		if(this.sync){
+			a = (this.sync + game.timeScaled / this.totalTime) % 1.0;
+		} else {
+			this._progress = Math.clamp01( this._progress + this.delta / this.totalTime);
+			a = this._progress;
+		}
+		
 		let d = Math.clamp01(this.evaluate(a));
 		this.position = Point.lerp(this.startPosition, this.endPosition, d);
 	}
