@@ -1,149 +1,150 @@
-Skeleton.prototype = new GameObject();
-Skeleton.prototype.constructor = GameObject;
-function Skeleton(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 16;
-	this.height = 32;
-	this.sprite = "skele";
-	this.speed = .3;
-	this.active = false;
-	
-	this.addModule( mod_rigidbody );
-	this.addModule( mod_combat );
-	
-	this.states = {
-		"attack" : 0,
-		"cooldown" : Game.DELTASECOND,
-		"block_down" : false,
-		"attack_down" : false,
-		"prep_jump" : false
+class Skeleton extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "skele";
+		this.swrap = spriteWrap["skele"];
+		this.width = 20;
+		this.height = 32;
+		
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_combat);
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		
+		this.life = this.lifeMax = Spawn.life(6, this.difficulty);
+		this.damage = Spawn.damage(5, this.difficulty);
+		this.moneyDrop = Spawn.money(5,this.difficulty);
+		this.combat_player_combo_lock = false;
+		this.speed = 4.0;
+		
+		this.on("hurt", function(obj){
+			audio.play("hurt",this.position);
+			
+			this._escape = Skeleton.TIME_ESCAPE;
+			this._cooldown = 0.0;
+		});
+		this.on("death", function(){
+			audio.play("kill",this.position);
+			Item.drop(this);
+			this.destroy();
+		});
+		
+		this._counterPrep = 0.0;
+		this._attack = 0.0;
+		this._jumpattack = 0.0;
+		this._uppercut = 0.0;
+		this._escape = 0.0;
+		this._anim = 0.0;
+		this._cooldown = 0.0;
+		this._retreat = 0.0;
 	}
-	
-	this.guard.active = true;
-	
-	this.attacktimes = {
-		"warm" : 30.0,
-		"release" : 14.0,
-		"rest" : 10.0
-	};
-	this.attack_warm = 30.0;
-	this.attack_time = 10.0;
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
-	}
-	
-	this.life = Spawn.life(5,this.difficulty);
-	this.mass = 0.8;
-	this.damage = Spawn.damage(3,this.difficulty);
-	this.collideDamage = Spawn.damage(1,this.difficulty);
-	this.moneyDrop = Spawn.money(5,this.difficulty);
-	this.stun_time = 0;
-	
-	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function ){
-			if( !this.grounded && this.position.y < obj.position.y ) 
-				obj.hurt( this, this.damage );
-			//else 
-			//	obj.hurt( this, this.collideDamage );
-		}
-	});
-	this.on("collideHorizontal", function(x){
-		this.states.prep_jump = true;
-	});
-	this.on("block", function(obj,pos,damage){
-		if( this.team == obj.team ) return;
-		
-		var dir = this.position.subtract(obj.position);
-		//blocked
-		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
-		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
-		audio.playLock("block",0.1);
-	});
-	this.on("struck", function(obj,pos,damage){
-		if(this.team == obj.team) return;
-		this.hurt(obj,damage);
-	});
-	this.on("hurt", function(){
-		//this.states.attack = -1.0;
-		//this.states.cooldown = 30.0;
-		audio.play("hurt",this.position);
-	});
-	this.on("death", function(){
-		Item.drop(this);
-		
-		audio.play("kill",this.position);
-		this.destroy();
-	});
-	
-	SpecialEnemy(this);
-	this.calculateXP();
-}
-Skeleton.prototype.update = function(){	
-	this.sprite = "skele";
-	if ( this.stun <= 0 && this.life > 0 ) {
-		var dir = this.position.subtract( _player.position );
-		this.active = this.active || Math.abs( dir.x ) < 120;
-		
-		if( this.active ) {
-			if( this.states.attack <= 0 ) {
-				var direction = (dir.x > 0 ? -1.0 : 1.0) * (Math.abs(dir.x) > 24 ? 1.0 : -1.0);
-				this.force.x += direction * this.delta * this.speed;
-				this.flip = dir.x > 0;
-				this.states.cooldown -= this.delta;
+	update(){
+		if(this.life > 0){
+			let dir = this.target().position.subtract(this.position);
+			
+			if(this._attack > 0){
+				//attack
+				this._attack -= this.delta;
 				
-				if( this.states.prep_jump && this.grounded ) {
-					this.force.y = -10.0;
-					this.states.prep_jump = false;
+				let p = 1 - this._attack / Skeleton.TIME_ATTACK;
+				this.frame = this.swrap.frame("attack", p);
+				
+				if(p > 0.4 && p < 0.6){
+					this.addHorizontalForce(this.speed * 4 * this.forward());
 				}
+			} else if(this._jumpattack > 0){
+				//jump attack
+				if(this._jumpattack >= Skeleton.TIME_JUMPATTACK){
+					this.grounded = false;
+					this.force.y = -6;
+				} else if(!this.grounded){
+					this.force.y -= UNITS_PER_METER * this.gravity * 0.5 * this.delta;
+					this.addHorizontalForce(this.speed * this.forward());
+				}
+				this._jumpattack -= this.delta;
+				
+				let p = 1 - this._jumpattack / Skeleton.TIME_JUMPATTACK;
+				this.frame = this.swrap.frame("jumpattack", p);
+			} else if(this._uppercut > 0){
+				//Uppercut
+				this._uppercut -= this.delta;
+				
+				if( Timer.isAt(this._uppercut, Skeleton.TIME_UPPERCUT*0.66, this.delta) ){
+					this.grounded = false;
+					this.force.y = -8;
+				} else if(this._uppercut < Skeleton.TIME_UPPERCUT * 0.66){
+					this.force.y -= UNITS_PER_METER * this.gravity * 0.5 * this.delta;
+				}
+				
+				let p = 1 - this._uppercut / Skeleton.TIME_UPPERCUT;
+				this.frame = this.swrap.frame("uppercut", p);
+			} else if(this._counterPrep > 0){
+				//Prep counter
+				this._counterPrep -= this.delta;
+				this.frame.x = 0;
+				this.frame.y = 2;
+				
+				if( Math.abs(dir.x) < 64 ){
+					this._counterPrep = 0.0;
+					this._uppercut = Skeleton.TIME_UPPERCUT;
+					this._cooldown = 2.5;
+				}
+			} else if(this._escape > 0){
+				//Escape
+				if(this._escape >= Skeleton.TIME_ESCAPE){
+					this.grounded = false;
+					this.force.y = -3.0;
+					this.force.x = this.speed * 2 * -this.forward();
+				} else {
+					this.force.y -= UNITS_PER_METER * this.gravity * 0.5 * this.delta;
+				}
+				
+				this._escape -= this.delta;
+				
+				if(!this.grounded && this._escape <= 0){
+					this._escape = this.delta;
+				}
+				
+				let p = this._escape / Skeleton.TIME_ESCAPE;
+				this.frame = this.swrap.frame("escape", p);
 			} else {
-				this.force.x = 0;
+				//Move
+				this._anim = ( this._anim + this.delta * Math.abs(this.force.x) ) % 1.0;
+				this.frame = this.swrap.frame("walk", this._anim);
+				
+				this.flip = dir.x < 0;
+				if( Math.abs(dir.x) < 48) { this._retreat = 1.0;}
+				let direction = this.forward() * (this._retreat > 0 ? -1 : 1);
+				this.addHorizontalForce(this.speed * direction);
+				
+				this._cooldown -= this.delta;
+				this._retreat -= this.delta;
+				
+				if(this._cooldown <= 0){
+					if(this.atLedge() && this.grounded){
+						this._jumpattack = Skeleton.TIME_JUMPATTACK;
+					} else if(!this.target().grounded && dir.y < 32){
+						this._counterPrep = Skeleton.TIME_COUNTERPREP;
+						this._cooldown = 1.5;
+					} else if( Math.abs(dir.x) < 64 ){
+						this.flip = dir.x < 0;
+						this._attack = Skeleton.TIME_ATTACK;
+						this._cooldown = 2.0;
+					}
+				}
 			}
-		}
-	
-		if( this.states.cooldown < 0 && Math.abs(dir.x) < 64 ){
-			this.states.attack = this.attacktimes.warm;
-			this.states.cooldown = Game.DELTASECOND;
-		}
-		
-		if ( this.states.attack > this.attacktimes.rest && this.states.attack <= this.attacktimes.release ){
-			this.strike(new Line(
-				new Point( 12, -6 ),
-				new Point( 24, -10 )
-			) );
-		}
-	}
-	/* counters */
-	this.states.attack -= this.delta;
-	
-	/* Animation */
-	if ( this.stun > 0 ) {
-		this.frame.x = 0;
-		this.frame.y = 2;
-	} else { 
-		if( this.states.attack > 0 ) {
-			this.frame.x = 0;
-			if( this.states.attack <= this.attacktimes.release ) this.frame.x = 1;
-			if( this.states.attack <= this.attacktimes.rest ) this.frame.x = 2;
-			this.frame.y = 1
-		} else if( !this.grounded ) {
-			this.frame.x = 3;
-			this.frame.y = 1;
 		} else {
-			this.frame.y = 0;
-			if( Math.abs( this.force.x ) > 0.1 ) {
-				this.frame.x = (this.frame.x + this.delta * Math.abs( this.force.x ) * 0.1 ) % 4;
-			}
+			this.frame.x = 4;
+			this.frame.y = 4;
 		}
 	}
 }
-Skeleton.prototype.render = function(g,c){
-	GameObject.prototype.render.apply(this,[g,c]);
-	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,new Point(4,0),this.flip);
-}
+Skeleton.TIME_ATTACK = 1.0;
+Skeleton.TIME_JUMPATTACK = 1.0;
+Skeleton.TIME_UPPERCUT = 1.0;
+Skeleton.TIME_COUNTERPREP = 2.0;
+Skeleton.TIME_ESCAPE = 0.5;
+
+self["Skeleton"] = Skeleton;

@@ -334,6 +334,6 @@ AttributeMenu = {
 		}
 		return out;
 	},
-	"weapons" : ["short_sword", "long_sword", "broad_sword", "morningstar", "bloodsickle", "burningblade"],
+	"weapons" : ["short_sword", "long_sword", "broad_sword", "morningstar", "bloodsickle", "burningblade","whip","king_sword"],
 	"shields" : ["small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"]
 }

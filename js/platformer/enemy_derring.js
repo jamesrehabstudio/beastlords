@@ -1,57 +1,39 @@
-Derring.prototype = new GameObject();
-Derring.prototype.constructor = GameObject;
-function Derring(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 16;
-	this.height = 16;
-	
-	this.speed = 2.5;
-	this.sprite = "amon";
-	
-	this.addModule( mod_rigidbody );
-	this.addModule( mod_combat );
-	
-	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
-	});
-	this.on("struck", EnemyStruck);
-	this.on("collideObject", function(obj){
-		if( this.team == obj.team ) return;
-		if( obj.hurt instanceof Function && obj.invincible < 0 ) {
-			obj.hurt( this, this.damage );
-			this.force.x = this.force.x > 0 ? -2.5 : 2.5;
-		}
-	});
-	this.on("death", function(obj,pos,damage){
-		Item.drop(this);
+class Derring extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 32;
+		this.height = 32;
 		
-		audio.play("kill",this.position);
-		this.destroy();
-	});
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
+		this.sprite = "derring";
+		
+		this.addModule(mod_block);
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.flip = ops.getBool("flip", false);
+		
+		this.damgeFire = Spawn.damage(3, this.difficulty);
+		
+		this._attack = 0.0;
 	}
-	
-	this.life = Spawn.life(0,this.difficulty);
-	this.collisionReduction = -1.0;
-	this.friction = 0.0;
-	this.stun_time = 30.0;
-	this.invincible_time = 30.0;
-	this.force.x = this.speed * (Math.random() > 0.5 ? -1 : 1);
-	
-	this.mass = 1.0;
-	this.gravity = 0.0;
-	
-	SpecialEnemy(this);
-	this.calculateXP();
+	update(){
+		let p = Math.clamp01( this._attack - 3.0 );
+		this.frame.x = (p*4) % 2;
+		this.frame.y = (p*2);
+		
+		this._attack = (this._attack + this.delta) % Derring.TIME_ATTACK;
+		
+		if( Timer.isAt(this._attack, Derring.TIME_ATTACK * 0.9, this.delta) ){
+			this.fire();
+		}
+	}
+	fire(){
+		let fb = Bullet.createFireball(this.position.x + this.forward() * 24, this.position.y);
+		fb.damgeFire = this.damgeFire;
+		fb.force.x = this.forward() * 7.0;
+		game.addObject(fb);
+	}
 }
-Derring.prototype.update = function(){
-	this.frame = (this.frame + this.delta * 0.2) % 2;
-	this.flip = this.force.x < 0;
-}
+Derring.TIME_ATTACK = 4;
+self["Derring"] = Derring;

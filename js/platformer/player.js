@@ -76,6 +76,7 @@ class Player extends GameObject{
 			"damageBufferTick" : 0.0,
 			"animationProgress" : 0.0,
 			"duckTime" : 0.0,
+			"dashfall" : false
 		};
 		
 		this.attstates = {
@@ -144,6 +145,7 @@ class Player extends GameObject{
 		this.on("land", function(){
 			//Land from a height
 			this.states.doubleJumpReady = true;
+			this.states.dashfall = false;
 			
 			audio.play("land");
 			var dust = Math.floor(2 + Math.random() * 3);
@@ -296,11 +298,15 @@ class Player extends GameObject{
 			
 			this.states.airdashReady = true;
 			
-			if(this.isAttacking){
+			if( this.states.airdash > 0 && this.states.airdash < this.speeds.airdashTime * this.speeds.airdashStopTime){
+				this.airtime = this.states.airdash = 0;
+				this.force.x = -this.force.x;
+				this.force.y = -this.speeds.jump;
+			} else if(this.isAttacking){
 				
 				SparkEffect.create(this.position.add(obj.position).scale(0.5), 8);
 				
-				if(obj.life > 0 && this.grounded){
+				if(obj.life > 0 && this.grounded && obj.combat_player_combo_lock){
 					//Lock player into combo unless target is dead or player is moving
 					this.attstates.wait = this.attstates.hitWait;
 				}
@@ -386,17 +392,7 @@ class Player extends GameObject{
 			Checkpoint.saveState(this);
 		});
 		this.on("collideObject", function(obj){
-			if( this.states.airdash > 0 && this.states.airdash < this.speeds.airdashTime * this.speeds.airdashStopTime){
-				if("hurt" in obj && obj.hasModule(mod_combat)){
-					var damage = this.baseDamage();
-					obj.hurt(this, damage);
-					
-					this.airtime = this.states.airdash = 0;
-					this.force.x = -this.force.x;
-					this.force.y = -this.speeds.jump;
-					
-				}
-			}
+			
 		});
 		this.on("dropLedge", function(){
 			this.states.ledge = false;
@@ -468,24 +464,30 @@ class Player extends GameObject{
 		this.mapIcon.bobSpeed = 4.0;
 		
 		this.checkAttackArea = function(ops){
-			if(this.attstates.time > 0 && this.attstates.time < this.attstates.totalTime){
+			let boxes = [];
+			
+			if(this.currentAttack && this.currentAttack.animation == "attackwhip"){
+				let framey = Math.floor(9 * this.attackProgress);
+				boxes = spriteWrap.whips.getAttackBoxes(new Point(0,framey), this);
+				
+			} else if(this.attstates.time > 0 && this.attstates.time < this.attstates.totalTime){
 				let range = this.equip_sword.stats.range;
 				let path = this.currentAttack.path;
-				let area = new Point(6,6);
+				let area = this.equip_sword.stats.size;
 				let i = Math.floor( (path.length-1) * this.attackProgress );
 				let d = ( this.attackProgress * (path.length-1) ) % 1.0;
 				let p = Point.lerp(path[i], path[i+1], d).scale(this.forward() * range, 1);
-				if(this.flip) {p.x -= area.x;}
+				//if(this.flip) { p.x *= -1.0; }
 				
-				let box = new Line( this.position.add(p), this.position.add(p).add(area) )
-				
-				Combat.attackCheck.apply(this,[ box, ops ]);
+				boxes.push ( new Line( this.position.add(p.subtract(area.scale(0.5))), this.position.add(p).add(area.scale(0.5)) ) );
 			} else {
 				//Use default attack tracking
-				let boxes = this.swrap.getAttackBoxes(this.frame, this);
-				for(let i=0; i < boxes.length; i++){
-					Combat.attackCheck.apply(this,[ boxes[i], ops ]);
-				}
+				boxes = this.swrap.getAttackBoxes(this.frame, this);
+				
+			}
+			
+			for(let i=0; i < boxes.length; i++){
+				Combat.attackCheck.apply(this,[ boxes[i], ops ]);
 			}
 			
 		}
@@ -662,6 +664,7 @@ class Player extends GameObject{
 					if(this.states.airdash <= this.speeds.airdashTime * this.speeds.airdashStopTime){
 						//Transition
 						this.states.dash_direction = this.forward();
+						this.frame.x = 0;
 						if(input.state("left") > 0){this.states.dash_direction = -1;}
 						if(input.state("right") > 0){this.states.dash_direction = 1;}
 						if(input.state("down") > 0){this.states.dash_direction = 0;}
@@ -670,13 +673,17 @@ class Player extends GameObject{
 					//Fly off
 					this.states.airdash -= this.delta;
 					if(this.states.dash_direction == 0){
+						//Down dash
 						this.force.x = 0;
 						this.force.y = this.speeds.baseSpeed * 2;
-						this.frame = new Point(0,11);
+						this.frame.x = Math.min( this.frame.x + this.delta * 16, 3 );
+						this.frame.y = 12;
+						this.states.dashfall = true;
 					} else {
+						//Horizontal dash
 						this.flip = this.states.dash_direction < 0;
 						this.force.x = this.states.dash_direction * this.speeds.baseSpeed * 2;
-						this.frame = new Point(0,8);
+						this.frame = new Point(0,13);
 					}
 				}
 				
@@ -695,8 +702,7 @@ class Player extends GameObject{
 				if ( input.state('fire') == 1 ) { this.attstates.queue = true; }
 				
 				//Animation
-				let attackName = "attack" + (attack.animation);
-				this.frame = this.swrap.frame(attackName, this.attackProgress);
+				this.frame = this.swrap.frame(attack.animation, this.attackProgress);
 				
 				if(input.state("dodge") == 1){
 					this.cancelAttack();
@@ -854,10 +860,16 @@ class Player extends GameObject{
 						this.frame = this.swrap.frame("turn", tProg);
 					} else if(!this.grounded){
 						if(this.states.doubleJumpReady){
-							this.frame.x = 7;
-							if(this.force.y < -0.5){ this.frame.x = 6; }
-							if(this.force.y > 0.5){ this.frame.x = 8; }
-							this.frame.y = 2;
+							//Moving freely in air
+							if(this.states.dashfall){
+								this.frame.x = 3;
+								this.frame.y = 12;
+							} else {
+								this.frame.x = 7;
+								if(this.force.y < -0.5){ this.frame.x = 6; }
+								if(this.force.y > 0.5){ this.frame.x = 8; }
+								this.frame.y = 2;
+							}
 						} else {
 							this.states.animationProgress = (this.states.animationProgress + this.delta * 4) % 1;
 							this.frame = this.swrap.frame("jump2", this.states.animationProgress);
@@ -1389,6 +1401,11 @@ class Player extends GameObject{
 			let rangeScale = this.equip_sword.stats.range / 70;
 			let meshScale = 0.1;
 			
+			if(this.currentAttack && this.currentAttack.animation == "attackwhip"){
+				let whipframe = new Point(0, Math.clamp01(this.attackProgress) * 9).floor();
+				g.renderSprite("whips", this.position.subtract(c), this.zIndex+1, whipframe, this.flip);
+			}
+			
 			let _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
 			let rotation = _t.r;
 			let sposition = _t.p;
@@ -1399,7 +1416,12 @@ class Player extends GameObject{
 			if(this.flip){
 				sposition = new Point(sposition.x*-1,sposition.y);
 			}
+			if(this.isAttacking && this.currentAttack.animation == "attackover"){
+				rotation = Math.lerp(-80, 90, Math.clamp01( this.attackProgress * 2 ));
+			}
 			ops["rotate"] = (this.flip ? -1 : 1) * rotation;
+			
+			
 			
 			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
 			
@@ -1624,7 +1646,12 @@ var playerSwordPosition = {
 			11 : {p:new Point(12,-27),r:0,z:-1,v:0},
 		},
 		6 : {
-			8 : {p:new Point(-16,1),r:-45,z:1,v:0}
+			8 : {p:new Point(-8,-16),r:-45,z:-1,v:0},
+			9 : {p:new Point(4,-12),r:-45,z:-1,v:0},
+			10 : {p:new Point(8,0),r:-45,z:-1,v:0},
+			11 : {p:new Point(22,5),r:-45,z:-1,v:0},
+			12 : {p:new Point(22,4),r:-45,z:-1,v:0},
+			13 : {p:new Point(22,4),r:-45,z:-1,v:0},
 		},
 		8 : {
 			0 : {p:new Point(-15,-2),r:-10,z:1,v:0},

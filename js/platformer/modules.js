@@ -188,7 +188,6 @@ var mod_block = {
 		this.blockPrevious = new Point(this.position.x, this.position.y);
 		this.blockChange = new Point(0,0);
 		this.blockCollideCriteria = function(obj){ return obj.hasModule(mod_rigidbody); }
-		this.zIndex = 20;
 		
 		this.block_isWithinX = function(obj){
 			c = obj.corners();
@@ -474,6 +473,7 @@ var mod_combat = {
 		this.combat_knockback = new Point();
 		this.combat_knockback_speed = 8.0;
 		this.combat_knockback_friction = 0.125;
+		this.combat_player_combo_lock = true;
 		
 		this.death_time = 0;
 		this._death_confirmed = false;
@@ -817,7 +817,7 @@ var Combat = {
 		var hits = game.overlaps(offset);
 		for(var i=0; i < hits.length; i++){
 			if(hits[i].interactive){
-				hits[i].trigger("struck",this)
+				hits[i].trigger("struck",this);
 				Combat.hit.apply(this, [hits[i], ops, offset]);
 			}
 		}
@@ -865,22 +865,25 @@ var Combat = {
 		}
 	},
 	"shieldAreaOld" : function(){
-		shield = new Line( 
-			this.position.add( 
-				new Point( 
-					this.guard.x * this.forward(), 
-					this.guard.y
-				) 
-			),
-			this.position.add( 
-				new Point( 
-					(this.guard.x+this.guard.w) * this.forward(),
-					this.guard.y+this.guard.h
-				) 
-			)
-		);
-		shield.correct();
-		return [ shield ];
+		if(this.guard.active){
+			shield = new Line( 
+				this.position.add( 
+					new Point( 
+						this.guard.x * this.forward(), 
+						this.guard.y
+					) 
+				),
+				this.position.add( 
+					new Point( 
+						(this.guard.x+this.guard.w) * this.forward(),
+						this.guard.y+this.guard.h
+					) 
+				)
+			);
+			shield.correct();
+			return [ shield ];
+		}
+		return new Array();
 	},
 	"getDamage" : function(multiplier){
 		if(multiplier == undefined){
@@ -1015,6 +1018,7 @@ var mod_boss = {
 			Trigger.activate("boss_death");
 			
 			NPC.set(this.boss_id, 1);
+			NPC.set("bosseskilled", NPC.get("bosseskilled")+1);
 			
 			//for(var i=0; i < this.boss_doors.length; i++ )
 			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, 0);
@@ -1076,7 +1080,7 @@ var mod_talk = {
 		}
 		
 		this.talkMovePlayer = function(distance){
-			var speed = 0.1;
+			var speed = 3.0;
 			if(distance == undefined){
 				distance = 40;
 			}

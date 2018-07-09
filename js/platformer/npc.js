@@ -401,7 +401,7 @@ NPC.unpackTokens = function(line){
 	return out;
 }
 NPC.set = function(name,value){NPC.variables[name] = value;}
-NPC.get = function(name){if(name in NPC.variables){return NPC.variables[name];} return null; }
+NPC.get = function(name, def = null){if(name in NPC.variables){return NPC.variables[name];} return def; }
 
 NPC.operators = ["/","*","+","-","==",">","<"];
 NPC.variables = {};

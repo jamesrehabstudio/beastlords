@@ -8,7 +8,7 @@ js_saveto = "platformer.js"
 sh_saveto = "shaders.js"
 js_previous = "prev"
 sh_previous = "prev"
-minify = True
+minify = False
 
 watching = [
 	"platformer/*.js",

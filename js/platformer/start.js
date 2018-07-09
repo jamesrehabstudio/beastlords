@@ -14,16 +14,16 @@ function game_start(g){
 	
 	
 	setTimeout(function(){
-		return;
+		//return;
 		
 		new Player(0,0);		
 		_player.lightRadius = true;
 		_player.downstab = true;
 		_player.doubleJump = true;
-		//_player.walljump = true;
+		_player.walljump = true;
 		_player.dodgeFlash = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("demo.tmx", "test");
+		WorldLocale.loadMap("townhub.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -32,12 +32,15 @@ function game_start(g){
 			//_player.money = 36000;
 			
 			
+			NPC.set("whip",1);
+			NPC.set("king_sword",1);
 			/*
 			NPC.set("long_sword",1);
 			NPC.set("broad_sword",1);
 			NPC.set("morningstar",1);
 			NPC.set("bloodsickle",1);
 			NPC.set("burningblade",1);
+			
 			
 			
 			//NPC.set("templeCompleted", 2);

@@ -784,6 +784,9 @@ Point.prototype.normalize = function(scale){
 	}
 	return new Point(1,0);
 }
+Point.prototype.sqrMagnitude = function(){
+	return Math.pow( this.x, 2 ) + Math.pow(this.y, 2 );
+}
 Point.prototype.magnitude = function(){
 	return Math.sqrt( Math.pow( this.x, 2 ) + Math.pow(this.y, 2 ) );
 }

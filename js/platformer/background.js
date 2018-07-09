@@ -129,7 +129,8 @@ Background.prototype.lightrender = function(g,c){
 		Math.lerp(1.0,this.ambience[2],this.ambienceStrength),
 		1.0
 	];
-	g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
+	//g.scaleFillRect(0,0,game.resolution.x, game.resolution.y);
+	g.drawRect(0,0,game.resolution.x, game.resolution.y,this.zIndex-1);
 	
 	//render lights
 	while( Background.lights.length > 0 ) {

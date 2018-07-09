@@ -13,7 +13,7 @@ audio = {
 			if(!("playPan" in audio.out)) audio.out["playPan"] = new Array();
 			if(falloff === undefined) falloff = 1;
 			
-			var scale = 256;
+			var scale = 180;
 			var center = game.camera.add(new Point(game.resolution.x*0.5,game.resolution.y*0.5));
 			var distance = position.subtract(center);
 			var balance = Math.max(Math.min(Math.subtractToZero(distance.x, scale)/ scale,1),-1);

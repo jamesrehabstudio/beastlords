@@ -5,14 +5,14 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
 		"wait" : Game.DELTASECOND,
-		"animation" : 0,
+		"animation" : "attack0",
 		"prepause" : 0.0,
 		"pause" : 0.125 * Game.DELTASECOND,
 		"stun" : 0.5*Game.DELTASECOND,
 		"movement" : 0.3,
 		"audio" : "swing",
 		"mesh" : "slash1",
-		"path" : [new Point(0,-8), new Point(1,-12), new Point(0.5,-16)]
+		"path" : [new Point(0,-10), new Point(1,-14), new Point(0.5,-18)]
 	},
 	{	//Standing attack 2
 		"damage":1.2,
@@ -20,7 +20,7 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
 		"wait" : Game.DELTASECOND,
-		"animation" : 1,
+		"animation" : "attack1",
 		"prepause" : 0.0,
 		"pause" : 0.125 * Game.DELTASECOND,
 		"stun" : 0.5*Game.DELTASECOND,
@@ -35,7 +35,7 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
 		"wait" : 0.0,
-		"animation" : 2,
+		"animation" : "attack2",
 		"force" : new Point(3.0, 0.0),
 		"prepause" : 0.0,
 		"pause" : 0.25 * Game.DELTASECOND,
@@ -52,7 +52,7 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : 1.5*Game.DELTASECOND,
 		"wait" : 0.0,
-		"animation" : 3,
+		"animation" : "attack3",
 		"prepause" : 0.3 * Game.DELTASECOND,
 		"stun" : 0.7 * Game.DELTASECOND,
 		"pause" : Game.DELTASECOND * 0.25,
@@ -69,7 +69,7 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : 1.5*Game.DELTASECOND,
 		"wait" : Game.DELTASECOND,
-		"animation" : 4,
+		"animation" : "attack4",
 		"prepause" : 0.0,
 		"pause" : Game.DELTASECOND * 0.3,
 		"stun" : 0.5 * Game.DELTASECOND,
@@ -86,7 +86,7 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
 		"wait" : Game.DELTASECOND,
-		"animation" : 5,
+		"animation" : "attack5",
 		"prepause" : 0.0,
 		"force" : new Point(0.0, 0.0),
 		"stun" : 0.3 * Game.DELTASECOND,
@@ -101,13 +101,45 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
 		"wait" : 0.0,
-		"animation" : 6,
+		"animation" : "attack6",
 		"prepause" : 0.0,
 		"stun" : 0.7 * Game.DELTASECOND,
 		"movement" : 1.0,
 		"audio" : "swing",
 		"mesh" : "slashd",
 		"path" : [new Point(-0.05,8), new Point(0,36), new Point(0.05,8)]
+		//"airtime" : 0.3 * Game.DELTASECOND
+	},
+	{	//Whip attack
+		"damage":1.0,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
+		"time" : Game.DELTASECOND,
+		"wait" : 0.0,
+		"animation" : "attackwhip",
+		"prepause" : 0.0,
+		"stun" : 0.7 * Game.DELTASECOND,
+		"movement" : 0.0,
+		"audio" : "swing",
+		"mesh" : "slashd",
+		"path" : [new Point(-0.1,-8), new Point(0,-8), new Point(1,-8)]
+		//"airtime" : 0.3 * Game.DELTASECOND
+	},
+	{	//Over head attack
+		"damage":1.0,
+		"warm" : Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
+		"time" : Game.DELTASECOND,
+		"wait" : 0.0,
+		"animation" : "attackover",
+		"prepause" : 0.0,
+		"pause" : 0.125 * Game.DELTASECOND,
+		"stun" : 0.7 * Game.DELTASECOND,
+		"movement" : 0.5,
+		"audio" : "swing",
+		"mesh" : null,
+		"path" : [new Point(-0.75,-14), new Point(-0.1,-52), new Point(0.80,-20), new Point(1,8), new Point(1,8)]
+		
 		//"airtime" : 0.3 * Game.DELTASECOND
 	}
 ];
@@ -159,6 +191,7 @@ class PlayerWeapon {
 		this.speed = speed;
 		this.damage = damage;
 		this.range = range;
+		this.size = new Point(9,9);
 		
 		this.color1 = [1,1,1,1];
 		this.color2 = [1,1,1,1];
@@ -205,12 +238,14 @@ PlayerWeapon.DOWNATTACK_INDEX = 6;
 
 WeaponList = {
 	//name, warm, cool, speed, damage, range
-	"short_sword" : new PlayerWeapon("short sword", 	0.125,0.25,0.125, 		1.0,	38),
-	"long_sword" : new PlayerWeapon("long sword", 		0.125,0.25,0.25,		1.5,	48),
-	"broad_sword" : new PlayerWeapon("broad_sword", 	0.125,0.25,0.25,		2.0,	42),
-	"morningstar" : new PlayerWeapon("morning star", 	0.125,0.25,0.25,		2.0,	40),
-	"bloodsickle" : new PlayerWeapon("blood sickle", 	0.125,0.25,0.25,		0.8,	36),
-	"burningblade" : new PlayerWeapon("burning blade", 	0.125,0.25,0.25,		0.85,	38),
+	"short_sword" : new PlayerWeapon("short sword", 	0.125,0.250,0.125, 		1.0,	38),
+	"long_sword" : new PlayerWeapon("long sword", 		0.125,0.250,0.250,		1.5,	48),
+	"broad_sword" : new PlayerWeapon("broad_sword", 	0.125,0.250,0.250,		2.0,	42),
+	"morningstar" : new PlayerWeapon("morning star", 	0.125,0.250,0.250,		2.0,	40),
+	"bloodsickle" : new PlayerWeapon("blood sickle", 	0.125,0.250,0.250,		0.8,	36),
+	"burningblade" : new PlayerWeapon("burning blade", 	0.125,0.250,0.250,		0.85,	38),
+	"whip" : new PlayerWeapon("whip",		 			0.150,0.150,0.250,		1.25,	96),
+	"king_sword" : new PlayerWeapon("king sword",		0.150,0.150,0.500,		2.0,	52),
 };
 
 WeaponList.morningstar.combos = {
@@ -223,3 +258,10 @@ WeaponList.bloodsickle.combos = {
 	1 : {"standing" : 0}
 };
 WeaponList.burningblade.onEquip = function(player){ player.perks.fireDamage += 0.05; }
+WeaponList.whip.combos = {};
+WeaponList.whip.attacks = {"standing" : 7, "charged" : 7, "jumpup" : 7, "ducking" : 7, "downattack" : 7, "jumping" : 7,};
+WeaponList.whip.size = new Point(32,9);
+
+WeaponList.king_sword.combos = {};
+WeaponList.king_sword.attacks = {"standing" : 8, "charged" : 8, "jumpup" : 8, "ducking" : 8, "downattack" : 8, "jumping" : 8,};
+WeaponList.king_sword.size = new Point(32,32);

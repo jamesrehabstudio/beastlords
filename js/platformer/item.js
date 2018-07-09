@@ -245,6 +245,22 @@ Item.prototype.setName = function(n){
 		this.stats = WeaponList[n];
 		return; 
 	}
+	if(n == "whip") { 
+		this.frame.x = 5; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(3,1);
+		this.message = Item.weaponDescription;
+		this.stats = WeaponList[n];
+		return; 
+	}
+	if(n == "king_sword") { 
+		this.frame.x = 5; this.frame.y = 2; 
+		this.isWeapon = true; this.twoHanded = false;
+		this.equipframe = new Point(3,0);
+		this.message = Item.weaponDescription;
+		this.stats = WeaponList[n];
+		return; 
+	}
 	
 	//Shields
 	if(n == "small_shield") { 

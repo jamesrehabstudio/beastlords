@@ -90,13 +90,13 @@ Bullet.prototype.update = function(){
 	}
 	
 	if(this.frames != undefined ) {
-		var f = ((99999 - this.range)*0.2) % this.frames.length;
+		var f = ( (99999 - this.range) * 3.0 ) % this.frames.length;
 		this.frame.x = this.frames[Math.floor(f)];
 	}
 	
 	if(this.effect!=null){
 		if( this.effect_time <= 0 ){
-			game.addObject( new this.effect(this.position.x, this.position.y) );
+			game.addObject( new this.effect(this.position.x, this.position.y + 6) );
 			this.effect_time = Game.DELTASECOND * 0.125;
 		}
 		this.effect_time -= this.delta;
@@ -247,6 +247,8 @@ function PhantomBullet(x,y,d,o){
 	
 	this.blockable = true;
 	this.force = new Point();
+	this.friction = new Point();
+	this.gravity = 1.0;
 	this.team = 0;
 	this.time = Game.DELTASECOND * 2;
 	
@@ -260,15 +262,20 @@ function PhantomBullet(x,y,d,o){
 	this.on("sleep", function(){ this.destroy(); } );
 	this.on("death", function(){ this.destroy(); } );
 	
-	o = o || {};
+	o = Options.convert(o);
 	if(d instanceof Array && d.length >= 2){
 		this.width = d[0] * 1;
-		this.width = d[1] * 1;
+		this.height = d[1] * 1;
 	}
 }
 PhantomBullet.prototype.update = function(){
-	this.position.x += this.force.x * this.delta;
-	this.position.y += this.force.y * this.delta;
+	this.position.x += this.force.x * UNITS_PER_METER * this.delta;
+	this.position.y += this.force.y * UNITS_PER_METER * this.delta;
+	
+	this.force.y += this.gravity * UNITS_PER_METER * this.delta;
+	this.force.x *= 1 - (this.friction.x * UNITS_PER_METER * this.delta);
+	this.force.y *= 1 - (this.friction.y * UNITS_PER_METER * this.delta);
+	
 	this.time -= this.delta;
 	this.flip = this.force.x < 0;
 	

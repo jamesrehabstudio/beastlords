@@ -81,14 +81,13 @@ function textBox(g,s,x,y,w,h){
 	boxArea(g,x,y,w,h);
 	textArea(g,s,x+16,y+16,w-32,h-32);
 }
-function renderDialog(g,s, top){
-	if( top == undefined ) top = 48;
+function renderDialog(g,s, top = 48){
 	
 	var width = 224;
-	var height = 76;
+	var height = 48;
 	var left = game.resolution.x * 0.5 - width * 0.5;
-	boxArea(g,left,top,width,height);
-	textArea(g,s,left+16,top+16,width-32, height-32);
+	boxArea(g,left-12,top-12,width+24,height+24);
+	textArea(g,s,left,top,width, height);
 }
 
 DialogManger = {
@@ -98,7 +97,7 @@ DialogManger = {
 	"text" : "",
 	"show" : false,
 	"progress" : 0.0,
-	"speed" : 0.85,
+	"speed" : 25.0,
 	"line" : 0,
 	"audio" : "text01",
 	"parsedtext" : new Array(),

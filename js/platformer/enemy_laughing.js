@@ -1,91 +1,73 @@
-Laughing.prototype = new GameObject();
-Laughing.prototype.constructor = GameObject;
-function Laughing(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 16;
-	this.height = 16;
-	this.team = 0;
-	this.sprite = "laughing";
-	
-	this.addModule(mod_rigidbody);
-	this.addModule(mod_combat);
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
-	}
-	
-	this.life = Spawn.life(0,this.difficulty);
-	this.damage = Spawn.damage(2,this.difficulty);
-	this.moneyDrop = Spawn.money(3,this.difficulty);
-	
-	this.speed = 0.225;
-	this.frame = 0;
-	this.frame_row = 0;
-	this.gravity = 0.0;
-	this.friction = 0.08;
-	
-	this.cooldown = Game.DELTASECOND * 3;
-	
-	this.on("struck", EnemyStruck);
-	this.on("hurt", function(){
-		audio.play("hurt",this.position);
-	});
-	this.on("collideObject", function(obj){
-		if( obj instanceof Player ) {
-			
-		} else if ( obj.hasModule(mod_combat) ) {
-			var dif = this.position.subtract( obj.position ).normalize();
-			this.force.x += dif.x * this.speed * this.delta;
-			this.force.y += dif.y * this.speed * this.delta;
-		}
-	});
-	this.on("death", function(){
+class Laughing extends GameObject {
+	constructor(x,y,d,o){
+		super(x,y,d,o);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 16;
+		this.height = 16;
+		this.team = 0;
+		this.sprite = "laughing";
 		
-		audio.play("kill",this.position);
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_combat);
 		
-		Item.drop(this);
-		this.destroy();
-	});
-	
-	SpecialEnemy(this);
-	this.calculateXP();
-}
-Laughing.prototype.update = function(){
-	var dir = this.position.subtract(_player.position);
-	
-	if( this.life > 0 && this.stun <= 0 ) {
-		this.flip = dir.x > 0;
+		this.difficulty = o.getInt("difficulty", Spawn.difficulty);
 		
-		var gotopos = this.position;
+		this.life = Spawn.life(0,this.difficulty);
+		this.damage = Spawn.damage(2,this.difficulty);
+		this.moneyDrop = Spawn.money(3,this.difficulty);
 		
-		if( this.cooldown <= 0 ) {
-			gotopos = new Point(
-				_player.position.x,
-				_player.position.y
-			);
-			if( this.cooldown < -Game.DELTASECOND * 2){
-				this.cooldown = Game.DELTASECOND * 3
+		this.speed = 0.65;
+		this.frame = 0;
+		this.frame_row = 0;
+		this.gravity = 0.0;
+		this.friction = 0.08;
+		this.pushable = false;
+		
+		this.on("struck", EnemyStruck);
+		this.on("hurt", function(){
+			audio.play("hurt",this.position);
+		});
+		this.on("collideObject", function(obj){
+			if( obj instanceof Player && this.life > 0 ) {
+				obj.hurt(this);
+				this._retreat = 1.0;
 			}
-		} else {
-			//Hover around the player
-			gotopos = new Point(
-				_player.position.x + (this.flip?1:-1) * 96,
-				_player.position.y - 56
-			);
-			this.strike( new Line(-8,-4,8,4) );
+		});
+		this.on("death", function(){
+			
+			audio.play("kill",this.position);
+			
+			Item.drop(this);
+			this.destroy();
+		});
+		
+		this._retreat = 0.0;
+	}
+	update(){
+		let dir = this.position.subtract(this.target().position);
+		let frc = this.target().force;
+		
+		if( this.life > 0 && this.stun <= 0 ) {
+			
+			if(this._retreat <= 0){
+				let moveDir = dir.normalize(-1);
+				
+				if(dir.y > 16 ) { moveDir.y -= 1.0; }
+				if(dir.y < -16 ) { moveDir.y += 1.0; }
+				
+				this.force = moveDir.normalize( this.speed * frc.magnitude() );
+				this.flip = this.force < 0;
+			} else {
+				this._retreat -= this.delta;
+				this.force = dir.normalize( this.speed * 5.0 );
+				this.flip = this.force < 0;
+			}
 		}
 		
-		this.cooldown -= this.delta;
-		var direction = gotopos.subtract(this.position).normalize();
-		this.force.x += direction.x * this.delta * this.speed;
-		this.force.y += direction.y * this.delta * this.speed;
+		//Animation
+		this.frame = (this.frame + this.delta * 6.0 ) % 3;
 	}
-	
-	//Animation
-	this.frame = (this.frame + this.delta * 0.2 ) % 3;
 }
+
+self["Laughing"] = Laughing;

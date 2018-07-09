@@ -36,8 +36,8 @@ class SpriteWrapper {
 	getFrameData(frame, framey){
 		let framex = frame;
 		if(frame instanceof Point){
-			framex = frame.x;
-			framey = frame.y;
+			framex = Math.floor(frame.x);
+			framey = Math.floor(frame.y);
 		}
 		if(framey in this.js.data) if(framex in this.js.data[framey] ){
 			return this.js.data[framey][framex];

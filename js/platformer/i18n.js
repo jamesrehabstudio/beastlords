@@ -101,8 +101,12 @@ i18n_messages = {
 		"engrish" : "Money is of no object.",
 	},
 	"chancellor_intro" : {
-		"english" : "I'm the chancellor of this town. I manage the money. It turns out I don't manage it very well at all. Say, you wouldn't want to donate a little to our good town? I promise, every single penny will go to good projects!",
-		"engrish" : "My name is Chancellor. I make good with the money. The money is trouble. You can donate your money to the town through me. I'll spend your money correctly. Press people to other construction. Donate to make the construction into a new with my assistant."
+		"english" : "Hello! My name is Chance and I'm looking to build this town a bar! But I'm a little short on money. Say, you couldn't spare a little? With your donation we can give this town the bar it deserves! How about it?",
+		"engrish" : "Hello! My name is Chance and I'm looking to build this town a bar! But I'm a little short on money. Say, you couldn't spare a little? With your donation we can give this town the bar it deserves! How about it?"
+	},
+	"chancellor_enough" : {
+		"english" : "You've donated more than enough! Construction will begin immediately!",
+		"english" : "You've donated more than enough! Construction will begin immediately!"
 	},
 	"npc_chargeattackman" : {
 		"english" : "Hold down the attack button with %fire% to unlease a powerful slash!"
