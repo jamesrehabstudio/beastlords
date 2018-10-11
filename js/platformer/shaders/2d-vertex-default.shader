@@ -15,7 +15,7 @@ void main() {
 		(a_texCoord.x+u_frame.x) * u_frame.z,
 		(a_texCoord.y+u_frame.y) * u_frame.w
 	);
-	v_position = a_position;
+	v_position = pos.xy;
 	v_edges = vec2(0,0);
 	if(a_position.x > 0.0){
 		v_edges.x = 1.0;

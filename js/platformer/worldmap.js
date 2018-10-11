@@ -244,10 +244,7 @@ WorldLocale.prototype.update = function(){
 WorldLocale.currentMapName = null;
 WorldLocale.loadMap = function(map, start, callback){
 	//Save current map reveal first
-	var pm = game.getObject(PauseMenu);
-	if(pm instanceof PauseMenu) {
-		pm.saveMapReveal();
-	}
+	PauseMenu.saveMapReveal();
 	
 	_player.keys = new Array();
 	PauseMenu.mapIcons = new Array();
@@ -306,27 +303,6 @@ WorldLocale.save = function(){
 	}
 	
 	game.save(data);
-}
-WorldLocale.profile = 0;
-WorldLocale.load = function(){
-	game.load(function(data){
-		if(data){
-			new Player();
-			_player.fromJson(data.player);
-			
-			NPC.variables = data.variables;
-			
-			game.loadMap(data.location.map, function(starts){
-				_player.position.x = data.location.x;
-				_player.position.y = data.location.y;
-				
-				game.addObject(_player);
-				game.addObject(new PauseMenu(0,0));
-				game.addObject(new Background(0,0));
-			});
-		}
-		
-	}, WorldLocale.profile);
 }
 
 WorldLocale.getMapIndex = function(list,key){

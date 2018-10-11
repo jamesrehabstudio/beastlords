@@ -24,9 +24,18 @@ function PauseMenu(){
 	this.message_time = 0;
 	
 	this.loadMapReveal();
+	
+	this.canPause = function(){
+		return (
+			_player instanceof Player && 
+			_player.life > 0 &&
+			!game.pause
+		);
+	}
 }
 
 PauseMenu.open = false;
+PauseMenu.useDebug = true;
 PauseMenu.questScrollLimit = 12;
 
 PauseMenu.prototype.idle = function(){}
@@ -40,7 +49,7 @@ PauseMenu.prototype.update = function(){
 		if( _player.life <= 0 ) {
 			//Player is dead, just wait for the start button to be pressed
 			if( input.state("pause") == 1 ) { 
-				_player.respawn();
+				Checkpoint.respawn();
 				return;
 			}
 		} else if( this.page == 0 ) {
@@ -124,14 +133,14 @@ PauseMenu.prototype.update = function(){
 				if( input.state("select") == 1 ) { this.page = ( this.page + 1 ) % this.pageCount; this.cursor = 0; audio.play("cursor"); }
 				
 				//Skip debug menu
-				if( this.page == 3) { this.page = 4;}
+				if( this.page == 3 && !PauseMenu.useDebug ) { this.page = 4;}
 				
 				
 				//if( input.state("right") == 1 ) { this.page = (this.page<=0 ? (this.pageCount-1) : this.page-1); this.cursor = 0; audio.play("cursor"); }
 			}
 		}
 	} else {
-		if( ( input.state("pause") == 1 ) && _player instanceof Player && _player.life > 0 ) {
+		if( ( input.state("pause") == 1 ) && this.canPause() ) {
 			PauseMenu.open = true;
 			//_player.equipment.sort( function(a,b){ if( a.name.match(/shield/) ) return 1; return -1; } );
 			this.cursor = 0;
@@ -173,19 +182,23 @@ PauseMenu.prototype.revealMap = function(secrets){
 }
 PauseMenu.prototype.loadMapReveal = function(){
 	var mapname = WorldLocale.currentMapName;
-	var recordname = "mapreveal_" + mapname;
+	var recordname = "mapreveal_" + game.map.filename;
 	
 	var str_reveal = NPC.get(recordname);
 	if(str_reveal){
 		this.map_reveal = str_reveal.split(",");
 	}
 }
-PauseMenu.prototype.saveMapReveal = function(){
-	var mapname = WorldLocale.currentMapName;
-	var recordname = "mapreveal_" + mapname;
-	var str_reveal = this.map_reveal.toString();
-	
-	NPC.set(recordname, str_reveal);
+PauseMenu.saveMapReveal = function(){
+	var pm = game.getObject(PauseMenu);
+	if(pm instanceof PauseMenu) {
+		
+		var mapname = WorldLocale.currentMapName;
+		var recordname = "mapreveal_" + game.map.filename;
+		var str_reveal = pm.map_reveal.toString();
+		
+		NPC.set(recordname, str_reveal);
+	}
 }
 PauseMenu.prototype.hudrender = function(g,c){
 	var xpos = (game.resolution.x - 256) * 0.5;
@@ -324,9 +337,9 @@ PauseMenu.prototype.hudrender = function(g,c){
 		if( _player instanceof Player ) {
 			//Minimap
 			g.color = [1.0,1.0,1.0,1.0];
-			g.scaleFillRect(game.resolution.x-49,7,42,26);
+			g.drawRect(game.resolution.x-49,7,42,26,1);
 			g.color = [0.0,0.0,0.0,1.0];
-			g.scaleFillRect(game.resolution.x-48,8,40,24);
+			g.drawRect(game.resolution.x-48,8,40,24,2);
 			this.renderMap(g,
 				new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
 				new Point(game.resolution.x-24,24), 

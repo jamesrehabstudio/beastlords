@@ -86,6 +86,7 @@ class SpriteWrapper {
 		return output;
 	}
 }
+
 SpriteWrapper.TYPE_HITAREA = 0;
 SpriteWrapper.TYPE_CRITAREA = 1;
 SpriteWrapper.TYPE_ATTACKAREA = 2;

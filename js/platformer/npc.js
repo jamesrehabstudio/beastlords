@@ -92,7 +92,7 @@ NPC.prototype.update = function(){
 }
 NPC.prototype.hudrender = function(g,c){
 	if(this.showmessage){
-		DialogManger.render(g);
+		DialogManager.render(g);
 	}
 }
 NPC.prototype.runScript = function(filename){
@@ -164,10 +164,10 @@ NPC.prototype.runScript = function(filename){
 				message = message[0];
 			}
 		}
-		DialogManger.set(message);
-		this.showmessage = DialogManger.show;
+		DialogManager.set(message, false);
+		this.showmessage = DialogManager.show;
 		if(!this.showmessage){
-			DialogManger.clear();
+			DialogManager.clear();
 			this.scriptPos++;
 		}
 		return false;

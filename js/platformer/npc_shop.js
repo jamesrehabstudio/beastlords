@@ -21,7 +21,7 @@ function Shop(x,y){
 	this.on("open",function(obj){
 		game.pause = true;
 		//audio.playLock("pause",0.3);
-		DialogManger.set(this.message);
+		DialogManager.set(this.message);
 	});
 	this.on("close", function(){
 		game.pause = false;
@@ -33,7 +33,7 @@ function Shop(x,y){
 Shop.prototype.update = function(g,c){
 	if( this.open > 0 ) {
 		/*
-		if(!DialogManger.show){
+		if(!DialogManager.show){
 			this.close();
 		}*/
 		if( input.state("jump") == 1 || input.state("pause") == 1 || input.state("select") == 1){
@@ -112,7 +112,7 @@ Shop.prototype.hudrender = function(g,c){
 	}
 	
 	if( this.open > 0 ){		
-		//DialogManger.render(g);
+		//DialogManager.render(g);
 		
 		var p = Shop.itemposition[this.cursor].add(this.position).subtract(c);
 		

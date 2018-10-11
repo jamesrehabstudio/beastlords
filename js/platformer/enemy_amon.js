@@ -34,7 +34,8 @@ function Amon(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -52,7 +53,9 @@ function Amon(x,y,d,o){
 	this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(2,this.difficulty);
+	this.xpDrop = Spawn.xp(1,this.difficulty);
 	
+	this.damageContact = 0.0;
 	this.collisionReduction = -1.0;
 	this.bounce = 1.0;
 	this.friction = 0.0;
@@ -75,7 +78,7 @@ Amon.prototype.update = function(){
 	this.frame.x = ( this.frame.x + this.delta * 0.2 ) % 3;
 	if(this.life <= 0){
 		this.gravity = 0.4;
-	} else if( this.stun < 0 ) {
+	} else if( this.stun <= 0 ) {
 		if(this.charged){
 			if(this.isCharged){
 				Background.pushLight(this.position,180,[.5,.7,1.0,1.0]);

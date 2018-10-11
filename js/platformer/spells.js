@@ -26,7 +26,7 @@ Spell.NAMES = [
 	"SpellBolt", 
 	"SpellFlash", 
 	"SpellHeal", 
-	"SpellPurify", 
+	"SpellIce",
 	"SpellShield", 
 	"SpellSlimeGernade", 
 	"SpellStrength"
@@ -58,6 +58,44 @@ Spell.randomRefill = function(player, nothingchance){
 }
 */
 
+SpellIce.prototype = new Spell();
+SpellIce.prototype.constructor = Spell;
+function SpellIce(){
+	//Fires a fireball
+	this.constructor();
+	this.name = "Ice";
+	this.objectName = "SpellIce";
+	this.castTime = Game.DELTASECOND * 0.125;
+	this.frame = new Point(1,10);
+	this.manaCost = 5;
+}
+SpellIce.prototype.use = function(player){
+	audio.play("cracking");
+	var damage = Math.floor(18 + player.stats.magic*4);
+	//var bullet = Bullet.createFireball(player.position.x, player.position.y);
+	let bullet = new IceballSpell(player.position.x, player.position.y );
+	bullet.team = player.team;
+	bullet.owner = player;
+	bullet.damageIce = Math.floor( (4 + this.level * 4) * ( 1 + player.stats.magic / 10 ) );
+	bullet.force.x = player.forward() * 8;
+	return game.addObject(bullet);
+}
+SpellIce.prototype.modifyStats = function(player, type, power){
+	if(type == Spell.SLOTTYPE_SPECIAL){
+		player.stats.attack += this.level * (1+power);
+		player.damageFire += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_MAGIC) {
+		player.stats.magic += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_ATTACK){
+		player.stats.attack += this.level * (1+power);
+		player.damageFire += this.level * (1+power);
+	} else if(type == Spell.SLOTTYPE_DEFENCE){
+		player.stats.defence += 1 + Math.floor(this.level * (1 + power * 0.5));
+		player.defenceFire += 1 + Math.floor(this.level * (1 + power * 0.5));
+	}
+}
+
+
 SpellFire.prototype = new Spell();
 SpellFire.prototype.constructor = Spell;
 function SpellFire(){
@@ -65,18 +103,19 @@ function SpellFire(){
 	this.constructor();
 	this.name = "Fireball";
 	this.objectName = "SpellFire";
-	this.castTime = Game.DELTASECOND * 0.3;
+	this.castTime = Game.DELTASECOND * 0.05;
 	this.frame = new Point(0,10);
 }
 SpellFire.prototype.use = function(player){
 	audio.play("cracking");
 	var damage = Math.floor(18 + player.stats.magic*4);
-	var bullet = Bullet.createFireball(player.position.x, player.position.y);
-	bullet.force.x = player.flip ? -6 : 6;
+	//var bullet = Bullet.createFireball(player.position.x, player.position.y);
+	var bullet = new FireballSpell(player.position.x, player.position.y, 12)
+	//bullet.force.x = player.flip ? -6 : 6;
 	bullet.team = player.team;
-	bullet.ignoreInvincibility = true;
-	bullet.damageFire = 8 + player.stats.magic * this.level;
-	game.addObject(bullet);
+	bullet.owner = player;
+	bullet.damageFire = Math.floor( (4 + this.level * 4) * ( 1 + player.stats.magic / 10 ) );
+	return game.addObject(bullet);
 }
 SpellFire.prototype.modifyStats = function(player, type, power){
 	if(type == Spell.SLOTTYPE_SPECIAL){

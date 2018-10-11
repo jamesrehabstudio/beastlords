@@ -60,11 +60,13 @@ class Puddle extends GameObject{
 				}
 			}
 			if(this.electrified > 0 && obj.hasModule(mod_combat)){
-				let damage = Combat.getDamage.apply(this);
-				damage.light = 15;
-				obj.hurt(this, damage);
+				if( obj.defenceLight < 99) {
+					let damage = Combat.getDamage.apply(this);
+					damage.light = 15;
+					obj.hurt(this, damage);
+				}
 			}
-			if(obj instanceof ElectricWire){
+			if(obj instanceof ElectricWire || obj instanceof Shockcrawler){
 				this.electrified = 0.25;
 				if(this._stepTime <= 0){
 					this.addBuldge(xpos, 8 + Math.random() * 5);
@@ -171,7 +173,8 @@ class Puddle extends GameObject{
 			this.buldges[i].height * Math.clamp01(this.buldges[i].time * 5),
 		];
 	}
-	render(g,c){
+	render(g,c){}
+	objectpostrender(g,c){
 		let margin = 32;
 		
 		g.renderSprite(
@@ -182,6 +185,7 @@ class Puddle extends GameObject{
 			false,
 			{
 				"u_size" : [this.width, this.height+margin],
+				"u_resolution" : [game.resolution.x, game.resolution.y],
 				"scalex" : this.width / 256.0,
 				"scaley" : (this.height+margin) / 256.0,
 				"u_color" : this.color1,

@@ -37,6 +37,7 @@ function WizzardBolter(x,y,d,o){
 		
 		Item.drop(this);
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -48,6 +49,7 @@ function WizzardBolter(x,y,d,o){
 	}
 	
 	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
+	this.xpDrop = Spawn.xp(5,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.moneyDrop = Spawn.money(3,this.difficulty);
@@ -168,6 +170,7 @@ function WizzardFlamer(x,y,d,o){
 		
 		Item.drop(this);
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -285,7 +288,8 @@ function WizzardSoldier(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -375,7 +379,8 @@ function WizzardLightning(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -444,15 +449,19 @@ function GroundBolt(x,y,d,o){
 	this.time = 0;
 	this.speed = 0;
 	this.team = 0;
+	this.color = COLOR_LIGHTNING;
+	this.lightRadius = 48;
 	
 	this.on("sleep", function(){
 		this.destroy();
 	});
+	/*
 	this.on("collideObject", function(obj){
 		if( obj instanceof Player && !this.grounded) {
-			obj.hurt(this,this.damage);
+			obj.hurt(this, this.getDamage() );
 		}
 	});
+	*/
 	this.on(["struckTarget","collideHorizontal"], function(dir){
 		this.destroy();
 	});
@@ -472,7 +481,9 @@ GroundBolt.prototype.update = function(){
 		//fall
 	}
 	
-	Background.pushLight(this.position,48,COLOR_LIGHTNING);
+	if(this.lightRadius > 0){
+		Background.pushLight(this.position,this.lightRadius,this.color);
+	}
 	
 	if(this.time > Game.DELTASECOND * 3){
 		this.destroy();
@@ -480,7 +491,7 @@ GroundBolt.prototype.update = function(){
 }
 	
 GroundBolt.prototype.render = function(g,c){
-	g.color = [0.5,0.7,1.0,1.0];
+	g.color = this.color;
 	g.scaleFillRect(
 		(this.position.x - this.width*0.5) - c.x,
 		(this.position.y - this.height*0.5) - c.y,

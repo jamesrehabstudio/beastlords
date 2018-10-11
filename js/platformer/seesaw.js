@@ -65,7 +65,7 @@ class SeeSaw extends GameObject {
 		
 		this.on("collideObject", function(obj){
 			if( obj.hasModule(mod_rigidbody) && obj.gravity > 0){
-				if(!obj.grounded && obj.force.y > 0){
+				if(!obj.grounded && obj.force.y > 0 && obj.pushable){
 					
 					for(let i=0; i < this.platforms.length; i++){
 						let p = this.getPlatformPosition(i);
@@ -79,7 +79,7 @@ class SeeSaw extends GameObject {
 								this.platforms[i].wiggle = Math.clamp01(obj.force.y * 0.125);
 								
 								obj.trigger("collideVertical", 1);
-								obj.grounded = true;
+								//obj.grounded = true;
 								this.platforms[i].standing.push(obj);
 								
 							}
@@ -143,10 +143,11 @@ class SeeSaw extends GameObject {
 					let obj = this.platforms[i].standing[j];
 					
 					if(obj instanceof Player){
-						obj.camera_narrowVRange = 3.0;
+						obj.camera_narrowVRange = Math.clamp01(obj.camera_narrowVRange + this.delta * 5.0);
+						//obj.camera_narrowVRange = 3.0;
 					}
 					
-					if( (!obj.grounded && obj.force.y < 0) || Math.abs(p.x - obj.position.x) > (obj.width*0.5+16) ){
+					if( !obj._isAdded || (!obj.grounded && obj.force.y < 0) || Math.abs(p.x - obj.position.x) > (obj.width*0.5+16) ){
 						//Remove object
 						this.platforms[i].standing.remove(j);
 						j--;
@@ -155,7 +156,8 @@ class SeeSaw extends GameObject {
 						obj.position.y = p.y - obj.height * ( 1 - obj.origin.y );
 						obj.position.x += p.x - this.platforms[i].lastx;
 						obj.force.y = 0;
-						obj.grounded = true;
+						obj.trigger("collideVertical", 1);
+						//obj.grounded = true;
 						
 						let dot = n.dot( new Point(0.0,-1.0) );
 						this.moveForce = Math.clamp ( this.moveForce + this.delta * dot * 8.0, -this.maxspeed, this.maxspeed );

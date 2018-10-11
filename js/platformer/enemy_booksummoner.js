@@ -56,6 +56,7 @@ class BookSummoner extends GameObject{
 		this.on("death", function(obj,pos,damage){
 			Item.drop(this);
 			audio.play("kill",this.position);
+			createExplosion(this.position, 40 );
 			this.destroy();
 		});
 		
@@ -69,6 +70,7 @@ class BookSummoner extends GameObject{
 		this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 		this.damage = Spawn.damage(2,this.difficulty);
 		this.moneyDrop = Spawn.money(3,this.difficulty);
+		this.xpDrop = Spawn.xp(6,this.difficulty);
 		
 		this.pushable = false;
 		this.hurtByDamageTriggers = true;

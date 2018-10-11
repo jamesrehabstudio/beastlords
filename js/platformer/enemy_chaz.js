@@ -27,7 +27,8 @@ function Chaz(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -44,6 +45,7 @@ function Chaz(x,y,d,o){
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(4,this.difficulty);
+	this.xpDrop = Spawn.xp(5,this.difficulty);
 	this.mass = 1.3;
 	
 	this.states = {
@@ -60,7 +62,7 @@ function Chaz(x,y,d,o){
 }
 Chaz.prototype.update = function(){
 	var dir = this.position.subtract(_player.position);
-	if( this.stun < 0 && this.life > 0) {
+	if( this.stun <= 0 && this.life > 0) {
 		if( this.states.attack < 0 ){
 			var direction = (this.states.backup ? -1 : 1);
 			this.addHorizontalForce(this.speed * direction);

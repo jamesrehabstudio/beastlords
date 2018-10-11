@@ -21,6 +21,7 @@ function Shockowl(x, y, d, o){
 	}
 	
 	this.lifeMax = this.life = Spawn.life(2,this.difficulty);
+	this.xpDrop = Spawn.xp(6,this.difficulty);
 	this.damage = 0;
 	this.damageLight = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(4,this.difficulty);
@@ -39,7 +40,8 @@ function Shockowl(x, y, d, o){
 		audio.play("hurt",this.position);
 	});
 	this.on("death", function(){
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

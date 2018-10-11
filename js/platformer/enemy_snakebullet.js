@@ -34,6 +34,7 @@ function SnakeBullet(x,y,d,o){
 	
 	
 	this.life = Spawn.life(0,this.difficulty);
+	this.xpDrop = Spawn.xp(1,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.pushable = false;

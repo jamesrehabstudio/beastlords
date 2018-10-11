@@ -99,11 +99,17 @@ tilerules.rules["temple2"] = mergeLists({
 	358:tilerules.ignore, 390:tilerules.ignore, 422:tilerules.ignore, 
 }, tilerules.rules["default"]);
 
+tilerules.rules["temple3"] = mergeLists({
+	135:tilerules.ignore, 136:tilerules.ignore,
+	167:tilerules.ignore, 168:tilerules.ignore,
+}, tilerules.rules["default"]);
+
 tilerules.rules["temple4"] = mergeLists({
 	51:tilerules.onewayup, 52:tilerules.onewayup, 53:tilerules.onewayup,
 	83:tilerules.ignore, 84:tilerules.ignore, 85:tilerules.ignore, 86:tilerules.ignore, 87:tilerules.ignore,
 	115:tilerules.ignore, 116:tilerules.ignore, 117:tilerules.ignore, 118:tilerules.ignore, 119:tilerules.ignore,
-	147:tilerules.ignore, 148:tilerules.ignore, 149:tilerules.ignore, 150:tilerules.ignore, 151:tilerules.ignore
+	147:tilerules.ignore, 148:tilerules.ignore, 149:tilerules.ignore, 150:tilerules.ignore, 151:tilerules.ignore,
+	265:tilerules.wall_slope1tohalf, 297:tilerules.wall_slopehalfto0, 266:tilerules.wall_slope0tohalf, 298:tilerules.wall_slopehalfto1,
 }, tilerules.rules["default"]);
 
 tilerules.rules["town"] = mergeLists({

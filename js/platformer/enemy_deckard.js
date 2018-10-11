@@ -31,6 +31,7 @@ function Deckard(x,y,d,o){
 	this.life = Spawn.life(6,this.difficulty);
 	this.lifeMax = Spawn.life(6,this.difficulty);
 	this.moneyDrop = Spawn.money(15,this.difficulty);
+	this.xpDrop = Spawn.xp(8,this.difficulty);
 	this.mass = 4;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.death_time = Game.DELTASECOND * 2;
@@ -43,7 +44,8 @@ function Deckard(x,y,d,o){
 		this.destroy();
 		
 		Item.drop(this,20);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		
 		for(var i=0; i < 2; i++ ){
 			//Spawn bats on death

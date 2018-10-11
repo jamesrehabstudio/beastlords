@@ -395,73 +395,90 @@ EffectBlock.prototype.render = function(g,c){
 	}
 }
 
-EffectAfterImage.prototype = new GameObject();
-EffectAfterImage.prototype.constructor = GameObject;
-function EffectAfterImage(x, y, obj){
-	/*
-	this.constructor();
-	
-	this.life = Game.DELTASECOND;
-	this.lifeMax = this.life;
-	
-	this.size = 64;
-	this.resolution = new Point(this.size, -this.size);
-	this.position.x = x - this.size * 0.5;
-	this.position.y = y - this.size * 0.5;
-	this.interactive = false;
-	
-	
-	var gl = game.g;
-	this.buffer = gl.createF(this.size);
-	
-	this.on("sleep", function(){ this.destroy(); } );
-
-	this.buffer.use(gl);
-	var tempres = game.resolution;
-	game.resolution = this.resolution;
-	gl.clear(gl.COLOR_BUFFER_BIT);
-	gl.viewport(0,0,this.size,this.size);
-	
-	obj.render(gl, new Point(this.size*-0.5, this.size*0.5).add(obj.position));
-	
-	game.backBuffer.use(gl);
-	game.resolution = tempres;
-	gl.viewport(0,0,game.resolution.x,game.resolution.y);
-	*/
+class EffectSprite extends GameObject{
+	constructor(x, y, d, ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.sprite = ops.getString("sprite", "bullets");
+		this.frames = ops.get("frames", [ new Point(0,0) ]);
+		this.time = this._time = ops.getFloat("time", 0.25);
+		this.flip = ops.getBool("flip", false);
+		this.zIndex = ops.getInt("z_index", 0);
+		this.rotation = ops.getFloat("rotation", 0.0);
+		this.loops = ops.getInt("loops", 0);
+		
+		this.frame = this.frames[0];
+		this.on("sleep", function(){ this.destroy(); });
+	}
+	update(){
+		let p = Math.clamp( Math.floor( (1 - this._time / this.time) * this.frames.length ), 0, this.frames.length-1 );
+		this.frame = this.frames[p];
+		
+		this._time -= this.delta;
+		if( this._time <= 0 ){
+			if( this.loops > 0){
+				this._time += this.time;
+				this.loops--;
+			} else {
+				this.destroy();
+			}
+		}
+	}
+	render(g,c){
+		g.renderSprite(this.sprite, this.position.subtract(c), this.zIndex, this.frame, this.flip, {"rotation":this.rotation});
+	}
+}
+EffectSprite.createSlash = function(pos, rotation = 0.0){
+	let es = new EffectSprite(pos.x, pos.y, false, Options.convert({
+		"sprite" : "slashes01",
+		"frames" : [new Point(0,0), new Point(1,0), new Point(2,0), new Point(3,0)],
+		"rotation" : rotation,
+		"z_index" : 100
+	}));
+	game.addObject(es);
 }
 
-EffectAfterImage.prototype.render = function(g,c){
-	/*
-	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_CONSTANT_ALPHA );
-	
-	var geo = Sprite.RectBuffer(this.position.subtract(c), 64,64);
-	var tex = Sprite.RectBuffer(new Point(), 1,1);
-	var shader = window.materials["color"].use();
-	
-	var buffer = g.createBuffer();
-	g.bindBuffer( g.ARRAY_BUFFER, buffer );
-	g.bufferData( g.ARRAY_BUFFER, geo, g.DYNAMIC_DRAW);
-	shader.set("a_position");
-	
-	var tbuffer = g.createBuffer();
-	g.bindBuffer( g.ARRAY_BUFFER, tbuffer );
-	g.bufferData( g.ARRAY_BUFFER, tex, g.DYNAMIC_DRAW);
-	shader.set("a_texCoord");
-	
-	shader.set("u_resolution", game.resolution.x, game.resolution.y);
-	shader.set("u_camera", 0,0);
-	g.bindTexture(g.TEXTURE_2D, this.buffer.texture);
-	
-	var progress = Math.max(this.life / this.lifeMax, 0);
-	shader.set("u_color", [progress,progress,1,0.5*Math.sqrt(progress)]);
-	
-	g.drawArrays(g.TRIANGLE_STRIP, 0, geo.length/2);
-	g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA );
-	
-	this.life -= this.delta;
-	if( this.life <= 0 ) this.destroy();
-	*/
-	this.destroy();
+class EffectAfterImage extends GameObject{
+	constructor(x, y, d, ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.sprite = ops.getString("sprite", "player_afterimage");
+		this.frame.x = ops.getInt("frame_x", 0);
+		this.frame.y = ops.getInt("frame_y", 0);
+		this.flip = ops.getBool("flip", false);
+		this.zIndex = ops.getInt("z_index", 0);
+		
+		this.alpha = 1.0;
+		this.speed = ops.getFloat("speed", 1.0);
+		this.rotation = ops.getFloat("rotation", 0.0);
+		
+		this.on("sleep", function(){ this.destroy(); });
+	}
+	render(g,c){
+		
+		if(this.alpha <= 0.0){
+			this.destroy();
+		} else {
+			this.alpha -= this.delta * this.speed;
+			g.renderSprite(this.sprite,this.position.subtract(c), this.zIndex, this.frame, this.flip, {
+				"u_color" : [0.0,0.5,1.5, this.alpha],
+				"rotation" : this.rotation
+			});
+		}
+	}
+}
+EffectAfterImage.create = function(obj){
+	game.addObject( new EffectAfterImage(obj.position.x, obj.position.y, [], Options.convert({
+		"sprite" : obj.sprite,
+		"frame_x" : obj.frame.x,
+		"frame_y" : obj.frame.y,
+		"flip" : obj.flip,
+		"z_index" : obj.zIndex -1
+	})) );
 }
 
 EffectItemPickup.prototype = new GameObject();
@@ -601,6 +618,70 @@ var EffectList = {
 		}
 	}
 };
+
+class BossIntro extends GameObject{
+	constructor(f){
+		super(0,0,false,false);
+		this.position.x = 0;
+		this.position.y = 0;
+		
+		this.frame.x = Math.floor(f % 5);
+		this.frame.y = Math.floor(f / 5);
+		
+		this._time = 0.0;
+		
+		game.slow(0.1, Game.DELTASECOND * 3);
+	}
+	idle(){}
+	render(){}
+	hudrender(g,c){
+		this._time += game.deltaUnscaled / (Game.DELTASECOND * 3);
+		g.color = [0.0,0.0,0.0,0.3];
+		
+		var slide = Math.min(Math.sin(Math.PI * this._time)*4, 1);
+		var border = Math.min(Math.sin(Math.PI * this._time)*3, 1) * 64;
+		
+		g.drawRect(0, 0, game.resolution.x, border, this.zIndex-1 );
+		g.drawRect(0, game.resolution.y-border, game.resolution.x, border, this.zIndex-1 );
+		
+		var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
+		var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
+		
+		g.renderSprite("bossface", porta, this.zIndex, new Point(1,0), false);
+		g.renderSprite("bossface", portb, this.zIndex, this.frame, true);
+		
+		if(this._time > 1.5){
+			this.destroy();
+		}
+	}
+}
+
+class EffectLevelUp extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this._progress = 0.0;
+		game.slow(0, 1.0);
+		
+		audio.play("levelup2");
+	}
+	idle(){}
+	update(){
+		this._progress += game.deltaUnscaled * 2;
+		if(this._progress >= 2){
+			this.destroy();
+		}
+	}
+	render(g,c){}
+	hudrender(g,c){
+		let s = "LEVEL UP!";
+		let x = 4 * s.length;
+		let y = 240 - (this._progress - Math.clamp(this._progress-0.5,0,1)) * 240;
+		textArea(g,"LEVEL UP!",game.resolution.x*0.5-x,y,128,16);
+	}
+}
 
 class SparkEffect extends GameObject{
 	constructor(x,y,d,ops){

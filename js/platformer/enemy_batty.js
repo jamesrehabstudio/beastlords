@@ -31,7 +31,8 @@ function Batty(x,y,d,o){
 	this.moneyDrop = Spawn.money(3,this.difficulty);
 	this.mass = 0.8;
 	this.pushable = false;
-	this.collideDamage = this.damage = Spawn.damage(2,this.difficulty);
+	this.damageContact = 0.0;
+	this.xpDrop = Spawn.xp(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
 	this.gravity = -0.6;
 	this.fuse = this.difficulty >= 2;
@@ -85,7 +86,8 @@ function Batty(x,y,d,o){
 		//this.interactive = false;
 		this.destroy();
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 32 );
 	});
 }
 Batty.prototype.update = function(){

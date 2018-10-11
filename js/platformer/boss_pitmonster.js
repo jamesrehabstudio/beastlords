@@ -330,7 +330,7 @@ class PitMonsterMini extends GameObject {
 			audio.play("hurt", this.position);
 		});
 		this.on("pre_death", function(){
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
 		})
 		this.on("collideObject", function(obj){
 			if(obj instanceof Player){

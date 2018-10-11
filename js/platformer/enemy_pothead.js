@@ -43,9 +43,11 @@ function Pothead(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(3,this.difficulty);
+	this.xpDrop = Spawn.xp(4,this.difficulty);
 	this.mass = 1.5;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(3,this.difficulty);
+	this.damageContact = 1.0;
 	
 	
 	this.on("block", function(obj,pos,damage){
@@ -61,13 +63,6 @@ function Pothead(x,y,d,o){
 		obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
 		this.force.x += (dir.x < 0 ? -1 : 1) * this.delta;
 		audio.playLock("block",0.1);
-	});
-	this.on("collideObject", function(obj){
-		if(this.life > 0 && !this.grounded){
-			if(obj instanceof Player && obj.position.y > this.position.y){
-				obj.hurt(this,this.getDamage());
-			}
-		}
 	});
 	this.on("wakeup", function(){
 		this.states.sleep = 1;
@@ -101,7 +96,8 @@ function Pothead(x,y,d,o){
 		}
 		
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

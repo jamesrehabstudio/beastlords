@@ -9,7 +9,7 @@ function ArmWrestler(x,y,d,o){
 	this.position.y = y;
 	this.width = 64;
 	this.height = 56;
-	this.sprite = "biker";
+	this.sprite = "armwrestle";
 	
 	this.active = false;
 	this.defeated = false;
@@ -40,6 +40,7 @@ function ArmWrestler(x,y,d,o){
 	this.friction = 0.01;
 	this.pushable = false;
 	this.damage = Spawn.damage(5,this.difficulty);
+	this.xpDrop = Spawn.xp(10,this.difficulty);
 	this.idleMargin = 128;
 	
 	this.on("startwrestle", function(obj){
@@ -118,7 +119,7 @@ ArmWrestler.prototype.update = function(){
 			this.active = false;
 			this.defeated = true;
 			
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
 			this.grounded = false;
 			this.force.y = -5;
 			Item.drop(this,15);

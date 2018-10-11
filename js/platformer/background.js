@@ -11,6 +11,8 @@ function Background(x,y){
 		{ "rarity":1, "tags":["normal"],"temples":[0,1,2,3,4,5,6,7,8],"tiles":[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,30,31,32,64,48,9,9,9,9,9,9,9,91,92,9,46,0,0,0,47,9,91,92,9,9,9,9,107,108,9,62,0,0,0,63,9,107,108,9,9,9,9,9,9,9,62,0,0,0,63,9,9,9,9,9,9,9,30,31,32,79,0,0,0,80,32,64,48,9,9,9,9,46,0,0,0,0,0,0,0,0,0,47,9,9,9,9,62,0,0,0,0,0,0,0,0,0,63,9,9,9,9,62,0,0,0,0,0,0,0,0,0,63,9,9,93,94,12,28,28,28,28,28,28,28,28,28,13,9,9,109,109,94,94,94,93,94,94,94,94,94,93,94,93,94,109,109,110,110,110,109,110,110,110,110,110,109,110,109,110,109,109,110,110,110,109,110,110,110,110,110,109,110,109,110]}
 	];
 	
+	self._background = this;
+	
 	this.saved_rooms = {};
 	this.animation = 0;
 	this.walls = true;
@@ -23,13 +25,31 @@ function Background(x,y){
 	this.tintTime = 0.0;
 	this.tintTimeMax = 0.0;
 	
-	this.ambience = [0.3,0.3,0.5];
+	//this.ambience = [0.3,0.3,0.5];
+	this.ambience = game.mapProperties.getList("ambience",[0.3,0.3,0.5])
 	this.ambienceStrength = 0.0;
 	this.darknessFunction = function(c){
 		return (c.y-720) / 720;
 	}
+
 	
 	this.time = 0;
+	
+	this.smokeCount = 30;
+	this.smoke = new Array();
+	this.smokeSpeed = 1.0;
+	for(let i=0; i < this.smokeCount; i++){
+		let sm = {
+			active : false,
+			position : new Point(),
+			force : new Point(),
+			size : 0,
+			radius : 0,
+			heat : 0,
+			split : 0.0,
+		};
+		this.smoke.push(sm);
+	}
 	
 	this.lightbeamLoop = 16;
 	this.dustSpeed = 0.25;
@@ -55,6 +75,51 @@ Background.prototype.render = function(g,c){
 		this.tintTime -= game.deltaUnscaled;
 		if(this.tintTime <= 0){
 			g.tint = [this.tintNew[0],this.tintNew[1],this.tintNew[2],this.tintNew[3]]
+		}
+	}
+	
+	this.renderSmoke(g,c);
+}
+
+Background.prototype.renderSmoke = function(g,c){
+	
+	let margin = new Point(64,64);
+	let screenRect = new Line( c.subtract(margin), c.add(game.resolution).add(margin) );
+	
+	for(let i=0; i < this.smokeCount; i++){
+		let sm = this.smoke[i];
+		
+		if(sm.active){
+			sm.position = sm.position.add( sm.force.scale(this.delta * this.smokeSpeed * UNITS_PER_METER) );
+			sm.split -= Math.max( sm.force.sqrMagnitude(), 0.5 ) * this.delta;
+			sm.size -= this.delta * 64.0 / Math.max( sm.size, 1.0);
+			sm.radius = Math.lerp( sm.radius, sm.size, this.delta );
+			sm.force = sm.force.scale( 1 - 0.025 * UNITS_PER_METER * this.delta );
+			sm.heat = Math.clamp01( sm.heat - this.delta * 2.0);
+			
+			if ( sm.split <= 0 && sm.size > 8){
+				sm.size -= 6;
+				sm.split = 2 + Math.random() * 2;
+				Background.pushSmoke( sm.position, sm.size, Point.lerp( new Point(-sm.force.y, sm.force.x), sm.force, 0.5 ) );
+			}
+			
+			
+			if( sm.radius <= 0 || !screenRect.overlaps(sm.position) ){
+				sm.active = false;
+			}
+			let color = [
+				Math.lerp(0.5, 1.0, sm.heat),
+				Math.lerp(0.5, 1.0, sm.heat**3),
+				Math.lerp(0.5, 1.0, sm.heat**3),
+				1.0
+			];
+			
+			g.renderSprite("circle256", sm.position.subtract(c), -1, new Point(), false, {
+				scalex : sm.radius / 256,
+				scaley : sm.radius / 256,
+				u_color : color
+			});
+			
 		}
 	}
 }
@@ -84,7 +149,7 @@ Background.prototype.postrender = function(g,c){
 	if(Background.flash instanceof Array){
 		g.color = Background.flash;
 		g.scaleFillRect(0,0,game.resolution.x,game.resolution.y);
-		Background.flash = false;
+		Background.flash[3] = Background.flash[3] - game.deltaUnscaled * 3.0;
 	}
 }
 Background.prototype.renderDust = function(g,c){
@@ -93,10 +158,10 @@ Background.prototype.renderDust = function(g,c){
 		var dust = this.dust[i];
 		var x = Math.sin( dust.lapse * dust.direction.x );
 		var y = Math.sin( dust.lapse * dust.direction.y );
-		dust.lapse += 0.1 * this.delta * this.dustSpeed;
+		dust.lapse += 3.0 * this.delta * this.dustSpeed;
 		
-		dust.position.x += x * this.delta * dust.scale * this.dustSpeed;
-		dust.position.y += y * this.delta * dust.scale * this.dustSpeed;
+		dust.position.x += x * this.delta * dust.scale * this.dustSpeed * UNITS_PER_METER;
+		dust.position.y += y * this.delta * dust.scale * this.dustSpeed * UNITS_PER_METER;
 		
 		g.renderSprite(
 			game.map.tileset,
@@ -122,7 +187,8 @@ Background.prototype.prerender = function(g,c){
 }
 Background.prototype.lightrender = function(g,c){
 	//Calculate strength
-	this.ambienceStrength = Math.min(Math.max(this.darknessFunction(c),0),1);
+	//this.ambienceStrength = Math.min(Math.max(this.darknessFunction(c),0),1);
+	this.ambienceStrength = 1;
 	g.color = [
 		Math.lerp(1.0,this.ambience[0],this.ambienceStrength),
 		Math.lerp(1.0,this.ambience[1],this.ambienceStrength),
@@ -159,6 +225,29 @@ Background.prototype.lightrender = function(g,c){
 	Background.lights = new Array();
 }
 Background.prototype.idle = function(){}
+Background.pushSmoke = function( position, size, force, heat = 1 ){
+	let b = self._background;
+	let index = -1;
+	
+	for(let i = 0; i < b.smokeCount; i++){
+		if( !b.smoke[i].active ){
+			index = i;
+			break;
+		} else if ( b.smoke[i].size < size ) {
+			index = i;
+		}
+	}
+	
+	if( index >= 0){
+		b.smoke[index].active = true;
+		b.smoke[index].position = position.scale(1);
+		b.smoke[index].size = size;
+		b.smoke[index].radius = size;
+		b.smoke[index].force = force;
+		b.smoke[index].heat = heat;
+		b.smoke[index].split = 3 + Math.random() * 3;
+	}
+}
 Background.lightbeam = function(p, r, w, h){
 	r = r / 180 * Math.PI;
 	var s = Math.sin(r); //-0.707
@@ -186,7 +275,7 @@ Background.cloudTexture = new Float32Array([
 Background.flash = false;
 Background.lights = new Array();
 Background.pushLight = function(p,r,c){
-	if( Background.lights.length < 20 ) {
+	if( Background.lights.length < 40 ) {
 		p = p || new Point();
 		r = r || 0;
 		c = c || [1.0,1.0,1.0,1.0];
@@ -227,7 +316,7 @@ Background.presets = {
 				0.9,
 				1.0
 			];
-			g.scaleFillRect(0,y,game.resolution.x, y+inc);
+			g.drawRect(0,y,game.resolution.x, y+inc, -1);
 		}
 		//Render horizon
 		for(var i=0; i < 5; i++){
@@ -235,8 +324,8 @@ Background.presets = {
 		}
 		
 		var carea = new Line(-64,-32,game.resolution.x+64,game.resolution.y+32);
-		g.renderSprite("bgclouds",new Point(this.time*0.1,64).subtract(c.scale(0.1)).mod(carea),1,new Point(0,1), false,{"u_color":[0.85,0.92,1.0,1.0],"scale":0.8});
-		g.renderSprite("bgclouds",new Point(120+this.time*0.2,80).subtract(c.scale(0.2)).mod(carea),1,new Point(0,1), false,{"u_color":[0.9,0.95,1.0,1.0]});
+		g.renderSprite("bgclouds",new Point(this.time*3.0,64).subtract(c.scale(0.1)).mod(carea),1,new Point(0,1), false,{"u_color":[0.85,0.92,1.0,1.0],"scale":0.8});
+		g.renderSprite("bgclouds",new Point(120+this.time*6.0,80).subtract(c.scale(0.2)).mod(carea),1,new Point(0,1), false,{"u_color":[0.9,0.95,1.0,1.0]});
 	},
 	"darksky" : function(g,c){
 		g.renderSprite("sky_storm1",new Point(game.resolution.x*0.5,0),1,new Point(0,0));

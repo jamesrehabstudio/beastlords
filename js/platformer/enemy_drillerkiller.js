@@ -18,6 +18,8 @@ class DrillerKiller extends GameObject{
 		this.lifeMax = this.life = Spawn.life(8,this.difficulty);
 		this.damage = Spawn.damage(3,this.difficulty);
 		this.moneyDrop = Spawn.money(6,this.difficulty);
+		this.xpDrop = Spawn.xp(5,this.difficulty);
+		this.xpDrop = Spawn.xp(7,this.difficulty);
 		this.mass = 1.5;
 		
 		this.on("block", function(obj,strike_rect,damage){
@@ -35,7 +37,8 @@ class DrillerKiller extends GameObject{
 		this.on("death", function(){
 			this.destroy();
 			Item.drop(this,12);
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 		});
 		
 		this._drilllift = 0.0;

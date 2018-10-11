@@ -23,6 +23,7 @@ class WallNolt extends GameObject {
 		}
 		
 		this.lifeMax = this.life = Spawn.life(0,this.difficulty);
+		this.xpDrop = Spawn.xp(1,this.difficulty);
 		this.damage = Spawn.damage(2,this.difficulty);
 		this.death_time = 0;
 		
@@ -36,6 +37,7 @@ class WallNolt extends GameObject {
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position);
+			createExplosion(this.position, 40 );
 			//this.destroy();
 		});
 	}

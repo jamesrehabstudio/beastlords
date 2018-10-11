@@ -1,6 +1,7 @@
 precision mediump float;
 
 uniform sampler2D u_image;
+uniform sampler2D u_screen;
 uniform vec4 u_color;
 uniform vec2 u_size;
 uniform float u_time;

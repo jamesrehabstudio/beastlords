@@ -38,6 +38,23 @@ function boxArea(g,x,y,w,h,z=-99){
 	g.drawRect(x+7, y+7, w-14, h-14, z+1 );
 	
 }
+function renderString(g,s,x,y,font="text"){
+	let _x = 0;
+	
+	for(var i=0; i < s.length; i++ ){
+		let index = textLookup.indexOf(s[i]);
+		if( index >= 0 ){
+			g.renderSprite(
+				"text",
+				new Point(_x * text_size + x, y),
+				999,
+				new Point(index%16,index/16),
+				false
+			);
+			_x++;
+		}
+	}
+}
 function textArea(g,s,x,y,w,h){
 	var _x = 0;
 	var _y = 0;
@@ -90,33 +107,45 @@ function renderDialog(g,s, top = 48){
 	textArea(g,s,left,top,width, height);
 }
 
-DialogManger = {
+DialogManager = {
 	"dialogOpen" : false,
 	"width":25,
 	"maxlines":4,
 	"text" : "",
 	"show" : false,
+	"filling" : false,
 	"progress" : 0.0,
 	"speed" : 25.0,
 	"line" : 0,
+	"choices" : [],
+	"cursor" : 0,
 	"audio" : "text01",
+	"atEnd" : false,
 	"parsedtext" : new Array(),
-	"set" : function(text){
-		if(DialogManger.text != text){
-			DialogManger.text = text;
-			DialogManger.parsedtext = DialogManger.parse(DialogManger.substitute(text));
-			DialogManger.show = true;
-			DialogManger.progress = 0.0;
-			DialogManger.line = 0;
-		}else{
-			
+	"set" : function(text, reset = true){
+		if(DialogManager.text != text){
+			DialogManager.text = text;
+			DialogManager.parsedtext = DialogManager.parse(DialogManager.substitute(text));
+			DialogManager.atEnd = false;
+			DialogManager.choices = false;
+			DialogManager.show = true;
+			DialogManager.progress = 0.0;
+			DialogManager.line = 0;
+			DialogManager.cursor = -1;
+		}else if( reset ){
+			DialogManager.atEnd = false;
+			DialogManager.choices = false;
+			DialogManager.show = true;
+			DialogManager.progress = 0.0;
+			DialogManager.line = 0;
+			DialogManager.cursor = -1;
 		}
 	},
 	"clear" : function(){
-		DialogManger.text = false;
-		DialogManger.show = false;
-		DialogManger.progress = 0.0;
-		DialogManger.line = 0;
+		DialogManager.text = false;
+		DialogManager.show = false;
+		DialogManager.progress = 0.0;
+		DialogManager.line = 0;
 	},
 	"substitute" : function(s){
 		var rep = {
@@ -133,14 +162,15 @@ DialogManger = {
 	},
 	"render" : function(g){
 		var charcount = 0;
-		var pt = DialogManger.parsedtext;
-		var filled = true;
-		var lineno = DialogManger.line;
-		var max = DialogManger.maxlines;
-		var xoff = Math.floor(game.resolution.x* 0.5 - DialogManger.width*4 );
-		var yoff = 48;
+		var pt = DialogManager.parsedtext;
+		var lineno = DialogManager.line;
+		var max = DialogManager.maxlines;
+		var xoff = Math.floor(game.resolution.x* 0.5 - DialogManager.width*4 );
+		var yoff = 24;
 		
-		boxArea(g,xoff-12,yoff-12,DialogManger.width*8+24,max*12+24);
+		DialogManager.filling = true;
+		
+		boxArea(g,xoff-12,yoff-12,DialogManager.width*8+24,max*12+24);
 		
 		for(var i=lineno; i < lineno+max && i < pt.length; i++){
 			var line = pt[i];
@@ -148,7 +178,7 @@ DialogManger = {
 			for(var j=0; j < line.length; j++){
 				var x = xoff + j * 8;
 				var index = textLookup.indexOf(line[j]);
-				if(charcount < DialogManger.progress){
+				if(charcount < DialogManager.progress){
 					g.renderSprite(
 						"text",
 						new Point(x,y),
@@ -157,30 +187,53 @@ DialogManger = {
 						false
 					);
 				} else {
-					filled = false;
+					DialogManager.filling = false;
 				}
 				charcount++;
 			}
 		}
 		
+		if(DialogManager.choices && lineno+max >= pt.length && DialogManager.filling){
+			//Render choices
+			let choiceTop = yoff + (max*12+24);
+			DialogManager.cursor = Math.max( DialogManager.cursor, 0);
+			
+			boxArea(g,xoff-12, choiceTop-12, DialogManager.width*8+24, DialogManager.choices.length*12+24);
+			
+			for(let c=0; c < DialogManager.choices.length; c++){
+				renderString(g, DialogManager.choices[c], 24 + xoff, choiceTop + c * 12);
+			}
+			
+			if( input.state("up") == 1 ) {
+				audio.play("cursor");
+				DialogManager.cursor = Math.max(DialogManager.cursor-1, 0);
+			} else if( input.state("down") == 1 ) {
+				audio.play("cursor");
+				DialogManager.cursor = Math.min(DialogManager.cursor+1, DialogManager.choices.length-1);
+			}
+			
+			renderString(g, "@", xoff, choiceTop + DialogManager.cursor * 12);
+		}
+		
 		if(input.state("fire") == 1 ){
-			if(filled){
+			if(DialogManager.filling){
 				if(lineno+max >= pt.length ){
 					//End dialog
-					DialogManger.show = false;
+					if( DialogManager.choices ) { audio.play("equip"); }
+					DialogManager.show = false;
 				} else {
 					//Next lines
-					DialogManger.line += max;
-					DialogManger.progress = 0.0;
+					DialogManager.line += max;
+					DialogManager.progress = 0.0;
 				}
 			} else {
-				DialogManger.progress = Number.MAX_SAFE_INTEGER;
+				DialogManager.progress = Number.MAX_SAFE_INTEGER;
 			}
 		} else {
-			var prev = DialogManger.progress;
-			DialogManger.progress += game.deltaUnscaled * DialogManger.speed;
-			if(!filled && Math.floor(prev) != Math.floor(DialogManger.progress)){
-				audio.play(DialogManger.audio);
+			var prev = DialogManager.progress;
+			DialogManager.progress += game.deltaUnscaled * DialogManager.speed;
+			if(!DialogManager.filling && Math.floor(prev) != Math.floor(DialogManager.progress)){
+				audio.play(DialogManager.audio);
 			}
 		}		
 	},
@@ -190,7 +243,7 @@ DialogManger = {
 		var last_space = 0;
 		for(var i=0; i < s.length; i++ ){
 			if( s[i] == " " ) last_space = i;
-			if( i - last_start >= DialogManger.width ) {
+			if( i - last_start >= DialogManager.width ) {
 				//Slice here
 				out.push(s.slice(last_start,last_space));
 				i = last_start = last_space + 1;

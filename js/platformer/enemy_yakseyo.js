@@ -27,6 +27,7 @@ function Yakseyo(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(10,this.difficulty);
+	this.xpDrop = Spawn.xp(6,this.difficulty);
 	this.damage = Spawn.damage(4,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
@@ -63,6 +64,7 @@ function Yakseyo(x,y,d,o){
 		Item.drop(this,24);
 		
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	SpecialEnemy(this);

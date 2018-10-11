@@ -52,17 +52,17 @@ audio = {
 	}
 }
 
-RENDER_STEPS = ["prerender","render","postrender","hudrender","lightrender"];
+RENDER_STEPS = ["prerender","render","objectpostrender","postrender","hudrender","lightrender"];
 
 Renderer = {
 	color : [1,1,1,1],
 	tint : [1,1,1,1],
-	layers : [new Array(),new Array(),new Array(),new Array(),new Array()],
+	layers : [new Array(),new Array(),new Array(),new Array(),new Array(),new Array()],
 	layer : 1
 }
 Renderer.clear = function(){
 	Renderer.color = [1,1,1,1];
-	Renderer.layers = [new Array(),new Array(),new Array(),new Array(),new Array()];
+	Renderer.layers = [new Array(),new Array(),new Array(),new Array(),new Array(),new Array()];
 	Renderer.layer = 1;
 }
 Renderer.serialize = function(){
@@ -330,6 +330,11 @@ Game.prototype.update = function(){
 				this._firstEmptyIndex = Math.min(this._firstEmptyIndex, i);
 			}
 		} else if(obj.shouldRender()){
+			if(self.debug){
+				Renderer.layer = RENDER_STEPS.indexOf("render");
+				obj.renderDebug(Renderer, fCamera)
+			}
+			
 			for(var j=0; j < RENDER_STEPS.length; j++){
 				//try{
 					var step = RENDER_STEPS[j];
@@ -379,12 +384,19 @@ Game.prototype.useMap = function(m){
 	this.clearAll(false);
 	
 	this.map = {
+		"filename" : m.filename,
 		"layers" : m.layers,
 		"map" : m.map,
 		"tileset" : m.tileset,
 		"width" : m.width,
 		"height" : m.height
 	};
+	
+	this.mapProperties = {};
+	for(let i=0; i < m.layersProperties.length; i++) for(let key in m.layersProperties[i]){
+		this.mapProperties[key] = m.layersProperties[i][key];
+	}
+	this.mapProperties = Options.convert(this.mapProperties);
 	
 	var splits = Math.floor(Math.max(m.width,m.height)/64);
 	this.tree = new BSPTree(new Line(0,0,m.width*16,m.height*16), splits);
@@ -457,6 +469,7 @@ Game.prototype.addObject = function(obj){
 		obj.trigger("added");
 		obj._isAdded = true;
 	}
+	return obj;
 }
 Game.prototype.removeObject = function( obj ) {
 	//this._objectsDeleteList.push(obj)
@@ -495,6 +508,16 @@ Game.prototype.overlaps = function(l, end){
 		var a = near[i];
 		if( line.overlaps(a.bounds()) ) {
 			out.push( a );
+		}
+	}
+	return out;
+}
+Game.prototype.polyOverlaps = function(p){
+	let out = new Array();
+	let hits = this.overlaps(p.bounds());
+	for(let i=0; i < hits.length; i++){
+		if( p.intersects(hits[i].hitbox()) ){
+			out.push(hits[i]);
 		}
 	}
 	return out;
@@ -1085,6 +1108,42 @@ var tilerules = {
 		}
 		return limits;
 	},
+	"wall_slope0tohalf" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.VERTICAL){
+			
+			var maxright = pos.x + Math.clamp( (hitbox.bottom - pos.y) * 0.5, 0, 8 );
+			
+			limits[2] = Math.max(limits[2], maxright+2);
+		}
+		return limits;
+	},
+	"wall_slopehalfto1" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.HORIZONTAL){
+			
+			var maxright = pos.x + Math.clamp( 8 + (hitbox.bottom - pos.y) * 0.5, 0, 16 );
+			
+			limits[2] = Math.max(limits[2], maxright+2);
+		}
+		return limits;
+	},
+	"wall_slope1tohalf" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.VERTICAL){
+			
+			var maxright = pos.x + tilerules.ts - Math.clamp( (hitbox.bottom - pos.y) * 0.5, 0, 8 );
+			
+			limits[0] = Math.min(limits[0], maxright-2);
+		}
+		return limits;
+	},
+	"wall_slopehalfto0" : function(axis,v,pos,hitbox,limits){
+		if(axis == tilerules.HORIZONTAL){
+			
+			var maxright = pos.x + tilerules.ts - Math.clamp( 8 + (hitbox.bottom - pos.y) * 0.5, 0, 16 );
+			
+			limits[0] = Math.min(limits[0], maxright-2);
+		}
+		return limits;
+	},
 	"ignore" : function(axis,v,pos,hitbox,limits){
 		return limits;
 	}
@@ -1305,13 +1364,13 @@ GameObject.prototype.shouldRender = function(){
 	if(!this.awake) return false;
 	return true;
 }
+
+GameObject.prototype.renderDebug = function( g, camera ){
+	var bounds = this.bounds();
+	g.color = [1.0,0.5,1.0,1.0];
+	g.scaleFillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
+}	
 GameObject.prototype.render = function( g, camera ){
-	if( self.debug ) {
-		var bounds = this.bounds();
-		g.color = [1.0,0.5,1.0,1.0];
-		g.scaleFillRect(bounds.start.x - camera.x, bounds.start.y - camera.y, bounds.width(), bounds.height() );
-	}
-	
 	if ( this.sprite ) {
 		g.renderSprite(
 			this.sprite, 

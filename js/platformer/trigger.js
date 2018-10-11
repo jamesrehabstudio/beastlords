@@ -35,9 +35,9 @@ function Trigger(x,y,d,o){
 	this.requirements = o.getList("requirements",new Array());
 	
 	
-	if("target" in o){
-		this.targets = o.target.split(",");
-	}
+	
+	this.targets = o.getList("target", []);
+	
 	if("darkness" in o){
 		this.darknessFunction = new Function("c","return " + o.darkness)
 	}
@@ -60,16 +60,10 @@ function Trigger(x,y,d,o){
 	if("sealevel" in o){
 		this.sealevel = o["sealevel"] * 1;
 	}
-	if("retrigger" in o){
-		this.retrigger = o.retrigger * 1;
-	}
-	if("retriggertime" in o){
-		this.retriggertime = o.retriggertime * Game.DELTASECOND;
-	}
-	if("timer" in o){
-		this.time = o["timer"] * Game.DELTASECOND;
-		this.timer = this.time;
-	}
+	this.retrigger = o.getBool("retrigger", true);
+	this.retriggertime = o.getBool("retriggertime", 1.0) * Game.DELTASECOND;
+	this.timer = this.time = o.getFloat("timer", 0.0) * Game.DELTASECOND;
+	
 	if("mustwaitinside" in o){
 		this.mustwaitinside = o["mustwaitinside"];
 	}
@@ -181,14 +175,23 @@ Trigger.prototype.update = function(){
 }
 Trigger.prototype.idle = function(){}
 
-Trigger.getTargets = function(name){
+Trigger.getTargets = function(names){
+	
+	if(!(names instanceof Array)){
+		names = [names];
+	}
+	
 	var out = new Array();
 	if(game instanceof Game){
 		for(var i=0; i < game.objects.length; i++){
 			var obj = game.objects[i];
 			if(obj instanceof GameObject){
-				if("_tid" in obj && obj._tid == name){
-					out.push(obj);
+				for(var j=0; j < names.length; j++){
+					let name = names[j];
+					if("_tid" in obj && obj._tid == name){
+						out.push(obj);
+						j=names.length;
+					}
 				}
 			}
 		}
@@ -200,6 +203,15 @@ Trigger.activate = function(targets){
 	for(var j=0; j < objects.length; j++){
 		objects[j].trigger("activate", this);
 	}	
+}
+Trigger.hasRequirments = function(requirements){
+	if(!(requirements instanceof Array)){ requirements = requirements.split(","); }
+	for(let i=0; i < requirements.length; i++){
+		if( !NPC.get(requirements[i]) ){
+			return false;
+		}
+	}
+	return true;
 }
 
 AttackTrigger.prototype = Trigger.prototype;
@@ -310,13 +322,14 @@ class GearSwitch extends GameObject{
 		this.origin = new Point();
 		this.position.x = x;
 		this.position.y = y;
-		this.width = 24;
-		this.height = 24;
+		this.width = 32;
+		this.height = 32;
 		
 		this.rotation = 0.0;
 		this.rotation_to = 0.0;
 		
-		this.sprite = "switch_pressure";
+		this.sprite = "bullets";
+		this.frame = new Point(7,0);
 		
 		this.targets = o.getString("target","").split(",");
 		this.turnAmount = o.getFloat("turnamount", 12);
@@ -324,8 +337,10 @@ class GearSwitch extends GameObject{
 		
 		this.addModule(mod_combat);
 		this.life = this.lifeMax = 999;
+		this.damageContact = 0.0;
 		
 		this.on("hurt", function(obj){
+			this.invinciple = 0;
 			this.rotation_to += 12;
 			this.life = this.lifeMax;
 			Trigger.activate(this.targets);
@@ -391,12 +406,44 @@ class PressureSwitch extends GameObject{
 	
 	update(){
 		if(this.playerover){
-			this.frame.x = Math.min(this.frame.x + this.delta * 0.5, 2);
+			this.frame.x = Math.min(this.frame.x + this.delta * 15.0, 2);
 			this.playerover = false;
 		} else {
-			this.frame.x = Math.max(this.frame.x - this.delta * 0.5, 0);
+			this.frame.x = Math.max(this.frame.x - this.delta * 15.0, 0);
 		}
 	}
 }
 
 self["PressureSwitch"] = PressureSwitch;
+
+class AutoTrigger extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		
+		this.targets = [ops.getString("target","")];
+		this.targets = ops.getList("targets", this.targets);
+		
+		this.requirements = [ops.getString("requirement","")];
+		this.requirements = ops.getList("requirements", this.targets);
+		
+		this.keepTrying = ops.getBool("keeptrying",true);
+		
+		this._safeDelay = 2;
+		this.visible = false;	
+	}
+	update(){
+		if(this._safeDelay > 0){
+			this._safeDelay--;
+		} else if(this._safeDelay == 0){
+			if(Trigger.prototype.hasRequirments.apply(this)){
+				Trigger.activate(this.targets);
+				this._safeDelay--;
+			} else if(this.keeptrying){
+				this._safeDelay = 2;
+			}
+		}
+	}
+	idle(){}
+}
+
+self["AutoTrigger"] = AutoTrigger;

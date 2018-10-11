@@ -19,7 +19,7 @@ class Poseidon extends GameObject {
 		this.bossface_frame_row = 1;
 		
 		
-		this.condition = ops.getString("condition", false);
+		this.condition = ops.get("condition", false);
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		
 		this.death_time = Game.DELTASECOND * 3;
@@ -124,8 +124,14 @@ class Poseidon extends GameObject {
 			Item.drop(this,50);
 			this.destroy();
 			
-			game.clearAll();
-			game.addObject( new DemoThanks(0,0) );
+			//game.clearAll();
+			//game.addObject( new DemoThanks(0,0) );
+		});
+		this.on("remove_portcullis", function(){
+			let portcullis = Trigger.getTargets("portcullis");
+			for(let i=0; i < portcullis.length; i++){
+				portcullis[i].destroy();
+			}
 		});
 	}
 	update(){

@@ -31,6 +31,7 @@ class ChickenChain extends GameObject{
 		this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 		this.damage = Spawn.damage(3,this.difficulty);
 		this.moneyDrop = Spawn.money(5,this.difficulty);
+		this.xpDrop = Spawn.xp(6,this.difficulty);
 		this.mass = 1.0;
 		
 		this.on("collideHorizontal", function(x){
@@ -63,7 +64,8 @@ class ChickenChain extends GameObject{
 			this.states.attackstage = 0;
 		});
 		this.on("death", function(){
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			Item.drop(this);
 			this.destroy();
 		});

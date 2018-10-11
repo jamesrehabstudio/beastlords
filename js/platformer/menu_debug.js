@@ -1,6 +1,6 @@
 DebugeMenu = {
 	"cursor" : 0,
-	"cursorItems" : 14,
+	"cursorItems" : 15,
 	"update" : function(){
 		if( input.state("up") == 1 ) { 
 			this.cursor = (this.cursor > 0) ? this.cursor - 1 : (this.cursorItems - 1); 
@@ -12,20 +12,22 @@ DebugeMenu = {
 		}
 		if( input.state("fire") == 1 ) { 
 			if(this.cursor == 0){
-				_player.lightRadius = !_player.lightRadius;
+				_player.addXP(_player.nextLevelCost(_player.level) - _player.experience);
 			} else if(this.cursor == 1){
-				_player.downstab = !_player.downstab;
+				_player.lightRadius = !_player.lightRadius;
 			} else if(this.cursor == 2){
-				_player.doubleJump = !_player.doubleJump;
+				_player.downstab = !_player.downstab;
 			} else if(this.cursor == 3){
-				_player.walljump = !_player.walljump;
+				_player.doubleJump = !_player.doubleJump;
 			} else if(this.cursor == 4){
-				_player.dodgeFlash = !_player.dodgeFlash;
+				_player.walljump = !_player.walljump;
 			} else if(this.cursor == 5){
+				_player.dodgeFlash = !_player.dodgeFlash;
+			} else if(this.cursor == 6){
 				_player.lifeMax += 6;
 				_player.life += 6;
-			} else if(this.cursor >= 6){
-				var spellName = Spell.NAMES[this.cursor-6];
+			} else if(this.cursor >= 7){
+				var spellName = Spell.NAMES[this.cursor-7];
 				let spell = _player.spells.find(function(a){ return a.objectName == spellName; });
 				if(spell){
 					spell.level += 1;
@@ -35,11 +37,11 @@ DebugeMenu = {
 			}
 		}
 		if( input.state("jump") == 1) {
-			if(this.cursor == 5){
-				_player.lifeMax = Math.max(_player.lifeMax-6, 6);
+			if(this.cursor == 6){
+				_player.lifeMax = Math.max(_player.lifeMax-7, 7);
 				_player.life = Math.min(_player.life, _player.lifeMax);
-			} else if(this.cursor >= 6){
-				var spellName = Spell.NAMES[this.cursor-6];
+			} else if(this.cursor >= 7){
+				var spellName = Spell.NAMES[this.cursor-7];
 				let spell = _player.spells.find(function(a){ return a.objectName == spellName; });
 				if(spell){
 					if(spell.level > 1){
@@ -60,6 +62,10 @@ DebugeMenu = {
 		textArea(g,"@",c.x+16,32+this.cursor*12);
 		
 		var offy = 32;
+		textArea(g,"Level up:",c.x+32,offy);
+		textArea(g,"lv: "+_player.level,c.x+144,offy);
+		offy += 12;
+		
 		textArea(g,"Light radius:",c.x+32,offy);
 		textArea(g,""+_player.lightRadius,c.x+144,offy);
 		offy += 12;

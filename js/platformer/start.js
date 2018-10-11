@@ -1,4 +1,4 @@
-var version = "0.5.3";
+var version = "0.5.5";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -11,19 +11,19 @@ function game_start(g){
 	
 	g.addObject( new TitleMenu() );
 	//return;
-	
-	
+
+
 	setTimeout(function(){
 		//return;
 		
 		new Player(0,0);		
-		_player.lightRadius = true;
+		//_player.lightRadius = true;
 		_player.downstab = true;
 		_player.doubleJump = true;
 		_player.walljump = true;
 		_player.dodgeFlash = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("townhub.tmx", "test");
+		WorldLocale.loadMap("temple4.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -34,7 +34,7 @@ function game_start(g){
 			
 			NPC.set("whip",1);
 			NPC.set("king_sword",1);
-			/*
+			
 			NPC.set("long_sword",1);
 			NPC.set("broad_sword",1);
 			NPC.set("morningstar",1);
@@ -44,6 +44,7 @@ function game_start(g){
 			
 			
 			//NPC.set("templeCompleted", 2);
+			_player.spells.push( new SpellIce());
 			_player.spells.push( new SpellBolt());
 			_player.spells.push( new SpellFire());
 			_player.spells.push( new SpellSlimeGernade());
@@ -52,7 +53,9 @@ function game_start(g){
 			_player.spells.push( new SpellPurify());
 			_player.spells.push( new SpellShield());
 			_player.spells.push( new SpellStrength());
-			*/
+			_player.addXP(32024);
+			
 		}, 1000);
 	},100);
+
 }

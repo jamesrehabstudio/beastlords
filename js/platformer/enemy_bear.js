@@ -30,6 +30,7 @@ function Bear(x,y,d,ops){
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.moneyDrop = Spawn.money(6,this.difficulty);
+	this.xpDrop = Spawn.xp(8,this.difficulty);
 	this.mass = 1.5;
 	this.inviciple_time = this.stun_time;
 	
@@ -57,6 +58,7 @@ function Bear(x,y,d,ops){
 	this.on("death", function(){
 		Item.drop(this);
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 }

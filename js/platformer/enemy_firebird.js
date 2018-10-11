@@ -16,6 +16,7 @@ class FireBird extends GameObject{
 		this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 		this.damage = 0;
 		this.damageFire = Spawn.damage(2,this.difficulty);
+		this.xpDrop = Spawn.xp(5,this.difficulty);
 		
 		this.speed = 10.0;
 		this.pushable = false;

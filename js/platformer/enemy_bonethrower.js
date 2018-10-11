@@ -16,6 +16,7 @@ class BoneThrower extends GameObject {
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		this.life = Spawn.life(3, this.difficulty);
 		this.damage = Spawn.damage(4, this.difficulty);
+		this.xpDrop = Spawn.xp(5,this.difficulty);
 		this.death_time = 0.6;
 		this.combat_knockback_speed = 0.0;
 		
@@ -26,7 +27,8 @@ class BoneThrower extends GameObject {
 			audio.play("hurt",this.position);
 		});
 		this.on("death", function(){
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			Item.drop(this);
 			this.destroy();
 		});

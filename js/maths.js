@@ -227,6 +227,12 @@ Math.rad2deg = 180 / Math.PI;
 Math.deg2rad = 1 / Math.rad2deg;
 Math.clamp = function(x,a,b){return Math.max(Math.min(x,b),a);}
 Math.clamp01 = function(x){return Math.max(Math.min(x,1),0);}
+Math.pingpong = function(n, clamp=1.0){
+	let c = clamp * 0.5;
+	return (n - Math.max(n-c,0) * 2) * 2;
+}
+Math.pingpong01 = function(n, clamp=1.0){ return Math.clamp01( Math.pingpong(n,clamp) ); }
+Math.randomRange = function(a,b){ return (b-a) * Math.random() + a;  }
 
 function Matrix2D() {
 	this.data = [1,0,0,0,1,0,0,0,1];
@@ -461,8 +467,22 @@ Polygon.prototype._rebuildLines = function( ){
 		this._lines.push( new Line( current, next ) );
 	}
 }
+Polygon.prototype.bounds = function( x, y ){
+	let _minX = Number.POSITIVE_INFINITY;
+	let _minY = Number.POSITIVE_INFINITY;
+	let _maxX = Number.NEGATIVE_INFINITY;
+	let _maxY = Number.NEGATIVE_INFINITY;
+	
+	for( var i = 0; i < this.points.length; i++ ){
+		_minX = Math.min(this.points[i].x, _minX);
+		_minY = Math.min(this.points[i].y, _minY);
+		_maxX = Math.max(this.points[i].x, _maxX);
+		_maxY = Math.max(this.points[i].y, _maxY);
+	}
+	return new Line(_minX,_minY,_maxX,_maxY);
+}
 Polygon.prototype.transpose = function( x, y ){
-	var p;
+	var p = x;
 	if ( !( x instanceof Point ) ) {
 		p = new Point( x, y );
 	}
@@ -878,6 +898,23 @@ class Vector{
 		}
 		return out;
 	}
+	scale(sca=1.0,y,z){
+		let output = new Vector();
+		if(sca instanceof Vector){
+			output.x = this.x * sca.x;
+			output.y = this.y * sca.y;
+			output.z = this.z * sca.z;
+		} else if(y==undefined){
+			output.x = this.x * sca;
+			output.y = this.y * sca;
+			output.z = this.z * sca;
+		} else {
+			output.x = this.x * sca;
+			output.y = this.y * y;
+			output.z = this.z * z;
+		}
+		return output;
+	}
 	static lerp(a,b,d){
 		var out = new Vector();
 		out.x = Math.lerp(a.x, b.x, d);
@@ -949,11 +986,17 @@ class Options{
 			this[i] = ops[i];
 		}
 	}
-	getString(name, defaultValue){
+	get(name, defaultValue){
 		if(name in this) {
 			return this[name];
 		}
 		return defaultValue;
+	}
+	getString(name, defaultValue){
+		if(name in this) {
+			return "" + this[name];
+		}
+		return "" + defaultValue;
 	}
 	getFloat(name, defaultValue){
 		if(name in this) {
@@ -978,7 +1021,7 @@ class Options{
 		return !!defaultValue;
 	}
 	getList(name, defaultValue){
-		let s = this.getString(name, undefined);
+		let s = this.get(name, undefined);
 		if(s){
 			return s.split(",");
 		}
@@ -990,3 +1033,9 @@ Options.convert = function(a){
 	if(a instanceof Options) { return a; }
 	return new Options(a);
 }
+
+var Ease = {
+	inQuad: function (t) { return t*t },
+	outQuad: function (t) { return t*(2-t) },
+	inOutQuad : function (t) { return t<.5 ? 2*t*t : -1+(4-2*t)*t }
+};

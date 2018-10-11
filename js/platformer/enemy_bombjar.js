@@ -25,6 +25,7 @@ function Bombjar(x, y, d, o){
 	this.lifeMax = this.life = Spawn.life(0,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(4,this.difficulty);
+	this.xpDrop = Spawn.xp(4,this.difficulty);
 	this.bounceCount = 4;
 	this.mass = 1.0;
 	this.death_time = 0.1;
@@ -75,7 +76,8 @@ function Bombjar(x, y, d, o){
 		*/
 		shakeCamera(Game.DELTASECOND * 0.5, 4);
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

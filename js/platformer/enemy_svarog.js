@@ -28,6 +28,7 @@ function Svarog(x,y,d,o){
 		Item.drop(this);
 		
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	this.on("wakeup", function(){
@@ -42,6 +43,7 @@ function Svarog(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(1,this.difficulty);
+	this.xpDrop = Spawn.xp(4,this.difficulty);
 	this.collisionReduction = -1.0;
 	this.friction = 0.05;
 	this.stun_time = 30.0;

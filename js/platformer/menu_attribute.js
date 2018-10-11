@@ -120,7 +120,7 @@ AttributeMenu = {
 			this.renderWeaponSelect(g,pos);
 		}
 		
-		textArea(g,"@", pos.x+20,156+this.cursor*14);
+		textArea(g,"@", pos.x+20,148+this.cursor*14);
 		/*
 		if(this.cursor == 0){
 			textArea(g,"@", pos.x+20,156+this.cursor*14);
@@ -139,7 +139,7 @@ AttributeMenu = {
 			textArea(g,"Lv."+spell.level, c.x+260,24+i*20);
 		}
 		g.color = [1,1,1,1];
-		g.scaleFillRect(c.x+234,26+this.cursorMagic*20,4,4);
+		g.drawRect(c.x+234,26+this.cursorMagic*20,4,4,1);
 	},
 	"renderWeaponSelect" : function(g,c){
 		boxArea(g,c.x+224,8,112,224);
@@ -149,7 +149,7 @@ AttributeMenu = {
 			textArea(g,weapon.name, c.x+260,24+i*20);
 		}
 		g.color = [1,1,1,1];
-		g.scaleFillRect(c.x+234,26+this.cursorEquip*20,4,4);
+		g.drawRect(c.x+234,26+this.cursorEquip*20,4,4,1);
 	},
 	"renderWindow" : function(g,c,testPlayer){
 		var padding = 20;
@@ -163,8 +163,11 @@ AttributeMenu = {
 		var attributeY = c.y+28;
 		
 		//Quick function for rendering stats
-		var r = function(g,x,y,player,vfunc){
+		var r = function(g,x,y,player,vfunc,rightAlign=false){
 			var origVal = vfunc(_player);
+			
+			if(origVal >= 10 && rightAlign){x -= 8;}
+			
 			if(!player){
 				textArea(g,""+origVal, x,y);
 			} else {
@@ -181,11 +184,17 @@ AttributeMenu = {
 			}
 		}
 		
+		//Level
+		textArea(g,"Level:", c.x+padding,attributeY);
+		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.level;});
+		attributeY += 16;
+		
 		//Damage
 		textArea(g,"Damage:", c.x+padding,attributeY);
 		r(g,c.x+padding+statX,attributeY,testPlayer,function(p){return p.damage + p.damageFire + p.damageSlime + p.damageIce + p.damageLight;});
 		attributeY += 12;
 		
+		/*
 		//Physical
 		textArea(g,"P", c.x+padding,attributeY);
 		r(g,c.x+padding+8,attributeY,testPlayer,function(p){return Math.floor(p.damage);});
@@ -210,34 +219,33 @@ AttributeMenu = {
 		r(g,c.x+padding+40,attributeY,testPlayer,function(p){return Math.floor(p.damageLight);});
 		
 		attributeY += 16;
+		*/
 		
 		
 		textArea(g,"Defence", c.x+padding,attributeY);
 		attributeY += 12;
 		
 		//Physical
-		textArea(g,"P", c.x+padding,attributeY);
-		r(g,c.x+padding+8,attributeY,testPlayer,function(p){return Math.floor(p.defencePhysical)+"";});
+		g.renderSprite("attrib_icons",new Point(c.x+padding,attributeY),0,new Point(0,2));
+		r(g,c.x+padding+8,attributeY+12,testPlayer,function(p){return Math.floor(p.defencePhysical)+"";},true);
 		
 		//Ice
-		textArea(g,"I", c.x+padding+32,attributeY);
-		r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceIce)+"";});
+		g.renderSprite("attrib_icons",new Point(c.x+padding+20,attributeY),0,new Point(3,2));
+		r(g,c.x+padding+28,attributeY+12,testPlayer,function(p){return Math.floor(p.defenceIce)+"";},true);
 		
 		//Slime
-		textArea(g,"S", c.x+padding+64,attributeY);
-		r(g,c.x+padding+72,attributeY,testPlayer,function(p){return Math.floor(p.defenceSlime)+"";});
-		
-		attributeY += 12;
+		g.renderSprite("attrib_icons",new Point(c.x+padding+40,attributeY),0,new Point(2,2));
+		r(g,c.x+padding+48,attributeY+12,testPlayer,function(p){return Math.floor(p.defenceSlime)+"";},true);
 		
 		//Fire
-		textArea(g,"F", c.x+padding,attributeY);
-		r(g,c.x+padding+8,attributeY,testPlayer,function(p){return Math.floor(p.defenceFire)+"";});
+		g.renderSprite("attrib_icons",new Point(c.x+padding+60,attributeY),0,new Point(1,2));
+		r(g,c.x+padding+68,attributeY+12,testPlayer,function(p){return Math.floor(p.defenceFire)+"";},true);
 		
 		//Light
-		textArea(g,"L", c.x+padding+32,attributeY);
-		r(g,c.x+padding+48,attributeY,testPlayer,function(p){return Math.floor(p.defenceLight)+"";});
+		g.renderSprite("attrib_icons",new Point(c.x+padding+80,attributeY),0,new Point(4,2));
+		r(g,c.x+padding+88,attributeY+12,testPlayer,function(p){return Math.floor(p.defenceLight)+"";},true);
 		
-		attributeY += 16;
+		attributeY += 32;
 		
 		//attack
 		textArea(g,"Attack:", c.x+padding,attributeY);
@@ -304,6 +312,7 @@ AttributeMenu = {
 	},
 	"createTestPlayer" : function(){
 		var output = {
+			"level" : _player.level,
 			"baseStats" : {},
 			"stats" : {},
 			"equip_sword" : _player.equip_sword,

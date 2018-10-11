@@ -14,6 +14,12 @@ class ChainFace extends GameObject {
 		this.delay = ops.getFloat("delay",2.5);
 		this.damage = ops.getInt("damage",10);
 		
+		this.damageContact = 1.0;
+		this.defencePhysical = 999;
+		this.defenceFire = 999;
+		this.defenceSlime = 999;
+		this.defenceIce = 999;
+		this.defenceLight = 999;
 		this.rotation = 0.0;
 		this.fullreach = 24;
 		this.minreach = 16;
@@ -51,10 +57,8 @@ class ChainFace extends GameObject {
 		this._extending = false;
 		this._overshoot = 0.0;
 		
-		this.on("collideObject", function(obj){
-			if(obj.hasModule(mod_combat) && obj.team != this.team){
-				obj.hurt(this, this.getDamage());
-			}
+		this.on("hurt", function(obj, damage){
+			audio.play("block", this.position);
 		});
 	}
 	update(){

@@ -49,6 +49,7 @@ function Baller(x, y, d, o){
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 	this.damage = Spawn.damage(5,this.difficulty);
 	this.moneyDrop = Spawn.money(7,this.difficulty);
+	this.xpDrop = Spawn.xp(7,this.difficulty);
 	this.mass = 4.0;
 	this.recoverySpeed = 180;
 	this.arcSize = 56;
@@ -84,6 +85,7 @@ function Baller(x, y, d, o){
 	});
 	this.on("death", function(){
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

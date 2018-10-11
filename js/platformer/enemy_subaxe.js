@@ -31,6 +31,7 @@ class Axesub extends GameObject{
 		this.states.background = o.getBool("background", false);
 		
 		this.lifeMax = this.life = Spawn.life(0,this.difficulty);
+		this.xpDrop = Spawn.xp(3,this.difficulty);
 		this.mass = 1;
 		this.damage = Spawn.damage(3,this.difficulty);
 		this.moneyDrop = Spawn.money(3,this.difficulty);
@@ -57,6 +58,7 @@ class Axesub extends GameObject{
 			this.destroy();
 			Item.drop(this,4);
 			audio.play("kill",this.position);
+			createExplosion(this.position, 40 );
 		});
 	}
 

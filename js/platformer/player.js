@@ -35,7 +35,7 @@ class Player extends GameObject{
 		this.sprite = "player";
 		this.swrap = spriteWrap["player"];
 		
-		this.lightRadius = false;
+		this.lightRadius = true;
 		this.grabLedge = true;
 		this.downstab = false;
 		this.walljump = false;
@@ -57,10 +57,12 @@ class Player extends GameObject{
 			"back_dash" : 0,
 			"dash" : 0.0,
 			"dash_direction" : 1,
+			"dash_bonus" : 0.0,
 			"airdash" : 0,
 			"airdashReady" : true,
 			"effectTimer" : 0.0,
 			"downStab" : false,
+			"disableWallJump" : 0.0,
 			"jump_boost" : false,
 			"afterImage" : new Timer(0, Game.DELTASECOND * 0.125),
 			"manaRegenTime" : 0.0,
@@ -69,6 +71,8 @@ class Player extends GameObject{
 			"doubleJumpReady": true,
 			"spellCounter" : 0.0,
 			"spellCurrent" : undefined,
+			"spellCurrentBullet" : undefined,
+			"spellChargeTime" : 0.0,
 			"justjumped" : 0.0,
 			"ledgePosition" : false,
 			"canGrabLedges" : 0.0,
@@ -96,6 +100,7 @@ class Player extends GameObject{
 		
 		this.speeds = {
 			"baseSpeed" : 4.4,
+			"bonusSpeed" : 8.8,
 			"dashTime" : 0.5,
 			"airdashTime" : 0.5,
 			"airdashStopTime" : 0.7,
@@ -146,24 +151,18 @@ class Player extends GameObject{
 			//Land from a height
 			this.states.doubleJumpReady = true;
 			this.states.dashfall = false;
+			this.states.dash_bonus = 0.0;
 			
 			audio.play("land");
 			var dust = Math.floor(2 + Math.random() * 3);
+			
 			for(var i=0; i < dust; i++ ){
 				var offset = new Point(
 					i * 5 + (Math.random()-0.5) * 3 - (dust*2),
 					16 - Math.random() * 3
 				);
-				game.addObject( new EffectSmoke(
-					offset.x + this.position.x, 
-					offset.y + this.position.y,
-					null,
-					{
-						"frame":1, 
-						"speed":0.4 + Math.random() * 0.2,
-						"time":Game.DELTASECOND * (0.3 + 0.4 * Math.random())
-					}
-				));
+				
+				Background.pushSmoke(this.position.add(offset), 4, new Point(0, -2), 0);
 			}
 		});
 		this.on("blockCollideHorizontal", function(h,block){
@@ -188,6 +187,7 @@ class Player extends GameObject{
 		});
 		this.on("collideHorizontal", function(h){
 			this.states.againstwall = (h>0?1:-1) * Game.DELTASECOND * 0.1;
+			this.states.dash_bonus = 0.0;
 			
 			if(this.walljump){
 				this.states.airdashReady = true;
@@ -261,6 +261,10 @@ class Player extends GameObject{
 			}else{
 				this.force.x = knockback;
 			}
+			if( this.states.spellCurrentBullet != undefined ){
+				this.states.spellCurrentBullet.destroy();
+				this.states.spellCurrentBullet = undefined;
+			}
 			if(this.stun_time > 0 ){
 				this.states.spellCounter = 0.0;
 				this.stun = this.stun_time * Math.max(1 - this.perks.painImmune, 0);
@@ -291,20 +295,27 @@ class Player extends GameObject{
 			}
 		});
 		this.on("hurt_other", function(obj, damage){
-			var ls = Math.min(this.perks.lifeSteal, 1.0);
-			this.lifeStealCarry += Math.max(Math.min(damage * ls, obj.life),0);
-			this.life = Math.min( this.life + Math.floor(this.lifeStealCarry), this.lifeMax );
-			this.lifeStealCarry -= Math.floor(this.lifeStealCarry);
+			if(obj.hasModule(mod_combat)){
+				//Life steal
+				var ls = Math.min(this.perks.lifeSteal, 1.0);
+				this.lifeStealCarry += Math.max(Math.min(damage * ls, obj.life),0);
+				this.life = Math.min( this.life + Math.floor(this.lifeStealCarry), this.lifeMax );
+				this.lifeStealCarry -= Math.floor(this.lifeStealCarry);
+			}
 			
 			this.states.airdashReady = true;
 			
-			if( this.states.airdash > 0 && this.states.airdash < this.speeds.airdashTime * this.speeds.airdashStopTime){
+			//if( this.states.airdash > 0 && this.states.airdash < this.speeds.airdashTime * this.speeds.airdashStopTime){
+			if( this.states.airdash > 0 ){
 				this.airtime = this.states.airdash = 0;
 				this.force.x = -this.force.x;
 				this.force.y = -this.speeds.jump;
 			} else if(this.isAttacking){
+				this.force.x = 0.0;
 				
-				SparkEffect.create(this.position.add(obj.position).scale(0.5), 8);
+				let dif = obj.position.subtract(this.position).normalize();
+				let rot = dif.toAngle() * -Math.rad2deg;
+				EffectSprite.createSlash(obj.position.subtract( dif.scale(obj.width, obj.height).scale(0.5) ), rot);
 				
 				if(obj.life > 0 && this.grounded && obj.combat_player_combo_lock){
 					//Lock player into combo unless target is dead or player is moving
@@ -321,7 +332,7 @@ class Player extends GameObject{
 					game.slow(0.0, attack.pause);
 				}
 				if("stun" in attack){
-					obj.stun = attack.stun;
+					obj.stun = obj.stun_time = attack.stun;
 					if(!this.grounded && obj.life > 0 && obj.hasModule(mod_rigidbody)){
 						obj.airtime = attack.stun * this.perks.attackairboost;
 					}
@@ -361,6 +372,7 @@ class Player extends GameObject{
 						this.position.y,
 						false,
 						{
+							"owner" : this,
 							"direction" : aim,
 							"damage" : this.currentDamage(),
 							"sprite" : obj.sprite,
@@ -378,9 +390,11 @@ class Player extends GameObject{
 		});
 		this.on("added", function(){
 			this.states.damageBuffer = 0;
+			this.combat_isalive = true;
 			this.lock_overwrite = false;
 			this.force.x = this.force.y = 0.0;
 			this.states.doubleJumpReady = true;
+			this.tint = COLOR_WHITE;
 			
 			this.stun = this.invincible = 0.0;
 			
@@ -389,7 +403,7 @@ class Player extends GameObject{
 			
 			PauseMenu.pushIcon(this.mapIcon);
 			
-			Checkpoint.saveState(this);
+			//Checkpoint.saveState(this);
 		});
 		this.on("collideObject", function(obj){
 			
@@ -397,6 +411,15 @@ class Player extends GameObject{
 		this.on("dropLedge", function(){
 			this.states.ledge = false;
 			this.gravity = 1.0;
+		});
+		this.on("kill", function(obj){
+			this.addXP( obj.xpDrop );
+		});
+		this.on("levelup_once", function(level){
+			game.addObject( new EffectLevelUp(0,0) );
+		});
+		this.on("enter_room", function(x,y){
+			console.log("new room");
 		});
 		
 		this._weapontimeout = 0;
@@ -436,6 +459,7 @@ class Player extends GameObject{
 			"poisonResist" : 0.0
 		}
 		
+		this.damageContact = 0.0;
 		this.gravity = 1;
 		this.life = 48;
 		this.lifeMax = 48;
@@ -515,8 +539,6 @@ class Player extends GameObject{
 		this.stat_points = 0;
 		this.experience = 0;
 		this.level = 1;
-		this.nextLevel = 0;
-		this.prevLevel = 0;
 		
 		
 		this.equip(this.equip_sword, this.equip_shield);
@@ -544,6 +566,7 @@ class Player extends GameObject{
 				this.unique_item = false;
 			}
 		}
+		
 		
 		//Reset states
 		this.states.guard = false;
@@ -601,31 +624,59 @@ class Player extends GameObject{
 					this.frame.y = 2;
 				}
 			} else if (this.states.spellCounter > 0){
-				this.states.spellCounter -= this.delta;
+				let spell = this.states.spellCurrent;
 				this.frame = this.swrap.frame("spell", 0);
 				
 				if(this.states.spellCurrent instanceof SpellFire){
-					this.states.spellCounter -= game.deltaUnscaled;
-					game.slow(0.0,0.02);
-				}
-				if(this.states.spellCurrent instanceof SpellBolt){
+					//game.slow(0.2,0.02);
+					
+					this.states.spellCurrentBullet.position = this.position.scale(1);
+					
+					if( input.state('spell') > 0 ){
+						//Hold button to charge spell
+						this.states.spellCounter = Math.max( this.states.spellCounter, this.delta * 2);
+						this.states.spellChargeTime += this.delta;
+						if( this.states.spellChargeTime >= 0.125 ){
+							this.states.spellChargeTime -= 0.125;
+							if( this.mana > 0 ){
+								this.mana--;
+								this.states.spellCurrentBullet.increasePower();
+								
+							}
+						}
+					}
+				} else if(this.states.spellCurrent instanceof SpellBolt){
 					//Allow movement
-					this.move(input.state('left') > 0 ? -1 : (input.state('right') > 0 ? 1 : 0) );
-					if ( input.state('jump') == 1 ) { this.jump(); }
-				}
-				if(this.states.spellCurrent instanceof SpellFlash){
+					if( input.state("left") > 0 ){
+						this.move(-1);
+					} else if( input.state("right") ){
+						this.move(1);
+					}
+					if ( input.state('jump') == 1 ) { 
+						this.jump(); 
+					}
+					
+				} else if(this.states.spellCurrent instanceof SpellFlash){
 					//Float about
 					this.force.y -= (this.gravity+0.05) * self.UNITS_PER_METER * this.delta;
-					let spell = this.states.spellCurrent;
+					
 					if(spell.manaCost <= this.mana && this.states.spellCounter <= 0 && input.state('spell')){
 						this.castSpell();
 						this.states.spellCounter = this.states.spellCurrent.castTime;
 					}
 				}
 				
+				this.states.spellCounter -= this.delta;
+				
 				if(this.states.spellCounter <= 0){
 					//Cast Spell
-					this.castSpell();
+					//this.castSpell();
+					this.states.spellChargeTime = 0.0;
+					
+					if( this.states.spellCurrentBullet != undefined ){
+						this.states.spellCurrentBullet.force.x = this.forward() * 6.5;
+						this.states.spellCurrentBullet = undefined;
+					}
 				}
 			} else if( this.states.ledgePosition ) {
 				//Holding onto a ledge
@@ -699,6 +750,7 @@ class Player extends GameObject{
 				this.move(hAxis * attack.movement);
 				
 				//Let the player queue more attacks
+				if ( attack.duck ) { this.duck(); }
 				if ( input.state('fire') == 1 ) { this.attstates.queue = true; }
 				
 				//Animation
@@ -741,7 +793,7 @@ class Player extends GameObject{
 			} else if( this.delta > 0) {
 				//Player is in move/idle state
 				
-				this.states.guard = ( input.state('block') > 0 || this.autoblock );
+				this.states.guard = input.state("left") <= 0 && input.state("right") <= 0 && this.grounded;
 				this.states.canGrabLedges = Math.clamp01(this.states.canGrabLedges - this.delta);
 				
 				if(input.state("select") == 1 && this.spells.length > 0){
@@ -753,8 +805,10 @@ class Player extends GameObject{
 				let hAxis = input.state("left") > 0 ? -1 : (input.state("right") ? 1 : 0);
 				if( this.states.duck ) {
 					this.states.turn = 0.0;
+					this.states.guard = true;
 				} else {
 					this.move(hAxis);
+					
 				}
 				
 				
@@ -762,6 +816,7 @@ class Player extends GameObject{
 					//Block disabled while turning
 					this.states.guard = false;
 				}
+				
 				
 				if(this.grabLedge && this.states.canGrabLedges <= 0 && this.states.againstwall && input.state('down') < 1 && !this.grounded && this.force.y > 0){
 					//Detect edge
@@ -785,6 +840,8 @@ class Player extends GameObject{
 						if(spell.canCast(this) && this.mana > spell.manaCost){
 							this.states.spellCurrent = spell;
 							this.states.spellCounter = spell.castTime;
+							this.states.spellCurrentBullet = spell.use( this );
+							this.mana -= spell.manaCost;
 						} else {
 							audio.play("negative");
 						}
@@ -811,7 +868,7 @@ class Player extends GameObject{
 				
 				//Jump?
 				if ( input.state('block') <= 0 && input.state('jump') == 1 ) { 
-					if(this.grounded || (this.states.doubleJumpReady && this.doubleJump) || (this.states.againstwall && this.walljump)){
+					if(this.grounded || (this.states.doubleJumpReady && this.doubleJump) || (this.states.againstwall && this.walljump && this.states.disableWallJump <= 0)){
 						this.jump(); 
 					}
 				}
@@ -835,7 +892,7 @@ class Player extends GameObject{
 						this.flip = false;
 					}
 					
-					if(this.walljump && !this.grounded && this.states.againstwall){
+					if(this.walljump && !this.grounded && this.states.againstwall && this.states.disableWallJump <= 0){
 						//Wall slide
 						if(input.state("down") <= 0){
 							
@@ -923,6 +980,10 @@ class Player extends GameObject{
 			this.height = this.states.duck ? 24 : 30;
 		}
 		//Shield
+		if( !this.guard.active && this.states.guard ) { 
+			//audio.play("shieldraise", this.position); 
+		}
+		
 		this.states.guard_down = this.states.duck;
 		this.guard.active = this.states.guard;
 		this.guard.y = this.states.guard_down ? this.shieldProperties.duck : this.shieldProperties.stand;
@@ -947,6 +1008,8 @@ class Player extends GameObject{
 		this.states.turn -= this.delta;
 		this.states.duckTime -= this.delta;
 		this.states.dash -= this.delta;
+		this.states.disableWallJump -= this.delta;
+		this.states.dash_bonus -= this.delta;
 		
 		if(Math.abs(this.states.againstwall) <= this.delta){
 			this.states.againstwall = 0;
@@ -964,7 +1027,12 @@ class Player extends GameObject{
 		if(!this.grounded){
 			//Moving in the air
 			if(hAxis != 0){
-				this.addHorizontalForce(hAxis * this.speeds.baseSpeed, 5.0 * acceleration);
+				
+				if( this.states.dash_bonus > 0 ) {
+					this.addHorizontalForce(hAxis * this.speeds.bonusSpeed, 5.0 * acceleration);
+				} else {
+					this.addHorizontalForce(hAxis * this.speeds.baseSpeed, 5.0 * acceleration);
+				}
 			}
 		} else {
 			//Moveing on the ground
@@ -972,6 +1040,73 @@ class Player extends GameObject{
 				this.addHorizontalForce(hAxis * this.speeds.baseSpeed, 10.0 * acceleration);
 			} else {
 				this.force.x *= 1.0 - this.speeds.breaks * this.delta;
+			}
+		}
+	}
+	nextLevelCost(level){
+		return Math.floor( Math.pow(level * 10, 2.0) );
+	}
+	addXP(xp){
+		if( this.level < 99) {
+			let next = this.nextLevelCost(this.level);
+			let leveledUp = false;
+			this.experience += xp;
+			
+			while(this.experience >= next){
+				
+				this.baseStats.attack++;
+				this.baseStats.defence++;
+				this.baseStats.magic++;
+				
+				let build = NPC.get("swapchurch") * 1;
+				if(build == 0){ //Oblivionism
+					if(this.level % 3 == 0){
+						this.baseStats.magic++;
+					} else {
+						this.baseStats.attack++;
+					}
+				} else if(build == 1){ //Mechanism
+					if(this.level % 3 == 0){
+						this.baseStats.attack++;
+					} else {
+						this.baseStats.magic++;
+					}
+				} else if(build == 2){ //Suffering
+					if(this.level % 3 == 0){
+						this.baseStats.attack++;
+					} else {
+						this.baseStats.defence++;
+					}
+				} else if(build == 3){ //Cube
+					if(this.level % 3 == 0){
+						this.baseStats.defence++;
+					} else {
+						this.baseStats.magic++;
+					}
+				} else if(build >= 4){ //None
+					if(this.level % 3 == 0){
+						this.baseStats.attack++;
+					} else if(this.level % 3 == 1){
+						this.baseStats.defence++;
+					} else {
+						this.baseStats.magic++;
+					}
+				}
+				
+				switch(NPC.get("swapchurch")){
+					case 0: this.baseStats.attack++; break; //Oblivion
+					case 1: this.baseStats.attack++; break; //Oblivion
+				}
+				
+				this.level++;
+				leveledUp = true;
+				this.trigger("levelup", this.level);
+				this.equip();
+				next = this.nextLevelCost(this.level);
+			}
+			
+			if(leveledUp){
+				this.trigger("levelup_once", this.level);
 			}
 		}
 	}
@@ -1021,6 +1156,15 @@ class Player extends GameObject{
 	}
 	jump(){ 
 		var force = this.speeds.jump * this.gravity;
+		
+		if(this.states.dash > this.speeds.dashTime * 0.25){
+			this.states.dash_bonus = 1.0;
+			this.force.x = this.forward() * this.speeds.bonusSpeed;
+			
+			createExplosion(this.position.add(new Point(this.forward()*-12,12)), 12 );
+			audio.play("swing2");
+		}
+		
 		this.states.dash = 0.0;
 		
 		if(this.states.duck){
@@ -1034,11 +1178,17 @@ class Player extends GameObject{
 				this.position.y += 2;
 				return;
 			}
+			if(this.currentlyStandingBlock && this.currentlyStandingBlock.blockTopOnly) {
+				this._ignoreBlocksTimer = Game.DELTAFRAME30;
+				this.grounded = this.currentlyStandingBlock = false; 
+				this.position.y += 2;
+				return;
+			}
 		}
 		if(!this.grounded){
 			this.states.doubleJumpReady = false;
 			
-			if(this.walljump && this.states.againstwall){
+			if(this.walljump && this.states.againstwall && this.states.disableWallJump <= 0){
 				force *= 1.2;
 				this.force.x = (this.states.againstwall>0?-1:1) * 3;
 			}
@@ -1108,7 +1258,8 @@ class Player extends GameObject{
 			state = PlayerWeapon.STATE_CHARGED;
 		} else if(!this.grounded){ 
 			state = PlayerWeapon.STATE_JUMPING;
-		} else if(this.states.duck){
+		//} else if(this.states.duck && input.state("down") > 0){
+		} else if(input.state("down") > 0){
 			state = PlayerWeapon.STATE_DUCKING;
 		} else if(this.states.duckTime > 0 && Math.abs(this.force.x) > 0.06125) {
 			state = PlayerWeapon.STATE_JUMPUP;
@@ -1129,8 +1280,9 @@ class Player extends GameObject{
 		var spell = this.states.spellCurrent;
 		if(spell instanceof Spell){
 			if(spell.manaCost <= this.mana ){
-				spell.use(this);
+				let output = spell.use(this);
 				this.mana = Math.max(this.mana - spell.manaCost, 0);
+				return output;
 			}
 		}
 	}
@@ -1278,6 +1430,9 @@ class Player extends GameObject{
 		out.doubleJump = this.doubleJump;
 		out.dodgeFlash = this.dodgeFlash;
 		
+		out.experience = this.experience;
+		out.level = this.level;
+		
 		out.weapon = false;
 		out.shield = false;
 		
@@ -1319,6 +1474,9 @@ class Player extends GameObject{
 		this.walljump = data.walljump;
 		this.doubleJump = data.doubleJump;
 		this.dodgeFlash = data.dodgeFlash;
+		
+		this.experience = data.experience;
+		this.level = data.level;
 		
 		if(data.weapon){
 			this.equip_sword = new Item(0,0,0,{"name" : data.weapon});
@@ -1456,6 +1614,7 @@ class Player extends GameObject{
 			var shield = _t.s;
 			
 			if(shield instanceof Point){
+				var z = this.guard.active ? 1 : -1;
 				var shieldFrames = new Point(Math.abs(shield.y), this.shieldProperties.frame_row);
 				var shieldFlip = shield.y < 0 ? !this.flip : this.flip;
 				var shieldOffset = new Point(
@@ -1465,7 +1624,7 @@ class Player extends GameObject{
 				g.renderSprite(
 					"shields", 
 					this.position.subtract(c).add(shieldOffset), 
-					this.zIndex+1, 
+					this.zIndex+z, 
 					shieldFrames, 
 					shieldFlip,
 					ops
@@ -1476,6 +1635,9 @@ class Player extends GameObject{
 	}
 
 	hudrender(g,c){
+		/* Frame rate */
+		textArea(g, "CPU: "+Math.floor(1 / game.deltaUnscaled), 32, 0);
+		
 		/* Render HP */
 		Player.renderLifebar(g,new Point(8,8),this.life, this.lifeMax, this.states.damageBuffer);
 		
@@ -1485,12 +1647,16 @@ class Player extends GameObject{
 		/* Render stanima */
 		var stanimaLength = Math.floor( (this.stanimaMax / this.stanimaBase) * 24 );
 		var stanimaRemain = Math.floor( (this.stanima / this.stanimaBase) * 24 );
+		
+		let xp = Math.clamp01( (this.experience - this.nextLevelCost(this.level-1)) / (this.nextLevelCost(this.level) - this.nextLevelCost(this.level-1)) );
+		
 		g.color = [1.0,1.0,1.0,1.0];
-		g.scaleFillRect(7,25,stanimaLength+2,4);
+		g.drawRect(7,25,26,4,1);
 		g.color = [0.0,0.0,0.0,1.0];
-		g.scaleFillRect(8,26,stanimaLength,2);
-		g.color = this.states.stanimaLock ? [0.7,0.2,0.2,1.0] : [1.0,1.0,1.0,1.0];
-		g.scaleFillRect(8,26,stanimaRemain,2);
+		g.drawRect(8,26,24,2,2);
+		//g.color = this.states.stanimaLock ? [0.7,0.2,0.2,1.0] : [1.0,1.0,1.0,1.0];
+		g.color = [1.0,1.0,1.0,1.0];
+		g.drawRect(8,26,Math.floor(24*xp),2,3);
 		
 		textArea(g,"$"+this.money,8, 228 );
 		//textArea(g,"#"+this.waystones,8, 216+12 );
@@ -1546,11 +1712,11 @@ Player.renderLifebar = function(g,c, life, max, buffer){
 	buffer *= scale;
 	
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(c.x-1,c.y-1,(max)+2,10);
+	g.drawRect(c.x-1,c.y-1,(max)+2,10,1);
 	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(c.x,c.y,max,8);
+	g.drawRect(c.x,c.y,max,8,2);
 	g.color = [1.0,0.0,0.0,1.0];
-	g.scaleFillRect(c.x,c.y,Math.max(life,0),8);
+	g.drawRect(c.x,c.y,Math.max(life,0),8,3);
 	
 	/* Render Buffered Damage */
 	if(life > 0){
@@ -1566,11 +1732,11 @@ Player.renderLifebar = function(g,c, life, max, buffer){
 Player.renderManabar = function(g,c, mana, max){
 	/* Render Mana */
 	g.color = [1.0,1.0,1.0,1.0];
-	g.scaleFillRect(c.x-1,c.y-1,max+2,4);
+	g.drawRect(c.x-1,c.y-1,max+2,4,1);
 	g.color = [0.0,0.0,0.0,1.0];
-	g.scaleFillRect(c.x,c.y,max,2);
+	g.drawRect(c.x,c.y,max,2,2);
 	g.color = [0.23,0.73,0.98,1.0];
-	g.scaleFillRect(c.x,c.y,mana,2);
+	g.drawRect(c.x,c.y,mana,2,3);
 }
 
 var playerSwordPosition = {
@@ -1588,23 +1754,23 @@ var playerSwordPosition = {
 			10 : {p:new Point(-14,4),s:new Point(18,2),r:-80,z:1,v:0},
 		},
 		1 : {
-			0 : {p:new Point(-9,1),s:new Point(20,0),r:-110,z:1,v:0},
-			1 : {p:new Point(-9,1),s:new Point(20,0),r:-100,z:1,v:0},
-			2 : {p:new Point(-10,2),s:new Point(20,1),r:-90,z:1,v:0},
-			3 : {p:new Point(-11,4),s:new Point(20,1),r:-100,z:1,v:0},
-			4 : {p:new Point(-12,1),s:new Point(20,2),r:-110,z:1,v:0},
-			5 : {p:new Point(-12,0),s:new Point(20,2),r:-110,z:1,v:0},
-			6 : {p:new Point(-12,3),s:new Point(20,1),r:-100,z:1,v:0},
-			7 : {p:new Point(-12,4),s:new Point(20,1),r:-90,z:1,v:0},
-			8 : {p:new Point(-12,3),s:new Point(20,1),r:-100,z:1,v:0},
-			9 : {p:new Point(-12,5),s:new Point(20,0),r:-110,z:1,v:0},
+			0 : {p:new Point(-9,1),s:new Point(16,5),r:-110,z:1,v:0},
+			1 : {p:new Point(-9,1),s:new Point(16,5),r:-100,z:1,v:0},
+			2 : {p:new Point(-10,2),s:new Point(17,6),r:-90,z:1,v:0},
+			3 : {p:new Point(-11,4),s:new Point(17,7),r:-100,z:1,v:0},
+			4 : {p:new Point(-12,1),s:new Point(18,8),r:-110,z:1,v:0},
+			5 : {p:new Point(-12,0),s:new Point(18,9),r:-110,z:1,v:0},
+			6 : {p:new Point(-12,3),s:new Point(18,9),r:-100,z:1,v:0},
+			7 : {p:new Point(-12,4),s:new Point(18,8),r:-90,z:1,v:0},
+			8 : {p:new Point(-12,3),s:new Point(17,7),r:-100,z:1,v:0},
+			9 : {p:new Point(-12,5),s:new Point(17,6),r:-110,z:1,v:0},
 			10 : {p:new Point(-16,0),r:114,z:1,v:0},
 		},
 		2 : {
-			6 : {p:new Point(-13,-2),s:new Point(20,2),r:-10,z:1,v:0},
-			7 : {p:new Point(-13,-3),s:new Point(20,2),r:0,z:1,v:0},
-			8 : {p:new Point(-13,-7),s:new Point(20,2),r:0,z:1,v:0},
-			9 : {p:new Point(-13,-4),s:new Point(20,2),r:0,z:1,v:0},
+			6 : {p:new Point(-13,-2),s:new Point(20,6),r:-10,z:1,v:0},
+			7 : {p:new Point(-13,-3),s:new Point(20,6),r:0,z:1,v:0},
+			8 : {p:new Point(-13,-7),s:new Point(20,7),r:0,z:1,v:0},
+			9 : {p:new Point(-13,-4),s:new Point(20,7),r:0,z:1,v:0},
 		},
 		3 : {
 			0 : {p:new Point(-12,-24),r:60,z:1,v:0},

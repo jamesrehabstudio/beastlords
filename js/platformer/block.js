@@ -12,9 +12,12 @@ function Block(x,y,d,ops){
 	
 	this.addModule(mod_block);
 	
+	this.blockTopOnly = ops.getBool("toponly", false);
+	let ereaseOriginTiles = ops.getBool("erasetiles", true);
+	
 	ops = ops || {};
 	
-	this.gatherTiles();
+	this.gatherTiles(ereaseOriginTiles);
 }
 
 Block.prototype.gatherTiles = function(eraseOriginalTiles=true){
@@ -62,6 +65,38 @@ Block.prototype.render = function(g,c){
 		}
 	}
 }
+
+class BreakableBlock extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.origin.x = 0;
+		this.origin.y = 0;
+		this.position.x = x - d[0]*0.5;
+		this.position.y = y - d[1]*0.5;
+		this.originalPosition = new Point(this.position.x,this.position.y);
+		this.width = d[0];
+		this.height = d[1];
+		
+		this.addModule(mod_block);
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_combat);
+		
+		this.hurtByDamageTriggers = false;
+		this.pushable = false;
+		this.life = this.lifeMax = 1;
+		this.gravity = 1;
+		
+		Block.prototype.gatherTiles.apply(this, [true]);
+		
+		this.on("pre_death", function(){
+			this.destroy();
+		});
+	}
+	render(g,c){
+		Block.prototype.render.apply(this, [g,c]);
+	}
+}
+self["BreakableBlock"] = BreakableBlock;
 
 EnemyBlock.prototype = new GameObject();
 EnemyBlock.prototype.constructor = GameObject;
@@ -769,3 +804,20 @@ class CollapsingBlock extends GameObject{
 	}
 }
 self["CollapsingBlock"] = CollapsingBlock;
+
+class DisableWalljump extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.visible = false;
+		this.width = d[0];
+		this.height = d[1];
+		this.on("collideObject", function(obj){
+			if( obj instanceof Player ){
+				obj.states.disableWallJump = Game.DELTASECOND * 0.0625;
+			}
+		});
+	}
+}
+self["DisableWalljump"] = DisableWalljump;

@@ -24,10 +24,19 @@ function AudioPlayer(list){
 	this.list = list;
 	this.alias = {};
 	
-	this.sfxVolume = this.a.createGain(); this.sfxVolume.gain.value = 1.0;
-	this.musVolume = this.a.createGain(); this.musVolume.gain.value = 0.5;
+	this.compressor = new DynamicsCompressorNode(this.a);
+	this.compressor.threshold.setValueAtTime(-10, this.a.currentTime);
+	this.compressor.knee.setValueAtTime(40, this.a.currentTime);
+	this.compressor.ratio.setValueAtTime(12, this.a.currentTime);
+	this.compressor.attack.setValueAtTime(0, this.a.currentTime);
+	this.compressor.release.setValueAtTime(0.125, this.a.currentTime);
+	this.compressor.reduction = -10.0;
 	
-	this.sfxVolume.connect(this.a.destination);
+	this.sfxVolume = new GainNode( this.a ); this.sfxVolume.gain.value = 1.0;
+	this.musVolume = new GainNode( this.a ); this.musVolume.gain.value = 0.5;
+	
+	this.sfxVolume.connect(this.compressor);
+	this.compressor.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
 	
 	var self = this;
@@ -59,6 +68,7 @@ AudioPlayer.prototype.loaded = function(b,l){
 	}
 }
 AudioPlayer.prototype.isReady = function(l, gain){
+	return true;
 	if(gain === undefined){
 		gain = 1;
 	}
@@ -84,7 +94,7 @@ AudioPlayer.prototype.play = function(l){
 	if(l in this.list ){
 		if( "buffer" in this.list[l] ) {
 			if( this.isReady(l) ){
-				var volume = this.a.createGain();
+				//var volume = this.a.createGain();
 				var b = this.list[l]["buffer"];
 				this.list[l]["source"] = this.a.createBufferSource();
 				this.list[l]["source"].buffer = b;
@@ -99,6 +109,8 @@ AudioPlayer.prototype.play = function(l){
 					this.list[l]["source"].connect(this.musVolume);
 				} else {
 					this.list[l]["source"].connect(this.sfxVolume);
+					this.sfxVolume.connect(this.compressor);
+					this.compressor.connect(this.a.destination);
 				}
 				
 				this.list[l]["source"].start();
@@ -122,7 +134,7 @@ AudioPlayer.prototype.playPan = function(l,balance,gain){
 				var stereo = audio.a.createStereoPanner();
 				volume.gain.value = gain;
 				stereo.pan.value = balance;
-				var mix = volume.connect(stereo)
+				//volume.connect(stereo);
 				
 				if( "loop" in this.list[l] ) {
 					this.list[l]["source"].loop = true;
@@ -133,9 +145,11 @@ AudioPlayer.prototype.playPan = function(l,balance,gain){
 				if( "music" in this.list[l]) {
 					this.list[l]["source"].connect(this.musVolume).connect(stereo).connect(volume);
 				} else {
-					stereo.connect(this.sfxVolume);
-					volume.connect(stereo);
 					this.list[l]["source"].connect(volume);
+					volume.connect(stereo);
+					stereo.connect(this.sfxVolume);
+					this.sfxVolume.connect(this.compressor);
+					this.compressor.connect(this.a.destination);
 				}
 				
 				this.list[l]["source"].start();
@@ -240,8 +254,17 @@ function Game( elm ) {
 	this.g.closePath = function(){};
 	
 	this.finalBuffer = new BackBuffer();
+	this.finalBufferCRT = new BackBuffer(undefined, {"fs" : "fragment-crt"});
+	this.finalBufferNES = new BackBuffer(undefined, {"fs" : "fragment-palletswap", "settings":{"u_colorgrid":"nescolors"} });
+	this.finalBufferGBP = new BackBuffer(undefined, {"fs" : "fragment-palletswap", "settings":{"u_colorgrid":"dotmatcolors"} });
+	this.finalBufferBLD = new BackBuffer(undefined, {"fs" : "fragment-highcontrast"});
+	
 	this.lightBuffer = new BackBuffer(undefined, {"mixtype":Material.MIX_MULTIPLY});
 	this.hudBuffer = new BackBuffer();
+	this.postBuffer = new BackBuffer();
+	this.tileBuffer = new BackBuffer();
+	this.objectPostBuffer = new BackBuffer();
+	this.objectBuffer = new BackBuffer();
 	this.backBuffer = new BackBuffer();
 	
 	this._id_index = 0;
@@ -384,8 +407,13 @@ Game.prototype.renderObject = function(obj){
 				obj.options
 			);
 		} else if(obj.type == 2){
-			//Render sprite
-			var mesh = window.meshes[obj.mesh];
+			//Render mesh
+			var mesh;
+			if(obj.mesh.startsWith("lm_")){
+				mesh = window.lightMeshes[obj.mesh];
+			} else {
+				mesh = window.meshes[obj.mesh];
+			}
 			
 			mesh.render(
 				new Vector(obj.x,obj.y,obj.z),
@@ -397,7 +425,10 @@ Game.prototype.renderObject = function(obj){
 	}
 }
 
+var debug_stop_render = false;
+
 Game.prototype.render = function( ) {
+	if( debug_stop_render ) { return; }
 	if ( input != undefined ) { input.update(); }
 	var useLightBuffer = false;
 	
@@ -424,7 +455,21 @@ Game.prototype.render = function( ) {
 	//this.g.clear(this.g.COLOR_BUFFER_BIT);
 	//this.lightBuffer.use(this.g);
 	//this.g.clear(this.g.COLOR_BUFFER_BIT);
+	
+	//Clear buffers
 	this.hudBuffer.useBuffer();
+	this.g.clear(this.g.COLOR_BUFFER_BIT);
+	
+	this.objectBuffer.useBuffer();
+	this.g.clear(this.g.COLOR_BUFFER_BIT);
+	
+	this.objectPostBuffer.useBuffer();
+	this.g.clear(this.g.COLOR_BUFFER_BIT);
+	
+	this.tileBuffer.useBuffer();
+	this.g.clear(this.g.COLOR_BUFFER_BIT);
+	
+	this.postBuffer.useBuffer();
 	this.g.clear(this.g.COLOR_BUFFER_BIT);
 	
 	this.g.enable(this.g.BLEND);
@@ -450,16 +495,24 @@ Game.prototype.render = function( ) {
 		renderOrder = this.map.order;
 	}
 	
+	let useForground = false;
 	for(var order=0; order < renderOrder.length; order++){
-		this.backBuffer.useBuffer();
 		let layer = renderOrder[order];
 		if(layer == "o"){
+			useForground = true;
+			this.objectBuffer.useBuffer();
 			if("render" in this.objects){
 				for(var i=0; i < this.objects["render"].length; i++){
 					this.renderObject( this.objects["render"][i] ); 
 				}
 			}
 		} else {
+			if(useForground){
+				this.tileBuffer.useBuffer();
+			} else {
+				this.backBuffer.useBuffer();
+			}
+			
 			//Render Tile Layer
 			if(this.map && renderOrder[order] in this.map.layers){
 				var camera = this.camera.scale(1);
@@ -492,15 +545,23 @@ Game.prototype.render = function( ) {
 				*/
 			}
 		}
-		this.backBuffer.reset(this.g);
+		this.objectBuffer.reset(this.g);
+	}
+	
+	if("objectpostrender" in this.objects){
+		this.objectPostBuffer.useBuffer();
+		for(var i=0; i < this.objects["objectpostrender"].length; i++){
+			this.renderObject( this.objects["objectpostrender"][i] ); 
+		}
+		this.objectPostBuffer.reset(this.g);
 	}
 	
 	if("postrender" in this.objects){
-		this.backBuffer.useBuffer();
+		this.postBuffer.useBuffer();
 		for(var i=0; i < this.objects["postrender"].length; i++){
 			this.renderObject( this.objects["postrender"][i] ); 
 		}
-		this.backBuffer.reset(this.g);
+		this.postBuffer.reset(this.g);
 	}
 	
 	if("lightrender" in this.objects){
@@ -533,11 +594,26 @@ Game.prototype.render = function( ) {
 		this.hudBuffer.reset(this.g);
 	}
 	
-	this.finalBuffer.useBuffer();
+	let fBuffer = this.finalBuffer;
+	switch ( Game.Settings.filter ) {
+		case 1 : fBuffer = this.finalBufferCRT; break;
+		case 2 : fBuffer = this.finalBufferBLD; break;
+		case 3 : fBuffer = this.finalBufferNES; break;
+		case 4 : fBuffer = this.finalBufferGBP; break;
+	}
+	fBuffer.useBuffer();
 	
 	this.g.blendFunc(this.g.SRC_ALPHA, this.g.ONE_MINUS_SRC_ALPHA );
 	//this.g.renderBackbuffer(this.backBuffer.texture);
 	this.backBuffer.render();
+	
+	this.objectBuffer.render();
+	
+	this.objectPostBuffer.render();
+	
+	this.tileBuffer.render();
+	
+	this.postBuffer.render();
 	
 	
 	if(useLightBuffer){
@@ -552,12 +628,8 @@ Game.prototype.render = function( ) {
 	
 	
 	this.g.viewport(0,0,this.element.width,this.element.height);
-	this.finalBuffer.reset(this.g);
-	this.finalBuffer.render(this.tint);
-	/*
-	this.g.renderBackbuffer(this.finalBuffer.texture, this.tint, {
-		"shader":Game.Filters[this.filter]
-	});*/
+	fBuffer.reset(this.g);
+	fBuffer.render(this.tint);
 	
 	this.g.flush();
 }
@@ -598,6 +670,7 @@ Game.prototype.renderFPS = function(){
 Game.prototype.useMap = function( m ) {
 	this.gameThread.postMessage(m);
 	this.map = {
+		"filename" : m.filename,
 		"layers" : m.layers,
 		"layersProperties" : m.layersProperties,
 		"width" : m.width,

@@ -23,7 +23,8 @@ function Librarian(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	

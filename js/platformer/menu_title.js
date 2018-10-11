@@ -11,6 +11,7 @@ function TitleMenu(){
 	
 	this.title_position = -960;
 	this.castle_position = 240;
+	this.starting_tmx = "gateway.tmx";
 	
 	this.progress = 0;
 	this.cursor = 1;
@@ -292,28 +293,27 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(profile){
-	game.ga_event("newgame","demo");
+	//game.ga_event("newgame","demo");
 	
 	NPC.variables = {};
-	
 	new Player();
-	WorldLocale.loadMap("demo.tmx", "test");
 	
-	_player.lightRadius = true;
-	_player.downstab = true;
-	_player.dodgeFlash = true;
-	_player.baseStats.attack = 12;
-	_player.equip();
+	//WorldLocale.loadMap(this.starting_tmx, "first");
 	
-	/*
+	//_player.lightRadius = true;
+	//_player.downstab = true;
+	//_player.dodgeFlash = true;
+	//_player.baseStats.attack = 12;
+	//_player.equip();
+	
+	
 	if(TitleMenu.profile_info[profile]){
-		WorldLocale.profile = profile;
-		WorldLocale.load();
+		Checkpoint.profile = profile;
+		Checkpoint.loadState();
 	} else {
 		new Player();
 		WorldLocale.loadMap("gateway.tmx");
 	}
-	*/
 }
 TitleMenu.fetchProfiles = function(){
 	game.load(function(data){

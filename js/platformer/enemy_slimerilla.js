@@ -50,7 +50,8 @@ function Slimerilla(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -207,7 +208,8 @@ class Slimerilla extends GameObject{
 		this.on("death", function(obj,pos,damage){
 			Item.drop(this);
 			
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			this.destroy();
 		});
 		
@@ -229,6 +231,7 @@ class Slimerilla extends GameObject{
 			
 			if(this.hidden){
 				//Waiting for player
+				this.damageContact = 0.0;
 				this.frame.x = 3;
 				this.frame.y = 0;
 				this.pushable = false;
@@ -247,6 +250,7 @@ class Slimerilla extends GameObject{
 				}
 			} else {
 				this.combat_shootable = true;
+				this.damageContact = 0.5;
 				
 				if(this.states.takeshape > 0){
 					//Appearing

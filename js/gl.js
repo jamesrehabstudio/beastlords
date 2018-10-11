@@ -40,7 +40,10 @@ class Material{
 		//Fetch properties
 		
 		this.properties = {};
-		//this.textureSlots = {};
+		this.use_screen_back = false;
+		this.use_screen_object = false;
+		this.use_screen_post = false;
+		this.use_screen = false;
 		
 		this.mixtype = Material.MIX_ALPHA;
 		if("mixtype" in options){ 
@@ -63,6 +66,7 @@ class Material{
 		//All shaders use the same uvs
 		this.geometryBuffer = gl.createBuffer();
 		this.textcordBuffer = gl.createBuffer();
+		this.normalBuffer = gl.createBuffer();
 	}
 	
 	getShader(gl, source, type) {	
@@ -92,7 +96,7 @@ class Material{
 			var count = this.gl.getProgramParameter(this.program, activeType);
 			var textureCount = 0;
 			for(var i=0; i < count; i++){
-				let textureSlot = 0;
+				
 				if(isUniform){
 					var details = this.gl.getActiveUniform(this.program,i);
 					var location = this.gl.getUniformLocation(this.program, details.name);
@@ -107,7 +111,17 @@ class Material{
 					"uniform" : isUniform,
 					"type" : details.type,
 					"location" : location,
-					"texture" : textureSlot
+					"texture" : textureCount
+				}
+				
+				if( details.name == "u_screen_back") { this.use_screen_back = true; }
+				if( details.name == "u_screen_object") { this.use_screen_object = true; }
+				if( details.name == "u_screen_post") { this.use_screen_post = true; }
+				if( details.name == "u_screen") { this.use_screen = true; }
+				
+				if(details.type == WebGLRenderingContext.SAMPLER_2D){
+					this.gl.uniform1i(location, textureCount); 
+					textureCount++;
 				}
 			}
 		}
@@ -152,7 +166,7 @@ class Material{
 			img = sprites[img].gl_tex;
 		}
 		
-		if(Material.currentTexture !== img){
+		if(Material.currentTexture !== img || true){
 			this.gl.activeTexture(slot);
 			this.gl.bindTexture(this.gl.TEXTURE_2D, img);
 			Material.currentTexture = img;
@@ -242,6 +256,9 @@ class Mesh extends Material{
 		if(!("vs" in options)){
 			options["vs"] = "3d-vertex-default";
 		}
+		options["settings"] = {
+			"u_color" : [1,1,1,1]
+		};
 		super(options);
 		
 		this.url = url;
@@ -254,10 +271,12 @@ class Mesh extends Material{
 		this.vertCount = 0;
 		this.uvCount = 0;
 		
-		var self = this;
-		ajax(this.url, function(response){
-			self.parseMesh(JSON.parse(response));
-		});
+		if(this.url){
+			var self = this;
+			ajax(this.url, function(response){
+				self.parseMesh(JSON.parse(response));
+			});
+		}
 		
 		this.sprite_name = "white";
 		
@@ -269,13 +288,25 @@ class Mesh extends Material{
 	parseMesh(data){
 		var gl = game.g;
 		
-		this.vertices = data.data.attributes.position.array;
-		this.uvs = data.data.attributes.uv.array;
-		this.tries = data.data.index.array;
-		
-		this.vertCount = this.vertices.length / data.data.attributes.position.itemSize;
-		this.uvCount = this.uvs.length / data.data.attributes.uv.itemSize;
-		this.triesCount = this.tries.length / 3;
+		if(data.data){		
+			this.vertices = data.data.attributes.position.array;
+			this.uvs = data.data.attributes.uv.array;
+			this.normals = data.data.attributes.normal.array;
+			this.tries = data.data.index.array;
+			
+			this.vertCount = this.vertices.length / data.data.attributes.position.itemSize;
+			this.uvCount = this.uvs.length / data.data.attributes.uv.itemSize;
+			this.triesCount = data.data.index.itemSize;
+			this.normalCount = this.tries.length / data.data.attributes.normal.itemSize;
+		} else {
+			this.vertices = data.vertices;
+			this.uvs = data.uvs[0];
+			this.tries = data.faces;
+			
+			this.vertCount = data.metadata.vertices;
+			this.uvCount = this.uvs.length / 2;
+			this.triesCount = data.metadata.faces / 3;
+		}
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.textcordBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.uvs), gl.DYNAMIC_DRAW);
@@ -284,6 +315,10 @@ class Mesh extends Material{
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.geometryBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.DYNAMIC_DRAW);
 		this.set("a_position", 3);
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.normals), gl.DYNAMIC_DRAW);
+		this.set("a_normal", 3);
 		
 		this.indexBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
@@ -316,6 +351,14 @@ class Mesh extends Material{
 				gl.cullFace(gl.FRONT);
 			}
 			
+			for(var i in options){
+				if(options[i] instanceof Array){
+					this.set.apply(this, [i].concat(options[i]));
+				} else {
+					this.set(i, options[i]);
+				}
+			}
+			
 			//this.material.setOptions(options);
 			for(var op in options){
 				if(options[op] instanceof Array){
@@ -329,13 +372,17 @@ class Mesh extends Material{
 				this.set("u_image",sprites[this.sprite_name].gl_tex);
 			}
 			
+			//gl.enableVertexAttribArray(this.tries);
+			
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.textcordBuffer);
 			this.set("a_texCoord", 2);
 			
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.geometryBuffer);
 			this.set("a_position", 3);
 			
-			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+			//if(self.useIndices){
+				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+			//}
 			
 			//Set transformation matrices for vertex shader
 			let mat_trn = new Matrix4x4().transition(position.x,position.y,position.z);
@@ -348,7 +395,8 @@ class Mesh extends Material{
 			this.set("u_camera", game.cameraMatrix.convert4x4().toFloatArray());
 			
 			gl.enable(gl.CULL_FACE);
-			gl.drawArrays(gl.TRIANGLES, 0, this.vertCount);
+			//gl.drawArrays(gl.TRIANGLES, 0, this.vertCount);
+			gl.drawElements(gl.TRIANGLES, this.vertCount, gl.UNSIGNED_SHORT, 0);
 		}
 	}
 }
@@ -529,6 +577,12 @@ class Sprite extends Material {
 		}
 		
 		this.set("u_image",this.gl_tex);
+		
+		if(this.use_screen_object){
+			this.set("u_screen_object", game.objectBuffer.texture);
+		}
+		
+		Material.currentTexture = this.gl_tex;
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.textcordBuffer);
 		this.set("a_texCoord", 2);
@@ -930,8 +984,13 @@ Sprite.prototype.getTileUVMap = function(tileData, uvVerts){
 class BackBuffer extends Material{
 	constructor(size, options){
 		options = options || {};
-		options["fs"] = "2d-fragment-shader";
-		options["vs"] = "back-vertex-shader";
+		if( !("fs" in options ) ){	
+			options["fs"] = "2d-fragment-shader";
+		}
+		if( !("vs" in options ) ){	
+			options["vs"] = "back-vertex-shader";
+		}
+		
 		super(options);
 		
 		let gl = this.gl;
@@ -941,6 +1000,7 @@ class BackBuffer extends Material{
 		gl.bindFramebuffer( gl.FRAMEBUFFER, this.buffer );
 		this.buffer.width = size || 512;
 		this.buffer.height = size || 512;
+		this.ready = false;
 		
 		this.texture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -965,6 +1025,7 @@ class BackBuffer extends Material{
 	}
 	useBuffer(){
 		let gl = this.gl;
+		this.ready = true;
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.buffer);
 	}
 	reset(){
@@ -972,46 +1033,48 @@ class BackBuffer extends Material{
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	}
 	render(tint, ops){
-		var top = game.resolution.y / 512;
-		var lef = game.resolution.x / 512;
-		
-		var geo = createRectBuffer(new Point(-1, -1),2 ,2);
-		var tex = createRectBuffer(new Point(),lef ,top);
-		
-		let gl = this.gl;
-		
-		ops = ops || {};
-		
-		this.use();
-		
-		for(var i in ops){
-			if(ops[i] instanceof Array){
-				shader.set.apply(shader, [i].concat(ops[i]));
-			} else {
-				shader.set(i, ops[i]);
+		if(this.ready){
+			var top = game.resolution.y / 512;
+			var lef = game.resolution.x / 512;
+			
+			var geo = createRectBuffer(new Point(-1, -1),2 ,2);
+			var tex = createRectBuffer(new Point(),lef ,top);
+			
+			let gl = this.gl;
+			
+			ops = ops || {};
+			
+			this.use();
+			
+			for(var i in ops){
+				if(ops[i] instanceof Array){
+					shader.set.apply(shader, [i].concat(ops[i]));
+				} else {
+					shader.set(i, ops[i]);
+				}
 			}
+			
+			this.set("u_image", this.texture);
+			
+			if(tint == undefined){
+				tint = [1.0,1.0,1.0,1.0];
+			}
+			
+			var buffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+			gl.bufferData( gl.ARRAY_BUFFER, geo, gl.STATIC_DRAW);
+			this.set("a_position", 2);
+			
+			var tbuffer = gl.createBuffer();
+			gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
+			gl.bufferData( gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
+			this.set("a_texCoord", 2);
+			
+			this.set("u_color", tint[0],tint[1],tint[2],tint[3]);
+			this.set("u_resolution", game.resolution.x, game.resolution.y);
+			
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, geo.length/2);
 		}
-		
-		this.set("u_image", this.texture);
-		
-		if(tint == undefined){
-			tint = [1.0,1.0,1.0,1.0];
-		}
-		
-		var buffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
-		gl.bufferData( gl.ARRAY_BUFFER, geo, gl.STATIC_DRAW);
-		this.set("a_position", 2);
-		
-		var tbuffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, tbuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
-		this.set("a_texCoord", 2);
-		
-		this.set("u_color", tint[0],tint[1],tint[2],tint[3]);
-		this.set("u_resolution", game.resolution.x, game.resolution.y);
-		
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, geo.length/2);
 	}
 }
 WebGLRenderingContext.prototype.scaleFillRect = function(x,y,w,h,ops){

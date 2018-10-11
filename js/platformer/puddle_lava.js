@@ -3,8 +3,8 @@ class Lava extends Puddle{
 		super(x,y,d,ops);
 		
 		this.viscosity = 0.125;
-		this.fireDamage = 1;
-		this.damageTickTimer = Game.DELTASECOND * 0.3;
+		this.fireDamage = 4;
+		this.damageTickTimer = Game.DELTASECOND * 0.2;
 		
 		this.color1 = [0.8,0.25,0.0,1.0];
 		this.color2 = [1.0,0.5,0.0,1.0];
@@ -21,6 +21,7 @@ class Lava extends Puddle{
 		
 		this._tid = ops.getString("trigger", null);
 		
+		this.ignoreList = new Array();
 		this._damageTick = false;
 		this._damageTickTimer = 0.0;
 		this._drained = false;
@@ -55,13 +56,20 @@ class Lava extends Puddle{
 					this.floatObject(obj);
 				}
 				if(this._damageTick && obj.hasModule(mod_combat)){
-					audio.play("burn", obj.position);
-					obj.life -= this.fireDamage;
-					obj.displayDamage(this.fireDamage);
-					obj.isDead();
 					
-					obj.trigger("in_lava", this);
-					
+					if ( obj.defenceFire < 99 ) {
+						
+						if( this.ignoreList.indexOf (obj) < 0 ) {
+							audio.play("burn", obj.position);
+							obj.life -= this.fireDamage;
+							obj.displayDamage(this.fireDamage);
+							obj.isDead();
+							
+							obj.trigger("in_lava", this);
+							
+							this.ignoreList.push( obj );
+						}
+					}
 					
 				}
 			}
@@ -92,9 +100,12 @@ class Lava extends Puddle{
 		}
 		this.height = Math.lerp( this.raisedHeight, this.lowerHeight, this._drainLevel);
 	}
-	render(g,c){
+	render(g,c){}
+	objectpostrender(g,c){
+		this.ignoreList = new Array();
+		
 		if(this.height > 0){
-			super.render(g,c);
+			super.objectpostrender(g,c);
 		}
 	}
 }

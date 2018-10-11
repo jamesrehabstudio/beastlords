@@ -5,8 +5,10 @@ class Garmr extends GameObject{
 		this.position.x = x;
 		this.position.y = y;
 		this.width = 80;
-		this.height = 112;
+		this.height = 96;
+		this.origin = new Point(0.5,0.7);
 		this.sprite = "garmr";
+		self["_garmr"] = this;
 		
 		this.speed = 3.0;
 		this.force = new Point();
@@ -77,15 +79,20 @@ class Garmr extends GameObject{
 			this.difficulty = ops["difficulty"] * 1;
 		}
 		
-		this.lifeMax = this.life = Spawn.life(24,this.difficulty);
+		this.lifeMax = this.life = Spawn.life(64,this.difficulty);
 		this.mass = 5.0;
 		this.damage = Spawn.damage(4,this.difficulty);
+		this.defenceLight = Spawn.defence(4,this.difficulty);
 		
 		this.moneyDrop = Spawn.money(40,this.difficulty);
 		this.death_time = Game.DELTASECOND * 3;
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt");
+			audio.play("hurt", this.position);
+			
+			if(this.states.current == Garmr.STATE_IDLE){
+				this.states.time -= Game.DELTASECOND * 0.75;
+			}
 			
 			/*
 			if(this.states.current == Garmr.STATE_BOLT && obj instanceof Player){
@@ -105,6 +112,12 @@ class Garmr extends GameObject{
 			}
 		});
 		this.on("death", function(){
+			
+			//TODO: Remove this
+			let item = new Item(this.boss_starting_position.x, this.boss_starting_position.y);
+			item.setName("dodgeflash");
+			game.addObject(item);
+			
 			audio.play("kill");
 			
 			Item.drop(this,140);
@@ -136,96 +149,152 @@ class Garmr extends GameObject{
 			"time" : 0.0,
 			"timeTotal" :Game.DELTASECOND * 2,
 			"count" : 0,
-			"transition" : 0.0
+			"transition" : 0.0,
+			"turnabout" : 0.0,
 		}
+		
+		this.boltDischargeTime = Game.DELTASECOND * 1.5;
+		this._boltDischarge = this.boltDischargeTime;
 	}
 	
 	setState(s=0){
 		this.states.current = s;
 		if(s == Garmr.STATE_IDLE){
-			this.states.time = this.states.timeTotal = Game.DELTASECOND * 3;
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2.5;
 		} else if(s == Garmr.STATE_PUNCH) {
-			this.states.time = this.states.timeTotal = Game.DELTASECOND * 3;
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2.5;
+			this.states.count = 1;
 		} else if(s == Garmr.STATE_FIREBEAM) {
-			this.states.time = this.states.timeTotal = Game.DELTASECOND * 6;
-		} else if(s == Garmr.STATE_BOLT) {
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 4.5;
+		} else if(s == Garmr.STATE_LIGHTNING) {
 			this.states.time = this.states.timeTotal = Game.DELTASECOND * 5;
-		} else if(s == Garmr.STATE_UPPERCUT) {
-			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2;
+		} else if(s == Garmr.STATE_BOLTARRAY) {
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 0.65;
+			this.states.count = 12;
+		} else if(s == Garmr.STATE_FIREFLOOR) {
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 0.75;
 			this.states.count = 3;
-		} else if(s == Garmr.STATE_MISSILE) {
+		} else if(s == Garmr.STATE_FIRESKY) {
 			this.states.time = this.states.timeTotal = Game.DELTASECOND * 0.75;
 			this.states.count = 3;
 		}
 	}
 	
-	fireball (amount, skiprandom){
-	
+	fireball (){
 		var bomb = new CarpetBomb(this.position.x, this.position.y);
 		bomb.damageFire = this.damage;
 		bomb.force = new Point(this.forward()*6, -8);
 		game.addObject(bomb);
+		return bomb;
+	}
+	
+	discharge (force){
+		//Create a floating bolt
+		this._boltDischarge += this.boltDischargeTime;
+		let bolt = new GarmrBolt(this.position.x, this.position.y);
+		
+		if(force == undefined){
+			force = new Point(Math.random()-0.5, Math.random()-0.5).normalize(4.5);
+		}
+		
+		bolt.force = force;
+		bolt.damage = Math.floor(this.damage * 0.6);
+		game.addObject(bolt);
+	
 	}
 	
 	update(){
+		//return;
 		if(this.life > 0 && this.active){
 			
 			this.states.time -= this.delta;
+			this.states.turnabout -= this.delta;
+			
 			let v = (game.timeScaled * 0.025) % 1;
 			let p = 1 - this.states.time / this.states.timeTotal;
 			
-			let dir = this.position.subtract(_player.position);
+			let dir = this.position.subtract(this.target().position);
 			
 			this.trackRay.isOn = false;
 			
+			this._boltDischarge -= this.delta;
+			if( this._boltDischarge <= 0){
+				this.discharge();
+			}
+			
 			if(this.states.current == Garmr.STATE_IDLE){
-				//Move
-				this.gotoPos.xy = _player.position.add(new Point(this.forward()*-76,-16));
+				//Track the player
+				this.gotoPos.xy = _player.position.add(new Point(this.forward()*-76,-56));
 				this.gotoPos.z = this.speed;
 					
 				this.states.animation = 0;
 				this.animate(v);
+				
+				if(Math.abs(this.position.x - this.start.x) > 160){
+					this.states.turnabout = Game.DELTASECOND;
+				}
+				
+				if(this.states.turnabout > 0){
+					this.flip = this.position.x < this.start.x;
+				} else {
+					this.flip = dir.x > 0;
+				}
+				
+				if(this.states.time <= 0){
+					this.setState(Garmr.STATE_BOLTARRAY);
+					//this.setState(Math.floor(Math.random() * 7));
+				}
+			} else if(this.states.current == Garmr.STATE_BOLTARRAY){
+				//Fire one after the other, ricocheting bolts
+				
 				this.flip = dir.x > 0;
-			} else if(this.states.current == Garmr.STATE_UPPERCUT){
-				//Upper cutt
-				if(p < 0.5){
-					//Move under player
-					this.gotoPos.xy = _player.position.add(new Point(this.forward()*-48,80));
-					this.gotoPos.z = this.speed;
-									
-					this.states.animation = 1;
-					this.animate(p*5);
-				} else if(p < 0.7){
-					this.gotoPos.xy = this.position.add(new Point(0,-20));
-					this.gotoPos.z = this.speed*2;
-					
-					if(p > 0.57){
-						this.strike(this.fistRect(16));
+				this.states.animation = 9 + (this.states.count % 2);
+				this.animate(p);
+				
+				if(this.states.time <= 0){
+					if(this.states.count > 0 ){
+						//Fire Bolt
+						this.discharge(dir.normalize(-8));
+						this.states.count--;
+						this.states.time = this.states.timeTotal;
+						this.gotoPos.x = Math.clamp(this.position.x + this.forward() * -24, this.boss_starting_position.x-200, this.boss_starting_position.x+200);
+						this.gotoPos.z = this.speed * 0.25;
+					} else {
+						this.setState(Garmr.STATE_IDLE);
 					}
-					this.states.animation = 2;
-					this.animate((p-0.5)*7);
-				}else{
-					this.gotoPos.z = 0;
-					this.animate(1);
 				}
 			} else if(this.states.current == Garmr.STATE_PUNCH){
 				//Punch
-				if(p < 0.3){
-					this.gotoPos.xy = _player.position.add(new Point(this.forward()*-64,24));
-					this.gotoPos.z = this.speed;
-					this.flip = dir.x > 0;
-				} else if(p < 0.5){
-					this.gotoPos.z = 0;
-				} else if(p < 0.7){
-					this.strike(this.fistRect(16));
-					this.gotoPos.xy = this.position.add(new Point(this.forward()*20,0));
+				if(p < 0.55){
+					this.gotoPos.x = this.boss_starting_position.x + this.forward() * 128;
+					this.gotoPos.y = this.boss_starting_position.y - 32;
 					this.gotoPos.z = this.speed * 2;
+					//this.flip = dir.x > 0;
+					
+					this.states.animation = 2;
+					this.animate(p*3);
+					
+				} else if(p < 1){
+					//this.strike(this.fistRect(16));
+					this.gotoPos.x = this.boss_starting_position.x + this.forward() * 144;
+					this.gotoPos.z = this.speed * 6;
+					
+					this.states.animation = 3;
+					this.animate(p*8);
+					
+					if( this.states.count > 0){
+						//let bomb = this.fireball();
+						//bomb.position.x = this.position.x - 64;
+						//bomb.force = new Point(0,5);
+						//this.states.count = 0;
+					}
+				} else {
+					this.setState(Garmr.STATE_IDLE);
 				}
-				this.states.animation = 3;
-				this.animate(p*3);
+				
 			} else if(this.states.current == Garmr.STATE_FIREBEAM){
 				//Beam
-				this.gotoPos.xy = this.start;
+				this.gotoPos.xy = this.start.add(new Point(0,-32));
 				this.gotoPos.z = this.speed;
 				
 				if(p < 0.5){
@@ -237,21 +306,22 @@ class Garmr extends GameObject{
 					this.trackRay.length = 250 * Math.clamp01(p2*5);
 					this.states.animation = 5;
 					this.animate(p2*1.5);
-					this.trackRay.rotation = Math.lerp(20,-30,p2);
+					this.trackRay.rotation = Math.lerp(-20,60,p2);
 				}
-			} else if(this.states.current == Garmr.STATE_BOLT){
-				this.gotoPos.xy = this.start;
+			} else if(this.states.current == Garmr.STATE_LIGHTNING){
+				//Drop lighting bolts
+				this.gotoPos.xy = this.start.add(new Point(0,-32));
 				this.gotoPos.z = this.speed;
 				
 				if(Timer.interval(this.states.time,Game.DELTASECOND*0.5,this.delta)){
 					let off = (Math.random()-0.5) * 470;
-					let l = new LightningBolt(this.position.x+off, this.position.y-80);
+					let l = new LightningBolt(this.position.x+off, this.position.y-40);
 					game.addObject(l);
 				}
 				
 				this.states.animation = 6;
 				this.animate(p*8);
-			} else if(this.states.current == Garmr.STATE_MISSILE){
+			} else if(this.states.current == Garmr.STATE_FIREFLOOR){
 				//Missile
 				this.gotoPos.x = this.position.x + this.forward()*-20;
 				this.gotoPos.y = _player.position.y;
@@ -269,6 +339,8 @@ class Garmr extends GameObject{
 					this.states.animation = 8;
 					this.animate((p-0.5)*3);
 				}
+			} else if(this.states.current == Garmr.STATE_FIRESKY){
+				
 			}
 			
 			if(this.gotoPos.z > 0){
@@ -296,22 +368,6 @@ class Garmr extends GameObject{
 					this.trigger("hitWithRay",_player)
 				}
 			}
-			
-			
-			if(this.states.time <= 0 ){
-				if(this.states.count > 0){
-					this.states.count--;
-					this.states.time = this.states.timeTotal;
-				} else { 
-					if(this.states.current == Garmr.STATE_IDLE){
-						//this.setState(Garmr.STATE_BOLT);
-						this.setState(Math.floor(Math.random() * 7));
-					} else {
-						this.setState(Garmr.STATE_IDLE);
-					}
-				}
-				
-			}
 		} else {
 			//Dying!!
 		}
@@ -330,6 +386,7 @@ class Garmr extends GameObject{
 	animate(progress){
 		//let progress = (game.timeScaled * 0.025) % 1;
 		progress = Math.clamp01(progress);
+		let flipLimbsOnFlip = false;
 		
 		this.trackHead.scream = false;
 		this.trackHead.turnStrength = 0.25;
@@ -348,38 +405,38 @@ class Garmr extends GameObject{
 			this.trackLowerLeftArm.rotation = Math.lerp(0.65,0.55, p);
 			
 		} else if(this.states.animation == 1){
-			//Wind up upper cut
-			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.6,0.40,0), new Vector(2.8,0.40,0), progress);
-			this.trackLowerRightArm.rotation = Math.lerp(0.25,0.35, progress);
+			//Build up charge
+			this.trackHead.turnStrength = 0.0;
+			this.trackChest.scale = Math.lerp(1,1.15,progress);
+			this.trackHead.offset = Vector.lerp(new Vector(0,-50,33), new Vector(0,-60,23), progress);
+			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.35,0.30,0), new Vector(2.8,0.30,0), progress);
+			this.trackLowerRightArm.rotation = Math.lerp(0.65,0.1, progress);
 			
-			this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.35,-0.78,0), new Vector(2.40,-0.78,0), progress);
-			this.trackLowerLeftArm.rotation = Math.lerp(-0.1,-0.2, progress);
-			this.trackHead.turnStrength = Math.lerp(0.25,0.1, progress);
+			this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.35,-0.3,0), new Vector(2.8,-0.30,0), progress);
+			this.trackLowerLeftArm.rotation = Math.lerp(0.65,0.1, progress);
 		} else if(this.states.animation == 2){
-			//Upper cut
-			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.8,0.30,0), new Vector(-0.75,0.30,0), progress);
-			this.trackLowerRightArm.rotation = Math.lerp(0.35,-1.24, progress);
+			//Punch wall
+			flipLimbsOnFlip = true;
+			this.trackHead.turnStrength = 0.2;
 			
-			this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.40,-0.78,0), new Vector(2.50,-0.78,0), progress);
-			this.trackLowerLeftArm.rotation = Math.lerp(-0.2,0.75, progress);
-			this.trackHead.turnStrength = Math.lerp(0.1,0.5, progress);
-			this.fistPos = Point.lerp(new Point(48,100), new Point(64,-100), progress);
+			this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.35,0.78,0), new Vector(3.0,0.0,0), progress);
+			this.trackLowerLeftArm.rotation = Math.lerp(0.64,0, progress);
+			
+			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(1.35,-0.78,0), new Vector(1.9,0,0), progress);
+			this.trackLowerRightArm.rotation = Math.lerp(0.64,0.0, progress);
+			
+			this.fistPos = Point.lerp(new Point(-24,0), new Point(64,0), progress);
 		} else if(this.states.animation == 3){
-			//Punch
-			this.trackHead.turnStrength = Math.lerp(0.1,0.5, progress);
-			if(this.flip){
-				this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.8,-0.30,0), new Vector(0.05,-0.30,0), progress);
-				this.trackLowerLeftArm.rotation = Math.lerp(0.35,-0.24, progress);
-				
-				this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.40,0.78,0), new Vector(3.1,0.78,0), progress);
-				this.trackLowerRightArm.rotation = Math.lerp(-0.2,0.75, progress);
-			} else {
-				this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.8,0.30,0), new Vector(0.05,0.30,0), progress);
-				this.trackLowerRightArm.rotation = Math.lerp(0.35,-0.24, progress);
-				
-				this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.40,-0.78,0), new Vector(3.1,-0.78,0), progress);
-				this.trackLowerLeftArm.rotation = Math.lerp(-0.2,0.75, progress);
-			}
+			//Punch wall release
+			flipLimbsOnFlip = true;
+			this.trackHead.turnStrength = 0.22;
+			
+			this.trackUpperLeftArm.rotation = new Vector(0, 0.0, 0);
+			this.trackLowerLeftArm.rotation = 0.0;
+			
+			this.trackUpperRightArm.rotation = new Vector(3, 0, 0);
+			this.trackLowerRightArm.rotation = 1.0;
+			
 			this.fistPos = Point.lerp(new Point(-24,0), new Point(64,0), progress);
 		} else if(this.states.animation == 4){
 			//Fire charge
@@ -433,6 +490,41 @@ class Garmr extends GameObject{
 			
 			this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.3,-0.78,0), new Vector(2.8,-0.7,0), progress);
 			this.trackLowerLeftArm.rotation = Math.lerp(0.1,1.2, progress);
+		} else if(this.states.animation == 9){
+			//Release bolt 1
+			this.trackHead.turnStrength = this.flip ? 0.24 : 0.16;
+			let deltaSpeed = this.delta * 8;
+			
+			this.trackUpperRightArm.rotation = Vector.lerp(this.trackUpperRightArm.rotation, new Vector(3, 0, 0), deltaSpeed);
+			this.trackLowerRightArm.rotation = Math.lerp(this.trackLowerRightArm.rotation, 1.0, deltaSpeed);
+			
+			this.trackUpperLeftArm.rotation = Vector.lerp(this.trackUpperLeftArm.rotation, new Vector(0, 0, 0), deltaSpeed);
+			this.trackLowerLeftArm.rotation = Math.lerp(this.trackLowerLeftArm.rotation, 0.0, deltaSpeed);
+			
+			this.fistPos = Point.lerp(new Point(-24,0), new Point(64,0), progress);
+		} else if(this.states.animation == 10){
+			//Release bolt 2
+			this.trackHead.turnStrength = this.flip ? 0.16 : 0.32;
+			let deltaSpeed = this.delta * 8;
+			
+			this.trackUpperRightArm.rotation = Vector.lerp(this.trackUpperRightArm.rotation, new Vector(0, 0, 0), deltaSpeed);
+			this.trackLowerRightArm.rotation = Math.lerp(this.trackLowerRightArm.rotation, 0.0, deltaSpeed);
+			
+			this.trackUpperLeftArm.rotation = Vector.lerp(this.trackUpperLeftArm.rotation, new Vector(3, 0, 0), deltaSpeed);
+			this.trackLowerLeftArm.rotation = Math.lerp(this.trackLowerLeftArm.rotation, 1.0, deltaSpeed);
+			
+			this.fistPos = Point.lerp(new Point(-24,0), new Point(64,0), progress);
+		}
+		
+		if(this.flip && flipLimbsOnFlip){
+			let up = this.trackUpperRightArm.rotation.scale(1);
+			let low = this.trackLowerRightArm.rotation;
+			
+			this.trackUpperRightArm.rotation = this.trackUpperLeftArm.rotation;
+			this.trackLowerRightArm.rotation = this.trackLowerLeftArm.rotation;
+			
+			this.trackUpperLeftArm.rotation = up;
+			this.trackLowerLeftArm.rotation = low;
 		}
 	}
 	
@@ -542,8 +634,61 @@ class Garmr extends GameObject{
 Garmr.lowerArmOffset = new Vector(0,0,40);
 Garmr.STATE_IDLE = 0;
 Garmr.STATE_PUNCH = 1;
-Garmr.STATE_UPPERCUT = 2;
+Garmr.STATE_BOLTARRAY = 2;
 Garmr.STATE_FIREBEAM = 3;
-Garmr.STATE_BOLT = 4;
-Garmr.STATE_MISSILE = 5;
+Garmr.STATE_LIGHTNING = 4;
+Garmr.STATE_FIREFLOOR = 5;
+Garmr.STATE_FIRESKY = 6;
 self["Garmr"] = Garmr;
+
+class GarmrBolt extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = this.height = 12;
+		this.zIndex = 20;
+		
+		this.damage = 3;
+		this.time = 8;
+		this.addModule(mod_rigidbody);
+		
+		this.gravity = 0.0;
+		this.bounce = 1.0;
+		this.collisionReduction = -1.0;
+		this.friction = this.friction_y = 0.0;
+		this.pushable = false;
+		
+		this.on("struck", function(){
+			this.destroy();
+		});
+		
+		this.on("collideObject", function(obj){
+			if( obj instanceof Player ){
+				let dam = Combat.getDamage();
+				dam.light = this.damage;
+				obj.hurt(this, dam);
+				this.destroy();
+			}
+		});
+		this.on("sleep", function(){ this.destroy(); } );
+	}
+	update(){
+		Background.pushLight(this.position, 64, COLOR_LIGHTNING);
+		this.time -= this.delta;
+		if(this.time <= 0){ 
+			this.destroy(); 
+		}
+	}
+	render(g,c){
+		g.color = COLOR_LIGHTNING;
+		Renderer.drawRect(
+			this.position.x - (this.width * 0.5) - c.x,
+			this.position.y - (this.height * 0.5) - c.y,
+			this.width,
+			this.height,
+			this.zIndex
+		);
+		
+	}
+}

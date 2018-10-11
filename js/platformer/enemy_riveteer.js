@@ -24,7 +24,8 @@ function Riveteer(x,y,d,o){
 	});
 	this.on("death", function(){
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});
@@ -48,6 +49,7 @@ function Riveteer(x,y,d,o){
 	*/
 	
 	this.life = this.lifeMax = Spawn.life(1,this.difficulty);
+	this.xpDrop = Spawn.xp(5,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(1,this.difficulty);
 	

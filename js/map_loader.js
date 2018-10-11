@@ -105,13 +105,14 @@ MapLoader.loadMap = function(map,options){
 
 MapLoader.loadMapTmx = function(url, callback){
 	var xhttp = new XMLHttpRequest();
+	xhttp.filename = url.match(/[^/]*$/)[0];
 	xhttp.onreadystatechange = function(){
 		if(xhttp.readyState == 4){
 			//AJAX load
 			try{
 				var parser = new DOMParser();
 				var xml = parser.parseFromString(xhttp.response, "text/xml");
-				var starts = MapLoader.parseMap(xml);
+				var starts = MapLoader.parseMap(xml, xhttp.filename);
 				
 				if(callback instanceof Function){
 					callback.apply(window,[starts]);
@@ -140,12 +141,15 @@ MapLoader.parseTile = function(tile,tilesets){
 	return flags + (utile - subtract);
 }
 
-MapLoader.parseMap = function(xml){
+MapLoader.parseMap = function(xml, filename){
 	var tileset = "";
 	var tilesets = new Array();
 	var playerStart = new Array();
 	
+	lightMeshes = {};
+	
 	var out = {
+		"filename" : filename,
 		"tileset" : "",
 		"width" : 0,
 		"height" : 0,
@@ -317,6 +321,21 @@ MapLoader.parseMap = function(xml){
 			}
 		}
 		
+		let lightname = ["Light", "LightStrobe"]
+		
+		if(lightname.indexOf(name) >= 0){
+			//Create mesh
+			let softness = 0;
+			let gradient = 0;
+			if( "softness" in properties) { softness = properties["softness"] * 1; }
+			if( "gradient" in properties) { gradient = properties["gradient"] * 1; }
+			
+			mesh = createLightPoly(points, softness, gradient);
+			let name = "lm_" + (Math.random()+"").slice(2);
+			lightMeshes[name] = mesh;
+			properties["mesh"] = name;
+		}
+		
 		try{
 			if(name == "Player"){
 				var start = false;
@@ -364,6 +383,74 @@ MapLoader.convertTileDataToMapData = function(data){
 		}
 	}
 	return out;
+}
+var lightMeshes = {};
+createLightPoly = function(points, softness=0, gradient=0){
+	let attributes = {
+		position : {"array": [], itemSize:3},
+		uv : {"array": [], itemSize:2},
+		normal : {"array": [], itemSize:3},
+	};
+	let index = {"array": [], itemSize:1};
+	let center = new Point();
+	let vcount = 0;
+	let top = Number.MAX_VALUE;
+	let bot = -Number.MAX_VALUE;
+	
+	for(let i=0; i < points.length; i++){
+		center = center.add(new Point(points[i].x, points[i].y).scale(1.0/points.length));
+		top = Math.min(top, points[i].y);
+		bot = Math.max(bot, points[i].y);
+	}
+	
+	let _add = function(x,y,u){
+		attributes.position.array.push(x); attributes.position.array.push(y); attributes.position.array.push(0);
+		attributes.uv.array.push(0); attributes.uv.array.push(u);
+		attributes.normal.array.push(0); attributes.normal.array.push(0); attributes.normal.array.push(-1);
+		index.array.push(vcount);
+		vcount++;
+	}
+	let _range = function(y){
+		if(gradient != 0) {
+			let r = Math.abs(bot - top);
+			let s = r * (1 - Math.abs(1-gradient));
+			let offset = 1 - gradient;
+			return 1.0 - Math.clamp01( offset + (y - top) / s );
+		}
+		return 1.0;
+	}
+	
+	
+	for(let i=0; i < points.length; i++){
+		let j = (i+1)%points.length;
+		let p = new Point(points[i].x, points[i].y);
+		let n = new Point(points[j].x, points[j].y);
+		let m = Point.lerp(p,n,0.5);
+		
+		let d1 = softness / p.distance(center);
+		let d2 = softness / n.distance(center);
+		let _p = Point.lerp(p, center, d1);
+		let _n = Point.lerp(n, center, d2);
+		
+		if( softness > 0){
+			_add(_p.x, _p.y, 1 * _range(_p.y));
+			_add(p.x, p.y, 0 * _range(p.y));
+			_add(n.x, n.y, 0 * _range(n.y));
+			
+			_add(_p.x, _p.y, 1 * _range(_p.y));
+			_add(n.x, n.y, 0 * _range(n.y));
+			_add(_n.x, _n.y, 1 * _range(_n.y));
+		}
+		
+		_add(_p.x, _p.y, 1 * _range(_p.y));
+		_add(_n.x, _n.y, 1 * _range(_n.y));
+		_add(center.x, center.y, 1 * _range(center.y));
+		
+	}
+	data = {"data":{"attributes":attributes,"index":index}};
+	mesh = new Mesh(null, {"image":"gradient_add","mixtype":Material.MIX_ADDITIVE});
+	mesh.parseMesh(data);
+	return mesh;
 }
 
 MapLoader.mapname = "testmap.tmx"

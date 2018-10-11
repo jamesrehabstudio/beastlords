@@ -21,7 +21,8 @@ function FlyingSlime(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -38,6 +39,7 @@ function FlyingSlime(x,y,d,o){
 	this.loopTime = 0.0;
 	this.loopTimeFull = Game.DELTASECOND;
 	this.hurtByDamageTriggers = false;
+	this.damageContact = 0.0;
 	
 	this.mass = 1.0;
 	this.gravity = 0.0;

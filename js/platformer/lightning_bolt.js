@@ -47,6 +47,7 @@ class LightningBolt extends GameObject {
 			if(this.countdown > 0){
 				this.countdown -= this.delta;
 				if(this.countdown <= 0){
+					createExplosion(this.position, 56 );
 					audio.play("lightning1", this.position);
 				}
 			} else if(this.bolttime > 0){

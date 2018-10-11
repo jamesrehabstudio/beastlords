@@ -38,7 +38,7 @@ function Spawn(x,y,d,ops){
 	
 	var autospawn = 1;
 	
-	this.condition = this.options.getString("condition",false);
+	this.condition = this.options.get("condition",false);
 	
 	
 	if("enemies" in this.options){
@@ -378,6 +378,12 @@ Spawn.life = function(level, difficulty){
 	if( level == 0 ) return 3; //Always one shot
 	var multi = 1 + difficulty * 0.25;
 	return Math.floor( multi * level * 9 );
+}
+Spawn.xp = function(xp, difficulty){
+	if(difficulty == undefined){
+		difficulty = Spawn.difficulty;
+	}
+	return Math.floor( xp ** (1 + difficulty * 0.25) );
 }
 
 Spawn.money = function(money, difficulty){

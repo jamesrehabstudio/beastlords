@@ -34,10 +34,10 @@ class Chancellor extends GameObject {
 		if( NPC.get("publevel", 0) == 0 ){
 			//Build pub?
 			if(NPC.get("bosseskilled") >= 3){
-				if( NPC.get("pubmoney") > this.level3cost ){
+				if( NPC.get("pubmoney") >= this.level3cost ){
 					Chancellor.publevel = 3;
 					NPC.set("publevel", 3);
-				} else if( NPC.get("pubmoney") > this.level2cost ){
+				} else if( NPC.get("pubmoney") >= this.level2cost ){
 					NPC.set("publevel", 2);
 				} else {
 					NPC.set("publevel", 1);
@@ -60,9 +60,9 @@ class Chancellor extends GameObject {
 				this.moneyMax = 0;
 				
 				if(NPC.get("pubmoney") >= this.level3cost ){
-					DialogManger.set( i18n("chancellor_enough") );
+					DialogManager.set( i18n("chancellor_enough") );
 				} else {
-					DialogManger.set( i18n("chancellor_intro") );
+					DialogManager.set( i18n("chancellor_intro") );
 				}
 				
 				game.pause = true;
@@ -91,7 +91,7 @@ class Chancellor extends GameObject {
 				this.talkMovePlayer();
 				
 				if( Chancellor.introduction ) {
-					if(!DialogManger.show){
+					if(!DialogManager.show){
 						Chancellor.introduction = false;
 						this.close();
 					}
@@ -183,7 +183,7 @@ class Chancellor extends GameObject {
 	hudrender(g,c){
 		if( this.open && NPC.get("publevel", 0) == 0) {
 			if( Chancellor.introduction || NPC.get("pubmoney") >= this.level3cost ) {
-				DialogManger.render(g);
+				DialogManager.render(g);
 			} else {
 				var left = game.resolution.x / 2 - 112;
 				renderDialog(g, i18n("chancellor_howmuch") + "\n\n$" + this.money);

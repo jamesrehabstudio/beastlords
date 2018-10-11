@@ -26,6 +26,7 @@ function Ghoul(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(2,this.difficulty);
+	this.xpDrop = Spawn.xp(5,this.difficulty);
 	this.mass = 0.2;
 	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
@@ -58,7 +59,8 @@ function Ghoul(x,y,d,o){
 	this.on("death", function(){
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	

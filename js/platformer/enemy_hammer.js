@@ -33,6 +33,7 @@ function HammerMathers(x, y, d, o){
 	this.life = Spawn.life(2,this.difficulty);
 	this.lifeMax = Spawn.life(2,this.difficulty);
 	this.damage = Spawn.life(2,this.difficulty);
+	this.xpDrop = Spawn.xp(5,this.difficulty);
 	this.mass = 1.2;
 	
 	
@@ -46,7 +47,8 @@ function HammerMathers(x, y, d, o){
 	});
 	this.on("death", function(){
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

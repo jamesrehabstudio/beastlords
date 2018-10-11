@@ -14,6 +14,7 @@ class Skeleton extends GameObject {
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		
 		this.life = this.lifeMax = Spawn.life(6, this.difficulty);
+		this.xpDrop = Spawn.xp(6,this.difficulty);
 		this.damage = Spawn.damage(5, this.difficulty);
 		this.moneyDrop = Spawn.money(5,this.difficulty);
 		this.combat_player_combo_lock = false;
@@ -26,7 +27,8 @@ class Skeleton extends GameObject {
 			this._cooldown = 0.0;
 		});
 		this.on("death", function(){
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			Item.drop(this);
 			this.destroy();
 		});

@@ -16,6 +16,8 @@ class Laughing extends GameObject {
 		this.life = Spawn.life(0,this.difficulty);
 		this.damage = Spawn.damage(2,this.difficulty);
 		this.moneyDrop = Spawn.money(3,this.difficulty);
+		this.xpDrop = Spawn.xp(3,this.difficulty);
+		this.damageContact = 0.0;
 		
 		this.speed = 0.65;
 		this.frame = 0;
@@ -36,7 +38,8 @@ class Laughing extends GameObject {
 		});
 		this.on("death", function(){
 			
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			
 			Item.drop(this);
 			this.destroy();

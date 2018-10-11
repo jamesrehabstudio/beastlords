@@ -44,6 +44,7 @@ function Moleminer(x, y, d, o){
 	this.moneyDrop = Spawn.money(4,this.difficulty);
 	this.defenceFire = Spawn.defence(1,this.difficulty);
 	this.defenceIce = Spawn.defence(-1,this.difficulty);
+	this.xpDrop = Spawn.xp(6,this.difficulty);
 	this.mass = 1.0;
 	
 	this.guard.active = true;
@@ -74,7 +75,8 @@ function Moleminer(x, y, d, o){
 	});
 	this.on("death", function(){
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

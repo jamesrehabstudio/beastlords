@@ -39,6 +39,7 @@ function BookReptile(x,y,d,o){
 	this.mass = 1;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(1,this.difficulty);
+	this.xpDrop = Spawn.xp(3,this.difficulty);
 	this.pushable = false;
 	this.force.y = -12;
 	this.mForce = new Point();
@@ -63,7 +64,8 @@ function BookReptile(x,y,d,o){
 	this.on("death", function(){
 		this.destroy();
 		Item.drop(this,4);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 	});
 }
 

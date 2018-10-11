@@ -14,6 +14,7 @@ class Spikebug extends GameObject{
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty)
 		
 		this.lifeMax = this.life = Spawn.life(1,this.difficulty);
+		this.xpDrop = Spawn.xp(2,this.difficulty);
 		this.damage = Spawn.damage(2,this.difficulty);
 		this.moneyDrop = Spawn.money(2,this.difficulty);
 		this.mass = 0.7;
@@ -45,6 +46,7 @@ class Spikebug extends GameObject{
 		this.on("death", function(){
 			
 			audio.play("kill",this.position);
+			createExplosion(this.position, 40 );
 			Item.drop(this);
 			this.destroy();
 		});

@@ -77,7 +77,18 @@ i18n_messages = {
 	"item_dodgeflash" : {
 		"english" : "Dodge Flash\nPress %dodge% in the air to dash forward with great power."
 	},
-	
+	"save_choice" : {
+		"english" : ["Save", "Cancel"],
+	},
+	"save_common" : {
+		"english" : "Hello, again. Lil Rex. Want me to write you up?"
+	},
+	"save_special" : {
+		"english" : [
+			"What do we have here? Lil Rex? You're lookin'... short. You're not here to cause trouble are you? Tell ya what. I can write you up, if you get into trouble you can back here.",
+			
+		]
+	},
 	"mayor_intro" : {
 		"english" : [
 			"Hello. I'm the Mayor of our town. Life is hard here.",
@@ -106,7 +117,27 @@ i18n_messages = {
 	},
 	"chancellor_enough" : {
 		"english" : "You've donated more than enough! Construction will begin immediately!",
-		"english" : "You've donated more than enough! Construction will begin immediately!"
+		"engrish" : "You've donated more than enough! Construction will begin immediately!"
+	},
+	"swapchurch_intro" : {
+		"english" : "Come in, child! Welcome to this spiritual centre. He we offer a chance to sample various religions and find the one that's right for you!\n It's only proper that you try before you buy, as it were!",
+		"engrish" : "This is the church for children. Try religion for offer on the buy one and get sample it too! If it fits you own it and if it doesn't then throw it back.",
+	},
+	"swapchurch_change" : {
+		"english" : [
+			"This is Oblivionism, you worship the Tsar who sat beneath the tree of death. Would you like to convert?",
+			"This is Mechanism, our cities most popular faith. Glory to the machines that ease our burdens. Would you like to convert?",
+			"This is Cult of suffering, the flesh is wicked and it must be punished at all times. Would you like to convert?",
+			"This is Cube. All hail the cube. It is blasphemy to point out that the cube is not actually a cube. Would you like to convert?",
+			"Atheism is also available. Would you like to convert?"
+		],
+		"engrish" : [
+			"This is Oblivionism, you worship the tsar who sat beneath the tree of death. Would you like to convert?",
+			"This is Mechanism, our cities most popular faith. Glory to the machines that ease our burdens. Would you like to convert?",
+			"This is Cult of suffering, the flesh is wicked and it must be punished at all times. Would you like to convert?",
+			"This is Cube. All hail the cube. It is blasphemy to point out that the cube is not actually a cube. Would you like to convert?",
+			"Atheism is also available. Would you like to convert?"
+		],
 	},
 	"npc_chargeattackman" : {
 		"english" : "Hold down the attack button with %fire% to unlease a powerful slash!"
@@ -120,6 +151,10 @@ i18n_messages = {
 	"npc_spellmaster" : {
 		"english" : "I can level up your spells to increase their effectiveness. It'll cost you though."
 	},
+	"npc_spellmaster_intro" : {
+		"english" : [ "I'm raging! Do you know who I am", "Let's get one thing straight!", "I can level up your spells. I'll wait at check points." ]
+	},
+	
 	"smith_intro" : {
 		"english" : "You there. Did you know you can only hold one weapon at a time? Don't worry, any weapon you leave behind I'll store it here for you. It'll be free of charge, because I'm kind like that."
 	},
@@ -212,6 +247,14 @@ i18n_messages = {
 		"english" : [
 			""
 		]
+	},
+	
+	//Boss dialog
+	"boss_chort_01" : {
+		"english" : "Who do ya think you are, Lil Rex? Stormin' this place like it's still yours? You've gotten this far, but this is where it ends. Let me knock some sense into ya!",
+	},
+	"boss_chort_02" : {
+		"english" : "Now you're in trouble. Face my final attack. There's no stopping this spin!",
 	},
 	
 	

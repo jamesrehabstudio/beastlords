@@ -46,7 +46,8 @@ function Fly(x,y,d,o){
 	
 	this.on("death", function(){
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		if( this.itemDrop ){
 			Item.drop(this);
 		}

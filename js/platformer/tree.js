@@ -6,7 +6,7 @@ function Tree(x, y, d){
 	this.position.y = y + d[1] * 0.5;
 	this.width = 112;
 	this.sprite = "trees";
-	this.zIndex = 2;
+	this.zIndex = 99;
 	
 	this.frame.x = 0;
 	this.frame.y = 1;
@@ -26,7 +26,7 @@ Tree.prototype.prerender = function(g,c){
 	
 	//Leaves
 	for(var i=0; i < Tree.leavesPositions.length; i++){
-		var t = game.timeScaled;
+		var t = game.timeScaled * 30.0;
 		var pos = Tree.leavesPositions[i].add(new Point(this.forward()*16,0));
 		var d = 0.75 + (i / Tree.leavesPositions.length) * 0.25;
 		var color = [Math.lerp(0.5,1,d),Math.lerp(0.6,1,d),Math.lerp(0.7,1,d),1.0];

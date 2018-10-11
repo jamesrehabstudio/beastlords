@@ -72,6 +72,7 @@ function Item(x,y,d, ops){
 			
 			if( this.isWeapon ) {
 				NPC.set(this.name, 1);
+				ItemGet.create(this.name);
 				/*
 				var currentWeapon = _player.equip_sword;
 				obj.equip(this, obj.equip_shield);
@@ -497,36 +498,23 @@ Item.prototype.update = function(){
 Item.drop = function(obj){
 	DemoThanks.kills++;
 	
+	let dropItem = false;
+	
 	if("moneyDrop" in obj){
 		Item.dropMoney(obj.position, obj.moneyDrop);
+		dropItem = obj.moneyDrop > 0;
 	}
 	
-	/*
-	if (Math.random() < _player.waystone_bonus) {
-		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "waystone"} );
-		game.addObject( item );
-	}
-	*/
-	
-	if (Math.random() > 0.9) {
-		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
-		game.addObject( item );
-	}
-	
-	/*
-	var spell = Spell.randomRefill(_player, 300);
-	if(spell){
-		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "spell_refill"} );
-		item.frame.x = spell.frame.x;
-		item.frame.y = spell.frame.y + 1;
-		item.spell = spell;
-		game.addObject( item );
-	}
-	*/
-	
-	if (Math.random() > 0.967) {
-		var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
-		game.addObject( item );
+	if( dropItem ){
+		if (Math.random() > 0.9) {
+			var item = new Item( obj.position.x, obj.position.y, false, {"name" : "life_small"} );
+			game.addObject( item );
+		}
+		
+		if (Math.random() > 0.967) {
+			var item = new Item( obj.position.x, obj.position.y, false, {"name" : "mana_small"} );
+			game.addObject( item );
+		}
 	}
 }
 Item.dropMoney = function(position, money, sleep){

@@ -28,6 +28,7 @@ function Beaker(x, y, d, o){
 	this.life = Spawn.life(3,this.difficulty);
 	this.lifeMax = Spawn.life(3,this.difficulty);
 	this.moneyDrop = Spawn.money(3,this.difficulty);
+	this.xpDrop = Spawn.xp(3,this.difficulty);
 	this.mass = 0.8;
 	this.collideDamage = Spawn.damage(2,this.difficulty);
 	this.inviciple_tile = this.stun_time;
@@ -54,7 +55,8 @@ function Beaker(x, y, d, o){
 	this.on("death", function(){
 		//this.visible = false;
 		//this.interactive = false;
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

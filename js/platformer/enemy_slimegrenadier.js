@@ -27,6 +27,7 @@ function SlimeGrenadier(x,y,d,o){
 	
 	this.stun_time = Game.DELTASECOND;
 	this.life = Spawn.life(6, this.difficulty);
+	this.xpDrop = Spawn.xp(6,this.difficulty);
 	this.damage = 0;
 	this.damageSlime = Spawn.damage(3, this.difficulty);
 	this.defencePhysical = Spawn.defence(2,this.difficulty);
@@ -44,7 +45,8 @@ function SlimeGrenadier(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	

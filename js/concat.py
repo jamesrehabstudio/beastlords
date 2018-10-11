@@ -14,7 +14,8 @@ watching = [
 	"platformer/*.js",
 	"platformer/**/*.js",
 	"platformer/**/*.shader",
-	"platformer/**/*.janim"
+	"platformer/**/*.janim",
+	"platformer/**/*.jscene",
 ]
 
 def convertShader(file):
@@ -46,6 +47,11 @@ def concat():
 					f = open( file, 'r' )
 					js_out += "\n\n /* " + file + "*/ \n\n"
 					js_out += "self.spriteWrap[\""+name+"\"] = new SpriteWrapper("+f.read()+");\n\n"
+				elif ext == ".jscene":
+					name = os.path.splitext(os.path.basename(file))[0]
+					f = open( file, 'r' )
+					js_out += "\n\n /* " + file + "*/ \n\n"
+					js_out += "self.cutscenes[\""+name+"\"] = new CutscenePlayer("+f.read()+");\n\n"
 				else:
 					complete.append( file )
 					f = open( file, 'r' )

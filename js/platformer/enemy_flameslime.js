@@ -22,6 +22,7 @@ function FlameSlime(x, y, d, o){
 	}
 	
 	this.lifeMax = this.life = 1;
+	this.xpDrop = Spawn.xp(6,this.difficulty);
 	this.damage = 0;
 	this.damageFire = Spawn.damage(4,this.difficulty);
 	this.moneyDrop = Spawn.money(2,this.difficulty);
@@ -70,7 +71,8 @@ function FlameSlime(x, y, d, o){
 		audio.play("hurt",this.position);
 	});
 	this.on("pre_death", function(){
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		if(!this.small){
 			Item.drop(this);
 		}
@@ -227,7 +229,8 @@ function FlameSlimeWalker(x, y, d, o){
 		audio.play("hurt",this.position);
 	});
 	this.on("pre_death", function(){
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 		
 		if(this.spawnSmallSlimes){

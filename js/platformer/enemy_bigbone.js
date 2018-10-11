@@ -48,6 +48,7 @@ function BigBones(x,y,d,o){
 	this.mass = 2.0;
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(7,this.difficulty);
+	this.xpDrop = Spawn.xp(8,this.difficulty);
 	this.stun_time = Game.DELTASECOND * 0.25;
 	
 	
@@ -71,7 +72,8 @@ function BigBones(x,y,d,o){
 	});
 	this.on("death", function(){
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	

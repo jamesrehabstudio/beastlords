@@ -29,7 +29,8 @@ function Oriax(x,y,d,o){
 		this.spawnSnakes(2);
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	this.on("stun", function(obj,damage,count){
@@ -47,6 +48,7 @@ function Oriax(x,y,d,o){
 	}
 	
 	this.life =  Spawn.life(12,this.difficulty);
+	this.xpDrop = Spawn.xp(7,this.difficulty);
 	this.collideDamage = Spawn.damage(1,this.difficulty);
 	this.moneyDrop = Spawn.money(9,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);

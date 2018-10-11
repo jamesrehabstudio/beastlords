@@ -53,6 +53,7 @@ function ElectroLizard(x, y, d, o){
 	});
 	this.on("death", function(){
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

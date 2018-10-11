@@ -25,7 +25,8 @@ function Nolt(x,y,d,o){
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.interactive = false;
 		this.frame.x = 0;
 	});
@@ -47,6 +48,7 @@ function Nolt(x,y,d,o){
 	this.guard.omidirectional = true;
 	
 	this.life = this.lifeMax = Spawn.life(0,this.difficulty);
+	this.xpDrop = Spawn.xp(4,this.difficulty);
 	this.damage = Spawn.damage(2,this.difficulty);
 	this.moneyDrop = Spawn.money(1,this.difficulty);
 	
@@ -134,7 +136,8 @@ class NoltMissile extends GameObject{
 		});
 		this.on("death", function(obj,pos,damage){
 			Item.drop(this);
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			this.interactive = false;
 			this.frame.x = 0;
 		});

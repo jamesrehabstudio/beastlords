@@ -231,7 +231,7 @@ Drain.prototype.buldgeToArray = function(i){
 		this.buldges[i].height * Math.clamp01(this.buldges[i].time * 5),
 	]
 }
-Drain.prototype.render = function(g,c){
+Drain.prototype.objectpostrender = function(g,c){
 	let margin = 32;
 	
 	g.renderSprite(
@@ -243,6 +243,7 @@ Drain.prototype.render = function(g,c){
 		{
 			"u_time" : game.timeScaled,
 			"u_size" : [this.width, this.height+margin],
+			"u_resolution" : [game.resolution.x, game.resolution.y],
 			"scalex" : this.width / 256.0,
 			"scaley" : (this.height+margin) / 256.0,
 			"u_color" : [0.08,0.17,0.2,1.0],

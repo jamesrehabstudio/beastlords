@@ -25,7 +25,7 @@ function Smith(x, y){
 	this.on("open", function(){
 		this.cursor = new Point();
 		this.weapons = this.gatherWeapons();
-		DialogManger.set(this.text);
+		DialogManager.set(this.text);
 		
 		game.pause = true;
 		audio.play("pause");
@@ -58,7 +58,7 @@ Smith.prototype.update = function(){
 		this.talkMovePlayer();
 		
 		if( Smith.introduction ) {
-			if(!DialogManger.show){
+			if(!DialogManager.show){
 				Smith.introduction = false;
 				this.close();
 			}
@@ -129,7 +129,7 @@ Smith.prototype.update = function(){
 Smith.prototype.hudrender = function(g,c){
 	if( this.open ) {
 		if( Smith.introduction ) {
-			DialogManger.render(g);
+			DialogManager.render(g);
 		} else {
 			var width = 224;
 			var left = game.resolution.x / 2 - width * 0.5;

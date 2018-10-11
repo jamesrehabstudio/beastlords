@@ -27,6 +27,7 @@ class Axedog extends GameObject {
 		this.lifeMax = this.life = Spawn.life(3,this.difficulty);
 		this.damage = Spawn.damage(2,this.difficulty);
 		this.moneyDrop = Spawn.money(4,this.difficulty);
+		this.xpDrop = Spawn.xp(5,this.difficulty);
 		this.mass = 1.0;
 		this.speed = 5.0;
 		
@@ -41,9 +42,11 @@ class Axedog extends GameObject {
 			audio.play("hurt",this.position);
 			this.states.cooldown = Game.DELTASECOND * 0.5;
 			this.states.attack = 0.0;
+			this.force.x = 0.0;
 		});
 		this.on("death", function(){
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			Item.drop(this);
 			this.destroy();
 		});

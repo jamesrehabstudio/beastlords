@@ -24,6 +24,7 @@ class Igbo extends GameObject {
 		
 		this.difficulty = Spawn.difficulty;
 		this.lifeMax = this.life = Spawn.life(9, this.difficulty);
+		this.xpDrop = Spawn.xp(8,this.difficulty);
 		this.damage = Spawn.damage(4);
 		this.moneyDrop = Spawn.money(6,this.difficulty);
 		
@@ -50,7 +51,8 @@ class Igbo extends GameObject {
 		});
 		this.on("death", function(){
 			Item.drop(this);
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			this.destroy();
 		});
 		

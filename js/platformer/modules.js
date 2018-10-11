@@ -19,7 +19,9 @@ var mod_rigidbody = {
 		this.airtime = 0.0;
 		this.grounded = false;
 		this._groundedTimer = 0;
+		this._ignoreBlocksTimer = 0.0;
 		this.friction = 0.1;
+		this.friction_y = 0.02;
 		this.bounce = 0.0;
 		this.collisionReduction = 0.0;
 		this.resistObjects = 0.0;
@@ -136,6 +138,7 @@ var mod_rigidbody = {
 			//if(this.grounded ) this.force.y = 0.0;
 			
 			//The timer prevents landing errors
+			this._ignoreBlocksTimer = Math.max( this._ignoreBlocksTimer - this.delta, 0.0);
 			this._groundedTimer -= this.grounded ? 1 : 10;
 			this.grounded = this._groundedTimer > 0;
 			
@@ -170,13 +173,110 @@ var mod_rigidbody = {
 			}
 			
 			var friction_x = 1.0 - this.friction * UNITS_PER_METER * this.delta;
-			var friction_y = 1.0 - 0.02 * UNITS_PER_METER * this.delta;
+			var friction_y = 1.0 - this.friction_y * UNITS_PER_METER * this.delta;
 			this.force.x *= friction_x;
 			this.force.y *= friction_y;
 			this.preventPlatFormSnap -= this.delta;
 			this.airtime -= this.delta;
 		}
 	},
+}
+
+var mod_crawler = {
+	'init' : function(){
+		this.crawler_grab = new Point(0,1);
+		this.crawler_attached = false;
+		this.crawler_falling = true;
+		this.crawler_grabfailcount = 0;
+		this.crawler_speed = 1;
+		
+		this.crawler_rotation = 0.0;
+		this.crawler_rotationSpeed = 20.0;
+		
+		
+		this.on("collideBlock", function(block, x, y){
+			let c = block.corners();
+			if( x != 0 ){
+				this.trigger("collideHorizontal", x);
+				this.position.x = x > 0 ? (c.left - this.width*0.5 - 1) : (c.right + this.width*0.5 + 1);
+			} else {
+				this.trigger("collideVertical", y);
+				this.position.y = y > 0 ? (c.top - this.height*0.5 - 1) : (c.bottom + this.height*0.5 + 1);
+			}
+		});
+		
+		this.on("collideHorizontal", function(h){
+			if(h != 0 ){
+				this.crawler_grab.x = h > 0 ? 1 : -1;
+				this.crawler_grab.y = 0;
+				this.crawler_attached = true;
+				this.crawler_falling = false;
+			}
+		});
+		
+		this.on("collideVertical", function(v){
+			if(v != 0) {
+				this.crawler_grab.x = 0;
+				this.crawler_grab.y = v > 0 ? 1 : -1;
+				this.crawler_attached = true;
+				this.crawler_falling = false;
+			}
+		});
+	},
+	'update' : function(){
+		if( this.crawler_falling) {
+			game.t_move(this, 0, this.delta * UNITS_PER_METER);
+		} else {
+			this.crawler_attached = false;
+			game.t_move(this, this.crawler_grab.x, this.crawler_grab.y);
+			
+			if( !this.crawler_attached ){
+				//Look for blocks fall onto
+				let objs = game.overlaps(this.bounds());
+				for(let i =0; i < objs.length; i++) if ( objs[i].hasModule(mod_block) ){
+					this.trigger("collideBlock", objs[i], this.crawler_grab.x, this.crawler_grab.y);
+				}
+			}
+			
+			if( this.crawler_attached ){
+				this.crawler_grabfailcount = 0;
+				let perp = new Point(this.crawler_grab.y, -this.crawler_grab.x);
+				let force = perp.scale( this.delta * UNITS_PER_METER * this.crawler_speed).scale(this.forward());
+				
+				let rot = -(force.toAngle() * Math.rad2deg) + (this.flip?180:0);
+				this.crawler_rotation = Math.slerp( this.crawler_rotation, rot, this.delta * this.crawler_rotationSpeed);
+				
+				game.t_move(this, force.x, force.y);
+				
+				
+				//Look for blocks to collide into
+				let objs = game.overlaps(this.bounds());
+				for(let i =0; i < objs.length; i++) if ( objs[i].hasModule(mod_block) ){
+					/*
+					if(force.x != 0){
+						this.trigger("collideHorizontal", force.x);
+					} else {
+						this.trigger("collideVertical", force.y);
+					}*/
+					this.trigger("collideBlock", objs[i], force.x, force.y);
+				}
+				
+			} else {
+				if( this.flip ){
+					this.crawler_grab = new Point(this.crawler_grab.y, -this.crawler_grab.x);
+				} else {
+					this.crawler_grab = new Point(-this.crawler_grab.y, this.crawler_grab.x);
+				}
+				
+				this.crawler_grabfailcount++;
+				
+				if(this.crawler_grabfailcount > 4){
+					this.crawler_grabfailcount = 0;
+					this.crawler_falling = true;
+				}
+			}
+		}
+	}
 }
 
 var mod_block = {
@@ -270,7 +370,10 @@ var mod_block = {
 		});
 		
 		this.on("collideObject", function(obj){
-			if(this.blockCollide && this.width > 0 && this.height > 0){
+			
+			if(obj._ignoreBlocksTimer > 0){
+				return;
+			} else if(this.blockCollide && this.width > 0 && this.height > 0){
 				if( this.blockCollideCriteria(obj) ) {
 					var e = this.corners();
 					var d = this.corners(this.blockPrevious);
@@ -446,6 +549,7 @@ var mod_combat = {
 		this.criticalChance = 0.0;
 		this.hurtByDamageTriggers = true;
 		this.moneyDrop = Spawn.money(3,0);
+		this.xpDrop = 5;
 		
 		this.damage = 10;
 		this.damageFire = 0;
@@ -454,6 +558,7 @@ var mod_combat = {
 		this.damageLight = 0;
 		this.damageFixed = 0;
 		this.damageMultiplier = 1.0;
+		this.damageContact = 0.5;
 		
 		this.defencePhysical = 0;
 		this.defenceFire = 0;
@@ -469,15 +574,17 @@ var mod_combat = {
 		this.invincible_time = 0.0;
 		this.stun = 0;
 		this.stun_time = Game.DELTASECOND;
+		this.combat_isalive = true;
 		this.combat_stuncount = 0;
 		this.combat_knockback = new Point();
 		this.combat_knockback_speed = 8.0;
 		this.combat_knockback_friction = 0.125;
 		this.combat_player_combo_lock = true;
+		this.combat_burstondeath = true;
 		
 		this.death_time = 0;
 		this._death_confirmed = false;
-		this._death_clock = new Timer(Number.MAX_VALUE, Game.DELTASECOND * 0.25);
+		this._death_clock = 0.0;
 				
 		this.combat_shootable = true;
 		this.showDamage = true;
@@ -504,6 +611,19 @@ var mod_combat = {
 		this.strike = Combat.strike;
 		this.combat_shieldArea = Combat.shieldArea;
 		this.combat_getHitAreas = Combat.getHitAreas;
+		
+		this.on("collideObject", function(obj){
+			this.trigger("collideDamage", obj);
+		});
+		
+		this.on("collideDamage", function(obj){
+			if( this.damageContact > 0.0 && this.life > 0 ){
+				if( obj.hasModule(mod_combat) && obj.team != this.team ) {
+					obj.hurt( this, this.getDamage(this.damageContact) );
+					obj.combat_knockback = obj.position.subtract(this.position).normalize(5);
+				}
+			}
+		});
 		
 		this.checkAttackArea = function(ops){
 			if(this.swrap instanceof SpriteWrapper){
@@ -539,18 +659,26 @@ var mod_combat = {
 				//Trigger death
 				if( this.death_time > 0 ) {
 					//Stand in place and explode
-					this.trigger("pre_death");
-					this._death_clock.set(this.death_time);
-					this.interactive = false;
+					if( this._death_clock <= 0 ){
+						//Only set if clock is zero
+						this.trigger("pre_death");
+						this._death_clock = this.death_time;
+						this.interactive = false;
+					}
 				} else if( this.hasModule(mod_rigidbody)){
 					if( !this.ragdoll ){
 						//Rag doll and explode
 						this.trigger("pre_death");
-						game.addObject(new EffectExplosion(this.position.x,this.position.y));
+						
+						if(this.combat_burstondeath){
+							//
+						}
+						
 						this.physicsLayer = physicsLayer.particles;
 						this.ragdoll = true;
 					}
-				} else {
+				} else if( this.combat_isalive ){
+					this.combat_isalive = false;
 					this.trigger("death");
 					
 				}
@@ -619,12 +747,17 @@ var mod_combat = {
 					
 					damage = obj.useBuff("prehurt_other",damage,this);
 					damage = this.useBuff("hurt",damage,obj);
+					let preLife = this.life;
 					
 					this.displayDamage(damage);
 					
 					this.combatFinalDamage(damage);
 					
 					this.isDead();
+					
+					if(this.life <= 0 && preLife > 0){
+						obj.trigger("kill", this);
+					}
 					
 					this.invincible = this.invincible_time;
 					//this.stun = this.stun_time;
@@ -652,14 +785,45 @@ var mod_combat = {
 	},
 	"update" : function(){
 		if( this.stun > 0 ) {
-			let flash = (game.time % 0.125) > 0.0625;
-			this.tint = flash ? COLOR_HURT : COLOR_WHITE;
-		} else {
-			this.tint = COLOR_WHITE;
+			//let flash = (game.time % 0.125) > 0.0625;
+			
+			let _stunp = this.stun / this.stun_time;
+			
+			this.tint = [
+				Math.lerp(1.0, COLOR_HURT[0], _stunp),
+				Math.lerp(1.0, COLOR_HURT[1], _stunp),
+				Math.lerp(1.0, COLOR_HURT[2], _stunp),
+				1.0
+			];
+			
+			this.stun -= this.delta;
+			
+			if(this.stun <= 0){
+				this.combat_stuncount = 0;
+				this.tint = COLOR_WHITE;
+			}
 		}
-		if(this.stun <= 0){
-			this.combat_stuncount = 0;
+		
+		/*
+		if( this.swrap instanceof SpriteWrapper && this.damageContact > 0){
+			let objs = game.overlaps(new Line(
+				this.position.x - this.width * 2, 
+				this.position.y - this.height * 2,
+				this.position.x + this.height * 2,
+				this.position.y + this.height * 2,
+			));
+			let areas = this.combat_getHitAreas();
+			for(let i=0; i < objs.length; i++){
+				let b = objs[i].bounds();
+				for(let j=0; j < areas.length; j++){
+					if(areas[j].overlaps(b)){
+						this.trigger("collideDamage", objs[i]);
+						break;
+					}
+				}
+			}
 		}
+		*/
 		
 		let ops = {"multiplier" : this.damageMultiplier};
 		
@@ -678,18 +842,23 @@ var mod_combat = {
 		if(this.life <= 0 ){
 			
 			if(this.ragdoll){
-				if(this.grounded){
+				if(this.grounded && this.combat_isalive){
+					this.combat_isalive = false;
 					this.trigger("death");
 				}
 			} else {
 				if(this.death_time > 0) {
-					if( this._death_clock.status(game.deltaUnscaled) ) {
+					this._death_clock -= game.deltaUnscaled;
+					if( (this._death_clock % 0.25) + game.deltaUnscaled >= 0.25 ) {
 						game.addObject(new EffectExplosion(
 							this.position.x + this.width*(Math.random()-.5), 
 							this.position.y + this.height*(Math.random()-.5)
 						));
 					}
-					if( this._death_clock.time <= 0 ) this.trigger("death");
+					if( this._death_clock <= 0 && this.combat_isalive ) {
+						this.combat_isalive = false;
+						this.trigger("death");
+					}
 				}
 			}
 		}
@@ -697,7 +866,6 @@ var mod_combat = {
 		
 		this.invincible -= this.deltaUnscaled;
 		this.guard.invincible -= this.deltaUnscaled;
-		this.stun -= this.delta;
 	},
 	"postrender" : function(g,c){
 		if(self.debug){
@@ -710,13 +878,13 @@ var mod_combat = {
 			if(!this.interactive) { g.color = [0.0,0.0,0.0,1.0]; }
 			for(let i=0; i < boxes1.length; i++){
 				let box = boxes1[i].transpose(nCam);
-				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+				g.drawRect(box.start.x, box.start.y, box.width(), box.height(), 1);
 			}
 			
 			if(this._combat_attackarea instanceof Line){
 				g.color = [0.8,0.0,0.0,1.0];
 				let box = this._combat_attackarea.transpose(nCam);
-				g.scaleFillRect(box.start.x, box.start.y, box.width(), box.height());
+				g.drawRect(box.start.x, box.start.y, box.width(), box.height(), 2);
 			}
 			
 			//let boxes2 = this.swrap.getAttackBoxes(this.frame, this);
@@ -774,7 +942,7 @@ var Combat = {
 					for(let j=0; j < enemAreas.length; j++){
 						if(enemAreas[j].overlaps(rect)){
 							//Triggers overlap, cause hit
-							hit.trigger("struck",this);
+							hit.trigger("struck",this, rect);
 							Combat.hit.apply(this, [hit, ops, rect]);
 							break;
 						} 
@@ -783,7 +951,7 @@ var Combat = {
 				} else {
 					//Non combatant 
 					if( hit.bounds().overlaps(rect) ){
-						hit.trigger("struck",this);
+						hit.trigger("struck",this, rect);
 						Combat.hit.apply(this, [hit, ops, rect]);
 					}
 					
@@ -817,7 +985,7 @@ var Combat = {
 		var hits = game.overlaps(offset);
 		for(var i=0; i < hits.length; i++){
 			if(hits[i].interactive){
-				hits[i].trigger("struck",this);
+				hits[i].trigger("struck",this, rect);
 				Combat.hit.apply(this, [hits[i], ops, offset]);
 			}
 		}
@@ -945,7 +1113,8 @@ var mod_boss = {
 		this.boss_shutdoors = true;
 		this.boss_showintro = true;
 		this.bossdeatheffect = false;
-		this.boss_id = "boss_"+game.newmapName+"_"+Math.floor(x)+"_"+Math.floor(y);
+		//this.boss_id = "boss_"+game.newmapName+"_"+Math.floor(x)+"_"+Math.floor(y);
+		this.boss_id = "boss_" + this.constructor.name;
 		
 		var corner = new Point(256*Math.floor((x-16)/256), 240*Math.floor(y/240));
 		this.boss_lock = new Line(
@@ -994,9 +1163,6 @@ var mod_boss = {
 			if(this.boss_shutdoors){
 				Trigger.activate("boss_door");
 			}
-			if(this.boss_showintro){
-				game.slow(0.1, Game.DELTASECOND * 3);
-			}
 			
 			//for(var i=0; i < this.boss_doors.length; i++ ) 
 			//	game.setTile(this.boss_doors[i].x, this.boss_doors[i].y, game.tileCollideLayer, window.BLANK_TILE);
@@ -1027,7 +1193,8 @@ var mod_boss = {
 	},
 	"update" : function(){
 		this._boss_is_active();
-		if( this._death_clock.at(Game.DELTASECOND*0.7) ){
+		if( this.life <= 0 && this._death_clock < 0.7 && !this.bossdeatheffect ){
+			//Create boss death effect
 			game.addObject(new EffectItemPickup(this.position.x, this.position.y));
 			this.bossdeatheffect = true;
 		}
@@ -1040,29 +1207,12 @@ var mod_boss = {
 			var lifePercent = this.life / this.lifeMax;
 			
 			g.color = [1.0,1.0,1.0,1.0];
-			g.scaleFillRect(start-1, game.resolution.y-25, width+2, height+2);
+			g.drawRect(start-1, game.resolution.y-25, width+2, height+2, 1);
 			g.color = [0.0,0.0,0.0,1.0];
-			g.scaleFillRect(start, game.resolution.y-24, width, height);
+			g.drawRect(start, game.resolution.y-24, width, height, 2);
 			g.color = [1.0,0.0,0.0,1.0];
-			g.scaleFillRect(start, game.resolution.y-24, width*lifePercent, height);
+			g.drawRect(start, game.resolution.y-24, width*lifePercent, height, 3);
 			
-		}
-		if(this.boss_showintro){
-			if( this.active && this.boss_intro < 1.0){
-				this.boss_intro += game.deltaUnscaled / (Game.DELTASECOND * 3);
-				g.color = [0.0,0.0,0.0,0.3];
-				
-				var slide = Math.min(Math.sin(Math.PI*this.boss_intro)*4, 1);
-				var border = Math.min(Math.sin(Math.PI*this.boss_intro)*3, 1) * 64;
-				g.scaleFillRect(0, 0, game.resolution.x, border);
-				g.scaleFillRect(0, game.resolution.y-border, game.resolution.x, border);
-				
-				var porta = Point.lerp(new Point(-90,60), new Point(40,60), slide);
-				var portb = Point.lerp(new Point(game.resolution.x+90,60), new Point(game.resolution.x-40,60), slide);
-				
-				g.renderSprite("bossface",porta,this.zIndex,new Point(1,0),false);
-				g.renderSprite("bossface",portb,this.zIndex,new Point(this.bossface_frame,this.bossface_frame_row),true);
-			}
 		}
 	}
 }
@@ -1075,24 +1225,23 @@ var mod_talk = {
 		
 		this.close = function(){
 			this.open = 0;
-			DialogManger.dialogOpen = false;
+			DialogManager.dialogOpen = false;
 			this.trigger("close");
 		}
 		
-		this.talkMovePlayer = function(distance){
+		this.talkMovePlayer = function(distance = 40, _x){
 			var speed = 3.0;
-			if(distance == undefined){
-				distance = 40;
-			}
 			
-			if(this.position.x > _player.position.x){
+			if(_x == undefined){ _x = this.position.x; }
+			
+			if(_x > _player.position.x){
 				this.flip = true;
 				_player.flip = false;
-				_player.position.x = Math.lerp(_player.position.x, this.position.x - distance, game.deltaUnscaled * speed);
+				_player.position.x = Math.lerp(_player.position.x, _x - distance, game.deltaUnscaled * speed);
 			} else {
 				this.flip = false;
 				_player.flip = true;
-				_player.position.x = Math.lerp(_player.position.x, this.position.x + distance, game.deltaUnscaled * speed);
+				_player.position.x = Math.lerp(_player.position.x, _x + distance, game.deltaUnscaled * speed);
 			}
 		}
 		
@@ -1103,9 +1252,9 @@ var mod_talk = {
 		});
 	},
 	"update" : function(){
-		if( !DialogManger.dialogOpen && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
+		if( !DialogManager.dialogOpen && this.canOpen && this.delta > 0 && this._talk_is_over > 0 && input.state("up") == 1 ){
 			this.open = 1;
-			DialogManger.dialogOpen = true;
+			DialogManager.dialogOpen = true;
 			this.trigger("open");
 		}
 		this._talk_is_over--;

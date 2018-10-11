@@ -8,6 +8,7 @@ function Bullet(x,y,d){
 	this.width = 10;
 	this.height = 6;
 	this.blockable = true;
+	this.strikable = true;
 	this.ignoreInvincibility = false;
 	this.explode = false;
 	this.range = 512;
@@ -41,8 +42,9 @@ function Bullet(x,y,d){
 	this.on("sleep", function(){ this.trigger("death"); });
 	this.on("death", function(){ this.destroy(); });
 	this.on("hurt_other", function(obj, damage){});
+	this.on("kill", function(obj){ if(this.owner) { this.owner.trigger("kill", obj); } } );
 	this.on("struck", function(obj){ 
-		if(this.blockable && obj.team!=this.team) {
+		if(this.strikable && obj.team!=this.team) {
 			this.trigger("deflect");
 			this.trigger("death");
 			audio.play("block");
@@ -313,6 +315,9 @@ function Fire(x,y){
 	this.friction = 1.0;
 	this.physicsLayer = physicsLayer.particles;
 	
+	this.smokeFrequency = 0.2 + Math.random() * 0.05;
+	this._smokeTimer = Math.random() * this.smokeFrequency;
+	
 	this.on("sleep", function(){
 		this.destroy();
 	});
@@ -330,7 +335,6 @@ function Fire(x,y){
 		}
 	});
 	this.on("death", function(){
-		game.addObject(new EffectSmoke(this.position.x, this.position.y));
 		this.destroy();
 	});
 }
@@ -339,47 +343,69 @@ Fire.prototype.update = function(){
 	
 	this.frame.x = (this.frame.x + (this.delta * 15.0)) % 3;
 	this.life -= this.delta;
+	
 	if( this.life <= 0 ){
 		this.trigger("death");
 	}
+	
+	this._smokeTimer += this.delta;
+	if(this._smokeTimer >= this.smokeFrequency) {
+		//Produce smoke
+		Background.pushSmoke( this.position, 16, new Point(Math.random()-0.5, -5) );
+		this._smokeTimer -= this.smokeFrequency;
+	}
 }
 
-FallingRock.prototype = new GameObject();
-FallingRock.prototype.constructor = GameObject;
-function FallingRock(x,y){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 24;
-	this.height = 24;
-	this.team = 0;
-	this.damage = 10;
-	
-	this.addModule( mod_rigidbody );
-	
-	this.sprite = "bullets";
-	this.gravity = 0.333;
-	this.pushable = false;
-	this.frame.x = 3;
-	this.frame.y = 0;
-	
-	this.on("struck", function(obj, pos, damage){
-		if( damage > 0 ) this.trigger("death");
-	});
-	this.on("collideObject", function(obj){
-		if( this.team != obj.team && obj.hurt instanceof Function ){
-			obj.hurt( this, this.damage );
+class FallingSpike extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = game.map.tileset;
+		this.origin = new Point();
+		this.team = 0;
+		
+		this.damageFixed = 12;
+		
+		this.frame = new Point(14,8);
+		
+		
+		
+		this.on("collideVertical", function(v){
+			if( v > 0 ){
+				this.destroy();
+			}
+		});
+		this.on("sleep", function(){
+			this.destroy();
+		});
+		this.on("collideObject", function(obj){
+			if( obj.hasModule(mod_combat) && obj.team != this.team ){
+				obj.hurt( this, Combat.getDamage.apply(this) );
+			}
+		});
+		
+		this.addModule( mod_rigidbody );
+		
+		this.pushable = false;
+		this.force = new Point();
+		this.gravity = 0.0;
+		this._time = 1.0;
+	}
+	update(){
+		if(this._time <= 0 ){
+			this.gravity = 0.5;
+		} else {
+			this._time -= this.delta;
 		}
-	});
-	this.on("collideVertical", function(obj){ this.trigger("death");});
-	this.on("collideHorizontal", function(obj){ this.trigger("death");});
-	this.on("death", function(){
-		audio.play("explode2");
-		game.addObject(new EffectSmoke(this.position.x, this.position.y));
-		this.destroy();
-	});
+	}
+	render(g,c){
+		if( this._time > 0){
+			c = c.add( new Point(Math.randomRange(-1,1),0).round() );
+		}
+		super.render(g,c);
+	}
 }
-FallingRock.prototype.idle = function(){}
 
 ExplodingEnemy.prototype = new GameObject();
 ExplodingEnemy.prototype.constructor = GameObject;
@@ -394,6 +420,7 @@ function ExplodingEnemy(x,y, d, ops){
 	this.height = 24;
 	this.team = 1;
 	
+	this.owner = ops.owner || null;
 	this.damage = ops.damage || 0;
 	this.speed = ops.speed || 20;
 	this.sprite = ops.sprite || "bullets";
@@ -409,24 +436,38 @@ function ExplodingEnemy(x,y, d, ops){
 	this.pushable = false;
 	this.launch = false;
 	this.force = this.direction.normalize(this.speed);
+	this.ignoreList = new Array();
 	
 	this.life = Game.DELTASECOND * 0.5;
 
 	this.on("collideVertical", function(obj){ this.life = 0; });
 	this.on("collideHorizontal", function(obj){ this.life = 0; });
+	this.on("kill", function(obj){ if(this.owner) { this.owner.trigger("kill", obj); } } );
 		
 	this.on("collideObject", function(obj){
+		if( this.ignoreList.indexOf(obj) >= 0){
+			return;
+		}
+		
 		if( this.launch && obj.hurt instanceof Function && this.team != obj.team ) {
+			this.ignoreList.push( obj );
+			
 			obj.hurt( this, this.damage );
+			
+			createExplosion(this.position, 32 );
+			game.slow(0, 0.25);
 		}
 	});
 	this.on("death", function(){
+		/*
 		game.addObject(new Explosion(
 			this.position.x, 
 			this.position.y,
 			null,
 			{"damage" : Math.floor( this.damage * 0.6666 ) }
 		));
+		*/
+		createExplosion(this.position, 64 );
 		this.destroy();
 	});
 }

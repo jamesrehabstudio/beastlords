@@ -27,6 +27,7 @@ function ManOnFire(x, y, d, o){
 	}
 	
 	this.lifeMax = this.life = Spawn.life(3,this.difficulty);
+	this.xpDrop = Spawn.xp(6,this.difficulty);
 	this.moneyDrop = Spawn.money(5,this.difficulty);
 	this.damage = 0;
 	this.damageFire = Spawn.damage(3,this.difficulty);
@@ -55,7 +56,8 @@ function ManOnFire(x, y, d, o){
 		this.frame.y = 2;
 	});
 	this.on("death", function(){
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

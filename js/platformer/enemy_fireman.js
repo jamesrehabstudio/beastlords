@@ -23,7 +23,8 @@ function Fireman(x,y,d,o){
 	this.on("death", function(obj,pos,damage){
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	
@@ -40,6 +41,7 @@ function Fireman(x,y,d,o){
 	this.damage = 0;
 	this.damageFire = Spawn.damage(5,this.difficulty);
 	this.defenceFire = Spawn.defence(4, this.difficulty);;
+	this.xpDrop = Spawn.xp(7,this.difficulty);
 	this.death_time = Game.DELTASECOND * 1;
 	
 	//SpecialEnemy(this);

@@ -22,6 +22,7 @@ class Samrat extends GameObject {
 		this.alwayAlert = ops.getBool("alert", false);
 		
 		this.life = this.lifeMax = Spawn.life(2,this.difficulty);
+		this.xpDrop = Spawn.xp(7,this.difficulty);
 		this.damage = Spawn.damage(3,this.difficulty);
 		
 		this.states = {
@@ -50,7 +51,8 @@ class Samrat extends GameObject {
 		});
 		this.on("death", function(obj,pos,damage){
 			Item.drop(this);
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			this.destroy();
 		});
 		

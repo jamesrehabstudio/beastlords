@@ -54,7 +54,8 @@ function Ratgut(x,y,d,o){
 	this.on("death", function(){
 		
 		Item.drop(this);
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	

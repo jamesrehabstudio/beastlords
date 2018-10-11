@@ -36,6 +36,7 @@ function HammerMan(x, y, d, o){
 	this.lifeMax = Spawn.life(2,this.difficulty);
 	this.splashDamage = Spawn.damage(2,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
+	this.xpDrop = Spawn.xp(5,this.difficulty);
 	this.mass = 1.2;
 	
 	this.on("struck", EnemyStruck);
@@ -50,7 +51,8 @@ function HammerMan(x, y, d, o){
 	});
 	this.on("death", function(){
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		Item.drop(this);
 		this.destroy();
 	});

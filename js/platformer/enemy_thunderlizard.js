@@ -31,6 +31,7 @@ class ThunderLizard extends GameObject {
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		
 		this.lifeMax = this.life = Spawn.life(8,this.difficulty);
+		this.xpDrop = Spawn.xp(7,this.difficulty);
 		this.damage = Spawn.damage(3,this.difficulty);
 		this.moneyDrop = Spawn.money(4,this.difficulty);
 		this.mass = 5.0;
@@ -56,6 +57,7 @@ class ThunderLizard extends GameObject {
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position);
+			createExplosion(this.position, 40 );
 			Item.drop(this);
 			this.destroy();
 		});

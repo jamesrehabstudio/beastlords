@@ -43,6 +43,7 @@ function Knight(x,y,d,o){
 	this.life = Spawn.life(12,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(15,this.difficulty);
+	this.xpDrop = Spawn.xp(10,this.difficulty);
 	this.mass = 3.0;
 	this.friction = 0.4;
 	this.death_time = Game.DELTASECOND * 1;
@@ -70,7 +71,8 @@ function Knight(x,y,d,o){
 	this.on("death", function(){
 		Item.drop(this,this.money_award);
 		
-		audio.play("kill",this.position);
+		audio.play("kill",this.position); 
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 	

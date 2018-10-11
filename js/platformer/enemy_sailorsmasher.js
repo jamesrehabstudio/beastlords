@@ -38,7 +38,8 @@ class SailorSmasher extends GameObject {
 			this.timer = Math.max(this.timer, SailorSmasher.phase_idle);
 		});
 		this.on("death", function(){
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 			Item.drop(this);
 			this.destroy();
 		});

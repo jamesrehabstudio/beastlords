@@ -4,7 +4,7 @@ var PlayerAttackList = [
 		"warm" : Game.DELTASECOND,
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait" : Game.DELTASECOND,
+		"wait" : Game.DELTASECOND * 0.3,
 		"animation" : "attack0",
 		"prepause" : 0.0,
 		"pause" : 0.125 * Game.DELTASECOND,
@@ -19,7 +19,7 @@ var PlayerAttackList = [
 		"warm" : Game.DELTASECOND,
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait" : Game.DELTASECOND,
+		"wait" : Game.DELTASECOND * 0.3,
 		"animation" : "attack1",
 		"prepause" : 0.0,
 		"pause" : 0.125 * Game.DELTASECOND,
@@ -68,7 +68,7 @@ var PlayerAttackList = [
 		"warm" : Game.DELTASECOND,
 		"cool" : Game.DELTASECOND,
 		"time" : 1.5*Game.DELTASECOND,
-		"wait" : Game.DELTASECOND,
+		"wait" : 0.0,
 		"animation" : "attack4",
 		"prepause" : 0.0,
 		"pause" : Game.DELTASECOND * 0.3,
@@ -85,7 +85,7 @@ var PlayerAttackList = [
 		"warm" : Game.DELTASECOND,
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
-		"wait" : Game.DELTASECOND,
+		"wait" : Game.DELTASECOND * 0.3,
 		"animation" : "attack5",
 		"prepause" : 0.0,
 		"force" : new Point(0.0, 0.0),
@@ -93,6 +93,7 @@ var PlayerAttackList = [
 		"movement" : 0.0,
 		"audio" : "swing",
 		"mesh" : "slash3",
+		"duck" : true,
 		"path" : [new Point(0,6), new Point(1.2,6), new Point(0.5,6)]
 	},
 	{	//Down stab
@@ -204,8 +205,9 @@ class PlayerWeapon {
 			"jumping" : 0,
 		};
 		this.combos = {
-			0 : {"standing" : 1, "jumping":1},
-			1 : {"standing" : 2},
+			0 : {"standing" : 1, "jumping":1, "ducking" : 5},
+			1 : {"standing" : 2, "ducking" : 5},
+			2 : {"ducking" : 5},
 			5 : {"ducking" : 5}
 		};
 	}

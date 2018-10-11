@@ -19,6 +19,7 @@ class CryptKeeper extends GameObject {
 		this.lifeMax = this.life;
 		this.damage = Spawn.damage(3,this.difficulty);
 		this.moneyDrop = Spawn.money(40,this.difficulty);
+		this.damageContact = 0.0;
 		this.mass = 1.8;
 		this.pushable = false;
 		

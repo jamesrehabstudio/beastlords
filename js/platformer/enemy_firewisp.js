@@ -18,12 +18,15 @@ class FireWisp extends GameObject{
 		
 		this.initPos = this.position.scale(1);
 		this.lifeMax = this.life = Spawn.life(0,this.difficulty);
+		this.xpDrop = Spawn.xp(4,this.difficulty);
 		this.damage = Spawn.damage(3,this.difficulty);
+		this.defenceFire = 99;
+		this.damageContact = 0.0;
 		
 		this.on("death", function(){
 			this.hide();
-			audio.play("hurt",this.position);
-			audio.play("kill",this.position);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
 		});
 		this.on("collideObject", function(obj){
 			if(this.visible && obj.hasModule(mod_combat) && obj.team != this.team){

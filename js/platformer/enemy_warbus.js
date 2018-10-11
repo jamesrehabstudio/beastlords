@@ -31,6 +31,7 @@ function Warbus(x,y,d,o){
 	}
 	
 	this.life = Spawn.life(8,this.difficulty);
+	this.xpDrop = Spawn.xp(5,this.difficulty);
 	this.damage = Spawn.damage(3,this.difficulty);
 	this.moneyDrop = Spawn.money(8,this.difficulty);
 	this.mass = 1.4;
@@ -57,6 +58,7 @@ function Warbus(x,y,d,o){
 		Item.drop(this,30);
 		
 		audio.play("kill",this.position);
+		createExplosion(this.position, 40 );
 		this.destroy();
 	});
 }
