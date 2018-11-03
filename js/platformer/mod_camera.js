@@ -43,6 +43,7 @@ var mod_camera = {
 				let my = Math.floor(mtile % 16);
 				
 				var output = {
+					"tile" : mtile,
 					"position" : pos.scale(1),
 					
 					"bot" : Math.floor(my / 8) % 2 == 0,
@@ -84,6 +85,8 @@ var mod_camera = {
 				//If the camera was never in bounds. Stop everything
 				return;
 			}
+		} else {
+			WorldMap.revealTile(lookat, trule.tile);
 		}
 		
 		let _t = lookat.scale(1/256,1/240).floor();

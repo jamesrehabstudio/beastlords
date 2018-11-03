@@ -436,6 +436,11 @@ class Sprite extends Material {
 		if("custom_offset" in options){
 			this.custom_offset = options["custom_offset"];
 		}
+		if("force_load" in options){
+			this.img.width = this.frame_width;
+			this.img.height = this.frame_height;
+			this.img.onload();
+		}
 		
 		var offset = options['offset'] || new Point();
 		this.setOffset(offset);
@@ -578,8 +583,8 @@ class Sprite extends Material {
 		
 		this.set("u_image",this.gl_tex);
 		
-		if(this.use_screen_object){
-			this.set("u_screen_object", game.objectBuffer.texture);
+		if(this.properties.u_screen_object){
+			this.set("u_screen_object", game.objectBuffer.gl_tex);
 		}
 		
 		Material.currentTexture = this.gl_tex;
@@ -982,7 +987,7 @@ Sprite.prototype.getTileUVMap = function(tileData, uvVerts){
 
 */
 class BackBuffer extends Material{
-	constructor(size, options){
+	constructor(size=512, options){
 		options = options || {};
 		if( !("fs" in options ) ){	
 			options["fs"] = "2d-fragment-shader";
@@ -995,28 +1000,39 @@ class BackBuffer extends Material{
 		
 		let gl = this.gl;
 		
-		//Create a Frame Buffer
-		this.buffer = gl.createFramebuffer();
-		gl.bindFramebuffer( gl.FRAMEBUFFER, this.buffer );
-		this.buffer.width = size || 512;
-		this.buffer.height = size || 512;
+		this.width = this.height = size;
 		this.ready = false;
 		
-		this.texture = gl.createTexture();
-		gl.bindTexture(gl.TEXTURE_2D, this.texture);
+		//texture
+		this.gl_tex = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.buffer.width, this.buffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		
+		this.createFrameBuffer();
+	}
+	createFrameBuffer(){
+		let gl = this.gl;
+		
+		//Create a Frame Buffer
+		this.buffer = gl.createFramebuffer();
+		gl.bindFramebuffer( gl.FRAMEBUFFER, this.buffer );
+		this.buffer.width = this.width;
+		this.buffer.height = this.height;
 		
 		var rb = gl.createRenderbuffer();
 		gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
-		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.buffer.width, this.buffer.height);
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
 		
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture, 0);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.gl_tex, 0);
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+		
+		gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 		
 		//Reset
 		gl.bindTexture(gl.TEXTURE_2D, null);
@@ -1054,7 +1070,7 @@ class BackBuffer extends Material{
 				}
 			}
 			
-			this.set("u_image", this.texture);
+			this.set("u_image", this.gl_tex);
 			
 			if(tint == undefined){
 				tint = [1.0,1.0,1.0,1.0];

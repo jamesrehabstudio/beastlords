@@ -148,10 +148,14 @@ PauseMenu.prototype.update = function(){
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
 			this.page = 1;
-			this.questlist = Quests.list();
+			//this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
 			audio.play("pause");
 			AttributeMenu.close();
+			
+			Renderer.setRenderTarget("rt_worldmap", 512, 512);
+			WorldMap.render(Renderer, new Point(32,64) );
+			Renderer.resetRenderTarget();
 		}
 	}
 
@@ -278,7 +282,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			
 			if(this.mapflip){
 				boxArea(g,leftx,8,224,224);
-
+				
 				if(name in player_map_position){
 					var map_position = player_map_position[name];				
 					let bounce = Math.sin(game.time * 0.1) * 2;
@@ -288,11 +292,18 @@ PauseMenu.prototype.hudrender = function(g,c){
 				g.renderSprite("worldmap", new Point(leftx+8,16),1,new Point(), false);
 				textArea(g,"Minimap (JUMP)",leftx+100,212);
 			} else {
-				boxArea(g,leftx,8,224,224);
+				//boxArea(g,leftx,8,224,224);
+				boxArea(g,20,8,387,224);
 				textArea(g,"Map",leftx+102,20);
 				textArea(g,"Map",leftx+102,20);
-				this.renderMap(g,this.mapCursor,new Point(leftx+16,24), new Line(0,0,24*8,24*8) );
-				textArea(g,"Worldmap (JUMP)",leftx+96,212);
+				
+				//let mpos = WorldMap.pos2mapPos(_player.position);
+				//let off = new Point(game.resolution.x - 32,16).subtract(mpos.scale(8));
+			
+				g.renderSprite("rt_worldmap", new Point(0,256), 99, new Point(), false, {scaley:-1});
+				
+				//this.renderMap(g,this.mapCursor,new Point(leftx+16,24), new Line(0,0,24*8,24*8) );
+				//textArea(g,"Worldmap (JUMP)",leftx+96,212);
 			}
 			
 		} else if ( this.page == 2 ) {
@@ -336,15 +347,32 @@ PauseMenu.prototype.hudrender = function(g,c){
 	} else {
 		if( _player instanceof Player ) {
 			//Minimap
-			g.color = [1.0,1.0,1.0,1.0];
-			g.drawRect(game.resolution.x-49,7,42,26,1);
 			g.color = [0.0,0.0,0.0,1.0];
-			g.drawRect(game.resolution.x-48,8,40,24,2);
+			g.drawRect(game.resolution.x-48,8,40,24,-1);
+			
+			let trackPos = _player.position.subtract(new Point(128,120));
+			let ppos = new Point((trackPos.x * 1/256) % 1 ,(trackPos.y * 1/240) % 1).scale(8);
+			let mpos = WorldMap.pos2mapPos(trackPos);
+			let off = new Point(game.resolution.x - 32,16).subtract(ppos).subtract(mpos.scale(8));
+			
+			
+			WorldMap.render(g, off, new Line(mpos.x-2, mpos.y-1, mpos.x+4, mpos.y+3), true );
+			
+			//Render border
+			g.color = [0.2,0.2,0.2,1.0];
+			g.drawRect(game.resolution.x-48,0,48,8,5); // top
+			g.drawRect(game.resolution.x-56,0,8,40,5); //left
+			g.drawRect(game.resolution.x-48,32,48,8,5); // bottom
+			g.drawRect(game.resolution.x-8,0,8,40,5); //right
+			
+			
+			/*
 			this.renderMap(g,
 				new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
 				new Point(game.resolution.x-24,24), 
 				new Line(-24,-16,16,8)
 			);
+			*/
 		}
 	}
 }

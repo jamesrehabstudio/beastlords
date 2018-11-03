@@ -62,6 +62,13 @@ var mod_rigidbody = {
 			return game.getTileRule(p) == tilerules.ignore && game.getTileRule(q) == tilerules.ignore;
 			
 		}
+		this.blockDropOff = function(){
+			if(this.currentlyStandingBlock){
+				this.currentlyStandingBlock.trigger("block_object_dropoff", this);
+				this.trigger("block_dropoff", this.currentlyStandingBlock);
+				this.currentlyStandingBlock = false;
+			}
+		}
 		this.addHorizontalForce = function(speed, acceleration=1.0){
 			//Adds horizontal force while also limiting top speed
 			let absSpeed = Math.abs(speed);
@@ -158,9 +165,9 @@ var mod_rigidbody = {
 			if(this.currentlyStandingBlock){
 				this.position = this.position.add(this.currentlyStandingBlock.blockChange);
 				if(!this.currentlyStandingBlock.interactive){
-					this.currentlyStandingBlock = false;
+					this.blockDropOff();
 				} else if(this.isStuck){
-					this.currentlyStandingBlock = false;
+					this.blockDropOff();
 				} else if(this.grounded && this.currentlyStandingBlock.block_isWithinX(this)){
 					this.force.y = 0.0;
 					var c = this.currentlyStandingBlock.corners();
@@ -168,7 +175,7 @@ var mod_rigidbody = {
 					this.trigger("collideVertical", 1);
 					this.currentlyStandingBlock.trigger("ontop", this);
 				} else {
-					this.currentlyStandingBlock = false;
+					this.blockDropOff();
 				}
 			}
 			
@@ -292,7 +299,7 @@ var mod_block = {
 		this.block_isWithinX = function(obj){
 			c = obj.corners();
 			d = this.corners();
-			return c.right >= d.left && c.left <= d.right;
+			return c.right >= d.left-1 && c.left <= d.right+1;
 		}
 		this.block_isWithinY = function(obj){
 			c = obj.corners();
@@ -333,6 +340,7 @@ var mod_block = {
 				obj.position.y = (c.top - 0.1) - obj.height * obj.origin.y;
 				obj.trigger( "collideVertical", 1);
 				obj.trigger( "blockCollideVertical", 1, this);
+				this.trigger("blockOnTop", obj);
 			}
 			if(obj.gravity > 0){
 				this.trigger("blockLand",obj);
@@ -340,8 +348,10 @@ var mod_block = {
 					//obj.trigger("land");
 				}
 				//this.blockOnboard.push(obj);
-				obj.currentlyStandingBlock = this;
-				obj.preventPlatFormSnap = Game.DELTAFRAME30;
+				if(obj.bounce == 0){
+					obj.currentlyStandingBlock = this;
+					obj.preventPlatFormSnap = Game.DELTAFRAME30;
+				}
 			}
 		});
 		this.on("collideBottom", function(obj){
@@ -580,7 +590,7 @@ var mod_combat = {
 		this.combat_knockback_speed = 8.0;
 		this.combat_knockback_friction = 0.125;
 		this.combat_player_combo_lock = true;
-		this.combat_burstondeath = true;
+		this.combat_canbecomedeathbullet = true;
 		
 		this.death_time = 0;
 		this._death_confirmed = false;
@@ -670,12 +680,9 @@ var mod_combat = {
 						//Rag doll and explode
 						this.trigger("pre_death");
 						
-						if(this.combat_burstondeath){
-							//
-						}
-						
 						this.physicsLayer = physicsLayer.particles;
 						this.ragdoll = true;
+						
 					}
 				} else if( this.combat_isalive ){
 					this.combat_isalive = false;
@@ -717,69 +724,7 @@ var mod_combat = {
 		
 		this.calcDamage = Combat.calcDamage;
 		
-		this.hurt = function(obj, damage){
-			
-			if(damage == undefined){
-				//If no damage is supplied, get it
-				damage = Combat.getDamage.apply(obj);
-			}
-			
-			//Turns damage object into a flat damage number
-			damage = this.calcDamage(damage);
-			
-			
-			if( this.invincible <= 0 ) {
-				//Increment number of hits
-				this.combat_stuncount++;
-				this.trigger("stun", obj, damage, this.combat_stuncount);
-				
-				if( Math.random() < this.criticalChance && damage > 0) {
-					//Determine if its a critical shot
-					damage *= obj.criticalMultiplier || 2.0;
-					audio.play("critical",this.position);
-					game.slow(0.1, Game.DELTASECOND * 0.5 );
-					this.trigger("critical",obj,damage);
-					game.addObject(new EffectCritical(this.position.x, this.position.y));
-				}
-				
-				if(damage > 0){
-					//damage = Math.max( damage - Math.ceil( this.defencePhysical * damage ), 1 );
-					
-					damage = obj.useBuff("prehurt_other",damage,this);
-					damage = this.useBuff("hurt",damage,obj);
-					let preLife = this.life;
-					
-					this.displayDamage(damage);
-					
-					this.combatFinalDamage(damage);
-					
-					this.isDead();
-					
-					if(this.life <= 0 && preLife > 0){
-						obj.trigger("kill", this);
-					}
-					
-					this.invincible = this.invincible_time;
-					//this.stun = this.stun_time;
-					this.trigger("hurt",obj,damage);
-					obj.trigger("hurt_other",this,damage);
-					
-					this.useBuff("posthurt",damage,obj);
-					obj.useBuff("hurt_other",damage,this);
-					
-					
-					if(this.ragdoll && this.hasModule(mod_rigidbody)){
-						this.grounded = false;
-						this.gravity = 0.6;
-						this.criticalChance = 0;
-						this.force.y = -7;
-						this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
-					}
-				} else {
-					this.invincible = this.invincible_time;
-				}
-			}
-		}
+		this.hurt = Combat.hurt;
 		
 		this.calculateXP = function(){}
 	},
@@ -1023,6 +968,68 @@ var Combat = {
 			obj.hurt( this, damage );
 			
 			this.trigger("struckTarget", obj);
+		}
+	},
+	"hurt" : function(obj, damage){
+		if(damage == undefined){
+			//If no damage is supplied, get it
+			damage = Combat.getDamage.apply(obj);
+		}
+		
+		//Turns damage object into a flat damage number
+		damage = this.calcDamage(damage);
+		
+		
+		if( this.invincible <= 0 ) {
+			//Increment number of hits
+			this.combat_stuncount++;
+			this.trigger("stun", obj, damage, this.combat_stuncount);
+			
+			if( Math.random() < this.criticalChance && damage > 0) {
+				//Determine if its a critical shot
+				damage *= obj.criticalMultiplier || 2.0;
+				audio.play("critical",this.position);
+				game.slow(0.1, Game.DELTASECOND * 0.5 );
+				this.trigger("critical",obj,damage);
+				game.addObject(new EffectCritical(this.position.x, this.position.y));
+			}
+			
+			if(damage > 0){
+				//damage = Math.max( damage - Math.ceil( this.defencePhysical * damage ), 1 );
+				
+				damage = obj.useBuff("prehurt_other",damage,this);
+				damage = this.useBuff("hurt",damage,obj);
+				let preLife = this.life;
+				
+				this.displayDamage(damage);
+				
+				this.combatFinalDamage(damage);
+				
+				this.isDead();
+				
+				if(this.life <= 0 && preLife > 0){
+					obj.trigger("kill", this);
+				}
+				
+				this.invincible = this.invincible_time;
+				//this.stun = this.stun_time;
+				this.trigger("hurt",obj,damage);
+				obj.trigger("hurt_other",this,damage);
+				
+				this.useBuff("posthurt",damage,obj);
+				obj.useBuff("hurt_other",damage,this);
+				
+				
+				if(this.ragdoll && this.hasModule(mod_rigidbody)){
+					this.grounded = false;
+					this.gravity = 0.6;
+					this.criticalChance = 0;
+					this.force.y = -7;
+					this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
+				}
+			} else {
+				this.invincible = this.invincible_time;
+			}
 		}
 	},
 	"shieldArea" : function(){

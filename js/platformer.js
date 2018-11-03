@@ -875,6 +875,7 @@ function Block(x,y,d,ops){
 	
 	this.addModule(mod_block);
 	
+	this._tid = ops.getString("trigger", undefined);
 	this.blockTopOnly = ops.getBool("toponly", false);
 	let ereaseOriginTiles = ops.getBool("erasetiles", true);
 	
@@ -2846,6 +2847,7 @@ class Chort extends GameObject {
 		this.spinLife = Math.floor( this.lifeMax * 0.125 );
 		this.damage = Spawn.damage(5, this.difficulty);
 		this.combat_player_combo_lock = false;
+		this.combat_canbecomedeathbullet = false;
 		this.flip = true;
 		
 		this._state = 0;
@@ -3337,25 +3339,520 @@ self["FinalGuardian"] = FinalGuardian;
  /* platformer\boss_firekeeper.js*/ 
 
 class FireKeeper extends GameObject {
+	get activeBlockCount(){ let out=0; for(let i=0; i < this._blocks.length; i++) if(!this._blocks[i].dropped){ out++; }; return out; }
 	constructor(x,y,d,ops){
 		super(x,y,d,ops);
 		this.position.x = x;
 		this.position.y = y;
 		this.width = this.height = 64;
 		
-		this.addModule(mod_rigidbody);
+		//this.addModule(mod_rigidbody);
 		this.addModule(mod_combat);
 		this.addModule(mod_boss);
 		
-		this.life = this.lifeMax = 1;
-		this.deathTrigger = ops.getString("deathtrigger", "firekeeperdeath");
+		this._mapremoved = false;
+		this._lava = new Array();
+		this._blocks = new Array();
+		this._btoponly = new Array();
 		
+		this._blockRotation = 0.0;
+		this._blockSpeed = 0.25;
+		this._blockOffset = new Point(32,32);
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.life = this.lifeMax = Spawn.life(64, this.difficulty);
+		this.startTrigger = ops.getString("deathtrigger", "firekeeperstart");
+		this.deathTrigger = ops.getString("deathtrigger", "firekeeperdeath");
+		this.damageContact = 0.0;
+		this.damage = Spawn.damage(5, this.difficulty);
+		this.death_time = 2.0;
+		
+		this._state = 0;
+		this._state_previous = -1;
+		this._time = 3;
+		this._timeMax = 3;
+		this._subTime = 0;
+		this._count = 0;
+		
+		this._pendulum = {r:0.0,speed:0.0,ext:0.0};
+		this._gun = {p:new Point(), flip:false, active:false};
+		
+		this.force = new Point();
+		
+		this.on("pendulum_hit", function(obj){
+			if( obj instanceof Player ){
+				obj.hurt(this, this.getDamage());
+			}
+		});
+		this.on("hurt", function(obj, damage){
+			audio.play("hurt",this.position);
+			
+			let expectedBlocks = Math.clamp( Math.floor(this.life / this.lifeMax * 5), 0, 4);
+			if(expectedBlocks < this.activeBlockCount){
+				this.dropLargeBlock();
+				
+				if(this.activeBlockCount <= 0){
+					this.setState(FireKeeper.STATE_DRILL);
+				}
+			}
+		});
+		
+		this.on("activate", function(){
+			Trigger.activate(this.startTrigger);
+		});
+		this.on("added", function(){
+			this.setMap(false);
+		});
 		this.on("destroy", function(){
-			Trigger.activate(this.deathTrigger);
+			let mappos = this.position.scale(1/256,1/240).floor();
+			let tileindex = mappos.x + mappos.y * Math.floor(game.map.width/16);
+			this.setMap(true);
+		});
+		this.on("pre_death", function(){
+			this._lava.setLevel(8);
 		});
 		this.on("death", function(){
+			Trigger.activate(this.deathTrigger);
+			
+			for(let i=0; i < this._btoponly.length; i++){
+				this._btoponly[i].active = false;
+				this._btoponly[i].position = this.boss_starting_position.add(new Point(-512,0));
+			}
 			this.destroy();
 		});
+	}
+	setMap(open){
+		if( this._mapremoved ) { return; }
+		if( open ) { this._mapremoved = true; }
+		
+		let tile = open ? 146 : 22;
+		let pos = this.boss_starting_position.add(new Point(128,-80)).scale(1/256,1/240).floor();
+		let index = pos.x + pos.y * Math.floor(game.map.width/16);
+		game.map.map[index] = tile;
+	}
+	getObjects(){
+		this._lava = Trigger.getTargets("firekeeper_lava")[0];
+		this._blocks = Trigger.getTargets("firekeeper_block");
+		this._btoponly = Trigger.getTargets("firekeeper_blocktop");
+		
+		for(let i=0; i < this._blocks.length; i++){
+			this._blocks[i].force = new Point();
+			this._blocks[i].dropped = false;
+		}
+		
+		for(let i=0; i < this._btoponly.length; i++){
+			this._btoponly[i].parent = this;
+			this._btoponly[i].active = false;
+			this._btoponly[i].force = new Point();
+			
+			
+			this._btoponly[i].on("collideTop", function(obj){
+				if( obj instanceof Player ){
+					this.force.y += this.delta * UNITS_PER_METER * 3;
+				}
+			});
+		}
+	}
+	
+	setGunPosition(home=false){
+		//Move gun
+		let gunSpeed = 8;
+		this._gun.active = true;
+		if(Math.abs(this._gun.p.x) < 64){
+			//In middle
+			let direction = this.target().position.x > this.boss_starting_position.x ? -1 : 1;
+			let speed = direction * this.delta * UNITS_PER_METER * gunSpeed;
+			
+			if(home){
+				direction = this._gun.p.x > 0 ? -1 : 1;
+				speed = direction * this.delta * UNITS_PER_METER * gunSpeed;
+				
+				if(Math.abs(speed) >= Math.abs(this._gun.p.x) ){
+					this._gun.p.x = 0;
+					this._gun.active = false;
+				} else {
+					this._gun.p.x = Math.clamp(this._gun.p.x + speed, -64,64);
+				}
+			} else {			
+				this._gun.p.x = Math.clamp(this._gun.p.x + speed, -64,64);
+			}
+			this._gun.p.y = 0;
+		} else {
+			let tdif = this.target().position.x - this.boss_starting_position.x;
+			if(tdif * this._gun.p.x > 0 || home){
+				//Move towards zero
+				let direction = this._gun.p.y > 0 ? -1 : 1;
+				let speed = direction * this.delta * UNITS_PER_METER * gunSpeed;
+				
+				if(Math.abs(this._gun.p.y) <= Math.abs(speed) ){
+					this._gun.p.x = this._gun.p.x > 0 ? 63.5 : -63.5;
+					this._gun.p.y = 0;
+				} else {
+					this._gun.p.y += speed;
+				}
+			} else {
+				//Move towards target
+				let direction = (this.boss_starting_position.y + this._gun.p.y) > this.target().position.y ? -1 : 1;
+				let speed = this.delta * UNITS_PER_METER * gunSpeed;
+				let tdif = Math.abs( this.target().position.y - (this._gun.p.y + this.boss_starting_position.y) );
+				
+				this._gun.p.y += direction * Math.min(tdif, speed);
+			}
+		}
+	}
+	setBlockLocations(){
+		
+		if(this._state == FireKeeper.STATE_DRILL){
+			//Smash body into ceiling
+			let ceilPos = this.boss_starting_position.y - 144;
+			if( this.position.y > ceilPos ){ 
+				this.force.y -= this.delta * UNITS_PER_METER;
+				this.position.y += this.force.y * this.delta * UNITS_PER_METER;
+				
+				if( this.position.y <= ceilPos ){ 
+					//Hit ceiling
+				}
+			} else {
+				this.force.y = 0;
+				this.position.y = ceilPos;
+			}
+		} else if( this._state == FireKeeper.STATE_IDLE ){
+			//Return to mid
+			this.position.y += this.delta * UNITS_PER_METER * 3;
+			this.position.y = Math.min(this.position.y, this.boss_starting_position.y);
+			this.force.y = 0;
+		}
+		
+		for(let i=0; i < this._blocks.length; i++){
+			let p = Math.mod(this._blockRotation + i, 4);
+			let d = Math.mod(p,1);
+			let block = this._blocks[i];
+			
+			if( block.dropped ){
+				let floor = this.boss_starting_position.y + 160;
+				block.force.y += this.delta * UNITS_PER_METER;
+				block.position.y = Math.min( block.position.y + block.force.y * this.delta * UNITS_PER_METER, floor );
+			} else {
+				
+				if(p<1){ 
+					block.position.x = this.boss_starting_position.x + Math.lerp(-112,112,d);
+					block.position.y = this.boss_starting_position.y - 112;
+				} else if(p<2){ 
+					block.position.x = this.boss_starting_position.x + 112;
+					block.position.y = this.boss_starting_position.y + Math.lerp(-112,112,d);
+				} else if(p<3){ 
+					block.position.x = this.boss_starting_position.x + Math.lerp(112,-112,d);
+					block.position.y = this.boss_starting_position.y + 112;
+				} else {
+					block.position.x = this.boss_starting_position.x - 112;
+					block.position.y = this.boss_starting_position.y + Math.lerp(112,-112,d);
+				}
+				block.position = block.position.subtract(this._blockOffset);
+			}
+		}
+		
+		for(let i=0; i < this._btoponly.length; i++){
+			if(this._btoponly[i].active ) {
+				let blk = this._btoponly[i];
+				
+				blk.position = blk.position.add(blk.force.scale(this.delta * UNITS_PER_METER));
+				//blk.force = blk.force.scale(1 - this.delta * 0.9);
+				//blk.force.y += this.delta * blk.gravity * UNITS_PER_METER;
+				
+				if(blk.position.y > this.boss_starting_position.y + 192){
+					blk.active = false;
+					blk.position = this.boss_starting_position.add(new Point(-512,0));
+					//blk.position.y = this.boss_starting_position.y - 208;
+					//blk.position.x = this.boss_starting_position.x + Math.floor(Math.randomRange(-12,12)) * 16;
+				}
+				
+			}
+		}
+	}
+	dropLargeBlock(){
+		shakeCamera(0.3,4);
+		
+		let order = [0,2,1,3];
+		for(let i=0; i < this._blocks.length; i++){
+			let j = order[i];
+			if( !this._blocks[j].dropped ){
+				this._blocks[j].dropped = true;
+				this._lava.setLevel(48 + (i+1) * 16);
+				this._blocks[j].blockCollide = false;
+				return;
+			}
+		}
+	}
+	dropSmallBlock(){
+		for(let i=0; i < this._btoponly.length; i++){
+			if( !this._btoponly[i].active ){
+				
+				this._btoponly[i].position.x = this.boss_starting_position.x + Math.floor(Math.randomRange(-10,10)) * 16;
+				this._btoponly[i].position.y = this.boss_starting_position.y - 192;
+				this._btoponly[i].force.y = 2.0;
+				this._btoponly[i].active = true;				
+
+				return;
+			}
+		}
+	}
+	dropBolder(){
+		let x = this.boss_starting_position.x + Math.randomRange(-128,128);
+		let y = this.boss_starting_position.y - 224;
+		
+		let parts = game.addObject( new ParticleSystem(x,y,[6,6],Options.convert({
+			"frame_x" : 1,
+			"frame_y" : 2,
+			"gravity" : 0.5,
+			"time" : 1,
+			"loop" : true,
+			"count" : 12,
+			"startForce" : 1,
+			"allowIdle" : false
+		})) );
+		
+		let bolder = new GameObject();
+		bolder.parts = parts;
+		bolder.position.x = x;
+		bolder.position.y = y;
+		bolder.widht = bolder.height = 28;
+		bolder.force = new Point();
+		bolder.sprite = "bullets";
+		bolder.wait = 2;
+		bolder.frame = new Point(3,0);
+		bolder.damage = this.damage;
+		bolder.idle = function(){};
+		bolder.update = function(){
+			this.wait -= this.delta;
+			this.parts.loop = this.wait > 0;
+			
+			if(this.wait > 0){
+				this.position.y += this.delta * 32;
+			} else if(this.wait <= -3) {
+				this.destroy();
+				this.parts.loop = false;
+			} else {
+				this.force.y += this.delta * 0.25 * UNITS_PER_METER;
+				this.position = this.position.add(this.force.scale(this.delta * UNITS_PER_METER));
+			}
+		}
+		bolder.on("struck", function(obj){
+			this.destroy();
+			this.parts.loop = false;
+		});
+		bolder.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				obj.hurt(this, Combat.getDamage.apply(this));
+				this.destroy();
+				this.parts.loop = false;
+			}
+		});
+		
+		game.addObject(bolder.parts);
+		game.addObject(bolder);
+	}
+	dropFlame(){
+		let fire = game.addObject(new Fire(this.position.x, this.position.y));
+		fire.idle = function(){};
+		fire.friction = 0.1;
+		fire.force.x = Math.randomRange(-4,4);
+		fire.force.y = -8;
+	}
+	fireGun(targetPosition){
+		let org = this.boss_starting_position.add(this._gun.p);
+		let dif = targetPosition.subtract(org);
+		let dir = dif.normalize();
+		let angle = dif.toAngle();
+		
+		audio.play("bullet1", org);
+					
+		for(let i=0; i < 2; i++){
+			let offset = i < 1 ? -1 : 1;
+			let perp = new Point(-dir.y, dir.x).scale(offset * 8);
+			var bullet = new Bullet(org.x + perp.x, org.y + perp.y);
+			bullet.team = this.team;
+			bullet.frame.x = 4;
+			bullet.force = dir.scale(8);
+			bullet.rotation = -angle * Math.rad2deg;
+			bullet.damage = this.damage;
+			game.addObject(bullet);
+		}
+	}
+	nextState(){
+		//return FireKeeper.STATE_DRILL;
+		if(this.activeBlockCount <= 0){
+			return FireKeeper.STATE_DRILL;
+		} else {
+			let rl = new RandomList();
+			rl.add(FireKeeper.STATE_DRILL);
+			rl.add(FireKeeper.STATE_BULLET);
+			rl.add(FireKeeper.STATE_FLAMES);
+			rl.add(FireKeeper.STATE_GUNS);
+			if( this.activeBlockCount > 1 ) { rl.add(FireKeeper.STATE_PENDULUM); }
+			
+			rl.remove(this._state_previous);
+			this._state_previous = rl.pick();
+			return this._state_previous;
+		}
+	}
+	setState(s){
+		this._state = s;
+		
+		if(s == FireKeeper.STATE_IDLE){
+			this._time = this._timeMax = 2.0;
+		} else if(s == FireKeeper.STATE_DRILL){
+			this._gun.active = false;
+			this._pendulum.ext = 0.0;
+			this._time = this._timeMax = 3.0;
+			this._count = 12;
+		} else if(s == FireKeeper.STATE_FLAMES){
+			this._time = this._timeMax = 2.0;
+			this._count = 24;
+		} else if(s == FireKeeper.STATE_PENDULUM){
+			this._time = this._timeMax = 2.0;
+			this._pendulum.r = 0.0;
+			this._count = 2;
+		} else if(s == FireKeeper.STATE_GUNS){
+			this._time = this._timeMax = 4.0;
+			this._count = 32;
+		} else if(s == FireKeeper.STATE_BULLET){
+			this._time = this._timeMax = 3.0;
+			this._count = 6;
+		}
+	}
+	idle(){}
+	update(){
+		this.setBlockLocations();
+		
+		if(this.life > 0){
+			
+			if(this._blocks.length <= 0){
+				this.getObjects();
+			}
+			
+			
+			if(this.active){
+				
+				this._blockRotation = (this._blockRotation + this.delta * this._blockSpeed) % 4;
+				
+				this._time -= this.delta;
+				let d = 1 - this._time / this._timeMax;
+				
+				if(this._state == FireKeeper.STATE_IDLE) {
+					
+					this.position.y = Math.min(this.position.y + this.delta * UNITS_PER_METER, this.boss_starting_position.y);
+					this.setGunPosition(true);
+					
+					if(this._time <= 0){
+						this.setState(this.nextState());
+					}
+				} else if(this._state == FireKeeper.STATE_DRILL) {
+					if(this._time > 0){
+						//
+					} else if(this._subTime <= 0){
+						this.dropSmallBlock();
+						this._count--;
+						
+						if(this._count % 4 == 2){
+							this.dropBolder();
+						}
+						
+						if(this._count > 0){
+							this._subTime = 0.6;
+						} else if(this.activeBlockCount <= 0){
+							//Just keep drilling until death
+							this._count = 99;
+						} else {
+							this.setState(FireKeeper.STATE_IDLE);
+						}
+					} else {
+						this._subTime -= this.delta;
+						shakeCamera(0.125,1);
+					}
+				} else if(this._state == FireKeeper.STATE_FLAMES) {
+					
+					if(this._time > 0){
+						//building flames and moving
+						this.position = Point.lerp(this.boss_starting_position, this.boss_starting_position.add(new Point(0,-64)), d);
+					} else if(this._count <= 0){
+						//Move back to home
+						this.position.y += this.delta * 8 * UNITS_PER_METER;
+						if(this.position.y >= this.boss_starting_position.y){
+							this.position.y = this.boss_starting_position.y;
+							this.setState(FireKeeper.STATE_IDLE);
+						}
+					} else if(this._subTime <= 0){
+						//Drop flame
+						this.dropFlame();
+						this._count--;
+						this._subTime = 0.25;
+					} else {
+						this._subTime -= this.delta;
+					}
+					
+				} else if(this._state == FireKeeper.STATE_PENDULUM) {
+					let poly = FireKeeper.PENDULUM_POLY.scale(new Point(1,this._pendulum.ext)).rotate(this._pendulum.r * -Math.rad2deg).translate(this.position);
+					let hits = game.polyOverlaps(poly);
+					for(let i=0; i < hits.length; i++){ this.trigger("pendulum_hit", hits[i] ); }
+					
+					if(this._time > 0){
+						this._pendulum.ext = Math.lerp(0.0, 256.0, d);
+						this._blockSpeed = 0.0;
+					} else if(this._subTime > 0) {
+						let pen_dir = this._pendulum.speed > 0 ? 1 : -1;
+						this._pendulum.speed = Math.clamp(this._pendulum.speed + this.delta * 1.5 * pen_dir, -1, 1);
+						this._pendulum.r += this.delta * this._pendulum.speed;
+						this._subTime -= this.delta;
+					} else if( this._count > 0 ){
+						this._count--;
+						this._pendulum.speed = this._pendulum.speed > 0 ? -0.01 : 0.01;
+						this._blockSpeed = this._pendulum.speed > 0 ? 0.25 : -0.25;
+						this._subTime = Math.randomRange(8,14);
+					} else {
+						this._pendulum.ext -= this.delta * 256;
+						if(this._pendulum.ext <= 0.0){
+							this._pendulum.ext = 0.0;
+							this.setState(FireKeeper.STATE_IDLE);
+						}
+					}
+				} else if(this._state == FireKeeper.STATE_GUNS) {
+					if(this._time > 0){
+						//Aim
+						this.setGunPosition();
+					} else if(this._subTime <= 0 ){
+						this.fireGun(new Point(this.boss_starting_position.x, this.boss_starting_position.y + this._gun.p.y) );
+						this._count--;
+						
+						if(this._count > 0){
+							this._subTime = FireKeeper.TIME_BULLET * 0.5;
+						} else {
+							this.setState(FireKeeper.STATE_IDLE);
+						}
+					} else {
+						//Find new location
+						this._subTime -= this.delta;
+					}
+				} else if(this._state == FireKeeper.STATE_BULLET) {
+					
+					if(this._time > 0){
+						//
+					} else if(this._subTime <= 0 ){
+						this.fireGun(this.target().position);
+						this._count--;
+						
+						if(this._count > 0){
+							this._subTime = FireKeeper.TIME_BULLET;
+						} else {
+							this.setState(FireKeeper.STATE_IDLE);
+						}
+					} else {
+						this._subTime -= this.delta;
+					}
+				}
+			}
+			
+		}
+		
 	}
 	render(g,c){
 		g.color = [1.0,0.8,0.0,1.0];
@@ -3366,8 +3863,41 @@ class FireKeeper extends GameObject {
 			this.height,
 			this.zIndex
 		);
+		
+		if(this._state == FireKeeper.STATE_BULLET || this._gun.active){
+			g.color = [1.0,0.2,0.0,1.0];
+			g.drawRect(
+				this.position.x + this._gun.p.x - c.x - 16,
+				this.position.y + this._gun.p.y - c.y - 16,
+				32, 32,
+				this.zIndex + 1
+			);
+		}
+		
+		if(this._pendulum.ext > 0){
+			let org = new Point(-16,0).rotate(this._pendulum.r);
+			g.renderSprite("white", this.position.add(org).subtract(c), this.zIndex-1, new Point(), false, {
+				"rotation" : this._pendulum.r * Math.rad2deg,
+				"scalex" : 32,
+				"scaley" : this._pendulum.ext
+			});
+		}
 	}
 }
+FireKeeper.STATE_IDLE = 0;
+FireKeeper.STATE_BULLET = 1;
+FireKeeper.STATE_DRILL = 2;
+FireKeeper.STATE_FLAMES = 3;
+FireKeeper.STATE_PENDULUM = 4;
+FireKeeper.STATE_GUNS = 5;
+
+FireKeeper.TIME_BULLET = 0.3;
+
+FireKeeper.PENDULUM_POLY = new Polygon([
+	new Point(-16,0.125), new Point(16,0.125),
+	new Point(16,1), new Point(-16,1)
+]);
+
 
 self["FireKeeper"] = FireKeeper;
 
@@ -3581,10 +4111,13 @@ class Garmr extends GameObject{
 		super(x,y,d,ops);
 		this.position.x = x;
 		this.position.y = y;
-		this.width = 80;
-		this.height = 96;
+		this.width = 48;
+		this.height = 48;
 		this.origin = new Point(0.5,0.7);
 		this.sprite = "garmr";
+		this.swrap1 = spriteWrap["garmr_small"];
+		this.swrap2 = spriteWrap["garmr_large"];
+		this.swrap = this.swrap1;
 		self["_garmr"] = this;
 		
 		this.speed = 3.0;
@@ -3592,10 +4125,11 @@ class Garmr extends GameObject{
 		this.friction = 0.1;
 		this.gotoPos = new Vector();
 		this.start = new Point(x,y);
+		this.objectTracker = new Array();
 		
 		this.active = false;
 		this.closeToBoss = false;
-		this.track = null;
+		//this.track = null;
 		
 		this.frame = new Point(0,0);
 		
@@ -3610,7 +4144,7 @@ class Garmr extends GameObject{
 		this.trackHead = {
 			"position" : new Vector(x,y),
 			"offset" : new Vector(0,-50,33),
-			"rotation" : 0.0,
+			"rotation" : new Vector(),
 			"turnStrength" : 0.25,
 			"scream" : false
 		};
@@ -3644,6 +4178,7 @@ class Garmr extends GameObject{
 			"rotation" : 0.0
 		};
 		
+		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
 		this.addModule( mod_boss );
 		
@@ -3656,16 +4191,39 @@ class Garmr extends GameObject{
 			this.difficulty = ops["difficulty"] * 1;
 		}
 		
-		this.lifeMax = this.life = Spawn.life(64,this.difficulty);
+		this.gravity = 0.5;
 		this.mass = 5.0;
-		this.damage = Spawn.damage(4,this.difficulty);
-		this.defenceLight = Spawn.defence(4,this.difficulty);
+		
+		this.baseLife0 = Spawn.life(24,this.difficulty);
+		this.baseLife1 = Spawn.life(32,this.difficulty);
+		this.baseLife2 = Spawn.life(64,this.difficulty);
+		this.lifeMax = this.life = this.baseLife0;
+		this.baseDamage = Spawn.damage(6,this.difficulty);
+		
+		this.defenceLight = Spawn.defence(6,this.difficulty);
 		
 		this.moneyDrop = Spawn.money(40,this.difficulty);
 		this.death_time = Game.DELTASECOND * 3;
 		
+		this.hurt = function(obj, damage){
+			//Override hurt function to prevent death
+			if(this.states.phase < 2 && this.calcDamage(damage) >= this.life){
+				this.life = 1;
+				this.trigger("hurt",obj, 0);
+				obj.trigger("hurt_other",this,0);
+				this.invincible = this.invincible_time;
+				if(this.states.current != Garmr.STATE_TRANSFORM){
+					this.setState(Garmr.STATE_TRANSFORM);
+				}
+			} else {
+				Combat.hurt.apply(this,[obj,damage]);
+			}
+		}
+		
 		this.on("hurt", function(obj, damage){
 			audio.play("hurt", this.position);
+			
+			this.states.jump = true;
 			
 			if(this.states.current == Garmr.STATE_IDLE){
 				this.states.time -= Game.DELTASECOND * 0.75;
@@ -3688,6 +4246,9 @@ class Garmr extends GameObject{
 				obj.hurt(this, d);
 			}
 		});
+		this.on("activate", function(){
+			this.blocks = Trigger.getTargets("garmr_block");
+		});
 		this.on("death", function(){
 			
 			//TODO: Remove this
@@ -3698,7 +4259,11 @@ class Garmr extends GameObject{
 			audio.play("kill");
 			
 			Item.drop(this,140);
+			this.effects.fireEffect.destroy();
 			this.destroy();
+		});
+		this.on("collideHorizontal",function(h){
+			this.states.wall = 0.7;
 		});
 		this.on("downstabbed",function(obj,damage){
 			if(this.states.current != Garmr.STATE_PUNCH){
@@ -3708,6 +4273,7 @@ class Garmr extends GameObject{
 		this.on(["pre_death","player_death"],function(){
 			//var bullets = game.getObjects(HomingBullet);
 			var towers = game.getObjects(FlameTower);
+			this.removeTracker();
 			
 			//for(var i=0; i < bullets.length;i++){
 			//	bullets[i].destroy();
@@ -3721,17 +4287,113 @@ class Garmr extends GameObject{
 		});
 		
 		this.states = {
+			"phase" : 0,
 			"animation" : 0,
 			"current" : Garmr.STATE_IDLE,
+			"previous" : -1,
 			"time" : 0.0,
 			"timeTotal" :Game.DELTASECOND * 2,
 			"count" : 0,
 			"transition" : 0.0,
 			"turnabout" : 0.0,
+			"dropFireTime" : 0.0,
+			"dropFireCount" : 0,
+			"blocks" : 0.0,
+			
+			"jump" : false,
+			"wall" : 0.0,
+		};
+		
+		this.effects = {
+			"lightning" : false,
+			"lightingSeed" : "0.1fasf2",
+			"firehands" : false,
+			"fireEffect" : ParticleSystem.fire(x,y,16)
 		}
 		
+		this.blocks = new Array();
+		
+		this.effects.fireEffect.destroyOnSleep = false;
+		this.effects.fireEffect.autodestroy = false;
+		this.effects.fireEffect.zIndex = 5;
 		this.boltDischargeTime = Game.DELTASECOND * 1.5;
 		this._boltDischarge = this.boltDischargeTime;
+		this.setPhase(0);
+		
+		this.combat_getHitAreas = function(){
+			if(this.states.phase < 2){
+				return this.swrap.getHitBoxes(this.frame, this);
+			} else {
+				let output = new Array();
+				//body
+				output.push(new Line(this.position.x-40,this.position.y-48,this.position.x+40,this.position.y+24));
+				
+				//Right arm
+				let xarmr = Math.cos(this.trackBody.rotation) * this.trackUpperRightArm.offset.x + Math.sin(this.trackBody.rotation) * this.trackUpperRightArm.offset.z;
+				output.push( new Line(this.position.x + xarmr - 16, this.position.y - 32, this.position.x + xarmr + 16, this.position.y + 0) );
+				
+				//Left arm
+				let xarml = Math.cos(this.trackBody.rotation) * this.trackUpperLeftArm.offset.x + Math.sin(this.trackBody.rotation) * this.trackUpperLeftArm.offset.z;
+				output.push( new Line(this.position.x + xarml - 16, this.position.y - 32, this.position.x + xarml + 16, this.position.y + 0) );
+				
+				return output;
+			}
+		}
+	}
+	
+	setPhase(p){
+		if(p == 0){
+			this.rigidbodyActive = true;
+			this.swrap = this.swrap1;
+			this.width = 24;
+			this.height = 30;
+			this.damage = Math.floor(this.baseDamage * 0.5);
+			this.lifeMax = this.life = this.baseLife0;
+		} else if(p == 1){
+			this.swrap = this.swrap2;
+			this.rigidbodyActive = true;
+			this.width = 32;
+			this.height = 64;
+			this.damage = Math.floor(this.baseDamage * 0.75);
+			this.lifeMax = this.life = this.baseLife1;
+		} else {
+			this.rigidbodyActive = false;
+			this.width = 48;
+			this.height = 48;
+			this.damage = Math.floor(this.baseDamage * 1.0);
+			this.lifeMax = this.life = this.baseLife2;
+		}
+		
+		this.states.phase = p;
+	}
+	
+	nextState(){
+		let list = new Array();
+		
+		if(this.states.phase < 2){
+			list.push(Garmr.STATE_FIREFLOOR);
+			list.push(Garmr.STATE_BOLTARRAY);
+		} else {
+			list.push(Garmr.STATE_PUNCH);
+			list.push(Garmr.STATE_FIREBEAM);
+			list.push(Garmr.STATE_LIGHTNING);
+			list.push(Garmr.STATE_BOLTARRAY);
+			list.push(Garmr.STATE_FIREFLOOR);
+		}
+		if(list.indexOf(this.states.previous) >= 0){
+			list.remove(list.indexOf(this.states.previous));
+		}
+		if(this.states.blocks > 0){
+			list.remove(list.indexOf(Garmr.STATE_FIREBEAM));
+		}
+		if(list.length > 0){
+			let index = Math.floor(Math.random()*list.length);
+			this.states.previous = list[index];
+			this.setState(list[index]);
+		} else {
+			this.states.previous = Garmr.STATE_IDLE;
+			this.setState(Garmr.STATE_IDLE);
+		}
 	}
 	
 	setState(s=0){
@@ -3742,45 +4404,81 @@ class Garmr extends GameObject{
 			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2.5;
 			this.states.count = 1;
 		} else if(s == Garmr.STATE_FIREBEAM) {
-			this.states.time = this.states.timeTotal = Game.DELTASECOND * 4.5;
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 3.5;
 		} else if(s == Garmr.STATE_LIGHTNING) {
 			this.states.time = this.states.timeTotal = Game.DELTASECOND * 5;
 		} else if(s == Garmr.STATE_BOLTARRAY) {
 			this.states.time = this.states.timeTotal = Game.DELTASECOND * 0.65;
-			this.states.count = 12;
+			this.states.count = 4;
+			if(this.states.phase == 0){ this.states.count = 1; }
+			if(this.states.phase == 1){ this.states.count = 2; }
 		} else if(s == Garmr.STATE_FIREFLOOR) {
-			this.states.time = this.states.timeTotal = Game.DELTASECOND * 0.75;
-			this.states.count = 3;
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2.0;
+			this.states.count = 1;
+			
+			if(this.states.phase == 0){ 
+				this.states.time = this.states.timeTotal = Game.DELTASECOND * 1.0;
+			} else {
+				this.effects.fireEffect.loop = true;
+				this.effects.fireEffect.sizeStart = 2.66667;
+				this.effects.fireEffect.reset();
+			}
 		} else if(s == Garmr.STATE_FIRESKY) {
-			this.states.time = this.states.timeTotal = Game.DELTASECOND * 0.75;
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 4.0;
 			this.states.count = 3;
+			
+			this.effects.fireEffect.position = this.position.scale(1);
+			this.effects.fireEffect.loop = true;
+			this.effects.fireEffect.sizeStart = 4;
+			this.effects.fireEffect.reset();
+			
+		} else if(s == Garmr.STATE_POSE) {
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 3.0;
+		} else if(s == Garmr.STATE_TRANSFORM) {
+			this.states.time = this.states.timeTotal = Game.DELTASECOND * 2.0;
 		}
 	}
 	
-	fireball (){
-		var bomb = new CarpetBomb(this.position.x, this.position.y);
-		bomb.damageFire = this.damage;
-		bomb.force = new Point(this.forward()*6, -8);
-		game.addObject(bomb);
-		return bomb;
+	blockHit(){
+		this.blocks.sort(function(){return Math.random()-0.5;});
+		this.states.blocks = Garmr.BLOCK_RAISE_TIME;
+		let xpos = 0.0;
+		let xrange = 400;
+		
+		for(let i=0; i < this.blocks.length; i++){
+			//Set block positions
+			let cblock = this.blocks[i];
+			
+			let min = i > 0 ? (cblock.width + 16) : 0;
+			let max = (xrange-xpos) / Math.max(this.blocks.length-i,1);
+			let ran = Math.randomRange(min, max);
+			
+			cblock.position.x = this.boss_starting_position.x + xpos + ran - 200;
+			xpos += ran;
+		}
+		
 	}
 	
 	discharge (force){
 		//Create a floating bolt
 		this._boltDischarge += this.boltDischargeTime;
 		let bolt = new GarmrBolt(this.position.x, this.position.y);
-		
 		if(force == undefined){
 			force = new Point(Math.random()-0.5, Math.random()-0.5).normalize(4.5);
 		}
 		
 		bolt.force = force;
-		bolt.damage = Math.floor(this.damage * 0.6);
+		bolt.damage = 0.0;
+		bolt.damageLight = Math.floor(this.damage * 0.6);
 		game.addObject(bolt);
+		this.track(bolt);
 	
 	}
 	
 	update(){
+		this.effects.lightning = false;
+		this.effects.fireEffect.loop = false;
+		
 		//return;
 		if(this.life > 0 && this.active){
 			
@@ -3794,39 +4492,112 @@ class Garmr extends GameObject{
 			
 			this.trackRay.isOn = false;
 			
-			this._boltDischarge -= this.delta;
-			if( this._boltDischarge <= 0){
-				this.discharge();
+			this.states.blocks = Math.max(this.states.blocks-this.delta, 0);
+			let blockp = this.states.blocks / Garmr.BLOCK_RAISE_TIME;
+			for(let i=0; i < this.blocks.length; i++){
+				//Set block positions
+				let cblock = this.blocks[i];
+				let blockdown = this.boss_starting_position.y + 80;
+				let blockup = blockdown - cblock.height;
+				cblock.position.y = Math.lerp(blockdown, blockup, Math.clamp01(Math.pingpong(blockp)*8));
 			}
 			
+			if(this.states.dropFireCount > 0){
+				this.states.dropFireTime -= this.delta;
+				if(this.states.dropFireTime <= 0){
+					let fire = new Fire(
+						this.boss_starting_position.x + Math.randomRange(-200,200),
+						this.boss_starting_position.y - 120
+					);
+					fire.life = Game.DELTASECOND * Math.randomRange(3,6);
+					this.states.dropFireCount--;
+					game.addObject(fire);
+					this.track(fire);
+					this.states.dropFireTime += Game.DELTASECOND * 0.4;
+				}
+			}
+			
+			////////////
+			// STATES //
+			////////////
+			
 			if(this.states.current == Garmr.STATE_IDLE){
-				//Track the player
-				this.gotoPos.xy = _player.position.add(new Point(this.forward()*-76,-56));
-				this.gotoPos.z = this.speed;
+				
+				if(this.states.phase == 0 ){
+					this.frame = this.swrap.frame("idle", (game.timeScaled*1.6) % 1);
 					
-				this.states.animation = 0;
-				this.animate(v);
-				
-				if(Math.abs(this.position.x - this.start.x) > 160){
-					this.states.turnabout = Game.DELTASECOND;
-				}
-				
-				if(this.states.turnabout > 0){
-					this.flip = this.position.x < this.start.x;
-				} else {
+					if(this.states.wall > 0){
+						//Hang off the wall and jump
+						this.states.wall -= this.delta;
+						this.force.y = -this.gravity * UNITS_PER_METER * this.delta;
+						this.flip = this.position.x > this.boss_starting_position.x;
+						this.frame = this.swrap.frame("jump", 0);
+						
+						if(this.states.wall <= 0){
+							//Jump off the wall
+							this.force.y = -10;
+							this.force.x = this.forward() * this.speed * 4;
+						}
+					} else if(!this.grounded){
+						//In the air
+						this.addHorizontalForce(this.forward() * this.speed * 4);
+					} else if(this.grounded && this.states.jump){
+						//leap into the air
+						this.flip = this.position.x < this.target().position.x;
+						this.force.y = -10;
+						this.force.x = this.forward() * this.speed * 4;
+						this.states.jump = false;
+						this.frame = this.swrap.frame("jump", 0);
+					} else if((this.flip && this.position.x < this.boss_starting_position.x-180) || (!this.flip && this.position.x > this.boss_starting_position.x+180)){
+						//Turn around
+						this.flip = !this.flip;
+					} else {
+						//Just run
+						this.frame = this.swrap.frame("run", (game.timeScaled*1.6) % 1);
+						this.addHorizontalForce(this.forward() * this.speed * 4);
+						if(this.states.time <= 0){ this.nextState(); }
+					}
+					
+				} else if(this.states.phase == 1 ){
 					this.flip = dir.x > 0;
+					this.addHorizontalForce(this.forward() * this.speed);
+					this.frame = this.swrap.frame("walk", (game.timeScaled*1.4) % 1);
+					
+					if(this.states.time <= 0){ this.nextState(); }
+				} else {
+					this.states.animation = 0;
+					this.animate(v);
+					
+					//Track the player
+					this.gotoPos.xy = this.target().position.add(new Point(this.forward()*-76,-56));
+					this.gotoPos.z = this.speed;
+					
+					if(Math.abs(this.position.x - this.start.x) > 160){
+						this.states.turnabout = Game.DELTASECOND;
+					}
+					
+					if(this.states.turnabout > 0){
+						this.flip = this.position.x < this.start.x;
+					} else {
+						this.flip = dir.x > 0;
+					}
+					
+					if(this.states.time <= 0){ this.nextState(); }
 				}
 				
-				if(this.states.time <= 0){
-					this.setState(Garmr.STATE_BOLTARRAY);
-					//this.setState(Math.floor(Math.random() * 7));
-				}
 			} else if(this.states.current == Garmr.STATE_BOLTARRAY){
 				//Fire one after the other, ricocheting bolts
 				
 				this.flip = dir.x > 0;
 				this.states.animation = 9 + (this.states.count % 2);
+				this.gotoPos.x = this.boss_starting_position.x + this.forward() * - 128;
 				this.animate(p);
+				
+				if(this.states.phase == 0){
+					this.frame = this.swrap.frame("bolt", p);
+				} else {
+					this.frame = this.swrap.frame("bolt" + (1 + this.states.count % 2), p);
+				}
 				
 				if(this.states.time <= 0){
 					if(this.states.count > 0 ){
@@ -3834,7 +4605,7 @@ class Garmr extends GameObject{
 						this.discharge(dir.normalize(-8));
 						this.states.count--;
 						this.states.time = this.states.timeTotal;
-						this.gotoPos.x = Math.clamp(this.position.x + this.forward() * -24, this.boss_starting_position.x-200, this.boss_starting_position.x+200);
+						//this.gotoPos.x = Math.clamp(this.position.x + this.forward() * -24, this.boss_starting_position.x-200, this.boss_starting_position.x+200);
 						this.gotoPos.z = this.speed * 0.25;
 					} else {
 						this.setState(Garmr.STATE_IDLE);
@@ -3860,10 +4631,9 @@ class Garmr extends GameObject{
 					this.animate(p*8);
 					
 					if( this.states.count > 0){
-						//let bomb = this.fireball();
-						//bomb.position.x = this.position.x - 64;
-						//bomb.force = new Point(0,5);
-						//this.states.count = 0;
+						shakeCamera(0.25,3);
+						this.blockHit();
+						this.states.count = 0;
 					}
 				} else {
 					this.setState(Garmr.STATE_IDLE);
@@ -3871,66 +4641,133 @@ class Garmr extends GameObject{
 				
 			} else if(this.states.current == Garmr.STATE_FIREBEAM){
 				//Beam
-				this.gotoPos.xy = this.start.add(new Point(0,-32));
-				this.gotoPos.z = this.speed;
+				if(p < 0.33){
+					//Charging
+					this.gotoPos.xy = this.boss_starting_position.add(new Point(0,-32));
+					this.gotoPos.z = this.speed;
 				
-				if(p < 0.5){
 					this.states.animation = 4;
 					this.animate(p*3);
-				} else {
-					let p2 = (p-0.5) * 2;
+				} else if(p < 1){
+					this.gotoPos.xy = this.boss_starting_position.add(new Point(this.forward()*-96,0));
+					this.gotoPos.z = this.speed * 0.25;
+					
+					let p2 = (p-0.33) * 2;
 					this.trackRay.isOn = true;
 					this.trackRay.length = 250 * Math.clamp01(p2*5);
 					this.states.animation = 5;
 					this.animate(p2*1.5);
 					this.trackRay.rotation = Math.lerp(-20,60,p2);
+				} else {
+					this.setState(Garmr.STATE_IDLE);
 				}
 			} else if(this.states.current == Garmr.STATE_LIGHTNING){
-				//Drop lighting bolts
+				//Drop lightning bolts
 				this.gotoPos.xy = this.start.add(new Point(0,-32));
 				this.gotoPos.z = this.speed;
+				this.effects.lightning = true;
+				
+				let lightRad = Math.clamp01(Math.pingpong(p) * 5) * 600;
+				Background.pushLight(this.position, lightRad, COLOR_LIGHTNING);
+				
+				if(Timer.interval(this.states.time,Game.DELTASECOND*0.125,this.delta)){
+					this.effects.lightingSeed = ""+Math.random();
+				}
 				
 				if(Timer.interval(this.states.time,Game.DELTASECOND*0.5,this.delta)){
 					let off = (Math.random()-0.5) * 470;
 					let l = new LightningBolt(this.position.x+off, this.position.y-40);
 					game.addObject(l);
+					this.track(l);
 				}
-				
 				this.states.animation = 6;
 				this.animate(p*8);
+				
+				if( p >= 1 ) {
+					this.setState(Garmr.STATE_IDLE);
+				}
 			} else if(this.states.current == Garmr.STATE_FIREFLOOR){
-				//Missile
-				this.gotoPos.x = this.position.x + this.forward()*-20;
-				this.gotoPos.y = _player.position.y;
-				this.gotoPos.z = this.speed * 0.5;
+				//Punch floor, cause fire
+				this.gotoPos.z = this.speed * 2.5;
 				this.flip = dir.x > 0;
 				
-				if(Timer.isAt(this.states.time, this.states.timeTotal*0.5, this.delta)){
-					this.fireball();
+				if(this.states.phase > 0){
+					this.effects.fireEffect.loop = true;
 				}
 				
-				if(p < 0.5){
-					this.states.animation = 7;
-					this.animate(p*3);
-				} else {
-					this.states.animation = 8;
+				this.frame = this.swrap.frame("fist", p);
+				
+				if(p < 0.4){
+					this.gotoPos.x = this.boss_starting_position.x + this.forward() * -64;
+					this.gotoPos.y = this.boss_starting_position.y + 0;
+					this.states.animation = 11;
+					this.animate(p*5);
+				} else if(p < 1){
+					this.gotoPos.x = this.boss_starting_position.x + this.forward() * -24;
+					this.gotoPos.y = this.boss_starting_position.y + 48;
+					this.states.animation = 12;
 					this.animate((p-0.5)*3);
+					
+					if(p > 0.5 && this.states.count > 0 && this.states.phase > 0){
+						shakeCamera(0.25,3);
+						
+						let s = new FlameTower(this.position.x + 64*this.forward(), this.boss_starting_position.y+48);
+						s.spread = 7;
+						s.spreadDirection = this.forward();
+						game.addObject(s);
+						this.track(s);
+						
+						this.states.count = 0;
+					}
+				} else {
+					this.setState(Garmr.STATE_IDLE);
 				}
 			} else if(this.states.current == Garmr.STATE_FIRESKY){
+				this.gotoPos.x = this.boss_starting_position.x + this.forward() * -64;
+				this.gotoPos.y = this.boss_starting_position.y + -48;
 				
+				if(p < 0.33){
+					this.states.animation = 7;
+					this.animate(p*5);
+				} else if(p < 1){
+					this.effects.fireEffect.loop = true;
+					this.states.animation = 8;
+					this.animate((p-0.5)*3);
+				} else {
+					this.states.dropFireCount = 16;
+					this.setState(Garmr.STATE_IDLE);
+				}
+			} else if(this.states.current == Garmr.STATE_POSE){
+				this.frame = this.swrap.frame("pose", p);
+				if(p >= 1){
+					this.setState(Garmr.STATE_IDLE);
+				}
+			} else if(this.states.current == Garmr.STATE_TRANSFORM){
+				this.frame = this.swrap.frame("transform", (game.timeScaled*4) % 1);
+				if(p >= 1){
+					this.setPhase(this.states.phase+1);
+					if(this.states.phase == 1){
+						this.setState(Garmr.STATE_POSE);
+					} else {
+						this.setState(Garmr.STATE_IDLE);
+					}
+				}
 			}
 			
-			if(this.gotoPos.z > 0){
-				let _s = this.gotoPos.z * this.delta;
-				if(Math.abs(this.position.x - this.gotoPos.x) >= _s){
-					this.force.x = this.gotoPos.z * (this.gotoPos.x > this.position.x ? 1 : -1);
+			if(!this.rigidbodyActive){
+				//Can fly
+				if(this.gotoPos.z > 0){
+					let _s = this.gotoPos.z * this.delta;
+					if(Math.abs(this.position.x - this.gotoPos.x) >= _s){
+						this.force.x = this.gotoPos.z * (this.gotoPos.x > this.position.x ? 1 : -1);
+					}
+					if(Math.abs(this.position.y - this.gotoPos.y) >= _s){
+						this.force.y = this.gotoPos.z * (this.gotoPos.y > this.position.y ? 1 : -1);
+					}
 				}
-				if(Math.abs(this.position.y - this.gotoPos.y) >= _s){
-					this.force.y = this.gotoPos.z * (this.gotoPos.y > this.position.y ? 1 : -1);
-				}
+				this.position = this.position.add( this.force.scale( this.delta * UNITS_PER_METER ) );
+				this.force = this.force.scale( 1 - (this.friction * this.delta * UNITS_PER_METER ) );
 			}
-			this.position = this.position.add( this.force.scale( this.delta * UNITS_PER_METER ) );
-			this.force = this.force.scale( 1 - (this.friction * this.delta * UNITS_PER_METER ) );
 			
 			//Detect if laser is hitting the player
 			if(this.trackRay.isOn){
@@ -3949,6 +4786,25 @@ class Garmr extends GameObject{
 			//Dying!!
 		}
 		
+	}
+	
+	track(obj){
+		for(let i=0; i < this.objectTracker.length; i++){
+			if(!this.objectTracker[i]._isAdded){
+				this.objectTracker.remove(i);
+				i--;
+			}
+		}
+		this.objectTracker.push(obj);
+	}
+	removeTracker(){
+		for(let i=0; i < this.objectTracker.length; i++){
+			this.objectTracker[i].destroy();
+		}
+		for(let i=0; i < this.blocks.length; i++){
+			this.blocks[i].destroy();
+		}
+		this.objectTracker = new Array();
 	}
 	
 	fistRect(radius=1){
@@ -3973,6 +4829,7 @@ class Garmr extends GameObject{
 		if(this.states.animation == 0){
 			//Idle
 			let p = Math.sin(progress * Math.PI * 2);
+			this.trackHead.rotation.x = 0.0;
 			this.trackChest.scale = 1 + Math.sin(game.timeScaled * 1.5) * 0.03125;
 			
 			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.35,0.78,0), new Vector(2.40,0.78,0), p);
@@ -4049,6 +4906,7 @@ class Garmr extends GameObject{
 			//build fire
 			this.trackHead.turnStrength = 0.25;
 			this.trackHead.scream = true;
+			this.trackHead.rotation.x = Math.lerp(0.0,-0.7,progress);
 			this.trackChest.scale = Math.lerp(1.0,1.25,progress);
 			this.trackHead.offset = Vector.lerp(new Vector(0,-50,33), new Vector(0,-55,10), progress);
 			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.35,0.78,0), new Vector(2.3,0.75,0), progress);
@@ -4060,6 +4918,7 @@ class Garmr extends GameObject{
 			//spit fire
 			this.trackHead.turnStrength = 0.25;
 			this.trackHead.scream = true;
+			this.trackHead.rotation.x = -0.7;
 			this.trackChest.scale = Math.lerp(1.25,0.93,progress);
 			this.trackHead.offset = Vector.lerp(new Vector(0,-55,10), new Vector(0,-40,45), progress);
 			this.trackUpperRightArm.rotation = Vector.lerp(new Vector(2.3,0.78,0), new Vector(2.8,0.7,0), progress);
@@ -4067,6 +4926,9 @@ class Garmr extends GameObject{
 			
 			this.trackUpperLeftArm.rotation = Vector.lerp(new Vector(2.3,-0.78,0), new Vector(2.8,-0.7,0), progress);
 			this.trackLowerLeftArm.rotation = Math.lerp(0.1,1.2, progress);
+			
+			this.effects.fireEffect.position = this.position.add(new Point(this.forward()*48,-56));
+			this.effects.fireEffect.startForce = new Line(this.forward()*4,-4,this.forward()*4,-4);
 		} else if(this.states.animation == 9){
 			//Release bolt 1
 			this.trackHead.turnStrength = this.flip ? 0.24 : 0.16;
@@ -4091,6 +4953,34 @@ class Garmr extends GameObject{
 			this.trackLowerLeftArm.rotation = Math.lerp(this.trackLowerLeftArm.rotation, 1.0, deltaSpeed);
 			
 			this.fistPos = Point.lerp(new Point(-24,0), new Point(64,0), progress);
+		} else if(this.states.animation == 11){
+			//Punch floor wind up
+			let deltaSpeed = this.delta * 4;
+			
+			this.trackUpperRightArm.rotation = Vector.lerp(this.trackUpperRightArm.rotation, new Vector(-2.4, -0.5, 0.0), deltaSpeed);
+			this.trackLowerRightArm.rotation = Math.lerp(this.trackLowerRightArm.rotation, -3.0, deltaSpeed);
+			
+			this.trackUpperLeftArm.rotation = Vector.lerp(this.trackUpperLeftArm.rotation, new Vector(-2.4, 0.5, 0), deltaSpeed);
+			this.trackLowerLeftArm.rotation = Math.lerp(this.trackLowerLeftArm.rotation, -3.0, deltaSpeed);
+			
+			this.effects.fireEffect.position = Point.lerp(new Point(88,24), new Point(-32,-64), progress).scale(this.forward(),1).add(this.position);
+			this.effects.fireEffect.startForce = new Line(-1,-1,1,-1);
+			
+			this.fistPos = Point.lerp(new Point(-24,0), new Point(64,0), progress);
+		} else if(this.states.animation == 12){
+			//Punch floor release
+			let deltaSpeed = this.delta * 24;
+			
+			this.trackUpperRightArm.rotation = Vector.lerp(this.trackUpperRightArm.rotation, new Vector(0.75, 0.0, 0.0), deltaSpeed);
+			this.trackLowerRightArm.rotation = Math.lerp(this.trackLowerRightArm.rotation, 0.0, deltaSpeed);
+			
+			this.trackUpperLeftArm.rotation = Vector.lerp(this.trackUpperLeftArm.rotation, new Vector(0.75, 0.0, 0), deltaSpeed);
+			this.trackLowerLeftArm.rotation = Math.lerp(this.trackLowerLeftArm.rotation, 0.0, deltaSpeed);
+			
+			this.effects.fireEffect.position = Point.lerp(new Point(-32,-64), new Point(88,24), progress).scale(this.forward(),1).add(this.position);
+			this.effects.fireEffect.startForce = new Line(-1,-1,1,-1);
+			
+			//this.fistPos = Point.lerp(new Point(-24,0), new Point(64,0), progress);
 		}
 		
 		if(this.flip && flipLimbsOnFlip){
@@ -4106,79 +4996,10 @@ class Garmr extends GameObject{
 	}
 	
 	render(g,c){
-		this.trackHead.rotation = Math.lerp(this.trackHead.rotation, Math.PI * this.forward() * this.trackHead.turnStrength, this.delta * 3.75);
-		this.trackChest.rotation = Math.lerp(this.trackChest.rotation, this.trackHead.rotation, this.delta * 6.5);
-		this.trackBody.rotation = Math.lerp(this.trackBody.rotation, this.trackChest.rotation, this.delta * 3.25);
 		
-		this.trackHead.position = new Vector(this.position.x, this.position.y, 0);
-		this.trackChest.position = Vector.lerp(this.trackChest.position, this.position, this.delta * 12.0);
-		this.trackBody.position = Vector.lerp(this.trackBody.position, this.trackChest.position, this.delta * 12.0);
-		
-		let offset = Vector.rotate(this.trackHead.offset,0,this.trackHead.rotation,0);
-		let headModel = this.trackHead.scream ? "garmr_headscream" : "garmr_head";
-		
-		g.renderMesh(headModel, this.trackHead.position.add(offset).subtract(c), this.zIndex+3+0.001, {
-			"rotate" : [0, this.trackHead.rotation, 0]
-		});
-		g.renderMesh("garmr_chest", this.trackChest.position.subtract(c), this.zIndex+3, {
-			"rotate" : [0, this.trackChest.rotation, 0],
-			"scale" : [this.trackChest.scale,this.trackChest.scale,this.trackChest.scale]
-		});
-		g.renderMesh("garmr_body", this.trackBody.position.subtract(c), this.zIndex+2, {
-			"rotate" : [0, this.trackBody.rotation, 0]
-		});
-		
-		
-		this.trackUpperRightArm.offset.y = Math.lerp(0,-40,this.trackChest.scale-0.5);
-		
-		offset = Vector.rotate(this.trackUpperRightArm.offset,0,this.trackChest.rotation,0);
-		let rightArmZOff = this.trackChest.rotation * 0.1;
-		g.renderMesh("garmr_armupper", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+rightArmZOff, {
-			"rotate" : [
-				this.trackUpperRightArm.rotation.x, 
-				this.trackUpperRightArm.rotation.y + this.trackChest.rotation, 
-				this.trackUpperRightArm.rotation.z
-			]
-		});
-		offset = this.trackUpperRightArm.offset.add(new Matrix4x4().rotate(
-			this.trackUpperRightArm.rotation.x, 
-			this.trackUpperRightArm.rotation.y + this.trackChest.rotation, 
-			this.trackUpperRightArm.rotation.z
-		).apply(Garmr.lowerArmOffset));
-		g.renderMesh("garmr_armlower", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+rightArmZOff, {
-			"rotate" : [
-				this.trackLowerRightArm.rotation, 
-				this.trackChest.rotation, 
-				this.trackUpperRightArm.rotation.y
-			]
-		});
-		
-		
-		this.trackUpperLeftArm.offset.y = Math.lerp(0,-40,this.trackChest.scale-0.5);
-		
-		offset = Vector.rotate(this.trackUpperLeftArm.offset,0,this.trackChest.rotation,0);
-		let leftArmZOff = this.trackChest.rotation * -0.1;
-		g.renderMesh("garmr_armupper", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+leftArmZOff, {
-			"flip" : true,
-			"rotate" : [
-				this.trackUpperLeftArm.rotation.x, 
-				this.trackUpperLeftArm.rotation.y + this.trackChest.rotation, 
-				this.trackUpperLeftArm.rotation.z
-			]
-		});
-		offset = new Vector(36,-20,40).add(new Matrix4x4().rotate(
-			this.trackUpperLeftArm.rotation.x, 
-			this.trackUpperLeftArm.rotation.y + this.trackChest.rotation, 
-			this.trackUpperLeftArm.rotation.z
-		).apply(Garmr.lowerArmOffset));
-		g.renderMesh("garmr_armlower", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+leftArmZOff, {
-			"flip" : true,
-			"rotate" : [
-				this.trackLowerLeftArm.rotation, 
-				this.trackChest.rotation, 
-				this.trackUpperLeftArm.rotation.y
-			]
-		});
+		if(this.effects.lightning){
+			LightningBolt.renderBolt(g,c,this.position,this.boss_starting_position.add(new Point(0,-256)),this.effects.lightingSeed);
+		}
 		
 		//White Laser
 		if(this.trackRay.isOn){
@@ -4206,6 +5027,90 @@ class Garmr extends GameObject{
 				);
 			}
 		}
+		
+		if(this.states.phase == 0){
+			g.renderSprite("garmr_small", this.position.subtract(c), this.zIndex, this.frame, this.flip);
+		} else if(this.states.phase == 1){
+			g.renderSprite("garmr_large", this.position.subtract(c), this.zIndex, this.frame, this.flip);
+		} else {
+			//Render 3D model for phase 2
+		
+			this.trackHead.rotation.y = Math.lerp(this.trackHead.rotation.y, Math.PI * this.forward() * this.trackHead.turnStrength, this.delta * 3.75);
+			this.trackChest.rotation = Math.lerp(this.trackChest.rotation, this.trackHead.rotation.y, this.delta * 6.5);
+			this.trackBody.rotation = Math.lerp(this.trackBody.rotation, this.trackChest.rotation, this.delta * 3.25);
+			
+			this.trackHead.position = new Vector(this.position.x, this.position.y, 0);
+			this.trackChest.position = Vector.lerp(this.trackChest.position, this.position, this.delta * 12.0);
+			this.trackBody.position = Vector.lerp(this.trackBody.position, this.trackChest.position, this.delta * 12.0);
+			
+			let offset = Vector.rotate(this.trackHead.offset,0,this.trackHead.rotation.y,0);
+			let headModel = this.trackHead.scream ? "garmr_headscream" : "garmr_head";
+			
+			g.renderMesh(headModel, this.trackHead.position.add(offset).subtract(c), this.zIndex+3+0.001, {
+				"rotate" : [this.trackHead.rotation.x, this.trackHead.rotation.y, 0]
+			});
+			g.renderMesh("garmr_chest", this.trackChest.position.subtract(c), this.zIndex+3, {
+				"rotate" : [0, this.trackChest.rotation, 0],
+				"scale" : [this.trackChest.scale,this.trackChest.scale,this.trackChest.scale]
+			});
+			g.renderMesh("garmr_body", this.trackBody.position.subtract(c), this.zIndex+2, {
+				"rotate" : [0, this.trackBody.rotation, 0]
+			});
+			
+			
+			this.trackUpperRightArm.offset.y = Math.lerp(0,-40,this.trackChest.scale-0.5);
+			
+			offset = Vector.rotate(this.trackUpperRightArm.offset,0,this.trackChest.rotation,0);
+			let rightArmZOff = this.trackChest.rotation * 0.1;
+			g.renderMesh("garmr_armupper", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+rightArmZOff, {
+				"rotate" : [
+					this.trackUpperRightArm.rotation.x, 
+					this.trackUpperRightArm.rotation.y + this.trackChest.rotation, 
+					this.trackUpperRightArm.rotation.z
+				]
+			});
+			offset = this.trackUpperRightArm.offset.add(new Matrix4x4().rotate(
+				this.trackUpperRightArm.rotation.x, 
+				this.trackUpperRightArm.rotation.y + this.trackChest.rotation, 
+				this.trackUpperRightArm.rotation.z
+			).apply(Garmr.lowerArmOffset));
+			g.renderMesh("garmr_armlower", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+rightArmZOff, {
+				"rotate" : [
+					this.trackLowerRightArm.rotation, 
+					this.trackChest.rotation, 
+					this.trackUpperRightArm.rotation.y
+				]
+			});
+			
+			
+			this.trackUpperLeftArm.offset.y = Math.lerp(0,-40,this.trackChest.scale-0.5);
+			
+			offset = Vector.rotate(this.trackUpperLeftArm.offset,0,this.trackChest.rotation,0);
+			let leftArmZOff = this.trackChest.rotation * -0.1;
+			g.renderMesh("garmr_armupper", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+leftArmZOff, {
+				"flip" : true,
+				"rotate" : [
+					this.trackUpperLeftArm.rotation.x, 
+					this.trackUpperLeftArm.rotation.y + this.trackChest.rotation, 
+					this.trackUpperLeftArm.rotation.z
+				]
+			});
+			offset = new Vector(36,-20,40).add(new Matrix4x4().rotate(
+				this.trackUpperLeftArm.rotation.x, 
+				this.trackUpperLeftArm.rotation.y + this.trackChest.rotation, 
+				this.trackUpperLeftArm.rotation.z
+			).apply(Garmr.lowerArmOffset));
+			g.renderMesh("garmr_armlower", this.trackChest.position.add(offset).subtract(c), this.zIndex+3+leftArmZOff, {
+				"flip" : true,
+				"rotate" : [
+					this.trackLowerLeftArm.rotation, 
+					this.trackChest.rotation, 
+					this.trackUpperLeftArm.rotation.y
+				]
+			});
+		}
+		
+		
 	}
 }
 Garmr.lowerArmOffset = new Vector(0,0,40);
@@ -4216,6 +5121,9 @@ Garmr.STATE_FIREBEAM = 3;
 Garmr.STATE_LIGHTNING = 4;
 Garmr.STATE_FIREFLOOR = 5;
 Garmr.STATE_FIRESKY = 6;
+Garmr.STATE_TRANSFORM = 7;
+Garmr.STATE_POSE = 8;
+Garmr.BLOCK_RAISE_TIME = Game.DELTASECOND * 6;
 self["Garmr"] = Garmr;
 
 class GarmrBolt extends GameObject{
@@ -4226,7 +5134,9 @@ class GarmrBolt extends GameObject{
 		this.width = this.height = 12;
 		this.zIndex = 20;
 		
-		this.damage = 3;
+		this.damage = 0;
+		this.damageLight = 3;
+		
 		this.time = 8;
 		this.addModule(mod_rigidbody);
 		
@@ -4236,15 +5146,17 @@ class GarmrBolt extends GameObject{
 		this.friction = this.friction_y = 0.0;
 		this.pushable = false;
 		
+		this.tailSize = 8;
+		this.tailTime = 0;
+		this.tail = [];
+		
 		this.on("struck", function(){
 			this.destroy();
 		});
 		
 		this.on("collideObject", function(obj){
 			if( obj instanceof Player ){
-				let dam = Combat.getDamage();
-				dam.light = this.damage;
-				obj.hurt(this, dam);
+				obj.hurt(this, Combat.getDamage.apply(this));
 				this.destroy();
 			}
 		});
@@ -4258,7 +5170,28 @@ class GarmrBolt extends GameObject{
 		}
 	}
 	render(g,c){
+		this.tailTime -= this.delta;
+		if(this.tailTime <= 0){
+			this.tail.push(this.position.scale(1));
+			this.tailTime += GarmrBolt.TIME_TAILUPDATE;
+		}
+		if(this.tail.length > this.tailSize){
+			this.tail.remove(0);
+		}
+		
 		g.color = COLOR_LIGHTNING;
+		for(let i=0; i < this.tail.length; i++){
+			let curr = this.tail[i];
+			let next = this.position;
+			if((i+1)<this.tail.length) { next = this.tail[i+1]; }
+			
+			g.renderLine(
+				curr.subtract(c),
+				next.subtract(c),
+				1, g.color
+			);
+		}
+		
 		Renderer.drawRect(
 			this.position.x - (this.width * 0.5) - c.x,
 			this.position.y - (this.height * 0.5) - c.y,
@@ -4269,6 +5202,7 @@ class GarmrBolt extends GameObject{
 		
 	}
 }
+GarmrBolt.TIME_TAILUPDATE = 0.09375;
 
  /* platformer\boss_ghostchort.js*/ 
 
@@ -4752,6 +5686,191 @@ Marquis.anim_turn = new Sequence([
 Marquis.line_attackup = new Line(16,6,88,10);
 Marquis.line_attackdown = new Line(16,28,64,32);
 
+ /* platformer\boss_mechakeeper.js*/ 
+
+class MechaKeeper extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = this.height = 64;
+		
+		this.wheelYOffset = 56;
+		this.wheels = game.addObject(new MechaKeeperWheels(x,y + this.wheelYOffset));
+		
+		this.addModule(mod_combat);
+		this.addModule(mod_boss);
+		
+		this.damageContact = 0.0;
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.life = this.lifeMax = Spawn.life(40, this.difficulty);
+		this.damage = Spawn.damage(9, this.difficulty);
+		this.force = new Point();
+		this.speed = 16;
+		
+		this._state = 0;
+		this._time = 0.0;
+		this._timeMax = 1.0;
+		this._subtime = 0.0;
+		this._count = 1;
+		this._goto = false;
+		
+		this.on("hurt", function(obj, damage){
+			audio.play("hurt", this.position);
+		});
+	}
+	fireBullet(){
+		let dif = this.target().position.subtract(this.position);
+		let dir = dif.normalize();
+		let angle = Math.randomRange(-0.2,0.2) - dif.toAngle();
+		
+		audio.play("bullet1", this.position);
+					
+		var bullet = new Bullet(this.position.x, this.position.y - 32);
+		bullet.team = this.team;
+		bullet.frame.x = 4;
+		bullet.force = Point.fromAngle(angle).scale(4).add(this.wheels.force);
+		bullet.rotation = angle * Math.rad2deg;
+		bullet.damage = this.damage;
+		game.addObject(bullet);
+	}
+	fireMissile(){
+		let ops = new Options();
+		ops["team"] = this.team;
+		ops["damage"] = this.damage;
+		ops["rotation"] = -90;
+		let missile = Bullet.createHomingMissile(this.position.x + this.forward() * 16, this.position.y, ops);
+		game.addObject(missile);
+	}
+	idle(){}
+	setState(s){
+		this._state = s;
+		if(this._state == MechaKeeper.STATE_BULLETS ){
+			this._time = 3.0;
+			this._count = 16;
+			this._subtime = 0.0;
+		} else if( this._state == MechaKeeper.STATE_MISSILES ){
+			this._count = 3;
+			this._subtime = 0.0;
+		}
+	}
+	update(){
+		if( this.life > 0 && this.active){
+			
+			if(this._state == MechaKeeper.STATE_IDLE ){
+				this.setState(MechaKeeper.STATE_MISSILES);
+			} else if(this._state == MechaKeeper.STATE_BULLETS ){
+				//Fire bullet
+				this._subtime -= this.delta;
+				
+				if(this._time > 0){
+					this._time -= this.delta;
+				} else if(this._subtime <= 0){
+					if(this._count > 0){
+						this._count--;
+						this._subtime = 0.25;
+						this.fireBullet();
+					} else {
+						this.setState(MechaKeeper.STATE_MISSILES);
+					}
+				}
+				
+			} else if( this._state == MechaKeeper.STATE_MISSILES ){
+				//Fire Missiles
+				this._subtime -= this.delta;
+				
+				if(this._subtime <= 0){
+					if(this._count > 0){
+						this._count--;
+						this._subtime = 1.0;
+						this.fireMissile();
+					} else {
+						this.setState(MechaKeeper.STATE_BULLETS);
+					}
+				}
+			}
+			
+			this.updatePosition();
+			
+		} else {
+			this.wheels.force.x = this.wheels.force.y = 0.0;
+		}
+	}
+	updatePosition(){
+		let target = this.target().position.scale(1);
+		if(this._goto instanceof Point){ target = this._goto; }
+		
+		this.flip = target.x < this.position.x;
+		this.wheels.force.x += this.forward() * this.delta * this.speed;
+		this.wheels.force = this.wheels.force.scale(1.0 - this.delta * 0.2 * UNITS_PER_METER);
+		this.wheels.position.x += this.wheels.force.x * this.delta * UNITS_PER_METER;
+		
+		this.force.x = Math.lerp(this.force.x, this.wheels.force.x, this.delta);
+		this.force.x = 1 - this.delta * 0.2 * UNITS_PER_METER;
+		this.position.x += this.force.x * this.delta * UNITS_PER_METER;
+		
+		if(this.position.x - this.wheels.position.x > MechaKeeper.SLIDE_LIMIT) {
+			this.force.x = this.wheels.force.x;
+			this.position.x = this.wheels.position.x + MechaKeeper.SLIDE_LIMIT;
+		} else if(this.position.x - this.wheels.position.x < -MechaKeeper.SLIDE_LIMIT) {
+			this.force.x = this.wheels.force.x;
+			this.position.x = this.wheels.position.x - MechaKeeper.SLIDE_LIMIT;
+		}
+	}
+	render(g,c){
+		let topleft = this.position.subtract(new Point(this.width, this.height).scale(0.5));
+		g.color = [1.0,0.5,0.0,1.0];
+		g.drawRect(
+			topleft.x - c.x, topleft.y - c.y, this.width, this.height, this.zIndex
+		);
+	}
+}
+MechaKeeper.STATE_IDLE = 0;
+MechaKeeper.STATE_MISSILES = 1;
+MechaKeeper.STATE_BULLETS = 2;
+MechaKeeper.SLIDE_LIMIT = 16;
+
+class MechaKeeperWheels extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 160;
+		this.height = 48;
+		
+		this.addModule(mod_block);
+		this.blockTopOnly = true;
+		this.riders = new Array();
+		this.force = new Point(4,0);
+		
+		this.on("blockOnTop",function(obj){
+			if(this.riders.indexOf(obj) < 0){
+				this.riders.push(obj);
+			}
+		});
+	}
+	idle(){}
+	update(){
+		for(let i=0; i < this.riders.length; i++){
+			if(this.block_isOnboard(this.riders[i])){
+				this.riders[i].position.x += this.force.x * this.delta * UNITS_PER_METER;
+			} else {
+				this.riders.remove(i);
+				i--;
+			}
+		}
+	}
+	render(g,c){
+		let topleft = this.position.subtract(new Point(this.width, this.height).scale(this.origin.x, this.origin.y));
+		g.color = [1.0,0.25,0.0,1.0];
+		g.drawRect(
+			topleft.x - c.x, topleft.y - c.y, this.width, this.height, this.zIndex
+		);
+	}
+}
+
+self["MechaKeeper"] = MechaKeeper;
+
  /* platformer\boss_minotaur.js*/ 
 
 Minotaur.prototype = new GameObject();
@@ -5000,10 +6119,10 @@ class PigbossKnight extends GameObject {
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		this.life = this.lifeMax = Spawn.life(8, this.difficulty);
 		this.defencePhysical = 0;
-		this.defenceFire = Spawn.defence(2,this.difficulty);
-		this.defenceSlime = Spawn.defence(2,this.difficulty);;
-		this.defenceIce = Spawn.defence(2,this.difficulty);;
-		this.defenceLight = Spawn.defence(2,this.difficulty);;
+		this.defenceFire = Spawn.defence(4,this.difficulty);
+		this.defenceSlime = Spawn.defence(4,this.difficulty);;
+		this.defenceIce = Spawn.defence(4,this.difficulty);;
+		this.defenceLight = Spawn.defence(4,this.difficulty);;
 		
 		this.moneyDrop = 0;
 		this.xpDrop = Spawn.xp(25,this.difficulty);
@@ -7715,6 +8834,10 @@ function Fire(x,y){
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		
+		if( obj instanceof Puddle ){
+			this.life = 0;
+		}
+		
 		if( obj.hurt instanceof Function ) {
 			this.life = 0;
 			obj.hurt( this, Combat.getDamage.apply(this) );
@@ -8015,91 +9138,121 @@ class CarpetBomb extends GameObject{
 }
 self["CarpetBomb"] = CarpetBomb;
 
-FlameTower.prototype = new GameObject();
-FlameTower.prototype.constructor = GameObject;
-function FlameTower(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.height = 8;
-	this.width = 32;
-	this.time = 0;
-	
-	this.damage = 0;
-	this.damageFire = 10;
-	this.damageSlime = 0;
-	this.damageIce = 0;
-	this.damageLight = 0;
-	
-	this.flameHeight = 88;
-	
-	this.timers = {
-		"wait" : Game.DELTASECOND * 0.0,
-		"active" : Game.DELTASECOND * 0.5,
-		"destroy" : Game.DELTASECOND * 0.9
-	};
-	
-	this.on("sleep", function(){
-		this.destroy();
-	});
-	this.on("collideObject", function(obj){
-		if( obj instanceof Player && this.time > this.timers.active) {
-			obj.hurt(this,Combat.getDamage.apply(this));
-		}
-	});
-	
-	this.addModule( mod_rigidbody );
-	this.pushable = false;
-}
-
-FlameTower.prototype.update = function(){
-	this.time += this.delta;
-	if(this.time < this.timers.wait){
-		
-	}else if(this.time < this.timers.active){
-		var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
-		Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), COLOR_FIRE );
-	} else {
-		var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
-		var preh = this.height;
-		this.height = this.flameHeight * Math.min(prog*1.5,1);
-		this.rigidbodyActive = false;
-		this.position.y -= 0.5 * (this.height-preh);
-		Background.pushLight( this.position, this.height*2, COLOR_FIRE );
+class FlameTower extends GameObject{
+	get towerHeight() {
+		let d = Math.clamp01( (this.time-this.timers.active) / (this.timers.destroy-this.timers.active-0.1) );
+		return Math.lerp(8,this.flameHeight,d);
 	}
-	if(this.time > this.timers.destroy){
-		this.destroy();
-	}
-}
+	constructor(x,y){
+		super(x,y);
 	
-FlameTower.prototype.render = function(g,c){
-	if(this.time > this.timers.wait){
-		var w = 0;
-		var h = 0;
-		if(this.time < this.timers.active){
-			var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
-			w = 1.5 * this.width * prog;
-			h = 16 * (1 - prog);
-		} else {
-			//active
-			w = this.width;
-			h = this.height;
-		}
+		this.position.x = x;
+		this.position.y = y;
+		this.height = 8;
+		this.width = 32;
+		this.time = 0;
 		
-		g.renderSprite(
-			"effect_fire",
-			this.position.subtract(c),
-			this.zIndex,
-			this.frame,
-			this.flip,
-			{
-				"shader" : "fire",
-				"u_time" : game.timeScaled * 0.01,
-				"scalex" : w / 64,
-				"scaley" : h / 64,
+		this.spread = 0;
+		this.spreadDirection = 1;
+		this.hasSpread = false;
+		
+		this.damage = 0;
+		this.damageFire = 10;
+		this.damageSlime = 0;
+		this.damageIce = 0;
+		this.damageLight = 0;
+		
+		this.flameHeight = 88;
+		
+		this.timers = {
+			"wait" : Game.DELTASECOND * 0.0,
+			"active" : Game.DELTASECOND * 0.5,
+			"destroy" : Game.DELTASECOND * 0.9,
+			"spread" : Game.DELTASECOND * 0.25
+		};
+		
+		this.on("sleep", function(){
+			this.destroy();
+		});
+		this.on("collideObject", function(obj){
+			if( obj instanceof Player ){
+				if (this.time > this.timers.active && this.time < this.timers.destroy-0.1) {
+					obj.hurt(this,Combat.getDamage.apply(this));
+				}
 			}
-		)
-	} 
+		});
+		
+		this.addModule( mod_rigidbody );
+		this.pushable = false;
+	}
+
+	update(){
+		this.time += this.delta;
+		
+		if(this.time >= this.timers.spread && !this.hasSpread ){
+			//EXPLODE
+			createExplosion(this.position.scale(1),32);
+			
+			if(this.spread > 0){
+				let s = new FlameTower(this.position.x + 32 * this.spreadDirection, this.position.y);
+				s.spread = this.spread - 1;
+				s.spreadDirection = this.spreadDirection;
+				game.addObject(s);
+			}
+			this.hasSpread = true;
+		}
+		
+		if(this.time < this.timers.wait){
+			
+		}else if(this.time < this.timers.active){
+			var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+			Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), COLOR_FIRE );
+		} else {
+			var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
+			var preh = this.height;
+			this.height = this.towerHeight;
+			this.rigidbodyActive = false;
+			this.position.y -= 0.5 * (this.height-preh);
+			Background.pushLight( this.position, this.height*2, COLOR_FIRE );
+		}
+		if(this.time > this.timers.destroy){
+			this.destroy();
+		}
+	}
+		
+	render(g,c){
+		if(this.time > this.timers.wait){
+			var w = 0;
+			var h = 0;
+			var intensity = Math.clamp01( (this.timers.destroy - this.time) * 3 );
+			if(this.time < this.timers.active){
+				var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+				w = 1.5 * this.width * prog;
+				h = 16 * (1 - prog);
+			} else {
+				//active
+				w = this.width;
+				h = this.height;
+			}
+			
+			//Make it appear a little taller than it is
+			h *= 2.1;
+			
+			g.renderSprite(
+				"effect_fire",
+				this.position.subtract(c),
+				this.zIndex,
+				this.frame,
+				this.flip,
+				{
+					"u_time" : game.timeScaled * 0.5,
+					"u_intensity" : intensity,
+					"scalex" : w / 64,
+					"scaley" : h / 64,
+				}
+			)
+		} 
+	}
 }
 
  /* platformer\bullet_spells.js*/ 
@@ -8640,12 +9793,17 @@ Checkpoint.saveState = function(obj){
 	PauseMenu.saveMapReveal();
 	
 	//Get quest data
+	
 	var q = {}
+	/*
 	var i = 0;
 	while("q"+i in Quests){
 		q["q"+i] = Quests["q"+i];
 		i++;
 	}
+	*/
+	
+	
 	
 	//Save map and location
 	var location = {
@@ -8663,6 +9821,7 @@ Checkpoint.saveState = function(obj){
 		"quests" : q,
 		"location" : location,
 		"variables" : NPC.variables,
+		"mapreveal" : WorldMap.map,
 		"player" : _player.toJson(),
 		"settings" : Settings
 	}
@@ -8682,6 +9841,7 @@ Checkpoint.loadState = function(){
 			_player.fromJson(data.player);
 			
 			NPC.variables = data.variables;
+			WorldMap.map = data.mapreveal;
 			
 			game.loadMap(data.location.map, function(starts){
 				_player.position.x = data.location.x;
@@ -10912,11 +12072,13 @@ function EffectAbsorb(x, y){
 	this.frame = new Point(4,1);
 	
 	this.speed = 10.0;
+	
+	this.on("sleep", function(){ this.destroy(); } );
 }
 
 EffectAbsorb.prototype.render = function(g,c){
 	var dir = this.position.subtract(_player.position);
-	var speed = this.speed * this.delta;
+	var speed = this.speed * UNITS_PER_METER * this.delta;
 	
 	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false);
 	
@@ -12482,12 +13644,13 @@ class Biker extends GameObject {
 		
 		this.width = 64;
 		this.height = 24;
-		
+		this.zIndex = 12;
 		this.sprite = "biker";
 		
 		this.addModule(mod_block);
 		this.addModule(mod_rigidbody);
 		
+		this.blockTopOnly = true;
 		this.pushable = false;
 		this.friction = 0.01;
 		this.collisionReduction = -1.0;
@@ -12548,8 +13711,10 @@ class Biker extends GameObject {
 				this._onboardLastFrame = true;
 				
 				if(rider.states.duck){
-					this._breaking = true;
-					this.force.x *= 1 - this.breaks * this.delta;
+					//this._breaking = true;
+					//this.force.x *= 1 - this.breaks * this.delta;
+					this._breaking = false;
+					this.addHorizontalForce( this.speed * 2.0 * rider.forward(), this.acceleration * 2.0 );
 				} else {
 					this._breaking = this.flip != rider.flip;
 					this.addHorizontalForce( this.speed * rider.forward(), this.acceleration );
@@ -23262,7 +24427,8 @@ var PlayerAttackList = [
 		"movement" : 1.0,
 		"audio" : "swing",
 		"mesh" : "slashd",
-		"path" : [new Point(-0.05,8), new Point(0,36), new Point(0.05,8)]
+		//"path" : [new Point(-0.05,8), new Point(0,36), new Point(0.05,8)]
+		"path" : new Line(-8,8,8,36),
 		//"airtime" : 0.3 * Game.DELTASECOND
 	},
 	{	//Whip attack
@@ -25269,6 +26435,31 @@ class LightningBolt extends GameObject {
 		}
 	}
 }
+LightningBolt.renderBolt = function(g,c,start,end,seed=""){
+	let s = new Seed(seed);
+	let dif = end.subtract(start);
+	let dir = dif.normalize();
+	let prp = new Point(-dir.y, dir.x);
+	
+	let curr = start.scale(1);
+	let distance = dif.length();
+	
+	while(distance > 0){
+		let range = Math.min(8 + s.random() * 32, distance);
+		let shake = (s.random()-0.5) * 32;
+		
+		distance -= range;
+		if(distance<=0) { shake = 0.0;}
+		
+		let next = curr.add(dir.scale(range)).add(prp.scale(shake));
+		g.renderLine(
+			curr.subtract(c),
+			next.subtract(c),
+			2, COLOR_LIGHTNING
+		)
+		curr = next;
+	}
+}
 LightningBolt.BOLT_TME = Game.DELTASECOND * 0.125;
 LightningBolt.WARNING_TME = Game.DELTASECOND * 2;
 self["LightningBolt"] = LightningBolt;
@@ -26586,10 +27777,14 @@ PauseMenu.prototype.update = function(){
 			this.mapCursor.y = 11 - Math.floor(_player.position.y / 240);
 			this.stat_cursor = 0;
 			this.page = 1;
-			this.questlist = Quests.list();
+			//this.questlist = Quests.list();
 			if( _player.stat_points > 0 ) this.page = 2;
 			audio.play("pause");
 			AttributeMenu.close();
+			
+			Renderer.setRenderTarget("rt_worldmap", 512, 512);
+			WorldMap.render(Renderer, new Point(32,64) );
+			Renderer.resetRenderTarget();
 		}
 	}
 
@@ -26716,7 +27911,7 @@ PauseMenu.prototype.hudrender = function(g,c){
 			
 			if(this.mapflip){
 				boxArea(g,leftx,8,224,224);
-
+				
 				if(name in player_map_position){
 					var map_position = player_map_position[name];				
 					let bounce = Math.sin(game.time * 0.1) * 2;
@@ -26726,11 +27921,18 @@ PauseMenu.prototype.hudrender = function(g,c){
 				g.renderSprite("worldmap", new Point(leftx+8,16),1,new Point(), false);
 				textArea(g,"Minimap (JUMP)",leftx+100,212);
 			} else {
-				boxArea(g,leftx,8,224,224);
+				//boxArea(g,leftx,8,224,224);
+				boxArea(g,20,8,387,224);
 				textArea(g,"Map",leftx+102,20);
 				textArea(g,"Map",leftx+102,20);
-				this.renderMap(g,this.mapCursor,new Point(leftx+16,24), new Line(0,0,24*8,24*8) );
-				textArea(g,"Worldmap (JUMP)",leftx+96,212);
+				
+				//let mpos = WorldMap.pos2mapPos(_player.position);
+				//let off = new Point(game.resolution.x - 32,16).subtract(mpos.scale(8));
+			
+				g.renderSprite("rt_worldmap", new Point(0,256), 99, new Point(), false, {scaley:-1});
+				
+				//this.renderMap(g,this.mapCursor,new Point(leftx+16,24), new Line(0,0,24*8,24*8) );
+				//textArea(g,"Worldmap (JUMP)",leftx+96,212);
 			}
 			
 		} else if ( this.page == 2 ) {
@@ -26774,15 +27976,32 @@ PauseMenu.prototype.hudrender = function(g,c){
 	} else {
 		if( _player instanceof Player ) {
 			//Minimap
-			g.color = [1.0,1.0,1.0,1.0];
-			g.drawRect(game.resolution.x-49,7,42,26,1);
 			g.color = [0.0,0.0,0.0,1.0];
-			g.drawRect(game.resolution.x-48,8,40,24,2);
+			g.drawRect(game.resolution.x-48,8,40,24,-1);
+			
+			let trackPos = _player.position.subtract(new Point(128,120));
+			let ppos = new Point((trackPos.x * 1/256) % 1 ,(trackPos.y * 1/240) % 1).scale(8);
+			let mpos = WorldMap.pos2mapPos(trackPos);
+			let off = new Point(game.resolution.x - 32,16).subtract(ppos).subtract(mpos.scale(8));
+			
+			
+			WorldMap.render(g, off, new Line(mpos.x-2, mpos.y-1, mpos.x+4, mpos.y+3), true );
+			
+			//Render border
+			g.color = [0.2,0.2,0.2,1.0];
+			g.drawRect(game.resolution.x-48,0,48,8,5); // top
+			g.drawRect(game.resolution.x-56,0,8,40,5); //left
+			g.drawRect(game.resolution.x-48,32,48,8,5); // bottom
+			g.drawRect(game.resolution.x-8,0,8,40,5); //right
+			
+			
+			/*
 			this.renderMap(g,
 				new Point(Math.floor(-_player.position.x/256), Math.floor(-_player.position.y/240)),
 				new Point(game.resolution.x-24,24), 
 				new Line(-24,-16,16,8)
 			);
+			*/
 		}
 	}
 }
@@ -27188,7 +28407,7 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 		
 		textArea(g,"$"+profile.money,c.x+90,c.y+16);
 		textArea(g,"T"+timeHour+":"+timeMinute,c.x+90,c.y+28);
-		textArea(g,profile.location,c.x+90,c.y+40);
+		//textArea(g,profile.location,c.x+90,c.y+40);
 		
 		for(var i=0; i < 4; i++){
 			if(profile["stone" + i]){
@@ -27236,9 +28455,9 @@ TitleMenu.fetchProfiles = function(){
 			var areas = i18n("maps");
 			var map = i18n("map_unknown");
 			
-			if(d.location.map in areas){
+			try{
 				map = areas[d.location.map];
-			}
+			} catch(e){}
 			
 			var out = {
 				"id" : i,
@@ -27670,6 +28889,13 @@ var mod_rigidbody = {
 			return game.getTileRule(p) == tilerules.ignore && game.getTileRule(q) == tilerules.ignore;
 			
 		}
+		this.blockDropOff = function(){
+			if(this.currentlyStandingBlock){
+				this.currentlyStandingBlock.trigger("block_object_dropoff", this);
+				this.trigger("block_dropoff", this.currentlyStandingBlock);
+				this.currentlyStandingBlock = false;
+			}
+		}
 		this.addHorizontalForce = function(speed, acceleration=1.0){
 			//Adds horizontal force while also limiting top speed
 			let absSpeed = Math.abs(speed);
@@ -27766,9 +28992,9 @@ var mod_rigidbody = {
 			if(this.currentlyStandingBlock){
 				this.position = this.position.add(this.currentlyStandingBlock.blockChange);
 				if(!this.currentlyStandingBlock.interactive){
-					this.currentlyStandingBlock = false;
+					this.blockDropOff();
 				} else if(this.isStuck){
-					this.currentlyStandingBlock = false;
+					this.blockDropOff();
 				} else if(this.grounded && this.currentlyStandingBlock.block_isWithinX(this)){
 					this.force.y = 0.0;
 					var c = this.currentlyStandingBlock.corners();
@@ -27776,7 +29002,7 @@ var mod_rigidbody = {
 					this.trigger("collideVertical", 1);
 					this.currentlyStandingBlock.trigger("ontop", this);
 				} else {
-					this.currentlyStandingBlock = false;
+					this.blockDropOff();
 				}
 			}
 			
@@ -27900,7 +29126,7 @@ var mod_block = {
 		this.block_isWithinX = function(obj){
 			c = obj.corners();
 			d = this.corners();
-			return c.right >= d.left && c.left <= d.right;
+			return c.right >= d.left-1 && c.left <= d.right+1;
 		}
 		this.block_isWithinY = function(obj){
 			c = obj.corners();
@@ -27941,6 +29167,7 @@ var mod_block = {
 				obj.position.y = (c.top - 0.1) - obj.height * obj.origin.y;
 				obj.trigger( "collideVertical", 1);
 				obj.trigger( "blockCollideVertical", 1, this);
+				this.trigger("blockOnTop", obj);
 			}
 			if(obj.gravity > 0){
 				this.trigger("blockLand",obj);
@@ -27948,8 +29175,10 @@ var mod_block = {
 					//obj.trigger("land");
 				}
 				//this.blockOnboard.push(obj);
-				obj.currentlyStandingBlock = this;
-				obj.preventPlatFormSnap = Game.DELTAFRAME30;
+				if(obj.bounce == 0){
+					obj.currentlyStandingBlock = this;
+					obj.preventPlatFormSnap = Game.DELTAFRAME30;
+				}
 			}
 		});
 		this.on("collideBottom", function(obj){
@@ -28188,7 +29417,7 @@ var mod_combat = {
 		this.combat_knockback_speed = 8.0;
 		this.combat_knockback_friction = 0.125;
 		this.combat_player_combo_lock = true;
-		this.combat_burstondeath = true;
+		this.combat_canbecomedeathbullet = true;
 		
 		this.death_time = 0;
 		this._death_confirmed = false;
@@ -28278,12 +29507,9 @@ var mod_combat = {
 						//Rag doll and explode
 						this.trigger("pre_death");
 						
-						if(this.combat_burstondeath){
-							//
-						}
-						
 						this.physicsLayer = physicsLayer.particles;
 						this.ragdoll = true;
+						
 					}
 				} else if( this.combat_isalive ){
 					this.combat_isalive = false;
@@ -28325,69 +29551,7 @@ var mod_combat = {
 		
 		this.calcDamage = Combat.calcDamage;
 		
-		this.hurt = function(obj, damage){
-			
-			if(damage == undefined){
-				//If no damage is supplied, get it
-				damage = Combat.getDamage.apply(obj);
-			}
-			
-			//Turns damage object into a flat damage number
-			damage = this.calcDamage(damage);
-			
-			
-			if( this.invincible <= 0 ) {
-				//Increment number of hits
-				this.combat_stuncount++;
-				this.trigger("stun", obj, damage, this.combat_stuncount);
-				
-				if( Math.random() < this.criticalChance && damage > 0) {
-					//Determine if its a critical shot
-					damage *= obj.criticalMultiplier || 2.0;
-					audio.play("critical",this.position);
-					game.slow(0.1, Game.DELTASECOND * 0.5 );
-					this.trigger("critical",obj,damage);
-					game.addObject(new EffectCritical(this.position.x, this.position.y));
-				}
-				
-				if(damage > 0){
-					//damage = Math.max( damage - Math.ceil( this.defencePhysical * damage ), 1 );
-					
-					damage = obj.useBuff("prehurt_other",damage,this);
-					damage = this.useBuff("hurt",damage,obj);
-					let preLife = this.life;
-					
-					this.displayDamage(damage);
-					
-					this.combatFinalDamage(damage);
-					
-					this.isDead();
-					
-					if(this.life <= 0 && preLife > 0){
-						obj.trigger("kill", this);
-					}
-					
-					this.invincible = this.invincible_time;
-					//this.stun = this.stun_time;
-					this.trigger("hurt",obj,damage);
-					obj.trigger("hurt_other",this,damage);
-					
-					this.useBuff("posthurt",damage,obj);
-					obj.useBuff("hurt_other",damage,this);
-					
-					
-					if(this.ragdoll && this.hasModule(mod_rigidbody)){
-						this.grounded = false;
-						this.gravity = 0.6;
-						this.criticalChance = 0;
-						this.force.y = -7;
-						this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
-					}
-				} else {
-					this.invincible = this.invincible_time;
-				}
-			}
-		}
+		this.hurt = Combat.hurt;
 		
 		this.calculateXP = function(){}
 	},
@@ -28631,6 +29795,68 @@ var Combat = {
 			obj.hurt( this, damage );
 			
 			this.trigger("struckTarget", obj);
+		}
+	},
+	"hurt" : function(obj, damage){
+		if(damage == undefined){
+			//If no damage is supplied, get it
+			damage = Combat.getDamage.apply(obj);
+		}
+		
+		//Turns damage object into a flat damage number
+		damage = this.calcDamage(damage);
+		
+		
+		if( this.invincible <= 0 ) {
+			//Increment number of hits
+			this.combat_stuncount++;
+			this.trigger("stun", obj, damage, this.combat_stuncount);
+			
+			if( Math.random() < this.criticalChance && damage > 0) {
+				//Determine if its a critical shot
+				damage *= obj.criticalMultiplier || 2.0;
+				audio.play("critical",this.position);
+				game.slow(0.1, Game.DELTASECOND * 0.5 );
+				this.trigger("critical",obj,damage);
+				game.addObject(new EffectCritical(this.position.x, this.position.y));
+			}
+			
+			if(damage > 0){
+				//damage = Math.max( damage - Math.ceil( this.defencePhysical * damage ), 1 );
+				
+				damage = obj.useBuff("prehurt_other",damage,this);
+				damage = this.useBuff("hurt",damage,obj);
+				let preLife = this.life;
+				
+				this.displayDamage(damage);
+				
+				this.combatFinalDamage(damage);
+				
+				this.isDead();
+				
+				if(this.life <= 0 && preLife > 0){
+					obj.trigger("kill", this);
+				}
+				
+				this.invincible = this.invincible_time;
+				//this.stun = this.stun_time;
+				this.trigger("hurt",obj,damage);
+				obj.trigger("hurt_other",this,damage);
+				
+				this.useBuff("posthurt",damage,obj);
+				obj.useBuff("hurt_other",damage,this);
+				
+				
+				if(this.ragdoll && this.hasModule(mod_rigidbody)){
+					this.grounded = false;
+					this.gravity = 0.6;
+					this.criticalChance = 0;
+					this.force.y = -7;
+					this.force.x = (this.position.x-obj.position.x<0?-1:1) * 2;
+				}
+			} else {
+				this.invincible = this.invincible_time;
+			}
 		}
 	},
 	"shieldArea" : function(){
@@ -28973,6 +30199,7 @@ var mod_camera = {
 				let my = Math.floor(mtile % 16);
 				
 				var output = {
+					"tile" : mtile,
 					"position" : pos.scale(1),
 					
 					"bot" : Math.floor(my / 8) % 2 == 0,
@@ -29014,6 +30241,8 @@ var mod_camera = {
 				//If the camera was never in bounds. Stop everything
 				return;
 			}
+		} else {
+			WorldMap.revealTile(lookat, trule.tile);
 		}
 		
 		let _t = lookat.scale(1/256,1/240).floor();
@@ -31177,7 +32406,7 @@ class ParticleSystem extends GameObject {
 				//Create a new particle
 				let _sprite = this.sprites[ Math.floor(Math.random() * this.sprites.length) ];
 				let _force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.start.y) );
-				let _time = this.loop ? (i/this.count) * this.time : 0.0;
+				let _time = this.loop ? (i/this.count) * this.time : this.time;
 				
 				this.parts[i] = {
 					"position" : this.getRandomPosition(),
@@ -31204,11 +32433,12 @@ class ParticleSystem extends GameObject {
 				if( this.loop){ 
 					part.force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.start.y) );
 					part.position = this.getRandomPosition();
-					part.time += this.time;		
+					//part.time += this.time * Math.randomRange(0.9,1.0);	
+					part.time += this.time;	
 					part.visible = true;
 				} else {
 					part.visible = false;
-					part.time = 0.0;
+					part.time = part.time % this.time;
 				}
 			}
 		}
@@ -31530,6 +32760,7 @@ class Player extends GameObject{
 		this.attstates = {
 			"currentAttack" : -1, // attack index
 			"queue" : null, // true if another press
+			"queueDir" : 0,
 			"time" : 0.0, //current time in attack
 			"totalTime" : 0.0, //Time for the attack
 			"wait" : 0.0, //Time after attack
@@ -31804,7 +33035,7 @@ class Player extends GameObject{
 				//A little shake
 				shakeCamera(Game.DELTASECOND*0.3,5);
 				
-				if( obj.ragdoll ) {
+				if( obj.ragdoll && obj.combat_canbecomedeathbullet ) {
 					//Send the enemy flying
 					var dir = obj.position.add(new Point(0,-2)).subtract(this.position);
 					var aim = dir.normalize().add(new Point(dir.x>0?1:-1,0));
@@ -31939,15 +33170,20 @@ class Player extends GameObject{
 				boxes = spriteWrap.whips.getAttackBoxes(new Point(0,framey), this);
 				
 			} else if(this.attstates.time > 0 && this.attstates.time < this.attstates.totalTime){
-				let range = this.equip_sword.stats.range;
-				let path = this.currentAttack.path;
-				let area = this.equip_sword.stats.size;
-				let i = Math.floor( (path.length-1) * this.attackProgress );
-				let d = ( this.attackProgress * (path.length-1) ) % 1.0;
-				let p = Point.lerp(path[i], path[i+1], d).scale(this.forward() * range, 1);
-				//if(this.flip) { p.x *= -1.0; }
-				
-				boxes.push ( new Line( this.position.add(p.subtract(area.scale(0.5))), this.position.add(p).add(area.scale(0.5)) ) );
+				if( this.currentAttack.path instanceof Line ){
+					let path = this.currentAttack.path.scale(this.forward(),1).correct().transpose(this.position);
+					boxes.push ( path );
+				} else {
+					let range = this.equip_sword.stats.range;
+					let path = this.currentAttack.path;
+					let area = this.equip_sword.stats.size;
+					let i = Math.floor( (path.length-1) * this.attackProgress );
+					let d = ( this.attackProgress * (path.length-1) ) % 1.0;
+					let p = Point.lerp(path[i], path[i+1], d).scale(this.forward() * range, 1);
+					//if(this.flip) { p.x *= -1.0; }
+					
+					boxes.push ( new Line( this.position.add(p.subtract(area.scale(0.5))), this.position.add(p).add(area.scale(0.5)) ) );
+				}
 			} else {
 				//Use default attack tracking
 				boxes = this.swrap.getAttackBoxes(this.frame, this);
@@ -32187,8 +33423,8 @@ class Player extends GameObject{
 				
 				let attack = this.currentAttack;
 				let hAxis = 0;
-				if(input.state("left") > 0) { hAxis -= 1;}
-				if(input.state("right") > 0) { hAxis += 1;}
+				if(input.state("left") > 0) { hAxis -= 1; this.attstates.queueDir=-1; }
+				if(input.state("right") > 0) { hAxis += 1; this.attstates.queueDir=1; }
 				
 				//Allow player movement during attack
 				this.move(hAxis * attack.movement);
@@ -32201,8 +33437,13 @@ class Player extends GameObject{
 				this.frame = this.swrap.frame(attack.animation, this.attackProgress);
 				
 				if(input.state("dodge") == 1){
-					this.cancelAttack();
-					this.dodge();
+					if(this.grounded){
+						this.cancelAttack();
+						this.dodge();
+					} else if (this.dodgeFlash){
+						this.cancelAttack();
+						this.dodgeAir();
+					}
 				} else if(this.attstates.warmTime > 0){
 					//Warm
 					this.attstates.warmTime -= this.delta;
@@ -32220,6 +33461,7 @@ class Player extends GameObject{
 					let nextAttackIndex = this.equip_sword.stats.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
 					
 					if(this.attstates.queue && nextAttackIndex >= 0){
+						if(this.attstates.queueDir != 0){ this.flip = this.attstates.queueDir < 0; }
 						this.attack(nextAttackIndex);
 					} else if(input.state("jump") == 1 && this.grounded){
 						this.cancelAttack();
@@ -32338,6 +33580,7 @@ class Player extends GameObject{
 					
 					if(this.walljump && !this.grounded && this.states.againstwall && this.states.disableWallJump <= 0){
 						//Wall slide
+						this.flip = this.states.againstwall < 0;
 						if(input.state("down") <= 0){
 							
 							this.frame.x = 7; this.frame.y = 6;
@@ -32350,8 +33593,7 @@ class Player extends GameObject{
 						this.states.animationProgress = Math.min(this.states.animationProgress+this.delta*4, 1);
 						this.frame = this.swrap.frame("duck", this.states.animationProgress);
 					} else if(this.dodgeFlash && this.states.airdashReady && !this.grounded && input.state("dodge") == 1 && this.states.airdash <= 0){
-						this.airtime = this.states.airdash = this.speeds.airdashTime;
-						this.states.airdashReady = false;
+						this.dodgeAir();
 					} else if(this.grounded && input.state("dodge") == 1 && this.states.dash <= 0){
 						//DASH LIKE A FIEND!
 						this.dodge();
@@ -32422,6 +33664,8 @@ class Player extends GameObject{
 			this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 			this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 			this.height = this.states.duck ? 24 : 30;
+		} else {
+			this.frame = this.swrap.frame("hurt", 0);
 		}
 		//Shield
 		if( !this.guard.active && this.states.guard ) { 
@@ -32624,7 +33868,8 @@ class Player extends GameObject{
 			}
 			if(this.currentlyStandingBlock && this.currentlyStandingBlock.blockTopOnly) {
 				this._ignoreBlocksTimer = Game.DELTAFRAME30;
-				this.grounded = this.currentlyStandingBlock = false; 
+				this.grounded = false; 
+				this.blockDropOff();
 				this.position.y += 2;
 				return;
 			}
@@ -32634,7 +33879,7 @@ class Player extends GameObject{
 			
 			if(this.walljump && this.states.againstwall && this.states.disableWallJump <= 0){
 				force *= 1.2;
-				this.force.x = (this.states.againstwall>0?-1:1) * 3;
+				this.force.x = (this.states.againstwall>0?-1:1) * 5;
 			}
 		}
 		
@@ -32643,12 +33888,14 @@ class Player extends GameObject{
 		this.force.y = -force; 
 		this.grounded = false; 
 		this.states.jump_boost = true; 
+		this.states.againstwall = 0;
 		
 		audio.play("jump");
 	}
 	attack(attackIndex = -1){
 		//Player has pressed the attack button or an attack has been queued
 		this.cancelAttack();
+		this.attstates.queueDir = 0;
 		
 		//let weapon = this.attstates.weapon;
 		let weapon = this.equip_sword.stats;
@@ -32693,6 +33940,10 @@ class Player extends GameObject{
 		this.states.dash = this.speeds.dashTime;
 		this.force.x = this.states.dash_direction * this.speeds.dashSpeed;
 		audio.play("dash");
+	}
+	dodgeAir(){
+		this.airtime = this.states.airdash = this.speeds.airdashTime;
+		this.states.airdashReady = false;
 	}
 	getWeaponState(){
 		var state = PlayerWeapon.STATE_STANDING;
@@ -32820,12 +34071,13 @@ class Player extends GameObject{
 			this.defenceFire += Math.floor(this.stats.defence * 0.2);
 			this.defenceSlime += Math.floor(this.stats.defence * 0.7);
 			this.defenceIce += Math.floor(this.stats.defence * 0.6);
-			this.defenceLight += Math.floor(this.stats.defence * 0.0);
+			this.defenceLight += Math.floor(this.stats.defence * 0.3);
 			
 			this.damage = Math.floor(this.damage + this.stats.attack * this.equip_sword.stats.damage);
 			
 			if(this instanceof Player){
-				this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
+				let magdelta = Math.clamp01( Math.log10( this.stats.magic ) / 2 );
+				this.speeds.manaRegen = Math.lerp(5,0.25,magdelta);
 			}
 			
 		} catch(e) {
@@ -33805,7 +35057,7 @@ class Lava extends Puddle{
 		this.on("collideObject", function(obj){
 			if(this.height > 0){
 				//Only hurt if it has volume
-				if(obj.hasModule(mod_rigidbody)){
+				if(obj.hasModule(mod_rigidbody) && obj.gravity > 0){
 					this.floatObject(obj);
 				}
 				if(this._damageTick && obj.hasModule(mod_combat)){
@@ -33827,6 +35079,13 @@ class Lava extends Puddle{
 				}
 			}
 		});
+	}
+	setLevel(lvl){
+		this._drainLevel = 0.0;
+		this.raisedHeight = this.height;
+		this.lowerHeight = lvl;
+		this._drained = true;
+		this.speed = 0.25;
 	}
 	update(){
 		super.update();
@@ -34294,6 +35553,7 @@ Rain.prototype.update = function(){
 	}
 }
 
+Rain.prototype.renderDebug = function(g,c){}
 Rain.prototype.render = function(g,c){
 	let screen = new Line(game.camera, game.camera.add(game.resolution));
 	
@@ -34767,6 +36027,10 @@ class SeeSaw extends GameObject {
 					
 					if( !obj._isAdded || (!obj.grounded && obj.force.y < 0) || Math.abs(p.x - obj.position.x) > (obj.width*0.5+16) ){
 						//Remove object
+						this.platforms[i].standing.remove(j);
+						j--;
+					} else if(obj.isStuck){
+						//Remove stuck object
 						this.platforms[i].standing.remove(j);
 						j--;
 					} else {
@@ -35423,7 +36687,7 @@ function SpellIce(){
 	this.name = "Ice";
 	this.objectName = "SpellIce";
 	this.castTime = Game.DELTASECOND * 0.125;
-	this.frame = new Point(1,10);
+	this.frame = new Point(8,11);
 	this.manaCost = 5;
 }
 SpellIce.prototype.use = function(player){
@@ -36065,7 +37329,7 @@ SpriteWrapper.TYPE_GUARDAREA = 3;
 
  /* platformer\start.js*/ 
 
-var version = "0.5.5";
+var version = "0.5.6";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -36090,7 +37354,7 @@ function game_start(g){
 		_player.walljump = true;
 		_player.dodgeFlash = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("temple4.tmx", "test");
+		WorldLocale.loadMap("mills.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -36116,11 +37380,11 @@ function game_start(g){
 			_player.spells.push( new SpellFire());
 			_player.spells.push( new SpellSlimeGernade());
 			_player.spells.push( new SpellFlash());
-			_player.spells.push( new SpellHeal());
-			_player.spells.push( new SpellPurify());
+			//_player.spells.push( new SpellHeal());
+			//_player.spells.push( new SpellPurify());
 			_player.spells.push( new SpellShield());
 			_player.spells.push( new SpellStrength());
-			_player.addXP(32024);
+			_player.addXP(24024);
 			
 		}, 1000);
 	},100);
@@ -36672,9 +37936,7 @@ function CollapseTile(x,y,d,o){
 	if("timer" in o){
 		this.totalTime = Game.DELTASECOND * o.timer;
 	}
-	if("broken" in o){
-		
-	}
+	this.resetonsleep = o.getBool("resetonsleep", true)
 	
 	var existingTile = game.getTile(this.position.x,this.position.y);
 	if(existingTile > 0){
@@ -36691,14 +37953,22 @@ function CollapseTile(x,y,d,o){
 			audio.playLock("cracking",0.4);
 		}
 	});
-	this.on(["wakeup","added"],function(){
-		this.visible = true; 
-		this.active = false;
-		this.position.x = this.center.x;
-		this.position.y = this.center.y;
-		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 1024);
-		this.timer = this.totalTime;
+	this.on("added", function(){
+		this.reset();
 	});
+	this.on("wakeup",function(){
+		if(this.resetonsleep){
+			this.reset();
+		}
+	});
+}
+CollapseTile.prototype.reset = function(){
+	this.visible = true; 
+	this.active = false;
+	this.position.x = this.center.x;
+	this.position.y = this.center.y;
+	game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 1024);
+	this.timer = this.totalTime;
 }
 CollapseTile.prototype.update = function(){
 	if( this.active ) {
@@ -38451,249 +39721,89 @@ WIP.prototype.render = function(g,c){
 
  /* platformer\worldmap.js*/ 
 
-Quests = {
-	"set" : function(id,value){
-		if(typeof value == "string" && value.toLowerCase() == "complete"){
-			value = Quests.COMPLETED;
-		}
-		if(id in Quests){
-			Quests[id] = value;
-			try{
-				//Send quest message
-				var qmessage = "";
-				
-				if(value == Quests.COMPLETED){
-					qmessage = i18n("questcomplete");
-				}else{
-					qmessage = i18n("quest")[id][value];
-				}
-				
-				var pm = game.getObject(PauseMenu);
-				pm.message(qmessage);
-				audio.play("quest");
-			} catch (err){}
-		}
-	},
-	"list": function(){
-		var i = 0;
-		var out = new Array();
-		while("q"+i in Quests){
-			var id = "q"+i;
-			var q = Quests[id];
-			if(q > 0){
-				var text = i18n("quest")[id];
-				out.push({
-					"name" : text[0],
-					"description" : (q < text.length ? text[q] : ""),
-					"complete" : q >= Quests.COMPLETED,
-					"progress" : q
-				});
-			}
-			i++;
-		}
-		out.sort(function(a,b){
-			if(a.complete) return 1;
-			if(b.complete) return -1;
-			return a.progress - b.progress;
-		});
-		return out;
-	},
-	"COMPLETED" : 9999,
-	"q0" : 0, //Magic wand
-	"q1" : 0,
-	"q2" : 0 //Lost souls in the phantom world
-}
-
-WorldMap = {
-	"newgame" : function(){
-		new Player(64,178);
-		WorldMap.position = new Point(73*16,40*16);
-		WorldMap.open();
-		
-		game.load(function(data){
-			for(var q in data.quests){
-				Quests[q] = data.quests[q];
-			}
-			NPC.variables = data.variables;
-			
-			if("settings" in data){
-				for(var i in data["settings"]){
-					if(i in Settings){
-						Settings[i] = data["settings"][i];
-					}
-				}
-			}
-		});
-	},
-	"position" : new Point(240,256),
-	"open" : function(playerLocale){
-		//Save keys for temple and remove
-		//Save game
-		game.loadMap("world2.tmx", function(){
-			if(playerLocale != undefined){
-				//Change players location to the set locale
-				var locales = game.getObjects(WorldLocale);
-				for(var i=0; i < locales.length; i++){
-					//Search for the locale that matches the playerLocale
-					if(locales[i].start == playerLocale){
-						WorldMap.position.x = locales[i].position.x;
-						WorldMap.position.y = locales[i].position.y;
-						break;
-					}
-				}
-			}
-			game.addObject(new WorldPlayer(
-				WorldMap.position.x,
-				WorldMap.position.y
-			));
-		});
-	},
-	"close" : function(worldLocale){
-		WorldMap.position.x = worldLocale.position.x;
-		WorldMap.position.y = worldLocale.position.y;
-	},
-	"Shops" : [
-		"Alter",
-		"Arena",
-		"Prisoner",
-		"Shop",
-		"WaystoneChest"
-	],
-	
+WorldMap = {};
+WorldMap.map = [];
+WorldMap.width = 96;
+WorldMap.height = 32;
+WorldMap.mapProperties = {
+	"gateway.tmx" : { offset : new Point(0,12), color : 0 },
+	"temple1.tmx" : { offset : new Point(16,13), color : 1 },
+	"temple2.tmx" : { offset : new Point(62,1), color : 2 },
+	"temple3.tmx" : { offset : new Point(37,13), color : 3 },
+	"temple4.tmx" : { offset : new Point(25,0), color : 4 },
+	"mills.tmx" : { offset : new Point(8,21), color : 5 },
+	"pit.tmx" : { offset : new Point(75,14), color : 6 },
+	"townhub.tmx" : { offset : new Point(51,12), color : 7 },
 };
-
-WorldPlayer.prototype = new GameObject();
-WorldPlayer.prototype.constructor = GameObject;
-function WorldPlayer(x, y){	
-	this.constructor();
-	
-	this.position.x = x;
-	this.position.y = y;
-	this.origin = new Point(-0.1,-0.3);
-	//this.origin = new Point(0.2,0.2);
-	
-	this.height = this.width = 12;
-	this.sprite = "world";
-	this.speed = 0.5;
-	this.zIndex = 2;
-	
-	this.addModule(mod_rigidbody);
-	this.gravity = 0;
-	this.friction = 0;
-	
-	this.frame = 9;
-	this.frame_row = 7;
+WorldMap.colors = [
+	[0.3,0.6,0.7,1],
+	[0.8,0.5,0.0,1],
+	[0.2,0.8,0.0,1],
+	[0.2,0.0,0.5,1],
+	[0.5,0.3,0.0,1],
+	[0.6,0.1,0.0,1],
+	[0.3,0.2,0.3,1],
+	[0.8,0.7,0.7,1],
+];
+WorldMap.pos2mapPos = function(pos){
+	let offset = new Point();
+	if(game.map.filename in WorldMap.mapProperties){
+		offset = WorldMap.mapProperties[game.map.filename].offset;
+	}
+	return pos.scale(1/256,1/240).floor().add(offset);
 }
-WorldPlayer.prototype.idle = function(){}
-WorldPlayer.prototype.update = function(){
-	this.grounded = false;
-	this.force = this.force.scale( 1.0 - (0.2*this.delta) );
-	if( true ){
-		if( input.state("up") > 0 ) { this.force.y -= this.speed * this.delta; }
-		if( input.state("down") > 0 ){ this.force.y += this.speed * this.delta; }
-		if( input.state("left") > 0 ) { this.force.x -= this.speed * this.delta; }
-		if( input.state("right") > 0 ) { this.force.x += this.speed * this.delta; }
+WorldMap.pos2mapIndex = function(pos){
+	let offset = new Point();
+	if(game.map.filename in WorldMap.mapProperties){
+		offset = WorldMap.mapProperties[game.map.filename].offset;
+	}
+	pos = pos.scale(1/256,1/240).floor().add(offset);
+	return Math.floor( pos.x + pos.y * WorldMap.width );
+	
+}
+WorldMap.revealTile = function(pos, tile){
+	let color = 0;
+	if(game.map.filename in WorldMap.mapProperties){
+		color = WorldMap.mapProperties[game.map.filename].color;
 	}
 	
-	var camx = game.resolution.x * 0.5;
-	game.camera.x = Math.max( Math.min( this.position.x - camx, (game.map.width*16)-game.resolution.x), 0);
-	game.camera.y = Math.max( Math.min( this.position.y - 120, (game.map.height*16)-game.resolution.y), 0);
+	let ftile = tile + (color << 8);
+	WorldMap.map[WorldMap.pos2mapIndex(pos)] = ftile;
 }
-WorldPlayer.prototype.render = function(g,c){
-	g.color = [0.8,0.2,0.0,1.0];
-	var pos = this.bounds().start;
-	g.scaleFillRect(pos.x-c.x,pos.y-c.y,this.width,this.height);
-}
-
-WorldLocale.prototype = new GameObject();
-WorldLocale.prototype.constructor = GameObject;
-function WorldLocale(x,y,d,properties){
-	this.constructor();
+WorldMap.render = function(g, offset, area, large=false){
+	if(area == undefined) { area = new Line(0,0,WorldMap.width, WorldMap.height); }
 	
-	this.position.x = x;
-	this.position.y = y;
-	this.width = d[0];
-	this.height = d[1];
-	this.type = false;
-	this.index = 0;
-	this.active = false;
-	this.sleepTime = Game.DELTASECOND;
-	this.start = false;
+	let size = large ? 8 : 4;
+	let sprite = large ? "map_large" : "map_small";
 	
-	this.height = this.width = 8;
-	this.sprite = "world";
+	let mixcolor = function(c){
+		let mix = [0.1,0.3,0.5,1];
+		let d = 0.0;
+		return [
+			Math.lerp(c[0], mix[0], d),
+			Math.lerp(c[1], mix[1], d),
+			Math.lerp(c[2], mix[2], d),
+			Math.lerp(c[3], mix[3], d),
+		];
+	}
 	
-	this.frame = 3;
-	this.frame_row = 5;
-	
-	properties = properties || {};
-	this.properties = properties;
-	
-	if("var_checkpoint" in properties){
-		if(properties["var_checkpoint"]*1 > window._world.checkpoint){
-			this.active = false;
-			this.visible = false;
+	for(let x = area.start.x; x < area.end.x; x++ ) for(let y = area.start.y; y < area.end.y; y++ ) {
+		let index = x + y * WorldMap.width;
+		let tdata =  WorldMap.map[index];
+		if(tdata != undefined && tdata >= 0){
+			let tile = tdata& 255;
+			let color = tdata >> 8;
+			let frame = new Point(Math.floor(tile/16), Math.mod(tile,16));
+		
+			g.color = mixcolor(WorldMap.colors[color]);
+			g.drawRect(x*size+offset.x, y*size+offset.y,size,size, 0);
+			g.renderSprite(sprite, new Point(x,y).scale(size).add(offset), 1, frame, false);
 		}
 	}
-	if("tmx" in properties){
-		this.type = "tmx";
-		this.index = properties["tmx"];
-		this.visible = false;
-	}
-	if("map" in properties){
-		this.type = "map";
-		this.index = properties["map"];
-		this.visible = false;
-	}
-	if("boat" in properties){
-		this.type = "boat";
-		this.index = properties["boat"] * 1;
-		this.gotoIndex = properties["to"] * 1;
-		this.frame = 3;
-		this.frame_row = 7;
-	}
-	if("temple" in properties){
-		this.type = "temple";
-		this.index = properties["temple"] * 1;
-		this.frame = 3;
-		this.frame_row = 5;
-		try{
-			if( _world.temples[this.index].complete ){
-				this.frame = 4;
-			}
-		} catch (ex) {}
-	}
-	if("town" in properties){
-		this.type = "town";
-		this.index = properties["town"] * 1;
-		this.frame = 3;
-		this.frame_row = 7;
-	}
-	if("start" in properties){
-		this.start = properties["start"];
-	}
-	
-	this.on("collideObject", function(obj){
-		if( obj instanceof WorldPlayer ){
-			if( this.active ){
-					//var dir = new Point(obj.force.x, obj.force.y);
-					//_world.enterLocale( this, dir );
-					
-					if(this.type == "tmx"){
-						WorldMap.close(this);
-						WorldLocale.loadMap(this.index, this.start);
-					}
-			}
-			this.sleepTime = Game.DELTASECOND * 0.5;
-		}
-	});
 }
-WorldLocale.prototype.update = function(){
-	this.active = this.sleepTime <= 0;
-	if(!this.active){
-		this.sleepTime -= this.delta;
-	}
-}
+
+
+WorldLocale = {};
 WorldLocale.currentMapName = null;
 WorldLocale.loadMap = function(map, start, callback){
 	//Save current map reveal first
@@ -38731,33 +39841,6 @@ WorldLocale.loadMap = function(map, start, callback){
 		}
 	});
 }
-WorldLocale.save = function(){
-	var q = {}
-	var i = 0;
-	while("q"+i in Quests){
-		q["q"+i] = Quests["q"+i];
-		i++;
-	}
-	
-	var location = {
-		"map" : game.newmapName,
-		"x" : _player.position.x,
-		"y" : _player.position.y
-		
-	}
-	
-	var data = {
-		"savedate" : new Date * 1,
-		"quests" : q,
-		"location" : location,
-		"variables" : NPC.variables,
-		"player" : _player.toJson(),
-		"settings" : Settings
-	}
-	
-	game.save(data);
-}
-
 WorldLocale.getMapIndex = function(list,key){
 	for(var i=0; i < list.length; i++){
 		if(list[i].start == key){
@@ -38765,72 +39848,6 @@ WorldLocale.getMapIndex = function(list,key){
 		}
 	}
 	return -1;
-}
-
-WorldEncounter.prototype = new GameObject();
-WorldEncounter.prototype.constructor = GameObject;
-function WorldEncounter(x, y){	
-	this.constructor();
-	x = Math.floor(x/16)*16;
-	y = Math.floor(y/16)*16;
-	
-	this.position.x = x;
-	this.position.y = y;
-	this.origin = new Point(-0.1,-0.3);
-	
-	this.height = this.width = 12;
-	this.sprite = "world";
-	this.speed = 0.125;
-	this.zIndex = 1;
-	
-	this.addModule(mod_rigidbody);
-	this.gravity = 0;
-	this.friction = 0;
-	
-	this.frame = 1;
-	this.frame_row = 13;
-	
-	this.target = game.getObject(WorldPlayer);
-	this.on("collideObject", function(obj){
-		if( obj instanceof WorldPlayer ){
-			_world.encounter(this);
-		} else if( obj instanceof WorldEncounter ){
-			var dir = this.position.subtract(obj.position);
-			obj.force = obj.force.add(dir.normalize(this.delta*0.5));
-			this.force = this.force.add(dir.normalize(this.delta*-0.5));
-		}
-	});
-	
-	if(
-		game.getTile(this.position, 1) != 0 ||
-		this.target && this.position.subtract(this.target.position).length() < 104
-	) {
-		this.position.x = this.position.y = -999;
-	}
-	
-}
-WorldEncounter.prototype.update = function(){
-	this.force = this.force.scale( 1.0 - (0.05*this.delta) );
-	
-	if( this.target == null ){
-		this.target = game.getObject(WorldPlayer);
-	}
-	
-	if( this.target instanceof WorldPlayer ) {
-		var dir = this.position.subtract(this.target.position);
-		if( this.active ){
-			var move = dir.normalize(-1);
-			this.force.x += move.x * this.speed * this.delta;
-			this.force.y += move.y * this.speed * this.delta;
-			if( dir.length() > 104 ) {
-				this.active = false;
-			}
-		} else {
-			if( dir.length() < 96 ) {
-				this.active = true;
-			}
-		}
-	}
 }
 
  /* platformer\scenes\caverock.js*/ 
@@ -39813,6 +40830,18 @@ self.spriteWrap["drillerkiller"] = new SpriteWrapper({"name":"drillerkiller","sp
 
 
 
+ /* platformer\animations\garmr_large.janim*/ 
+
+self.spriteWrap["garmr_large"] = new SpriteWrapper({"name":"garmr_large","sprite":"garmr_large.png","data":{"0":{"0":[{"x":44,"y":40,"u":82,"v":80,"type":0,"rotation":0}],"1":[{"x":41,"y":30,"u":77,"v":80,"type":0,"rotation":0},{"x":58,"y":10,"u":83,"v":39,"type":0,"rotation":0}],"2":[{"x":42,"y":34,"u":78,"v":79,"type":0,"rotation":0},{"x":56,"y":9,"u":81,"v":38,"type":0,"rotation":0}],"3":[{"x":45,"y":38,"u":85,"v":79,"type":0,"rotation":0},{"x":67,"y":21,"u":92,"v":50,"type":0,"rotation":0}]},"1":{"0":[{"x":44,"y":40,"u":82,"v":80,"type":0,"rotation":0},{"x":65,"y":30,"u":90,"v":59,"type":0,"rotation":0}],"1":[{"x":37,"y":35,"u":73,"v":80,"type":0,"rotation":0},{"x":47,"y":13,"u":72,"v":42,"type":0,"rotation":0}],"2":[{"x":34,"y":34,"u":70,"v":79,"type":0,"rotation":0},{"x":43,"y":11,"u":68,"v":40,"type":0,"rotation":0}],"3":[{"x":37,"y":35,"u":70,"v":80,"type":0,"rotation":0},{"x":37,"y":10,"u":62,"v":39,"type":0,"rotation":0}]},"2":{"0":[{"x":33,"y":32,"u":69,"v":79,"type":0,"rotation":0},{"x":38,"y":9,"u":63,"v":38,"type":0,"rotation":0}],"1":[{"x":34,"y":35,"u":70,"v":80,"type":0,"rotation":0},{"x":39,"y":12,"u":64,"v":41,"type":0,"rotation":0}],"2":[{"x":34,"y":34,"u":70,"v":79,"type":0,"rotation":0},{"x":39,"y":11,"u":64,"v":40,"type":0,"rotation":0}],"3":[{"x":37,"y":35,"u":70,"v":80,"type":0,"rotation":0},{"x":37,"y":10,"u":62,"v":39,"type":0,"rotation":0}]},"3":{"0":[{"x":33,"y":32,"u":69,"v":79,"type":0,"rotation":0},{"x":43,"y":9,"u":68,"v":38,"type":0,"rotation":0}],"1":[{"x":34,"y":34,"u":70,"v":79,"type":0,"rotation":0},{"x":39,"y":10,"u":64,"v":39,"type":0,"rotation":0}],"2":[{"x":39,"y":34,"u":75,"v":79,"type":0,"rotation":0},{"x":55,"y":12,"u":80,"v":41,"type":0,"rotation":0},{"x":73,"y":30,"u":94,"v":53,"type":2,"rotation":0},{"x":5,"y":12,"u":84,"v":30,"type":2,"rotation":0}],"3":[{"x":40,"y":35,"u":73,"v":80,"type":0,"rotation":0},{"x":52,"y":10,"u":77,"v":39,"type":0,"rotation":0}]},"4":{"0":[{"x":33,"y":32,"u":69,"v":79,"type":0,"rotation":0},{"x":43,"y":9,"u":68,"v":38,"type":0,"rotation":0}],"1":[{"x":36,"y":34,"u":72,"v":79,"type":0,"rotation":0},{"x":45,"y":7,"u":70,"v":36,"type":0,"rotation":0}],"2":[{"x":45,"y":38,"u":85,"v":79,"type":0,"rotation":0},{"x":67,"y":24,"u":92,"v":53,"type":0,"rotation":0},{"x":75,"y":50,"u":94,"v":80,"type":2,"rotation":0}],"3":[{"x":40,"y":35,"u":73,"v":80,"type":0,"rotation":0},{"x":50,"y":10,"u":75,"v":39,"type":0,"rotation":0}]}},"animation":[{"name":"pose","time":3,"frames":[{"x":0,"y":0,"t":0.9375},{"x":0,"y":1,"t":0.0625},{"x":0,"y":2,"t":0.0625},{"x":0,"y":3,"t":0.0625},{"x":0,"y":4,"t":0.78125}]},{"name":"walk","time":0.7,"frames":[{"x":1,"y":0,"t":0.15625},{"x":1,"y":1,"t":0.15625},{"x":1,"y":2,"t":0.15625},{"x":1,"y":3,"t":0.15625},{"x":1,"y":4,"t":0.15625},{"x":2,"y":0,"t":0.15625}]},{"name":"fist","time":2,"frames":[{"x":2,"y":1,"t":0.09375},{"x":2,"y":2,"t":0.78125},{"x":2,"y":3,"t":0.09375},{"x":2,"y":4,"t":0.09375},{"x":3,"y":0,"t":0.84375}]},{"name":"bolt1","time":1,"frames":[{"x":3,"y":1,"t":0.46875},{"x":3,"y":2,"t":0.15625},{"x":3,"y":3,"t":0.15625},{"x":3,"y":4,"t":0.4375}]},{"name":"bolt2","time":1,"frames":[{"x":3,"y":4,"t":0.46875},{"x":3,"y":3,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":3,"y":1,"t":0.4375}]},{"name":"bolt","time":1,"frames":[{"x":3,"y":1,"t":0.46875},{"x":3,"y":2,"t":0.15625},{"x":3,"y":3,"t":0.15625},{"x":3,"y":4,"t":0.4375},{"x":3,"y":3,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":3,"y":1,"t":0.46875}]},{"name":"transform","time":1,"frames":[{"x":0,"y":0,"t":0.15625}]},{"name":"idle","time":1,"frames":[{"x":1,"y":0,"t":1}]}],"slicex":112,"slicey":80,"offsetx":"56","offsety":"61"});
+
+
+
+ /* platformer\animations\garmr_small.janim*/ 
+
+self.spriteWrap["garmr_small"] = new SpriteWrapper({"name":"garmr_small","sprite":"garmr_small.png","data":{"0":{"0":[{"x":8,"y":7,"u":40,"v":48,"type":0,"rotation":0}],"1":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":12,"u":45,"v":33,"type":0,"rotation":0}],"2":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":12,"u":45,"v":33,"type":0,"rotation":0}],"3":[{"x":11,"y":17,"u":36,"v":48,"type":0,"rotation":0},{"x":15,"y":9,"u":36,"v":30,"type":0,"rotation":0}]},"1":{"0":[{"x":8,"y":10,"u":43,"v":48,"type":0,"rotation":0}],"1":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":12,"u":45,"v":33,"type":0,"rotation":0}],"2":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":13,"u":45,"v":34,"type":0,"rotation":0}],"3":[{"x":11,"y":17,"u":36,"v":48,"type":0,"rotation":0},{"x":19,"y":9,"u":40,"v":30,"type":0,"rotation":0}]},"2":{"0":[{"x":8,"y":12,"u":44,"v":48,"type":0,"rotation":0}],"1":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":12,"u":45,"v":33,"type":0,"rotation":0}],"2":[{"x":11,"y":17,"u":36,"v":48,"type":0,"rotation":0},{"x":19,"y":9,"u":40,"v":30,"type":0,"rotation":0}],"3":[{"x":11,"y":17,"u":41,"v":48,"type":0,"rotation":0}]},"3":{"0":[{"x":8,"y":12,"u":44,"v":48,"type":0,"rotation":0}],"1":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":12,"u":45,"v":33,"type":0,"rotation":0}],"2":[{"x":11,"y":17,"u":36,"v":48,"type":0,"rotation":0},{"x":22,"y":9,"u":43,"v":30,"type":0,"rotation":0}],"3":[{"x":11,"y":17,"u":41,"v":48,"type":0,"rotation":0}]},"4":{"0":[{"x":8,"y":10,"u":43,"v":48,"type":0,"rotation":0}],"1":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":10,"u":45,"v":31,"type":0,"rotation":0}],"2":[{"x":11,"y":17,"u":36,"v":48,"type":0,"rotation":0},{"x":21,"y":9,"u":42,"v":30,"type":0,"rotation":0}]},"5":{"0":[{"x":8,"y":7,"u":39,"v":48,"type":0,"rotation":0}],"1":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":10,"u":45,"v":31,"type":0,"rotation":0}],"2":[{"x":11,"y":17,"u":36,"v":48,"type":0,"rotation":0},{"x":22,"y":9,"u":43,"v":30,"type":0,"rotation":0}]},"6":{"0":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":12,"u":45,"v":33,"type":0,"rotation":0}],"1":[{"x":8,"y":17,"u":33,"v":48,"type":0,"rotation":0},{"x":24,"y":10,"u":45,"v":31,"type":0,"rotation":0}],"2":[{"x":11,"y":17,"u":36,"v":48,"type":0,"rotation":0},{"x":22,"y":9,"u":43,"v":30,"type":0,"rotation":0},{"x":42,"y":25,"u":80,"v":33,"type":2,"rotation":0}]}},"animation":[{"name":"idle","time":0.6,"frames":[{"x":0,"y":0,"t":0.15625},{"x":0,"y":1,"t":0.15625},{"x":0,"y":2,"t":0.15625},{"x":0,"y":3,"t":0.15625},{"x":0,"y":4,"t":0.15625},{"x":0,"y":5,"t":0.15625}]},{"name":"run","time":0.6,"frames":[{"x":1,"y":2,"t":0.15625},{"x":1,"y":3,"t":0.15625},{"x":1,"y":4,"t":0.15625},{"x":1,"y":5,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":0,"t":0.15625},{"x":2,"y":1,"t":0.15625}]},{"name":"talk","time":0.25,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":0,"t":0.15625},{"x":1,"y":1,"t":0.15625}]},{"name":"bolt","time":1,"frames":[{"x":2,"y":2,"t":0.625},{"x":2,"y":3,"t":0.15625},{"x":2,"y":4,"t":0.3125}]},{"name":"fist","time":0.8,"frames":[{"x":2,"y":5,"t":0.625},{"x":2,"y":6,"t":0.15625},{"x":3,"y":0,"t":0.15625},{"x":3,"y":1,"t":0.46875}]},{"name":"transform","time":0.25,"frames":[{"x":3,"y":2,"t":0.15625},{"x":3,"y":3,"t":0.15625}]},{"name":"jump","time":1,"frames":[{"x":1,"y":4,"t":1}]}],"slicex":80,"slicey":48,"offsetx":"24","offsety":"38"});
+
+
+
  /* platformer\animations\gatekeeper.janim*/ 
 
 self.spriteWrap["gatekeeper"] = new SpriteWrapper({"name":"gatekeeper","sprite":"gatekeeper.png","data":{"0":{"0":[{"x":39,"y":14,"u":69,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"1":[{"x":47,"y":19,"u":77,"v":46,"type":0,"rotation":0},{"x":29,"y":41,"u":64,"v":64,"type":0,"rotation":0}],"2":[{"x":44,"y":14,"u":74,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"3":[{"x":44,"y":17,"u":74,"v":44,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"4":[{"x":34,"y":14,"u":68,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0},{"x":68,"y":31,"u":96,"v":40,"type":2,"rotation":0},{"x":2,"y":23,"u":24,"v":32,"type":2,"rotation":0}]},"1":{"0":[{"x":39,"y":14,"u":69,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"1":[{"x":49,"y":19,"u":79,"v":46,"type":0,"rotation":0},{"x":29,"y":41,"u":59,"v":64,"type":0,"rotation":0}],"2":[{"x":43,"y":14,"u":73,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"3":[{"x":43,"y":17,"u":73,"v":44,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"4":[{"x":31,"y":14,"u":65,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0},{"x":15,"y":20,"u":34,"v":28,"type":2,"rotation":0}]},"2":{"0":[{"x":39,"y":14,"u":69,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"1":[{"x":50,"y":19,"u":80,"v":46,"type":0,"rotation":0},{"x":31,"y":41,"u":58,"v":64,"type":0,"rotation":0}],"2":[{"x":43,"y":14,"u":73,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0},{"x":61,"y":37,"u":93,"v":60,"type":2,"rotation":0},{"x":27,"y":20,"u":61,"v":40,"type":2,"rotation":0}],"3":[{"x":42,"y":17,"u":72,"v":44,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"4":[{"x":29,"y":46,"u":60,"v":64,"type":0,"rotation":0},{"x":36,"y":27,"u":72,"v":47,"type":3,"rotation":0},{"x":40,"y":15,"u":63,"v":27,"type":0,"rotation":0}]},"3":{"0":[{"x":38,"y":14,"u":68,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":64,"v":64,"type":0,"rotation":0}],"1":[{"x":50,"y":19,"u":80,"v":46,"type":0,"rotation":0},{"x":34,"y":41,"u":57,"v":64,"type":0,"rotation":0}],"2":[{"x":47,"y":17,"u":77,"v":44,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0},{"x":61,"y":37,"u":93,"v":60,"type":2,"rotation":0}],"3":[{"x":40,"y":14,"u":70,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"4":[{"x":34,"y":14,"u":68,"v":45,"type":0,"rotation":0},{"x":36,"y":45,"u":73,"v":64,"type":3,"rotation":0}]},"4":{"0":[{"x":39,"y":17,"u":69,"v":44,"type":0,"rotation":0},{"x":29,"y":44,"u":64,"v":64,"type":0,"rotation":0}],"1":[{"x":49,"y":19,"u":79,"v":46,"type":0,"rotation":0},{"x":32,"y":41,"u":62,"v":64,"type":0,"rotation":0}],"2":[{"x":47,"y":17,"u":77,"v":44,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"3":[{"x":40,"y":15,"u":70,"v":42,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":38,"y":14,"u":68,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"1":[{"x":49,"y":19,"u":79,"v":46,"type":0,"rotation":0},{"x":32,"y":41,"u":62,"v":64,"type":0,"rotation":0}],"3":[{"x":34,"y":14,"u":70,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0},{"x":70,"y":26,"u":95,"v":34,"type":2,"rotation":0},{"x":1,"y":22,"u":27,"v":30,"type":2,"rotation":0}]},"6":{"0":[{"x":37,"y":14,"u":67,"v":41,"type":0,"rotation":0},{"x":28,"y":41,"u":59,"v":64,"type":0,"rotation":0}],"1":[{"x":46,"y":14,"u":76,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0}],"2":[{"x":47,"y":17,"u":77,"v":44,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0},{"x":56,"y":16,"u":96,"v":48,"type":2,"rotation":0}],"3":[{"x":36,"y":14,"u":72,"v":41,"type":0,"rotation":0},{"x":29,"y":41,"u":60,"v":64,"type":0,"rotation":0},{"x":51,"y":30,"u":75,"v":38,"type":2,"rotation":0}]}},"animation":[{"name":"idle","time":1,"frames":[{"x":0,"y":3,"t":1}]},{"name":"run","time":0.5,"frames":[{"x":1,"y":0,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":1,"y":2,"t":0.125},{"x":1,"y":3,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":1,"y":5,"t":0.125}]},{"name":"hop","time":0.6,"frames":[{"x":0,"y":3,"t":0.3125},{"x":0,"y":4,"t":0.125},{"x":0,"y":5,"t":0.125},{"x":0,"y":6,"t":0.1875}]},{"name":"attack1","time":1,"frames":[{"x":1,"y":6,"t":0.125},{"x":2,"y":0,"t":0.125},{"x":2,"y":1,"t":0.375},{"x":2,"y":2,"t":0.125},{"x":2,"y":3,"t":0.125},{"x":2,"y":4,"t":0.34375}]},{"name":"attack2","time":1,"frames":[{"x":2,"y":4,"t":0.4375},{"x":2,"y":6,"t":0.125},{"x":3,"y":0,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":3,"y":2,"t":0.40625}]},{"name":"prespin","time":0.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":3,"y":3,"t":0.125},{"x":3,"y":4,"t":0.375}]},{"name":"spin","time":0.3,"frames":[{"x":3,"y":5,"t":0.125},{"x":3,"y":6,"t":0.125},{"x":4,"y":0,"t":0.125},{"x":4,"y":1,"t":0.125}]},{"name":"blockup","time":1,"frames":[{"x":4,"y":2,"t":0.5}]},{"name":"blockdown","time":1,"frames":[{"x":4,"y":3,"t":0.5}]},{"name":"talk","time":0.25,"frames":[{"x":0,"y":0,"t":0.25},{"x":0,"y":1,"t":0.125},{"x":0,"y":2,"t":0.125}]}],"slicex":96,"slicey":64,"offsetx":"48","offsety":"47"});
@@ -39821,7 +40850,7 @@ self.spriteWrap["gatekeeper"] = new SpriteWrapper({"name":"gatekeeper","sprite":
 
  /* platformer\animations\player.janim*/ 
 
-self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":31,"u":48,"v":64,"type":0,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":18,"u":41,"v":55,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}],"8":[{"x":20,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":27,"u":48,"v":64,"type":0,"rotation":0}],"10":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"11":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"12":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"13":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}]},"7":{"1":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":41,"v":64,"type":0,"rotation":0}],"7":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"9":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"10":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}]},"10":{"0":[{"x":23,"y":33,"u":53,"v":64,"type":0,"rotation":0}],"1":[{"x":23,"y":33,"u":57,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"3":[{"x":20,"y":26,"u":50,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"5":[{"x":19,"y":24,"u":46,"v":60,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":46,"v":63,"type":0,"rotation":0}],"7":[{"x":19,"y":33,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":31,"u":47,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":89,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":31,"y":51,"u":50,"v":89,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]},"12":{"0":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"1":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"2":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"3":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"4":[{"x":20,"y":25,"u":38,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":38,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":29,"u":38,"v":64,"type":0,"rotation":0}]},"13":{"0":[{"x":38,"y":52,"u":56,"v":60,"type":2,"rotation":0},{"x":16,"y":27,"u":37,"v":59,"type":0,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.4375}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":0,"y":10,"t":0.0625},{"x":1,"y":10,"t":0.6875},{"x":2,"y":10,"t":0.15625},{"x":3,"y":10,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"airdash","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"back_dash","time":1,"frames":[{"x":4,"y":10,"t":0.15625},{"x":5,"y":10,"t":0.15625},{"x":6,"y":10,"t":0.15625},{"x":7,"y":10,"t":0.21875},{"x":8,"y":10,"t":0.40625}]},{"name":"attackwhip","time":1,"frames":[{"x":6,"y":9,"t":0.15625},{"x":7,"y":9,"t":0.15625},{"x":8,"y":9,"t":0.15625},{"x":9,"y":9,"t":0.15625},{"x":10,"y":9,"t":0.15625}]},{"name":"attackover","time":1,"frames":[{"x":8,"y":6,"t":0.3125},{"x":9,"y":6,"t":0.15625},{"x":10,"y":6,"t":0.15625},{"x":11,"y":6,"t":0.15625},{"x":12,"y":6,"t":0.15625},{"x":13,"y":6,"t":0.4375}]},{"name":"new_anim","time":1,"frames":[{"x":3,"y":12,"t":1}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
+self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":31,"u":48,"v":64,"type":0,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":18,"u":41,"v":55,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}],"8":[{"x":20,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":27,"u":48,"v":64,"type":0,"rotation":0}],"10":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"11":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"12":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"13":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}]},"7":{"1":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":41,"v":64,"type":0,"rotation":0}],"7":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"9":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"10":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}]},"10":{"0":[{"x":23,"y":33,"u":53,"v":64,"type":0,"rotation":0}],"1":[{"x":23,"y":33,"u":57,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"3":[{"x":20,"y":26,"u":50,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"5":[{"x":19,"y":24,"u":46,"v":60,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":46,"v":63,"type":0,"rotation":0}],"7":[{"x":19,"y":33,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":31,"u":47,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":89,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":31,"y":51,"u":50,"v":89,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]},"12":{"0":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"1":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"2":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"3":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"4":[{"x":20,"y":25,"u":38,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":38,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":29,"u":38,"v":64,"type":0,"rotation":0}]},"13":{"0":[{"x":38,"y":52,"u":56,"v":60,"type":2,"rotation":0},{"x":16,"y":27,"u":37,"v":59,"type":0,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.4375}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":0,"y":10,"t":0.0625},{"x":1,"y":10,"t":0.6875},{"x":2,"y":10,"t":0.15625},{"x":3,"y":10,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"airdash","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"back_dash","time":1,"frames":[{"x":4,"y":10,"t":0.15625},{"x":5,"y":10,"t":0.15625},{"x":6,"y":10,"t":0.15625},{"x":7,"y":10,"t":0.21875},{"x":8,"y":10,"t":0.40625}]},{"name":"attackwhip","time":1,"frames":[{"x":6,"y":9,"t":0.15625},{"x":7,"y":9,"t":0.15625},{"x":8,"y":9,"t":0.15625},{"x":9,"y":9,"t":0.15625},{"x":10,"y":9,"t":0.15625}]},{"name":"attackover","time":1,"frames":[{"x":8,"y":6,"t":0.3125},{"x":9,"y":6,"t":0.15625},{"x":10,"y":6,"t":0.15625},{"x":11,"y":6,"t":0.15625},{"x":12,"y":6,"t":0.15625},{"x":13,"y":6,"t":0.4375}]},{"name":"hurt","time":1,"frames":[{"x":10,"y":1,"t":1}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
 
 
 

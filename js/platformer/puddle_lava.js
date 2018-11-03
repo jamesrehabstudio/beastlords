@@ -52,7 +52,7 @@ class Lava extends Puddle{
 		this.on("collideObject", function(obj){
 			if(this.height > 0){
 				//Only hurt if it has volume
-				if(obj.hasModule(mod_rigidbody)){
+				if(obj.hasModule(mod_rigidbody) && obj.gravity > 0){
 					this.floatObject(obj);
 				}
 				if(this._damageTick && obj.hasModule(mod_combat)){
@@ -74,6 +74,13 @@ class Lava extends Puddle{
 				}
 			}
 		});
+	}
+	setLevel(lvl){
+		this._drainLevel = 0.0;
+		this.raisedHeight = this.height;
+		this.lowerHeight = lvl;
+		this._drained = true;
+		this.speed = 0.25;
 	}
 	update(){
 		super.update();

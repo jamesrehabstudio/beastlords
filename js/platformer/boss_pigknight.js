@@ -120,10 +120,10 @@ class PigbossKnight extends GameObject {
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		this.life = this.lifeMax = Spawn.life(8, this.difficulty);
 		this.defencePhysical = 0;
-		this.defenceFire = Spawn.defence(2,this.difficulty);
-		this.defenceSlime = Spawn.defence(2,this.difficulty);;
-		this.defenceIce = Spawn.defence(2,this.difficulty);;
-		this.defenceLight = Spawn.defence(2,this.difficulty);;
+		this.defenceFire = Spawn.defence(4,this.difficulty);
+		this.defenceSlime = Spawn.defence(4,this.difficulty);;
+		this.defenceIce = Spawn.defence(4,this.difficulty);;
+		this.defenceLight = Spawn.defence(4,this.difficulty);;
 		
 		this.moneyDrop = 0;
 		this.xpDrop = Spawn.xp(25,this.difficulty);

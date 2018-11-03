@@ -12,6 +12,7 @@ function Block(x,y,d,ops){
 	
 	this.addModule(mod_block);
 	
+	this._tid = ops.getString("trigger", undefined);
 	this.blockTopOnly = ops.getBool("toponly", false);
 	let ereaseOriginTiles = ops.getBool("erasetiles", true);
 	

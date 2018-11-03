@@ -141,12 +141,17 @@ Checkpoint.saveState = function(obj){
 	PauseMenu.saveMapReveal();
 	
 	//Get quest data
+	
 	var q = {}
+	/*
 	var i = 0;
 	while("q"+i in Quests){
 		q["q"+i] = Quests["q"+i];
 		i++;
 	}
+	*/
+	
+	
 	
 	//Save map and location
 	var location = {
@@ -164,6 +169,7 @@ Checkpoint.saveState = function(obj){
 		"quests" : q,
 		"location" : location,
 		"variables" : NPC.variables,
+		"mapreveal" : WorldMap.map,
 		"player" : _player.toJson(),
 		"settings" : Settings
 	}
@@ -183,6 +189,7 @@ Checkpoint.loadState = function(){
 			_player.fromJson(data.player);
 			
 			NPC.variables = data.variables;
+			WorldMap.map = data.mapreveal;
 			
 			game.loadMap(data.location.map, function(starts){
 				_player.position.x = data.location.x;

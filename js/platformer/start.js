@@ -1,4 +1,4 @@
-var version = "0.5.5";
+var version = "0.5.6";
 
 function game_start(g){
 	DemoThanks.deaths = 0;
@@ -23,7 +23,7 @@ function game_start(g){
 		_player.walljump = true;
 		_player.dodgeFlash = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("temple4.tmx", "test");
+		WorldLocale.loadMap("mills.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -49,11 +49,11 @@ function game_start(g){
 			_player.spells.push( new SpellFire());
 			_player.spells.push( new SpellSlimeGernade());
 			_player.spells.push( new SpellFlash());
-			_player.spells.push( new SpellHeal());
-			_player.spells.push( new SpellPurify());
+			//_player.spells.push( new SpellHeal());
+			//_player.spells.push( new SpellPurify());
 			_player.spells.push( new SpellShield());
 			_player.spells.push( new SpellStrength());
-			_player.addXP(32024);
+			_player.addXP(24024);
 			
 		}, 1000);
 	},100);

@@ -7,12 +7,13 @@ class Biker extends GameObject {
 		
 		this.width = 64;
 		this.height = 24;
-		
+		this.zIndex = 12;
 		this.sprite = "biker";
 		
 		this.addModule(mod_block);
 		this.addModule(mod_rigidbody);
 		
+		this.blockTopOnly = true;
 		this.pushable = false;
 		this.friction = 0.01;
 		this.collisionReduction = -1.0;
@@ -73,8 +74,10 @@ class Biker extends GameObject {
 				this._onboardLastFrame = true;
 				
 				if(rider.states.duck){
-					this._breaking = true;
-					this.force.x *= 1 - this.breaks * this.delta;
+					//this._breaking = true;
+					//this.force.x *= 1 - this.breaks * this.delta;
+					this._breaking = false;
+					this.addHorizontalForce( this.speed * 2.0 * rider.forward(), this.acceleration * 2.0 );
 				} else {
 					this._breaking = this.flip != rider.flip;
 					this.addHorizontalForce( this.speed * rider.forward(), this.acceleration );

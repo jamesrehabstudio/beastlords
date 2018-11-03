@@ -345,8 +345,18 @@ Game.prototype.onmessage = function(data){
 
 	if("render" in data) {
 		//frame update
+		let oldRenderTargets = this.objects.renderTargets || {};
+		
 		this.objects = data.render;
 		this.camera = new Point(data.camera.x, data.camera.y);
+		
+		
+		for(let rname in oldRenderTargets){
+			if(!(rname in this.objects.renderTargets)){
+				this.objects.renderTargets[rname] = oldRenderTargets[rname];
+			}
+		}
+		
 		
 		if("audio" in data){
 			for(var i in data.audio){
@@ -490,10 +500,35 @@ Game.prototype.render = function( ) {
 		this.backBuffer.reset(this.g);
 	}
 	
+	sprites.backbuff = this.backBuffer;
+	
 	var renderOrder = ["o"];
 	if(this.map != undefined && this.map.order instanceof Array){
 		renderOrder = this.map.order;
 	}
+	
+	if( this.objects.renderTargets ) for(let target in this.objects.renderTargets){
+		let props = this.objects.renderTargets[target];
+		if( !(target in sprites ) ) {
+			let size = Math.max(props.width, props.height);
+			sprites[target] = new Sprite("", {force_load:true, width:size, height:size});
+			BackBuffer.prototype.createFrameBuffer.apply(sprites[target]);
+		}
+		
+		BackBuffer.prototype.useBuffer.apply(sprites[target]);
+		this.g.clear(this.g.COLOR_BUFFER_BIT);
+		//this.g.viewport(0,0,props.width, props.height);
+		
+		let spriteList = this.objects.renderTargets[target].draw;
+		for(let i=0; i < spriteList.length; i++ ){
+			this.renderObject( spriteList[i] ); 
+		}
+		
+		BackBuffer.prototype.reset.apply(sprites[target]);
+		delete this.objects.renderTargets[target];		
+	}
+	
+	//this.g.viewport(0,0,this.resolution.x,this.resolution.y);
 	
 	let useForground = false;
 	for(var order=0; order < renderOrder.length; order++){

@@ -19,6 +19,7 @@ class Chort extends GameObject {
 		this.spinLife = Math.floor( this.lifeMax * 0.125 );
 		this.damage = Spawn.damage(5, this.difficulty);
 		this.combat_player_combo_lock = false;
+		this.combat_canbecomedeathbullet = false;
 		this.flip = true;
 		
 		this._state = 0;

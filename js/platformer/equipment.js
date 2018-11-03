@@ -108,7 +108,8 @@ var PlayerAttackList = [
 		"movement" : 1.0,
 		"audio" : "swing",
 		"mesh" : "slashd",
-		"path" : [new Point(-0.05,8), new Point(0,36), new Point(0.05,8)]
+		//"path" : [new Point(-0.05,8), new Point(0,36), new Point(0.05,8)]
+		"path" : new Line(-8,8,8,36),
 		//"airtime" : 0.3 * Game.DELTASECOND
 	},
 	{	//Whip attack

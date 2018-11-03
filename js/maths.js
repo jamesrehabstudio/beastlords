@@ -450,9 +450,18 @@ Matrix4x4.M13 = 7;
 Matrix4x4.M23 = 11;
 Matrix4x4.M33 = 15;
 
-function Polygon(){
+function Polygon(points){
 	this.points = new Array();
 	this._lines = new Array();
+	
+	if(points instanceof Array){
+		for(let i=0; i < points.length; i++){
+			if(points[i] instanceof Point){
+				this.points.push ( points[i] );
+			}
+		}
+		this._rebuildLines();
+	}
 }
 Polygon.prototype.addPoint = function( p ){
 	this.points.push ( p );
@@ -526,17 +535,40 @@ Polygon.prototype.pointInside = function( p ){
 	return ( count % 2 == 1 );
 }
 
+Polygon.prototype.translate = function( t ){
+	var out = new Polygon();
+	for(let i=0; i < this.points.length; i++){
+		out.addPoint(this.points[i].add(t));
+	}
+	return out;
+}
 Polygon.prototype.rotate = function( deg, origin ){
 	if(origin == undefined){
 		origin = new Point(0,0);
 	}
 	
 	var out = new Polygon();
-	let m = new Matrix2D().rotate(deg * Math.deg2rad);
+	//let m = new Matrix2D().rotate(deg * Math.deg2rad);
+	let r = deg * Math.deg2rad;
 	
 	for(let i=0; i < this.points.length; i++){
 		let p = this.points[i].subtract(origin);
-		p = m.apply(p).add(origin);
+		
+		//p = m.apply(p).add(origin);
+		p = new Point(
+			Math.cos(r) * p.x + Math.sin(r) * p.y,
+			Math.sin(r) * p.x + Math.cos(r) * p.y
+		);
+		
+		out.addPoint(p.add(origin));
+	}
+	return out;
+}
+Polygon.prototype.scale = function( scale, origin ){
+	var out = new Polygon();
+	for(let i=0; i < this.points.length; i++){
+		let p = this.points[i].scale(scale);
+		//p = m.apply(p).add(origin);
 		out.addPoint(p);
 	}
 	return out;
@@ -1039,3 +1071,38 @@ var Ease = {
 	outQuad: function (t) { return t*(2-t) },
 	inOutQuad : function (t) { return t<.5 ? 2*t*t : -1+(4-2*t)*t }
 };
+
+class RandomList{
+	constructor(seed){
+		this._list = [];
+	}
+	add(item, weight=1.0){
+		this._list.push([item, weight]);
+	}
+	remove(item){
+		for(let i=0; i < this._list.length; i++){
+			if( this._list[i][0] == item){
+				this._list.remove(i);
+				return;
+			}
+		}
+	}
+	addList(items, weight=1.0){
+		for(let i=0; i < items.length; i++){
+			this._list.push([items[i], weight]);
+		}
+	}
+	pick(){
+		let highest = -1;
+		let highestIndex = 0;
+		for(let i=0; i < this._list.length; i++){
+			let roll = Math.random() * this._list[i][1];
+			
+			if( roll > highest ){
+				highest = roll;
+				highestIndex = i;
+			}
+		}
+		return this._list[highestIndex][0];
+	}
+}

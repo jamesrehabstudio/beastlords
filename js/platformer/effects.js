@@ -590,11 +590,13 @@ function EffectAbsorb(x, y){
 	this.frame = new Point(4,1);
 	
 	this.speed = 10.0;
+	
+	this.on("sleep", function(){ this.destroy(); } );
 }
 
 EffectAbsorb.prototype.render = function(g,c){
 	var dir = this.position.subtract(_player.position);
-	var speed = this.speed * this.delta;
+	var speed = this.speed * UNITS_PER_METER * this.delta;
 	
 	g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,false);
 	

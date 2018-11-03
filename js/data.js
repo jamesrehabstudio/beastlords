@@ -79,7 +79,7 @@ function load_sprites (){
 	
 	
 	sprites['effect_block'] = new Sprite(RT+"img/effect_block.png", {offset:new Point(0, 40),width:32,height:64,fs:"fragment-sparks"});
-	sprites['effect_fire'] = new Sprite(RT+"img/effect_fire.png", {offset:new Point(32, 32),width:64,height:64});
+	sprites['effect_fire'] = new Sprite(RT+"img/effect_fire.png", {offset:new Point(32, 32),width:64,height:64,fs:"fragment-fire"});
 	sprites['effect_hurt'] = new Sprite(RT+"img/effect_hurt.png", {offset:new Point(0, 16),width:80,height:32,fs:"fragment-sparks"});
 	
 	sprites['player'] = new Sprite(RT+"img/player.png", {
@@ -112,6 +112,8 @@ function load_sprites (){
 	//sprites['map'] = new Sprite(RT+"img/map.gif", {offset:new Point(0, 0),width:8,height:8});
 	//sprites['map'] = new Sprite(RT+"img/maptiles.gif", {offset:new Point(0, 0),width:8,height:8});
 	sprites['map'] = new Sprite(RT+"img/tiles/maptiles2.gif", {offset:new Point(0, 0),width:8,height:8});
+	sprites['map_large'] = new Sprite(RT+"img/tiles/map_large.png", {offset:new Point(0, 0),width:8,height:8});
+	sprites['map_small'] = new Sprite(RT+"img/tiles/map_small.png", {offset:new Point(0, 0),width:4,height:4});
 	sprites['mapicons'] = new Sprite(RT+"img/mapicons.png", {offset:new Point(0, 0),width:8,height:8});
 	sprites['doors'] = new Sprite(RT+"img/doors.gif", {offset:new Point(16, 32),width:64,height:64});
 	sprites['gate'] = new Sprite(RT+"img/gate.gif", {offset:new Point(16, 24),width:32,height:48});
@@ -184,6 +186,7 @@ function load_sprites (){
 	sprites['laughing'] = new Sprite(RT+"img/laughing.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['lava'] = new Sprite(RT+"img/lava.png", {offset:new Point(0, 0),width:64,height:64,fs:"fragment-lavapool"});
 	sprites['ooze'] = new Sprite(RT+"img/ooze.png", {offset:new Point(0, 0),width:256,height:256,fs:"fragment-ooze"});
+	//sprites['ooze'] = new Sprite(RT+"img/ooze.png", {offset:new Point(0, 0),width:256,height:256});
 	sprites['lavafalls'] = new Sprite(RT+"img/lavafalls.png", {offset:new Point(0, 112),width:32,height:112,fs:"fragment-lava"});
 	sprites['lavasnake'] = new Sprite(RT+"img/lavasnake.png", {offset:new Point(56, 32),width:80,height:80});
 	sprites['lilghost'] = new Sprite(RT+"img/lilghost.gif", {offset:new Point(16, 16),width:32,height:32});
@@ -275,6 +278,8 @@ function load_sprites (){
 	
 	sprites['ammit'] = new Sprite(RT+"img/ammit.png", {offset:new Point(40, 56),width:96,height:80});
 	sprites['garmr'] = new Sprite(RT+"img/garmr.png", {offset:new Point(64, 72),width:144,height:144});
+	sprites['garmr_large'] = new Sprite(RT+"img/garmr_large.png", {offset:new Point(56, 61),width:112,height:80});
+	sprites['garmr_small'] = new Sprite(RT+"img/garmr_small.png", {offset:new Point(24, 38),width:80,height:48});
 	sprites['megaknight'] = new Sprite(RT+"img/megaknight.png", {offset:new Point(56, 40),width:160,height:72});
 	sprites['minotaur'] = new Sprite(RT+"img/minotaur.gif", {offset:new Point(24, 80),width:64,height:80});
 	sprites['pigbossknight'] = new Sprite(RT+"img/pigbossknight.png", {offset:new Point(32, 44),width:64,height:88});

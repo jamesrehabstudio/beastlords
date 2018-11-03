@@ -276,7 +276,7 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 		
 		textArea(g,"$"+profile.money,c.x+90,c.y+16);
 		textArea(g,"T"+timeHour+":"+timeMinute,c.x+90,c.y+28);
-		textArea(g,profile.location,c.x+90,c.y+40);
+		//textArea(g,profile.location,c.x+90,c.y+40);
 		
 		for(var i=0; i < 4; i++){
 			if(profile["stone" + i]){
@@ -324,9 +324,9 @@ TitleMenu.fetchProfiles = function(){
 			var areas = i18n("maps");
 			var map = i18n("map_unknown");
 			
-			if(d.location.map in areas){
+			try{
 				map = areas[d.location.map];
-			}
+			} catch(e){}
 			
 			var out = {
 				"id" : i,

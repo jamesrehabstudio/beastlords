@@ -83,7 +83,7 @@ class ParticleSystem extends GameObject {
 				//Create a new particle
 				let _sprite = this.sprites[ Math.floor(Math.random() * this.sprites.length) ];
 				let _force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.start.y) );
-				let _time = this.loop ? (i/this.count) * this.time : 0.0;
+				let _time = this.loop ? (i/this.count) * this.time : this.time;
 				
 				this.parts[i] = {
 					"position" : this.getRandomPosition(),
@@ -110,11 +110,12 @@ class ParticleSystem extends GameObject {
 				if( this.loop){ 
 					part.force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.start.y) );
 					part.position = this.getRandomPosition();
-					part.time += this.time;		
+					//part.time += this.time * Math.randomRange(0.9,1.0);	
+					part.time += this.time;	
 					part.visible = true;
 				} else {
 					part.visible = false;
-					part.time = 0.0;
+					part.time = part.time % this.time;
 				}
 			}
 		}

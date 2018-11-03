@@ -19,9 +19,7 @@ function CollapseTile(x,y,d,o){
 	if("timer" in o){
 		this.totalTime = Game.DELTASECOND * o.timer;
 	}
-	if("broken" in o){
-		
-	}
+	this.resetonsleep = o.getBool("resetonsleep", true)
 	
 	var existingTile = game.getTile(this.position.x,this.position.y);
 	if(existingTile > 0){
@@ -38,14 +36,22 @@ function CollapseTile(x,y,d,o){
 			audio.playLock("cracking",0.4);
 		}
 	});
-	this.on(["wakeup","added"],function(){
-		this.visible = true; 
-		this.active = false;
-		this.position.x = this.center.x;
-		this.position.y = this.center.y;
-		game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 1024);
-		this.timer = this.totalTime;
+	this.on("added", function(){
+		this.reset();
 	});
+	this.on("wakeup",function(){
+		if(this.resetonsleep){
+			this.reset();
+		}
+	});
+}
+CollapseTile.prototype.reset = function(){
+	this.visible = true; 
+	this.active = false;
+	this.position.x = this.center.x;
+	this.position.y = this.center.y;
+	game.setTile(this.position.x, this.position.y, game.tileCollideLayer, 1024);
+	this.timer = this.totalTime;
 }
 CollapseTile.prototype.update = function(){
 	if( this.active ) {

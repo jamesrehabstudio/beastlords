@@ -148,6 +148,31 @@ class LightningBolt extends GameObject {
 		}
 	}
 }
+LightningBolt.renderBolt = function(g,c,start,end,seed=""){
+	let s = new Seed(seed);
+	let dif = end.subtract(start);
+	let dir = dif.normalize();
+	let prp = new Point(-dir.y, dir.x);
+	
+	let curr = start.scale(1);
+	let distance = dif.length();
+	
+	while(distance > 0){
+		let range = Math.min(8 + s.random() * 32, distance);
+		let shake = (s.random()-0.5) * 32;
+		
+		distance -= range;
+		if(distance<=0) { shake = 0.0;}
+		
+		let next = curr.add(dir.scale(range)).add(prp.scale(shake));
+		g.renderLine(
+			curr.subtract(c),
+			next.subtract(c),
+			2, COLOR_LIGHTNING
+		)
+		curr = next;
+	}
+}
 LightningBolt.BOLT_TME = Game.DELTASECOND * 0.125;
 LightningBolt.WARNING_TME = Game.DELTASECOND * 2;
 self["LightningBolt"] = LightningBolt;

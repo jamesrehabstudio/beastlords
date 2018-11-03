@@ -329,6 +329,10 @@ function Fire(x,y){
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
 		
+		if( obj instanceof Puddle ){
+			this.life = 0;
+		}
+		
 		if( obj.hurt instanceof Function ) {
 			this.life = 0;
 			obj.hurt( this, Combat.getDamage.apply(this) );
@@ -629,89 +633,119 @@ class CarpetBomb extends GameObject{
 }
 self["CarpetBomb"] = CarpetBomb;
 
-FlameTower.prototype = new GameObject();
-FlameTower.prototype.constructor = GameObject;
-function FlameTower(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.height = 8;
-	this.width = 32;
-	this.time = 0;
-	
-	this.damage = 0;
-	this.damageFire = 10;
-	this.damageSlime = 0;
-	this.damageIce = 0;
-	this.damageLight = 0;
-	
-	this.flameHeight = 88;
-	
-	this.timers = {
-		"wait" : Game.DELTASECOND * 0.0,
-		"active" : Game.DELTASECOND * 0.5,
-		"destroy" : Game.DELTASECOND * 0.9
-	};
-	
-	this.on("sleep", function(){
-		this.destroy();
-	});
-	this.on("collideObject", function(obj){
-		if( obj instanceof Player && this.time > this.timers.active) {
-			obj.hurt(this,Combat.getDamage.apply(this));
-		}
-	});
-	
-	this.addModule( mod_rigidbody );
-	this.pushable = false;
-}
-
-FlameTower.prototype.update = function(){
-	this.time += this.delta;
-	if(this.time < this.timers.wait){
-		
-	}else if(this.time < this.timers.active){
-		var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
-		Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), COLOR_FIRE );
-	} else {
-		var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
-		var preh = this.height;
-		this.height = this.flameHeight * Math.min(prog*1.5,1);
-		this.rigidbodyActive = false;
-		this.position.y -= 0.5 * (this.height-preh);
-		Background.pushLight( this.position, this.height*2, COLOR_FIRE );
+class FlameTower extends GameObject{
+	get towerHeight() {
+		let d = Math.clamp01( (this.time-this.timers.active) / (this.timers.destroy-this.timers.active-0.1) );
+		return Math.lerp(8,this.flameHeight,d);
 	}
-	if(this.time > this.timers.destroy){
-		this.destroy();
-	}
-}
+	constructor(x,y){
+		super(x,y);
 	
-FlameTower.prototype.render = function(g,c){
-	if(this.time > this.timers.wait){
-		var w = 0;
-		var h = 0;
-		if(this.time < this.timers.active){
-			var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
-			w = 1.5 * this.width * prog;
-			h = 16 * (1 - prog);
-		} else {
-			//active
-			w = this.width;
-			h = this.height;
-		}
+		this.position.x = x;
+		this.position.y = y;
+		this.height = 8;
+		this.width = 32;
+		this.time = 0;
 		
-		g.renderSprite(
-			"effect_fire",
-			this.position.subtract(c),
-			this.zIndex,
-			this.frame,
-			this.flip,
-			{
-				"shader" : "fire",
-				"u_time" : game.timeScaled * 0.01,
-				"scalex" : w / 64,
-				"scaley" : h / 64,
+		this.spread = 0;
+		this.spreadDirection = 1;
+		this.hasSpread = false;
+		
+		this.damage = 0;
+		this.damageFire = 10;
+		this.damageSlime = 0;
+		this.damageIce = 0;
+		this.damageLight = 0;
+		
+		this.flameHeight = 88;
+		
+		this.timers = {
+			"wait" : Game.DELTASECOND * 0.0,
+			"active" : Game.DELTASECOND * 0.5,
+			"destroy" : Game.DELTASECOND * 0.9,
+			"spread" : Game.DELTASECOND * 0.25
+		};
+		
+		this.on("sleep", function(){
+			this.destroy();
+		});
+		this.on("collideObject", function(obj){
+			if( obj instanceof Player ){
+				if (this.time > this.timers.active && this.time < this.timers.destroy-0.1) {
+					obj.hurt(this,Combat.getDamage.apply(this));
+				}
 			}
-		)
-	} 
+		});
+		
+		this.addModule( mod_rigidbody );
+		this.pushable = false;
+	}
+
+	update(){
+		this.time += this.delta;
+		
+		if(this.time >= this.timers.spread && !this.hasSpread ){
+			//EXPLODE
+			createExplosion(this.position.scale(1),32);
+			
+			if(this.spread > 0){
+				let s = new FlameTower(this.position.x + 32 * this.spreadDirection, this.position.y);
+				s.spread = this.spread - 1;
+				s.spreadDirection = this.spreadDirection;
+				game.addObject(s);
+			}
+			this.hasSpread = true;
+		}
+		
+		if(this.time < this.timers.wait){
+			
+		}else if(this.time < this.timers.active){
+			var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+			Background.pushLight( this.position, 64*Math.sin(Math.PI*prog), COLOR_FIRE );
+		} else {
+			var prog = Math.min((this.time-this.timers.active)/(this.timers.destroy-this.timers.active) ,1);
+			var preh = this.height;
+			this.height = this.towerHeight;
+			this.rigidbodyActive = false;
+			this.position.y -= 0.5 * (this.height-preh);
+			Background.pushLight( this.position, this.height*2, COLOR_FIRE );
+		}
+		if(this.time > this.timers.destroy){
+			this.destroy();
+		}
+	}
+		
+	render(g,c){
+		if(this.time > this.timers.wait){
+			var w = 0;
+			var h = 0;
+			var intensity = Math.clamp01( (this.timers.destroy - this.time) * 3 );
+			if(this.time < this.timers.active){
+				var prog = Math.min((this.time-this.timers.wait)/(this.timers.active-this.timers.wait) ,1);
+				w = 1.5 * this.width * prog;
+				h = 16 * (1 - prog);
+			} else {
+				//active
+				w = this.width;
+				h = this.height;
+			}
+			
+			//Make it appear a little taller than it is
+			h *= 2.1;
+			
+			g.renderSprite(
+				"effect_fire",
+				this.position.subtract(c),
+				this.zIndex,
+				this.frame,
+				this.flip,
+				{
+					"u_time" : game.timeScaled * 0.5,
+					"u_intensity" : intensity,
+					"scalex" : w / 64,
+					"scaley" : h / 64,
+				}
+			)
+		} 
+	}
 }

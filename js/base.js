@@ -58,15 +58,19 @@ Renderer = {
 	color : [1,1,1,1],
 	tint : [1,1,1,1],
 	layers : [new Array(),new Array(),new Array(),new Array(),new Array(),new Array()],
+	renderTargets : {},
+	_rtarget : false,
 	layer : 1
 }
 Renderer.clear = function(){
 	Renderer.color = [1,1,1,1];
 	Renderer.layers = [new Array(),new Array(),new Array(),new Array(),new Array(),new Array()];
+	Renderer.renderTargets = {};
 	Renderer.layer = 1;
 }
 Renderer.serialize = function(){
 	var out = {
+		"renderTargets" : this.renderTargets,
 		"options" : {
 			"tint" : this.tint
 		}
@@ -80,6 +84,19 @@ Renderer.serialize = function(){
 	}
 	return out;
 }
+Renderer.setRenderTarget = function(name,width,height){
+	fname = name;
+	if(!(fname in this.renderTargets)){
+		this.renderTargets[fname] = {
+			name : name,
+			width : width,
+			height : height,
+			draw : new Array()
+		}
+	}
+	Renderer._rtarget = fname;
+}
+Renderer.resetRenderTarget = function(){ Renderer._rtarget = false; }
 Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 	var f = 0; var fr = 0;
 	if(frame instanceof Point){
@@ -89,7 +106,17 @@ Renderer.renderSprite = function(sprite,pos,z,frame,flip,options){
 		f = Math.floor(frame);
 	}
 	
-	Renderer.layers[Renderer.layer].insertSort({
+	let _layer;
+	if(Renderer._rtarget) {
+		_layer = Renderer.renderTargets[Renderer._rtarget].draw;
+	} else {
+		_layer = Renderer.layers[Renderer.layer];
+	}
+	
+	
+	
+	
+	_layer.insertSort({
 		"type" : 0,
 		"sprite" : sprite,
 		"x" : Math.round(pos.x),

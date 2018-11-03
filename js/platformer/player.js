@@ -86,6 +86,7 @@ class Player extends GameObject{
 		this.attstates = {
 			"currentAttack" : -1, // attack index
 			"queue" : null, // true if another press
+			"queueDir" : 0,
 			"time" : 0.0, //current time in attack
 			"totalTime" : 0.0, //Time for the attack
 			"wait" : 0.0, //Time after attack
@@ -360,7 +361,7 @@ class Player extends GameObject{
 				//A little shake
 				shakeCamera(Game.DELTASECOND*0.3,5);
 				
-				if( obj.ragdoll ) {
+				if( obj.ragdoll && obj.combat_canbecomedeathbullet ) {
 					//Send the enemy flying
 					var dir = obj.position.add(new Point(0,-2)).subtract(this.position);
 					var aim = dir.normalize().add(new Point(dir.x>0?1:-1,0));
@@ -495,15 +496,20 @@ class Player extends GameObject{
 				boxes = spriteWrap.whips.getAttackBoxes(new Point(0,framey), this);
 				
 			} else if(this.attstates.time > 0 && this.attstates.time < this.attstates.totalTime){
-				let range = this.equip_sword.stats.range;
-				let path = this.currentAttack.path;
-				let area = this.equip_sword.stats.size;
-				let i = Math.floor( (path.length-1) * this.attackProgress );
-				let d = ( this.attackProgress * (path.length-1) ) % 1.0;
-				let p = Point.lerp(path[i], path[i+1], d).scale(this.forward() * range, 1);
-				//if(this.flip) { p.x *= -1.0; }
-				
-				boxes.push ( new Line( this.position.add(p.subtract(area.scale(0.5))), this.position.add(p).add(area.scale(0.5)) ) );
+				if( this.currentAttack.path instanceof Line ){
+					let path = this.currentAttack.path.scale(this.forward(),1).correct().transpose(this.position);
+					boxes.push ( path );
+				} else {
+					let range = this.equip_sword.stats.range;
+					let path = this.currentAttack.path;
+					let area = this.equip_sword.stats.size;
+					let i = Math.floor( (path.length-1) * this.attackProgress );
+					let d = ( this.attackProgress * (path.length-1) ) % 1.0;
+					let p = Point.lerp(path[i], path[i+1], d).scale(this.forward() * range, 1);
+					//if(this.flip) { p.x *= -1.0; }
+					
+					boxes.push ( new Line( this.position.add(p.subtract(area.scale(0.5))), this.position.add(p).add(area.scale(0.5)) ) );
+				}
 			} else {
 				//Use default attack tracking
 				boxes = this.swrap.getAttackBoxes(this.frame, this);
@@ -743,8 +749,8 @@ class Player extends GameObject{
 				
 				let attack = this.currentAttack;
 				let hAxis = 0;
-				if(input.state("left") > 0) { hAxis -= 1;}
-				if(input.state("right") > 0) { hAxis += 1;}
+				if(input.state("left") > 0) { hAxis -= 1; this.attstates.queueDir=-1; }
+				if(input.state("right") > 0) { hAxis += 1; this.attstates.queueDir=1; }
 				
 				//Allow player movement during attack
 				this.move(hAxis * attack.movement);
@@ -757,8 +763,13 @@ class Player extends GameObject{
 				this.frame = this.swrap.frame(attack.animation, this.attackProgress);
 				
 				if(input.state("dodge") == 1){
-					this.cancelAttack();
-					this.dodge();
+					if(this.grounded){
+						this.cancelAttack();
+						this.dodge();
+					} else if (this.dodgeFlash){
+						this.cancelAttack();
+						this.dodgeAir();
+					}
 				} else if(this.attstates.warmTime > 0){
 					//Warm
 					this.attstates.warmTime -= this.delta;
@@ -776,6 +787,7 @@ class Player extends GameObject{
 					let nextAttackIndex = this.equip_sword.stats.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
 					
 					if(this.attstates.queue && nextAttackIndex >= 0){
+						if(this.attstates.queueDir != 0){ this.flip = this.attstates.queueDir < 0; }
 						this.attack(nextAttackIndex);
 					} else if(input.state("jump") == 1 && this.grounded){
 						this.cancelAttack();
@@ -894,6 +906,7 @@ class Player extends GameObject{
 					
 					if(this.walljump && !this.grounded && this.states.againstwall && this.states.disableWallJump <= 0){
 						//Wall slide
+						this.flip = this.states.againstwall < 0;
 						if(input.state("down") <= 0){
 							
 							this.frame.x = 7; this.frame.y = 6;
@@ -906,8 +919,7 @@ class Player extends GameObject{
 						this.states.animationProgress = Math.min(this.states.animationProgress+this.delta*4, 1);
 						this.frame = this.swrap.frame("duck", this.states.animationProgress);
 					} else if(this.dodgeFlash && this.states.airdashReady && !this.grounded && input.state("dodge") == 1 && this.states.airdash <= 0){
-						this.airtime = this.states.airdash = this.speeds.airdashTime;
-						this.states.airdashReady = false;
+						this.dodgeAir();
 					} else if(this.grounded && input.state("dodge") == 1 && this.states.dash <= 0){
 						//DASH LIKE A FIEND!
 						this.dodge();
@@ -978,6 +990,8 @@ class Player extends GameObject{
 			this.friction = this.grounded ? this.speeds.frictionGrounded : this.speeds.frictionAir;
 			this.inertia = this.grounded ? this.speeds.inertiaGrounded : this.speeds.inertiaAir;
 			this.height = this.states.duck ? 24 : 30;
+		} else {
+			this.frame = this.swrap.frame("hurt", 0);
 		}
 		//Shield
 		if( !this.guard.active && this.states.guard ) { 
@@ -1180,7 +1194,8 @@ class Player extends GameObject{
 			}
 			if(this.currentlyStandingBlock && this.currentlyStandingBlock.blockTopOnly) {
 				this._ignoreBlocksTimer = Game.DELTAFRAME30;
-				this.grounded = this.currentlyStandingBlock = false; 
+				this.grounded = false; 
+				this.blockDropOff();
 				this.position.y += 2;
 				return;
 			}
@@ -1190,7 +1205,7 @@ class Player extends GameObject{
 			
 			if(this.walljump && this.states.againstwall && this.states.disableWallJump <= 0){
 				force *= 1.2;
-				this.force.x = (this.states.againstwall>0?-1:1) * 3;
+				this.force.x = (this.states.againstwall>0?-1:1) * 5;
 			}
 		}
 		
@@ -1199,12 +1214,14 @@ class Player extends GameObject{
 		this.force.y = -force; 
 		this.grounded = false; 
 		this.states.jump_boost = true; 
+		this.states.againstwall = 0;
 		
 		audio.play("jump");
 	}
 	attack(attackIndex = -1){
 		//Player has pressed the attack button or an attack has been queued
 		this.cancelAttack();
+		this.attstates.queueDir = 0;
 		
 		//let weapon = this.attstates.weapon;
 		let weapon = this.equip_sword.stats;
@@ -1249,6 +1266,10 @@ class Player extends GameObject{
 		this.states.dash = this.speeds.dashTime;
 		this.force.x = this.states.dash_direction * this.speeds.dashSpeed;
 		audio.play("dash");
+	}
+	dodgeAir(){
+		this.airtime = this.states.airdash = this.speeds.airdashTime;
+		this.states.airdashReady = false;
 	}
 	getWeaponState(){
 		var state = PlayerWeapon.STATE_STANDING;
@@ -1376,12 +1397,13 @@ class Player extends GameObject{
 			this.defenceFire += Math.floor(this.stats.defence * 0.2);
 			this.defenceSlime += Math.floor(this.stats.defence * 0.7);
 			this.defenceIce += Math.floor(this.stats.defence * 0.6);
-			this.defenceLight += Math.floor(this.stats.defence * 0.0);
+			this.defenceLight += Math.floor(this.stats.defence * 0.3);
 			
 			this.damage = Math.floor(this.damage + this.stats.attack * this.equip_sword.stats.damage);
 			
 			if(this instanceof Player){
-				this.speeds.manaRegen = Game.DELTASECOND * (10 - this.stats.magic * (9/19));
+				let magdelta = Math.clamp01( Math.log10( this.stats.magic ) / 2 );
+				this.speeds.manaRegen = Math.lerp(5,0.25,magdelta);
 			}
 			
 		} catch(e) {

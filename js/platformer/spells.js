@@ -66,7 +66,7 @@ function SpellIce(){
 	this.name = "Ice";
 	this.objectName = "SpellIce";
 	this.castTime = Game.DELTASECOND * 0.125;
-	this.frame = new Point(1,10);
+	this.frame = new Point(8,11);
 	this.manaCost = 5;
 }
 SpellIce.prototype.use = function(player){

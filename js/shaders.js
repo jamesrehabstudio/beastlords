@@ -82,7 +82,7 @@ window.shaders["fragment-crt"] = "precision mediump float;\n\n#define M_PI 3.141
 
  /* platformer\shaders\fragment-fire.shader*/ 
 
-window.shaders["fragment-fire"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_time;\n\nvec2 uvcord(vec2 orig, float time){\n	float x = orig.x + 0.5;\n	float y = mod(orig.y + time,0.5);\n	return vec2(x,y);\n}\n\nvoid main() {\n	float intensity1 = texture2D(u_image, v_texCoord).r;\n	float intensity2 = texture2D(u_image, uvcord(v_texCoord, u_time)).r;\n	float intensity = intensity1*intensity2;\n	vec4 color = texture2D(u_image, vec2(intensity, 1));\n	if(intensity < 0.1){\n		color.a = 0.0;\n	}\n	gl_FragColor = color;\n}";
+window.shaders["fragment-fire"] = "precision mediump float;\nuniform sampler2D u_image;\nvarying vec2 v_texCoord;\nuniform float u_time;\nuniform float u_intensity;\n\nvec2 uvcord(vec2 orig, float time){\n	float x = orig.x + 0.5;\n	float y = mod(orig.y + time,0.5);\n	return vec2(x,y);\n}\n\nvoid main() {\n	float intensity1 = texture2D(u_image, v_texCoord).r;\n	float intensity2 = texture2D(u_image, uvcord(v_texCoord, u_time)).r;\n	float intensity = intensity1*intensity2*u_intensity;\n	vec4 color = texture2D(u_image, vec2(intensity, 1));\n	if(intensity < 0.1){\n		color.a = 0.0;\n	}\n	gl_FragColor = color;\n}";
 
 
 

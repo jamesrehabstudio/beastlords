@@ -62,6 +62,7 @@ Rain.prototype.update = function(){
 	}
 }
 
+Rain.prototype.renderDebug = function(g,c){}
 Rain.prototype.render = function(g,c){
 	let screen = new Line(game.camera, game.camera.add(game.resolution));
 	

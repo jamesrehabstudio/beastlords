@@ -151,6 +151,10 @@ class SeeSaw extends GameObject {
 						//Remove object
 						this.platforms[i].standing.remove(j);
 						j--;
+					} else if(obj.isStuck){
+						//Remove stuck object
+						this.platforms[i].standing.remove(j);
+						j--;
 					} else {
 						//Apply weight
 						obj.position.y = p.y - obj.height * ( 1 - obj.origin.y );
