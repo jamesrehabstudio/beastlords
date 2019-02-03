@@ -38,7 +38,7 @@ class Samrat extends GameObject {
 		}
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			
 			this.gravity = 0.5;
 			this.states.dive = 0;

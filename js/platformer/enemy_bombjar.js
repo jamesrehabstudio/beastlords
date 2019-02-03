@@ -44,7 +44,7 @@ function Bombjar(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		var explosion = new EffectBang(this.position.x,this.position.y);
@@ -152,7 +152,7 @@ class BombjarFree extends GameObject {
 		});
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			this.force = this.position.subtract(obj.position).normalize(6);
 		});
 		

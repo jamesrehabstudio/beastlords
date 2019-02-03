@@ -10,6 +10,7 @@ class Axedog extends GameObject {
 		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
 		this.states = {
 			"cooldown" : 5,
@@ -25,7 +26,7 @@ class Axedog extends GameObject {
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		
 		this.lifeMax = this.life = Spawn.life(3,this.difficulty);
-		this.damage = Spawn.damage(2,this.difficulty);
+		this.damage = Spawn.damage(5,this.difficulty);
 		this.moneyDrop = Spawn.money(4,this.difficulty);
 		this.xpDrop = Spawn.xp(5,this.difficulty);
 		this.mass = 1.0;
@@ -39,7 +40,7 @@ class Axedog extends GameObject {
 		this.on("struck", EnemyStruck);
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 			this.states.cooldown = Game.DELTASECOND * 0.5;
 			this.states.attack = 0.0;
 			this.force.x = 0.0;
@@ -48,7 +49,7 @@ class Axedog extends GameObject {
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
 			Item.drop(this);
-			this.destroy();
+			this.creep_hide();
 		});
 	}
 	update(){

@@ -53,7 +53,7 @@ function Bear(x,y,d,ops){
 	});
 	this.on("hurt", function(){
 		this.states.attack = 0.0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		Item.drop(this);

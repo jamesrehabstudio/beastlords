@@ -174,6 +174,7 @@ Spawn.prototype.create = function(enemies){
 				this.options
 				//{"difficulty":this.difficulty}
 			);
+			object.creep_destroy = true;
 			object.on("swap", function(obj){
 				that.enemies.remove(that.enemies.indexOf(this));
 				that.enemies.push(obj);

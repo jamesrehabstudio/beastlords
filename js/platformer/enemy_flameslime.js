@@ -68,7 +68,7 @@ function FlameSlime(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("pre_death", function(){
 		audio.play("kill",this.position); 
@@ -226,7 +226,7 @@ function FlameSlimeWalker(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("pre_death", function(){
 		audio.play("kill",this.position); 

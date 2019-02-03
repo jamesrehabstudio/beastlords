@@ -275,11 +275,26 @@ Background.cloudTexture = new Float32Array([
 Background.flash = false;
 Background.lights = new Array();
 Background.pushLight = function(p,r,c){
-	if( Background.lights.length < 40 ) {
-		p = p || new Point();
-		r = r || 0;
-		c = c || [1.0,1.0,1.0,1.0];
+	p = p || new Point();
+	r = r || 0;
+	c = c || [1.0,1.0,1.0,1.0];
+	
+	if( Background.lights.length < 80 ) {		
 		Background.lights.push([p,r,c,0]);
+	} else {
+		lowestIndex = -1;
+		lowestRad = r;
+		for(let i=0; i < Background.lights.length; i++){
+			if(lowestRad > Background.lights[i][1]) { 
+				lowestIndex = i; 
+				lowestRad = Background.lights[i][1]; 
+			}
+		}
+		if(lowestIndex >= 0){
+			Background.lights[i][0] = p;
+			Background.lights[i][1] = r;
+			Background.lights[i][2] = c;
+		}
 	}
 }
 Background.pushLightArea = function(rect,r,c){

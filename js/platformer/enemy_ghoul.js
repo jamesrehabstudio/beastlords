@@ -54,7 +54,7 @@ function Ghoul(x,y,d,o){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		

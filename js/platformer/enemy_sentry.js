@@ -17,7 +17,7 @@ function Sentry(x,y,d,o){
 	
 	this.on("hurt", function(obj,damage){
 		this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj,pos,damage){
 		

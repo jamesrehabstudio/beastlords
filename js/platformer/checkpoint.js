@@ -26,6 +26,8 @@ class Checkpoint extends GameObject{
 			game.addObject(sm);
 		});
 		this.on("open", function(){
+			game.ga_event("checkpoint");
+			
 			_player.heal = _player.lifeMax;
 			_player.manaHeal = _player.manaMax;
 			
@@ -55,8 +57,6 @@ class Checkpoint extends GameObject{
 		
 		audio.play("item1");
 		game.slow(0,Game.DELTASECOND*0.3333);
-		
-		game.ga_event("checkpoint", game.newmapName, this.position.floor(256,240).toString());
 		
 		Checkpoint.saveState(obj);
 	}
@@ -115,7 +115,7 @@ class Checkpoint extends GameObject{
 			}
 		}
 		
-		Background.pushLight(this.position.add(new Point(40,-8)),48,[1.0,0.8,0.5,1.0]);
+		Background.pushLight(this.position.add(new Point(40,-8)),140,[1.0,0.8,0.5,1.0]);
 	}
 	render(g,c){
 		this.flip = false;
@@ -171,6 +171,7 @@ Checkpoint.saveState = function(obj){
 		"variables" : NPC.variables,
 		"mapreveal" : WorldMap.map,
 		"player" : _player.toJson(),
+		"sessionId" : sessionId,
 		"settings" : Settings
 	}
 	
@@ -192,6 +193,7 @@ Checkpoint.loadState = function(){
 			WorldMap.map = data.mapreveal;
 			
 			game.loadMap(data.location.map, function(starts){
+				sessionId = data.sessionId;
 				_player.position.x = data.location.x;
 				_player.position.y = data.location.y;
 				audio.playAs(data.location.music, "music");
@@ -199,6 +201,8 @@ Checkpoint.loadState = function(){
 				game.addObject(_player);
 				game.addObject(new PauseMenu(0,0));
 				game.addObject(new Background(0,0));
+				
+				game.ga_event("respawn");
 			});
 		}
 		

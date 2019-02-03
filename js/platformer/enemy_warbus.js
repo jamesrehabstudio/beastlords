@@ -45,7 +45,7 @@ function Warbus(x,y,d,o){
 		this.setPhase(Warbus.PHASE_GUARD);
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		this.states.cooldown -= 10;
 		this.states.active = true
 	});

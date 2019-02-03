@@ -49,7 +49,7 @@ function ManOnFire(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("pre_death", function(){
 		this.frame.x = 0;

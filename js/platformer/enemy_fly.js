@@ -1,86 +1,64 @@
-Fly.prototype = new GameObject();
-Fly.prototype.constructor = GameObject;
-function Fly(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 16;
-	this.height = 24;
-	this.damage = Spawn.damage(2,this.difficulty);
-	this.team = 0;
-	this.sprite = "amon";
-	
-	this.addModule(mod_rigidbody);
-	this.addModule(mod_combat);
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
+class Fly extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.initPos = new Point(x, y);
+		this.sprite = "fly";
+		this.width = 24;
+		this.height = 24;
+		this.frame = new Point(0,0);
+		
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_combat);
+		
+		this.diffculty = ops.getInt("diffculty", Spawn.diffculty);
+		
+		this.life = this.lifeMax = 1;
+		this.xpDrop = 0;
+		this.gravity = 0.0;
+		this.bounce = 0.5;
+		this.collisionReduction = - 0.5;
+		this.pushable = false;
+		
+		this.friction = 0.05;
+		
+		this._direction = new Point(1,0);
+		this._directionChangeTime = 0.0;
+		
+		this.on("pre_death", function(){
+			game.addObject( new ParticleSystem(this.position.x, this.position.y, [1,1], new Options({
+				"frame_x" : 1,
+				"frame_y" : 2,
+				"color" : [.95,1,.5,1],
+				"startForceRange" : new Line(-2,-8,2,-2),
+				"count" : 16,
+				"time" : 1,
+				
+			})) );
+			this.destroy();
+		});
+	}
+	update(){
+		if(this.life){
+			this.force = this.force.add( this._direction.scale(this.delta * UNITS_PER_METER * Fly.speed ) );
+			this._directionChangeTime -= this.delta;
+			
+			this.flip = this.target().position.x < this.position.x;
+			this.frame.x = (this.frame.x + this.delta * 3 * Fly.animationSpeed) % 3;
+			this.frame.y = (this.frame.y + this.delta * 1 * Fly.animationSpeed) % 2;
+			
+			if(this._directionChangeTime <= 0){
+				let angle = this.target().position.subtract(this.position).toAngle() + Math.randomRange(-Fly.randomDir, Fly.randomDir);
+				this._direction = Point.fromAngle(angle).scale(1,-1);
+				this._directionChangeTime = Math.randomRange(1.5,2.5);
+			}
+		}
 	}
 	
-	this.life = Spawn.life(1,this.difficulty);
-	this.damage = Spawn.damage(1,this.difficulty);
-	
-	this.speed = 0.25;
-	this.frame = new Point(0,1);
-	this.gravity = 0.0;
-	this.friction = 0.1;
-	this.mass = 0.7;
-	this.itemDrop = true;
-	
-	this.times = {
-		"attackWarm" : Game.DELTASECOND,
-		"attack" : Game.DELTASECOND * 0.25,
-	};
-	this.states = {
-		"attackWarm" : 0.0,
-		"attack" : 0.0
-	};
-	
-	this.on("struck", EnemyStruck);
-	this.on("hurt", function(){
-		audio.play("hurt",this.position);
-	});
-	
-	this.on("death", function(){
-		
-		audio.play("kill",this.position); 
-		createExplosion(this.position, 40 );
-		if( this.itemDrop ){
-			Item.drop(this);
-		}
-		this.destroy();
-	});
 }
+Fly.speed = 0.0625;
+Fly.randomDir = 0.4;
+Fly.animationSpeed = 4.0;
 
-Fly.prototype.update = function(){
-	var dir = this.position.subtract(_player.position);
-	
-	if( this.life > 0 && this.stun <= 0 ) {
-		
-		this.flip = dir.x > 0;
-		
-		if(this.states.attackWarm > 0) {
-			this.states.attackWarm -= this.delta;
-			this.force = this.force.scale(1 - this.delta*0.5);
-			if( this.states.attackWarm <= 0) {
-				this.force.x = -10 * (dir.x < 0 ? -1.0 : 1.0);
-				this.states.attack = this.times.attack;
-			}
-		} else if(this.states.attack > 0) {
-			this.states.attack -= this.delta;
-			this.strike( new Line(0,-6,16,12) );
-		} else {
-			if( Math.abs(dir.x) > 32 || Math.abs(dir.y) > 32 ){
-				this.force = this.force.subtract( dir.normalize( this.speed ) );
-			}
-			if( Math.abs(dir.x) < 64 && Math.abs(dir.y) < 24 ){
-				this.states.attackWarm = this.times.attackWarm;
-			}
-		}
-	}
-	
-	this.frame.x = (this.frame.x + this.delta * 0.5) % 2.0;
-}
+self["Fly"] = Fly;

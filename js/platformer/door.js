@@ -1,5 +1,72 @@
-Door.prototype = new GameObject();
-Door.prototype.constructor = GameObject;
+class Door extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 20;
+		this.height = 64;
+		this.sprite = "doors";
+		this.id = "door_" + game.map.filename + Math.floor(x) + "_" + Math.floor(y);
+		this.zIndex = -1;
+		
+		this._tid = ops.getString("trigger", "");
+		this.isOpen = ops.getBool("open", false);
+		this.key = ops.getInt("key", -1);
+		
+		if(NPC.get(this.id)){
+			this.isOpen = true;
+		}
+		
+		this.on("activate", function(){
+			this.open();
+		});
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				if(this.key >= 0 && !this.isOpen){
+					if(NPC.get("key_" + this.key)){
+						this.open();
+					}
+				}
+			}
+		});
+		
+		this._time = this.isOpen ? 1.0 : 0.0;
+		this.setTiles(this.isOpen);
+	}
+	setTiles(open = false){
+		let c = this.corners();
+		let tile = open ? 0 : 1023;
+		for(let y = c.top; y < c.bottom; y++){
+			game.setTile(this.position.x, y, game.tileCollideLayer, tile);
+		}
+	}
+	open(){
+		audio.play("open", this.position);
+		this._time = 0.0;
+		this.isOpen = true;
+		this.setTiles(true);
+		NPC.set(this.id, 1);
+	}
+	update(){
+		if(this.isOpen){
+			this._time = Math.clamp01(this._time += this.delta * 5);
+		} else {
+			this._time = Math.clamp01(this._time -= this.delta * 5);
+		}
+		this.frame.x = this._time * 4;
+		this.frame.y = 3;
+	}
+	render(g,c){
+		super.render(g,c);
+		if(this.key >= 0 && !this.isOpen){
+			g.renderSprite( this.sprite, this.position.add(new Point(10,28)).subtract(c), this.zIndex+1, new Point(this.key, 0), this.flip );
+		}
+	}
+}
+self["Door"] = Door;
+
+/*
 function Door(x,y,d,ops){
 	this.constructor();
 	this.position.x = x;
@@ -44,11 +111,6 @@ function Door(x,y,d,ops){
 					this.open();
 				}
 			}
-		}
-	});
-	this.on("player_death", function(obj){
-		if(this.isOpen && this.lock >= 0){
-			this.close();
 		}
 	});
 	
@@ -102,7 +164,7 @@ Door.prototype.open = function(){
 	for(var i=0; i < this.door_blocks.length; i++){
 		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
 	}
-	this.zIndex = -20;
+	this.zIndex = -1;
 	this.isOpen = true;
 	
 	if(this.triggersave){
@@ -135,6 +197,7 @@ Door.prototype.render = function(g,c){
 		);
 	}
 }
+*/
 
 class BossDoor extends GameObject {
 	constructor(x,y,d,ops){

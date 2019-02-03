@@ -147,22 +147,24 @@ class Puddle extends GameObject{
 		}
 	}
 	floatObject(obj){
-		let top = this.corners().top;
-		let buoyancy = Math.clamp01( ( (obj.position.y + 16) - top ) / 80 );
-		let pushUp = Math.lerp(0.0, this.waterBuoyancy, buoyancy);
-		
-		if(obj.grounded){
-			obj.grounded = false;
-			obj.force.y = 0.0;
-		}
-		
-		obj.force.y -= pushUp * UNITS_PER_METER * this.delta;
-		obj.force.y = Math.clamp( obj.force.y, -10, 5 );
-		
-		if(obj instanceof Player){
-			obj.states.ledgePosition = false;
-			if(obj.delta > 0 && input.state("jump") == 1){
-				obj.jump();
+		if(obj.life > 0){
+			let top = this.corners().top;
+			let buoyancy = Math.clamp01( ( (obj.position.y + 16) - top ) / 80 );
+			let pushUp = Math.lerp(0.0, this.waterBuoyancy, buoyancy);
+			
+			if(obj.grounded){
+				obj.grounded = false;
+				obj.force.y = 0.0;
+			}
+			
+			obj.force.y -= pushUp * UNITS_PER_METER * this.delta;
+			obj.force.y = Math.clamp( obj.force.y, -10, 5 );
+			
+			if(obj instanceof Player){
+				obj.states.ledgePosition = false;
+				if(obj.delta > 0 && input.state("jump") == 1 && obj.force.y <= 0){
+					obj.jump();
+				}
 			}
 		}
 	}

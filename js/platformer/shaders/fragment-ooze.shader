@@ -23,33 +23,6 @@ const float colordepth = 8.0;
 const float margin = 32.0;
 const float pi = 3.1415926535897932384626433832795;
 
-float inv(float a){
-	return abs(max(min(a,1.0),-1.0));
-}
-float saturate(float a){
-	return max(min(a,1.0),0.0);
-}
-/*
-float floorFloat(float a){
-	return floor(a*colordepth) / colordepth;
-}
-float roundFloat(float a){
-	if(mod(a, 1.0) >= 0.5) {
-		return ceil(a*colordepth) / colordepth;
-	}
-	return floor(a*colordepth) / colordepth;
-}
-vec4 downsampleColor(vec4 a){
-	bool oddVline = mod(gl_FragCoord.y,2.0) < 1.0;
-	bool oddHline = mod(gl_FragCoord.x,2.0) < 1.0;
-	bool ditter = (oddHline && !oddVline) || (!oddHline && oddVline);
-	
-	if(ditter){
-		return vec4(floorFloat(a.x),floorFloat(a.y),floorFloat(a.z),a.a);
-	}
-	return vec4(roundFloat(a.x),roundFloat(a.y),roundFloat(a.z),a.a);
-}
-*/
 float smooth(float f){
 	//return cos(max(f, 0.0) * pi * 0.5);
 	return 0.5 + atan(pi * (max(f,0.0)-0.5)) / (pi*0.6666);

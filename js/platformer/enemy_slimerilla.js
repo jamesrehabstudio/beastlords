@@ -44,7 +44,7 @@ function Slimerilla(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt",function(obj,damage){
-		audio.play("hurt",this.position);
+		
 		this.times.jumpback = true;
 	});
 	this.on("death", function(obj,pos,damage){
@@ -158,6 +158,7 @@ class Slimerilla extends GameObject{
 		
 		this.addModule(mod_rigidbody);
 		this.addModule(mod_combat);
+		this.addModule(mod_creep);
 		
 		this.sprite = "slimerilla";
 		this.swrap = spriteWrap["slimerilla"];
@@ -168,7 +169,7 @@ class Slimerilla extends GameObject{
 		o = o || {};
 		
 		this.difficulty = o.getInt("difficulty",Spawn.difficulty);
-		this.hidden = o.getBool("hidden",false);
+		this.startHidden = this.hidden = o.getBool("hidden",false);
 		
 		this.states = {
 			
@@ -199,8 +200,15 @@ class Slimerilla extends GameObject{
 			}
 		})
 		this.on("hurt",function(obj,damage){
-			audio.play("hurt",this.position);
+			
 			this.states.jumpback = true;
+		});
+		this.on("respawn", function(){
+			this.states.cooldown = this.times.cooldown;
+			this.states.attack = 0.0;
+			this.states.reappear = 0.0;
+			
+			this.hidden = this.startHidden;
 		});
 		this.on("land", function(){
 			this.states.landed = this.times.landed;
@@ -210,17 +218,17 @@ class Slimerilla extends GameObject{
 			
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
-			this.destroy();
+			this.creep_hide();
 		});
 		
 		if(this.hidden){
 			this.pushable = true;
 		}
 		
-		this.life = Spawn.life(8, this.difficulty);
+		this.life = Spawn.life(4, this.difficulty);
 		this.moneyDrop = Spawn.money(8,this.difficulty);
 		this.damage = Spawn.damage(4,this.difficulty);
-		this.defencePhysical = Spawn.defence(2,this.difficulty);
+		this.defencePhysical = Spawn.defence(1,this.difficulty);
 		this.defenceFire = Spawn.defence(-2,this.difficulty);
 		this.defenceSlime = Spawn.defence(4,this.difficulty);
 		this.death_time = Game.DELTASECOND * 0.5;

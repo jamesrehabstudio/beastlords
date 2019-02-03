@@ -37,7 +37,7 @@ function Shockowl(x, y, d, o){
 	this.attackTime = Game.DELTASECOND * 1.2;
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		audio.play("kill",this.position); 

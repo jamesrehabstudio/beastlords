@@ -52,7 +52,7 @@ class Axesub extends GameObject{
 		
 		this.on("struck", EnemyStruck);
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			this.destroy();

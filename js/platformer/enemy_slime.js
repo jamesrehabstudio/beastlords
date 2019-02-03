@@ -11,6 +11,8 @@ class Slime extends GameObject{
 		this.speed = 6.0;
 		this.addModule(mod_rigidbody);
 		this.addModule(mod_combat);
+		this.addModule(mod_creep);
+		
 		this.width = this.height = 16;
 		this.team = 0;
 		
@@ -45,8 +47,15 @@ class Slime extends GameObject{
 			this.flip = !this.flip;
 		});
 		this.on("hurt",function(obj,damage){
-			audio.play("hurt",this.position);
+			
 			this.setState(Slime.STATE_HIDDEN);
+		});
+		this.on("combat_bouncedon", function(obj){
+			if(obj instanceof Player){
+				audio.play("splat1", this.position);
+				this.life = 0;
+				this.creep_hide();
+			}
 		});
 		this.on("hurt_other",function(obj,damage){
 			if(this._state == Slime.STATE_HIDDEN || this._state == Slime.STATE_MOVING){
@@ -64,7 +73,7 @@ class Slime extends GameObject{
 			
 			audio.play("kill",this.position);
 			createExplosion(this.position, 40 );
-			this.destroy();
+			this.creep_hide();
 		});
 	}
 	setState(s){
@@ -200,7 +209,7 @@ function Slime(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt",function(obj,damage){
 		this.times.cooldown = 0.0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("hurtOther",function(obj,damage){
 		this.times.cooldown = 0.0;

@@ -647,11 +647,26 @@ Background.cloudTexture = new Float32Array([
 Background.flash = false;
 Background.lights = new Array();
 Background.pushLight = function(p,r,c){
-	if( Background.lights.length < 40 ) {
-		p = p || new Point();
-		r = r || 0;
-		c = c || [1.0,1.0,1.0,1.0];
+	p = p || new Point();
+	r = r || 0;
+	c = c || [1.0,1.0,1.0,1.0];
+	
+	if( Background.lights.length < 80 ) {		
 		Background.lights.push([p,r,c,0]);
+	} else {
+		lowestIndex = -1;
+		lowestRad = r;
+		for(let i=0; i < Background.lights.length; i++){
+			if(lowestRad > Background.lights[i][1]) { 
+				lowestIndex = i; 
+				lowestRad = Background.lights[i][1]; 
+			}
+		}
+		if(lowestIndex >= 0){
+			Background.lights[i][0] = p;
+			Background.lights[i][1] = r;
+			Background.lights[i][2] = c;
+		}
 	}
 }
 Background.pushLightArea = function(rect,r,c){
@@ -1181,10 +1196,10 @@ function MovingBlock(x,y,d,ops){
 	this.height = d[1];
 	this.speed = 1.0;
 	this.move = false;
-	this.loop = 0;
+	this.loop = false;
 	this.wait = 0.0;
 	this.waitTime = 0.0;
-	this.killStuck = 0;
+	this.killStuck = false;
 	this.sync = 0;
 	
 	this.addModule(mod_block);
@@ -1193,41 +1208,34 @@ function MovingBlock(x,y,d,ops){
 	
 	this.move = ops.getBool("autostart", false);
 	this.loop = ops.getBool("loop", false);
+	this.pingpong = ops.getBool("pingpong", false);
 	this.wait = ops.getFloat("wait", 0.0) * Game.DELTASECOND;
 	this.sync = ops.getFloat("sync", 0,0);
 	
-	if("trigger" in ops){
-		this._tid = ops.trigger;
-	}
-	if("movex" in ops){
-		this.endPosition.x += ops["movex"] * 1;
-	}
-	if("movey" in ops){
-		this.endPosition.y += ops["movey"] * 1;
-	}
-	if("speed" in ops){
-		this.speed = ops["speed"] * 30;
-	}
-	if("killstuck" in ops){
-		this.killStuck = ops["killstuck"] * 1;
-	}
+	this._tid = ops.getString("trigger", "");
+	this.endPosition.x += ops.getFloat("movex", 0.0);
+	this.endPosition.y += ops.getFloat("movey", 0.0);
+	this.speed = ops.getFloat("speed", 1.0) * UNITS_PER_METER;
+	this.killStuck = ops.getBool("killstuck", false);
 	
 	this.on("activate", function(obj){
-		this.move = 1;
+		this.move = true;
 	});
 	
 	this.on("collideObject", function(obj){
-		if(this.killStuck && this.move){
+		if(this.move){
 			if(obj.hasModule(mod_rigidbody) && obj.hasModule(mod_combat)){
 				if(obj.isStuck){
 					if(obj instanceof Player && obj.states.ledgeObject == this){
 						obj.trigger("dropLedge");
 					} else {
-						if(this.dotDirection(obj.position) > 0.1){
-							obj.invincible = -1;
-							obj.hurt( this, Math.floor( 9999 ) );
-						} else {
-							console.log("Spare crushing object");
+						if(this.killStuck){							
+							if(this.dotDirection(obj.position) > 0.1){
+								obj.invincible = -1;
+								obj.hurt( this, Math.floor( 9999 ) );
+							} else {
+								console.log("Spare crushing object");
+							}
 						}
 					}
 				}
@@ -1254,10 +1262,10 @@ function MovingBlock(x,y,d,ops){
 }
 
 MovingBlock.prototype.evaluate = function(f){
-	let l = this.loop ? 2 : 1;
+	let l = this.pingpong ? 2 : 1;
 	let r = this.time / this.totalTime;
 	
-	if(f < 0.5 || !this.loop){
+	if(f < 0.5 || !this.pingpong){
 		return Math.clamp01(f * l) / r;
 	} else {
 		a = 1 + (1 / r);
@@ -1277,25 +1285,15 @@ MovingBlock.prototype.update = function(){
 		} else {
 			this._progress = Math.clamp01( this._progress + this.delta / this.totalTime);
 			a = this._progress;
+			
+			if(this._progress >= 1){
+				if( !this.loop ) { this.move = false };
+				this._progress = 0.0;
+			}
 		}
 		
 		let d = Math.clamp01(this.evaluate(a));
 		this.position = Point.lerp(this.startPosition, this.endPosition, d);
-	}
-	return;
-	
-	if(this.waitTime > 0){
-		this.waitTime -= this.delta;
-	} else if(this.move){
-		var s = this.speed * this.delta;
-		var des = this.direction == 0 ? this.endPosition : this.startPosition;
-		var dif = des.subtract(this.position);
-		var dir = dif.normalize(s);
-		if(dif.length() <= s ){
-			this.destinationReached();
-		} else {
-			this.position = this.position.add(dir);
-		}
 	}
 }
 MovingBlock.prototype.dotDirection = function(p){
@@ -1790,8 +1788,9 @@ class Ammit extends GameObject{
 		this.damageSlime = Spawn.damage(3, this.difficulty);
 		this.moneyDrop = 0;
 		this.xpDrop = Spawn.xp(35,this.difficulty);
+		this.gravity = 0;
 		
-		this.defencePhysical = Spawn.defence(2, this.difficulty);
+		this.defencePhysical = Spawn.defence(1, this.difficulty);
 		this.defenceFire = Spawn.defence(-2, this.difficulty);
 		this.defenceSlime = Spawn.defence(4, this.difficulty);
 		
@@ -1898,6 +1897,7 @@ class Ammit extends GameObject{
 		});
 		this.on("activate", function(){
 			try{
+				this.gravity = 1.0;
 				this._roomLight = Trigger.getTargets("boss_light")[0];
 			} catch(e){}
 		});
@@ -1907,6 +1907,8 @@ class Ammit extends GameObject{
 		for(let i=0; i < this.arms.length; i++){ this.arms[i].deactivate(); }
 		this.clearSlime();
 		this.setState(Ammit.STATE_IDLE);
+		this.gravity = 0;
+		this.force = new Point();
 	}
 	setState(s){
 		this._state = s;
@@ -3163,7 +3165,7 @@ class CryptKeeper extends GameObject {
 		this.on("struck", EnemyStruck);
 		
 		this.on("hurt", function(obj,damage){
-			audio.play("hurt",this.position);
+			
 		});
 		
 		this.on("collideObject", function(obj){
@@ -3385,7 +3387,7 @@ class FireKeeper extends GameObject {
 			}
 		});
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			
 			let expectedBlocks = Math.clamp( Math.floor(this.life / this.lifeMax * 5), 0, 4);
 			if(expectedBlocks < this.activeBlockCount){
@@ -6013,25 +6015,47 @@ class PigbossKnight extends GameObject {
 		
 		this.spikes = new Array();
 		
-		this.on("hurt", function(damage, obj){
-			if(this._attack < 2.0){
-				this._attack = 0.0;
-				this._ballToss = 0.0;
-			}
-			audio.play("hurt",this.position);
+		this.on("struck", function(obj, area){
+			this.criticalChance = 1.0;
 		});
-		this.on("block", function(obj){
+		this.on("hurt", function(damage, obj){
+			if(this._state != PigbossKnight.STATE_IDLE){
+				this.setState(PigbossKnight.STATE_IDLE);
+			}
+		});
+		this.on("block", function(obj, area, damage){
 			audio.play("block", this.position);
 			this._retreat = Math.max(this._retreat, Game.DELTASECOND * 0.4);
+			this._cooldown -= 0.75;
+			
+			damage = Math.floor(damage * 0.35);
+			
+			if(damage > 0){
+				this.life -= damage;
+				this.isDead();
+				this.displayDamage(damage);
+			}
+			
 		});
 		this.on("collideBall", function(obj){
-			if(obj.hasModule(mod_combat) && obj.team != this.team){
-				let multiplier = (this._ballToss > 0 && this._ballToss < 1) ? 1.5 : 1;
-				obj.hurt(this, this.getDamage(multiplier));
+			if(this.active){
+				if(obj.hasModule(mod_combat) && obj.team != this.team){
+					let multiplier = (this._ballToss > 0 && this._ballToss < 1) ? 1.5 : 1;
+					obj.hurt(this, this.getDamage(multiplier));
+				}
+				if(obj instanceof DamageTrigger && this._spike){
+					this.createSpike(obj);
+					this._spike = false;
+				}
+				if(obj instanceof PigbossKnight && this._state == PigbossKnight.STATE_BALLWITHDRAW){
+					this.setState(PigbossKnight.STATE_IDLE);
+				}
 			}
-			if(obj instanceof DamageTrigger && this._spike){
-				this.createSpike(obj);
-				this._spike = false;
+		});
+		this.on("ballWall", function(){
+			if( this._state == PigbossKnight.STATE_THROW){
+				shakeCamera(0.25, 4);
+				this.setState(PigbossKnight.STATE_BALLWITHDRAW);
 			}
 		});
 		this.on("hurtBall", function(obj){
@@ -6074,6 +6098,9 @@ class PigbossKnight extends GameObject {
 			this._attack = 0.0;
 			this._type = 0;
 			this._count = 4;
+			
+			this._chainSlack = 0.0;
+			this._chainAnchor = new Point();
 		});
 		
 		this.parts = {
@@ -6094,7 +6121,7 @@ class PigbossKnight extends GameObject {
 				"offset" : [new Vector(-16,32,0), new Vector(-16,0,0), new Vector(16,20,90), new Vector(16,32,90) ],
 				"origins" : [new Point(-8,-38), new Point(-4,-38), new Point(-2,-38), new Point(0,-38)],
 				"frame" : new Point(0,4),
-				"zIndex" : 1
+				"zIndex" : 3
 			},
 			"arm2" : {
 				"position" : new Point(),
@@ -6115,33 +6142,34 @@ class PigbossKnight extends GameObject {
 				"zIndex" : -1
 			}
 		};
-		
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
-		this.life = this.lifeMax = Spawn.life(8, this.difficulty);
+		this.life = this.lifeMax = Spawn.life(16, this.difficulty);
 		this.defencePhysical = 0;
-		this.defenceFire = Spawn.defence(4,this.difficulty);
-		this.defenceSlime = Spawn.defence(4,this.difficulty);;
-		this.defenceIce = Spawn.defence(4,this.difficulty);;
-		this.defenceLight = Spawn.defence(4,this.difficulty);;
+		this.defenceFire = Spawn.defence(2,this.difficulty);
+		this.defenceSlime = Spawn.defence(2,this.difficulty);
+		this.defenceIce = Spawn.defence(2,this.difficulty);
+		this.defenceLight = Spawn.defence(2,this.difficulty);
 		
 		this.moneyDrop = 0;
 		this.xpDrop = Spawn.xp(25,this.difficulty);
 		
 		this.ballObj = new GameObject(x,y);
 		this.ballObj.parent = this;
-		this.ballObj.width = this.ballObj.height = 32;
+		this.ballObj.width = this.ballObj.height = 20;
 		this.ballObj.force_y = 0;
 		this.ballObj.addModule(mod_combat);
+		this.ballObj.addModule(mod_rigidbody);
+		this.ballObj.pushable = false;
 		this.ballObj.position = this.position.scale(1);
 		this.ballObj.showDamage = false;
+		this.ballObj.gravity = 0.0;
 		this.ballObj.hurtByDamageTriggers = false;
 		this.ballObj.on("hurt", function(damage, obj){ this.parent.trigger("hurtBall", damage, obj);  });
 		this.ballObj.on("collideObject", function(obj){ this.parent.trigger("collideBall", obj); });
+		this.ballObj.on(["collideHorizontal","collideVertical"], function(){ this.parent.trigger("ballWall"); });
 		game.addObject(this.ballObj);
 		
 		this.speed = 3.0;
-		this.attackTime = Game.DELTASECOND * 4;
-		this.attackTime2 = Game.DELTASECOND * 8;
 		this.death_time = Game.DELTASECOND * 2.0;
 		
 		this.guard.active = true;
@@ -6159,148 +6187,145 @@ class PigbossKnight extends GameObject {
 		this._walkAnim = 0.0;
 		this._retreat = 0.0;
 		
-		this._cooldown = Game.DELTASECOND * 4;
-		this._attack = 0.0;
-		this._type = 0;
-		this._count = 4;
+		this._cooldown = Game.DELTASECOND * 5;
+		this._count = 3;
 		this._duck = false;
 		
-		this._spike = false;
+		this._state = PigbossKnight.STATE_IDLE;
+		this._time = this._timeMax = 3;
 		
+		this._spike = false;
 		this._walkChangeTimer = Game.DELTASECOND * 2.0;
 		this._walkPause = Game.DELTASECOND * 2.0;
 		this._walkDirection = 1.0;
 	}
+	setState(s){
+		this._state = s;
+		this.ballObj.gravity = 0.0;
+		this.parts.head.frame.x = 0;
+		
+		if(this._state == PigbossKnight.STATE_IDLE){
+			this._time = this._timeMax = 3;
+		} else if(this._state == PigbossKnight.STATE_SPINBALL){
+			this._time = this._timeMax = 1.6;
+			this._count = 2;
+		} else if(this._state == PigbossKnight.STATE_BALLCHARGE){
+			this._time = this._timeMax = 1.5;
+			this._count -= 1;
+		} else if(this._state == PigbossKnight.STATE_THROW){
+			this._time = this._timeMax = 1.0;
+		} else if(this._state == PigbossKnight.STATE_BALLWITHDRAW){
+			this._time = this._timeMax = 4.5;
+			this.ballObj.gravity = 1.0;
+		}
+	}
 	update(){
+		this.criticalChance = 1.0;
+		
 		if( this.active ) {
-			
 			if(this.life > 0){
+				
 				let dif = this.target().position.subtract(this.position);
 				this.flip = dif.x < 0;
 				this.ballObj.life = 9999;
 				this._ballStun -= this.delta;
 				
-				if(this._attack > 0){
-					
-					if(this._attack > 3.0){
-						//Warm up
-						if( this._type == 0 ){
-							//Hold ball
-							this.parts.arm1.frame.x = 1;
-							this.ballObj.position.x = this.position.x + this.forward() * -24;
-							this.ballObj.position.y = this.position.y - 64;
-						} else {
-							//Spin ball
-							let angle = Math.mod(this._attack * 6.0, Math.PI * 2) - 1.2;
-							let radius = 64;
-							
-							this.parts.arm1.frame.x = 1;
-							this.ballObj.position.x = this.position.x + Math.sin(angle) * radius;
-							this.ballObj.position.y = this.position.y + Math.cos(angle) * radius - 48;
-						}
-						this._attack -= this.delta;
-						
-						if(this._attack <= 3.0){
-							//Target and throw
-							this._ballPositionStart = this.ballObj.position.scale(1);
-							this._ballToss = 0.0;
-							
-							if( this._type == 0 ){
-								this._ballDestination = dif.normalize(512).add(this.position);
-							} else {
-								this._ballDestination = this.position.add( new Point( this.forward()*128, -256 ) );
-							}
-							
-							this._spike = true;
-							let p = game.t_raytrace(this.position, this._ballDestination);
-							if(p instanceof Point){ this._ballDestination = p;}
-							this._ballDistance = this.position.subtract(this._ballDestination).magnitude();
-							
-							
-						}
-					} else if(this._ballToss < 1.0) {
-						//Throwing
-						let tspeed = this.delta * (160.0 / this._ballDistance); 
-						this._ballToss += tspeed;
-						this.ballObj.position = Point.lerp(this._ballPositionStart, this._ballDestination, this._ballToss);
-						this.parts.arm1.frame.x = 2;
-					} else if(this._attack > 2.0){
-						//Pause for a moment
-						this._attack -= this.delta;
-						this.ballObj.force_y += this.delta * UNITS_PER_METER;
-						let fall_speed = this.ballObj.force_y * UNITS_PER_METER * this.delta;
-						
-						this.ballObj.position.y = Math.min(this.ballObj.position.y + fall_speed, this.corners().bottom - 16)
-					} else if(Math.abs(this.ballObj.position.x - this.position.x ) > 24){
-						//Returning
-						if(this._ballStun <= 0){
-							this.ballObj.position.y = this.corners().bottom - 16;
-							this.ballObj.position.x += (this.ballObj.position.x < this.position.x ? 1 : -1) * this.delta * 2.0 * UNITS_PER_METER;
-						}
-						this.parts.arm1.frame.x = 3;
-						this._duck = true;
-						this.ballObj.force_y = 0;
-					} else {
-						//Pause once again
-						this._attack -= this.delta;
-					}
-				} else {
-					this.ballObj.position.x = this.position.x + this.forward() * -24;
-					this.ballObj.position.y = this.position.y + 24;
+				
+				if(this._state == PigbossKnight.STATE_IDLE){
+					this._time -= this.delta;
+					this.ballObj.position = this.position.add(new Point(this.forward() * -24, 32));
 					this.parts.arm1.frame.x = 0;
+					this.parts.head.frame.x = this.stun <= 0 ? 0 : 3;
 					
-					if(this._retreat > 0){
-						//Walking backwards
-						this._retreat -= this.delta;
-						if(this.position.x - this.startPosition.x < 88 ){
-							this.addHorizontalForce(this.speed * 3 * -this.forward());
-						}
-					} else {
-						//Walking
-						if(this._walkPause > 0){
-							this._walkPause -= this.delta;
+					
+					if(this._time <= 0){
+						if( this._count > 0 ){
+							this.setState(PigbossKnight.STATE_BALLCHARGE);
 						} else {
-							this.addHorizontalForce(this.speed * this._walkDirection);
-							this._walkChangeTimer -= this.delta;
+							this.setState(PigbossKnight.STATE_SPINBALL);
+						}
+						
+					} else if(this._walkPause > 0){
+						this._walkPause -= this.delta;
+					} else {
+						this.addHorizontalForce(this.speed * this._walkDirection);
+						this._walkChangeTimer -= this.delta;
+						
+						if(this._walkChangeTimer <= 0){
+							let currentWalkDir = this._walkDirection;
+							if(this.position.x - this.startPosition.x < -64){
+								this._walkDirection = 1;
+							} else if(this.position.x - this.startPosition.x > 80){
+								this._walkDirection = -1;
+							} else if(Math.abs(dif.x) < 96){
+								this._walkDirection = -this.forward();
+							} else {
+								this._walkDirection = this.forward();
+							}
 							
-							if(this._walkChangeTimer <= 0){
-								let currentWalkDir = this._walkDirection;
-								if(this.position.x - this.startPosition.x < -64){
-									this._walkDirection = 1;
-								} else if(this.position.x - this.startPosition.x > 80){
-									this._walkDirection = -1;
-								} else if(Math.abs(dif.x) < 96){
-									this._walkDirection = -this.forward();
-								} else {
-									this._walkDirection = this.forward();
-								}
-								
-								if(this._walkDirection != currentWalkDir){
-									this._walkPause = Game.DELTASECOND * 1.0;
-								}
+							if(this._walkDirection != currentWalkDir){
+								this._walkPause = Game.DELTASECOND * 1.0;
 							}
 						}
 					}
+				} else if(this._state == PigbossKnight.STATE_SPINBALL){
+					this._time -= this.delta;
 					
-					this._cooldown -= this.delta;
+					let angle = Math.mod(this._time * 6.0, Math.PI * 2) - 1.2;
+					let radius = 64;
 					
-					if(this._cooldown <= 0){
-						this._count--;
-						this._spike = false;
-						
-						if( this._count > 0 ){
-							this._attack = this.attackTime;
-							this._type = 0;
-						} else {
-							this._count = 4;
-							this._attack = this.attackTime2;
-							this._type = 1;
-						}
-						this._cooldown = Game.DELTASECOND * 4;
-						
+					this.parts.arm1.frame.x = 1;
+					this.ballObj.position.x = this.position.x + Math.sin(angle) * radius;
+					this.ballObj.position.y = this.position.y + Math.cos(angle) * radius - 48;
+					
+					this.ballObj.target = this.position.add(new Point(this.forward() * 64, -128));
+					
+					if(this._time <= 0){
+						this._spike = true;
+						this.ballObj.direction = this.ballObj.target.subtract(this.ballObj.position).normalize();
+						this.setState(PigbossKnight.STATE_THROW);
+					}
+					
+				} else if(this._state == PigbossKnight.STATE_BALLCHARGE){
+					this._time -= this.delta;
+					this.parts.arm1.frame.x = 1;
+					
+					
+					this.ballObj.position.x = this.position.x + this.forward() * -24;
+					this.ballObj.position.y = this.position.y - 64;
+					
+					if(this._time > 0.15){
+						this.ballObj.target = this.target().position.subtract(new Point(0,6));
+					} else if(this._time <= 0){
+						this.ballObj.direction = this.ballObj.target.subtract(this.ballObj.position).normalize();
+						this.setState(PigbossKnight.STATE_THROW);
+					}
+				} else if(this._state == PigbossKnight.STATE_THROW){
+					this.parts.arm1.frame.x = 2;
+					
+					let move = this.ballObj.direction.scale(UNITS_PER_METER * PigbossKnight.BALL_THROW_SPEED * this.delta);
+					game.t_move( this.ballObj, move.x, move.y);
+					
+				} else if(this._state == PigbossKnight.STATE_BALLWITHDRAW){
+					this._time -= this.delta;
+					this._duck = true;
+					this.parts.arm1.frame.x = 3;
+					this.ballObj.direction = this.ballObj.target.subtract(this.ballObj.position).normalize();
+					
+					this._chainSlack = PigbossKnight.BALL_PULL.get(1-this._time/this._timeMax);
+					//this._chainSlack = Math.clamp01(1.5 * this._time/this._timeMax);
+					
+					if(this._time < 1.2){
+						this.parts.head.frame.x = 1 + Math.floor( (game.timeScaled * 2) % 2);
+					}
+					
+					if(this._time < 0.5){
+						let move = this.position.subtract(this.ballObj.position).normalize(UNITS_PER_METER * this.delta * PigbossKnight.BALL_RETURN_SPEED);
+						game.t_move( this.ballObj, move.x, move.y);
 					}
 				}
 				
+				//Apply animation
 				if(Math.abs(this.force.x) > 0.5){
 					this._walkAnim = Math.mod(this._walkAnim + this.delta * 0.5 * this.force.x * this.forward(), 1.0);
 				} else {
@@ -6308,7 +6333,8 @@ class PigbossKnight extends GameObject {
 				}
 				
 				if(this._duck){
-					this.parts.body.position = Point.lerp(this.parts.body.position, new Point(0,24), this.delta * 2);
+					this.parts.body.position.x = Math.lerp(this.parts.body.position.x, -8, this.delta * 0.5);
+					this.parts.body.position.y = Math.lerp(this.parts.body.position.y, 24, this.delta * 2);
 				} else {
 					this.parts.body.position = Point.lerp(this.parts.body.position, new Point(0,0), this.delta * 5);
 				}
@@ -6317,6 +6343,21 @@ class PigbossKnight extends GameObject {
 				this.parts.head.position = Point.lerp(this.parts.head.position, this.parts.body.position, this.delta * 6);
 				this.guard.y = this.parts.body.position.y - 28;
 				this._duck = false;
+				
+				if(this._state == PigbossKnight.STATE_THROW){
+					this._chainAnchor = new Point(28,-16);
+				} else if(this._state == PigbossKnight.STATE_BALLWITHDRAW){
+					this._chainAnchor = new Point(24,28);
+				} else if(this._state == PigbossKnight.STATE_SPINBALL){
+					this._chainAnchor = new Point(-28,-56);
+				} else if(this._state == PigbossKnight.STATE_IDLE){
+					this._chainAnchor = new Point(-24, 32);
+				} else if(this._state == PigbossKnight.STATE_BALLCHARGE){
+					this._chainAnchor = new Point(-24, -64);
+				} else {
+					this._chainAnchor.x = this.parts.arm1.position.x;
+					this._chainAnchor.y = this.parts.arm1.position.y;
+				}
 				
 				//this.frame.x = Math.clamp( ( 1 + Math.sin( this._walkAnim * 6.28 ) ) * 2.1, 0, 3);
 				this.parts.body.frame.x = Math.clamp( Math.pingpong01( this._walkAnim ) * 4, 0, 3);
@@ -6350,6 +6391,11 @@ class PigbossKnight extends GameObject {
 	}
 	render(g,c){
 		//g.renderSprite(this.sprite,this.position.subtract(c),this.zIndex,this.frame,this.flip,{"u_color":this.tint});
+		let a = this.position.add(this._chainAnchor.scale(this.forward(), 1));
+		let b = this.ballObj.position.scale(1);
+		
+		
+		
 		
 		for(let v in this.parts){
 			let part = this.parts[v];
@@ -6369,14 +6415,41 @@ class PigbossKnight extends GameObject {
 			g.renderSprite(this.sprite, this.position.add(origin).subtract(c),this.zIndex + part.zIndex, part.frame, this.flip, {"u_color":this.tint ,"rotation" : rotation});
 		}
 		
-		if(this.life > 0){
-			g.renderSprite(this.sprite, this.ballObj.position.subtract(c),this.zIndex + 2, new Point(0,3), false, {"u_color":this.tint});
+		if(this.life > 0){	
+			//Render ball and chain
+			if(this._state == PigbossKnight.STATE_BALLWITHDRAW && this._time < 1.5){
+				b.x += Math.randomRange(-2,2);
+				b.y += Math.randomRange(-2,2);
+			}
+			for(let i=0; i < PigbossKnight.CHAIN_COUNT; i++){
+				let d = i / PigbossKnight.CHAIN_COUNT;
+				let l = Point.lerp(a,b,d);
+				l.y += Math.sin(d * Math.PI) * this._chainSlack * 32;
+				g.renderSprite(this.sprite, l.subtract(c), this.zIndex+2, new Point(1,3), false);
+			}
+			g.renderSprite(this.sprite, b.subtract(c),this.zIndex + 2, new Point(0,3), false, {"u_color":this.tint});
 		}
 		
 		
 	}
 }
+PigbossKnight.STATE_IDLE = 0;
+PigbossKnight.STATE_THROW = 1;
+PigbossKnight.STATE_SPINBALL = 2;
+PigbossKnight.STATE_BALLWITHDRAW = 3;
+PigbossKnight.STATE_BALLCHARGE = 4;
+
+PigbossKnight.CHAIN_COUNT = 20;
 PigbossKnight.intro = true;
+PigbossKnight.BALL_THROW_SPEED = 8;
+PigbossKnight.BALL_RETURN_SPEED = 12;
+PigbossKnight.BALL_STUCK_TIME = 4;
+PigbossKnight.BALL_PULL = new Curve([
+	{x:0,y:0},{x:0.1,y:1},{x:0.2,y:1}, 
+	{x:0.24,y:0},{x:0.4,y:0}, 
+	{x:0.5,y:1},{x:0.6,y:1}, 
+	{x:0.64,y:0},{x:1.0,y:0}
+]).normalize();
 
 self["PigbossKnight"] = PigbossKnight;
 
@@ -6435,6 +6508,10 @@ PigbossKnightNude.anim_walk = new Sequence([
  /* platformer\boss_pitmonster.js*/ 
 
 class PitMonster extends GameObject {
+	get deltaModified(){ 
+		let rlife = this.life / this.lifeMax;
+		return this.delta * Math.lerp(2, 1, rlife);
+	}
 	constructor(x,y,d,ops){
 		super(x,y,d,ops);
 		this.position.x = x;
@@ -6443,17 +6520,33 @@ class PitMonster extends GameObject {
 		this.sprite = "pitmonster";
 		this.width = 50;
 		this.height = 52;
-		this.frame = new Point(0,1);
+		this.frame = new Point(0,0);
 		
 		this.addModule(mod_combat);
 		this.addModule(mod_boss);
 		
+		this.death_time = Game.DELTASECOND * 2.0;
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.lightTrigger = ops.getString("lighttrigger", "")
 		this.life = this.lifeMax = Spawn.life(15, this.difficulty);
 		this.damage = Spawn.damage(3, this.difficulty);
 		
+		this._boss_is_active = function(){
+			if( !this.active ) {
+				this.interactive = false;
+				this.position = this.initPos.add(new Point(0,64));
+				
+				let dif = this.target().position.x - this.position.x;
+				if( this.isInActiveArea() && Math.abs(dif) < 200){
+					this.trigger("activate");
+				}
+			}
+		}
+		
 		this.on("hurt", function(obj){
 			audio.play("hurt", this.position);
+			
+			this._slimeCooldown -= 3.0;
 			
 			if(this.life < this.lifeMax * 0.45){
 				if(this._phase == 0 && this._pull_spikes_down <= 0){
@@ -6476,13 +6569,15 @@ class PitMonster extends GameObject {
 		});
 		this.on("arm_struck_left", function(obj){
 			if(this.life > 0 && obj instanceof Player){
-				this._attack_arm = 0.0;
+				this._attack_arm[0] = Math.max(this._attack_arm[0], 5);
+				this.arm_left.speed = 16;
 				Combat.hit.apply(obj, [this, Options.convert({"multiplier":0.25}), new Point]);
 			}
 		});
 		this.on("arm_struck_right", function(obj){
 			if(this.life > 0 && obj instanceof Player){
-				this._attack_arm = 0.0;
+				this._attack_arm[1] = Math.max(this._attack_arm[1], 5);
+				this.arm_right.speed = 16;
 				Combat.hit.apply(obj, [this, Options.convert({"multiplier":0.25}), new Point]);
 			}
 		});
@@ -6495,28 +6590,62 @@ class PitMonster extends GameObject {
 			}
 			this.spikes.position.y = this.position.y + PitMonster.SPIKE_POS_UP;
 		});
+		this.on("pre_death", function(){
+			for(let i=0; i < this.flies.length; i++){
+				if( this.flies[i].life > 0 ){
+					this.flies[i].life = 0;
+					this.flies[i].isDead();
+				}
+			}
+			for(let a = 0; a < 2; a++){
+			for(let i = 0; i < this.arm_left.parts.length; i++){
+				let carm = a == 0 ? this.arm_left : this.arm_right;
+				carm.parts[i].destroy();
+			}}
+		});
+		this.on("death", function(){
+			this.destroy();
+		});
 		
 		this.arm_left = {
 			"position" : new Point(),
-			"parts" : new Array()
+			"parts" : new Array(),
+			"speed" : 8,
+			"particles" : false,
 		};
 		this.arm_right = {
 			"position" : new Point(),
-			"parts" : new Array()
+			"parts" : new Array(),
+			"speed" : 8,
+			"particles" : false,
 		};
 		
 		
 		for(let arm = 0; arm < 2; arm++){
 			let carm = arm == 0 ? this.arm_left : this.arm_right;
 			
+			carm.particles = game.addObject( new ParticleSystem(x,y,[6,6],Options.convert({
+				"sprite" : "bonetrap",
+				"frame_x" : 0,
+				"frame_y" : 5,
+				"gravity" : 0.5,
+				"count" : 8,
+				"autodestroy" : false,
+				"destroyOnSleep" : false,
+				"loop" : true,
+				"startForce" : 5,
+				"time" : 0.5,
+			})) );
+			
 			carm.position = this.position.scale(1);
 			
 			for(let part = 0; part < 12; part++){
 				let p = new GameObject();
-				p.position = carm.position.scale(1);
+				p.position.x = carm.position.x;
+				p.position.y = carm.position.y;
 				p.parent = this;
 				p.sprite = this.sprite;
-				p.frame = part == 0 ? new Point(0,0) : new Point(1,0);
+				p.frame = part == 0 ? new Point(0,2) : new Point(0,3);
 				p.width = p.height = 32;
 				p.idle = function(){};
 				p.zIndex = this.zIndex - part;
@@ -6543,25 +6672,108 @@ class PitMonster extends GameObject {
 		this._recall_right_arm = 0.0;
 		this._slimeCooldown = 8.0;
 		this._slimeAttack = 0.0;
-		this._active_arm = 0;
+		//this._active_arm = 0;
 		this._phase = 0;
 		this._pull_spikes_down = 0.0;
-		this._attack_arm = 0.0;
+		this._attack_arm = [0.0, 0.0];
+		this._cooldown = [5.0, 10.0];
+		this._flycooldown = 6.0;
 		this._drag_arm = 0.0;
 		this._transition = 0.0;
-		this._cooldown = 0.0;
+		this._intro = 0.0;
 		this._target = new Point(x,y);
+		
+		this.flies = [];
 	}
 	update(){
 		
 		if(this.life > 0){
-			if(this.active){
+			if(!this.active){
+				//hide
+				this.arm_left.position = this.position.add(new Point(-80, 64));
+				this.arm_right.position = this.position.add(new Point(80, 64));
+				this.arm_left.particles.loop = false;
+				this.arm_right.particles.loop = false;
+			} else if(this._intro < PitMonster.INTRO_LENGTH) {
+				//Play short intro where monster appears
+				this._intro += this.delta;
+				if(this._intro < PitMonster.INTRO_WAIT) {
+					//Nothing happens
+				} else if(this._intro < PitMonster.INTRO_REVEAL) {
+					//Room shakes and beast appears
+					let d = 0 - (this._intro - PitMonster.INTRO_WAIT) / (PitMonster.INTRO_WAIT - PitMonster.INTRO_REVEAL);
+					this.position = Point.lerp(this.initPos.add(new Point(0,64)), this.initPos, d);
+					shakeCamera(0.1,3);
+				} else {
+					//lights come on, and a short pause
+					if(this._intro - this.delta < PitMonster.INTRO_REVEAL){
+						Trigger.activate(this.lightTrigger);
+					}
+				}
+			} else {
+				let dif = this.target().position.subtract(this.position);
+				this.frame.x = (this.frame.x + this.deltaModified * 8) % 4;
+				this.frame.y = 0;
 				
-				let carm = this._active_arm == 0 ? this.arm_left : this.arm_right;
-				let darm = this._active_arm == 0 ? this.arm_right : this.arm_left;
+				//let carm = this._active_arm == 0 ? this.arm_left : this.arm_right;
+				//let darm = this._active_arm == 0 ? this.arm_right : this.arm_left;
+				
+				for(let arm=0; arm < 2; arm++){
+					let carm = arm == 0 ? this.arm_left : this.arm_right;
+					
+					
+					if(this._cooldown[arm] <= 0){
+						//Attack with arm
+						this._attack_arm[arm] += this.deltaModified;
+						
+						//Set arm position and show dust
+						if(this._attack_arm[arm]  < 2){
+							
+						} else if(this._attack_arm[arm]  < 5){
+							//Extend arm
+							carm.position.y = this.position.y+PitMonster.SPIKE_POS_UP;
+						} else if(this._attack_arm[arm]  < 6){
+							//retract arm
+							carm.position.y = this.position.y + 64;
+						} else {
+							this._attack_arm[arm] = 0;
+							this._cooldown[arm] = Math.lerp(8, 4, this.life/this.lifeMax);
+						}
+					} else {
+						carm.particles.loop = false;
+						this._cooldown[arm] -= this.deltaModified;
+						
+						if(this._cooldown[arm] <= 0){
+							if((arm == 0 && dif.x < -32) || (arm != 0 && dif.x > 32)){
+								//Get ready to spike
+								carm.position.x = this.target().position.x;
+								carm.position.y = this.position.y + 64;
+								carm.speed = 8;
+								carm.particles.position.x = carm.position.x;
+								carm.particles.position.y = this.position.y	- Math.abs(this.position.x - carm.position.x) + 56;
+								carm.particles.loop = true;
+								audio.play("cracking", carm.position);
+							} else {
+								//Player on wrong side, wait
+								this._cooldown[arm] = 2;
+							}
+							
+						}
+					}
+				}
+				
+				this._flycooldown -= this.delta;
+				if(this._flycooldown <= 0){
+					this.spawnFly();
+					this._flycooldown = Math.randomRange(3,7);
+				}
+				
 				
 				if(this._slimeCooldown <= 0){
+					//Blow out slime
 					this._slimeAttack += this.delta;
+					this.frame.x = Math.clamp( (this._slimeAttack-0.7) * 6, 0, 3);
+					this.frame.y = 1;
 					if(
 						Timer.isAt( this._slimeAttack, 1.0, this.delta ) ||
 						Timer.isAt( this._slimeAttack, 1.2, this.delta ) ||
@@ -6576,138 +6788,85 @@ class PitMonster extends GameObject {
 				} else {
 					this._slimeCooldown -= this.delta;
 				}
-				
-				if(this._pull_spikes_down > 0){
-					this._pull_spikes_down -= this.delta;
-					this._slimeCooldown = 1.0;
-					this._slimeAttack = 0.0;
-					
-					if(this._pull_spikes_down > 5.0){
-						this.arm_left.position = this.position.add(new Point(-32,32));
-						this.arm_right.position = this.position.add(new Point(32,32));
-					} else if(this._pull_spikes_down > 2.0) {
-						this.arm_left.position = this.position.add(new Point(-64,PitMonster.SPIKE_POS_UP));
-						this.arm_right.position = this.position.add(new Point(64,PitMonster.SPIKE_POS_UP));
-					} else if(this._pull_spikes_down > 0) {
-						this.arm_left.position = this.position.add(new Point(-64,PitMonster.SPIKE_POS_DOWN));
-						this.arm_right.position = this.position.add(new Point(64,PitMonster.SPIKE_POS_DOWN));
-						this.spikes.position.y = this.position.y + Math.lerp(PitMonster.SPIKE_POS_DOWN, PitMonster.SPIKE_POS_UP, this._pull_spikes_down * 0.5);
-					} else {
-						this.spikes.position.y = this.position.y + PitMonster.SPIKE_POS_DOWN;
-						this._phase = 1;
-						//Fill in area
-						let c = this.spikes.corners();
-						for(let x = c.left; x < c.right; x++) for(let y = c.top + 16; y < c.bottom - 16; y++) {
-							game.setTile(x,y,game.tileCollideLayer,1024);
-						}
-					}
-					
-				} else if(this._attack_arm > 0){
-					//Swing arm
-					
-					if(this._transition > 0){
-						this._transition -= this.delta;
-						this._target = this.target().position.subtract(this.position).scale(1.5).add(this.position);
-
-						carm.position = this.position.scale(1);
-						darm.position = this.position.scale(1);
-					} else {
-						this._attack_arm -= this.delta;
-						carm.position = this._target.scale(1);
-						darm.position = this.position.scale(1);
-					}
-				} else if(this._drag_arm > 0){
-					//Drag arm down side
-					let xf = this._active_arm == 0 ? -1 : 1;
-					let _start = this.position.add( new Point( xf * 224, -224 ));
-					let _end = this.position.scale(1);
-					
-					if(this._transition > 0){
-						this._transition -= this.delta;
-					} else {
-						this._drag_arm -= this.delta;
-					}
-					
-					let p = 1 - this._drag_arm / 2.0;
-					
-					if(this._transition > 0.5){
-						carm.position = new Point(_start.x, this.position.y);
-						darm.position = this.position.scale(1);
-					} else {
-						carm.position = Point.lerp(_start, _end, p);
-						darm.position = this.position.scale(1);
-					}
-					
-				} else {
-					//Idle
-					this._cooldown -= this.delta;
-					this.arm_left.position.y = this.position.y + 32;
-					this.arm_right.position.y = this.position.y + 32;
-					
-					if(this._cooldown <= 0){
-						this._cooldown = 2.0;
-						
-						if(Math.random() > 0.5){
-							this._active_arm = this.target().position.x > this.position.x;
-							this._drag_arm = 2.0;
-							this._attack_arm = 0.0;
-							this._transition = 1.5;
-							if(this._active_arm > 0){
-								audio.play("cracking", this.position.add(new Point(160,-160)));
-							} else {
-								audio.play("cracking", this.position.add(new Point(-160,-160)));
-							}
-							
-						} else {
-							this._drag_arm = 0.0;
-							this._attack_arm = 2.0;
-							this._transition = 1.0;
-							this._active_arm = Math.random() > 0.5 ? 0 : 1;
-						}
-					} 
-					
-				}
-				
-			} else {
-				//hide
-				this.arm_left.position = this.position.add(new Point(-80, 0));
-				this.arm_right.position = this.position.add(new Point(80, 0));
 			}
+			
 		} else {
 			//Dying
 			this.arm_left.position = this.position.scale(1);
 			this.arm_right.position = this.position.scale(1);
+			this.arm_left.particles.loop = false;
+			this.arm_right.particles.loop = false;
+			
+			if(Timer.interval(game.timeScaled, 0.3, game.delta)){
+				this.fireSlime(true);
+			}
+			
 		}
 		
 		//Update arm positions
 		for(let a = 0; a < 2; a++){
-			for(let i = 0; i < this.arm_left.parts.length; i++){
-				let carm = a == 0 ? this.arm_left : this.arm_right;
-				
-				let origin = new Point( Math.lerp(this.position.x, carm.position.x, 0.9), this.position.y + 24 );
-				let destination = Point.lerp( carm.position, origin, Math.clamp01( i / this.arm_left.parts.length ) );
-						
-				carm.parts[i].tint = this.tint;
-				carm.parts[i].position = Point.lerp(
-					carm.parts[i].position,
-					destination,
-					this.delta
-				);
+			let carm = a == 0 ? this.arm_left : this.arm_right;
+			carm.parts[0].position = Point.moveTo(carm.parts[0].position, carm.position, this.deltaModified * UNITS_PER_METER * carm.speed);
+			for(let i = 1; i < this.arm_left.parts.length; i++){
+				carm.parts[i].position = carm.parts[0].position.add(new Point(0,i*24));
 			}
 		}
 		
 	}
 	idle(){}
-	fireSlime(){
-		let b = new PitMonsterSlime(this.position.x, this.position.y);
-		b.damageSlime = Math.round( this.damage * 0.7 );
-		b.force = new Point( (Math.random()-0.5) * 5, -8 - Math.random() * 5 );
+	fireSlime(harmless=false){
+		if(harmless){
+			let s = new GameObject(this.position.x, this.position.y,false,false);
+			s.width = s.height = 16;
+			s.sprite = "bullets";
+			s.frame.x = 5;
+			s.frame.y = 0;
+			s.addModule(mod_rigidbody);
+			s.pushable = false;
+			s.force.y = -12;
+			s.force.x = Math.randomRange(-5,5);
+			s.on(["collideHorizontal","collideVertical","sleep"],function(obj){
+				this.destroy();
+			});
+			game.addObject(s);
+		} else {
+			let b = new PitMonsterSlime(this.position.x, this.position.y);
+			b.damageSlime = Math.round( this.damage * 0.7 );
+			b.force = new Point( (Math.random()-0.5) * 5, -8 - Math.random() * 5 );
+			
+			game.addObject(b);
+		}
+	}
+	spawnFly(){
+		let freeSlot = -1;
+		if(this.flies.length < 4){
+			freeSlot = this.flies.length;
+		} else {
+			for(let i=0; i < this.flies.length; i++){
+				if(this.flies[i].life <= 0){
+					freeSlot = i;
+					break;
+				}
+			}
+		}
+		if(freeSlot >= 0){
+			this.flies[freeSlot] = game.addObject(
+				new Fly(
+					this.position.x, 
+					this.position.y,
+					false, 
+					new Options({"difficulty": this.difficulty})
+				)
+			);
+		}
 		
-		game.addObject(b);
 	}
 }
 PitMonster.SPIKE_POS_UP = -336;
 PitMonster.SPIKE_POS_DOWN = -160;
+PitMonster.INTRO_LENGTH = 10;
+PitMonster.INTRO_WAIT = 5;
+PitMonster.INTRO_REVEAL = 8;
 
 class PitMonsterSlime extends GameObject{
 	constructor(x,y,d,ops){
@@ -8234,7 +8393,7 @@ class Botomire extends GameObject{
 		this.guard.omidirectional = true;
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			
 			this.force.x = -this.forward() * this.speed;
 			
@@ -8544,7 +8703,7 @@ function Bullet(x,y,d){
 	this.on("collideObject", Bullet.hit);
 	this.on("collideVertical", function(dir){ if(this.wallStop){ this.trigger("death"); } });
 	this.on("collideHorizontal", function(dir){ if(this.wallStop){ this.trigger("death"); } });
-	this.on("sleep", function(){ this.trigger("death"); });
+	this.on(["sleep","new_room"], function(){ this.trigger("death"); });
 	this.on("death", function(){ this.destroy(); });
 	this.on("hurt_other", function(obj, damage){});
 	this.on("kill", function(obj){ if(this.owner) { this.owner.trigger("kill", obj); } } );
@@ -8637,12 +8796,15 @@ Bullet.hit = function(obj){
 			let blocked = false;
 			let sareas = obj.combat_shieldArea();
 			
-			for(let i=0; i < sareas.length; i++){
-				if( sareas[i].overlaps( this.bounds() ) ){
-					this.trigger("blocked",obj);
-					obj.trigger("block",this,this.bounds(),this.damage);
-					blocked = true;
-					break;
+			if(obj.guard.active){
+				//Block bullet
+				for(let i=0; i < sareas.length; i++){
+					if( sareas[i].overlaps( this.bounds() ) ){
+						this.trigger("blocked",obj);
+						obj.trigger("block",this,this.bounds(),this.damage);
+						blocked = true;
+						break;
+					}
 				}
 			}
 			
@@ -9571,6 +9733,88 @@ class IceballFloor extends GameObject {
 IceballFloor.TIME_BLOCK = 6.0;
 IceballFloor.TIME_SPIKE = 0.8;
 
+class FlashSpell extends GameObject{
+	constructor(x,y,caster){
+		super(x,y);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = game.resolution.x;
+		this.height = game.resolution.y;
+		this.caster = caster;
+		this.damageLight = 10;
+		this.lifeSteal = 0.2;
+		this.team = 1;
+		
+		this.targets = game.overlaps(new Line(game.camera, game.camera.add(game.resolution))).filter( function(obj){
+			return ( obj instanceof ElectricBox || obj.hasModule(mod_combat) ) && !(obj instanceof Player);
+		});
+		this.targetIndex = 0;
+		
+		this.randomSeed = "faf";
+		this._time = FlashSpell.CAST_TIME;
+		
+		this.on("hurt_other", function(obj, damage){
+			let heal = Math.floor( Math.max(this.lifeSteal * damage, 1) );
+			this.caster.life = Math.min(this.caster.life + heal, this.caster.lifeMax);
+		});
+	}
+	update(){
+		if( this._time == FlashSpell.CAST_TIME ) {
+			if(this.targetIndex < this.targets.length ){
+				let obj = this.targets[this.targetIndex];
+				audio.play("lightning1", obj.position);
+				createExplosion(obj.position, 32);
+				obj.trigger("flashSpell", this);
+					
+				if( obj instanceof ElectricBox ){
+					//this.caster.force = obj.position.subtract(this.caster.position).normalize(5);
+					//this.caster.force.y = Math.min(this.caster.force.y, 2.0);
+				} else if( obj.hasModule(mod_combat) && obj.team != this.team ){
+					obj.hurt(this, Combat.getDamage.apply(this));
+				}
+			}
+		}
+		
+		this._time -= this.delta;
+		
+		if( this._time <= 0){
+			this.targetIndex++;
+			
+			this._time = FlashSpell.CAST_TIME;
+			
+			if(this.targetIndex >= this.targets.length){
+				this.destroy();
+			}
+		}
+	}
+	render(g,c){
+		if(this.targetIndex < this.targets.length ){
+			let s = new Seed(this.randomSeed);
+			let start = this.caster.position;
+			let prev = start.scale(1);
+			let end = this.targets[this.targetIndex].position.scale(1);
+			let distance = start.subtract(end).magnitude();
+			let direction = start.subtract(end).normalize();
+			let perp = new Point(-direction.y, direction.x);
+			let d = 0.0;
+			for(let i=0; i < 20; i++){
+				d += (8 + s.random() * 8) / distance;
+				let next = end.scale(1);
+				if(d < 1 && i < 19){
+					next = Point.lerp(start, end, d).add( perp.scale(2 * s.random() - 1).scale(6) );
+				}
+				g.renderLine(
+					prev.subtract(c),
+					next.subtract(c),
+					1, COLOR_LIGHTNING
+				)
+				prev = next;
+			}
+		}
+	}
+}
+FlashSpell.CAST_TIME = 0.1875;
+
  /* platformer\camera_lock.js*/ 
 
 class CameraLock extends GameObject{
@@ -9678,6 +9922,8 @@ class Checkpoint extends GameObject{
 			game.addObject(sm);
 		});
 		this.on("open", function(){
+			game.ga_event("checkpoint");
+			
 			_player.heal = _player.lifeMax;
 			_player.manaHeal = _player.manaMax;
 			
@@ -9707,8 +9953,6 @@ class Checkpoint extends GameObject{
 		
 		audio.play("item1");
 		game.slow(0,Game.DELTASECOND*0.3333);
-		
-		game.ga_event("checkpoint", game.newmapName, this.position.floor(256,240).toString());
 		
 		Checkpoint.saveState(obj);
 	}
@@ -9767,7 +10011,7 @@ class Checkpoint extends GameObject{
 			}
 		}
 		
-		Background.pushLight(this.position.add(new Point(40,-8)),48,[1.0,0.8,0.5,1.0]);
+		Background.pushLight(this.position.add(new Point(40,-8)),140,[1.0,0.8,0.5,1.0]);
 	}
 	render(g,c){
 		this.flip = false;
@@ -9823,6 +10067,7 @@ Checkpoint.saveState = function(obj){
 		"variables" : NPC.variables,
 		"mapreveal" : WorldMap.map,
 		"player" : _player.toJson(),
+		"sessionId" : sessionId,
 		"settings" : Settings
 	}
 	
@@ -9844,6 +10089,7 @@ Checkpoint.loadState = function(){
 			WorldMap.map = data.mapreveal;
 			
 			game.loadMap(data.location.map, function(starts){
+				sessionId = data.sessionId;
 				_player.position.x = data.location.x;
 				_player.position.y = data.location.y;
 				audio.playAs(data.location.music, "music");
@@ -9851,6 +10097,8 @@ Checkpoint.loadState = function(){
 				game.addObject(_player);
 				game.addObject(new PauseMenu(0,0));
 				game.addObject(new Background(0,0));
+				
+				game.ga_event("respawn");
 			});
 		}
 		
@@ -10367,6 +10615,7 @@ class CutscenePlayer {
 		//Draw black boarder
 		let w = Math.ceil ( (game.resolution.x - 256) * 0.5 );
 		g.color = [0,0,0,1];
+		g.drawRect(0,0,game.resolution.x,game.resolution.y,this.zIndex-10);
 		g.drawRect(0,0,game.resolution.x,48,this.zIndex+10);
 		g.drawRect(0,192,game.resolution.x,48,this.zIndex+10);
 		g.drawRect(0,48,w,144,this.zIndex+10);
@@ -10709,119 +10958,120 @@ function DeathTrigger(x,y){
 
  /* platformer\demo.js*/ 
 
-DemoThanks.prototype = new GameObject();
-DemoThanks.prototype.constructor = GameObject;
-function DemoThanks(){	
-	this.constructor();
-	this.sprite = "title";
-	this.zIndex = 999;
-	this.visible = true;
-	this.page = 0;
-	this.start = false;
+class DemoThanks extends GameObject{	
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
 	
-	this.title_position = -960;
-	this.castle_position = 240;
-	
-	this.progress = 0;
-	this.cursor = 1;
-	
-	this.starPositions = [
-		new Point(84,64),
-		new Point(102,80),
-		new Point(99,93),
-		new Point(117,99),
-		new Point(117,111),
-		new Point(128,71),
-		new Point(191,41),
-		new Point(64,108 ),
-		new Point(158,65),
-		new Point(15,5),
-		new Point(229,69)
-	]
-	
-	this.stars = [
-		{ "pos" : new Point(), "timer" : 10 },
-		{ "pos" : new Point(), "timer" : 20 },
-		{ "pos" : new Point(), "timer" : 0 }
-	];
-}
-
-DemoThanks.prototype.update = function(){
-	
-	if(this.progress >= 8.0){
-		if(input.state("pause") == 1){
-			audio.play("pause");
-			delete self._player;
-			game.clearAll();
-			game.pause = false;
-			game.deltaScale = 1.0;
-			game_start(game);
-		}
-	} else {
-		if(input.state("pause") == 1){
-			this.progress = 10.0;
-		}
+		this.sprite = "title";
+		this.zIndex = 999;
+		this.visible = true;
+		this.page = 0;
+		this.start = false;
+		
+		this.title_position = -960;
+		this.castle_position = 240;
+		
+		this.progress = 0;
+		this.cursor = 1;
+		
+		this.starPositions = [
+			new Point(84,64),
+			new Point(102,80),
+			new Point(99,93),
+			new Point(117,99),
+			new Point(117,111),
+			new Point(128,71),
+			new Point(191,41),
+			new Point(64,108 ),
+			new Point(158,65),
+			new Point(15,5),
+			new Point(229,69)
+		]
+		
+		this.stars = [
+			{ "pos" : new Point(), "timer" : 10 },
+			{ "pos" : new Point(), "timer" : 20 },
+			{ "pos" : new Point(), "timer" : 0 }
+		];
 	}
-	
-	this.progress += this.delta / Game.DELTASECOND;
-}
-
-DemoThanks.prototype.render = function(g,c){
-	var xpos = (game.resolution.x - 427) * 0.5;
-	
-	var pan = Math.min(this.progress/8, 1.0);
-	
-	g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
-	
-	//Random twinkling stars
-	for(var i=0; i<this.stars.length; i++) {
-		var star = this.stars[i];
-		var frame = 2;
-		if( 
-			this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
-			this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
-		) frame = 3;
+	update(){
+		if(this.start){
+			if(this.progress >= 8.0){
+				if(input.state("pause") == 1){
+					audio.play("pause");
+					delete self._player;
+					game.clearAll();
+					game.pause = false;
+					game.deltaScale = 1.0;
+					game_start(game);
+				}
+			} else {
+				if(input.state("pause") == 1){
+					this.progress = 10.0;
+				}
+			}
 			
-		g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
-		star.timer -= this.delta;
-		if( star.timer <= 0 ){
-			star.timer = Game.DELTASECOND * 1.0;
-			star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
-		}			
+			this.progress += this.delta / Game.DELTASECOND;
+		}
 	}
-	this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
-	if( this.progress > this.stars.timer ) {
-		this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
-		this.stars.timer += this.stars.reset;
+	render(g,c){
+		if(this.start){
+			var xpos = (game.resolution.x - 427) * 0.5;
+			
+			var pan = Math.min(this.progress/8, 1.0);
+			
+			g.renderSprite(this.sprite,new Point(xpos,0),this.zIndex,new Point(0,2));
+			
+			//Random twinkling stars
+			for(var i=0; i<this.stars.length; i++) {
+				var star = this.stars[i];
+				var frame = 2;
+				if( 
+					this.stars[i].timer > Game.DELTASECOND * 1.0 * 0.3 && 
+					this.stars[i].timer < Game.DELTASECOND * 1.0 * 0.67
+				) frame = 3;
+					
+				g.renderSprite("bullets",star.pos.add(new Point(xpos,0)),this.zIndex,new Point(frame,2));
+				star.timer -= this.delta;
+				if( star.timer <= 0 ){
+					star.timer = Game.DELTASECOND * 1.0;
+					star.pos = this.starPositions[ Math.floor(Math.random()*this.starPositions.length) ];
+				}			
+			}
+			this.stars.timer = Math.min(this.stars.timer, this.progress+this.stars.reset);
+			if( this.progress > this.stars.timer ) {
+				this.stars.pos = new Point(Math.random() * 256,Math.random() * 112);
+				this.stars.timer += this.stars.reset;
+			}
+			
+			g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
+			g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
+			
+			textArea(g,"Copyright 2018",8,4);
+			textArea(g,"Version "+version,8,228);
+		}
 	}
-	
-	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.castle_position, 0, pan)),this.zIndex,new Point(0,1));
-	g.renderSprite(this.sprite,new Point(xpos,Math.lerp( this.title_position, 0, pan)),this.zIndex,new Point(0,0));
-	
-	textArea(g,"Copyright 2018",8,4);
-	textArea(g,"Version "+version,8,228);
-}
-
-DemoThanks.prototype.hudrender = function(g,c){	
-	if( this.progress >= 8 ) {
-		var y_pos = Math.lerp(240,20, Math.min( (this.progress-8)/2, 1) );
-		var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
-		
-		var timeMinutes = Math.floor(DemoThanks.time / Game.DELTAMINUTE);
-		var timeSeconds = Math.floor((DemoThanks.time - timeMinutes*Game.DELTAMINUTE)/ Game.DELTASECOND);
-		if(timeSeconds < 10) timeSeconds = "0"+timeSeconds;
-		
-		boxArea(g,x_pos,y_pos,256,200);
-		
-		textArea(g,"Thank you for playing!",x_pos+16,y_pos+16);
-		
-		textArea(g,"Kills: "+DemoThanks.kills ,x_pos+16,y_pos+40);
-		textArea(g,"Items: "+DemoThanks.items ,x_pos+16,y_pos+64);
-		textArea(g,"Deaths: "+DemoThanks.deaths ,x_pos+16,y_pos+88);
-		textArea(g,"Time: "+timeMinutes+":"+timeSeconds ,x_pos+16,y_pos+112);
-		
-		textArea(g,"Press start to play again",x_pos+16,y_pos+176);
-	}	
+	hudrender(g,c){	
+		if( this.progress >= 8 ) {
+			var y_pos = Math.lerp(240,20, Math.min( (this.progress-8)/2, 1) );
+			var x_pos = game.resolution.x * 0.5 - 256 * 0.5;
+			
+			var timeMinutes = Math.floor(DemoThanks.time / Game.DELTAMINUTE);
+			var timeSeconds = Math.floor((DemoThanks.time - timeMinutes*Game.DELTAMINUTE)/ Game.DELTASECOND);
+			if(timeSeconds < 10) timeSeconds = "0"+timeSeconds;
+			
+			boxArea(g,x_pos,y_pos,256,200);
+			
+			textArea(g,"Thank you for playing!",x_pos+16,y_pos+16);
+			
+			textArea(g,"Kills: "+DemoThanks.kills ,x_pos+16,y_pos+40);
+			textArea(g,"Items: "+DemoThanks.items ,x_pos+16,y_pos+64);
+			textArea(g,"Deaths: "+DemoThanks.deaths ,x_pos+16,y_pos+88);
+			textArea(g,"Time: "+timeMinutes+":"+timeSeconds ,x_pos+16,y_pos+112);
+			
+			textArea(g,"Press start to play again",x_pos+16,y_pos+176);
+		}	
+	}
 }
 DemoThanks.prototype.idle = function(){}
 
@@ -10829,6 +11079,8 @@ DemoThanks.deaths = 0;
 DemoThanks.kills = 0;
 DemoThanks.items = 0;
 DemoThanks.time = 0;
+
+self["DemoThanks"] = DemoThanks;
 
  /* platformer\detritus.js*/ 
 
@@ -10874,8 +11126,75 @@ function Detritus(x, y, d, ops){
 
  /* platformer\door.js*/ 
 
-Door.prototype = new GameObject();
-Door.prototype.constructor = GameObject;
+class Door extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 20;
+		this.height = 64;
+		this.sprite = "doors";
+		this.id = "door_" + game.map.filename + Math.floor(x) + "_" + Math.floor(y);
+		this.zIndex = -1;
+		
+		this._tid = ops.getString("trigger", "");
+		this.isOpen = ops.getBool("open", false);
+		this.key = ops.getInt("key", -1);
+		
+		if(NPC.get(this.id)){
+			this.isOpen = true;
+		}
+		
+		this.on("activate", function(){
+			this.open();
+		});
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				if(this.key >= 0 && !this.isOpen){
+					if(NPC.get("key_" + this.key)){
+						this.open();
+					}
+				}
+			}
+		});
+		
+		this._time = this.isOpen ? 1.0 : 0.0;
+		this.setTiles(this.isOpen);
+	}
+	setTiles(open = false){
+		let c = this.corners();
+		let tile = open ? 0 : 1023;
+		for(let y = c.top; y < c.bottom; y++){
+			game.setTile(this.position.x, y, game.tileCollideLayer, tile);
+		}
+	}
+	open(){
+		audio.play("open", this.position);
+		this._time = 0.0;
+		this.isOpen = true;
+		this.setTiles(true);
+		NPC.set(this.id, 1);
+	}
+	update(){
+		if(this.isOpen){
+			this._time = Math.clamp01(this._time += this.delta * 5);
+		} else {
+			this._time = Math.clamp01(this._time -= this.delta * 5);
+		}
+		this.frame.x = this._time * 4;
+		this.frame.y = 3;
+	}
+	render(g,c){
+		super.render(g,c);
+		if(this.key >= 0 && !this.isOpen){
+			g.renderSprite( this.sprite, this.position.add(new Point(10,28)).subtract(c), this.zIndex+1, new Point(this.key, 0), this.flip );
+		}
+	}
+}
+self["Door"] = Door;
+
+/*
 function Door(x,y,d,ops){
 	this.constructor();
 	this.position.x = x;
@@ -10920,11 +11239,6 @@ function Door(x,y,d,ops){
 					this.open();
 				}
 			}
-		}
-	});
-	this.on("player_death", function(obj){
-		if(this.isOpen && this.lock >= 0){
-			this.close();
 		}
 	});
 	
@@ -10978,7 +11292,7 @@ Door.prototype.open = function(){
 	for(var i=0; i < this.door_blocks.length; i++){
 		game.setTile(this.door_blocks[i].x, this.door_blocks[i].y, game.tileCollideLayer, 0);
 	}
-	this.zIndex = -20;
+	this.zIndex = -1;
 	this.isOpen = true;
 	
 	if(this.triggersave){
@@ -11011,6 +11325,7 @@ Door.prototype.render = function(g,c){
 		);
 	}
 }
+*/
 
 class BossDoor extends GameObject {
 	constructor(x,y,d,ops){
@@ -12093,12 +12408,18 @@ var EffectList = {
 	"charge" : function(g,p,progress){		
 		if( progress > 0.2 && progress < 1.0 ) {
 			
-			var r = 12.0 * (1.0-progress);
+			let r = Math.lerp(40, 3, progress);
 			
-			for(var i=0; i < 5; i++) {
-				var off = new Point(r*Math.sin(i), r*Math.cos(i));
-				g.renderSprite("bullets",p.add(off),this.zIndex+1,new Point(3,2));
-			}
+			for(var i=0; i < 16; i++) {
+				let a = (i / 16) * 2 * Math.PI;
+				let b = a + (1 / 16) * 2 * Math.PI;
+				let off1 = new Point(r*Math.sin(a), r*Math.cos(a));
+				let off2 = new Point(r*Math.sin(b), r*Math.cos(b));
+				g.renderLine(p.add(off1), p.add(off2), 2, COLOR_WHITE,99);
+			} 
+		} else if(progress>= 1 && progress < 1.1){
+			let scale = Math.lerp(1,3,Math.pingpong( (progress-1)*10 ));
+			g.renderSprite("bullets",p,99,new Point(3,2),false,{scalex:scale, scaley:scale});
 		}
 	}
 };
@@ -12417,7 +12738,7 @@ function Amon(x,y,d,o){
 	this.addModule( mod_combat );
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player && this.isCharged){
@@ -12712,6 +13033,7 @@ class Axedog extends GameObject {
 		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
 		this.states = {
 			"cooldown" : 5,
@@ -12727,7 +13049,7 @@ class Axedog extends GameObject {
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		
 		this.lifeMax = this.life = Spawn.life(3,this.difficulty);
-		this.damage = Spawn.damage(2,this.difficulty);
+		this.damage = Spawn.damage(5,this.difficulty);
 		this.moneyDrop = Spawn.money(4,this.difficulty);
 		this.xpDrop = Spawn.xp(5,this.difficulty);
 		this.mass = 1.0;
@@ -12741,7 +13063,7 @@ class Axedog extends GameObject {
 		this.on("struck", EnemyStruck);
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 			this.states.cooldown = Game.DELTASECOND * 0.5;
 			this.states.attack = 0.0;
 			this.force.x = 0.0;
@@ -12750,7 +13072,7 @@ class Axedog extends GameObject {
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
 			Item.drop(this);
-			this.destroy();
+			this.creep_hide();
 		});
 	}
 	update(){
@@ -13097,6 +13419,173 @@ BallerBall.prototype.update = function(){
 
  /* platformer\enemy_batty.js*/ 
 
+class Batty extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		
+		this.width = 16;
+		this.height = 16;
+		this.sprite = "batty";
+		this.speed = 9.5;
+		
+		this.addModule( mod_rigidbody );
+		this.addModule( mod_combat );
+		this.addModule( mod_creep );
+		
+		this.states = {
+			"cooldown" : Game.DELTASECOND * 1,
+			"lockon": false,
+			"attack" : 0,
+			"friendBat" : false,
+		}
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		
+		this.life = this.lifeMax = Spawn.life(0,this.difficulty);
+		this.moneyDrop = Spawn.money(3,this.difficulty);
+		this.mass = 0.8;
+		this.pushable = false;
+		this.damageContact = 0.0;
+		this.xpDrop = Spawn.xp(2,this.difficulty);
+		this.inviciple_tile = this.stun_time;
+		this.gravity = 0.6;
+		this.fuse = this.difficulty >= 2;
+		
+		this.checkAttackArea = function(ops){
+			if(this.life > 0 && this.states.attack > 0){
+				let strike = new Line(0, -4, 10, 4).scale(this.forward(),1).correct().transpose(this.position);
+				Combat.attackCheck.apply(this,[ strike ]);
+			}
+		}
+		
+		this.on("respawn", function(){
+			this.states.cooldown = 2.0;
+			this.states.attack = 0.0;
+			this.force.x = this.force.y = 0.0;
+			this.fuse = this.difficulty >= 2;
+		});
+		
+		this.on("blocked", function(obj){
+			this.states.attack = 0.0;
+			this.states.cooldown = 2.0;
+		});
+		
+		this.on("collideObject", function(obj){
+			if( this.fuse && obj instanceof Batty ) {
+				this.fuseWithBat(obj);
+			}
+		});
+		
+		this.on("death", function(){
+			Item.drop(this);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 32 );
+			this.creep_hide();
+		});
+		
+		this.on("collideVertical", function(v){
+			if(this.states.friendBat){
+				
+			} else if(v > 0 && this.states.attack > 0){
+				this.states.lockon = true;
+				this.force.y = 0;
+			}
+			if(v < 0 && this.states.cooldown > 0){
+				this.force.x = 0;
+			}
+		});
+	}
+	fuseWithBat(otherBat){
+		this.creep_hide();
+		otherBat.creep_hide();
+		
+		this.fuse = otherBat.fuse = false;
+		this.states.attack = otherBat.states.attack = 0.0;
+		this.states.cooldown = otherBat.states.cooldown = 3.0;
+		
+		this.force.x = -8;
+		otherBat.force.x = 8;
+		
+		var deckard = new Deckard( 
+			this.position.x, 
+			this.position.y, 
+			false,
+			new Options({"difficulty" : this.difficulty})
+		);
+		deckard.batty1 = this;
+		deckard.batty2 = otherBat;
+		
+		game.addObject(deckard);
+	}
+	update(){
+		if(this.life > 0){
+			this.grounded = false;
+			
+			if(this.states.attack > 0){
+				if(this.fuse){
+						if(Math.random() > 0.9){
+						//Roughly every 10 frames look for a friend
+						var self = this;
+						this.states.friendBat = game.overlaps(new Line(0,0,game.resolution.x, game.resolution.y).transpose(game.camera)).find(function(a){
+							return (a !== self && a instanceof Batty && a.fuse);
+						});
+					}
+				} else {
+					this.states.friendBat = undefined;
+				}
+				
+				//Attack
+				if(this.states.friendBat){
+					//Hunt down friend
+					this.flip = this.states.friendBat.position.x < this.position.x;
+					this.addHorizontalForce(this.forward() * this.speed);
+					if(this.states.attack > 2.75){
+						//Fall a little
+					} else if(this.states.friendBat.position.y < this.position.y){
+						this.force.y -= this.gravity * 2 * UNITS_PER_METER * this.delta;
+					}
+				} else if(this.states.lockon){
+					//Move across screen
+					this.addHorizontalForce(this.forward() * this.speed);
+					this.force.y -= this.gravity * UNITS_PER_METER * this.delta;
+				} else {
+					//fall
+					if(this.position.y + 8 > this.target().position.y){
+						this.flip = this.position.x > this.target().position.x;
+						this.states.lockon = true;
+						this.force.y = 0;
+					}
+				}
+				this.states.attack -= this.delta;
+			} else {
+				this.force.y -= this.gravity * 2 * UNITS_PER_METER * this.delta;
+				if(Math.abs(this.position.x - this.target().position.x) < 160){
+					this.states.cooldown -= this.delta;
+				}
+				if(this.states.cooldown <= 0){
+					this.flip = this.position.x > this.target().position.x;
+					this.states.lockon = false;
+					this.states.attack = 3;
+					this.states.cooldown = 2;
+				}
+			}
+			if(this.force.y > 1){
+				this.frame.x = 0;
+			} else if(Math.abs(this.force.x) < 1) {
+				this.frame.x = 1;
+			} else {
+				this.frame.x = 2 + Math.mod(game.timeScaled * 8, 3);
+			}
+		} else {
+			this.frame.x = 0;
+		}
+	}
+}
+self["Batty"] = Batty;
+
+/*
 Batty.prototype = new GameObject();
 Batty.prototype.constructor = GameObject;
 function Batty(x,y,d,o){
@@ -13168,7 +13657,7 @@ function Batty(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("wakeup", function(){
 		//this.visible = true;
@@ -13243,7 +13732,7 @@ Batty.prototype.update = function(){
 		}
 	} 
 	
-	/* Animation */
+	// Animation 
 	if( Math.abs(this.force.y) < 0.2 && Math.abs(this.force.x) < 0.2  ) {
 		this.frame.x = 1;
 	} else {
@@ -13254,6 +13743,7 @@ Batty.prototype.update = function(){
 		}
 	}
 }
+*/
 
  /* platformer\enemy_beaker.js*/ 
 
@@ -13302,7 +13792,7 @@ function Beaker(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("wakeup", function(){
 		//this.visible = true;
@@ -13424,7 +13914,7 @@ function Bear(x,y,d,ops){
 	});
 	this.on("hurt", function(){
 		this.states.attack = 0.0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		Item.drop(this);
@@ -13560,7 +14050,7 @@ function BigBones(x,y,d,o){
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
 		//this.states.cooldown = 30.0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		Item.drop(this);
@@ -13810,7 +14300,7 @@ function BikerSmall(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		this.destroy();
@@ -13927,98 +14417,106 @@ Molotov.prototype.render = function(g,c){
 
  /* platformer\enemy_boarbow.js*/ 
 
-Boarbow.prototype = new GameObject();
-Boarbow.prototype.constructor = GameObject;
-function Boarbow(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 24;
-	this.height = 28;
-	this.sprite = "boarbow";
-	
-	this.addModule( mod_rigidbody );
-	this.addModule( mod_combat );
-	
-	this.time_cooldown = Game.DELTASECOND * 1.0;
-	this.time_attack = Game.DELTASECOND * 2.0;
-	
-	this.states = {
-		"attack" : 0.0,
-		"cooldown" : 0.0
-	};
-	
-	
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
-	}
-	
-	this.life = Spawn.life(2,this.difficulty);
-	this.mass = 1.2;
-	this.damage = Spawn.damage(3,this.difficulty);
-	this.moneyDrop = Spawn.money(3,this.difficulty);
-	this.xpDrop = Spawn.xp(5,this.difficulty);
-	
-	this.on("collideObject", function(obj){
-	});
-	
-	this.on("struck", EnemyStruck);
-	
-	this.on("hurt", function(){
-		audio.play("hurt",this.position);
-	});
-	this.on("death", function(){
+class Boarbow extends GameObject{
+	constructor(x,y,d,o){
+		super(x,y,d,o);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 24;
+		this.height = 28;
+		this.sprite = "boarbow";
 		
-		audio.play("kill",this.position); createExplosion(this.position, 40 );
-		createExplosion(this.position, 40 );
-		Item.drop(this);
-		this.destroy();
-	});
-}
-Boarbow.prototype.update = function(){	
-	if ( this.life > 0 ) {
-		var dir = this.position.subtract( _player.position );
+		this.addModule( mod_rigidbody );
+		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
-		if(this.stun <= 0 ){
-			if(this.states.attack > 0){
-				var progress = 1 - (this.states.attack / this.time_attack);
-				this.frame = Boarbow.anim_attack.frame(progress);
-				this.states.attack -= this.delta;
-				
-				if(Timer.isAt(this.states.attack, this.time_attack*0.22, this.delta)){
-					var bolt = new Bullet(this.position.x, this.position.y-6);
-					bolt.team = this.team;
-					bolt.force.x = this.forward() * 10;
-					bolt.flip = this.flip;
-					bolt.sprite = this.sprite;
-					bolt.frame.x = 2;
-					bolt.frame.y = 2;
-					bolt.damage = this.damage;
-					bolt.setDeflect();
-					game.addObject(bolt);
-				}
-			} else {
-				this.flip = dir.x > 0;
-				this.states.cooldown -= this.delta;
-				if(this.states.cooldown <= 0){
-					this.states.attack = this.time_attack;
-					this.states.cooldown = this.time_cooldown;
-				}
-			}
-		} else {
-			//Stunned
-			this.frame.x = 2;
-			this.frame.y = 0;
-			this.states.attack = 0.0;
+		this.time_cooldown = Game.DELTASECOND * 1.0;
+		this.time_attack = Game.DELTASECOND * 2.0;
+		
+		this.states = {
+			"attack" : 0.0,
+			"cooldown" : this.time_cooldown
+		};
+		
+		this.combat_getHitAreas = function(){
+			return [new Line(-12,-24,12,14).transpose(this.position)];
 		}
 		
-	} else {
-		this.frame.x = 2;
-		this.frame.y = 1;
+		o = o || {};
+		
+		this.difficulty = Spawn.difficulty;
+		if("difficulty" in o){
+			this.difficulty = o["difficulty"] * 1;
+		}
+		
+		this.life = this.lifeMax = Spawn.life(2,this.difficulty);
+		this.mass = 1.2;
+		this.damage = Spawn.damage(3,this.difficulty);
+		this.moneyDrop = Spawn.money(3,this.difficulty);
+		this.xpDrop = Spawn.xp(5,this.difficulty);
+		
+		this.on("collideObject", function(obj){
+		});
+		
+		this.on("struck", EnemyStruck);
+		
+		this.on("hurt", function(){
+			
+		});
+		this.on("death", function(){
+			
+			audio.play("kill",this.position); createExplosion(this.position, 40 );
+			createExplosion(this.position, 40 );
+			Item.drop(this);
+			this.creep_hide();
+		});
+	}
+	update(){	
+		if ( this.life > 0 ) {
+			var dir = this.position.subtract( this.target().position );
+			
+			if(this.stun <= 0 ){
+				if(this.states.attack > 0){
+					var progress = 1 - (this.states.attack / this.time_attack);
+					this.frame = Boarbow.anim_attack.frame(progress);
+					this.states.attack -= this.delta;
+					
+					if(Timer.isAt(this.states.attack, this.time_attack*0.22, this.delta)){
+						var bolt = new Bullet(this.position.x, this.position.y-6);
+						bolt.team = this.team;
+						bolt.force.x = this.forward() * 10;
+						bolt.flip = this.flip;
+						bolt.sprite = this.sprite;
+						bolt.frame.x = 2;
+						bolt.frame.y = 2;
+						bolt.damage = this.damage;
+						bolt.setDeflect();
+						game.addObject(bolt);
+					}
+				} else {
+					//Face target
+					this.flip = dir.x > 0;
+					
+					if(Math.abs(dir.x) < 200){
+						//Only cooldown when player is near
+						this.states.cooldown -= this.delta;
+					}
+					if(this.states.cooldown <= 0){
+						this.states.attack = this.time_attack;
+						this.states.cooldown = this.time_cooldown;
+					}
+				}
+			} else {
+				//Stunned
+				this.frame.x = 2;
+				this.frame.y = 0;
+				this.states.attack = 0.0;
+			}
+			
+		} else {
+			this.frame.x = 2;
+			this.frame.y = 1;
+		}
 	}
 }
 
@@ -14031,6 +14529,7 @@ Boarbow.anim_attack = new Sequence([
 	[1,2,0.2],
 	[1,3,0.1]
 ]);
+self["Boarbow"] = Boarbow;
 	
 
  /* platformer\enemy_bombbowler.js*/ 
@@ -14052,7 +14551,7 @@ function BombBowler(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj,pos,damage){
 		
@@ -14398,7 +14897,7 @@ function Bombjar(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		var explosion = new EffectBang(this.position.x,this.position.y);
@@ -14506,7 +15005,7 @@ class BombjarFree extends GameObject {
 		});
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			this.force = this.position.subtract(obj.position).normalize(6);
 		});
 		
@@ -14637,7 +15136,7 @@ class BoneThrower extends GameObject {
 		this.defenceSlime = Spawn.defence(2,this.difficulty);
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position); 
@@ -14652,7 +15151,7 @@ class BoneThrower extends GameObject {
 		
 		this._anim = 0.0;
 		this._attack = 0.0;
-		this._cooldown = 0.0;
+		this._cooldown = BoneThrower.TIME_COOLDOWN;
 	}
 	update(){
 		if(this.life > 0){
@@ -14673,7 +15172,10 @@ class BoneThrower extends GameObject {
 				}
 				
 				this._anim = ( this._anim + this.delta * 1.2 ) % 1.0;
-				this._cooldown -= this.delta;
+				if(Math.abs(this.target().position.x - this.position.x) < 200){
+					//Target within range
+					this._cooldown -= this.delta;
+				}
 				
 				if( this.atLedge() ){
 					this.force.x = 0.0;
@@ -14776,7 +15278,7 @@ function BookReptile(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		this.destroy();
@@ -14889,7 +15391,7 @@ function Bookrider(x,y,d,o){
 	});
 	this.on("hurt", function(obj,damage){
 		this.states.retreat = this.times.retreat;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player && obj.position.y > this.position.y && this.life > 0){
@@ -15053,7 +15555,7 @@ class BookSummoner extends GameObject{
 		});
 		this.on("hurt", function(obj,damage){
 			this.states.retreat = this.times.retreat;
-			audio.play("hurt",this.position);
+			
 		});
 		
 		this.on("death", function(obj,pos,damage){
@@ -15361,7 +15863,7 @@ function Chaz(x,y,d,o){
 	
 	this.on("hurt", function(obj,damage){
 		this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -15487,13 +15989,15 @@ class ChickenChain extends GameObject{
 		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
 		this.states = {
 			"cooldown" : Game.DELTASECOND * 3,
 			"attack" : 0.0,
 			"direction" : 1.0,
 			"attackstage" : 0,
-			"duck" : 0
+			"duck" : 0,
+			"recovery" : 0.0
 		};
 		this.attacks = {
 			"cooldown" : Game.DELTASECOND * 3,
@@ -15503,6 +16007,15 @@ class ChickenChain extends GameObject{
 		}
 		this.ball = new Point(0,0);
 		
+		this.checkAttackArea = function(ops){
+			if(this.life > 0 && this.states.attackstage > 0){
+				
+				let ops = new Options({"direction" : this.states.attackstage == 2 ? !this.flip : this.flip });
+				let strike = new Line(0, 0, 4, 4).transpose(this.ball).scale(this.forward(),1).correct().transpose(this.position);
+				Combat.attackCheck.apply(this,[ strike, ops ]);
+			}
+		}
+		
 		this.difficulty = o.getInt("difficulty", Spawn.difficulty);
 		
 		this.lifeMax = this.life = Spawn.life(3,this.difficulty);
@@ -15511,6 +16024,14 @@ class ChickenChain extends GameObject{
 		this.xpDrop = Spawn.xp(6,this.difficulty);
 		this.mass = 1.0;
 		
+		this.on("blocked", function(){
+			this.states.cooldown = this.attacks.cooldown;
+			this.states.attack = 0.0;
+			this.states.attackstage = 0;
+			this.states.duck = 0;
+			this.states.recovery = 1.5;
+			
+		});
 		this.on("collideHorizontal", function(x){
 			this.force.x = 0;
 			this.states.direction *= -1.0;
@@ -15534,7 +16055,7 @@ class ChickenChain extends GameObject{
 			}
 		});
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		
 		this.on("pre_death", function(){
@@ -15544,18 +16065,21 @@ class ChickenChain extends GameObject{
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
 			Item.drop(this);
-			this.destroy();
+			this.creep_hide();
 		});
-		
-		SpecialEnemy(this);
-		this.calculateXP();
 	}
 	update(){
 		if ( this.life > 0 ) {
 			var dir = this.position.subtract( _player.position );
 			this.attacks.rest = Math.max(this.attacks.rest-this.delta, 0);
 			
-			if( this.states.attackstage ) {
+			if(this.states.recovery > 0){
+				let d = this.states.recovery / 1.5;
+				this.ball.x = Math.lerp(this.ball.x, 0.0, this.delta);
+				this.ball.y = Math.sin(d * Math.PI) * -64;
+				this.states.recovery -= this.delta;
+				
+			} else if( this.states.attackstage ) {
 				this.force.x = this.force.y = 0;
 				var fireForward = this.states.attackstage == 1;
 				
@@ -15575,12 +16099,6 @@ class ChickenChain extends GameObject{
 					}
 				}
 				this.ball = new Point(this.states.attack, (-4 + this.states.duck*16));
-				if(this.attacks.rest <= 0){
-					this.strike(
-						new Line(this.ball,this.ball.add(new Point(4,4))),
-						{"direction" : fireForward?this.flip:!this.flip}
-					);
-				}
 				
 				if( this.states.duck ) {
 					var maxFrame = this.states.attackstage > 1 ? 5 : 3;
@@ -15634,15 +16152,18 @@ class ChickenChain extends GameObject{
 		}
 	}
 	render(g,c){
-		if(this.states.attackstage){
+		if(this.states.attackstage || this.states.recovery > 0){
 			var b = new Point(
-				this.ball.x * this.states.direction,
+				this.ball.x * this.forward(),
 				this.ball.y
 			);
-			var links = Math.ceil(this.states.attack / 9);
+			
+			var links = Math.ceil( this.ball.magnitude() / 8 );
+			var direction = b.normalize(-1);
+			
 			for(var i=0; i < links; i++){
-				var b2 = b.add(new Point(i*-9*this.states.direction,0));
-				g.renderSprite(this.sprite,b2.add(this.position).subtract(c),this.zIndex,new Point(0,2));
+				let lpos = b.add( direction.scale(8 * i) );
+				g.renderSprite(this.sprite,lpos.add(this.position).subtract(c),this.zIndex,new Point(0,2));
 			}
 			g.renderSprite(this.sprite,b.add(this.position).subtract(c),this.zIndex,new Point(1,2));
 		}
@@ -15666,6 +16187,7 @@ class ChickenDrill extends GameObject{
 		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
 		this.states = {
 			"cooldown" : Game.DELTASECOND * 3,
@@ -15692,14 +16214,14 @@ class ChickenDrill extends GameObject{
 		});
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
 			Item.drop(this);
-			this.destroy();
+			this.creep_hide();
 		});
 	}
 	update(){
@@ -15714,7 +16236,7 @@ class ChickenDrill extends GameObject{
 				} else if(this.grounded){
 					if (Timer.interval(this.states.attack,Game.DELTASECOND*0.2,this.delta)){
 						var spikes = new ChickenDrillSpike(
-							this.position.x + this.states.spike * 40 * (this.flip?-1:1), 
+							this.position.x + this.states.spike * 40 * this.forward(), 
 							this.position.y + 8
 						);
 						spikes.damage = this.damage;
@@ -15784,7 +16306,12 @@ class ChickenDrillSpike extends GameObject{
 		this.sprite = "chickendrill";
 		this.damage = 1;
 		this.frame = new Point(0,3);
-		this.time = Game.DELTASECOND * 2.0;
+		this.time = this.timeMax = Game.DELTASECOND * 2.0;
+		this.visible = false;
+		
+		this.addModule(mod_rigidbody);
+		this.pushable = false;
+		this.force.y = 8;
 		
 		this.on("sleep", function(obj){
 			this.destroy();
@@ -15802,6 +16329,13 @@ class ChickenDrillSpike extends GameObject{
 		});
 	}
 	update(){
+		if(this.time <= this.timeMax - Game.DELTASECOND * 0.03125){
+			this.visible = true;
+			if(this.isStuck || !this.grounded){
+				this.destroy();
+			}
+		}
+		
 		this.time -= this.delta;
 		
 		if(this.time <= 0){
@@ -15997,6 +16531,9 @@ function Deckard(x,y,d,o){
 	this.sprite = "deckard";
 	this.speed = 21.0;
 	
+	this.batty1 = false;
+	this.batty2 = false;
+	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
@@ -16025,30 +16562,24 @@ function Deckard(x,y,d,o){
 	this.death_time = Game.DELTASECOND * 2;
 	
 	this.on("struck", EnemyStruck);
-	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+	this.on("new_room", function(){
+		this.destroy();
 	});
 	this.on("death", function(){
-		this.destroy();
-		
 		Item.drop(this,20);
 		audio.play("kill",this.position); 
 		createExplosion(this.position, 40 );
 		
-		for(var i=0; i < 2; i++ ){
-			//Spawn bats on death
-			var batty = new Batty(
-				this.position.x, 
-				this.position.y, 
-				false, 
-				{"difficulty":this.difficulty}
-			);
-			batty.fuse = false;
-			batty.invincible = batty.invincible_time;
-			batty.force.x = i <= 0 ? -8 : 8;
-			batty.on("sleep", function(){this.destroy();});
-			game.addObject(batty);
+		if(this.batty1 instanceof Batty){
+			this.batty1.position = this.position.scale(1);
+			this.batty1.creep_show(false);
 		}
+		if(this.batty2 instanceof Batty){
+			this.batty2.position = this.position.scale(1);
+			this.batty2.creep_show(false);
+		}
+		
+		this.destroy();
 	});
 }
 
@@ -16301,7 +16832,7 @@ function DonkeyKnife(x, y, d, o){
 	});
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		
@@ -16438,7 +16969,7 @@ class DrillerKiller extends GameObject{
 			}
 		});
 		this.on("hurt", function(obj,damage){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			this.destroy();
@@ -16536,7 +17067,7 @@ function DrillOrb(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		audio.play("kill",this.position); 
@@ -16788,7 +17319,7 @@ function Fireman(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj,pos,damage){
 		
@@ -17115,7 +17646,7 @@ function FlameSlime(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("pre_death", function(){
 		audio.play("kill",this.position); 
@@ -17273,7 +17804,7 @@ function FlameSlimeWalker(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("pre_death", function(){
 		audio.play("kill",this.position); 
@@ -17336,249 +17867,219 @@ FlameSlimeWalker.prototype.update = function(){
 
  /* platformer\enemy_flederknife.js*/ 
 
-Flederknife.prototype = new GameObject();
-Flederknife.prototype.constructor = GameObject;
-function Flederknife(x, y, d, o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 16;
-	this.height = 30;
-	this.sprite = "flederknife";
-	this.speed = 6.0;
-	this.blockKnockback = 8.0;
-	this.collideKnockback = 3.0;
-	this.turndelay = 0.0;
-	
-	this.addModule( mod_rigidbody );
-	this.addModule( mod_combat );
-	
-	this.states = {
-		"direction" : 1.0,
-		"jump" : 0,
-		"down" : 0,
-		"jump_tick" : 1
-	};
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
-	}
-	
-	this.life = Spawn.life(3,this.difficulty);
-	this.lifeMax = Spawn.life(3,this.difficulty);
-	this.damage = Spawn.life(1,this.difficulty);
-	this.moneyDrop = Spawn.money(3,this.difficulty);
-	this.xpDrop = Spawn.xp(3,this.difficulty);
-	this.mass = 1.0;
-	
-	this.on("blocked", function(obj){
-		let d = obj.position.x > this.position.x ? -1 : 1;
-		this.force.x += d * this.blockKnockback;
-	});
-	this.on("hurt", function(){
-		audio.play("hurt",this.position);
-	});
-	this.on("collideObject", function(obj){
-		if(obj.hasModule(mod_combat) && obj.hasModule(mod_rigidbody)){
-			this.changeDirection();
-			let d = obj.position.x > this.position.x ? -1 : 1;
-			this.force.x += d * this.collideKnockback;
-		}
-	});
-	this.on("collideHorizontal", function(dir){
-		this.position.x += dir > 0 ? 1 : -1;
-		this.changeDirection();
-	});
-	this.on(["added","wakeup"], function(){
-		var dir = this.position.subtract( _player.position );
-		this.states.direction = dir.x > 0 ? -1.0 : 1.0;
-		this.states.jump_tick = 1;
+class Flederknife extends GameObject{
+	constructor(x, y, d, o){
+		super(x,y,d,o);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 16;
+		this.height = 30;
+		this.sprite = "flederknife";
+		this.speed = 6.0;
+		this.blockKnockback = 8.0;
+		this.collideKnockback = 3.0;
+		this.turndelay = 0.0;
 		
-		if(this.difficulty > 0){
-			this.states.duck = Math.round(Math.random());
-		}
-		if(this.difficulty > 1){
-			this.states.jump_tick = Math.floor(Math.random()*3);
-		}
-	});
-	this.on("death", function(){
+		this.addModule( mod_rigidbody );
+		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
-		audio.play("kill",this.position); 
-		createExplosion(this.position, 40 );
-		Item.drop(this);
-		this.destroy();
-	});
-	
-	this.faceTarget();
-}
-Flederknife.prototype.changeDirection = function(forceChange=false){
-	this.force.x = 0;
-	if(this.turndelay <= 0 || forceChange){
-		this.states.direction *= -1.0;
-		this.turndelay = Game.DELTASECOND * 0.5;
-	
-	
-		if(this.difficulty > 0){
-			this.states.duck = Math.round(Math.random());
-		}
-		if(this.difficulty > 99){
-			this.states.jump_tick--;
-		}
-	}
-}
-Flederknife.prototype.update = function(){
-	if ( this.stun <= 0 && this.life > 0 ) {
-		var dir = this.position.subtract( _player.position );
-		this.flip = this.states.direction < 0;
+		this.states = {
+			"jump" : 0,
+			"down" : 0,
+			"jump_tick" : 1
+		};
 		
-		this.addHorizontalForce(this.speed * this.forward());
+		o = o || {};
 		
-		if(this.atLedge()){
-			this.changeDirection(true);
+		this.difficulty = Spawn.difficulty;
+		if("difficulty" in o){
+			this.difficulty = o["difficulty"] * 1;
 		}
 		
-		if(this.states.jump && this.grounded){
-			this.states.jump = 0;
+		this.life = this.lifeMax = Spawn.life(3,this.difficulty);
+		this.lifeMax = Spawn.life(3,this.difficulty);
+		this.damage = Spawn.life(1,this.difficulty);
+		this.moneyDrop = Spawn.money(3,this.difficulty);
+		this.xpDrop = Spawn.xp(3,this.difficulty);
+		this.mass = 1.0;
+		
+		this.checkAttackArea = function(ops){
+			if(this.life > 0 && this.grounded){
+				
+				let strike = new Line(0, -6, 12, -4);
+				if(this.states.duck){
+					strike = new Line(0, 6, 12, 8);
+				}
+				Combat.attackCheck.apply(this,[ strike.scale(this.forward(),1).transpose(this.position).correct() ]);
+			}
+		}
+		this.on("hurt", function(){
+			this.force.x = 0;
+		});
+		this.on(["blocked","hurt_other"], function(obj){
+			this.flip = !this.flip;
+			this.force.x = 0;
+		});
+		this.on("hurt", function(){
+			
+		});
+		this.on("collideObject", function(obj){
+			if(this.life > 0){
+				if(obj.hasModule(mod_combat) && obj.hasModule(mod_rigidbody)){
+					this.flip = obj.position.x > this.position.x;
+					this.force.x = this.forward();
+				}
+			}
+		});
+		this.on("collideHorizontal", function(dir){
+			if(this.life > 0){
+				this.flip = !this.flip;
+				this.force.x = 0.0;
+			}
+		});
+		this.on(["added","wakeup"], function(){
+			var dir = this.position.subtract( _player.position );
 			this.faceTarget();
-			this.force.y -= this.delta * 3;
-		} 
+			this.states.jump_tick = 1;
+			
+			if(this.difficulty > 0){
+				this.states.duck = Math.round(Math.random());
+			}
+			if(this.difficulty > 1){
+				this.states.jump_tick = Math.floor(Math.random()*3);
+			}
+		});
+		this.on("death", function(){
+			
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
+			Item.drop(this);
+			this.creep_hide();
+		});
+		
+	}
+	update(){
+		if ( this.stun <= 0 && this.life > 0 ) {
+			var dir = this.position.subtract( _player.position );
+			
+			this.addHorizontalForce(this.speed * this.forward());
+			
+			if(this.atLedge()){
+				this.force.x = 0;
+				this.flip = !this.flip;
+			}
+			
+			if(this.states.jump && this.grounded){
+				this.states.jump = 0;
+				this.faceTarget();
+				this.force.y -= this.delta * 3;
+			} 
 
-		if(this.grounded){
-			if(this.states.duck){
-				this.strike( new Line(0, 6, 12, 2) );
-			} else {
-				this.strike( new Line(0, -6, 12, 2) );
+			
+			
+			if(this.states.jump_tick <= 0 && this.grounded && Math.abs(dir.x) < 80){
+				//Jump behind the player
+				this.states.jump = 1;
+				this.grounded = false;
+				this.force.y = -12;
+				this.force.x = this.forward() * 300;
+				this.states.jump_tick = 2 + Math.floor(Math.random()*3);
 			}
-		}
-		
-		if(this.states.jump_tick <= 0 && this.grounded && Math.abs(dir.x) < 80){
-			//Jump behind the player
-			this.states.jump = 1;
-			this.grounded = false;
-			this.states.direction = dir.x > 0 ? -1.0 : 1.0;
-			this.force.y = -12;
-			this.force.x = this.forward() * 300;
-			this.states.jump_tick = 2 + Math.floor(Math.random()*3);
-		}
-		this.turndelay -= this.delta; 
-		
-		
-		/* Animation */
-		
-		if( this.states.jump ){
-			this.frame.x = (this.frame.x + this.delta * 0.4) % 3;
-			this.frame.y = 2;
+			this.turndelay -= this.delta; 
+			
+			
+			/* Animation */
+			
+			if( this.states.jump ){
+				this.frame.x = (this.frame.x + this.delta * 0.4) % 3;
+				this.frame.y = 2;
+			} else {
+				this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 6.0) % 4;
+				if(this.states.duck){
+					this.frame.y  = 0;
+				} else {
+					this.frame.y  = 1;
+				}
+			}
+			
 		} else {
-			this.frame.x = (this.frame.x + Math.abs(this.force.x) * this.delta * 6.0) % 4;
-			if(this.states.duck){
-				this.frame.y  = 0;
-			} else {
-				this.frame.y  = 1;
-			}
+			this.frame.x = 3;
+			this.frame.y  = 2;
 		}
-		
-	} else {
-		this.frame.x = 3;
-		this.frame.y  = 2;
+	}
+	faceTarget(){
+		this.flip = this.target().position.x < this.position.x;
 	}
 }
-
-Flederknife.prototype.faceTarget = function(){
-	var dir = _player.position.subtract(this.position);
-	this.states.direction = dir.x < 0 ? -1.0 : 1.0;
-}
+self["Flederknife"] = Flederknife;
 
  /* platformer\enemy_fly.js*/ 
 
-Fly.prototype = new GameObject();
-Fly.prototype.constructor = GameObject;
-function Fly(x,y,d,o){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 16;
-	this.height = 24;
-	this.damage = Spawn.damage(2,this.difficulty);
-	this.team = 0;
-	this.sprite = "amon";
-	
-	this.addModule(mod_rigidbody);
-	this.addModule(mod_combat);
-	
-	o = o || {};
-	
-	this.difficulty = Spawn.difficulty;
-	if("difficulty" in o){
-		this.difficulty = o["difficulty"] * 1;
+class Fly extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.initPos = new Point(x, y);
+		this.sprite = "fly";
+		this.width = 24;
+		this.height = 24;
+		this.frame = new Point(0,0);
+		
+		this.addModule(mod_rigidbody);
+		this.addModule(mod_combat);
+		
+		this.diffculty = ops.getInt("diffculty", Spawn.diffculty);
+		
+		this.life = this.lifeMax = 1;
+		this.xpDrop = 0;
+		this.gravity = 0.0;
+		this.bounce = 0.5;
+		this.collisionReduction = - 0.5;
+		this.pushable = false;
+		
+		this.friction = 0.05;
+		
+		this._direction = new Point(1,0);
+		this._directionChangeTime = 0.0;
+		
+		this.on("pre_death", function(){
+			game.addObject( new ParticleSystem(this.position.x, this.position.y, [1,1], new Options({
+				"frame_x" : 1,
+				"frame_y" : 2,
+				"color" : [.95,1,.5,1],
+				"startForceRange" : new Line(-2,-8,2,-2),
+				"count" : 16,
+				"time" : 1,
+				
+			})) );
+			this.destroy();
+		});
+	}
+	update(){
+		if(this.life){
+			this.force = this.force.add( this._direction.scale(this.delta * UNITS_PER_METER * Fly.speed ) );
+			this._directionChangeTime -= this.delta;
+			
+			this.flip = this.target().position.x < this.position.x;
+			this.frame.x = (this.frame.x + this.delta * 3 * Fly.animationSpeed) % 3;
+			this.frame.y = (this.frame.y + this.delta * 1 * Fly.animationSpeed) % 2;
+			
+			if(this._directionChangeTime <= 0){
+				let angle = this.target().position.subtract(this.position).toAngle() + Math.randomRange(-Fly.randomDir, Fly.randomDir);
+				this._direction = Point.fromAngle(angle).scale(1,-1);
+				this._directionChangeTime = Math.randomRange(1.5,2.5);
+			}
+		}
 	}
 	
-	this.life = Spawn.life(1,this.difficulty);
-	this.damage = Spawn.damage(1,this.difficulty);
-	
-	this.speed = 0.25;
-	this.frame = new Point(0,1);
-	this.gravity = 0.0;
-	this.friction = 0.1;
-	this.mass = 0.7;
-	this.itemDrop = true;
-	
-	this.times = {
-		"attackWarm" : Game.DELTASECOND,
-		"attack" : Game.DELTASECOND * 0.25,
-	};
-	this.states = {
-		"attackWarm" : 0.0,
-		"attack" : 0.0
-	};
-	
-	this.on("struck", EnemyStruck);
-	this.on("hurt", function(){
-		audio.play("hurt",this.position);
-	});
-	
-	this.on("death", function(){
-		
-		audio.play("kill",this.position); 
-		createExplosion(this.position, 40 );
-		if( this.itemDrop ){
-			Item.drop(this);
-		}
-		this.destroy();
-	});
 }
+Fly.speed = 0.0625;
+Fly.randomDir = 0.4;
+Fly.animationSpeed = 4.0;
 
-Fly.prototype.update = function(){
-	var dir = this.position.subtract(_player.position);
-	
-	if( this.life > 0 && this.stun <= 0 ) {
-		
-		this.flip = dir.x > 0;
-		
-		if(this.states.attackWarm > 0) {
-			this.states.attackWarm -= this.delta;
-			this.force = this.force.scale(1 - this.delta*0.5);
-			if( this.states.attackWarm <= 0) {
-				this.force.x = -10 * (dir.x < 0 ? -1.0 : 1.0);
-				this.states.attack = this.times.attack;
-			}
-		} else if(this.states.attack > 0) {
-			this.states.attack -= this.delta;
-			this.strike( new Line(0,-6,16,12) );
-		} else {
-			if( Math.abs(dir.x) > 32 || Math.abs(dir.y) > 32 ){
-				this.force = this.force.subtract( dir.normalize( this.speed ) );
-			}
-			if( Math.abs(dir.x) < 64 && Math.abs(dir.y) < 24 ){
-				this.states.attackWarm = this.times.attackWarm;
-			}
-		}
-	}
-	
-	this.frame.x = (this.frame.x + this.delta * 0.5) % 2.0;
-}
+self["Fly"] = Fly;
 
  /* platformer\enemy_flyingslime.js*/ 
 
@@ -17599,7 +18100,7 @@ function FlyingSlime(x,y,d,o){
 	this.addModule( mod_combat );
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("struck", EnemyStruck);
 	this.on("death", function(obj,pos,damage){
@@ -17699,7 +18200,7 @@ class FreezerBird extends GameObject {
 		});
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position); 
@@ -17760,7 +18261,7 @@ class FrogChef extends GameObject{
 		this._toss = true;
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position); 
@@ -17796,8 +18297,8 @@ class FrogChef extends GameObject{
 			//do nothing
 		} else if(this.life > 0){
 			let dir = this.target().position.subtract(this.position);
-			let nerves = 56 + _player.equip_sword.stats.range * 2.0;
-			let range = 56 + _player.equip_sword.stats.range * 1.5;
+			let nerves = 56 + this.target().equip_sword.range * 2.0;
+			let range = 56 + this.target().equip_sword.range * 1.5;
 			
 			if(this._escaping){
 				//Escaping
@@ -17927,7 +18428,7 @@ function Ghoul(x,y,d,o){
 		this.hurt(obj,damage);
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		
@@ -18008,7 +18509,7 @@ function HammerMathers(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		
@@ -18115,7 +18616,7 @@ function HammerMan(x, y, d, o){
 	});
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		
@@ -18201,7 +18702,7 @@ class Igbo extends GameObject {
 		});
 		this.on("hurt", function(){
 			this.setState(Igbo.PHASE_RETREAT);
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			Item.drop(this);
@@ -18407,7 +18908,7 @@ function Knight(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		this.states.retreat = Game.DELTASECOND * 0.5;
 		this.states.guard_freeze = 0.0;
 	});
@@ -18587,7 +19088,7 @@ function Knior(x, y, d, o){
 	});
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("pre_death", function(){
 	});
@@ -18712,7 +19213,7 @@ class Laughing extends GameObject {
 		
 		this.on("struck", EnemyStruck);
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("collideObject", function(obj){
 			if( obj instanceof Player && this.life > 0 ) {
@@ -18781,7 +19282,7 @@ function Librarian(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj,pos,damage){
 		
@@ -18946,7 +19447,7 @@ function LilGhost(x,y,d,o){
 	});
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	
 	this.on("death", function(){
@@ -19036,7 +19537,7 @@ function Malsum(x,y,d,o){
 	this.gravity = 0.5;
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj){
 		Item.drop(this,3);
@@ -19156,7 +19657,7 @@ function ManOnFire(x, y, d, o){
 		}
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("pre_death", function(){
 		this.frame.x = 0;
@@ -19282,7 +19783,7 @@ function Moleminer(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		
 		this.states.escape = this.times.escape;
 		this.force.x = -5 * this.forward();
@@ -19461,7 +19962,7 @@ function Nolt(x,y,d,o){
 		this.frame.y = 0;
 	});
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("block", function(obj,damage){
 		audio.play("block", this.position);
@@ -19575,7 +20076,7 @@ class NoltMissile extends GameObject{
 			this.frame.y = 0;
 		});
 		this.on("hurt", function(obj,damage){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(obj,pos,damage){
 			Item.drop(this);
@@ -19659,7 +20160,7 @@ function Oriax(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -19819,7 +20320,7 @@ class Polate extends GameObject{
 		}
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 			if(this.states.attack <= 0){
 				this.states.jumpback = this.times.jumpback;
 			}
@@ -19999,7 +20500,7 @@ function Pothead(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		if(Math.random() > 0.7 && this.grounded){
 			this.states.hide = Game.DELTASECOND * 1.2;
 		}
@@ -20158,7 +20659,7 @@ function Ratgut(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		this.states.runaway = Game.DELTASECOND * 1.5;
 	});
 	this.on("death", function(){
@@ -20262,7 +20763,7 @@ function Riveteer(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		
@@ -20392,7 +20893,7 @@ class SailorCrane extends GameObject {
 		
 		this.on("hurt", function(obj, damage){
 			this.force.x = 5 * (obj.x > this.position.x ? -1 : 1);
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position);
@@ -20525,7 +21026,7 @@ class SailorSmasher extends GameObject {
 			}
 		});
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 			this.timer = Math.max(this.timer, SailorSmasher.phase_idle);
 		});
 		this.on("death", function(){
@@ -20631,7 +21132,7 @@ class Samrat extends GameObject {
 		}
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			
 			this.gravity = 0.5;
 			this.states.dive = 0;
@@ -20802,7 +21303,7 @@ function Sentry(x,y,d,o){
 	
 	this.on("hurt", function(obj,damage){
 		this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj,pos,damage){
 		
@@ -20896,7 +21397,7 @@ function Shell(x,y,d,o){
 	}
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
@@ -20988,7 +21489,7 @@ class Shockcrawler extends GameObject {
 		this.damageContact = 1.0;
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("struck", function(obj){
 			if( obj.hasModule(mod_combat) && obj.team != this.team ){
@@ -21060,7 +21561,7 @@ function Shockowl(x, y, d, o){
 	this.attackTime = Game.DELTASECOND * 1.2;
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		audio.play("kill",this.position); 
@@ -21240,7 +21741,7 @@ function Shooter(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		
@@ -21367,7 +21868,7 @@ class Skeleton extends GameObject {
 		this.speed = 4.0;
 		
 		this.on("hurt", function(obj){
-			audio.play("hurt",this.position);
+			
 			
 			this._escape = Skeleton.TIME_ESCAPE;
 			this._cooldown = 0.0;
@@ -21513,6 +22014,8 @@ class Slime extends GameObject{
 		this.speed = 6.0;
 		this.addModule(mod_rigidbody);
 		this.addModule(mod_combat);
+		this.addModule(mod_creep);
+		
 		this.width = this.height = 16;
 		this.team = 0;
 		
@@ -21547,8 +22050,15 @@ class Slime extends GameObject{
 			this.flip = !this.flip;
 		});
 		this.on("hurt",function(obj,damage){
-			audio.play("hurt",this.position);
+			
 			this.setState(Slime.STATE_HIDDEN);
+		});
+		this.on("combat_bouncedon", function(obj){
+			if(obj instanceof Player){
+				audio.play("splat1", this.position);
+				this.life = 0;
+				this.creep_hide();
+			}
 		});
 		this.on("hurt_other",function(obj,damage){
 			if(this._state == Slime.STATE_HIDDEN || this._state == Slime.STATE_MOVING){
@@ -21566,7 +22076,7 @@ class Slime extends GameObject{
 			
 			audio.play("kill",this.position);
 			createExplosion(this.position, 40 );
-			this.destroy();
+			this.creep_hide();
 		});
 	}
 	setState(s){
@@ -21702,7 +22212,7 @@ function Slime(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt",function(obj,damage){
 		this.times.cooldown = 0.0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("hurtOther",function(obj,damage){
 		this.times.cooldown = 0.0;
@@ -21849,7 +22359,7 @@ function SlimeGrenadier(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt",function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj,pos,damage){
 		Item.drop(this);
@@ -22006,7 +22516,7 @@ function Slimerilla(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt",function(obj,damage){
-		audio.play("hurt",this.position);
+		
 		this.times.jumpback = true;
 	});
 	this.on("death", function(obj,pos,damage){
@@ -22120,6 +22630,7 @@ class Slimerilla extends GameObject{
 		
 		this.addModule(mod_rigidbody);
 		this.addModule(mod_combat);
+		this.addModule(mod_creep);
 		
 		this.sprite = "slimerilla";
 		this.swrap = spriteWrap["slimerilla"];
@@ -22130,7 +22641,7 @@ class Slimerilla extends GameObject{
 		o = o || {};
 		
 		this.difficulty = o.getInt("difficulty",Spawn.difficulty);
-		this.hidden = o.getBool("hidden",false);
+		this.startHidden = this.hidden = o.getBool("hidden",false);
 		
 		this.states = {
 			
@@ -22161,8 +22672,15 @@ class Slimerilla extends GameObject{
 			}
 		})
 		this.on("hurt",function(obj,damage){
-			audio.play("hurt",this.position);
+			
 			this.states.jumpback = true;
+		});
+		this.on("respawn", function(){
+			this.states.cooldown = this.times.cooldown;
+			this.states.attack = 0.0;
+			this.states.reappear = 0.0;
+			
+			this.hidden = this.startHidden;
 		});
 		this.on("land", function(){
 			this.states.landed = this.times.landed;
@@ -22172,17 +22690,17 @@ class Slimerilla extends GameObject{
 			
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
-			this.destroy();
+			this.creep_hide();
 		});
 		
 		if(this.hidden){
 			this.pushable = true;
 		}
 		
-		this.life = Spawn.life(8, this.difficulty);
+		this.life = Spawn.life(4, this.difficulty);
 		this.moneyDrop = Spawn.money(8,this.difficulty);
 		this.damage = Spawn.damage(4,this.difficulty);
-		this.defencePhysical = Spawn.defence(2,this.difficulty);
+		this.defencePhysical = Spawn.defence(1,this.difficulty);
 		this.defenceFire = Spawn.defence(-2,this.difficulty);
 		this.defenceSlime = Spawn.defence(4,this.difficulty);
 		this.death_time = Game.DELTASECOND * 0.5;
@@ -22477,15 +22995,14 @@ class Spearbe extends GameObject {
 		this._anim = 0.0;
 		this._afterimage = 0.0;
 		
+		this._grab = false;
+		
 		this.on("collideObject", function(obj, damage){
 			if( this._state == Spearbe.STATE_CHARGE ){
 				if( obj == this.target() ){
 					this.setState(Spearbe.STATE_THROW);
+					this.grabTarget(obj);
 					game.slow(0,0.4);
-					
-					this.target().pause = true;
-					this.target().showplayer = false;
-					this.target().interactive = false;
 				}
 			}
 		});
@@ -22504,12 +23021,32 @@ class Spearbe extends GameObject {
 		});
 		
 		this.on("death", function(){
+			this.dropTarget();
 			this.destroy();
 			Item.drop(this);
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 32 );
 		});
 		
+	}
+	grabTarget(obj){
+		if(!this._grab){
+			this._grab = obj;
+			this._grab.pause = true;
+			this._grab.showplayer = false;
+			this._grab.interactive = false;
+		}
+	}
+	dropTarget(hurt=false){
+		if(this._grab){
+			if(hurt){
+				this._grab.hurt( this, this.getDamage() );
+			}
+			this._grab.pause = false;
+			this._grab.showplayer = true;
+			this._grab.interactive = true;
+			this._grab = false;
+		}
 	}
 	update(){
 		if(this.life > 0){
@@ -22527,11 +23064,8 @@ class Spearbe extends GameObject {
 					this.grounded = false;
 					this.force.y = -6;
 					this.force.x = this.forward() * -this.speed;
+					this.dropTarget(true);
 					
-					this.target().hurt( this, this.getDamage() );
-					this.target().pause = false;
-					this.target().showplayer = true;
-					this.target().interactive = true;
 					this._count = 0;
 				}
 				if(!this.grounded){
@@ -22686,7 +23220,7 @@ class Spikebug extends GameObject{
 		this.on("struck", EnemyStruck);
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			
@@ -22769,7 +23303,7 @@ class Axesub extends GameObject{
 		
 		this.on("struck", EnemyStruck);
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			this.destroy();
@@ -22893,7 +23427,7 @@ function Svarog(x,y,d,o){
 	this.addModule( mod_combat );
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){
@@ -23045,7 +23579,7 @@ class ThunderLizard extends GameObject {
 			}
 		});
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 			this.timer = Math.max(this.timer, SailorSmasher.phase_idle);
 			this.states.hurttime += Game.DELTASECOND;
 			if(this.states.hurttime > 2.2){
@@ -23214,7 +23748,7 @@ class WallNolt extends GameObject {
 		});
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position);
@@ -23330,7 +23864,7 @@ function Warbus(x,y,d,o){
 		this.setPhase(Warbus.PHASE_GUARD);
 	});
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		this.states.cooldown -= 10;
 		this.states.active = true
 	});
@@ -23602,7 +24136,7 @@ function WizzardBolter(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( obj instanceof WizzardBolter ) {
@@ -23742,7 +24276,7 @@ function WizzardFlamer(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -23861,7 +24395,7 @@ function WizzardSoldier(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -23952,7 +24486,7 @@ function WizzardLightning(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -24146,7 +24680,7 @@ function Yakseyo(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(obj){
 		Item.drop(this,24);
@@ -24244,7 +24778,7 @@ function Yeti(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		
@@ -24355,7 +24889,6 @@ var PlayerAttackList = [
 		"time" : Game.DELTASECOND,
 		"wait" : 0.0,
 		"animation" : "attack2",
-		"force" : new Point(3.0, 0.0),
 		"prepause" : 0.0,
 		"pause" : 0.25 * Game.DELTASECOND,
 		"knockback" : new Point(10,0),
@@ -24437,7 +24970,7 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
 		"wait" : 0.0,
-		"animation" : "attackwhip",
+		"animation" : "attackwhip%UP",
 		"prepause" : 0.0,
 		"stun" : 0.7 * Game.DELTASECOND,
 		"movement" : 0.0,
@@ -24462,7 +24995,35 @@ var PlayerAttackList = [
 		"path" : [new Point(-0.75,-14), new Point(-0.1,-52), new Point(0.80,-20), new Point(1,8), new Point(1,8)]
 		
 		//"airtime" : 0.3 * Game.DELTASECOND
-	}
+	},
+	{	//Baseball bat attack
+		"damage":3.0,
+		"warm" : 0.25 * Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
+		"time" : 1.2 * Game.DELTASECOND,
+		"wait" : 0.0,
+		"animation" : "attack3",
+		//"prepause" : 0.3 * Game.DELTASECOND,
+		"stun" : 0.7 * Game.DELTASECOND,
+		"pause" : Game.DELTASECOND * 0.25,
+		//"force" : new Point(12.0, 0.0),
+		"chargetime" : 0.65 * Game.DELTASECOND,
+		"movement" : 0.2,
+		"audio" : "swing2",
+		"mesh" : "slashc",
+		"path" : [new Point(-.25,-8), new Point(1,-12), new Point(0.5,-16)]
+		//"airtime" : (warmTime+1.5*baseTime+restTime) * Game.DELTASECOND
+	},
+	{
+		"audio" : "swing2",
+		"airspin" : true,
+		"force" : new Point(0,-8),
+	},
+	{
+		"audio" : "swing2",
+		"drill" : true,
+		"force" : new Point(8,0),
+	},
 ];
 
 /*
@@ -24505,7 +25066,7 @@ WeaponStats.burningblade.color2 = [1,0.5,0.0,1.0];
 */
 
 class PlayerWeapon {
-	constructor(name, warm, cool, speed, damage, range) {
+	constructor(name, warm, cool, speed, damage, range, frame, icon) {
 		this.name = name;
 		this.warm = warm;
 		this.cool = cool;
@@ -24513,6 +25074,9 @@ class PlayerWeapon {
 		this.damage = damage;
 		this.range = range;
 		this.size = new Point(9,9);
+		this.frame = frame;
+		this.icon = icon;
+		this.twohanded = false;
 		
 		this.color1 = [1,1,1,1];
 		this.color2 = [1,1,1,1];
@@ -24544,6 +25108,7 @@ class PlayerWeapon {
 		if(state in this.attacks){
 			return this.attacks[state];
 		}
+		return this.attacks[PlayerWeapon.STATE_STANDING];
 	}
 	getAttack(current){
 		return PlayerAttackList[current];
@@ -24559,17 +25124,22 @@ PlayerWeapon.CHARGED_INDEX = 3;
 PlayerWeapon.DOWNATTACK_INDEX = 6;
 
 WeaponList = {
-	//name, warm, cool, speed, damage, range
-	"short_sword" : new PlayerWeapon("short sword", 	0.125,0.250,0.125, 		1.0,	38),
-	"long_sword" : new PlayerWeapon("long sword", 		0.125,0.250,0.250,		1.5,	48),
-	"broad_sword" : new PlayerWeapon("broad_sword", 	0.125,0.250,0.250,		2.0,	42),
-	"morningstar" : new PlayerWeapon("morning star", 	0.125,0.250,0.250,		2.0,	40),
-	"bloodsickle" : new PlayerWeapon("blood sickle", 	0.125,0.250,0.250,		0.8,	36),
-	"burningblade" : new PlayerWeapon("burning blade", 	0.125,0.250,0.250,		0.85,	38),
-	"whip" : new PlayerWeapon("whip",		 			0.150,0.150,0.250,		1.25,	96),
-	"king_sword" : new PlayerWeapon("king sword",		0.150,0.150,0.500,		2.0,	52),
+	//name, warm, cool, speed, damage, range, frame, icon
+	"short_sword" : new PlayerWeapon("short_sword", 	0.125,0.250,0.125, 		1.0,	38,	new Point(0,0),	new Point(0,2)),
+	"baseball_bat" : new PlayerWeapon("baseball_bat", 	0.125,0.250,0.125,		1.3,	44,	new Point(1,0),	new Point(1,2)),
+	"broad_sword" : new PlayerWeapon("broad_sword", 	0.125,0.250,0.250,		2.0,	42,	new Point(2,0),	new Point(2,2)),
+	"morningstar" : new PlayerWeapon("morningstar", 	0.125,0.250,0.250,		2.0,	40,	new Point(0,1),	new Point(3,2)),
+	"bloodsickle" : new PlayerWeapon("bloodsickle", 	0.125,0.250,0.250,		0.8,	36,	new Point(1,1),	new Point(4,2)),
+	"burningblade" : new PlayerWeapon("burningblade", 	0.125,0.250,0.250,		0.85,	38,	new Point(2,1),	new Point(5,2)),
+	"whip" : new PlayerWeapon("whip",		 			0.150,0.150,0.250,		1.25,	96,	new Point(3,1),	new Point(6,2)),
+	"king_sword" : new PlayerWeapon("king_sword",		0.150,0.150,0.500,		2.0,	52,	new Point(3,0),	new Point(5,2)),
+	"twin_blades" : new PlayerWeapon("twin_blades",		0.062,0.150,0.125,		0.7,	32,	new Point(4,0),	new Point(8,2)),
+	"autodrill" : new PlayerWeapon("autodrill",			0.062,0.150,0.125,		0.7,	32,	new Point(4,1),	new Point(7,2)),
 };
 
+WeaponList.baseball_bat.combos = {};
+WeaponList.baseball_bat.attacks = {"standing" : 9, "charged" : 9, "jumpup" : 9, "ducking" : 5, "downattack" : 6, "jumping" : 9,};
+	
 WeaponList.morningstar.combos = {
 	0 : {"standing" : 1, "jumping":1},
 	1 : {"standing" : 0}
@@ -24579,14 +25149,26 @@ WeaponList.bloodsickle.combos = {
 	0 : {"standing" : 1, "jumping":1},
 	1 : {"standing" : 0}
 };
+WeaponList.twin_blades.twohanded = true;
+WeaponList.twin_blades.attacks = {"standing" : 0,"charged" : 3,"jumpup" : 10,"ducking" : 5,"downattack" : 6,"jumping" : 0,};
+WeaponList.twin_blades.combos = {
+	0 : {"standing" : 1, "jumping":1},
+	1 : {"standing" : 0}
+};
+WeaponList.autodrill.twohanded = true;
+WeaponList.autodrill.combos = {};
+WeaponList.autodrill.attacks = {"standing" : 11, "charged" : 11, "jumpup" : 11, "ducking" : 11, "downattack" : 11, "jumping" : 11};
+
 WeaponList.burningblade.onEquip = function(player){ player.perks.fireDamage += 0.05; }
 WeaponList.whip.combos = {};
-WeaponList.whip.attacks = {"standing" : 7, "charged" : 7, "jumpup" : 7, "ducking" : 7, "downattack" : 7, "jumping" : 7,};
+WeaponList.whip.attacks = {"standing" : 7, "charged" : 7, "jumpup" : 7, "ducking" : 7, "downattack" : 7, "jumping" : 7};
 WeaponList.whip.size = new Point(32,9);
 
+WeaponList.king_sword.twohanded = true;
 WeaponList.king_sword.combos = {};
 WeaponList.king_sword.attacks = {"standing" : 8, "charged" : 8, "jumpup" : 8, "ducking" : 8, "downattack" : 8, "jumping" : 8,};
 WeaponList.king_sword.size = new Point(32,32);
+
 
  /* platformer\exit.js*/ 
 
@@ -25242,6 +25824,7 @@ function Item(x,y,d, ops){
 			if( this.isWeapon ) {
 				NPC.set(this.name, 1);
 				ItemGet.create(this.name);
+				obj.trigger("weapon_get", this)
 				/*
 				var currentWeapon = _player.equip_sword;
 				obj.equip(this, obj.equip_shield);
@@ -25268,6 +25851,7 @@ function Item(x,y,d, ops){
 			if( this.name == "coin_1") { obj.addMoney(1); audio.play("coin"); }
 			if( this.name == "coin_2") { obj.addMoney(5); audio.play("coin"); }
 			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
+			if( this.name == "coin_4") { obj.addMoney(50); audio.play("coin"); }
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			if( this.name == "spell_refill") { if(this.spell.stock < this.spell.stockMax) { this.spell.stock++; this.destroy(); audio.play("pickup1"); } }
@@ -25349,10 +25933,12 @@ function Item(x,y,d, ops){
 			}
 			
 			if(this.itemid){
-				game.ga_event("item", this.name, this.itemid);
-				NPC.set(this.itemid,1)
+				game.ga_event("item", this.name);
+				NPC.set(this.itemid,1);
+				obj.trigger("unique_item_get", this);
 			}
 			//this.interactive = false;
+			obj.trigger("item_get", this);
 			this.destroy();
 		}
 	});
@@ -25375,7 +25961,7 @@ Item.prototype.setName = function(n){
 		this.stats = WeaponList[n];
 		return; 
 	}
-	if(n == "long_sword") { 
+	if(n == "baseball_bat") { 
 		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,0);
@@ -25416,7 +26002,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "whip") { 
-		this.frame.x = 5; this.frame.y = 2; 
+		this.frame.x = 6; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(3,1);
 		this.message = Item.weaponDescription;
@@ -25429,6 +26015,16 @@ Item.prototype.setName = function(n){
 		this.equipframe = new Point(3,0);
 		this.message = Item.weaponDescription;
 		this.stats = WeaponList[n];
+		return; 
+	}
+	if(n == "twin_blades") { 
+		this.frame.x = 8; this.frame.y = 2; 
+		this.isWeapon = true;
+		return; 
+	}
+	if(n == "autodrill") { 
+		this.frame.x = 7; this.frame.y = 2; 
+		this.isWeapon = true;
 		return; 
 	}
 	
@@ -25506,7 +26102,8 @@ Item.prototype.setName = function(n){
 	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
-	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; this.timeLimit = coinTime; return; }
+	if(n == "coin_4") { this.frames = [13,14,15,-14]; this.frame.y = 2;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; this.timeLimit = coinTime; return; }17
 	
 	if( this.name == "spell_refill") { this.frame.x = 0; this.frame.y = 10; }
 	
@@ -25693,7 +26290,10 @@ Item.dropMoney = function(position, money, sleep){
 	while(money > 0){
 		var coin;
 		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
-		if(money > 40){
+		if(money > 100){
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_4"} );
+			money -= 50;
+		} else if(money > 40){
 			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_3"} );
 			money -= 10;
 		} else if( money > 10 ) {
@@ -26029,85 +26629,6 @@ ItemGet.create = function(name){
 }
 self["ItemGet"] = ItemGet;
 
- /* platformer\lamp.js*/ 
-
-class Lamp extends GameObject{
-	constructor(x,y,d,o){
-		super(x,y,d,o);
-		this.position.x = x;
-		this.position.y = y;
-		this.width = 16;
-		this.height = 16;
-		this.sprite = "lamps";
-		this.zIndex = -21;
-		this.size = 180;
-		this.show = true;
-		this.color = [1.0,0.85,0.75,1.0];
-		
-		this.frame = 0;
-		this.frame_row = 0;
-		
-		o = o || {};
-		if(d instanceof Array){
-			this.size = Math.max(Math.max(d[0],d[1]) * 2, this.size);
-		}
-		this.size = o.getFloat("size", 180);
-		this.show = o.getBool("show", 180);
-		
-		if("color" in o){
-			var colorArray = o.color.split(",");
-			if(colorArray.length >= 3){
-				this.color[0] = colorArray[0] * 1;
-				this.color[1] = colorArray[1] * 1;
-				this.color[2] = colorArray[2] * 1;
-			}
-		}
-		
-		this.idleMargin = this.size * 0.5 + 32;
-	}
-	update(){
-		this.frame = (this.frame + this.delta * 9.0) % 4;
-	}
-	render(g,c){
-		if(this.show){
-			GameObject.prototype.render.apply(this,[g,c]);
-		}
-		Background.pushLight( this.position, this.size, this.color );
-	}
-}
-
-class LightArea extends GameObject {
-	constructor(x,y,d,ops){
-		super(x,y,d,ops);
-		this.position.x = x;
-		this.position.y = y;
-		this.width = d[0];
-		this.height = d[1];
-		this.color = [
-			ops.getFloat("red", 1.0),
-			ops.getFloat("green", 1.0),
-			ops.getFloat("blue", 1.0),
-			1.0
-		];
-		this.idleMargin = this.radius = ops.getFloat("radius", 16);
-		
-	}
-	update(){
-		let halfSize = new Point(this.width, this.height).scale(0.5);
-		Background.pushLightArea(
-			new Line(
-				this.position.subtract( halfSize ), 
-				this.position.add( halfSize )
-			),
-			this.radius,
-			this.color
-		);
-	}
-}
-
-self["Lamp"] = Lamp;
-self["LightArea"] = LightArea;
-
  /* platformer\lift.js*/ 
 
 Lift.prototype = new GameObject();
@@ -26201,14 +26722,19 @@ class Light extends GameObject{
 		this._tid = ops.get("trigger",null);
 		
 		let area = new Line(0,0,0,0);
-		for(let i=0; i < d.length; i++){
-			area.start.x = Math.min(area.start.x, d[i].x);
-			area.start.y = Math.min(area.start.y, d[i].y);
-			area.end.x = Math.max(area.end.x, d[i].x);
-			area.end.y = Math.max(area.end.y, d[i].y);
+		if(d.length > 2){
+			for(let i=0; i < d.length; i++){
+				area.start.x = Math.min(area.start.x, d[i].x);
+				area.start.y = Math.min(area.start.y, d[i].y);
+				area.end.x = Math.max(area.end.x, d[i].x);
+				area.end.y = Math.max(area.end.y, d[i].y);
+			}
+			this.width = area.width() * 2;
+			this.height = area.height() * 2;
+		} else {
+			this.width = d[0];
+			this.height = d[1];
 		}
-		this.width = area.width() * 2;
-		this.height = area.height() * 2;
 		
 		this._change = false;
 		this._time = 0.0;
@@ -26463,6 +26989,63 @@ LightningBolt.renderBolt = function(g,c,start,end,seed=""){
 LightningBolt.BOLT_TME = Game.DELTASECOND * 0.125;
 LightningBolt.WARNING_TME = Game.DELTASECOND * 2;
 self["LightningBolt"] = LightningBolt;
+
+ /* platformer\light_lamp.js*/ 
+
+class Lamp extends Light {
+	constructor(x,y,d,o){
+		super(x,y,d,o);
+		
+		this.sprite = "lamps";
+		this.size = o.getFloat("size", 180);
+		this.show = o.getBool("show", true);
+		
+		this.idleMargin = this.size * 0.5 + 32;
+	}
+	update(){
+		super.update();
+		this.frame = (this.frame + this.delta * 9.0) % 4;
+		
+	}
+	render(g,c){
+		if(this.show){
+			GameObject.prototype.render.apply(this,[g,c]);
+		}
+		Background.pushLight( this.position, this.size, this._color );
+	}
+}
+
+class LightArea extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = d[0];
+		this.height = d[1];
+		this.color = [
+			ops.getFloat("red", 1.0),
+			ops.getFloat("green", 1.0),
+			ops.getFloat("blue", 1.0),
+			1.0
+		];
+		this.idleMargin = this.radius = ops.getFloat("radius", 16);
+		
+	}
+	update(){
+		let halfSize = new Point(this.width, this.height).scale(0.5);
+		Background.pushLightArea(
+			new Line(
+				this.position.subtract( halfSize ), 
+				this.position.add( halfSize )
+			),
+			this.radius,
+			this.color
+		);
+	}
+}
+
+self["Lamp"] = Lamp;
+self["LightArea"] = LightArea;
 
  /* platformer\mapdebug.js*/ 
 
@@ -27174,7 +27757,7 @@ AttributeMenu = {
 		boxArea(g,c.x+224,8,112,224);
 		for(var i=0; i < this.weaponList.length; i++){
 			var weapon = this.weaponList[i];
-			g.renderSprite(weapon.sprite,new Point(c.x+244,28+i*20),1,weapon.frame);
+			g.renderSprite("items",new Point(c.x+244,28+i*20),1,weapon.icon);
 			textArea(g,weapon.name, c.x+260,24+i*20);
 		}
 		g.color = [1,1,1,1];
@@ -27295,20 +27878,23 @@ AttributeMenu = {
 		//Weapon
 		var weapon = _player.equip_sword;
 		g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(0,0));
-		g.renderSprite(weapon.sprite,new Point(c.x+padding+16,attributeY+4),20,weapon.frame);
+		g.renderSprite("items",new Point(c.x+padding+16,attributeY+4),20,weapon.icon);
 		textArea(g,weapon.name, c.x+24+padding,attributeY);
 		attributeY += 14;
 		
 		//Shield
 		var shield = _player.equip_shield;
 		g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(1,0));
-		g.renderSprite(shield.sprite,new Point(c.x+padding+16,attributeY+4),20,shield.frame);
-		textArea(g,shield.name, c.x+24+padding,attributeY);
+		if(shield){
+			g.renderSprite(shield.sprite,new Point(c.x+padding+16,attributeY+4),20,shield.frame);
+			textArea(g,shield.name, c.x+24+padding,attributeY);
+		}
 		attributeY += 14;
 		
 		//Shield slots
-		for(var i=0; i < _player.equip_shield.slots.length; i++){
-			var slotType = _player.equip_shield.slots[i];
+		//for(var i=0; i < _player.equip_shield.slots.length; i++){
+		for(var i=0; i < 3; i++){
+			//var slotType = _player.equip_shield.slots[i];
 			g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(i,1));
 			//g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
 			//g.renderSprite("shieldslots",new Point(c.x+padding+16,attributeY+4),20,ShieldSmith.SLOT_FRAME[slotType]);
@@ -27363,16 +27949,16 @@ AttributeMenu = {
 		return output;
 	},
 	"createWeaponList" : function(){
+		NPC.set("short_sword", 1);
 		out = [];
-		for(var i=0; i < this.weapons.length; i++){
-			var w = this.weapons[i];
-			if(NPC.get(w)){
-				out.push(new Item(0,0,0,{"name":w}));
+		//for(var i=0; i < this.weapons.length; i++){
+		for(var i in WeaponList){
+			if(NPC.get(i)){
+				out.push(WeaponList[i]);
 			}
 		}
 		return out;
 	},
-	"weapons" : ["short_sword", "long_sword", "broad_sword", "morningstar", "bloodsickle", "burningblade","whip","king_sword"],
 	"shields" : ["small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"]
 }
 
@@ -27467,7 +28053,7 @@ DebugeMenu = {
 		offy += 12;
 		
 		textArea(g,"Life:",c.x+32,offy);
-		Player.renderLifebar(g,c.add(new Point(80,offy-8)), _player.life, _player.lifeMax, 0);
+		mod_hud.renderLifebar(g,c.add(new Point(80,offy-8)), _player.life, _player.lifeMax, 0);
 		offy += 12;
 		
 		for(let i=0; i < Spell.NAMES.length; i++){
@@ -27880,12 +28466,12 @@ PauseMenu.prototype.hudrender = function(g,c){
 			g.color = [1.0,0.9,0.8,1.0];
 			
 			for(var i=0; i<Math.floor(Settings.sfxvolume*8); i++)
-				g.scaleFillRect(leftx+20+i*8, 116, 7, 8 );
+				g.drawRect(leftx+20+i*8, 116, 7, 8, 1 );
 			
 			textArea(g,"MUS Volume",leftx+16,136);
 			g.color = [1.0,0.9,0.8,1.0];
 			for(var i=0; i<Math.floor(Settings.musvolume*8); i++)
-				g.scaleFillRect(leftx+20+i*8, 148, 7, 8 );
+				g.drawRect(leftx+20+i*8, 148, 7, 8, 1 );
 			
 			textArea(g,"Game",leftx+16,168);
 			textArea(g,"Reset",leftx+20,180);
@@ -28424,10 +29010,11 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(profile){
-	//game.ga_event("newgame","demo");
-	
+	self["sessionId"] = generateId();
 	NPC.variables = {};
 	new Player();
+	
+	game.ga_event("newgame",version);
 	
 	//WorldLocale.loadMap(this.starting_tmx, "first");
 	
@@ -28593,7 +29180,7 @@ function ElectroLizard(x, y, d, o){
 		if(Math.random() > 0.6){
 			this.states.next = 7;
 		}
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		audio.play("kill",this.position);
@@ -28862,7 +29449,7 @@ var mod_rigidbody = {
 			this.force.x *= this.collisionReduction;
 		});
 		this.on("collideVertical", function(dir){
-			if( dir > 0 ) {
+			if( dir > 0 && this.gravity > 0) {
 				if(!this.grounded && this.force.y > 0.2){
 					this.trigger("land", this.force.y);
 				}
@@ -28991,7 +29578,7 @@ var mod_rigidbody = {
 			
 			if(this.currentlyStandingBlock){
 				this.position = this.position.add(this.currentlyStandingBlock.blockChange);
-				if(!this.currentlyStandingBlock.interactive){
+				if(!this.currentlyStandingBlock.interactive || this.currentlyStandingBlock.height <= 0){
 					this.blockDropOff();
 				} else if(this.isStuck){
 					this.blockDropOff();
@@ -29258,126 +29845,46 @@ var mod_block = {
 		this.blockPrevious = new Point(this.position.x,this.position.y);
 	}
 }
-/*
-var mod_camera = {
-	'init' : function(){
-		this.cameraLock = false;
-		this.cameraYTween = false;
-		this.camerShake = new Point();
-		this.camera_target = new Point();
-		this.camera_unlockTime = 0.0;
-		game.camera.x = this.position.x - 160;
-		game.camera.y = this.position.y - 120;
-		
-		var that = this;
-		shakeCamera = function(duration,strength){
-			if(duration instanceof Point){
-				that.camerShake = duration;
-			} else {
-				strength = strength || 4;
-				that.camerShake = new Point(duration,strength);
-			}
-		};
-		
-		this.camera_lock = function(){
-			var mapwidth = Math.floor(game.map.width / 16);
-			var map_index = (
-				( Math.floor(this.position.x / 256) - 0 ) + 
-				( Math.floor(this.position.y / 240) - 0 ) * mapwidth
-			);
+
+var mod_creep = {
+	"init" : function(){
+		this.creep_startPosition = this.position.scale(1);
+		this.creep_destroy = false;
+		this.creep_hide = function(){
+			this.interactive = this.visible = false;
+			this.deltaScale = 0;
 			
-			var map_tile = game.map.map[map_index];
+			if(this.creep_destroy){
+				this.destroy();
+			}
+		}
+		this.creep_show = function(reset){
+			this.visible = this.interactive = true;
+			this.deltaScale = 1;
 			
-			if(map_tile != undefined){
-				//If map tile is valid, change camera locks
-				var lock;
-				var h = 256;
-				var v = 240;
-				var hlimit = 1024;
-				var vlimit = 960;
-				switch( Math.abs(map_tile) % 16 ){
-					case 0: lock = new Line(0,0,h,v+vlimit); break;
-					case 1: lock = new Line(0,0,h+hlimit,v+vlimit); break;
-					case 2: lock = new Line(-hlimit,0,h,v+vlimit); break;
-					case 3: lock = new Line(-hlimit,0,h+hlimit,v+vlimit); break;
-					case 4: lock = new Line(0,0,h,v); break;
-					case 5: lock = new Line(0,0,h+hlimit,v); break;
-					case 6: lock = new Line(-hlimit,0,h,v); break;
-					case 7: lock = new Line(-hlimit,0,h+hlimit,v); break;
-					case 8: lock = new Line(0,-vlimit,h,v+vlimit); break;
-					case 9: lock = new Line(0,-vlimit,h+hlimit,v+vlimit); break;
-					case 10: lock = new Line(-hlimit,-vlimit,h,v+vlimit); break;
-					case 11: lock = new Line(-hlimit,-vlimit,h+hlimit,v+vlimit); break;
-					case 12: lock = new Line(0,-vlimit,h,v); break;
-					case 13: lock = new Line(0,-vlimit,h+hlimit,v); break;
-					case 14: lock = new Line(-hlimit,-vlimit,h,v); break;
-					case 15: lock = new Line(-hlimit,-vlimit,h+hlimit,v); break;
-					default: lock = new Line(-hlimit,-vlimit,h,v+vlimit); break;
+			if(reset){
+				this.position = this.creep_startPosition.scale(1);
+				
+				if( this.hasModule(mod_combat)){
+					this.trigger("respawn");
+					
+					this.life = this.lifeMax;
+					this.combat_isalive = true;
+					this._death_confirmed = false;
+					this._death_clock = 0.0;
 				}
-				lock = lock.transpose( 
-					Math.floor(this.position.x / 256)*256,  
-					Math.floor(this.position.y / 240)*240 
-				);
-				return lock;
-			}
-		}
-	},
-	'update' : function(){
-		game.camera.x = this.position.x - (game.resolution.x / 2);
-		var yCenter = this.position.y - (game.resolution.y / 2);
-		
-		if(this.grounded || this.states.ledge){
-			if(this.cameraYTween){
-				game.camera.y = Math.lerp(game.camera.y, yCenter, this.delta * 0.3);
-				this.camera_unlockTime -= this.delta;
-				if(Math.abs(game.camera.y-yCenter) < 2 || this.camera_unlockTime <= 0){
-					this.cameraYTween = false;
+				if( this.hasModule(mod_rigidbody)){
+					this.force.x = this.force.y = 0.0;
 				}
-			} else {
-				game.camera.y = yCenter;
-			}
-		} else {
-			this.camera_unlockTime = Game.DELTASECOND;
-			this.cameraYTween = true;
-			game.camera.y = Math.min(Math.max(
-				game.camera.y,
-				yCenter
-				), yCenter + 72
-			);
-		}
-		
-		//Set up locks
-		var lock = this.camera_lock();
-		if( lock ) { this.cameraLock = lock; }
-		
-		if(this.cameraLock){
-			game.camera.x = Math.min( Math.max( game.camera.x, this.cameraLock.start.x ), this.cameraLock.end.x - game.resolution.x );
-			game.camera.y = Math.min( Math.max( game.camera.y, this.cameraLock.start.y ), this.cameraLock.end.y - game.resolution.y );
-			if( this.cameraLock.width() < game.resolution.x ){
-				var excess = game.resolution.x - this.cameraLock.width();
-				game.camera.x = this.cameraLock.start.x - excess * 0.5;
 			}
 		}
 		
-		if(this.camerShake.x > 0){
-			game.camera.x += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
-			game.camera.y += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
-			this.camerShake.x -= game.deltaUnscaled;
-		}
-	},
-	"postrender" : function(g,c){
-		if(this.cameraLock){
-			var viewWidth = this.cameraLock.width();
-			if( viewWidth < game.resolution.x ){
-				var excess = game.resolution.x - viewWidth;
-				g.color = [0,0,0,1];
-				g.scaleFillRect(0,0,excess*0.5, game.resolution.y);
-				g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
-			}
-		}
+		this.on("new_room", function(){
+			this.creep_show(true);
+		});
 	}
 }
-*/
+
 var mod_combat = {
 	"init" : function() {
 		this.lifeMax = this.life = 100;
@@ -29396,6 +29903,7 @@ var mod_combat = {
 		this.damageFixed = 0;
 		this.damageMultiplier = 1.0;
 		this.damageContact = 0.5;
+		this.combat_bouncable = true;
 		
 		this.defencePhysical = 0;
 		this.defenceFire = 0;
@@ -29450,20 +29958,28 @@ var mod_combat = {
 		this.combat_getHitAreas = Combat.getHitAreas;
 		
 		this.on("collideObject", function(obj){
-			this.trigger("collideDamage", obj);
-		});
-		
-		this.on("collideDamage", function(obj){
-			if( this.damageContact > 0.0 && this.life > 0 ){
-				if( obj.hasModule(mod_combat) && obj.team != this.team ) {
+			if( obj.team != this.team && this.life > 0){
+				if(this.combat_bouncable && obj.hasModule(mod_rigidbody) && !obj.grounded && obj.position.y < this.corners().top){
+					if(obj.force.y > 0 ){
+						obj.trigger("combat_bounced", this);
+						this.trigger("combat_bouncedon", obj);
+					}
+				} else if( this.damageContact > 0.0 && obj.hasModule(mod_combat) ) {
 					obj.hurt( this, this.getDamage(this.damageContact) );
 					obj.combat_knockback = obj.position.subtract(this.position).normalize(5);
+					
+					this.trigger("collideDamage", obj);
+					obj.trigger("collideHurt", this);
 				}
 			}
 		});
 		
+		this.on("collideDamage", function(obj){
+			
+		});
+		
 		this.checkAttackArea = function(ops){
-			if(this.swrap instanceof SpriteWrapper){
+			if(this.swrap instanceof SpriteWrapper && this.life > 0){
 				let boxes = this.swrap.getAttackBoxes(this.frame, this);
 				for(let i=0; i < boxes.length; i++){
 					Combat.attackCheck.apply(this,[ boxes[i], ops ]);
@@ -29517,8 +30033,10 @@ var mod_combat = {
 					
 				}
 				this._death_confirmed = true;
+				return true;
 			} else {
 				this.ragdoll = false;
+				return false;
 			}
 		}
 		this.hasStatusEffect = function(){
@@ -29692,6 +30210,7 @@ var Combat = {
 		ops = Options.convert(ops);
 		
 		let blockable = ops.getBool("blockable", true);
+		let direction = ops.getBool("direction", this.flip);
 		
 		for(let i=0; i < hits.length; i++) {
 			let hit = hits[i];
@@ -29702,7 +30221,7 @@ var Combat = {
 					let enemAreas = hit.combat_getHitAreas();
 					let enemBlock = hit.combat_shieldArea();
 					
-					if(blockable && (hit.guard.omidirectional || hit.flip != this.flip) ){
+					if(blockable && (hit.guard.omidirectional || hit.flip != direction) ){
 						for(let j=0; j < enemBlock.length; j++){
 							if(enemBlock[j].overlaps(rect)){
 								Combat.block.apply(this, [hit, ops, rect]);
@@ -30010,7 +30529,7 @@ var mod_boss = {
 			
 			audio.stopAs("music");
 			
-			game.ga_event("boss", this.boss_id);
+			game.ga_event("boss_win", this.constructor.name);
 			
 			if(this.boss_shutdoors){
 				Trigger.activate("boss_door");
@@ -30158,6 +30677,7 @@ var mod_camera = {
 	"init" : function(){
 		this.camera_transition = this.position.scale(1);
 		this.camera_lookat = this.position.scale(1);
+		this.camera_lookat_orig = this.position.scale(1);
 		this.camera_lookat_lerp = 0.0;
 		this.camera_lookat_speed = 1.0;
 		this.camera_lookat_use = false;
@@ -30208,7 +30728,12 @@ var mod_camera = {
 					"lft" : Math.floor(my / 1) % 2 == 0,
 					
 					"tiley" : my,
-					"tilex" : mx
+					"tilex" : mx,
+					
+					"endbot" : false,
+					"endtop" : false,
+					"endrgt" : false,
+					"endlft" : false,
 				};
 				
 				output["cTL"] = (output.top && output.lft) && Math.floor(mx / 8) % 2 != 0;
@@ -30231,6 +30756,7 @@ var mod_camera = {
 		this.camera_lookat_lerp = Math.clamp01(this.camera_lookat_lerp + this.delta * this.camera_lookat_speed * (this.camera_lookat_use?1:-1));
 		
 		let lookat = Point.lerp(this.position, this.camera_lookat, this.camera_lookat_lerp);
+		
 		let trule = this.cameraGetMapTileData(lookat);
 		
 		if(trule == null){
@@ -30242,6 +30768,9 @@ var mod_camera = {
 				return;
 			}
 		} else {
+			if( this.cameraPreviousRule === null ) {
+				this.cameraPreviousRule = trule;
+			}
 			WorldMap.revealTile(lookat, trule.tile);
 		}
 		
@@ -30259,26 +30788,31 @@ var mod_camera = {
 		let transition = false;
 		
 		//New room?
+		let newRoom = false;
 		if(newTile && this.cameraPreviousRule){
 			let changedRoom = false;
 			if( _t.y > _s.y ){
 				//Has moved down a room
 				if( !top && !this.cameraPreviousRule.bot ){
+					newRoom = true;
 					this.trigger("enter_room", 0, 1);
 				}
 			} else if (_t.y < _s.y) {
 				//Has moved up a room
 				if( !bot && !this.cameraPreviousRule.top ){
+					newRoom = true;
 					this.trigger("enter_room", 0, -1);
 				}
 			} else if (_t.x > _s.x) {
 				//Has moved right
 				if( !lft && !this.cameraPreviousRule.rgt ){
+					newRoom = true;
 					this.trigger("enter_room", 1, 0);
 				}
 			} else if (_t.x < _s.x) {
 				//Has moved left
 				if( !rgt && !this.cameraPreviousRule.lft ){
+					newRoom = true;
 					this.trigger("enter_room", -1, 0);
 				}
 			}
@@ -30288,28 +30822,33 @@ var mod_camera = {
 		if( trule.bot && trule.rgt && trule.cBR ){
 			rgt = (m.x*0.5) + 128 - m.y > 0;
 			bot = !rgt;
-			transition = ((n.x*0.5) + 128 - n.y > 0) != rgt || transition;
+			//transition = ((n.x*0.5) + 128 - n.y > 0) != rgt || transition;
+			transition = !newRoom && (bot != this.cameraPreviousRule.endbot || rgt != this.cameraPreviousRule.endrgt );
 		}
 		if( trule.bot && trule.lft && trule.cBL ){
 			lft = (m.x*0.5) + m.y < 256;
 			bot = !lft && bot;
-			transition = ((n.x*0.5) + n.y < 256) != lft || transition;
+			//transition = ((n.x*0.5) + n.y < 256) != lft || transition;
+			transition = !newRoom && (bot != this.cameraPreviousRule.endbot || lft != this.cameraPreviousRule.endlft );
 		}
 		if( trule.top && trule.lft && trule.cTL ){
 			lft = m.x - (m.y*2) < 0;
 			top = !lft;
-			transition = (n.x - (n.y*2) < 0) != lft || transition;
+			//transition = (n.x - (n.y*2) < 0) != lft || transition;
+			transition = !newRoom && (top != this.cameraPreviousRule.endtop || lft != this.cameraPreviousRule.endlft );
 		}
 		if( trule.top && trule.rgt && trule.cTR ){
 			rgt =  m.x + (m.y*2) > 256;
 			top = !rgt && top;
-			transition = (n.x + (n.y*2) > 256) != rgt || transition;
+			//transition = (n.x + (n.y*2) > 256) != rgt || transition;
+			transition = !newRoom && (top != this.cameraPreviousRule.endtop || rgt != this.cameraPreviousRule.endrgt );
 		}
 		
 		if( (trule.cTR || trule.cTL || trule.cBR || trule.cBL ) ){
 			//Player crossed corner transition
-			if( transition && !newTile ) {
+			if( transition ){//&& newTile ) {
 				this.camera_tracking = 0.0;
+				//this.camera_vtracking = 0.0;
 				this.camera_transition = game.camera.scale(1);
 			}
 		}
@@ -30372,6 +30911,10 @@ var mod_camera = {
 		}
 		
 		//Copy current map tile rule to be used next frame
+		trule.endbot = bot;
+		trule.endtop = top;
+		trule.endlft = lft;
+		trule.endrgt = rgt;
 		this.cameraPreviousRule = trule;
 	},
 	
@@ -30422,13 +30965,21 @@ var mod_camera = {
 			}
 			
 			g.color = COLOR_BLACK;
+			game.activeArea = new Line(
+				p.x - (trule.lft ? occsize.x : 0),
+				p.y - (trule.top ? occsize.y : 0),
+				p.x + occsize.x * (trule.rgt ? 2 : 1),
+				p.y + occsize.y * (trule.bot ? 2 : 1)
+			);
+			
 			for(let y=-1; y < 2; y++) for(let x=-1; x < 2; x++){
 				if(occ[y+1][x+1]){
 					g.drawRect(
 						(p.x-c.x) + occsize.x * x,
 						(p.y-c.y) + occsize.y * y,
 						occsize.x,
-						occsize.y
+						occsize.y,
+						0
 					);
 				}
 			}
@@ -30443,12 +30994,150 @@ self["cameraLookat"] = function(position, speed){
 	if(position instanceof Point){
 		camCon.camera_lookat_speed = 1.0;
 		camCon.camera_lookat_use = true;
+		camCon.camera_lookat_orig = self._player.position.scale(1);
 		camCon.camera_lookat = position.scale(1);
 		if(speed != undefined){ camCon.camera_lookat_speed = speed; }
 	} else {
 		//release lookup
 		if(speed != undefined){ camCon.camera_lookat_speed = speed; }
 		camCon.camera_lookat_use = false;
+	}
+}
+
+ /* platformer\mod_hud.js*/ 
+
+var mod_hud = {
+	"POPUP_TIME" : 4,
+	"ITEM_LIST" : [
+		"autodrill",
+		"baseball_bat",
+	],
+	"init" : function(){
+		this.hud_moneyPos = 0.0;
+		this.hud_showItemPos = 0.0;
+		this.hud_showItemCount = 0;
+		
+		this.hud_showItemPercent = true;
+		
+		this.on("money", function(){
+			this.hud_moneyPos = mod_hud.POPUP_TIME;
+		});
+		this.on(["unique_item_get","weapon_get"], function(item){			
+			let prevCount = this.hud_showItemCount;
+			let count = 0;
+			
+			for(let i=0; i < mod_hud.ITEM_LIST.length; i++){
+				if(NPC.get(mod_hud.ITEM_LIST[i])){
+					count++;
+				}
+			}
+			
+			if(count > prevCount && this.hud_showItemPercent){
+				this.hud_showItemPos = mod_hud.POPUP_TIME;
+			}
+			this.hud_showItemCount = count;
+		});
+	},
+	"renderLifebar" : function(g,c, life, max, buffer){
+		/* Render HP */
+		let scale = 1.0;
+		life *= scale;
+		max *= scale;
+		buffer *= scale;
+		
+		g.color = [1.0,1.0,1.0,1.0];
+		g.drawRect(c.x-1,c.y-1,(max)+2,10,1);
+		g.color = [0.0,0.0,0.0,1.0];
+		g.drawRect(c.x,c.y,max,8,2);
+		g.color = [1.0,0.0,0.0,1.0];
+		g.drawRect(c.x,c.y,Math.max(life,0),8,3);
+		
+		/* Render Buffered Damage */
+		if(life > 0){
+			g.color = [0.65,0.0625,0.0,1.0];
+			g.scaleFillRect(
+				Math.max(life,0)+c.y,
+				c.y,
+				-Math.min(buffer,life),
+				8
+			);
+		}
+	},
+	"renderManabar" : function(g,c, mana, max){
+		/* Render Mana */
+		g.color = [1.0,1.0,1.0,1.0];
+		g.drawRect(c.x-1,c.y-1,max+2,4,1);
+		g.color = [0.0,0.0,0.0,1.0];
+		g.drawRect(c.x,c.y,max,2,2);
+		g.color = [0.23,0.73,0.98,1.0];
+		g.drawRect(c.x,c.y,mana,2,3);
+	},
+	"hudrender" : function(g,c){
+		/* Frame rate */
+		if(PauseMenu.useDebug) { textArea(g, "CPU: "+Math.floor(1 / game.deltaUnscaled), 32, 0); }
+		
+		/* Render HP */
+		mod_hud.renderLifebar(g,new Point(8,8),this.life, this.lifeMax, this.states.damageBuffer);
+		
+		/* Render Mana */
+		mod_hud.renderManabar(g,new Point(8,20),this.mana, this.manaMax);
+		
+		/* Render EXP */
+		let xp = Math.clamp01( (this.experience - this.nextLevelCost(this.level-1)) / (this.nextLevelCost(this.level) - this.nextLevelCost(this.level-1)) );
+		
+		g.color = [1.0,1.0,1.0,1.0];
+		g.drawRect(7,25,26,4,1);
+		g.color = [0.0,0.0,0.0,1.0];
+		g.drawRect(8,26,24,2,2);
+		g.color = [1.0,1.0,1.0,1.0];
+		g.drawRect(8,26,Math.floor(24*xp),2,3);
+		
+		let sideNotifcationOffset = 228;
+		
+		if(this.hud_moneyPos > 0){
+			this.hud_moneyPos -= this.delta;
+			let d = this.hud_moneyPos / mod_hud.POPUP_TIME;
+			let pos = Math.lerp(-128, 8, Math.clamp01(d * 4) );
+			let shake = d > 0.925 ? new Point(Math.randomRange(-1,1), Math.randomRange(-1,1) ) : new Point();
+			textArea(g,"$"+this.money, pos + shake.x, sideNotifcationOffset + shake.y );
+			sideNotifcationOffset -= 12;
+		}
+		
+		if(this.hud_showItemPos > 0){
+			this.hud_showItemPos -= this.delta;
+			let d = this.hud_showItemPos / mod_hud.POPUP_TIME;
+			let pos = Math.lerp(-128, 8, Math.clamp01(d * 4) );
+			let itemcount = this.hud_showItemCount + " / " + mod_hud.ITEM_LIST.length;
+			textArea(g, itemcount, pos, sideNotifcationOffset );
+			sideNotifcationOffset -= 12;
+			
+		}
+		//textArea(g,"#"+this.waystones,8, 216+12 );
+		
+		//Keys
+		for(var i=0; i < this.keys.length; i++) {
+			g.renderSprite("items", 
+				new Point((game.resolution.x-33)+i*4, 40),
+				this.zIndex,
+				this.keys[i].frame,
+				false 
+			);
+		}
+		
+		var item_pos = 20 + Math.max(this.lifeMax, this.manaMax);
+		//item hud
+		if(this.charm instanceof Item ){
+			this.charm.position.x = this.charm.position.y = 0;
+			this.charm.render(g,new Point(-item_pos,-15));
+			item_pos += 20;
+		}
+		if(this.spells.length > 0){
+			var spell = this.spells[this.spellCursor];
+			var spellXOff = spell.stock >= 10 ? -8 : -3;
+			spell.render(g, new Point(item_pos,15));
+			//textArea(g,""+spell.stock,item_pos+spellXOff,24);
+			item_pos += 20;
+		}
 	}
 }
 
@@ -30492,7 +31181,7 @@ function MonsterLock(x,y,d,o){
 	});
 	
 	this.on("hurt", function(obj, damage){
-		audio.play("hurt",this.position);
+		
 	});
 	
 	this.on("death", function(){
@@ -32405,7 +33094,7 @@ class ParticleSystem extends GameObject {
 			if( this.parts[i] == undefined ){
 				//Create a new particle
 				let _sprite = this.sprites[ Math.floor(Math.random() * this.sprites.length) ];
-				let _force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.start.y) );
+				let _force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.end.y) );
 				let _time = this.loop ? (i/this.count) * this.time : this.time;
 				
 				this.parts[i] = {
@@ -32676,7 +33365,7 @@ class Player extends GameObject{
 	get isAttacking(){return this.attstates.currentAttack >= 0; }
 	get currentAttack(){
 		if(this.isAttacking){
-			return this.equip_sword.stats.getAttack(this.attstates.currentAttack);
+			return this.equip_sword.getAttack(this.attstates.currentAttack);
 		}
 		return null;
 	}
@@ -32702,7 +33391,7 @@ class Player extends GameObject{
 		this.canmove = true;
 		this.showplayer = true;
 		
-		this.equip_sword = new Item(0,0,0,{"name":"short_sword","enchantChance":0});
+		this.equip_sword = WeaponList.short_sword;
 		this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 		
 		self._player = this;
@@ -32749,21 +33438,29 @@ class Player extends GameObject{
 			"spellChargeTime" : 0.0,
 			"justjumped" : 0.0,
 			"ledgePosition" : false,
+			"ledgePullup" : 0.0,
 			"canGrabLedges" : 0.0,
 			"damageBuffer" : 0,
 			"damageBufferTick" : 0.0,
 			"animationProgress" : 0.0,
 			"duckTime" : 0.0,
-			"dashfall" : false
+			"airSpinning" : false,
+			"whipSwing" : false,
+			"dashfall" : false,
+			"drilling" : false,
+			"drillingAngle" : 0.0,
+			"drillingFuel" : 2.0,
 		};
 		
 		this.attstates = {
+			"charge" : 0.0,
 			"currentAttack" : -1, // attack index
 			"queue" : null, // true if another press
 			"queueDir" : 0,
 			"time" : 0.0, //current time in attack
 			"totalTime" : 0.0, //Time for the attack
 			"wait" : 0.0, //Time after attack
+			"animation" : "", //The animation to play
 		};
 		
 		this.shieldProperties = {
@@ -32794,13 +33491,14 @@ class Player extends GameObject{
 			"turn" : Game.DELTASECOND * 0.25,
 			"charge" : Game.DELTASECOND * 0.4,
 			"duckTime" : Game.DELTASECOND * 0.25,
+			"whipLenght" : 80,
 		};
 		
 		this.on("pre_death", function(){
 			this.heal = 0;
 			game.slow(0,this.death_time);
 			
-			game.ga_event("death", game.newmapName, this.position.floor(256,240).toString());
+			game.ga_event("death");
 			
 		});
 		this.on("death", function(){
@@ -32909,11 +33607,15 @@ class Player extends GameObject{
 				
 				if(this.isDownstabbing){
 					this.trigger("downstabTarget", obj, 0);
+				} else {
+					//push player back
+					this.force.x = obj.position.x > this.position.x ? -4 : 4;
 				}
 			}
 		});
 		this.on("hurt", function(obj, damage){
 			//this.states.ledge = null;
+			game.ga_event("hurt", obj.constructor.name);
 			
 			var str = Math.min(Math.max(Math.round(damage*0.25),1),6);
 			var dir = this.position.subtract(obj.position);
@@ -32921,8 +33623,11 @@ class Player extends GameObject{
 			
 			shakeCamera(Game.DELTASECOND*0.5,str);
 			
+			this.trigger("whip_cancel");
 			this.cancelAttack();
 			this.states.ledgePosition = false;
+			this.states.drilling = false;
+			this.states.ledgePullup = 0.0;
 			
 			var effect = new EffectHurt(this.position.x, this.position.y);
 			var direction = obj.position.subtract(this.position);
@@ -32941,6 +33646,7 @@ class Player extends GameObject{
 				this.states.spellCurrentBullet = undefined;
 			}
 			if(this.stun_time > 0 ){
+				this.states.airSpinning = false;
 				this.states.spellCounter = 0.0;
 				this.stun = this.stun_time * Math.max(1 - this.perks.painImmune, 0);
 				game.slow(0,Game.DELTAFRAME30);
@@ -32963,6 +33669,19 @@ class Player extends GameObject{
 				this.doubleJumpReady = true;
 			}
 		})*/;
+		this.on("whip_point_hit", function(obj, pos){
+			if(!this.states.whipSwing && this.equip_sword === WeaponList.whip){
+				this.cancelAttack();
+				audio.play("whiplock", obj.position);
+				//this.states.whipSwing = PlayerWhipPiece.create(obj, this);
+				this.states.whipSwing = obj;
+			}
+		});
+		this.on("whip_cancel", function(){
+			if( this.states.whipSwing ){
+				this.states.whipSwing = false;
+			}
+		})
 		this.on("break_tile", function(obj, damage){
 			if(this.isDownstabbing){
 				this.trigger("downstabTarget", obj, damage);
@@ -32970,6 +33689,10 @@ class Player extends GameObject{
 			}
 		});
 		this.on("hurt_other", function(obj, damage){
+			if(damage > 1){
+				audio.play("hurt",this.position);
+			}
+			
 			if(obj.hasModule(mod_combat)){
 				//Life steal
 				var ls = Math.min(this.perks.lifeSteal, 1.0);
@@ -32978,7 +33701,21 @@ class Player extends GameObject{
 				this.lifeStealCarry -= Math.floor(this.lifeStealCarry);
 			}
 			
+			if(this.states.drilling){
+				this.force = this.position.subtract(obj.position).normalize(7);
+			}
+			
+			if(this.states.airSpinning){
+				this.force = this.position.subtract(obj.position).normalize(5);
+				this.force.y = Math.min(this.force.y, -4);
+			}
+			
+			if(this.states.whipSwing){
+				obj.combat_knockback.x = this.force.x * 2;
+			}
+			
 			this.states.airdashReady = true;
+			this.hitIgnoreList.push(obj);
 			
 			//if( this.states.airdash > 0 && this.states.airdash < this.speeds.airdashTime * this.speeds.airdashStopTime){
 			if( this.states.airdash > 0 ){
@@ -32986,7 +33723,6 @@ class Player extends GameObject{
 				this.force.x = -this.force.x;
 				this.force.y = -this.speeds.jump;
 			} else if(this.isAttacking){
-				this.force.x = 0.0;
 				
 				let dif = obj.position.subtract(this.position).normalize();
 				let rot = dif.toAngle() * -Math.rad2deg;
@@ -32996,8 +33732,6 @@ class Player extends GameObject{
 					//Lock player into combo unless target is dead or player is moving
 					this.attstates.wait = this.attstates.hitWait;
 				}
-				
-				this.hitIgnoreList.push(obj);
 				
 				let attack = this.currentAttack;
 				
@@ -33027,16 +33761,19 @@ class Player extends GameObject{
 				obj.trigger("downstabbed", this, damage);
 			} else if( !this.grounded ) {
 				//Add extra float
+				this.force.x = 0.0;
 				this.force.y -= this.speeds.jump * this.speeds.airGlide;
+			} else {
+				this.force.x = 0.0;
 			}
 			
 			//Charge kill explosion!
-			if( this.attstates.currentAttack == PlayerWeapon.CHARGED_INDEX ){
+			if( this.attstates.charge >= 1 ){
 				//A little shake
 				shakeCamera(Game.DELTASECOND*0.3,5);
 				
 				if( obj.ragdoll && obj.combat_canbecomedeathbullet ) {
-					//Send the enemy flying
+					//Send the enemy flying with Charge
 					var dir = obj.position.add(new Point(0,-2)).subtract(this.position);
 					var aim = dir.normalize().add(new Point(dir.x>0?1:-1,0));
 					game.slow(0.1, Game.DELTASECOND * 0.5);
@@ -33087,6 +33824,21 @@ class Player extends GameObject{
 			this.states.ledge = false;
 			this.gravity = 1.0;
 		});
+		this.on("combat_bounced", function(obj){
+			//obj.hurt(this, this.getDamage(0.5));
+			
+			if(this.states.airSpinning){
+				obj.hurt(this, this.getDamage());
+			} else {
+				audio.play("bounce1", this.position);
+				this.states.jump_boost = true; 
+				this.force.y = -7;
+			}
+			
+			if(this.stun <= 0 && false){
+				this.states.airSpinning = true;
+			}
+		});
 		this.on("kill", function(obj){
 			this.addXP( obj.xpDrop );
 		});
@@ -33094,13 +33846,16 @@ class Player extends GameObject{
 			game.addObject( new EffectLevelUp(0,0) );
 		});
 		this.on("enter_room", function(x,y){
-			console.log("new room");
+			for(let i=0; i < game.objects.length; i++) if(game.objects[i] instanceof GameObject) {
+				game.objects[i].trigger("new_room",x ,y);
+			}
 		});
 		
 		this._weapontimeout = 0;
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_camera );
 		this.addModule( mod_combat );
+		this.addModule( mod_hud );
 		
 		
 		this.spells = [
@@ -33158,6 +33913,7 @@ class Player extends GameObject{
 		this.rollTime = Game.DELTASECOND * 0.5;
 		this.dodgeTime = this.rollTime * 0.6;
 		this.grabLedgeHeight = 12;
+		this.combat_bouncable = 0.0;
 		
 		this.mapIcon = new MapIcon(this.position.x, this.position.y);
 		this.mapIcon.bobSpeed = 4.0;
@@ -33165,7 +33921,24 @@ class Player extends GameObject{
 		this.checkAttackArea = function(ops){
 			let boxes = [];
 			
-			if(this.currentAttack && this.currentAttack.animation == "attackwhip"){
+			if(this.states.drilling){
+				let center = new Point(
+					24 * Math.cos(this.states.drillingAngle * Math.deg2rad),
+					24 * -Math.sin(this.states.drillingAngle * Math.deg2rad)
+				);
+				let box = new Line(center.x-12, center.y-12, center.x+12, center.y+12).transpose(this.position);
+				boxes.push(box);
+				if(false && game.t_area(box)){
+					//this.states.drillingAngle = Math.random() > 0.5 ? -20 : 20;
+					this.force = box.center().subtract(this.position).normalize(-8);
+					this.states.drillingAngle = 20 * this.delta;
+				}
+			} else if(this.currentAttack && this.attstates.animation == "attackwhipup"){
+				let framey = Math.floor(9 * this.attackProgress);
+				if(framey >= 6 ) for(let i=0; i < 10; i++){
+					boxes.push(new Line(i*this.forward()*8,i*-8,i*this.forward()*8+8,i*-8-8).transpose(this.position));
+				}
+			} else if(this.currentAttack && this.attstates.animation == "attackwhip"){
 				let framey = Math.floor(9 * this.attackProgress);
 				boxes = spriteWrap.whips.getAttackBoxes(new Point(0,framey), this);
 				
@@ -33174,9 +33947,9 @@ class Player extends GameObject{
 					let path = this.currentAttack.path.scale(this.forward(),1).correct().transpose(this.position);
 					boxes.push ( path );
 				} else {
-					let range = this.equip_sword.stats.range;
+					let range = this.equip_sword.range;
 					let path = this.currentAttack.path;
-					let area = this.equip_sword.stats.size;
+					let area = this.equip_sword.size;
 					let i = Math.floor( (path.length-1) * this.attackProgress );
 					let d = ( this.attackProgress * (path.length-1) ) % 1.0;
 					let p = Point.lerp(path[i], path[i+1], d).scale(this.forward() * range, 1);
@@ -33339,11 +34112,6 @@ class Player extends GameObject{
 				} else if(this.states.spellCurrent instanceof SpellFlash){
 					//Float about
 					this.force.y -= (this.gravity+0.05) * self.UNITS_PER_METER * this.delta;
-					
-					if(spell.manaCost <= this.mana && this.states.spellCounter <= 0 && input.state('spell')){
-						this.castSpell();
-						this.states.spellCounter = this.states.spellCurrent.castTime;
-					}
 				}
 				
 				this.states.spellCounter -= this.delta;
@@ -33353,17 +34121,30 @@ class Player extends GameObject{
 					//this.castSpell();
 					this.states.spellChargeTime = 0.0;
 					
+					if(this.states.spellCurrent instanceof SpellFlash && spell.manaCost <= this.mana && input.state('spell')){
+						this.castSpell();
+						this.states.spellCounter = this.states.spellCurrent.castTime;
+					}
+					
 					if( this.states.spellCurrentBullet != undefined ){
 						this.states.spellCurrentBullet.force.x = this.forward() * 6.5;
 						this.states.spellCurrentBullet = undefined;
 					}
 				}
+			} else if( this.states.ledgePullup > 0.0) {
+				let d = 1 - (this.states.ledgePullup / 0.25);
+				this.frame = this.swrap.frame("pullup", d);
+				this.states.ledgePullup -= this.delta;
 			} else if( this.states.ledgePosition ) {
 				//Holding onto a ledge
-				this.frame = this.swrap.frame("grab", 0);
+				this.states.animationProgress += this.delta;
+				let anim = Math.clamp01( this.states.animationProgress * 3 );
+				
+				this.frame = this.swrap.frame("grab", anim);
 				this.force.x = 0;
 				this.force.y = this.gravity * -self.UNITS_PER_METER * this.delta;
 				this.states.canGrabLedges = Game.DELTASECOND * 0.125;
+				
 				
 				if(this.states.ledgePosition instanceof GameObject && this.states.ledgePosition.hasModule(mod_block)){
 					this.position = this.position.add(this.states.ledgePosition.blockChange);
@@ -33372,12 +34153,97 @@ class Player extends GameObject{
 					if(input.state("jump") == 1){
 						this.jump();
 						this.states.ledgePosition = false;
+					} else if(input.state("up") > 0){
+						let movePlayer = new Point(this.flip ? -7 : 15, this.height * -0.51);
+						let area = new Line(-this.width,-this.height,this.width,this.height).scale(0.5).transpose( this.states.ledgePosition.add(movePlayer) );
+						if( !game.t_area(area) ){
+							this.camera_lookat_lerp = 1.0;
+							this.camera_lookat = this.position.scale(1);
+							this.camera_lookat_use = false;
+							this.camera_lookat_speed = 2.0;
+							
+							
+							this.states.ledgePullup = 0.25;
+							this.position = this.states.ledgePosition.add(movePlayer);
+							if(this.flip){this.position.x += 12; }
+							this.states.ledgePosition = false;
+							this.frame = this.swrap.frame("pullup", 0);
+						}
 					} else if(input.state("down") > 0){
 						this.states.ledgePosition = false;
 					} else if(this.isStuck){
 						this.states.ledgePosition = false;
 					}
 				}
+			} else if( this.states.drilling ){
+				let toAngle = this.states.drillingAngle;
+				let direction = new Point();
+				
+				if(input.state("left") > 0){ direction.x -= 1;  }
+				if(input.state("right") > 0){ direction.x += 1;  }
+				if(input.state("up") > 0){ direction.y -= 1; }
+				if(input.state("down") > 0){ direction.y += 1; }
+				if(direction.x != 0 || direction.y != 0) { toAngle = direction.toAngle() * Math.rad2deg; }
+				
+				this.states.drillingAngle = Math.slerp(this.states.drillingAngle, toAngle, this.delta * 5);
+				this.states.drillingFuel -= this.delta;
+				
+				if(Timer.interval(game.timeScaled, 0.25, this.delta)){
+					this.hitIgnoreList = new Array();
+					
+					audio.play("engine1", this.position);
+					if(this.states.drillingFuel < 1) {
+						//Sputtering out
+						Background.pushSmoke(this.position, 8, new Point(this.forward()*-2,-3));
+						audio.play("engine_sputter1", this.position);
+					}
+				}/*
+				if(Timer.interval(game.timeScaled, 0.5, this.delta)){
+					if(this.states.drillingFuel > 1) {
+						audio.play("engine1", this.position);
+					} else {
+						audio.play("engine_sputter1", this.position);
+					}
+				}
+				*/
+				
+				this.force.x += Math.cos(this.states.drillingAngle * Math.deg2rad) * this.delta * UNITS_PER_METER;
+				this.force.y -= Math.sin(this.states.drillingAngle * Math.deg2rad) * this.delta * UNITS_PER_METER;
+				this.force = this.force.scale(1 - 0.2 * UNITS_PER_METER * this.delta);
+				//Counter act gravity
+				this.force.y -= this.delta * this.gravity * 0.8 * UNITS_PER_METER;
+				this.grounded = false;
+				//Set frame
+				this.frame = new Point(8, 4);
+				
+				if(this.states.drillingFuel <= 0){
+					this.states.drilling = false;
+					this.states.drillingFuel = -1;
+				}
+				if(input.state("fire") == 0){
+					this.states.drilling = false;
+				}
+			} else if( this.states.airSpinning ){
+				let dir = (input.state("left")>0 ? -1 : 0) + (input.state("right")>0 ? 1 : 0);
+				this.move(dir, 0.6);
+				
+				if( this.force.y > 0 && input.state("down") > 0 ){
+					this.frame = this.swrap.frame("airspin", Math.mod(game.timeScaled*4.0,1));
+					//this.force.y = 8;
+					this.force.y -= this.gravity * 0.2 * this.delta * UNITS_PER_METER;
+				} else {
+					this.frame = this.swrap.frame("airspin", Math.mod(game.timeScaled*2,1));
+					this.force.y -= this.gravity * 0.8 * this.delta * UNITS_PER_METER;
+				}
+				
+				if( Timer.interval(game.timeScaled, 0.5, game.delta) ){
+					this.hitIgnoreList = new Array();
+				}
+				
+				if(this.grounded){
+					this.states.airSpinning = false;
+				}
+				
 			} else if( this.states.airdash > 0 ){
 				//Air dashing
 				if(this.grounded){
@@ -33433,8 +34299,24 @@ class Player extends GameObject{
 				if ( attack.duck ) { this.duck(); }
 				if ( input.state('fire') == 1 ) { this.attstates.queue = true; }
 				
+				//Manage charge attacks
+				if ( this.attstates.chargetime > 0 && this.attstates.warmTime > 0 ){
+					if ( input.state('fire') >= 1 ){
+						let prevCharge = this.attstates.charge;
+						this.attstates.warmTime = Math.max(this.attstates.warmTime, this.delta * 2);
+						this.attstates.charge += this.delta / this.attstates.chargetime;
+						this.damageMultiplier = this.attstates.damage * Math.clamp(this.attstates.charge, 0.1, 1.0);
+						
+						if( prevCharge < 1 && this.attstates.charge >= 1){
+							audio.play("chargeready");
+						}
+					}
+				} else if( this.attstates.currentAttack == PlayerWeapon.CHARGED_INDEX ){
+					this.attstates.charge = 1.0;
+				}
+				
 				//Animation
-				this.frame = this.swrap.frame(attack.animation, this.attackProgress);
+				this.frame = this.swrap.frame(this.attstates.animation, this.attackProgress);
 				
 				if(input.state("dodge") == 1){
 					if(this.grounded){
@@ -33447,7 +34329,9 @@ class Player extends GameObject{
 				} else if(this.attstates.warmTime > 0){
 					//Warm
 					this.attstates.warmTime -= this.delta;
-					
+					if( this.attstates.warmTime <= 0 ) { 
+						audio.play(attack.audio, this.position); 
+					}
 				} else if(this.attstates.time < this.attstates.totalTime){
 					//Attacking
 					this.attstates.time += this.delta * (1.0 + this.perks.attackSpeed);
@@ -33458,7 +34342,7 @@ class Player extends GameObject{
 					
 				} else {
 					//End attack
-					let nextAttackIndex = this.equip_sword.stats.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
+					let nextAttackIndex = this.equip_sword.nextCombo(this.getWeaponState(), this.attstates.currentAttack);
 					
 					if(this.attstates.queue && nextAttackIndex >= 0){
 						if(this.attstates.queueDir != 0){ this.flip = this.attstates.queueDir < 0; }
@@ -33475,6 +34359,32 @@ class Player extends GameObject{
 					}
 				}
 				
+				
+			} else if( this.states.whipSwing ) {
+				//this.position = this.states.whipSwing.position.scale(1);
+				let grip = Player.WHIP_GRIP.scale(this.forward(), 1);
+				let gripPos = this.position.add(grip);
+				let dif = this.states.whipSwing.position.subtract(gripPos);
+				let dir = dif.normalize();
+				let animProg = Math.clamp01( (32 - dif.x * this.forward()) / 64);
+				
+				this.frame = this.swrap.frame("whipswing", animProg);
+				
+				let hAxis = input.state("left") > 0 ? -1 : (input.state("right") ? 1 : 0);
+				this.move(hAxis*2);
+				this.force = this.force.add(dir.scale(UNITS_PER_METER * this.delta));
+				
+				if(dif.sqrMagnitude() > this.speeds.whipLenght **2){
+					this.position = this.states.whipSwing.position.add(dir.scale(-this.speeds.whipLenght)).subtract(grip);
+				}
+				
+				if(input.state("jump") == 1){
+					this.trigger("whip_cancel");
+					this.jump();
+				} else if(input.state("attack") == 1){
+					this.trigger("whip_cancel");
+					this.attack();
+				}
 				
 			} else if( this.delta > 0) {
 				//Player is in move/idle state
@@ -33507,6 +34417,7 @@ class Player extends GameObject{
 				if(this.grabLedge && this.states.canGrabLedges <= 0 && this.states.againstwall && input.state('down') < 1 && !this.grounded && this.force.y > 0){
 					//Detect edge
 					if(this.testLedgeTiles()){
+						this.states.animationProgress = 0.0;
 						this.states.ledgePosition = this._prevPosition.scale(1/16).floor().scale(16);
 						this.position.y = 12 + this.states.ledgePosition.y;
 						/*
@@ -33673,7 +34584,7 @@ class Player extends GameObject{
 		}
 		
 		this.states.guard_down = this.states.duck;
-		this.guard.active = this.states.guard;
+		this.guard.active = this.states.guard && this.equip_shield;
 		this.guard.y = this.states.guard_down ? this.shieldProperties.duck : this.shieldProperties.stand;
 		
 		//Update animations
@@ -33698,6 +34609,10 @@ class Player extends GameObject{
 		this.states.dash -= this.delta;
 		this.states.disableWallJump -= this.delta;
 		this.states.dash_bonus -= this.delta;
+		
+		if(!this.states.drilling){
+			this.states.drillingFuel = Math.min(this.states.drillingFuel += this.delta * 2, 2);
+		}
 		
 		if(Math.abs(this.states.againstwall) <= this.delta){
 			this.states.againstwall = 0;
@@ -33898,21 +34813,53 @@ class Player extends GameObject{
 		this.attstates.queueDir = 0;
 		
 		//let weapon = this.attstates.weapon;
-		let weapon = this.equip_sword.stats;
+		let weapon = this.equip_sword;
 		if(attackIndex < 0){
 			attackIndex = weapon.firstAttack(this.getWeaponState());
 		}
 		
 		let attack = weapon.getAttack(attackIndex);
-		this.damageMultiplier = attack.damage;
+		
+		if("force" in attack){
+			this.force = this.force.add(attack.force.scale(this.forward(), 1));
+			this.grounded = this.grounded && this.force.y >= 0;
+		}
+		
+		if(attack.drill){
+			this.states.drillingAngle = this.flip ? 180 : 0;
+			this.states.drilling = true;
+			if("audio" in attack){
+				audio.play(attack.audio, this.position);
+			}
+			return;
+		}
+		
+		if(attack.airspin){
+			this.grounded = false;
+			this.states.airSpinning = true;
+			if("audio" in attack){
+				audio.play(attack.audio, this.position);
+			}
+			return;
+		}
+		
+		this.attstates.damage = this.damageMultiplier = attack.damage;
 		this.attstates.currentAttack = attackIndex;
 		this.attstates.warmTime = attack.warm * weapon.warm;
 		this.attstates.coolTime = attack.cool * weapon.warm;
 		this.attstates.totalTime = attack.time * weapon.speed;
 		this.attstates.hitWait = attack.wait;
+		this.attstates.chargetime = attack.chargetime;
+		this.attstates.charge = 0.0;
 		this.attstates.wait = 0.0;
 		this.attstates.queue = false;
 		this.attstates.time = 0.0;
+		this.attstates.audio = attack.audio;
+		
+		
+		this.attstates.animation = attack.animation || ""; 
+		this.attstates.animation = this.attstates.animation.replace("%UP",input.state("up")>0?"up":"");
+		this.attstates.animation = this.attstates.animation.replace("%DOWN",input.state("down")>0?"down":"");
 		
 		if(attack.prepause > 0){
 			game.slow(0.0, attack.prepause);
@@ -33920,17 +34867,19 @@ class Player extends GameObject{
 		}
 		
 		
+		/*
 		if("force" in attack){
 			let addForce = new Point(this.forward() * attack.force.x, attack.force.y);
 			this.force = this.force.add(addForce);
 			this.grounded = this.grounded && addForce.y >= 0;
 		}
+		*/
 		this.states.dash = 0.0;
-		audio.play(attack.audio, this.position);
 	}
 	cancelAttack(){
 		this.attstates.currentAttack = -1;
 		this.attstates.time = 0.0;
+		this.attstates.charge = 0.0;
 		this.attstates.queue = false;
 		this.hitIgnoreList = new Array();
 	}
@@ -33939,11 +34888,13 @@ class Player extends GameObject{
 		this.states.dash_direction = this.forward() * (this.states.back_dash ? -1 : 1);
 		this.states.dash = this.speeds.dashTime;
 		this.force.x = this.states.dash_direction * this.speeds.dashSpeed;
+		this.hitIgnoreList = new Array();
 		audio.play("dash");
 	}
 	dodgeAir(){
 		this.airtime = this.states.airdash = this.speeds.airdashTime;
 		this.states.airdashReady = false;
+		this.hitIgnoreList = new Array();
 	}
 	getWeaponState(){
 		var state = PlayerWeapon.STATE_STANDING;
@@ -33958,11 +34909,11 @@ class Player extends GameObject{
 			state = PlayerWeapon.STATE_DUCKING;
 		} else if(this.states.duckTime > 0 && Math.abs(this.force.x) > 0.06125) {
 			state = PlayerWeapon.STATE_JUMPUP;
-		}
+		} 
 		return state;
 	}
 	baseDamage(){
-		return Math.round(8 + this.stats.attack * this.equip_sword.stats.damage);
+		return Math.round(8 + this.stats.attack * this.equip_sword.damage);
 	}
 	currentDamage(){
 		if(this.isAttacking) {
@@ -34007,12 +34958,19 @@ class Player extends GameObject{
 			sword = sword || this.equip_sword;
 			shield = shield || this.equip_shield;
 			
+			if(sword.twohanded){
+				shield = null;
+			} else if(!shield){
+				//temp, to be replaced later
+				shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
+			}
+			
 			//Shields
 			if(this instanceof Player){
 				if( sword != null){
 					NPC.set(sword.name, 1);
 				}
-				if( shield != null) {
+				if( shield instanceof Item) {
 					if( "stats" in shield){
 						NPC.set(shield.name, 1);
 						
@@ -34055,7 +35013,7 @@ class Player extends GameObject{
 				this.perks[i] = 0.0;
 			}
 			
-			this.equip_sword.stats.onEquip(this);
+			this.equip_sword.onEquip(this);
 			
 			if(this.equip_shield != null){
 				for(var i=0; i < this.equip_shield.slots.length; i++){
@@ -34073,7 +35031,7 @@ class Player extends GameObject{
 			this.defenceIce += Math.floor(this.stats.defence * 0.6);
 			this.defenceLight += Math.floor(this.stats.defence * 0.3);
 			
-			this.damage = Math.floor(this.damage + this.stats.attack * this.equip_sword.stats.damage);
+			this.damage = Math.floor(this.damage + this.stats.attack * this.equip_sword.damage);
 			
 			if(this instanceof Player){
 				let magdelta = Math.clamp01( Math.log10( this.stats.magic ) / 2 );
@@ -34136,7 +35094,7 @@ class Player extends GameObject{
 		out.spells = new Array();
 		out.slots = new Array();
 		
-		if(this.equip_sword instanceof Item){
+		if(this.equip_sword instanceof PlayerWeapon){
 			out.weapon = this.equip_sword.name;
 		}
 		if(this.equip_shield instanceof Item){
@@ -34175,7 +35133,7 @@ class Player extends GameObject{
 		this.level = data.level;
 		
 		if(data.weapon){
-			this.equip_sword = new Item(0,0,0,{"name" : data.weapon});
+			this.equip_sword = WeaponList[data.weapon];
 		}
 		if(data.shield){
 			this.equip_shield = new Item(0,0,0,{"name" : data.shield});
@@ -34206,6 +35164,9 @@ class Player extends GameObject{
 			if( this.spellsCounters.magic_armour > 0 ){
 				this.sprite.render(g,this.position.subtract(c),this.frame.x, this.frame.y, this.flip, "enchanted");
 			}
+			if( this.isAttacking && this.attstates.charge > 0 && this.attstates.warmTime > 0){
+				EffectList.charge(g, this.position.add(new Point(this.forward()*-32,-12)).subtract(c), this.attstates.charge);
+			}
 			
 			//adjust for ledge offset
 			/*
@@ -34222,10 +35183,22 @@ class Player extends GameObject{
 				GameObject.prototype.render.apply(this,[g,c]);
 			}
 			*/
+			
+			let playerAngle = 0;
+			
+			if(this.states.drilling){
+				if(this.flip){
+					playerAngle = 180 - this.states.drillingAngle;
+				} else {
+					playerAngle = 360 - this.states.drillingAngle;
+				}
+			}
+			
 			let color = this.tint;
 			if(this.invincible > 0) { color = [0.8,0.2,0.2,(game.time%0.125)>0.06125?1:0]; }
 			g.renderSprite(this.sprite, this.position.subtract(c),this.zIndex,this.frame,this.flip, {
-				"u_color" : color
+				"u_color" : color,
+				"rotate" : playerAngle
 			});
 			
 			//When rolling, ignore flip and shader
@@ -34252,32 +35225,54 @@ class Player extends GameObject{
 	}
 	renderWeapon(g,c,ops={},eops={}){
 		try{
-			let rangeScale = this.equip_sword.stats.range / 70;
+			let rangeScale = this.equip_sword.range / 70;
 			let meshScale = 0.1;
 			
-			if(this.currentAttack && this.currentAttack.animation == "attackwhip"){
+			//Render whip attack
+			if(this.states.drilling){
+				let sposition = new Point(
+					18 * Math.cos(this.states.drillingAngle * Math.deg2rad),
+					18 * -Math.sin(this.states.drillingAngle * Math.deg2rad)
+				);
+				ops.rotate = 90 - this.states.drillingAngle;
+				g.renderSprite("drill", this.position.subtract(c).add(sposition), this.zIndex+1, new Point(Math.mod(game.timeScaled*16,5),0), this.flip, ops);
+				return;
+			} else if(this.states.whipSwing){
+				let grip = Player.WHIP_GRIP.scale(this.forward(), 1);
+				g.renderLine(this.position.add(grip).subtract(c), this.states.whipSwing.position.subtract(c), 2, COLOR_WHIP2, this.zIndex-2);
+				g.renderLine(this.position.add(grip).subtract(c), this.states.whipSwing.position.subtract(c), 1, COLOR_WHIP1, this.zIndex-1);
+			} else if(this.currentAttack && this.attstates.animation == "attackwhip"){
+				let whippos = new Point(this.forward() * 0, 0);
 				let whipframe = new Point(0, Math.clamp01(this.attackProgress) * 9).floor();
-				g.renderSprite("whips", this.position.subtract(c), this.zIndex+1, whipframe, this.flip);
+				g.renderSprite("whips", this.position.add(whippos).subtract(c), this.zIndex+1, whipframe, this.flip);
+			} else if(this.currentAttack && this.attstates.animation == "attackwhipup"){ 
+				let whippos = new Point(this.forward() * 0, 0);
+				let whipframe = new Point(0, Math.clamp01(this.attackProgress) * 9).floor();
+				let rotate = this.flip ? 45 : -45;// + (this.flip ? 90 : 0);
+				g.renderSprite("whips", this.position.add(whippos).subtract(c), this.zIndex+1, whipframe, this.flip, {"rotate" : rotate});
 			}
 			
 			let _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
 			let rotation = _t.r;
-			let sposition = _t.p;
+			let sposition = _t.p.scale(this.forward(), 1);
 			let zPlus = _t.z;
-			let effect = _t.v;
+			let spritedata = _t.sprite;
 			let shield = _t.s;
 			
-			if(this.flip){
-				sposition = new Point(sposition.x*-1,sposition.y);
-			}
-			if(this.isAttacking && this.currentAttack.animation == "attackover"){
+			if(this.isAttacking && this.attstates.animation == "attackover"){
 				rotation = Math.lerp(-80, 90, Math.clamp01( this.attackProgress * 2 ));
 			}
-			ops["rotate"] = (this.flip ? -1 : 1) * rotation;
+			let sprite = "swordtest";
+			let spriteFrame = this.equip_sword.frame.scale(1);
+			ops["rotate"] = this.forward() * rotation;
 			
+			if(spritedata){
+				if(spritedata.s != undefined){ sprite = spritedata.s; }
+				if(spritedata.x != undefined){ spriteFrame.x = spritedata.x; }
+				if(spritedata.y != undefined){ spriteFrame.y = spritedata.y; }
+			}
 			
-			
-			g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex+zPlus, this.equip_sword.equipframe, false, ops);
+			g.renderSprite(sprite, this.position.subtract(c).add(sposition), this.zIndex+zPlus, spriteFrame, this.flip, ops);
 			
 			if(this.isAttacking && this.attackProgress > 0){
 				//eops["rotate"] = effect.r;
@@ -34287,6 +35282,7 @@ class Player extends GameObject{
 				//g.renderSprite(spriteName, this.position.subtract(c), this.zIndex+2, effectFrame, this.flip, eops);
 				let attack = this.currentAttack;
 				let attackMeshName = attack.mesh;
+				let time = Math.max(Math.floor(this.attackProgress * 4) / 4, 0.06125);
 				
 				g.renderMesh(attackMeshName, this.position.subtract(c), this.zIndex+2, {
 					scale : [
@@ -34295,26 +35291,35 @@ class Player extends GameObject{
 						meshScale
 					],
 					flip : this.flip,
-					u_time : this.attackProgress,
-					u_color : this.equip_sword.stats.color1,
-					u_color2 : this.equip_sword.stats.color2
+					u_time : time,
+					u_color : this.equip_sword.color1,
+					u_color2 : this.equip_sword.color2
 				});
 			}
 		} catch (e){
 			//console.warn("Render weapon: "+e);
 		}
 	}
-	renderShield(g,c,ops){
+	renderShield(g,c,ops={}){
 		try{
 			var _t = playerSwordPosition[Math.floor(this.frame.y)][Math.floor(this.frame.x)];
 			var shield = _t.s;
 			
-			if(shield instanceof Point){
+			if(!this.equip_shield){
+				//Player has no shield, maybe render something else?
+				if( "offhand" in _t ) {
+					if( this.equip_sword === WeaponList.twin_blades){
+						let sposition = _t.offhand.p.scale(this.forward(), 1);
+						ops["rotate"] = this.forward() * _t.offhand.r;
+						g.renderSprite("swordtest", this.position.subtract(c).add(sposition), this.zIndex-1, this.equip_sword.frame, this.flip, ops);
+					}
+				}
+			} else if(shield instanceof Point){
 				var z = this.guard.active ? 1 : -1;
 				var shieldFrames = new Point(Math.abs(shield.y), this.shieldProperties.frame_row);
 				var shieldFlip = shield.y < 0 ? !this.flip : this.flip;
 				var shieldOffset = new Point(
-					(this.flip?-1:1)*shield.x, 
+					this.forward() * shield.x, 
 					Math.floor(this.guard.y+_player.guard.h*0.5)
 				);
 				g.renderSprite(
@@ -34331,60 +35336,7 @@ class Player extends GameObject{
 	}
 
 	hudrender(g,c){
-		/* Frame rate */
-		textArea(g, "CPU: "+Math.floor(1 / game.deltaUnscaled), 32, 0);
 		
-		/* Render HP */
-		Player.renderLifebar(g,new Point(8,8),this.life, this.lifeMax, this.states.damageBuffer);
-		
-		/* Render Mana */
-		Player.renderManabar(g,new Point(8,20),this.mana, this.manaMax);
-		
-		/* Render stanima */
-		var stanimaLength = Math.floor( (this.stanimaMax / this.stanimaBase) * 24 );
-		var stanimaRemain = Math.floor( (this.stanima / this.stanimaBase) * 24 );
-		
-		let xp = Math.clamp01( (this.experience - this.nextLevelCost(this.level-1)) / (this.nextLevelCost(this.level) - this.nextLevelCost(this.level-1)) );
-		
-		g.color = [1.0,1.0,1.0,1.0];
-		g.drawRect(7,25,26,4,1);
-		g.color = [0.0,0.0,0.0,1.0];
-		g.drawRect(8,26,24,2,2);
-		//g.color = this.states.stanimaLock ? [0.7,0.2,0.2,1.0] : [1.0,1.0,1.0,1.0];
-		g.color = [1.0,1.0,1.0,1.0];
-		g.drawRect(8,26,Math.floor(24*xp),2,3);
-		
-		textArea(g,"$"+this.money,8, 228 );
-		//textArea(g,"#"+this.waystones,8, 216+12 );
-		
-		if( this.stat_points > 0 ){
-			textArea(g,"Press Start",8, 32 );
-		}
-		
-		//Keys
-		for(var i=0; i < this.keys.length; i++) {
-			g.renderSprite("items", 
-				new Point((game.resolution.x-33)+i*4, 40),
-				this.zIndex,
-				this.keys[i].frame,
-				false 
-			);
-		}
-		
-		var item_pos = 20 + Math.max(this.lifeMax, this.manaMax);
-		//item hud
-		if(this.charm instanceof Item ){
-			this.charm.position.x = this.charm.position.y = 0;
-			this.charm.render(g,new Point(-item_pos,-15));
-			item_pos += 20;
-		}
-		if(this.spells.length > 0){
-			var spell = this.spells[this.spellCursor];
-			var spellXOff = spell.stock >= 10 ? -8 : -3;
-			spell.render(g, new Point(item_pos,15));
-			//textArea(g,""+spell.stock,item_pos+spellXOff,24);
-			item_pos += 20;
-		}
 		
 		//Create light
 		if(this.lightRadius){
@@ -34400,160 +35352,136 @@ class Player extends GameObject{
 		if(input.state("right")==1)this.frame.x++;
 	}
 }
-Player.renderLifebar = function(g,c, life, max, buffer){
-	/* Render HP */
-	let scale = 1.0;
-	life *= scale;
-	max *= scale;
-	buffer *= scale;
-	
-	g.color = [1.0,1.0,1.0,1.0];
-	g.drawRect(c.x-1,c.y-1,(max)+2,10,1);
-	g.color = [0.0,0.0,0.0,1.0];
-	g.drawRect(c.x,c.y,max,8,2);
-	g.color = [1.0,0.0,0.0,1.0];
-	g.drawRect(c.x,c.y,Math.max(life,0),8,3);
-	
-	/* Render Buffered Damage */
-	if(life > 0){
-		g.color = [0.65,0.0625,0.0,1.0];
-		g.scaleFillRect(
-			Math.max(life,0)+c.y,
-			c.y,
-			-Math.min(buffer,life),
-			8
-		);
-	}
-}
-Player.renderManabar = function(g,c, mana, max){
-	/* Render Mana */
-	g.color = [1.0,1.0,1.0,1.0];
-	g.drawRect(c.x-1,c.y-1,max+2,4,1);
-	g.color = [0.0,0.0,0.0,1.0];
-	g.drawRect(c.x,c.y,max,2,2);
-	g.color = [0.23,0.73,0.98,1.0];
-	g.drawRect(c.x,c.y,mana,2,3);
-}
+Player.WHIP_GRIP = new Point(-2,-16);
+COLOR_WHIP1 = [0.7,0.3,0,1.0];
+COLOR_WHIP2 = [0.23,0.1,0,1.0];
 
 var playerSwordPosition = {
-		0 : {
-			0 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
-			1 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
-			2 : {p:new Point(-17,-2),s:new Point(20,2),r:0,z:1,v:0},
-			3 : {p:new Point(-17,-3),s:new Point(20,2),r:0,z:1,v:0},
-			4 : {p:new Point(-17,-3),s:new Point(20,2),r:0,z:1,v:0},
-			5 : {p:new Point(-17,-2),s:new Point(20,2),r:0,z:1,v:0},
-			6 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
-			7 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1,v:0},
-			8 : {p:new Point(-17,-5),s:new Point(20,2),r:0,z:1,v:0},
-			9 : {p:new Point(-15,5),s:new Point(19,2),r:-5,z:1,v:0},
-			10 : {p:new Point(-14,4),s:new Point(18,2),r:-80,z:1,v:0},
-		},
-		1 : {
-			0 : {p:new Point(-9,1),s:new Point(16,5),r:-110,z:1,v:0},
-			1 : {p:new Point(-9,1),s:new Point(16,5),r:-100,z:1,v:0},
-			2 : {p:new Point(-10,2),s:new Point(17,6),r:-90,z:1,v:0},
-			3 : {p:new Point(-11,4),s:new Point(17,7),r:-100,z:1,v:0},
-			4 : {p:new Point(-12,1),s:new Point(18,8),r:-110,z:1,v:0},
-			5 : {p:new Point(-12,0),s:new Point(18,9),r:-110,z:1,v:0},
-			6 : {p:new Point(-12,3),s:new Point(18,9),r:-100,z:1,v:0},
-			7 : {p:new Point(-12,4),s:new Point(18,8),r:-90,z:1,v:0},
-			8 : {p:new Point(-12,3),s:new Point(17,7),r:-100,z:1,v:0},
-			9 : {p:new Point(-12,5),s:new Point(17,6),r:-110,z:1,v:0},
-			10 : {p:new Point(-16,0),r:114,z:1,v:0},
-		},
-		2 : {
-			6 : {p:new Point(-13,-2),s:new Point(20,6),r:-10,z:1,v:0},
-			7 : {p:new Point(-13,-3),s:new Point(20,6),r:0,z:1,v:0},
-			8 : {p:new Point(-13,-7),s:new Point(20,7),r:0,z:1,v:0},
-			9 : {p:new Point(-13,-4),s:new Point(20,7),r:0,z:1,v:0},
-		},
-		3 : {
-			0 : {p:new Point(-12,-24),r:60,z:1,v:0},
-			1 : {p:new Point(2,1),r:180,z:1,v:0},
-			2 : {p:new Point(2,2),r:180,z:1,v:0},
-			
-			3 : {p:new Point(14,1),s:new Point(-20,-2),r:100,z:1,v:0},
-			4 : {p:new Point(16,-1),s:new Point(-16,-3),r:70,z:1,v:0},
-			5 : {p:new Point(6,-1),s:new Point(-8,-3),r:0,z:-1,v:0},
-			6 : {p:new Point(-6,1),s:new Point(0,4),r:0,z:-1,v:0},
-			7 : {p:new Point(-19,4),s:new Point(8,3),r:30,z:1,v:0},
-			8 : {p:new Point(-18,-1),s:new Point(16,2),r:-10,z:1,v:0},
-		},
-		4 : {
-			0 : {p:new Point(-14,0),r:-80,z:1,v:{x:0,y:0,r:0,s:"swordeffect"}},
-			1 : {p:new Point(16,-6),r:70,z:1,v:{x:1,y:0,r:0,s:"swordeffect"}},
-			2 : {p:new Point(12,-6),r:-45,z:-1,v:{x:2,y:0,r:0,s:"swordeffect"}},
-			3 : {p:new Point(12,-6),r:-50,z:-1,v:0},
-			4 : {p:new Point(12,-6),r:-45,z:-1,v:0},
-			5 : {p:new Point(-24,2),r:-60,z:1,v:{x:0,y:1,r:0,s:"swordeffect"}},
-			6 : {p:new Point(-21,-1),r:-60,z:1,v:{x:1,y:1,r:0,s:"swordeffect"}},
-			7 : {p:new Point(-23,0),r:-10,z:1,v:{x:2,y:1,r:0,s:"swordeffect"}},
-			8 : {p:new Point(21,-4),r:90,z:-1,v:{x:0,y:4,r:0,s:"swordeffect"}},
-			9 : {p:new Point(20,-4),r:90,z:-1,v:{x:1,y:4,r:0,s:"swordeffect"}},
-			10 : {p:new Point(20,-4),r:90,z:-1,v:0}
-		},
-		5 : {
-			0 : {p:new Point(-16,1),r:-45,z:1,v:0},
-			1 : {p:new Point(-16,2),r:-90,z:1,v:0},
-			2 : {p:new Point(15,-2),r:90,z:1,v:{x:0,y:2,r:0,s:"swordeffect"}},
-			3 : {p:new Point(12,-6),r:45,z:-1,v:{x:1,y:2,r:0,s:"swordeffect"}},
-			4 : {p:new Point(6,-6),r:45,z:-1,v:{x:2,y:2,r:0,s:"swordeffect"}},
-			5 : {p:new Point(14,-2),r:50,z:-1,v:{x:3,y:2,r:0,s:"swordeffect"}},
-			6 : {p:new Point(16,4),r:80,z:1,v:0},
-			7 : {p:new Point(-4,4),r:100,z:-1,v:0},
-			8 : {p:new Point(12,-26),r:10,z:-1,v:0,v:{x:0,y:6,r:0,s:"swordeffect"}},
-			9 : {p:new Point(12,-27),r:0,z:-1,v:0,v:{x:1,y:6,r:0,s:"swordeffect"}},
-			10 : {p:new Point(12,-27),r:0,z:-1,v:0,v:{x:2,y:6,r:0,s:"swordeffect"}},
-			11 : {p:new Point(12,-27),r:0,z:-1,v:0},
-		},
-		6 : {
-			8 : {p:new Point(-8,-16),r:-45,z:-1,v:0},
-			9 : {p:new Point(4,-12),r:-45,z:-1,v:0},
-			10 : {p:new Point(8,0),r:-45,z:-1,v:0},
-			11 : {p:new Point(22,5),r:-45,z:-1,v:0},
-			12 : {p:new Point(22,4),r:-45,z:-1,v:0},
-			13 : {p:new Point(22,4),r:-45,z:-1,v:0},
-		},
-		8 : {
-			0 : {p:new Point(-15,-2),r:-10,z:1,v:0},
-			1 : {p:new Point(-14,-5),r:-45,z:1,v:0},
-			2 : {p:new Point(-15,-2),r:-140,z:1,v:0},
-			3 : {p:new Point(12,-6),r:45,z:-1,v:{x:0,y:3,r:0,s:"swordeffect"}},
-			4 : {p:new Point(-4,5),r:220,z:-1,v:{x:1,y:3,r:0,s:"swordeffect"}},
-			5 : {p:new Point(9,2),r:110,z:1,v:0},
-			6 : {p:new Point(-20,-1),r:60,z:1,v:0},
-		},
-		9 : {
-			0 : {p:new Point(-16,5),r:-80,z:1,v:0},
-			1 : {p:new Point(-20,2),r:45,z:1,v:0},
-			2 : {p:new Point(-20,2),r:90,z:1,v:0},
-			3 : {p:new Point(21,1),r:90,z:-1,v:{x:0,y:5,r:0,s:"swordeffect"}},
-			4 : {p:new Point(17,2),r:90,z:-1,v:{x:1,y:5,r:0,s:"swordeffect"}},
-			5 : {p:new Point(-20,1),r:55,z:1,v:0}
-		},
-		10 : {
-			0 : {p:new Point(-15,-3),r:-100,z:1,v:0},
-			1 : {p:new Point(-15,-3),r:-100,z:1,v:0},
-			2 : {p:new Point(-14,-3),r:-95,z:1,v:0},
-			3 : {p:new Point(-13,-3),r:-95,z:1,v:0},
-			4 : {p:new Point(-11,-3),r:-90,z:1,v:0},
-			5 : {p:new Point(-11,-3),r:-95,z:1,v:0},
-			6 : {p:new Point(-12,-3),r:-105,z:1,v:0},
-			7 : {p:new Point(-13,-3),r:-100,z:1,v:0},
-			
-			8 : {p:new Point(-13,-2),r:-50,z:1,v:0},
-			9 : {p:new Point(-12,-2),r:-45,z:1,v:0},
-			10 : {p:new Point(-12,-6),r:-40,z:1,v:0},
-		},
-		11 : {
-			0 : {p:new Point(-10,-23),r:24,z:1,v:{x:0,y:0,r:0,s:"swordeffectv"}},
-			1 : {p:new Point(2,4),r:120,z:1,v:{x:1,y:0,r:0,s:"swordeffectv"}},
-			2 : {p:new Point(4,1),r:80,z:1,v:{x:2,y:0,r:0,s:"swordeffectv"}},
-			3 : {p:new Point(4,1),r:75,z:1,v:{x:3,y:0,r:0,s:"swordeffectv"}},
-			4 : {p:new Point(4,1),r:75,z:1,v:0},
-		}
+	0 : {
+		0 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-2), r:0} },
+		1 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-2), r:0} },
+		2 : {p:new Point(-17,-2),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-3), r:0} },
+		3 : {p:new Point(-17,-3),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-3), r:0} },
+		4 : {p:new Point(-17,-3),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-3), r:0} },
+		5 : {p:new Point(-17,-2),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-2), r:0} },
+		6 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-1), r:0} },
+		7 : {p:new Point(-17,-1),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-1), r:0} },
+		
+		8 : {p:new Point(-17,-5),s:new Point(20,2),r:0,z:1, offhand:{p:new Point(16,-4), r:0} },
+		9 : {p:new Point(-15,5),s:new Point(19,2),r:-5,z:1, offhand:{p:new Point(16,4), r:15} },
+		10 : {p:new Point(-14,4),s:new Point(18,2),r:-80,z:1, offhand:{p:new Point(14,4), r:35} },
+	},
+	1 : {
+		0 : {p:new Point(-9,1),s:new Point(16,5),r:-110,z:1, offhand:{p:new Point(12,-4), r:100} },
+		1 : {p:new Point(-9,1),s:new Point(16,5),r:-100,z:1, offhand:{p:new Point(12,-5), r:100} },
+		2 : {p:new Point(-10,2),s:new Point(17,6),r:-90,z:1, offhand:{p:new Point(12,-2), r:100} },
+		3 : {p:new Point(-11,4),s:new Point(17,7),r:-100,z:1, offhand:{p:new Point(12,-4), r:110} },
+		4 : {p:new Point(-12,1),s:new Point(18,8),r:-110,z:1, offhand:{p:new Point(13,-5), r:110} },
+		5 : {p:new Point(-12,0),s:new Point(18,9),r:-110,z:1, offhand:{p:new Point(14,-5), r:120} },
+		6 : {p:new Point(-12,3),s:new Point(18,9),r:-100,z:1, offhand:{p:new Point(13,-4), r:120} },
+		7 : {p:new Point(-12,4),s:new Point(18,8),r:-90,z:1, offhand:{p:new Point(12,-4), r:110} },
+		8 : {p:new Point(-12,3),s:new Point(17,7),r:-100,z:1, offhand:{p:new Point(11,-3), r:100} },
+		9 : {p:new Point(-12,5),s:new Point(17,6),r:-110,z:1, offhand:{p:new Point(13,-3), r:100} },
+		10 : {p:new Point(-16,0),r:114,z:1, offhand:{p:new Point(16,-3), r:110} },
+	},
+	2 : {
+		6 : {p:new Point(-13,-2),s:new Point(20,6),r:-10,z:1, offhand:{p:new Point(16,-2), r:5} },
+		7 : {p:new Point(-13,-3),s:new Point(20,6),r:0,z:1, offhand:{p:new Point(16,-4), r:-10} },
+		8 : {p:new Point(-13,-7),s:new Point(20,7),r:0,z:1, offhand:{p:new Point(16,-7), r:-5} },
+		9 : {p:new Point(-13,-4),s:new Point(20,7),r:0,z:1, offhand:{p:new Point(20,-2), r:9} },
+	},
+	3 : {
+		0 : {p:new Point(-12,-24),r:60,z:1},
+		1 : {p:new Point(2,1),r:180,z:1},
+		2 : {p:new Point(2,2),r:180,z:1},
+		
+		3 : {p:new Point(14,1),s:new Point(-20,-2),r:100,z:1, offhand:{p:new Point(-12,-2), r:-35} },
+		4 : {p:new Point(16,-1),s:new Point(-16,-3),r:70,z:1, offhand:{p:new Point(-16,0), r:-45} },
+		5 : {p:new Point(6,-1),s:new Point(-8,-3),r:0,z:-1, offhand:{p:new Point(-13,3), r:-0} },
+		6 : {p:new Point(-6,1),s:new Point(0,4),r:0,z:-1, offhand:{p:new Point(8,3), r:-0}},
+		7 : {p:new Point(-19,4),s:new Point(8,3),r:30,z:1, offhand:{p:new Point(9,3), r:25} },
+		8 : {p:new Point(-18,-1),s:new Point(16,2),r:-10,z:1, offhand:{p:new Point(14,-2), r:25} },
+	},
+	4 : {
+		0 : {p:new Point(-14,0),r:-80,z:1},
+		1 : {p:new Point(16,-6),r:70,z:1},
+		2 : {p:new Point(12,-6),r:-45,z:-1},
+		3 : {p:new Point(12,-6),r:-50,z:-1},
+		4 : {p:new Point(12,-6),r:-45,z:-1},
+		5 : {p:new Point(-24,2),r:-60,z:1},
+		6 : {p:new Point(-21,-1),r:-60,z:1},
+		7 : {p:new Point(-23,0),r:-10,z:1},
+		8 : {p:new Point(21,-4),r:90,z:-1},
+		9 : {p:new Point(20,-4),r:90,z:-1},
+		10 : {p:new Point(20,-4),r:90,z:-1},
+	},
+	5 : {
+		0 : {p:new Point(-16,1),r:-45,z:1},
+		1 : {p:new Point(-16,2),r:-90,z:1},
+		2 : {p:new Point(15,-2),r:90,z:1,},
+		3 : {p:new Point(12,-6),r:45,z:-1,},
+		4 : {p:new Point(6,-6),r:45,z:-1,},
+		5 : {p:new Point(14,-2),r:50,z:-1,},
+		6 : {p:new Point(16,4),r:80,z:1},
+		7 : {p:new Point(-4,4),r:100,z:-1},
+		8 : {p:new Point(12,-26),r:10,z:-1,},
+		9 : {p:new Point(12,-27),r:0,z:-1,},
+		10 : {p:new Point(12,-27),r:0,z:-1,},
+		11 : {p:new Point(12,-27),r:0,z:-1},
+	},
+	6 : {
+		8 : {p:new Point(-8,-16),r:-45,z:-1},
+		9 : {p:new Point(4,-12),r:-45,z:-1},
+		10 : {p:new Point(8,0),r:-45,z:-1},
+		11 : {p:new Point(22,5),r:-45,z:-1},
+		12 : {p:new Point(22,4),r:-45,z:-1},
+		13 : {p:new Point(22,4),r:-45,z:-1},
+	},
+	8 : {
+		0 : {p:new Point(-15,-2),r:-10,z:1},
+		1 : {p:new Point(-14,-5),r:-45,z:1},
+		2 : {p:new Point(-15,-2),r:-140,z:1},
+		3 : {p:new Point(12,-6),r:45,z:-1,},
+		4 : {p:new Point(-4,5),r:220,z:-1,},
+		5 : {p:new Point(9,2),r:110,z:1},
+		6 : {p:new Point(-20,-1),r:60,z:1},
+	},
+	9 : {
+		0 : {p:new Point(-16,5),r:-80,z:1},
+		1 : {p:new Point(-20,2),r:45,z:1},
+		2 : {p:new Point(-20,2),r:90,z:1},
+		3 : {p:new Point(21,1),r:90,z:-1,},
+		4 : {p:new Point(17,2),r:90,z:-1,},
+		5 : {p:new Point(-20,1),r:55,z:1},
+	},
+	10 : {
+		0 : {p:new Point(-15,-3),r:-100,z:1, offhand:{p:new Point(0,-2), r:-100} },
+		1 : {p:new Point(-15,-3),r:-100,z:1, offhand:{p:new Point(2,-4), r:-100} },
+		2 : {p:new Point(-14,-3),r:-95,z:1, offhand:{p:new Point(4,-2), r:-80} },
+		3 : {p:new Point(-13,-3),r:-95,z:1, offhand:{p:new Point(14,-2), r:-20} },
+		4 : {p:new Point(-11,-3),r:-90,z:1, offhand:{p:new Point(), r:0} },
+		5 : {p:new Point(-11,-3),r:-95,z:1, offhand:{p:new Point(), r:0} },
+		6 : {p:new Point(-12,-3),r:-105,z:1, offhand:{p:new Point(), r:0} },
+		7 : {p:new Point(-13,-3),r:-100,z:1, offhand:{p:new Point(), r:0} },
+		
+		8 : {p:new Point(-13,-2),r:-50,z:1},
+		9 : {p:new Point(-12,-2),r:-45,z:1},
+	},
+	11 : {
+		0 : {p:new Point(-10,-23),r:24,z:1,},
+		1 : {p:new Point(2,4),r:120,z:1,},
+		2 : {p:new Point(4,1),r:80,z:1,},
+		3 : {p:new Point(4,1),r:75,z:1,},
+		4 : {p:new Point(4,1),r:75,z:1,},
+	},
+	13 : {
+		2 : {p:new Point(),r:0,z:1,sprite:{x:0,y:0,s:"spinning_twinblades"}},
+		3 : {p:new Point(),r:0,z:1,sprite:{x:0,y:1,s:"spinning_twinblades"}},
+		4 : {p:new Point(),r:0,z:1,sprite:{x:0,y:2,s:"spinning_twinblades"}},
+		5 : {p:new Point(),r:0,z:1,sprite:{x:0,y:3,s:"spinning_twinblades"}},
+		6 : {p:new Point(),r:0,z:1,sprite:{x:0,y:4,s:"spinning_twinblades"}},
 	}
+};
 
  /* platformer\portcullis.js*/ 
 
@@ -34920,22 +35848,24 @@ class Puddle extends GameObject{
 		}
 	}
 	floatObject(obj){
-		let top = this.corners().top;
-		let buoyancy = Math.clamp01( ( (obj.position.y + 16) - top ) / 80 );
-		let pushUp = Math.lerp(0.0, this.waterBuoyancy, buoyancy);
-		
-		if(obj.grounded){
-			obj.grounded = false;
-			obj.force.y = 0.0;
-		}
-		
-		obj.force.y -= pushUp * UNITS_PER_METER * this.delta;
-		obj.force.y = Math.clamp( obj.force.y, -10, 5 );
-		
-		if(obj instanceof Player){
-			obj.states.ledgePosition = false;
-			if(obj.delta > 0 && input.state("jump") == 1){
-				obj.jump();
+		if(obj.life > 0){
+			let top = this.corners().top;
+			let buoyancy = Math.clamp01( ( (obj.position.y + 16) - top ) / 80 );
+			let pushUp = Math.lerp(0.0, this.waterBuoyancy, buoyancy);
+			
+			if(obj.grounded){
+				obj.grounded = false;
+				obj.force.y = 0.0;
+			}
+			
+			obj.force.y -= pushUp * UNITS_PER_METER * this.delta;
+			obj.force.y = Math.clamp( obj.force.y, -10, 5 );
+			
+			if(obj instanceof Player){
+				obj.states.ledgePosition = false;
+				if(obj.delta > 0 && input.state("jump") == 1 && obj.force.y <= 0){
+					obj.jump();
+				}
 			}
 		}
 	}
@@ -35059,6 +35989,8 @@ class Lava extends Puddle{
 				//Only hurt if it has volume
 				if(obj.hasModule(mod_rigidbody) && obj.gravity > 0){
 					this.floatObject(obj);
+					obj.force.x *= 1 - 0.2 * obj.delta * UNITS_PER_METER;
+					
 				}
 				if(this._damageTick && obj.hasModule(mod_combat)){
 					
@@ -35385,50 +36317,47 @@ Lavafalls.prototype.lightrender = function(g,c){
 
  /* platformer\pusher.js*/ 
 
-Pusher.prototype = new GameObject();
-Pusher.prototype.constructor = GameObject;
-function Pusher(x,y,d,ops){
-	this.constructor();
-	this.origin.x = 0;
-	this.origin.y = 1;
-	this.position.x = x - d[0]*0.5;
-	this.position.y = y + d[1]*0.5;
-	this.width = d[0];
-	this.height = d[1];
-	this.force = new Point();
-	
-	this.active = 1;
-	
-	this.on("activate",function(obj){
-		this.active = !this.active;
-	});
-	
-	this.on("collideObject", function(obj){
-		if(this.active && Pusher.lastFrameTime < game.time){
-			if( obj.hasModule(mod_rigidbody) && obj.grounded ) {
-				obj.position.x += this.force.x * 0.5 * this.delta;
-				obj.position.y += this.force.y * 0.5 * this.delta;
-				Pusher.lastFrameTime = game.time;
+class Pusher extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		
+		this.origin.x = 0;
+		this.origin.y = 1;
+		this.position.x = x - d[0]*0.5;
+		this.position.y = y + d[1]*0.5;
+		this.width = d[0];
+		this.height = d[1];
+		this.force = new Point();
+		
+		this.active = 1;
+		
+		this.on("activate",function(obj){
+			this.active = !this.active;
+		});
+		
+		this.on("collideObject", function(obj){
+			if(this.active && Pusher.ignoreList.indexOf(obj) < 0){
+				if( obj.hasModule(mod_rigidbody) && obj.grounded ) {
+					obj.position.x += this.force.x * 0.5 * this.delta;
+					obj.position.y += this.force.y * 0.5 * this.delta;
+					Pusher.ignoreList.push(obj);
+				}
 			}
-		}
-	});
-	
-	ops = ops || {};
-	
-	if("active" in ops){
-		this.active = ops["active"] * 1;
+		});
+		
+		this.active = ops.getBool("active", true);
+		this._tid = ops.getString("trigger", "");
+		this.force.x = ops.getFloat("forcex", 0.0) * UNITS_PER_METER;
+		this.force.y = ops.getFloat("forcey", 0.0) * UNITS_PER_METER;
 	}
-	if("trigger" in ops){
-		this._tid = ops.trigger;
-	}
-	if("forcex" in ops){
-		this.force.x = ops["forcex"] * UNITS_PER_METER;
-	}
-	if("forcey" in ops){
-		this.force.y = ops["forcey"] * UNITS_PER_METER;
+	lateUpdate(){
+		Pusher.ignoreList = new Array();
+		return super.lateUpdate.apply(this, arguments);
 	}
 }
-Pusher.lastFrameTime = 0.0;
+Pusher.ignoreList = [];
+
+self["Pusher"] = Pusher;
 
  /* platformer\ragdoll.js*/ 
 
@@ -35631,7 +36560,7 @@ CHAR_ESCAPE = "\u0003";
 var text_size = 8;
 var text_height = 12;
 
-function cursorArea(g,x,y,w,h){
+function cursorArea(g,x,y,w,h,z=-98){
 	g.color = [0.0,0.0,0.0,1.0];
 	
 	g.scaleFillRect(x-1, y-1, 18, 6 );
@@ -36208,6 +37137,47 @@ ShrineEffect.prototype.hudrender = function(g,c){
 	}
 }
 
+ /* platformer\soil.js*/ 
+
+class Soil extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = d[0];
+		this.height = d[1];
+		this.visible = false;
+		
+		this.fillArea();
+		
+		this.on("struck", function(obj, area){
+			
+			if(obj instanceof Player && obj.states.drilling){
+				//Requires drill 
+				let ends = area.end.ceil(16);
+				let bounds = this.bounds();
+				for(let x = area.start.x; x <= ends.x; x++) for(let y = area.start.y; y <= ends.y; y++){
+					let _x = Math.min(x, area.end.x);
+					let _y = Math.min(y, area.end.y);
+					
+					if( bounds.overlaps(new Point(_x,_y)) ){
+						game.setTile(_x, _y, game.tileCollideLayer, 0);
+					}
+				}
+			}
+		});
+		
+	}
+	fillArea(){
+		let c = this.corners();
+		for(let x = c.left; x < c.right; x+=16) for(let y = c.top; y < c.bottom; y+=16) {
+			game.setTile(x, y, game.tileCollideLayer, 1);
+		}
+	}
+}
+
+self["Soil"] = Soil;
+
  /* platformer\spawn.js*/ 
 
 Spawn.prototype = new GameObject();
@@ -36386,6 +37356,7 @@ Spawn.prototype.create = function(enemies){
 				this.options
 				//{"difficulty":this.difficulty}
 			);
+			object.creep_destroy = true;
 			object.on("swap", function(obj){
 				that.enemies.remove(that.enemies.indexOf(this));
 				that.enemies.push(obj);
@@ -36833,32 +37804,15 @@ function SpellFlash(){
 	this.name = "Flash";
 	this.objectName = "SpellFlash";
 	this.castTime = Game.DELTASECOND * 0.3;
-	this.manaCost = 4;
+	this.manaCost = 2;
 	this.frame = new Point(1,10);
 }
 SpellFlash.prototype.use = function(player){
-	audio.play("spell");
-	game.addObject(new EffectFlash(player.position.x,player.position.y));
+	//Cast lightning
+	let spell = game.addObject(new FlashSpell(player.position.x, player.position.y, player));
+	spell.damageLight = Math.floor(2 + player.stats.magic * (0.8 + this.level * 0.2) );
+	spell.lifeSteal = 0.2 + this.level * 0.1875;
 	
-	var area = new Line(game.camera, game.camera.add(game.resolution));
-	var objs = game.overlaps(area);
-	var damage = Math.floor(14 + player.stats.magic * this.level);
-	var heal = 0;
-	for(var i=0; i < objs.length; i++){
-		var obj = objs[i];
-		if(obj.hasModule(mod_combat) && obj.combat_shootable && obj.team != player.team && area.overlaps(obj.position)){
-			if(obj.life > 0){
-				obj.invincible = 0;
-				obj.hurt(player,damage);
-				heal += Math.round(damage*0.2);
-				game.addObject(new EffectAbsorb(obj.position.x,obj.position.y));
-			}
-		}
-		obj.trigger("spellFlash", this);
-	}
-	if(player.life < player.lifeMax){
-		player.heal += heal;
-	}
 }
 SpellFlash.prototype.modifyStats = function(player, type, power){
 	
@@ -37027,6 +37981,7 @@ SpellStrength.prototype.modifyStats = function(player, type, power){
 		player.perks.thorns += this.level * (0.10 + power * 0.04);
 	}
 }
+
 
  /* platformer\spikewall.js*/ 
 
@@ -37330,14 +38285,29 @@ SpriteWrapper.TYPE_GUARDAREA = 3;
  /* platformer\start.js*/ 
 
 var version = "0.5.6";
+var sessionId = generateId();
+var debug = false;
 
 function game_start(g){
+	
+	/*
+	let go = new GameObject(0,0);
+	go.time = 0.0;
+	go.render = function(g,c){
+		this.time = (this.time + this.delta) % 28;
+		cutscenes["intro"].render(g,new Point, this.time );
+	}
+	g.addObject(go);
+	return;
+	*/
+	
 	DemoThanks.deaths = 0;
 	DemoThanks.kills = 0;
 	DemoThanks.items = 0;
 	DemoThanks.time = 0;
 	NPC.variables = {};
 	
+	g.notrack = true;
 	g.pause = false;
 	
 	g.addObject( new TitleMenu() );
@@ -37345,16 +38315,17 @@ function game_start(g){
 
 
 	setTimeout(function(){
+		
 		//return;
 		
 		new Player(0,0);		
-		//_player.lightRadius = true;
+		_player.lightRadius = true;
 		_player.downstab = true;
-		_player.doubleJump = true;
-		_player.walljump = true;
-		_player.dodgeFlash = true;
+		//_player.doubleJump = true;
+		//_player.walljump = true;
+		//_player.dodgeFlash = true;
 		//WorldLocale.loadMap("gateway.tmx");
-		WorldLocale.loadMap("mills.tmx", "test");
+		WorldLocale.loadMap("demo.tmx", "test");
 		setTimeout(function(){
 			//game.getObject(Background).preset = Background.presets.cavefire;
 			//_player.stat_points = 6;
@@ -37363,28 +38334,30 @@ function game_start(g){
 			//_player.money = 36000;
 			
 			
-			NPC.set("whip",1);
-			NPC.set("king_sword",1);
+			//NPC.set("whip",1);
+			//NPC.set("king_sword",1);
+			//NPC.set("autodrill",1);
 			
-			NPC.set("long_sword",1);
-			NPC.set("broad_sword",1);
-			NPC.set("morningstar",1);
-			NPC.set("bloodsickle",1);
-			NPC.set("burningblade",1);
+			//NPC.set("baseball_bat",1);
+			//NPC.set("broad_sword",1);
+			//NPC.set("morningstar",1);
+			//NPC.set("bloodsickle",1);
+			//NPC.set("burningblade",1);
+			//NPC.set("twin_blades",1);
 			
 			
 			
 			//NPC.set("templeCompleted", 2);
-			_player.spells.push( new SpellIce());
-			_player.spells.push( new SpellBolt());
-			_player.spells.push( new SpellFire());
-			_player.spells.push( new SpellSlimeGernade());
-			_player.spells.push( new SpellFlash());
+			//_player.spells.push( new SpellIce());
+			//_player.spells.push( new SpellBolt());
+			//_player.spells.push( new SpellFire());
+			//_player.spells.push( new SpellSlimeGernade());
+			//_player.spells.push( new SpellFlash());
 			//_player.spells.push( new SpellHeal());
 			//_player.spells.push( new SpellPurify());
-			_player.spells.push( new SpellShield());
-			_player.spells.push( new SpellStrength());
-			_player.addXP(24024);
+			//_player.spells.push( new SpellShield());
+			//_player.spells.push( new SpellStrength());
+			//_player.addXP(24024);
 			
 		}, 1000);
 	},100);
@@ -37876,10 +38849,14 @@ tilerules.rules["gateway"] = mergeLists({
 tilerules.rules["firepits"] = mergeLists({
 	271:tilerules.ignore, 272:tilerules.ignore,303:tilerules.ignore, 304:tilerules.ignore,
 	98:tilerules.ignore, 99:tilerules.ignore,
+	
 	225:tilerules.ignore, 226:tilerules.ignore, 227:tilerules.ignore, 228:tilerules.ignore, 229:tilerules.ignore, 230:tilerules.ignore,
-	257:tilerules.ignore, 291:tilerules.ignore, 293:tilerules.ignore, 321:tilerules.ignore, 323:tilerules.ignore, 359:tilerules.ceil_1to0, 360:tilerules.ceil_0to1,
-	353:tilerules.ignore, 385:tilerules.ignore, 386:tilerules.ignore, 386:tilerules.ignore, 387:tilerules.ignore, 388:tilerules.ignore,
-	389:tilerules.ignore, 390:tilerules.ignore, 417:tilerules.ignore, 418:tilerules.ignore, 419:tilerules.ignore
+	231:tilerules.ignore, 232:tilerules.ignore, 233:tilerules.ignore, 234:tilerules.ignore, 235:tilerules.ignore, 236:tilerules.ignore,
+	
+	257:tilerules.ignore, 293:tilerules.ignore, 300:tilerules.ignore, 321:tilerules.ignore, 359:tilerules.ceil_1to0, 360:tilerules.ceil_0to1,
+	363:tilerules.ignore, 364:tilerules.ignore, 365:tilerules.ignore, 366:tilerules.ignore, 
+	385:tilerules.ignore, 386:tilerules.ignore, 387:tilerules.ignore, 388:tilerules.ignore, 389:tilerules.ignore, 390:tilerules.ignore,
+	389:tilerules.ignore, 390:tilerules.ignore, 390:tilerules.ignore, 417:tilerules.ignore, 418:tilerules.ignore, 419:tilerules.ignore
 }, tilerules.rules["default"]);
 
 tilerules.rules["temple2"] = mergeLists({
@@ -37992,6 +38969,134 @@ CollapseTile.prototype.destroy = function(){
 	GameObject.prototype.destroy.apply(this);
 }
 
+class BreakableTile extends GameObject {
+	get center(){ return this.position.scale(1); }
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = d[0];
+		this.height = d[1];
+		
+		this._tid = ops.getString("trigger", "");
+		
+		this.team = 0;
+		this.broken = ops.getBool("broken", false);
+		this.fixable = ops.getBool("fixable", false);
+		this.chain = ops.getBool("chain", true);
+		this.strikeable = ops.getBool("strikeable", true);
+		this.chaintimeMax = ops.getFloat("delay", 0.15) * Game.DELTASECOND;
+		this.repairTime = ops.getFloat("delay", 31104000.0) * Game.DELTASECOND;
+		this.chainMargin = ops.getInt("chainmargin", 14);
+		this.layer = ops.getInt("layer", game.tileCollideLayer);
+		this.triggersave = ops.getString("triggersave", "");
+		this.targets = ops.getList("target", []);
+		
+		if(this.triggersave){
+			this.broken = NPC.get(this.triggersave) == 1;
+		}
+		
+		this.on("struck", function(obj, pos){
+			if(obj.team != this.team){
+				if(!this.broken && this.strikeable){
+					obj.trigger("break_tile", this);
+					this.break();
+				}
+			}
+		});
+		this.on("activate", function(){
+			if(this.broken){
+				this.fix();
+			} else {
+				this.break();
+			}
+		});
+		
+		this._tiles = new Array();
+		this._chaining = false;
+		this._chainTime = 0.0;
+		this._repair = 0.0;
+		
+		this.getTiles();
+		this.setTiles(this.broken);
+	}
+	getTiles(){
+		let c = this.corners();
+		for(let x=c.left; x < c.right; x+=16) for(let y=c.top; y < c.bottom; y+=16) {
+			this._tiles.push( game.getTile(x, y, this.layer) );
+		}
+	}
+	setTiles(remove=true){
+		let c = this.corners();
+		let i = 0;
+		for(let x=c.left; x < c.right; x+=16) for(let y=c.top; y < c.bottom; y+=16) {
+			let tile = remove ? 0 : this._tiles[i];
+			game.setTile(x, y, this.layer, tile);
+			i++;
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave, remove ? 1 : 0);
+		}
+	}
+	break(){
+		game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
+		this.broken = true;
+		this.setTiles(this.broken);
+		this._repair = 0.0;
+		
+		if(this.chain){
+			this._chaining = true;
+			this._chainTime = 0.0;
+		}
+		Trigger.activate(this.targets);
+	}
+	fix(){
+		if(this.fixable){			
+			this.broken = false;
+			this.setTiles(this.broken);
+			this._chainTime = 0.0;
+		}
+	}
+	chainNext(){
+		let c = this.corners();
+		let hits = game.overlaps(new Line(
+			c.left - this.chainMargin,
+			c.top - this.chainMargin,
+			c.right + this.chainMargin,
+			c.bottom + this.chainMargin,
+		));
+		for(let i=0; i < hits.length; i++){
+			if(hits[i] instanceof BreakableTile){
+				if(this.broken && !hits[i].broken){
+					hits[i].break();
+				} else if(!this.broken && hits[i].broken){
+					hits[i].fix();
+				}
+			}
+		}
+		this._chaining = false;
+	}
+	idle(){
+		if(this._chaining){
+			this._chainTime += game.delta;
+			if(this._chainTime >= this.chaintimeMax){
+				this.chainNext();
+			}
+		}
+		if(this.broken && this.fixable){
+			this._repair += game.delta;
+			if(this._repair >= this.repairTime){
+				this.fix();
+			}
+		}
+		return super.idle();
+	}
+	update(){}
+	render(){}
+}
+self["BreakableTile"] = BreakableTile;
+
+/*
 BreakableTile.prototype = new GameObject();
 BreakableTile.prototype.constructor = GameObject;
 function BreakableTile(x, y, d, ops){	
@@ -38288,7 +39393,7 @@ BreakableTile.prototype.update = function(){
 		this.chaintimer -= this.delta;
 	}
 }
-
+*/
 BreakableTile.unbreakable = 1023;
 
 SpeedTile.prototype = new GameObject();
@@ -38326,6 +39431,53 @@ SpeedTile.prototype.break = function(){
 	game.addObject(new EffectExplosion(this.position.x + this.width * 0.5, this.position.y + this.height * 0.5,"crash"));
 	this.destroy();
 }
+
+ /* platformer\tileswap.js*/ 
+
+class TileSwap extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = d[0];
+		this.height = d[1];
+		
+		this.visible = false;
+		
+		this.tsleft = ops.getString("left", "");
+		this.tsright = ops.getString("right", "");
+		this.tstop = ops.getString("top", "");
+		this.tsbottom = ops.getString("bottom", "");
+		this.swap = ops.getString("swap","");
+		
+		this._active = 0;
+		
+		this.on("collideObject", function(obj){
+			if(obj instanceof Player){
+				this._active = 2;
+				
+				if(this.swap){
+					game.setTileset(this.swap);
+				}
+			}
+		});
+		this.on("new_room", function(x,y){
+			if(this._active > 0){
+				let ts = "";
+				if(x < 0 && this.tsleft) { ts = this.tsleft; }
+				if(x > 0 && this.tsright) { ts = this.tsright; }
+				if(y < 0 && this.tstop) { ts = this.tstop; }
+				if(y > 0 && this.tsbottom) { ts = this.tsbottom; }
+				game.setTileset(ts);
+			}
+		});
+	}
+	update(){
+		this._active = Math.max(this._active-1, 0);
+	}
+}
+
+self["TileSwap"] = TileSwap;
 
  /* platformer\titlecard.js*/ 
 
@@ -38983,7 +40135,7 @@ function Switch(x,y,d,o){
 	this.playerover = false;
 	this.frame.x = 0;
 	this.frame.y = 0;
-	this.zIndex = -1;
+	this.zIndex = -2;
 	
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player){
@@ -39090,6 +40242,9 @@ class PressureSwitch extends GameObject{
 		this.playerover = false;
 		this.frame = new Point(0,0);
 		this.targets = new Array();
+		this.triggered = false;
+		
+		this.retrigger = ops.getBool("retrigger", true);
 		
 		this.on("collideObject", function(obj){
 			if(obj instanceof Player){
@@ -39106,8 +40261,13 @@ class PressureSwitch extends GameObject{
 	
 	press(){
 		if(!this.playerover){
-			Trigger.activate(this.targets);
 			this.playerover = true;
+			if(!this.triggered){
+				Trigger.activate(this.targets);
+			}
+			if(!this.retrigger){
+				this.triggered = true;
+			}
 		}
 	}
 	
@@ -39699,6 +40859,150 @@ Well.prototype.render = function(g,c){
 	}
 }
 Well.prototype.idle = function(){}
+
+ /* platformer\whippoint.js*/ 
+
+class WhipPoint extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "items";
+		this.frame = new Point(15, 4);
+		this.width = d[0];
+		this.height = d[1];
+		this.zIndex = -9;
+		
+		this.on("struck", function(obj, line){
+			obj.trigger("whip_point_hit", this, line.center().floor(16,16));
+		});
+	}
+	render(){}
+	postrender(g,c){
+		super.render(g,c);
+	}
+}
+self["WhipPoint"] = WhipPoint;
+
+class MetalHook extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "items";
+		this.frame = new Point(15, 4);
+		this.width = d[0];
+		this.height = d[1];
+		this.zIndex = -9;
+	}
+}
+self["MetalHook"] = MetalHook;
+
+class ElectricBox extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "items";
+		this.frame = new Point(15, 4);
+		this.width = 32;
+		this.height = 32;
+		this.zIndex = -9;
+		
+		this.targets = ops.getList("target", []);
+		
+		this.on("flashSpell", function(spell){
+			Trigger.activate(this.targets);
+		});
+	}
+	render(g,c){
+		let corners = this.corners();
+		g.drawRect(corners.left-c.x, corners.top-c.y, this.width, this.height, this.zIndex);
+	}
+}
+self["ElectricBox"] = ElectricBox;
+/*
+class PlayerWhipPiece extends GameObject{
+	get topParent(){ if(this.parent instanceof PlayerWhipPiece) { return this.parent.topParent; } return this; }
+	constructor(x,y,parent, target){
+		super(x,y);
+		this.position.x = x;
+		this.position.y = y;
+		this.widht = this.height = PlayerWhipPiece.WHIP_PIECE_LENGTH;
+		this.parent = parent;
+		this.target = target;
+		this.child = null;
+		
+		//this.addModule(mod_rigidbody);
+		this.friction = 0;
+		this.force = new Point();
+		this.elasticity = .25;
+		this.pushable = false;
+		this.zIndex = 2;
+		
+		this.stepper = 0.0;
+		
+		if(this.parent instanceof PlayerWhipPiece){
+			this.parent.child = this;
+		}
+	}
+	destroy(){
+		if(this.parent instanceof PlayerWhipPiece){
+			this.parent.destroy();
+		}
+		super.destroy();
+	}
+	idle(){}
+	update(){
+		this.stepper -= this.delta;
+		if(this.stepper <= 0){
+			this.stepper += PlayerWhipPiece.STEP;
+			this.step();
+		}
+	}
+	step(){
+		let dif = this.target.position.subtract(this.position);
+		let dir = dif.normalize();
+		
+		let gotopos = this.parent.position.add(dir.scale(PlayerWhipPiece.WHIP_PIECE_LENGTH));
+		let move = gotopos.subtract(this.position);
+		
+		move.x = Math.clamp(move.x, -PlayerWhipPiece.MAXSPEED, PlayerWhipPiece.MAXSPEED);
+		move.y = Math.clamp(move.y, -PlayerWhipPiece.MAXSPEED, PlayerWhipPiece.MAXSPEED);
+		
+		game.t_move(this, move.x, move.y);
+	}
+	render(g,c){
+		g.renderLine(
+			this.position.subtract(c),
+			this.parent.position.subtract(c),
+			2, COLOR_BLACK, this.zIndex
+		);
+		g.renderLine(
+			this.position.subtract(c),
+			this.parent.position.subtract(c),
+			1, COLOR_WHIP, this.zIndex+1
+		);
+	}
+}
+PlayerWhipPiece.create = function(parent, target){
+	let startPos = parent.position;
+	for(let i=0; i < 80 / PlayerWhipPiece.WHIP_PIECE_LENGTH; i++){
+		let d = i / 20.0;
+		let x = Math.lerp(startPos.x, target.position.x, d);
+		let y = Math.lerp(startPos.y, target.position.y, d);
+		parent = game.addObject(new PlayerWhipPiece(x, y, parent, target));
+	}
+	return parent;
+}
+PlayerWhipPiece.MAXSPEED = 8;
+PlayerWhipPiece.STEP = 1/60;
+PlayerWhipPiece.FRICTION = 1.00;
+PlayerWhipPiece.SPRING = 0.06;
+PlayerWhipPiece.TENSION = 0.8;
+PlayerWhipPiece.TRANSFER_UP = 1.0;
+PlayerWhipPiece.WHIP_PIECE_LENGTH = 6;
+*/
 
  /* platformer\wip.js*/ 
 
@@ -40850,7 +42154,7 @@ self.spriteWrap["gatekeeper"] = new SpriteWrapper({"name":"gatekeeper","sprite":
 
  /* platformer\animations\player.janim*/ 
 
-self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":31,"u":48,"v":64,"type":0,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":18,"u":41,"v":55,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}],"8":[{"x":20,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":27,"u":48,"v":64,"type":0,"rotation":0}],"10":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"11":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"12":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"13":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}]},"7":{"1":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":41,"v":64,"type":0,"rotation":0}],"7":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"9":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"10":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}]},"10":{"0":[{"x":23,"y":33,"u":53,"v":64,"type":0,"rotation":0}],"1":[{"x":23,"y":33,"u":57,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"3":[{"x":20,"y":26,"u":50,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"5":[{"x":19,"y":24,"u":46,"v":60,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":46,"v":63,"type":0,"rotation":0}],"7":[{"x":19,"y":33,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":31,"u":47,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":89,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":31,"y":51,"u":50,"v":89,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]},"12":{"0":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"1":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"2":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"3":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"4":[{"x":20,"y":25,"u":38,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":38,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":29,"u":38,"v":64,"type":0,"rotation":0}]},"13":{"0":[{"x":38,"y":52,"u":56,"v":60,"type":2,"rotation":0},{"x":16,"y":27,"u":37,"v":59,"type":0,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.4375}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":0,"y":10,"t":0.0625},{"x":1,"y":10,"t":0.6875},{"x":2,"y":10,"t":0.15625},{"x":3,"y":10,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"airdash","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"back_dash","time":1,"frames":[{"x":4,"y":10,"t":0.15625},{"x":5,"y":10,"t":0.15625},{"x":6,"y":10,"t":0.15625},{"x":7,"y":10,"t":0.21875},{"x":8,"y":10,"t":0.40625}]},{"name":"attackwhip","time":1,"frames":[{"x":6,"y":9,"t":0.15625},{"x":7,"y":9,"t":0.15625},{"x":8,"y":9,"t":0.15625},{"x":9,"y":9,"t":0.15625},{"x":10,"y":9,"t":0.15625}]},{"name":"attackover","time":1,"frames":[{"x":8,"y":6,"t":0.3125},{"x":9,"y":6,"t":0.15625},{"x":10,"y":6,"t":0.15625},{"x":11,"y":6,"t":0.15625},{"x":12,"y":6,"t":0.15625},{"x":13,"y":6,"t":0.4375}]},{"name":"hurt","time":1,"frames":[{"x":10,"y":1,"t":1}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
+self.spriteWrap["player"] = new SpriteWrapper({"name":"player","sprite":"player.png","data":{"0":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"9":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}],"10":[{"x":19,"y":34,"u":46,"v":61,"type":0,"rotation":0},{"x":43,"y":45,"u":57,"v":61,"type":3,"rotation":0}]},"1":{"0":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"1":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"2":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"3":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"4":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"5":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"6":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"7":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"8":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"9":[{"x":19,"y":29,"u":46,"v":64,"type":0,"rotation":0},{"x":43,"y":37,"u":57,"v":53,"type":3,"rotation":0}],"10":[{"x":21,"y":26,"u":45,"v":64,"type":0,"rotation":0}]},"2":{"1":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"2":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"3":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"4":[{"x":21,"y":37,"u":45,"v":63,"type":0,"rotation":0}],"6":[{"x":25,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":27,"y":28,"u":47,"v":64,"type":0,"rotation":0}],"8":[{"x":27,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}]},"3":{"0":[{"x":20,"y":25,"u":42,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"2":[{"x":22,"y":28,"u":44,"v":60,"type":0,"rotation":0},{"x":29,"y":51,"u":39,"v":74,"type":2,"rotation":0}],"3":[{"x":20,"y":29,"u":46,"v":62,"type":0,"rotation":0}],"4":[{"x":20,"y":32,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"6":[{"x":20,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"7":[{"x":19,"y":32,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":32,"u":43,"v":64,"type":0,"rotation":0}]},"4":{"0":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"3":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":31,"u":45,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":31,"u":42,"v":64,"type":0,"rotation":0}],"7":[{"x":18,"y":32,"u":39,"v":64,"type":0,"rotation":0}],"8":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"9":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}],"10":[{"x":21,"y":31,"u":41,"v":64,"type":0,"rotation":0}]},"5":{"0":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":31,"u":48,"v":64,"type":0,"rotation":0}],"3":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"4":[{"x":27,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"6":[{"x":26,"y":31,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"9":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"10":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}],"11":[{"x":24,"y":25,"u":44,"v":62,"type":0,"rotation":0}]},"6":{"0":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"1":[{"x":26,"y":18,"u":41,"v":62,"type":0,"rotation":0}],"2":[{"x":26,"y":45,"u":41,"v":82,"type":0,"rotation":0}],"3":[{"x":19,"y":3,"u":41,"v":40,"type":0,"rotation":0}],"4":[{"x":25,"y":17,"u":51,"v":49,"type":0,"rotation":0}],"7":[{"x":19,"y":23,"u":41,"v":61,"type":0,"rotation":0}],"8":[{"x":20,"y":27,"u":43,"v":64,"type":0,"rotation":0}],"9":[{"x":25,"y":27,"u":48,"v":64,"type":0,"rotation":0}],"10":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"11":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"12":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}],"13":[{"x":28,"y":34,"u":54,"v":64,"type":0,"rotation":0}]},"7":{"1":[{"x":25,"y":33,"u":48,"v":64,"type":0,"rotation":0}],"2":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"3":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"4":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"5":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"6":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}],"7":[{"x":24,"y":21,"u":46,"v":64,"type":0,"rotation":0}]},"8":{"1":[{"x":21,"y":28,"u":46,"v":64,"type":0,"rotation":0}]},"9":{"0":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"1":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"2":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"3":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":56,"y":46,"u":83,"v":54,"type":2,"rotation":0}],"4":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0},{"x":51,"y":46,"u":78,"v":54,"type":2,"rotation":0}],"5":[{"x":18,"y":36,"u":44,"v":61,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":41,"v":64,"type":0,"rotation":0}],"7":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"8":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"9":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"10":[{"x":22,"y":30,"u":44,"v":64,"type":0,"rotation":0}],"11":[{"x":19,"y":27,"u":45,"v":64,"type":0,"rotation":0}],"12":[{"x":20,"y":27,"u":46,"v":64,"type":0,"rotation":0}],"13":[{"x":20,"y":27,"u":46,"v":64,"type":0,"rotation":0}],"14":[{"x":20,"y":27,"u":46,"v":64,"type":0,"rotation":0}]},"10":{"0":[{"x":23,"y":33,"u":53,"v":64,"type":0,"rotation":0}],"1":[{"x":23,"y":33,"u":57,"v":64,"type":0,"rotation":0}],"2":[{"x":21,"y":28,"u":52,"v":64,"type":0,"rotation":0}],"3":[{"x":20,"y":26,"u":50,"v":64,"type":0,"rotation":0}],"4":[{"x":21,"y":28,"u":48,"v":64,"type":0,"rotation":0}],"5":[{"x":19,"y":24,"u":46,"v":60,"type":0,"rotation":0}],"6":[{"x":19,"y":27,"u":46,"v":63,"type":0,"rotation":0}],"7":[{"x":19,"y":33,"u":46,"v":64,"type":0,"rotation":0}],"8":[{"x":20,"y":31,"u":47,"v":64,"type":0,"rotation":0}],"10":[{"x":16,"y":29,"u":41,"v":58,"type":0,"rotation":0}],"11":[{"x":21,"y":30,"u":46,"v":59,"type":0,"rotation":0}],"12":[{"x":24,"y":30,"u":49,"v":59,"type":0,"rotation":0},{"x":45,"y":52,"u":53,"v":62,"type":2,"rotation":0}],"13":[{"x":24,"y":30,"u":49,"v":59,"type":0,"rotation":0},{"x":45,"y":52,"u":57,"v":61,"type":2,"rotation":0}],"14":[{"x":26,"y":30,"u":49,"v":59,"type":0,"rotation":0},{"x":45,"y":50,"u":60,"v":61,"type":2,"rotation":0}]},"11":{"0":[{"x":20,"y":26,"u":44,"v":64,"type":0,"rotation":0}],"1":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":22,"y":51,"u":41,"v":89,"type":2,"rotation":0}],"2":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0},{"x":31,"y":51,"u":50,"v":89,"type":2,"rotation":0}],"3":[{"x":22,"y":27,"u":44,"v":62,"type":0,"rotation":0}]},"12":{"0":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"1":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"2":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"3":[{"x":22,"y":22,"u":39,"v":55,"type":0,"rotation":0},{"x":30,"y":52,"u":38,"v":68,"type":2,"rotation":0}],"4":[{"x":20,"y":25,"u":38,"v":64,"type":0,"rotation":0}],"5":[{"x":18,"y":31,"u":38,"v":64,"type":0,"rotation":0}],"6":[{"x":18,"y":29,"u":38,"v":64,"type":0,"rotation":0}]},"13":{"0":[{"x":38,"y":52,"u":56,"v":60,"type":2,"rotation":0},{"x":16,"y":27,"u":37,"v":59,"type":0,"rotation":0}],"2":[{"x":19,"y":21,"u":39,"v":62,"type":0,"rotation":0},{"x":42,"y":31,"u":71,"v":39,"type":2,"rotation":0},{"x":-11,"y":31,"u":18,"v":39,"type":2,"rotation":0}],"3":[{"x":19,"y":21,"u":39,"v":62,"type":0,"rotation":0},{"x":39,"y":31,"u":54,"v":39,"type":2,"rotation":0},{"x":5,"y":31,"u":24,"v":39,"type":2,"rotation":0}],"4":[{"x":19,"y":21,"u":39,"v":62,"type":0,"rotation":0},{"x":42,"y":31,"u":62,"v":39,"type":2,"rotation":0},{"x":1,"y":31,"u":19,"v":39,"type":2,"rotation":0}],"5":[{"x":19,"y":21,"u":39,"v":62,"type":0,"rotation":0},{"x":42,"y":31,"u":63,"v":39,"type":2,"rotation":0},{"x":-2,"y":31,"u":19,"v":39,"type":2,"rotation":0}],"6":[{"x":19,"y":21,"u":39,"v":62,"type":0,"rotation":0},{"x":36,"y":31,"u":56,"v":39,"type":2,"rotation":0},{"x":8,"y":31,"u":27,"v":39,"type":2,"rotation":0}]}},"animation":[{"name":"run","time":0.6,"frames":[{"x":0,"y":1,"t":0.125},{"x":1,"y":1,"t":0.125},{"x":2,"y":1,"t":0.125},{"x":3,"y":1,"t":0.125},{"x":4,"y":1,"t":0.125},{"x":5,"y":1,"t":0.125},{"x":6,"y":1,"t":0.125},{"x":7,"y":1,"t":0.125},{"x":8,"y":1,"t":0.125},{"x":9,"y":1,"t":0.125}]},{"name":"idle","time":1.5,"frames":[{"x":0,"y":0,"t":0.125},{"x":1,"y":0,"t":0.25},{"x":2,"y":0,"t":0.375},{"x":3,"y":0,"t":0.125},{"x":4,"y":0,"t":0.25},{"x":5,"y":0,"t":0.375}]},{"name":"turn","time":0.6,"frames":[{"x":3,"y":3,"t":0.125},{"x":4,"y":3,"t":0.125},{"x":5,"y":3,"t":0.125},{"x":6,"y":3,"t":0.125},{"x":7,"y":3,"t":0.125},{"x":8,"y":3,"t":0.125}]},{"name":"attack6","time":0.5,"frames":[{"x":0,"y":11,"t":0.125},{"x":1,"y":11,"t":0.1875},{"x":2,"y":11,"t":0.1875},{"x":3,"y":11,"t":0.25}]},{"name":"attack5","time":0.5,"frames":[{"x":1,"y":9,"t":0.125},{"x":2,"y":9,"t":0.125},{"x":3,"y":9,"t":0.5},{"x":4,"y":9,"t":0.125},{"x":5,"y":9,"t":0.125}]},{"name":"attack0","time":0.5,"frames":[{"x":0,"y":4,"t":0.125},{"x":1,"y":4,"t":0.125},{"x":2,"y":4,"t":0.25},{"x":3,"y":4,"t":0.375}]},{"name":"attack1","time":0.5,"frames":[{"x":4,"y":4,"t":0.25},{"x":5,"y":4,"t":0.125},{"x":6,"y":4,"t":0.5}]},{"name":"attack2","time":0.5,"frames":[{"x":7,"y":4,"t":0.25},{"x":8,"y":4,"t":0.125},{"x":9,"y":4,"t":0.125},{"x":10,"y":4,"t":0.375}]},{"name":"attack3","time":0.5,"frames":[{"x":0,"y":5,"t":0.25},{"x":1,"y":5,"t":0.125},{"x":2,"y":5,"t":0.125},{"x":3,"y":5,"t":0.125},{"x":4,"y":5,"t":0.25}]},{"name":"attack4","time":0.5,"frames":[{"x":6,"y":5,"t":0.25},{"x":8,"y":5,"t":0.15625},{"x":9,"y":5,"t":0.15625},{"x":10,"y":5,"t":0.15625},{"x":11,"y":5,"t":0.15625}]},{"name":"grab","time":1,"frames":[{"x":0,"y":6,"t":0.15625},{"x":1,"y":6,"t":0.15625},{"x":2,"y":6,"t":0.15625}]},{"name":"jump2","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"duck","time":0.5,"frames":[{"x":8,"y":0,"t":0.15625},{"x":9,"y":0,"t":0.15625},{"x":10,"y":0,"t":0.3125}]},{"name":"dash","time":1,"frames":[{"x":0,"y":10,"t":0.0625},{"x":1,"y":10,"t":0.6875},{"x":2,"y":10,"t":0.15625},{"x":3,"y":10,"t":0.15625}]},{"name":"spell","time":1,"frames":[{"x":2,"y":7,"t":0.15625},{"x":3,"y":7,"t":0.3125},{"x":4,"y":7,"t":0.15625},{"x":5,"y":7,"t":0.15625},{"x":6,"y":7,"t":0.15625},{"x":7,"y":7,"t":0.15625}]},{"name":"airdash","time":0.25,"frames":[{"x":1,"y":2,"t":0.15625},{"x":2,"y":2,"t":0.15625},{"x":3,"y":2,"t":0.15625},{"x":4,"y":2,"t":0.15625}]},{"name":"back_dash","time":1,"frames":[{"x":4,"y":10,"t":0.15625},{"x":5,"y":10,"t":0.15625},{"x":6,"y":10,"t":0.15625},{"x":7,"y":10,"t":0.21875},{"x":8,"y":10,"t":0.40625}]},{"name":"attackwhip","time":1,"frames":[{"x":6,"y":9,"t":0.15625},{"x":7,"y":9,"t":0.15625},{"x":8,"y":9,"t":0.15625},{"x":9,"y":9,"t":0.15625},{"x":10,"y":9,"t":0.15625}]},{"name":"attackover","time":1,"frames":[{"x":8,"y":6,"t":0.3125},{"x":9,"y":6,"t":0.15625},{"x":10,"y":6,"t":0.15625},{"x":11,"y":6,"t":0.15625},{"x":12,"y":6,"t":0.15625},{"x":13,"y":6,"t":0.4375}]},{"name":"hurt","time":1,"frames":[{"x":10,"y":1,"t":1}]},{"name":"airspin","time":0.5,"frames":[{"x":2,"y":13,"t":0.125},{"x":3,"y":13,"t":0.125},{"x":4,"y":13,"t":0.125},{"x":5,"y":13,"t":0.125},{"x":6,"y":13,"t":0.125}]},{"name":"attackwhipup","time":0.5,"frames":[{"x":6,"y":9,"t":0.15625},{"x":11,"y":9,"t":0.15625},{"x":12,"y":9,"t":0.15625},{"x":13,"y":9,"t":0.15625},{"x":14,"y":9,"t":0.15625}]},{"name":"whipswing","time":1,"frames":[{"x":10,"y":10,"t":0.15625},{"x":11,"y":10,"t":0.15625},{"x":12,"y":10,"t":0.15625},{"x":13,"y":10,"t":0.15625},{"x":14,"y":10,"t":0.15625}]},{"name":"pullup","time":1,"frames":[{"x":3,"y":6,"t":0.15625},{"x":4,"y":6,"t":0.15625}]}],"slicex":64,"slicey":64,"offsetx":"32","offsety":"49"});
 
 
 
@@ -40917,6 +42221,12 @@ self.spriteWrap["thunderlizard"] = new SpriteWrapper({"name":"thunderlizard","sp
  /* platformer\animations\whips.janim*/ 
 
 self.spriteWrap["whips"] = new SpriteWrapper({"name":"whips","sprite":"whips.png","data":{"1":{"0":[]},"4":{"0":[{"x":39,"y":6,"u":75,"v":14,"type":2,"rotation":0}]},"5":{"0":[{"x":89,"y":5,"u":100,"v":25,"type":2,"rotation":0}]},"6":{"0":[{"x":114,"y":4,"u":122,"v":28,"type":2,"rotation":0}]},"7":{"0":[{"x":76,"y":20,"u":153,"v":32,"type":2,"rotation":0}]},"8":{"0":[{"x":69,"y":24,"u":158,"v":32,"type":2,"rotation":0}]},"9":{"0":[{"x":66,"y":24,"u":159,"v":32,"type":2,"rotation":0}]}},"animation":[{"name":"whip","time":1,"frames":[{"x":0,"y":0,"t":0.125},{"x":0,"y":1,"t":0.125},{"x":0,"y":2,"t":0.125},{"x":0,"y":3,"t":0.125},{"x":0,"y":4,"t":0.125},{"x":0,"y":5,"t":0.125},{"x":0,"y":6,"t":0.125},{"x":0,"y":7,"t":0.125},{"x":0,"y":8,"t":0.125},{"x":0,"y":9,"t":0.125}]}],"slicex":160,"slicey":48,"offsetx":"46","offsety":"32"});
+
+
+
+ /* platformer\cutscenes\intro.jscene*/ 
+
+self.cutscenes["intro"] = new CutscenePlayer({"framerate":24,"duration":28,"layers":[{"name":"somename","keyframes":[]},{"name":"new_anim","keyframes":[{"time":0,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":4},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":12,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":4},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":13.75,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":4},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":14.25,"position":{"x":194,"y":72},"sprite":"bullets","frame":{"x":3,"y":2},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":15,"position":{"x":170,"y":45},"sprite":"bullets","frame":{"x":3,"y":2},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":16,"position":{"x":149,"y":6},"sprite":"bullets","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":5,"y":5},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":16.25,"position":{"x":178,"y":67},"sprite":"bullets","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":50,"y":50},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":17,"position":{"x":178,"y":67},"sprite":"bullets","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":50,"y":50},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":17.75,"position":{"x":178,"y":67},"sprite":"bullets","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":50,"y":50},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":28,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":4},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}}]},{"name":"new_anim","keyframes":[{"time":0.015625,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":0.390625,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":2.265625,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":2.96875,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":5.25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":5.75,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":6.421875,"position":{"x":123,"y":177},"sprite":"cutscene_intro","frame":{"x":1,"y":2},"rotation":-90,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":7.109375,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":2},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":8,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":9.5,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":10.5,"position":{"x":80,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":12,"position":{"x":80,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":17.75,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":5},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":20.75,"position":{"x":260,"y":121},"sprite":"cutscene_intro","frame":{"x":0,"y":5},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":23.5,"position":{"x":230,"y":151},"sprite":"cutscene_intro","frame":{"x":0,"y":7},"rotation":0,"scale":{"x":2,"y":2},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":25,"position":{"x":230,"y":151},"sprite":"cutscene_intro","frame":{"x":0,"y":7},"rotation":0,"scale":{"x":2,"y":2},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":25.25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":7},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":26.25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":7},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":26.25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":7},"rotation":0,"scale":{"x":1,"y":1},"visible":false,"color":{"r":1,"g":1,"b":1,"a":1}}]},{"name":"new_anim","keyframes":[{"time":0.015625,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":0.390625,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":2.265625,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":2.96875,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":0},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":3.171875,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":1},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":3.640625,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":1},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":4.75,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":1},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":5.25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":1},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":0,"g":0,"b":0,"a":1}},{"time":5.75,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":2},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":8,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":9.5,"position":{"x":355,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":10.5,"position":{"x":223,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":12,"position":{"x":223,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":3},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":13.75,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":4},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":17.5,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":5},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":17.75,"position":{"x":200,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":5},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":20.75,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":6},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":23.5,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":7},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":7},"rotation":0,"scale":{"x":1,"y":1},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":25.25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":1,"y":7},"rotation":0,"scale":{"x":0.66,"y":0.66},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":26.25,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":8},"rotation":0,"scale":{"x":0.66,"y":0.66},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}},{"time":28,"position":{"x":213,"y":120},"sprite":"cutscene_intro","frame":{"x":0,"y":8},"rotation":0,"scale":{"x":0.66,"y":0.66},"visible":true,"color":{"r":1,"g":1,"b":1,"a":1}}]}]});
 
 
 

@@ -57,6 +57,7 @@ class CutscenePlayer {
 		//Draw black boarder
 		let w = Math.ceil ( (game.resolution.x - 256) * 0.5 );
 		g.color = [0,0,0,1];
+		g.drawRect(0,0,game.resolution.x,game.resolution.y,this.zIndex-10);
 		g.drawRect(0,0,game.resolution.x,48,this.zIndex+10);
 		g.drawRect(0,192,game.resolution.x,48,this.zIndex+10);
 		g.drawRect(0,48,w,144,this.zIndex+10);

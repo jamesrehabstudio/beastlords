@@ -21,7 +21,7 @@ class Skeleton extends GameObject {
 		this.speed = 4.0;
 		
 		this.on("hurt", function(obj){
-			audio.play("hurt",this.position);
+			
 			
 			this._escape = Skeleton.TIME_ESCAPE;
 			this._cooldown = 0.0;

@@ -2,6 +2,7 @@ var mod_camera = {
 	"init" : function(){
 		this.camera_transition = this.position.scale(1);
 		this.camera_lookat = this.position.scale(1);
+		this.camera_lookat_orig = this.position.scale(1);
 		this.camera_lookat_lerp = 0.0;
 		this.camera_lookat_speed = 1.0;
 		this.camera_lookat_use = false;
@@ -52,7 +53,12 @@ var mod_camera = {
 					"lft" : Math.floor(my / 1) % 2 == 0,
 					
 					"tiley" : my,
-					"tilex" : mx
+					"tilex" : mx,
+					
+					"endbot" : false,
+					"endtop" : false,
+					"endrgt" : false,
+					"endlft" : false,
 				};
 				
 				output["cTL"] = (output.top && output.lft) && Math.floor(mx / 8) % 2 != 0;
@@ -75,6 +81,7 @@ var mod_camera = {
 		this.camera_lookat_lerp = Math.clamp01(this.camera_lookat_lerp + this.delta * this.camera_lookat_speed * (this.camera_lookat_use?1:-1));
 		
 		let lookat = Point.lerp(this.position, this.camera_lookat, this.camera_lookat_lerp);
+		
 		let trule = this.cameraGetMapTileData(lookat);
 		
 		if(trule == null){
@@ -86,6 +93,9 @@ var mod_camera = {
 				return;
 			}
 		} else {
+			if( this.cameraPreviousRule === null ) {
+				this.cameraPreviousRule = trule;
+			}
 			WorldMap.revealTile(lookat, trule.tile);
 		}
 		
@@ -103,26 +113,31 @@ var mod_camera = {
 		let transition = false;
 		
 		//New room?
+		let newRoom = false;
 		if(newTile && this.cameraPreviousRule){
 			let changedRoom = false;
 			if( _t.y > _s.y ){
 				//Has moved down a room
 				if( !top && !this.cameraPreviousRule.bot ){
+					newRoom = true;
 					this.trigger("enter_room", 0, 1);
 				}
 			} else if (_t.y < _s.y) {
 				//Has moved up a room
 				if( !bot && !this.cameraPreviousRule.top ){
+					newRoom = true;
 					this.trigger("enter_room", 0, -1);
 				}
 			} else if (_t.x > _s.x) {
 				//Has moved right
 				if( !lft && !this.cameraPreviousRule.rgt ){
+					newRoom = true;
 					this.trigger("enter_room", 1, 0);
 				}
 			} else if (_t.x < _s.x) {
 				//Has moved left
 				if( !rgt && !this.cameraPreviousRule.lft ){
+					newRoom = true;
 					this.trigger("enter_room", -1, 0);
 				}
 			}
@@ -132,28 +147,33 @@ var mod_camera = {
 		if( trule.bot && trule.rgt && trule.cBR ){
 			rgt = (m.x*0.5) + 128 - m.y > 0;
 			bot = !rgt;
-			transition = ((n.x*0.5) + 128 - n.y > 0) != rgt || transition;
+			//transition = ((n.x*0.5) + 128 - n.y > 0) != rgt || transition;
+			transition = !newRoom && (bot != this.cameraPreviousRule.endbot || rgt != this.cameraPreviousRule.endrgt );
 		}
 		if( trule.bot && trule.lft && trule.cBL ){
 			lft = (m.x*0.5) + m.y < 256;
 			bot = !lft && bot;
-			transition = ((n.x*0.5) + n.y < 256) != lft || transition;
+			//transition = ((n.x*0.5) + n.y < 256) != lft || transition;
+			transition = !newRoom && (bot != this.cameraPreviousRule.endbot || lft != this.cameraPreviousRule.endlft );
 		}
 		if( trule.top && trule.lft && trule.cTL ){
 			lft = m.x - (m.y*2) < 0;
 			top = !lft;
-			transition = (n.x - (n.y*2) < 0) != lft || transition;
+			//transition = (n.x - (n.y*2) < 0) != lft || transition;
+			transition = !newRoom && (top != this.cameraPreviousRule.endtop || lft != this.cameraPreviousRule.endlft );
 		}
 		if( trule.top && trule.rgt && trule.cTR ){
 			rgt =  m.x + (m.y*2) > 256;
 			top = !rgt && top;
-			transition = (n.x + (n.y*2) > 256) != rgt || transition;
+			//transition = (n.x + (n.y*2) > 256) != rgt || transition;
+			transition = !newRoom && (top != this.cameraPreviousRule.endtop || rgt != this.cameraPreviousRule.endrgt );
 		}
 		
 		if( (trule.cTR || trule.cTL || trule.cBR || trule.cBL ) ){
 			//Player crossed corner transition
-			if( transition && !newTile ) {
+			if( transition ){//&& newTile ) {
 				this.camera_tracking = 0.0;
+				//this.camera_vtracking = 0.0;
 				this.camera_transition = game.camera.scale(1);
 			}
 		}
@@ -216,6 +236,10 @@ var mod_camera = {
 		}
 		
 		//Copy current map tile rule to be used next frame
+		trule.endbot = bot;
+		trule.endtop = top;
+		trule.endlft = lft;
+		trule.endrgt = rgt;
 		this.cameraPreviousRule = trule;
 	},
 	
@@ -266,13 +290,21 @@ var mod_camera = {
 			}
 			
 			g.color = COLOR_BLACK;
+			game.activeArea = new Line(
+				p.x - (trule.lft ? occsize.x : 0),
+				p.y - (trule.top ? occsize.y : 0),
+				p.x + occsize.x * (trule.rgt ? 2 : 1),
+				p.y + occsize.y * (trule.bot ? 2 : 1)
+			);
+			
 			for(let y=-1; y < 2; y++) for(let x=-1; x < 2; x++){
 				if(occ[y+1][x+1]){
 					g.drawRect(
 						(p.x-c.x) + occsize.x * x,
 						(p.y-c.y) + occsize.y * y,
 						occsize.x,
-						occsize.y
+						occsize.y,
+						0
 					);
 				}
 			}
@@ -287,6 +319,7 @@ self["cameraLookat"] = function(position, speed){
 	if(position instanceof Point){
 		camCon.camera_lookat_speed = 1.0;
 		camCon.camera_lookat_use = true;
+		camCon.camera_lookat_orig = self._player.position.scale(1);
 		camCon.camera_lookat = position.scale(1);
 		if(speed != undefined){ camCon.camera_lookat_speed = speed; }
 	} else {

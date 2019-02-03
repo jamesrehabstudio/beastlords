@@ -47,7 +47,7 @@ class Igbo extends GameObject {
 		});
 		this.on("hurt", function(){
 			this.setState(Igbo.PHASE_RETREAT);
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			Item.drop(this);

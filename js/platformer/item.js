@@ -73,6 +73,7 @@ function Item(x,y,d, ops){
 			if( this.isWeapon ) {
 				NPC.set(this.name, 1);
 				ItemGet.create(this.name);
+				obj.trigger("weapon_get", this)
 				/*
 				var currentWeapon = _player.equip_sword;
 				obj.equip(this, obj.equip_shield);
@@ -99,6 +100,7 @@ function Item(x,y,d, ops){
 			if( this.name == "coin_1") { obj.addMoney(1); audio.play("coin"); }
 			if( this.name == "coin_2") { obj.addMoney(5); audio.play("coin"); }
 			if( this.name == "coin_3") { obj.addMoney(10); audio.play("coin"); }
+			if( this.name == "coin_4") { obj.addMoney(50); audio.play("coin"); }
 			if( this.name == "waystone") { obj.addWaystone(1); audio.play("coin"); }
 			
 			if( this.name == "spell_refill") { if(this.spell.stock < this.spell.stockMax) { this.spell.stock++; this.destroy(); audio.play("pickup1"); } }
@@ -180,10 +182,12 @@ function Item(x,y,d, ops){
 			}
 			
 			if(this.itemid){
-				game.ga_event("item", this.name, this.itemid);
-				NPC.set(this.itemid,1)
+				game.ga_event("item", this.name);
+				NPC.set(this.itemid,1);
+				obj.trigger("unique_item_get", this);
 			}
 			//this.interactive = false;
+			obj.trigger("item_get", this);
 			this.destroy();
 		}
 	});
@@ -206,7 +210,7 @@ Item.prototype.setName = function(n){
 		this.stats = WeaponList[n];
 		return; 
 	}
-	if(n == "long_sword") { 
+	if(n == "baseball_bat") { 
 		this.frame.x = 1; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(1,0);
@@ -247,7 +251,7 @@ Item.prototype.setName = function(n){
 		return; 
 	}
 	if(n == "whip") { 
-		this.frame.x = 5; this.frame.y = 2; 
+		this.frame.x = 6; this.frame.y = 2; 
 		this.isWeapon = true; this.twoHanded = false;
 		this.equipframe = new Point(3,1);
 		this.message = Item.weaponDescription;
@@ -260,6 +264,16 @@ Item.prototype.setName = function(n){
 		this.equipframe = new Point(3,0);
 		this.message = Item.weaponDescription;
 		this.stats = WeaponList[n];
+		return; 
+	}
+	if(n == "twin_blades") { 
+		this.frame.x = 8; this.frame.y = 2; 
+		this.isWeapon = true;
+		return; 
+	}
+	if(n == "autodrill") { 
+		this.frame.x = 7; this.frame.y = 2; 
+		this.isWeapon = true;
 		return; 
 	}
 	
@@ -337,7 +351,8 @@ Item.prototype.setName = function(n){
 	if(n == "coin_1") { this.frames = [7,8,9,-8]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
 	if(n == "coin_2") { this.frames = [10,11,12,-11]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
 	if(n == "coin_3") { this.frames = [13,14,15,-14]; this.frame.y = 1;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
-	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; this.timeLimit = coinTime; return; }
+	if(n == "coin_4") { this.frames = [13,14,15,-14]; this.frame.y = 2;  this.gravity = 0.5; this.pushable = true; this.bounce = 0.5; this.timeLimit = coinTime; return; }
+	if(n == "waystone") { this.frames = [13,14,15]; this.frame.x = 13; this.gravity = 0.5;  this.pushable = true; this.bounce = 0.0; this.timeLimit = coinTime; return; }17
 	
 	if( this.name == "spell_refill") { this.frame.x = 0; this.frame.y = 10; }
 	
@@ -524,7 +539,10 @@ Item.dropMoney = function(position, money, sleep){
 	while(money > 0){
 		var coin;
 		var off = new Point((Math.random()-.5)*8,(Math.random()-.5)*8);
-		if(money > 40){
+		if(money > 100){
+			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_4"} );
+			money -= 50;
+		} else if(money > 40){
 			coin = new Item( position.x+off.x, position.y+off.y, false, {"name":"coin_3"} );
 			money -= 10;
 		} else if( money > 10 ) {

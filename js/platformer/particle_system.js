@@ -82,7 +82,7 @@ class ParticleSystem extends GameObject {
 			if( this.parts[i] == undefined ){
 				//Create a new particle
 				let _sprite = this.sprites[ Math.floor(Math.random() * this.sprites.length) ];
-				let _force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.start.y) );
+				let _force = new Point( Math.randomRange(this.startForce.start.x, this.startForce.end.x), Math.randomRange(this.startForce.start.y, this.startForce.end.y) );
 				let _time = this.loop ? (i/this.count) * this.time : this.time;
 				
 				this.parts[i] = {

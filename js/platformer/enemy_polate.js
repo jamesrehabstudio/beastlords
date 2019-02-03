@@ -30,7 +30,7 @@ class Polate extends GameObject{
 		}
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 			if(this.states.attack <= 0){
 				this.states.jumpback = this.times.jumpback;
 			}

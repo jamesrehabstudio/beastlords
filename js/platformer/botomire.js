@@ -58,7 +58,7 @@ class Botomire extends GameObject{
 		this.guard.omidirectional = true;
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			
 			this.force.x = -this.forward() * this.speed;
 			

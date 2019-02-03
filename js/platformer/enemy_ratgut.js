@@ -48,7 +48,7 @@ function Ratgut(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		this.states.runaway = Game.DELTASECOND * 1.5;
 	});
 	this.on("death", function(){

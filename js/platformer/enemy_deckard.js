@@ -9,6 +9,9 @@ function Deckard(x,y,d,o){
 	this.sprite = "deckard";
 	this.speed = 21.0;
 	
+	this.batty1 = false;
+	this.batty2 = false;
+	
 	this.addModule( mod_rigidbody );
 	this.addModule( mod_combat );
 	
@@ -37,30 +40,24 @@ function Deckard(x,y,d,o){
 	this.death_time = Game.DELTASECOND * 2;
 	
 	this.on("struck", EnemyStruck);
-	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+	this.on("new_room", function(){
+		this.destroy();
 	});
 	this.on("death", function(){
-		this.destroy();
-		
 		Item.drop(this,20);
 		audio.play("kill",this.position); 
 		createExplosion(this.position, 40 );
 		
-		for(var i=0; i < 2; i++ ){
-			//Spawn bats on death
-			var batty = new Batty(
-				this.position.x, 
-				this.position.y, 
-				false, 
-				{"difficulty":this.difficulty}
-			);
-			batty.fuse = false;
-			batty.invincible = batty.invincible_time;
-			batty.force.x = i <= 0 ? -8 : 8;
-			batty.on("sleep", function(){this.destroy();});
-			game.addObject(batty);
+		if(this.batty1 instanceof Batty){
+			this.batty1.position = this.position.scale(1);
+			this.batty1.creep_show(false);
 		}
+		if(this.batty2 instanceof Batty){
+			this.batty2.position = this.position.scale(1);
+			this.batty2.creep_show(false);
+		}
+		
+		this.destroy();
 	});
 }
 

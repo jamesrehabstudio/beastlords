@@ -39,7 +39,7 @@ function Bullet(x,y,d){
 	this.on("collideObject", Bullet.hit);
 	this.on("collideVertical", function(dir){ if(this.wallStop){ this.trigger("death"); } });
 	this.on("collideHorizontal", function(dir){ if(this.wallStop){ this.trigger("death"); } });
-	this.on("sleep", function(){ this.trigger("death"); });
+	this.on(["sleep","new_room"], function(){ this.trigger("death"); });
 	this.on("death", function(){ this.destroy(); });
 	this.on("hurt_other", function(obj, damage){});
 	this.on("kill", function(obj){ if(this.owner) { this.owner.trigger("kill", obj); } } );
@@ -132,12 +132,15 @@ Bullet.hit = function(obj){
 			let blocked = false;
 			let sareas = obj.combat_shieldArea();
 			
-			for(let i=0; i < sareas.length; i++){
-				if( sareas[i].overlaps( this.bounds() ) ){
-					this.trigger("blocked",obj);
-					obj.trigger("block",this,this.bounds(),this.damage);
-					blocked = true;
-					break;
+			if(obj.guard.active){
+				//Block bullet
+				for(let i=0; i < sareas.length; i++){
+					if( sareas[i].overlaps( this.bounds() ) ){
+						this.trigger("blocked",obj);
+						obj.trigger("block",this,this.bounds(),this.damage);
+						blocked = true;
+						break;
+					}
 				}
 			}
 			

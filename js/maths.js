@@ -1,4 +1,4 @@
-function ajax(filepath, callback, caller){
+function ajax(filepath, callback, caller, options={}){
 	var xhttp = new XMLHttpRequest();
 	caller = caller || window;
 	xhttp.onreadystatechange = function(){
@@ -6,8 +6,12 @@ function ajax(filepath, callback, caller){
 			callback.apply(caller, [xhttp.response]);
 		}
 	}
-	xhttp.open("GET",filepath,true);
-	xhttp.send();
+	
+	if(!("method" in options)){ options["method"] = "GET"}
+	if(!("data" in options)){ options["data"] = ""}
+	
+	xhttp.open(options["method"],filepath,true);
+	xhttp.send(JSON.stringify(options["data"]));
 }
 mergeLists = function(a,b){ 
 	var out = {};
@@ -198,6 +202,12 @@ Math.slerp = function(x,y,delta){
 	}
 	return Math.lerp(x,y,delta);
 }
+Math.moveTo = function(a,b,speed){
+	if(Math.abs(a-b) <= speed) {
+		return b;
+	}
+	return a + speed * (a < b ? 1 : -1);
+}
 Math.sdif = function(a,b){
 	let d = a - b;
 	let e = a - (b+360);
@@ -233,6 +243,35 @@ Math.pingpong = function(n, clamp=1.0){
 }
 Math.pingpong01 = function(n, clamp=1.0){ return Math.clamp01( Math.pingpong(n,clamp) ); }
 Math.randomRange = function(a,b){ return (b-a) * Math.random() + a;  }
+
+class Curve{
+	//Format [ {x:0, y:0, bendx:0, bendy:0} ]
+	constructor(arr){
+		this.data = arr;
+	}
+	normalize(norm=1){
+		let highest = -999;
+		this.data.forEach(function(a){if(a.x > highest){ highest = a.x; } });
+		let mul = norm / highest;
+		this.data.forEach(function(a){ a.x = a.x * mul; });
+		return this;
+	}
+	get(d){
+		let prev = {x:-1,y:0};
+		let next = {x:9999,y:0};;
+		for(let i=0; i < this.data.length; i++ ){
+			if(this.data[i].x > prev.x && this.data[i].x < d){
+				prev = this.data[i];
+			}
+			if(this.data[i].x < next.x && this.data[i].x >= d){
+				next = this.data[i];
+			}
+		}
+		let a = (d - prev.x) / (next.x - prev.x );
+		return Math.lerp(prev.y, next.y, a);
+		
+	}
+}
 
 function Matrix2D() {
 	this.data = [1,0,0,0,1,0,0,0,1];
@@ -750,6 +789,9 @@ Line.prototype.overlaps = function( l ){
 	}
 	return false;
 }
+Line.prototype.toPoint = function(){
+	return this.end.subtract(this.start);
+}
 Line.prototype.toPolygon = function(){
 	var out = new Polygon();
 	out.addPoint(new Point(this.start.x, this.start.y));
@@ -865,13 +907,12 @@ Point.prototype.mod = function(l){
 	return this;
 }
 Point.prototype.toAngle = function(){
-	return Math.atan2(-this.y, this.x);
+	return Math.mod( Math.atan2(-this.y, this.x), Math.PI * 2);
 }
 Point.prototype.toString = function(){
 	return this.x +"_"+ this.y;
 }
-Point.fromAngle = function(a,scale){
-	scale = scale || 1;
+Point.fromAngle = function(a,scale=1){
 	return new Point(
 		Math.cos( a ) * scale,
 		Math.sin( a ) * scale
@@ -882,6 +923,14 @@ Point.lerp = function(a,b,d){
 		a.x + (b.x-a.x) * d,
 		a.y + (b.y-a.y) * d
 	);
+}
+Point.moveTo = function(a,b,speed){
+	let c = b.subtract(a);
+	if(c.sqrMagnitude() <= speed**2) {
+		return b.scale(1);
+	}
+	let dir = c.normalize(speed);
+	return a.add(dir);
 }
 class Vector{
 	constructor(x=0,y=0,z=0){
@@ -1000,6 +1049,18 @@ class Seed{
 	}
 }
 
+generateId = function(size=8){
+	let chars = [
+		'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
+		'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+		'0','1','2','3','4','5','6','7','8','9','_','.'
+	];
+	let output = "";
+	for(let i=0; i < size; i++){
+		output += chars[ Math.floor(Math.random() * chars.length) ];
+	}
+	return output;
+}
 
 getTileData = function(t){
 	return {

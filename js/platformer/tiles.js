@@ -75,6 +75,134 @@ CollapseTile.prototype.destroy = function(){
 	GameObject.prototype.destroy.apply(this);
 }
 
+class BreakableTile extends GameObject {
+	get center(){ return this.position.scale(1); }
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = d[0];
+		this.height = d[1];
+		
+		this._tid = ops.getString("trigger", "");
+		
+		this.team = 0;
+		this.broken = ops.getBool("broken", false);
+		this.fixable = ops.getBool("fixable", false);
+		this.chain = ops.getBool("chain", true);
+		this.strikeable = ops.getBool("strikeable", true);
+		this.chaintimeMax = ops.getFloat("delay", 0.15) * Game.DELTASECOND;
+		this.repairTime = ops.getFloat("delay", 31104000.0) * Game.DELTASECOND;
+		this.chainMargin = ops.getInt("chainmargin", 14);
+		this.layer = ops.getInt("layer", game.tileCollideLayer);
+		this.triggersave = ops.getString("triggersave", "");
+		this.targets = ops.getList("target", []);
+		
+		if(this.triggersave){
+			this.broken = NPC.get(this.triggersave) == 1;
+		}
+		
+		this.on("struck", function(obj, pos){
+			if(obj.team != this.team){
+				if(!this.broken && this.strikeable){
+					obj.trigger("break_tile", this);
+					this.break();
+				}
+			}
+		});
+		this.on("activate", function(){
+			if(this.broken){
+				this.fix();
+			} else {
+				this.break();
+			}
+		});
+		
+		this._tiles = new Array();
+		this._chaining = false;
+		this._chainTime = 0.0;
+		this._repair = 0.0;
+		
+		this.getTiles();
+		this.setTiles(this.broken);
+	}
+	getTiles(){
+		let c = this.corners();
+		for(let x=c.left; x < c.right; x+=16) for(let y=c.top; y < c.bottom; y+=16) {
+			this._tiles.push( game.getTile(x, y, this.layer) );
+		}
+	}
+	setTiles(remove=true){
+		let c = this.corners();
+		let i = 0;
+		for(let x=c.left; x < c.right; x+=16) for(let y=c.top; y < c.bottom; y+=16) {
+			let tile = remove ? 0 : this._tiles[i];
+			game.setTile(x, y, this.layer, tile);
+			i++;
+		}
+		if(this.triggersave){
+			NPC.set(this.triggersave, remove ? 1 : 0);
+		}
+	}
+	break(){
+		game.addObject(new EffectExplosion(this.center.x, this.center.y,"crash"));
+		this.broken = true;
+		this.setTiles(this.broken);
+		this._repair = 0.0;
+		
+		if(this.chain){
+			this._chaining = true;
+			this._chainTime = 0.0;
+		}
+		Trigger.activate(this.targets);
+	}
+	fix(){
+		if(this.fixable){			
+			this.broken = false;
+			this.setTiles(this.broken);
+			this._chainTime = 0.0;
+		}
+	}
+	chainNext(){
+		let c = this.corners();
+		let hits = game.overlaps(new Line(
+			c.left - this.chainMargin,
+			c.top - this.chainMargin,
+			c.right + this.chainMargin,
+			c.bottom + this.chainMargin,
+		));
+		for(let i=0; i < hits.length; i++){
+			if(hits[i] instanceof BreakableTile){
+				if(this.broken && !hits[i].broken){
+					hits[i].break();
+				} else if(!this.broken && hits[i].broken){
+					hits[i].fix();
+				}
+			}
+		}
+		this._chaining = false;
+	}
+	idle(){
+		if(this._chaining){
+			this._chainTime += game.delta;
+			if(this._chainTime >= this.chaintimeMax){
+				this.chainNext();
+			}
+		}
+		if(this.broken && this.fixable){
+			this._repair += game.delta;
+			if(this._repair >= this.repairTime){
+				this.fix();
+			}
+		}
+		return super.idle();
+	}
+	update(){}
+	render(){}
+}
+self["BreakableTile"] = BreakableTile;
+
+/*
 BreakableTile.prototype = new GameObject();
 BreakableTile.prototype.constructor = GameObject;
 function BreakableTile(x, y, d, ops){	
@@ -371,7 +499,7 @@ BreakableTile.prototype.update = function(){
 		this.chaintimer -= this.delta;
 	}
 }
-
+*/
 BreakableTile.unbreakable = 1023;
 
 SpeedTile.prototype = new GameObject();

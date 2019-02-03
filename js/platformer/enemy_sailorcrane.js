@@ -41,7 +41,7 @@ class SailorCrane extends GameObject {
 		
 		this.on("hurt", function(obj, damage){
 			this.force.x = 5 * (obj.x > this.position.x ? -1 : 1);
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position);

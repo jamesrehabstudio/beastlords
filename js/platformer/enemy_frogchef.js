@@ -24,7 +24,7 @@ class FrogChef extends GameObject{
 		this._toss = true;
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position); 
@@ -60,8 +60,8 @@ class FrogChef extends GameObject{
 			//do nothing
 		} else if(this.life > 0){
 			let dir = this.target().position.subtract(this.position);
-			let nerves = 56 + _player.equip_sword.stats.range * 2.0;
-			let range = 56 + _player.equip_sword.stats.range * 1.5;
+			let nerves = 56 + this.target().equip_sword.range * 2.0;
+			let range = 56 + this.target().equip_sword.range * 1.5;
 			
 			if(this._escaping){
 				//Escaping

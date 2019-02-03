@@ -11,7 +11,7 @@ CHAR_ESCAPE = "\u0003";
 var text_size = 8;
 var text_height = 12;
 
-function cursorArea(g,x,y,w,h){
+function cursorArea(g,x,y,w,h,z=-98){
 	g.color = [0.0,0.0,0.0,1.0];
 	
 	g.scaleFillRect(x-1, y-1, 18, 6 );

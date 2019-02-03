@@ -87,7 +87,7 @@ function load_sprites (){
 		width:64,
 		height:64,
 		custom_offset: {
-			"0_6" : new Point(0,21)
+			"0_6" : new Point(0,21), "1_6" : new Point(0,21), "2_6" : new Point(0,21), "3_6" : new Point(0,50), "4_6" : new Point(0,18)
 		}
 	});
 	
@@ -127,7 +127,7 @@ function load_sprites (){
 	
 	sprites['amon'] = new Sprite(RT+"img/amon.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['attrib_icons'] = new Sprite(RT+"img/attrib_icons.png", {offset:new Point(0, 0),width:32,height:32});
-	sprites['axedog'] = new Sprite(RT+"img/axedog.png", {offset:new Point(32, 30),width:64,height:48});
+	sprites['axedog'] = new Sprite(RT+"img/axedog.png", {offset:new Point(32, 33),width:64,height:48});
 	sprites['axesub'] = new Sprite(RT+"img/axesub.png", {offset:new Point(26, 49),width:64,height:64});
 	sprites['baller'] = new Sprite(RT+"img/baller.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['batty'] = new Sprite(RT+"img/batty.gif", {offset:new Point(16, 24),width:32,height:48});
@@ -159,6 +159,7 @@ function load_sprites (){
 	sprites['deckard'] = new Sprite(RT+"img/deckard.png", {offset:new Point(48, 52),width:96,height:80});
 	sprites['derring'] = new Sprite(RT+"img/derring.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['donkeyknife'] = new Sprite(RT+"img/donkeyknife.png", {offset:new Point(28, 42),width:64,height:64});
+	sprites['drill'] = new Sprite(RT+"img/drill.png", {offset:new Point(15, 56),width:32,height:64});
 	sprites['drillerkiller'] = new Sprite(RT+"img/drillerkiller.png", {offset:new Point(32, 72),width:96,height:96});
 	sprites['drillorb'] = new Sprite(RT+"img/drillorb.png", {offset:new Point(24, 32),width:48,height:48});
 	sprites['gatekeeper'] = new Sprite(RT+"img/gatekeeper.png", {offset:new Point(48, 47),width:96,height:64});
@@ -173,6 +174,7 @@ function load_sprites (){
 	sprites['frogchef'] = new Sprite(RT+"img/frogchef.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['frogmonster'] = new Sprite(RT+"img/frogmonster.gif", {offset:new Point(72, 72),width:144,height:144});
 	sprites['flyingslime'] = new Sprite(RT+"img/flyingslime.gif", {offset:new Point(24, 24),width:48,height:48});
+	sprites['fly'] = new Sprite(RT+"img/fly.png", {offset:new Point(16, 16),width:32,height:32});
 	sprites['ghoul'] = new Sprite(RT+"img/ghoul.gif", {offset:new Point(16, 16),width:32,height:32});
 	sprites['ending'] = new Sprite(RT+"img/ending.gif", {offset:new Point(48, 32),width:96,height:64});
 	sprites['hammermather'] = new Sprite(RT+"img/hammemathers.gif", {offset:new Point(24, 28),width:56,height:40});
@@ -200,11 +202,11 @@ function load_sprites (){
 	sprites['npc_smith'] = new Sprite(RT+"img/npc_smith.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['nolt'] = new Sprite(RT+"img/nolt.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['oriax'] = new Sprite(RT+"img/oriax.gif", {offset:new Point(32, 40),width:64,height:64});
-	sprites['phantom'] = new Sprite(RT+"img/phantom.png", {offset:new Point(32, 32),width:64,height:64});
+	sprites['phantom_ghost'] = new Sprite(RT+"img/phantom.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['phantomgraves'] = new Sprite(RT+"img/phantomgraves.png", {offset:new Point(40, 40),width:80,height:80});
 	//sprites['player'] = new Sprite(RT+"img/player.gif", {offset:new Point(24, 32),width:48,height:48});
 	sprites['pigbossnude'] = new Sprite(RT+"img/pigbossnude.png", {offset:new Point(48, 68),width:96,height:96});
-	sprites['pitmonster'] = new Sprite(RT+"img/pitmonster.png", {offset:new Point(48, 32),width:96,height:64});
+	sprites['pitmonster'] = new Sprite(RT+"img/pitmonster.png", {offset:new Point(48, 32),width:96,height:80});
 	sprites['playerbath'] = new Sprite(RT+"img/playerbath.png", {offset:new Point(24, 48),width:48,height:48});
 	sprites['polate'] = new Sprite(RT+"img/polate.png", {offset:new Point(68, 40),width:136,height:64});
 	
@@ -243,6 +245,7 @@ function load_sprites (){
 	sprites['spearbe'] = new Sprite(RT+"img/spearbe.png", {offset:new Point(40, 58),width:80,height:80});
 	sprites['spikebug'] = new Sprite(RT+"img/spikebug.png", {offset:new Point(16, 24),width:32,height:32});
 	sprites['spikewall'] = new Sprite(RT+"img/spikewall.png", {offset:new Point(32, 0),width:64,height:16});
+	sprites['spinning_twinblades'] = new Sprite(RT+"img/spinning_twinblades.png", {offset:new Point(34, 24),width:64,height:16});
 	sprites['spook1'] = new Sprite(RT+"img/spook1.png", {offset:new Point(32, 32),width:64,height:64});
 	sprites['statues'] = new Sprite(RT+"img/statues.gif", {offset:new Point(32, 56),width:64,height:64});
 	sprites['statue_player'] = new Sprite(RT+"img/statue_player.png", {offset:new Point(32, 48),width:64,height:96});
@@ -264,6 +267,7 @@ function load_sprites (){
 	sprites['yakseyo'] = new Sprite(RT+"img/yakseyo.gif", {offset:new Point(24, 16),width:48,height:32});
 	sprites['yeti'] = new Sprite(RT+"img/yeti.gif", {offset:new Point(24, 24),width:48,height:48});
 	
+	sprites['cutscene_intro'] = new Sprite(RT+"img/cutscene_intro.png", {offset:new Point(128, 72),width:256,height:144});
 	sprites['cutscene_wedding_guests'] = new Sprite(RT+"img/cutscene_wedding_guests.png", {offset:new Point(128, 64),width:256,height:128});
 	sprites['cutscene_wedding'] = new Sprite(RT+"img/cutscene_wedding.png", {offset:new Point(128, 72),width:256,height:144});
 	sprites['cutscene_pigintro'] = new Sprite(RT+"img/cutscene_pigintro.png", {offset:new Point(128, 72),width:256,height:144});
@@ -377,6 +381,7 @@ function load_sprites (){
 	});
 	tiles["temple2"] = new Tilesheet(RT+"img/tiles/temple2.png", {		
 		"animations" : {
+			201 : {"frames":[1024], "speed":0.0},
 			577 : {"frames":[1024], "speed":0.0},
 			
 			275 : {"frames":[275,277,279], "speed":9.0},
@@ -484,6 +489,7 @@ window.audio = new AudioPlayer({
 	
 	"barrier" : {"url":RT+"sounds/barrier.wav"},
 	"block" : {"url":RT+"sounds/block.wav"},
+	"bounce1" : {"url":RT+"sounds/bounce1.wav"},
 	"bullet1" : {"url":RT+"sounds/bullet1.wav"},
 	"burn" : {"url":RT+"sounds/burn.wav"},
 	"burst1" : {"url":RT+"sounds/burst1.wav"},
@@ -498,6 +504,8 @@ window.audio = new AudioPlayer({
 	"danger" : {"url":RT+"sounds/danger.wav"},
 	"dash" : {"url":RT+"sounds/dash.wav"},
 	"deathwarning" : {"url":RT+"sounds/deathwarning.wav"},
+	"engine1" : {"url":RT+"sounds/engine1.wav"},
+	"engine_sputter1" : {"url":RT+"sounds/engine_sputter1.wav"},
 	"equip" : {"url":RT+"sounds/equip.wav"},
 	"explode1" : {"url":RT+"sounds/explode1.wav"},
 	"explode2" : {"url":RT+"sounds/explode2.wav"},
@@ -535,4 +543,5 @@ window.audio = new AudioPlayer({
 	"text01" : {"url":RT+"sounds/text01.wav"},
 	"tink" : {"url":RT+"sounds/tink.wav"},
 	"unpause" : {"url":RT+"sounds/unpause.wav"},
+	"whiplock" : {"url":RT+"sounds/whiplock.wav"},
 });

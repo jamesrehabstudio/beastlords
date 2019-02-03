@@ -145,7 +145,7 @@ AttributeMenu = {
 		boxArea(g,c.x+224,8,112,224);
 		for(var i=0; i < this.weaponList.length; i++){
 			var weapon = this.weaponList[i];
-			g.renderSprite(weapon.sprite,new Point(c.x+244,28+i*20),1,weapon.frame);
+			g.renderSprite("items",new Point(c.x+244,28+i*20),1,weapon.icon);
 			textArea(g,weapon.name, c.x+260,24+i*20);
 		}
 		g.color = [1,1,1,1];
@@ -266,20 +266,23 @@ AttributeMenu = {
 		//Weapon
 		var weapon = _player.equip_sword;
 		g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(0,0));
-		g.renderSprite(weapon.sprite,new Point(c.x+padding+16,attributeY+4),20,weapon.frame);
+		g.renderSprite("items",new Point(c.x+padding+16,attributeY+4),20,weapon.icon);
 		textArea(g,weapon.name, c.x+24+padding,attributeY);
 		attributeY += 14;
 		
 		//Shield
 		var shield = _player.equip_shield;
 		g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(1,0));
-		g.renderSprite(shield.sprite,new Point(c.x+padding+16,attributeY+4),20,shield.frame);
-		textArea(g,shield.name, c.x+24+padding,attributeY);
+		if(shield){
+			g.renderSprite(shield.sprite,new Point(c.x+padding+16,attributeY+4),20,shield.frame);
+			textArea(g,shield.name, c.x+24+padding,attributeY);
+		}
 		attributeY += 14;
 		
 		//Shield slots
-		for(var i=0; i < _player.equip_shield.slots.length; i++){
-			var slotType = _player.equip_shield.slots[i];
+		//for(var i=0; i < _player.equip_shield.slots.length; i++){
+		for(var i=0; i < 3; i++){
+			//var slotType = _player.equip_shield.slots[i];
 			g.renderSprite("attrib_icons",new Point(c.x+padding+11,attributeY-2),0,new Point(i,1));
 			//g.renderSprite("shieldslots",new Point(8+c.x+padding+i*32,c.y+196),1,ShieldSmith.SLOT_FRAME[slotType]);
 			//g.renderSprite("shieldslots",new Point(c.x+padding+16,attributeY+4),20,ShieldSmith.SLOT_FRAME[slotType]);
@@ -334,15 +337,15 @@ AttributeMenu = {
 		return output;
 	},
 	"createWeaponList" : function(){
+		NPC.set("short_sword", 1);
 		out = [];
-		for(var i=0; i < this.weapons.length; i++){
-			var w = this.weapons[i];
-			if(NPC.get(w)){
-				out.push(new Item(0,0,0,{"name":w}));
+		//for(var i=0; i < this.weapons.length; i++){
+		for(var i in WeaponList){
+			if(NPC.get(i)){
+				out.push(WeaponList[i]);
 			}
 		}
 		return out;
 	},
-	"weapons" : ["short_sword", "long_sword", "broad_sword", "morningstar", "bloodsickle", "burningblade","whip","king_sword"],
 	"shields" : ["small_shield", "large_shield", "kite_shield", "broad_shield", "knight_shield", "spiked_shield", "heavy_shield", "tower_shield"]
 }

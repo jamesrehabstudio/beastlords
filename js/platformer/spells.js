@@ -212,32 +212,15 @@ function SpellFlash(){
 	this.name = "Flash";
 	this.objectName = "SpellFlash";
 	this.castTime = Game.DELTASECOND * 0.3;
-	this.manaCost = 4;
+	this.manaCost = 2;
 	this.frame = new Point(1,10);
 }
 SpellFlash.prototype.use = function(player){
-	audio.play("spell");
-	game.addObject(new EffectFlash(player.position.x,player.position.y));
+	//Cast lightning
+	let spell = game.addObject(new FlashSpell(player.position.x, player.position.y, player));
+	spell.damageLight = Math.floor(2 + player.stats.magic * (0.8 + this.level * 0.2) );
+	spell.lifeSteal = 0.2 + this.level * 0.1875;
 	
-	var area = new Line(game.camera, game.camera.add(game.resolution));
-	var objs = game.overlaps(area);
-	var damage = Math.floor(14 + player.stats.magic * this.level);
-	var heal = 0;
-	for(var i=0; i < objs.length; i++){
-		var obj = objs[i];
-		if(obj.hasModule(mod_combat) && obj.combat_shootable && obj.team != player.team && area.overlaps(obj.position)){
-			if(obj.life > 0){
-				obj.invincible = 0;
-				obj.hurt(player,damage);
-				heal += Math.round(damage*0.2);
-				game.addObject(new EffectAbsorb(obj.position.x,obj.position.y));
-			}
-		}
-		obj.trigger("spellFlash", this);
-	}
-	if(player.life < player.lifeMax){
-		player.heal += heal;
-	}
 }
 SpellFlash.prototype.modifyStats = function(player, type, power){
 	

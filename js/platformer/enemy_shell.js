@@ -18,7 +18,7 @@ function Shell(x,y,d,o){
 	}
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){

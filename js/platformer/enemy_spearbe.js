@@ -34,15 +34,14 @@ class Spearbe extends GameObject {
 		this._anim = 0.0;
 		this._afterimage = 0.0;
 		
+		this._grab = false;
+		
 		this.on("collideObject", function(obj, damage){
 			if( this._state == Spearbe.STATE_CHARGE ){
 				if( obj == this.target() ){
 					this.setState(Spearbe.STATE_THROW);
+					this.grabTarget(obj);
 					game.slow(0,0.4);
-					
-					this.target().pause = true;
-					this.target().showplayer = false;
-					this.target().interactive = false;
 				}
 			}
 		});
@@ -61,12 +60,32 @@ class Spearbe extends GameObject {
 		});
 		
 		this.on("death", function(){
+			this.dropTarget();
 			this.destroy();
 			Item.drop(this);
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 32 );
 		});
 		
+	}
+	grabTarget(obj){
+		if(!this._grab){
+			this._grab = obj;
+			this._grab.pause = true;
+			this._grab.showplayer = false;
+			this._grab.interactive = false;
+		}
+	}
+	dropTarget(hurt=false){
+		if(this._grab){
+			if(hurt){
+				this._grab.hurt( this, this.getDamage() );
+			}
+			this._grab.pause = false;
+			this._grab.showplayer = true;
+			this._grab.interactive = true;
+			this._grab = false;
+		}
 	}
 	update(){
 		if(this.life > 0){
@@ -84,11 +103,8 @@ class Spearbe extends GameObject {
 					this.grounded = false;
 					this.force.y = -6;
 					this.force.x = this.forward() * -this.speed;
+					this.dropTarget(true);
 					
-					this.target().hurt( this, this.getDamage() );
-					this.target().pause = false;
-					this.target().showplayer = true;
-					this.target().interactive = true;
 					this._count = 0;
 				}
 				if(!this.grounded){

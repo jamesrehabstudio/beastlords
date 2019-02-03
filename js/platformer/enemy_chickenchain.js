@@ -10,13 +10,15 @@ class ChickenChain extends GameObject{
 		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
 		this.states = {
 			"cooldown" : Game.DELTASECOND * 3,
 			"attack" : 0.0,
 			"direction" : 1.0,
 			"attackstage" : 0,
-			"duck" : 0
+			"duck" : 0,
+			"recovery" : 0.0
 		};
 		this.attacks = {
 			"cooldown" : Game.DELTASECOND * 3,
@@ -26,6 +28,15 @@ class ChickenChain extends GameObject{
 		}
 		this.ball = new Point(0,0);
 		
+		this.checkAttackArea = function(ops){
+			if(this.life > 0 && this.states.attackstage > 0){
+				
+				let ops = new Options({"direction" : this.states.attackstage == 2 ? !this.flip : this.flip });
+				let strike = new Line(0, 0, 4, 4).transpose(this.ball).scale(this.forward(),1).correct().transpose(this.position);
+				Combat.attackCheck.apply(this,[ strike, ops ]);
+			}
+		}
+		
 		this.difficulty = o.getInt("difficulty", Spawn.difficulty);
 		
 		this.lifeMax = this.life = Spawn.life(3,this.difficulty);
@@ -34,6 +45,14 @@ class ChickenChain extends GameObject{
 		this.xpDrop = Spawn.xp(6,this.difficulty);
 		this.mass = 1.0;
 		
+		this.on("blocked", function(){
+			this.states.cooldown = this.attacks.cooldown;
+			this.states.attack = 0.0;
+			this.states.attackstage = 0;
+			this.states.duck = 0;
+			this.states.recovery = 1.5;
+			
+		});
 		this.on("collideHorizontal", function(x){
 			this.force.x = 0;
 			this.states.direction *= -1.0;
@@ -57,7 +76,7 @@ class ChickenChain extends GameObject{
 			}
 		});
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		
 		this.on("pre_death", function(){
@@ -67,18 +86,21 @@ class ChickenChain extends GameObject{
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
 			Item.drop(this);
-			this.destroy();
+			this.creep_hide();
 		});
-		
-		SpecialEnemy(this);
-		this.calculateXP();
 	}
 	update(){
 		if ( this.life > 0 ) {
 			var dir = this.position.subtract( _player.position );
 			this.attacks.rest = Math.max(this.attacks.rest-this.delta, 0);
 			
-			if( this.states.attackstage ) {
+			if(this.states.recovery > 0){
+				let d = this.states.recovery / 1.5;
+				this.ball.x = Math.lerp(this.ball.x, 0.0, this.delta);
+				this.ball.y = Math.sin(d * Math.PI) * -64;
+				this.states.recovery -= this.delta;
+				
+			} else if( this.states.attackstage ) {
 				this.force.x = this.force.y = 0;
 				var fireForward = this.states.attackstage == 1;
 				
@@ -98,12 +120,6 @@ class ChickenChain extends GameObject{
 					}
 				}
 				this.ball = new Point(this.states.attack, (-4 + this.states.duck*16));
-				if(this.attacks.rest <= 0){
-					this.strike(
-						new Line(this.ball,this.ball.add(new Point(4,4))),
-						{"direction" : fireForward?this.flip:!this.flip}
-					);
-				}
 				
 				if( this.states.duck ) {
 					var maxFrame = this.states.attackstage > 1 ? 5 : 3;
@@ -157,15 +173,18 @@ class ChickenChain extends GameObject{
 		}
 	}
 	render(g,c){
-		if(this.states.attackstage){
+		if(this.states.attackstage || this.states.recovery > 0){
 			var b = new Point(
-				this.ball.x * this.states.direction,
+				this.ball.x * this.forward(),
 				this.ball.y
 			);
-			var links = Math.ceil(this.states.attack / 9);
+			
+			var links = Math.ceil( this.ball.magnitude() / 8 );
+			var direction = b.normalize(-1);
+			
 			for(var i=0; i < links; i++){
-				var b2 = b.add(new Point(i*-9*this.states.direction,0));
-				g.renderSprite(this.sprite,b2.add(this.position).subtract(c),this.zIndex,new Point(0,2));
+				let lpos = b.add( direction.scale(8 * i) );
+				g.renderSprite(this.sprite,lpos.add(this.position).subtract(c),this.zIndex,new Point(0,2));
 			}
 			g.renderSprite(this.sprite,b.add(this.position).subtract(c),this.zIndex,new Point(1,2));
 		}

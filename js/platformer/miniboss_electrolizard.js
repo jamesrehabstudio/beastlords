@@ -49,7 +49,7 @@ function ElectroLizard(x, y, d, o){
 		if(Math.random() > 0.6){
 			this.states.next = 7;
 		}
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		audio.play("kill",this.position);

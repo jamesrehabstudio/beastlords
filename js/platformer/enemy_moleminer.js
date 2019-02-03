@@ -56,7 +56,7 @@ function Moleminer(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		
 		this.states.escape = this.times.escape;
 		this.force.x = -5 * this.forward();

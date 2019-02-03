@@ -17,7 +17,7 @@ function WizzardBolter(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( obj instanceof WizzardBolter ) {
@@ -157,7 +157,7 @@ function WizzardFlamer(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -276,7 +276,7 @@ function WizzardSoldier(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;
@@ -367,7 +367,7 @@ function WizzardLightning(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;

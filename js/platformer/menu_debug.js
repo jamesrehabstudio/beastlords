@@ -87,7 +87,7 @@ DebugeMenu = {
 		offy += 12;
 		
 		textArea(g,"Life:",c.x+32,offy);
-		Player.renderLifebar(g,c.add(new Point(80,offy-8)), _player.life, _player.lifeMax, 0);
+		mod_hud.renderLifebar(g,c.add(new Point(80,offy-8)), _player.life, _player.lifeMax, 0);
 		offy += 12;
 		
 		for(let i=0; i < Spell.NAMES.length; i++){

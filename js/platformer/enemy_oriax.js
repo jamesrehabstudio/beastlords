@@ -16,7 +16,7 @@ function Oriax(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(obj,damage){
 		//this.states.attack = 0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if( this.team == obj.team ) return;

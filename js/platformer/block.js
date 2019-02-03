@@ -318,10 +318,10 @@ function MovingBlock(x,y,d,ops){
 	this.height = d[1];
 	this.speed = 1.0;
 	this.move = false;
-	this.loop = 0;
+	this.loop = false;
 	this.wait = 0.0;
 	this.waitTime = 0.0;
-	this.killStuck = 0;
+	this.killStuck = false;
 	this.sync = 0;
 	
 	this.addModule(mod_block);
@@ -330,41 +330,34 @@ function MovingBlock(x,y,d,ops){
 	
 	this.move = ops.getBool("autostart", false);
 	this.loop = ops.getBool("loop", false);
+	this.pingpong = ops.getBool("pingpong", false);
 	this.wait = ops.getFloat("wait", 0.0) * Game.DELTASECOND;
 	this.sync = ops.getFloat("sync", 0,0);
 	
-	if("trigger" in ops){
-		this._tid = ops.trigger;
-	}
-	if("movex" in ops){
-		this.endPosition.x += ops["movex"] * 1;
-	}
-	if("movey" in ops){
-		this.endPosition.y += ops["movey"] * 1;
-	}
-	if("speed" in ops){
-		this.speed = ops["speed"] * 30;
-	}
-	if("killstuck" in ops){
-		this.killStuck = ops["killstuck"] * 1;
-	}
+	this._tid = ops.getString("trigger", "");
+	this.endPosition.x += ops.getFloat("movex", 0.0);
+	this.endPosition.y += ops.getFloat("movey", 0.0);
+	this.speed = ops.getFloat("speed", 1.0) * UNITS_PER_METER;
+	this.killStuck = ops.getBool("killstuck", false);
 	
 	this.on("activate", function(obj){
-		this.move = 1;
+		this.move = true;
 	});
 	
 	this.on("collideObject", function(obj){
-		if(this.killStuck && this.move){
+		if(this.move){
 			if(obj.hasModule(mod_rigidbody) && obj.hasModule(mod_combat)){
 				if(obj.isStuck){
 					if(obj instanceof Player && obj.states.ledgeObject == this){
 						obj.trigger("dropLedge");
 					} else {
-						if(this.dotDirection(obj.position) > 0.1){
-							obj.invincible = -1;
-							obj.hurt( this, Math.floor( 9999 ) );
-						} else {
-							console.log("Spare crushing object");
+						if(this.killStuck){							
+							if(this.dotDirection(obj.position) > 0.1){
+								obj.invincible = -1;
+								obj.hurt( this, Math.floor( 9999 ) );
+							} else {
+								console.log("Spare crushing object");
+							}
 						}
 					}
 				}
@@ -391,10 +384,10 @@ function MovingBlock(x,y,d,ops){
 }
 
 MovingBlock.prototype.evaluate = function(f){
-	let l = this.loop ? 2 : 1;
+	let l = this.pingpong ? 2 : 1;
 	let r = this.time / this.totalTime;
 	
-	if(f < 0.5 || !this.loop){
+	if(f < 0.5 || !this.pingpong){
 		return Math.clamp01(f * l) / r;
 	} else {
 		a = 1 + (1 / r);
@@ -414,25 +407,15 @@ MovingBlock.prototype.update = function(){
 		} else {
 			this._progress = Math.clamp01( this._progress + this.delta / this.totalTime);
 			a = this._progress;
+			
+			if(this._progress >= 1){
+				if( !this.loop ) { this.move = false };
+				this._progress = 0.0;
+			}
 		}
 		
 		let d = Math.clamp01(this.evaluate(a));
 		this.position = Point.lerp(this.startPosition, this.endPosition, d);
-	}
-	return;
-	
-	if(this.waitTime > 0){
-		this.waitTime -= this.delta;
-	} else if(this.move){
-		var s = this.speed * this.delta;
-		var des = this.direction == 0 ? this.endPosition : this.startPosition;
-		var dif = des.subtract(this.position);
-		var dir = dif.normalize(s);
-		if(dif.length() <= s ){
-			this.destinationReached();
-		} else {
-			this.position = this.position.add(dir);
-		}
 	}
 }
 MovingBlock.prototype.dotDirection = function(p){

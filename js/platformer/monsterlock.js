@@ -36,7 +36,7 @@ function MonsterLock(x,y,d,o){
 	});
 	
 	this.on("hurt", function(obj, damage){
-		audio.play("hurt",this.position);
+		
 	});
 	
 	this.on("death", function(){

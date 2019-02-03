@@ -44,7 +44,7 @@ class ThunderLizard extends GameObject {
 			}
 		});
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 			this.timer = Math.max(this.timer, SailorSmasher.phase_idle);
 			this.states.hurttime += Game.DELTASECOND;
 			if(this.states.hurttime > 2.2){

@@ -20,8 +20,9 @@ class Ammit extends GameObject{
 		this.damageSlime = Spawn.damage(3, this.difficulty);
 		this.moneyDrop = 0;
 		this.xpDrop = Spawn.xp(35,this.difficulty);
+		this.gravity = 0;
 		
-		this.defencePhysical = Spawn.defence(2, this.difficulty);
+		this.defencePhysical = Spawn.defence(1, this.difficulty);
 		this.defenceFire = Spawn.defence(-2, this.difficulty);
 		this.defenceSlime = Spawn.defence(4, this.difficulty);
 		
@@ -128,6 +129,7 @@ class Ammit extends GameObject{
 		});
 		this.on("activate", function(){
 			try{
+				this.gravity = 1.0;
 				this._roomLight = Trigger.getTargets("boss_light")[0];
 			} catch(e){}
 		});
@@ -137,6 +139,8 @@ class Ammit extends GameObject{
 		for(let i=0; i < this.arms.length; i++){ this.arms[i].deactivate(); }
 		this.clearSlime();
 		this.setState(Ammit.STATE_IDLE);
+		this.gravity = 0;
+		this.force = new Point();
 	}
 	setState(s){
 		this._state = s;

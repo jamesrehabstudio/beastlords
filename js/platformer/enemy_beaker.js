@@ -43,7 +43,7 @@ function Beaker(x, y, d, o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("wakeup", function(){
 		//this.visible = true;

@@ -18,7 +18,7 @@ function Nolt(x,y,d,o){
 		this.frame.y = 0;
 	});
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("block", function(obj,damage){
 		audio.play("block", this.position);
@@ -132,7 +132,7 @@ class NoltMissile extends GameObject{
 			this.frame.y = 0;
 		});
 		this.on("hurt", function(obj,damage){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(obj,pos,damage){
 			Item.drop(this);

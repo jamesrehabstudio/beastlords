@@ -50,7 +50,7 @@ class BookSummoner extends GameObject{
 		});
 		this.on("hurt", function(obj,damage){
 			this.states.retreat = this.times.retreat;
-			audio.play("hurt",this.position);
+			
 		});
 		
 		this.on("death", function(obj,pos,damage){

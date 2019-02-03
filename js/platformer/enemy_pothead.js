@@ -85,7 +85,7 @@ function Pothead(x,y,d,o){
 	this.on("struck", EnemyStruck);
 	
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		if(Math.random() > 0.7 && this.grounded){
 			this.states.hide = Game.DELTASECOND * 1.2;
 		}

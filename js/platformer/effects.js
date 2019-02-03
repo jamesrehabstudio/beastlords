@@ -611,12 +611,18 @@ var EffectList = {
 	"charge" : function(g,p,progress){		
 		if( progress > 0.2 && progress < 1.0 ) {
 			
-			var r = 12.0 * (1.0-progress);
+			let r = Math.lerp(40, 3, progress);
 			
-			for(var i=0; i < 5; i++) {
-				var off = new Point(r*Math.sin(i), r*Math.cos(i));
-				g.renderSprite("bullets",p.add(off),this.zIndex+1,new Point(3,2));
-			}
+			for(var i=0; i < 16; i++) {
+				let a = (i / 16) * 2 * Math.PI;
+				let b = a + (1 / 16) * 2 * Math.PI;
+				let off1 = new Point(r*Math.sin(a), r*Math.cos(a));
+				let off2 = new Point(r*Math.sin(b), r*Math.cos(b));
+				g.renderLine(p.add(off1), p.add(off2), 2, COLOR_WHITE,99);
+			} 
+		} else if(progress>= 1 && progress < 1.1){
+			let scale = Math.lerp(1,3,Math.pingpong( (progress-1)*10 ));
+			g.renderSprite("bullets",p,99,new Point(3,2),false,{scalex:scale, scaley:scale});
 		}
 	}
 };

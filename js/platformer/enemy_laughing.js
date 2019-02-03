@@ -28,7 +28,7 @@ class Laughing extends GameObject {
 		
 		this.on("struck", EnemyStruck);
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("collideObject", function(obj){
 			if( obj instanceof Player && this.life > 0 ) {

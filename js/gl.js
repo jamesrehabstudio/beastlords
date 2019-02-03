@@ -135,6 +135,8 @@ class Material{
 			return;
 		} else if( prop.uniform ) {
 			switch(prop.type){
+				case WebGLRenderingContext.BOOL:
+					this.gl.uniform1i(prop.location, a);
 				case WebGLRenderingContext.FLOAT:
 					this.gl.uniform1f(prop.location, a);
 				break; case WebGLRenderingContext.FLOAT_VEC2:
@@ -514,7 +516,7 @@ class Sprite extends Material {
 		//this.set("u_image",this.gl_tex);
 	}
 	
-	render(p, frame_x, frame_y, flip, shaderOps ) {
+	render(p, frame_x, frame_y, flip=false, shaderOps ) {
 		let gl = this.gl;
 		
 		if( !this.loaded  ) return;
@@ -541,7 +543,7 @@ class Sprite extends Material {
 			var coffname = Math.floor(frame_x)+"_"+Math.floor(frame_y);
 			if(coffname in this.custom_offset){
 				p = new Point(
-					p.x + this.custom_offset[coffname].x,
+					p.x + this.custom_offset[coffname].x * (flip ? -1 : 1),
 					p.y + this.custom_offset[coffname].y
 				);
 			}
@@ -575,11 +577,15 @@ class Sprite extends Material {
 			}
 		}
 		
+		
+		this.set("u_flip", flip);
 		//texture is mirrored in negative index, flip inverts UVs
+		/*		
 		if( flip ) {
 			frame_x = -(frame_x + 1);
 			p.x += this.offset.x * 2 - this.frame_width;
 		}
+		*/
 		
 		this.set("u_image",this.gl_tex);
 		

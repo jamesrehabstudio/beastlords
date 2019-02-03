@@ -54,6 +54,8 @@ class Lava extends Puddle{
 				//Only hurt if it has volume
 				if(obj.hasModule(mod_rigidbody) && obj.gravity > 0){
 					this.floatObject(obj);
+					obj.force.x *= 1 - 0.2 * obj.delta * UNITS_PER_METER;
+					
 				}
 				if(this._damageTick && obj.hasModule(mod_combat)){
 					

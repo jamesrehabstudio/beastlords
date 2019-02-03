@@ -33,7 +33,7 @@ class WallNolt extends GameObject {
 		});
 		
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position);

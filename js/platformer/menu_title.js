@@ -293,10 +293,11 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 TitleMenu.prototype.idle = function(){}
 
 TitleMenu.prototype.startGame = function(profile){
-	//game.ga_event("newgame","demo");
-	
+	self["sessionId"] = generateId();
 	NPC.variables = {};
 	new Player();
+	
+	game.ga_event("newgame",version);
 	
 	//WorldLocale.loadMap(this.starting_tmx, "first");
 	

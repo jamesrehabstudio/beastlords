@@ -64,7 +64,7 @@ function Knight(x,y,d,o){
 	});
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 		this.states.retreat = Game.DELTASECOND * 0.5;
 		this.states.guard_freeze = 0.0;
 	});

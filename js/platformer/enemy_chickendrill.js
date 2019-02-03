@@ -10,6 +10,7 @@ class ChickenDrill extends GameObject{
 		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
+		this.addModule( mod_creep );
 		
 		this.states = {
 			"cooldown" : Game.DELTASECOND * 3,
@@ -36,14 +37,14 @@ class ChickenDrill extends GameObject{
 		});
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			
 			audio.play("kill",this.position); 
 			createExplosion(this.position, 40 );
 			Item.drop(this);
-			this.destroy();
+			this.creep_hide();
 		});
 	}
 	update(){
@@ -58,7 +59,7 @@ class ChickenDrill extends GameObject{
 				} else if(this.grounded){
 					if (Timer.interval(this.states.attack,Game.DELTASECOND*0.2,this.delta)){
 						var spikes = new ChickenDrillSpike(
-							this.position.x + this.states.spike * 40 * (this.flip?-1:1), 
+							this.position.x + this.states.spike * 40 * this.forward(), 
 							this.position.y + 8
 						);
 						spikes.damage = this.damage;
@@ -128,7 +129,12 @@ class ChickenDrillSpike extends GameObject{
 		this.sprite = "chickendrill";
 		this.damage = 1;
 		this.frame = new Point(0,3);
-		this.time = Game.DELTASECOND * 2.0;
+		this.time = this.timeMax = Game.DELTASECOND * 2.0;
+		this.visible = false;
+		
+		this.addModule(mod_rigidbody);
+		this.pushable = false;
+		this.force.y = 8;
 		
 		this.on("sleep", function(obj){
 			this.destroy();
@@ -146,6 +152,13 @@ class ChickenDrillSpike extends GameObject{
 		});
 	}
 	update(){
+		if(this.time <= this.timeMax - Game.DELTASECOND * 0.03125){
+			this.visible = true;
+			if(this.isStuck || !this.grounded){
+				this.destroy();
+			}
+		}
+		
 		this.time -= this.delta;
 		
 		if(this.time <= 0){

@@ -19,14 +19,19 @@ class Light extends GameObject{
 		this._tid = ops.get("trigger",null);
 		
 		let area = new Line(0,0,0,0);
-		for(let i=0; i < d.length; i++){
-			area.start.x = Math.min(area.start.x, d[i].x);
-			area.start.y = Math.min(area.start.y, d[i].y);
-			area.end.x = Math.max(area.end.x, d[i].x);
-			area.end.y = Math.max(area.end.y, d[i].y);
+		if(d.length > 2){
+			for(let i=0; i < d.length; i++){
+				area.start.x = Math.min(area.start.x, d[i].x);
+				area.start.y = Math.min(area.start.y, d[i].y);
+				area.end.x = Math.max(area.end.x, d[i].x);
+				area.end.y = Math.max(area.end.y, d[i].y);
+			}
+			this.width = area.width() * 2;
+			this.height = area.height() * 2;
+		} else {
+			this.width = d[0];
+			this.height = d[1];
 		}
-		this.width = area.width() * 2;
-		this.height = area.height() * 2;
 		
 		this._change = false;
 		this._time = 0.0;

@@ -68,7 +68,7 @@ function BigBones(x,y,d,o){
 	this.on("hurt", function(){
 		//this.states.attack = -1.0;
 		//this.states.cooldown = 30.0;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		Item.drop(this);

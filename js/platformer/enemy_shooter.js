@@ -47,7 +47,7 @@ function Shooter(x,y,d,o){
 	
 	this.on("struck", EnemyStruck);
 	this.on("hurt", function(){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("death", function(){
 		

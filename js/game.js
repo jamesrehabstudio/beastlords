@@ -24,19 +24,35 @@ function AudioPlayer(list){
 	this.list = list;
 	this.alias = {};
 	
+	this.debug = false;
+	
 	this.compressor = new DynamicsCompressorNode(this.a);
-	this.compressor.threshold.setValueAtTime(-10, this.a.currentTime);
-	this.compressor.knee.setValueAtTime(40, this.a.currentTime);
-	this.compressor.ratio.setValueAtTime(12, this.a.currentTime);
-	this.compressor.attack.setValueAtTime(0, this.a.currentTime);
-	this.compressor.release.setValueAtTime(0.125, this.a.currentTime);
-	this.compressor.reduction = -10.0;
+	//this.compressor.threshold.setValueAtTime(-5, this.a.currentTime);
+	this.compressor.threshold.setValueAtTime(-5, this.a.currentTime);
+	this.compressor.knee.setValueAtTime(0, this.a.currentTime);
+	this.compressor.ratio.setValueAtTime(20, this.a.currentTime);
+	this.compressor.attack.setValueAtTime(0.005, this.a.currentTime);
+	this.compressor.release.setValueAtTime(0.25, this.a.currentTime);
+	//this.compressor.reduction = -10.0;
+	
+	//this.compressor = new GainNode( this.a );
+	
+	this.analysis = new AnalyserNode(this.a, {
+		fftSize: 2048,
+		maxDecibels: -25,
+		minDecibels: -60,
+		smoothingTimeConstant: 0.5,
+	});
+	this.audiodebug = new Uint8Array(this.analysis.frequencyBinCount);
 	
 	this.sfxVolume = new GainNode( this.a ); this.sfxVolume.gain.value = 1.0;
 	this.musVolume = new GainNode( this.a ); this.musVolume.gain.value = 0.5;
 	
-	this.sfxVolume.connect(this.compressor);
-	this.compressor.connect(this.a.destination);
+	this.compressor.connect(this.sfxVolume);
+	this.sfxVolume.connect(this.analysis);
+	this.analysis.connect(this.a.destination);
+	
+	//this.sfxVolume.connect(this.a.destination);
 	this.musVolume.connect(this.a.destination);
 	
 	var self = this;
@@ -108,9 +124,10 @@ AudioPlayer.prototype.play = function(l){
 				if( "music" in this.list[l]) {
 					this.list[l]["source"].connect(this.musVolume);
 				} else {
-					this.list[l]["source"].connect(this.sfxVolume);
-					this.sfxVolume.connect(this.compressor);
-					this.compressor.connect(this.a.destination);
+					this.list[l]["source"].connect(this.compressor);
+					//this.compressor.connect(this.sfxVolume);
+					//this.sfxVolume.connect(this.analysis);
+					//this.analysis.connect(this.a.destination);
 				}
 				
 				this.list[l]["source"].start();
@@ -147,9 +164,10 @@ AudioPlayer.prototype.playPan = function(l,balance,gain){
 				} else {
 					this.list[l]["source"].connect(volume);
 					volume.connect(stereo);
-					stereo.connect(this.sfxVolume);
-					this.sfxVolume.connect(this.compressor);
-					this.compressor.connect(this.a.destination);
+					stereo.connect(this.compressor);
+					//this.compressor.connect(this.sfxVolume);
+					//this.sfxVolume.connect(this.analysis);
+					//this.analysis.connect(this.a.destination);
 				}
 				
 				this.list[l]["source"].start();
@@ -383,9 +401,15 @@ Game.prototype.onmessage = function(data){
 	
 	if("tiles" in data && game.map){
 		for(var layer in data["tiles"]){
-			for(var index in data["tiles"][layer]){
-				if(layer in game.map.layers && index in game.map.layers[layer]){
-					game.map.layers[layer][index] = data["tiles"][layer][index];
+			if(layer == "tileset"){
+				//Tileset
+				game.map.tileset = data["tiles"][layer];
+			} else {
+				//Tiles
+				for(var index in data["tiles"][layer]){
+					if(layer in game.map.layers && index in game.map.layers[layer]){
+						game.map.layers[layer][index] = data["tiles"][layer][index];
+					}
 				}
 			}
 		}
@@ -550,7 +574,10 @@ Game.prototype.render = function( ) {
 			
 			//Render Tile Layer
 			if(this.map && renderOrder[order] in this.map.layers){
-				var camera = this.camera.scale(1);
+				var properties = this.map.layersProperties[order] || {};
+				var scrollScaleX = ("scrollscalex" in properties) ? properties["scrollscalex"] : 1.0;
+				var scrollScaleY = ("scrollscaley" in properties) ? properties["scrollscaley"] : 1.0;
+				var camera = this.camera.scale(scrollScaleX, scrollScaleY);
 				
 				tiles[this.map.tileset].render(camera, this.map, layer);
 				/*
@@ -689,6 +716,13 @@ Game.prototype.renderFPS = function(){
 		sprites.text.render(new Point(i*8,0),frame.x,frame.y,false,{});
 	}
 	
+	if(audio.debug){
+		audio.analysis.getByteTimeDomainData(audio.audiodebug);
+		for(let i=0; i < 480 && i < audio.audiodebug.length; i++){
+			sprites.white.render(new Point(i,56 + audio.audiodebug[i]*0.5),0,0,false,{});
+		}
+	}
+	
 	
 	
 	/*
@@ -728,8 +762,8 @@ Game.prototype.applySettings = function( s ) {
 		}
 	}
 	
-	audio.sfxVolume.gain.value = Game.Settings.sfxvolume;
-	audio.musVolume.gain.value = Game.Settings.musvolume;
+	audio.sfxVolume.gain.value = Game.Settings.sfxvolume ** 2;
+	audio.musVolume.gain.value = Game.Settings.musvolume ** 2;
 	this.fullscreen(Game.Settings.fullscreen);
 	this.filter = Game.Settings.filter;
 	
@@ -744,12 +778,15 @@ Game.prototype.isFullscreen = function(){
 Game.prototype.fullscreen = function(fs){
 	try{
 		if( fs ) {
+			Element.prototype.requestFullscreen.apply(this.element).then(function(){}, function(){});
+			/*
 			var fullscreen = 
 				Element.prototype.requestFullscreen || 
 				Element.prototype.msRequestFullscreen || 
 				Element.prototype.mozRequestFullScreen ||
 				Element.prototype.webkitRequestFullscreen;
 			fullscreen.apply(this.element);
+			*/
 		} else { 
 			var cancelscreen = 
 				document.exitFullscreen || 

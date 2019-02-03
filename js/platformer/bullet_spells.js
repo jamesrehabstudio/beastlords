@@ -311,3 +311,85 @@ class IceballFloor extends GameObject {
 }
 IceballFloor.TIME_BLOCK = 6.0;
 IceballFloor.TIME_SPIKE = 0.8;
+
+class FlashSpell extends GameObject{
+	constructor(x,y,caster){
+		super(x,y);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = game.resolution.x;
+		this.height = game.resolution.y;
+		this.caster = caster;
+		this.damageLight = 10;
+		this.lifeSteal = 0.2;
+		this.team = 1;
+		
+		this.targets = game.overlaps(new Line(game.camera, game.camera.add(game.resolution))).filter( function(obj){
+			return ( obj instanceof ElectricBox || obj.hasModule(mod_combat) ) && !(obj instanceof Player);
+		});
+		this.targetIndex = 0;
+		
+		this.randomSeed = "faf";
+		this._time = FlashSpell.CAST_TIME;
+		
+		this.on("hurt_other", function(obj, damage){
+			let heal = Math.floor( Math.max(this.lifeSteal * damage, 1) );
+			this.caster.life = Math.min(this.caster.life + heal, this.caster.lifeMax);
+		});
+	}
+	update(){
+		if( this._time == FlashSpell.CAST_TIME ) {
+			if(this.targetIndex < this.targets.length ){
+				let obj = this.targets[this.targetIndex];
+				audio.play("lightning1", obj.position);
+				createExplosion(obj.position, 32);
+				obj.trigger("flashSpell", this);
+					
+				if( obj instanceof ElectricBox ){
+					//this.caster.force = obj.position.subtract(this.caster.position).normalize(5);
+					//this.caster.force.y = Math.min(this.caster.force.y, 2.0);
+				} else if( obj.hasModule(mod_combat) && obj.team != this.team ){
+					obj.hurt(this, Combat.getDamage.apply(this));
+				}
+			}
+		}
+		
+		this._time -= this.delta;
+		
+		if( this._time <= 0){
+			this.targetIndex++;
+			
+			this._time = FlashSpell.CAST_TIME;
+			
+			if(this.targetIndex >= this.targets.length){
+				this.destroy();
+			}
+		}
+	}
+	render(g,c){
+		if(this.targetIndex < this.targets.length ){
+			let s = new Seed(this.randomSeed);
+			let start = this.caster.position;
+			let prev = start.scale(1);
+			let end = this.targets[this.targetIndex].position.scale(1);
+			let distance = start.subtract(end).magnitude();
+			let direction = start.subtract(end).normalize();
+			let perp = new Point(-direction.y, direction.x);
+			let d = 0.0;
+			for(let i=0; i < 20; i++){
+				d += (8 + s.random() * 8) / distance;
+				let next = end.scale(1);
+				if(d < 1 && i < 19){
+					next = Point.lerp(start, end, d).add( perp.scale(2 * s.random() - 1).scale(6) );
+				}
+				g.renderLine(
+					prev.subtract(c),
+					next.subtract(c),
+					1, COLOR_LIGHTNING
+				)
+				prev = next;
+			}
+		}
+	}
+}
+FlashSpell.CAST_TIME = 0.1875;

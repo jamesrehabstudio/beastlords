@@ -35,7 +35,7 @@ var mod_rigidbody = {
 			this.force.x *= this.collisionReduction;
 		});
 		this.on("collideVertical", function(dir){
-			if( dir > 0 ) {
+			if( dir > 0 && this.gravity > 0) {
 				if(!this.grounded && this.force.y > 0.2){
 					this.trigger("land", this.force.y);
 				}
@@ -164,7 +164,7 @@ var mod_rigidbody = {
 			
 			if(this.currentlyStandingBlock){
 				this.position = this.position.add(this.currentlyStandingBlock.blockChange);
-				if(!this.currentlyStandingBlock.interactive){
+				if(!this.currentlyStandingBlock.interactive || this.currentlyStandingBlock.height <= 0){
 					this.blockDropOff();
 				} else if(this.isStuck){
 					this.blockDropOff();
@@ -431,126 +431,46 @@ var mod_block = {
 		this.blockPrevious = new Point(this.position.x,this.position.y);
 	}
 }
-/*
-var mod_camera = {
-	'init' : function(){
-		this.cameraLock = false;
-		this.cameraYTween = false;
-		this.camerShake = new Point();
-		this.camera_target = new Point();
-		this.camera_unlockTime = 0.0;
-		game.camera.x = this.position.x - 160;
-		game.camera.y = this.position.y - 120;
-		
-		var that = this;
-		shakeCamera = function(duration,strength){
-			if(duration instanceof Point){
-				that.camerShake = duration;
-			} else {
-				strength = strength || 4;
-				that.camerShake = new Point(duration,strength);
-			}
-		};
-		
-		this.camera_lock = function(){
-			var mapwidth = Math.floor(game.map.width / 16);
-			var map_index = (
-				( Math.floor(this.position.x / 256) - 0 ) + 
-				( Math.floor(this.position.y / 240) - 0 ) * mapwidth
-			);
+
+var mod_creep = {
+	"init" : function(){
+		this.creep_startPosition = this.position.scale(1);
+		this.creep_destroy = false;
+		this.creep_hide = function(){
+			this.interactive = this.visible = false;
+			this.deltaScale = 0;
 			
-			var map_tile = game.map.map[map_index];
+			if(this.creep_destroy){
+				this.destroy();
+			}
+		}
+		this.creep_show = function(reset){
+			this.visible = this.interactive = true;
+			this.deltaScale = 1;
 			
-			if(map_tile != undefined){
-				//If map tile is valid, change camera locks
-				var lock;
-				var h = 256;
-				var v = 240;
-				var hlimit = 1024;
-				var vlimit = 960;
-				switch( Math.abs(map_tile) % 16 ){
-					case 0: lock = new Line(0,0,h,v+vlimit); break;
-					case 1: lock = new Line(0,0,h+hlimit,v+vlimit); break;
-					case 2: lock = new Line(-hlimit,0,h,v+vlimit); break;
-					case 3: lock = new Line(-hlimit,0,h+hlimit,v+vlimit); break;
-					case 4: lock = new Line(0,0,h,v); break;
-					case 5: lock = new Line(0,0,h+hlimit,v); break;
-					case 6: lock = new Line(-hlimit,0,h,v); break;
-					case 7: lock = new Line(-hlimit,0,h+hlimit,v); break;
-					case 8: lock = new Line(0,-vlimit,h,v+vlimit); break;
-					case 9: lock = new Line(0,-vlimit,h+hlimit,v+vlimit); break;
-					case 10: lock = new Line(-hlimit,-vlimit,h,v+vlimit); break;
-					case 11: lock = new Line(-hlimit,-vlimit,h+hlimit,v+vlimit); break;
-					case 12: lock = new Line(0,-vlimit,h,v); break;
-					case 13: lock = new Line(0,-vlimit,h+hlimit,v); break;
-					case 14: lock = new Line(-hlimit,-vlimit,h,v); break;
-					case 15: lock = new Line(-hlimit,-vlimit,h+hlimit,v); break;
-					default: lock = new Line(-hlimit,-vlimit,h,v+vlimit); break;
+			if(reset){
+				this.position = this.creep_startPosition.scale(1);
+				
+				if( this.hasModule(mod_combat)){
+					this.trigger("respawn");
+					
+					this.life = this.lifeMax;
+					this.combat_isalive = true;
+					this._death_confirmed = false;
+					this._death_clock = 0.0;
 				}
-				lock = lock.transpose( 
-					Math.floor(this.position.x / 256)*256,  
-					Math.floor(this.position.y / 240)*240 
-				);
-				return lock;
-			}
-		}
-	},
-	'update' : function(){
-		game.camera.x = this.position.x - (game.resolution.x / 2);
-		var yCenter = this.position.y - (game.resolution.y / 2);
-		
-		if(this.grounded || this.states.ledge){
-			if(this.cameraYTween){
-				game.camera.y = Math.lerp(game.camera.y, yCenter, this.delta * 0.3);
-				this.camera_unlockTime -= this.delta;
-				if(Math.abs(game.camera.y-yCenter) < 2 || this.camera_unlockTime <= 0){
-					this.cameraYTween = false;
+				if( this.hasModule(mod_rigidbody)){
+					this.force.x = this.force.y = 0.0;
 				}
-			} else {
-				game.camera.y = yCenter;
-			}
-		} else {
-			this.camera_unlockTime = Game.DELTASECOND;
-			this.cameraYTween = true;
-			game.camera.y = Math.min(Math.max(
-				game.camera.y,
-				yCenter
-				), yCenter + 72
-			);
-		}
-		
-		//Set up locks
-		var lock = this.camera_lock();
-		if( lock ) { this.cameraLock = lock; }
-		
-		if(this.cameraLock){
-			game.camera.x = Math.min( Math.max( game.camera.x, this.cameraLock.start.x ), this.cameraLock.end.x - game.resolution.x );
-			game.camera.y = Math.min( Math.max( game.camera.y, this.cameraLock.start.y ), this.cameraLock.end.y - game.resolution.y );
-			if( this.cameraLock.width() < game.resolution.x ){
-				var excess = game.resolution.x - this.cameraLock.width();
-				game.camera.x = this.cameraLock.start.x - excess * 0.5;
 			}
 		}
 		
-		if(this.camerShake.x > 0){
-			game.camera.x += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
-			game.camera.y += Math.floor((Math.random() * this.camerShake.y) - this.camerShake.y*0.5);
-			this.camerShake.x -= game.deltaUnscaled;
-		}
-	},
-	"postrender" : function(g,c){
-		if(this.cameraLock){
-			var viewWidth = this.cameraLock.width();
-			if( viewWidth < game.resolution.x ){
-				var excess = game.resolution.x - viewWidth;
-				g.color = [0,0,0,1];
-				g.scaleFillRect(0,0,excess*0.5, game.resolution.y);
-				g.scaleFillRect(game.resolution.x-excess*0.5,0,excess*0.5, game.resolution.y);
-			}
-		}
+		this.on("new_room", function(){
+			this.creep_show(true);
+		});
 	}
 }
-*/
+
 var mod_combat = {
 	"init" : function() {
 		this.lifeMax = this.life = 100;
@@ -569,6 +489,7 @@ var mod_combat = {
 		this.damageFixed = 0;
 		this.damageMultiplier = 1.0;
 		this.damageContact = 0.5;
+		this.combat_bouncable = true;
 		
 		this.defencePhysical = 0;
 		this.defenceFire = 0;
@@ -623,20 +544,28 @@ var mod_combat = {
 		this.combat_getHitAreas = Combat.getHitAreas;
 		
 		this.on("collideObject", function(obj){
-			this.trigger("collideDamage", obj);
-		});
-		
-		this.on("collideDamage", function(obj){
-			if( this.damageContact > 0.0 && this.life > 0 ){
-				if( obj.hasModule(mod_combat) && obj.team != this.team ) {
+			if( obj.team != this.team && this.life > 0){
+				if(this.combat_bouncable && obj.hasModule(mod_rigidbody) && !obj.grounded && obj.position.y < this.corners().top){
+					if(obj.force.y > 0 ){
+						obj.trigger("combat_bounced", this);
+						this.trigger("combat_bouncedon", obj);
+					}
+				} else if( this.damageContact > 0.0 && obj.hasModule(mod_combat) ) {
 					obj.hurt( this, this.getDamage(this.damageContact) );
 					obj.combat_knockback = obj.position.subtract(this.position).normalize(5);
+					
+					this.trigger("collideDamage", obj);
+					obj.trigger("collideHurt", this);
 				}
 			}
 		});
 		
+		this.on("collideDamage", function(obj){
+			
+		});
+		
 		this.checkAttackArea = function(ops){
-			if(this.swrap instanceof SpriteWrapper){
+			if(this.swrap instanceof SpriteWrapper && this.life > 0){
 				let boxes = this.swrap.getAttackBoxes(this.frame, this);
 				for(let i=0; i < boxes.length; i++){
 					Combat.attackCheck.apply(this,[ boxes[i], ops ]);
@@ -690,8 +619,10 @@ var mod_combat = {
 					
 				}
 				this._death_confirmed = true;
+				return true;
 			} else {
 				this.ragdoll = false;
+				return false;
 			}
 		}
 		this.hasStatusEffect = function(){
@@ -865,6 +796,7 @@ var Combat = {
 		ops = Options.convert(ops);
 		
 		let blockable = ops.getBool("blockable", true);
+		let direction = ops.getBool("direction", this.flip);
 		
 		for(let i=0; i < hits.length; i++) {
 			let hit = hits[i];
@@ -875,7 +807,7 @@ var Combat = {
 					let enemAreas = hit.combat_getHitAreas();
 					let enemBlock = hit.combat_shieldArea();
 					
-					if(blockable && (hit.guard.omidirectional || hit.flip != this.flip) ){
+					if(blockable && (hit.guard.omidirectional || hit.flip != direction) ){
 						for(let j=0; j < enemBlock.length; j++){
 							if(enemBlock[j].overlaps(rect)){
 								Combat.block.apply(this, [hit, ops, rect]);
@@ -1183,7 +1115,7 @@ var mod_boss = {
 			
 			audio.stopAs("music");
 			
-			game.ga_event("boss", this.boss_id);
+			game.ga_event("boss_win", this.constructor.name);
 			
 			if(this.boss_shutdoors){
 				Trigger.activate("boss_door");

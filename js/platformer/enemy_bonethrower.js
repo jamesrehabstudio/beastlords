@@ -24,7 +24,7 @@ class BoneThrower extends GameObject {
 		this.defenceSlime = Spawn.defence(2,this.difficulty);
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("death", function(){
 			audio.play("kill",this.position); 
@@ -39,7 +39,7 @@ class BoneThrower extends GameObject {
 		
 		this._anim = 0.0;
 		this._attack = 0.0;
-		this._cooldown = 0.0;
+		this._cooldown = BoneThrower.TIME_COOLDOWN;
 	}
 	update(){
 		if(this.life > 0){
@@ -60,7 +60,10 @@ class BoneThrower extends GameObject {
 				}
 				
 				this._anim = ( this._anim + this.delta * 1.2 ) % 1.0;
-				this._cooldown -= this.delta;
+				if(Math.abs(this.target().position.x - this.position.x) < 200){
+					//Target within range
+					this._cooldown -= this.delta;
+				}
 				
 				if( this.atLedge() ){
 					this.force.x = 0.0;

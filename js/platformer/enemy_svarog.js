@@ -14,7 +14,7 @@ function Svarog(x,y,d,o){
 	this.addModule( mod_combat );
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("struck", EnemyStruck);
 	this.on("collideObject", function(obj){

@@ -276,7 +276,7 @@ function Switch(x,y,d,o){
 	this.playerover = false;
 	this.frame.x = 0;
 	this.frame.y = 0;
-	this.zIndex = -1;
+	this.zIndex = -2;
 	
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player){
@@ -383,6 +383,9 @@ class PressureSwitch extends GameObject{
 		this.playerover = false;
 		this.frame = new Point(0,0);
 		this.targets = new Array();
+		this.triggered = false;
+		
+		this.retrigger = ops.getBool("retrigger", true);
 		
 		this.on("collideObject", function(obj){
 			if(obj instanceof Player){
@@ -399,8 +402,13 @@ class PressureSwitch extends GameObject{
 	
 	press(){
 		if(!this.playerover){
-			Trigger.activate(this.targets);
 			this.playerover = true;
+			if(!this.triggered){
+				Trigger.activate(this.targets);
+			}
+			if(!this.retrigger){
+				this.triggered = true;
+			}
 		}
 	}
 	

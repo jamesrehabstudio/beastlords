@@ -24,7 +24,7 @@ class Shockcrawler extends GameObject {
 		this.damageContact = 1.0;
 		
 		this.on("hurt", function(){
-			audio.play("hurt",this.position);
+			
 		});
 		this.on("struck", function(obj){
 			if( obj.hasModule(mod_combat) && obj.team != this.team ){

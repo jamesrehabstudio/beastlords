@@ -251,12 +251,12 @@ PauseMenu.prototype.hudrender = function(g,c){
 			g.color = [1.0,0.9,0.8,1.0];
 			
 			for(var i=0; i<Math.floor(Settings.sfxvolume*8); i++)
-				g.scaleFillRect(leftx+20+i*8, 116, 7, 8 );
+				g.drawRect(leftx+20+i*8, 116, 7, 8, 1 );
 			
 			textArea(g,"MUS Volume",leftx+16,136);
 			g.color = [1.0,0.9,0.8,1.0];
 			for(var i=0; i<Math.floor(Settings.musvolume*8); i++)
-				g.scaleFillRect(leftx+20+i*8, 148, 7, 8 );
+				g.drawRect(leftx+20+i*8, 148, 7, 8, 1 );
 			
 			textArea(g,"Game",leftx+16,168);
 			textArea(g,"Reset",leftx+20,180);

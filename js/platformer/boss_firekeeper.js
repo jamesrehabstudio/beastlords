@@ -45,7 +45,7 @@ class FireKeeper extends GameObject {
 			}
 		});
 		this.on("hurt", function(obj, damage){
-			audio.play("hurt",this.position);
+			
 			
 			let expectedBlocks = Math.clamp( Math.floor(this.life / this.lifeMax * 5), 0, 4);
 			if(expectedBlocks < this.activeBlockCount){

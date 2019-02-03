@@ -36,7 +36,6 @@ var PlayerAttackList = [
 		"time" : Game.DELTASECOND,
 		"wait" : 0.0,
 		"animation" : "attack2",
-		"force" : new Point(3.0, 0.0),
 		"prepause" : 0.0,
 		"pause" : 0.25 * Game.DELTASECOND,
 		"knockback" : new Point(10,0),
@@ -118,7 +117,7 @@ var PlayerAttackList = [
 		"cool" : Game.DELTASECOND,
 		"time" : Game.DELTASECOND,
 		"wait" : 0.0,
-		"animation" : "attackwhip",
+		"animation" : "attackwhip%UP",
 		"prepause" : 0.0,
 		"stun" : 0.7 * Game.DELTASECOND,
 		"movement" : 0.0,
@@ -143,7 +142,35 @@ var PlayerAttackList = [
 		"path" : [new Point(-0.75,-14), new Point(-0.1,-52), new Point(0.80,-20), new Point(1,8), new Point(1,8)]
 		
 		//"airtime" : 0.3 * Game.DELTASECOND
-	}
+	},
+	{	//Baseball bat attack
+		"damage":3.0,
+		"warm" : 0.25 * Game.DELTASECOND,
+		"cool" : Game.DELTASECOND,
+		"time" : 1.2 * Game.DELTASECOND,
+		"wait" : 0.0,
+		"animation" : "attack3",
+		//"prepause" : 0.3 * Game.DELTASECOND,
+		"stun" : 0.7 * Game.DELTASECOND,
+		"pause" : Game.DELTASECOND * 0.25,
+		//"force" : new Point(12.0, 0.0),
+		"chargetime" : 0.65 * Game.DELTASECOND,
+		"movement" : 0.2,
+		"audio" : "swing2",
+		"mesh" : "slashc",
+		"path" : [new Point(-.25,-8), new Point(1,-12), new Point(0.5,-16)]
+		//"airtime" : (warmTime+1.5*baseTime+restTime) * Game.DELTASECOND
+	},
+	{
+		"audio" : "swing2",
+		"airspin" : true,
+		"force" : new Point(0,-8),
+	},
+	{
+		"audio" : "swing2",
+		"drill" : true,
+		"force" : new Point(8,0),
+	},
 ];
 
 /*
@@ -186,7 +213,7 @@ WeaponStats.burningblade.color2 = [1,0.5,0.0,1.0];
 */
 
 class PlayerWeapon {
-	constructor(name, warm, cool, speed, damage, range) {
+	constructor(name, warm, cool, speed, damage, range, frame, icon) {
 		this.name = name;
 		this.warm = warm;
 		this.cool = cool;
@@ -194,6 +221,9 @@ class PlayerWeapon {
 		this.damage = damage;
 		this.range = range;
 		this.size = new Point(9,9);
+		this.frame = frame;
+		this.icon = icon;
+		this.twohanded = false;
 		
 		this.color1 = [1,1,1,1];
 		this.color2 = [1,1,1,1];
@@ -225,6 +255,7 @@ class PlayerWeapon {
 		if(state in this.attacks){
 			return this.attacks[state];
 		}
+		return this.attacks[PlayerWeapon.STATE_STANDING];
 	}
 	getAttack(current){
 		return PlayerAttackList[current];
@@ -240,17 +271,22 @@ PlayerWeapon.CHARGED_INDEX = 3;
 PlayerWeapon.DOWNATTACK_INDEX = 6;
 
 WeaponList = {
-	//name, warm, cool, speed, damage, range
-	"short_sword" : new PlayerWeapon("short sword", 	0.125,0.250,0.125, 		1.0,	38),
-	"long_sword" : new PlayerWeapon("long sword", 		0.125,0.250,0.250,		1.5,	48),
-	"broad_sword" : new PlayerWeapon("broad_sword", 	0.125,0.250,0.250,		2.0,	42),
-	"morningstar" : new PlayerWeapon("morning star", 	0.125,0.250,0.250,		2.0,	40),
-	"bloodsickle" : new PlayerWeapon("blood sickle", 	0.125,0.250,0.250,		0.8,	36),
-	"burningblade" : new PlayerWeapon("burning blade", 	0.125,0.250,0.250,		0.85,	38),
-	"whip" : new PlayerWeapon("whip",		 			0.150,0.150,0.250,		1.25,	96),
-	"king_sword" : new PlayerWeapon("king sword",		0.150,0.150,0.500,		2.0,	52),
+	//name, warm, cool, speed, damage, range, frame, icon
+	"short_sword" : new PlayerWeapon("short_sword", 	0.125,0.250,0.125, 		1.0,	38,	new Point(0,0),	new Point(0,2)),
+	"baseball_bat" : new PlayerWeapon("baseball_bat", 	0.125,0.250,0.125,		1.3,	44,	new Point(1,0),	new Point(1,2)),
+	"broad_sword" : new PlayerWeapon("broad_sword", 	0.125,0.250,0.250,		2.0,	42,	new Point(2,0),	new Point(2,2)),
+	"morningstar" : new PlayerWeapon("morningstar", 	0.125,0.250,0.250,		2.0,	40,	new Point(0,1),	new Point(3,2)),
+	"bloodsickle" : new PlayerWeapon("bloodsickle", 	0.125,0.250,0.250,		0.8,	36,	new Point(1,1),	new Point(4,2)),
+	"burningblade" : new PlayerWeapon("burningblade", 	0.125,0.250,0.250,		0.85,	38,	new Point(2,1),	new Point(5,2)),
+	"whip" : new PlayerWeapon("whip",		 			0.150,0.150,0.250,		1.25,	96,	new Point(3,1),	new Point(6,2)),
+	"king_sword" : new PlayerWeapon("king_sword",		0.150,0.150,0.500,		2.0,	52,	new Point(3,0),	new Point(5,2)),
+	"twin_blades" : new PlayerWeapon("twin_blades",		0.062,0.150,0.125,		0.7,	32,	new Point(4,0),	new Point(8,2)),
+	"autodrill" : new PlayerWeapon("autodrill",			0.062,0.150,0.125,		0.7,	32,	new Point(4,1),	new Point(7,2)),
 };
 
+WeaponList.baseball_bat.combos = {};
+WeaponList.baseball_bat.attacks = {"standing" : 9, "charged" : 9, "jumpup" : 9, "ducking" : 5, "downattack" : 6, "jumping" : 9,};
+	
 WeaponList.morningstar.combos = {
 	0 : {"standing" : 1, "jumping":1},
 	1 : {"standing" : 0}
@@ -260,11 +296,22 @@ WeaponList.bloodsickle.combos = {
 	0 : {"standing" : 1, "jumping":1},
 	1 : {"standing" : 0}
 };
+WeaponList.twin_blades.twohanded = true;
+WeaponList.twin_blades.attacks = {"standing" : 0,"charged" : 3,"jumpup" : 10,"ducking" : 5,"downattack" : 6,"jumping" : 0,};
+WeaponList.twin_blades.combos = {
+	0 : {"standing" : 1, "jumping":1},
+	1 : {"standing" : 0}
+};
+WeaponList.autodrill.twohanded = true;
+WeaponList.autodrill.combos = {};
+WeaponList.autodrill.attacks = {"standing" : 11, "charged" : 11, "jumpup" : 11, "ducking" : 11, "downattack" : 11, "jumping" : 11};
+
 WeaponList.burningblade.onEquip = function(player){ player.perks.fireDamage += 0.05; }
 WeaponList.whip.combos = {};
-WeaponList.whip.attacks = {"standing" : 7, "charged" : 7, "jumpup" : 7, "ducking" : 7, "downattack" : 7, "jumping" : 7,};
+WeaponList.whip.attacks = {"standing" : 7, "charged" : 7, "jumpup" : 7, "ducking" : 7, "downattack" : 7, "jumping" : 7};
 WeaponList.whip.size = new Point(32,9);
 
+WeaponList.king_sword.twohanded = true;
 WeaponList.king_sword.combos = {};
 WeaponList.king_sword.attacks = {"standing" : 8, "charged" : 8, "jumpup" : 8, "ducking" : 8, "downattack" : 8, "jumping" : 8,};
 WeaponList.king_sword.size = new Point(32,32);

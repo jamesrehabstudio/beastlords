@@ -15,7 +15,7 @@ function FlyingSlime(x,y,d,o){
 	this.addModule( mod_combat );
 	
 	this.on("hurt", function(obj,damage){
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("struck", EnemyStruck);
 	this.on("death", function(obj,pos,damage){

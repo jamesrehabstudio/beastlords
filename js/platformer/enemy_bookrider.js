@@ -32,7 +32,7 @@ function Bookrider(x,y,d,o){
 	});
 	this.on("hurt", function(obj,damage){
 		this.states.retreat = this.times.retreat;
-		audio.play("hurt",this.position);
+		
 	});
 	this.on("collideObject", function(obj){
 		if(obj instanceof Player && obj.position.y > this.position.y && this.life > 0){
