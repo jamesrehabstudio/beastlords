@@ -1,7 +1,7 @@
 var physicsLayer = {
-	"default" : 0,
-	"item" : 1,
-	"particles" : 2,
+	"default" : 0b0011,
+	"item" : 0b0100,
+	"particles" : 0b1000,
 	"groups" : {
 		0 : [0],
 		1 : [1],
@@ -78,9 +78,13 @@ var mod_rigidbody = {
 		}
 		this.on("collideObject", function(obj){
 			if( obj.hasModule(mod_rigidbody) && this.pushable && obj.pushable ) {
-				if(physicsLayer.groups[this.physicsLayer].indexOf(obj.physicsLayer) >= 0){
+				//if(physicsLayer.groups[this.physicsLayer].indexOf(obj.physicsLayer) >= 0){
+				if(this.physicsLayer & obj.physicsLayer){
 					var dir = this.position.subtract( obj.position ).normalize();
 					
+					let strength = 1 + (this.mass-obj.mass) * 0.5;
+					this.force = this.force.add(dir.normalize(strength * UNITS_PER_METER * this.delta));
+					/*
 					if(this.resistObjects){
 						this.force = this.force.add(dir.normalize(this.resistObjects * UNITS_PER_METER * this.delta));
 					} else {
@@ -97,6 +101,7 @@ var mod_rigidbody = {
 							this.force.x += (dir.x > 0 ? 1 : -1) * this.delta;
 						}
 					}
+					*/
 					
 					
 					
@@ -1051,7 +1056,9 @@ var mod_boss = {
 		this.bossface_frame_row = 0;
 		this.boss_shutdoors = true;
 		this.boss_showintro = true;
-		this.bossdeatheffect = false;
+		this.bossdeatheffect = true;
+		
+		this._boss_deatheffectcreate = false;
 		//this.boss_id = "boss_"+game.newmapName+"_"+Math.floor(x)+"_"+Math.floor(y);
 		this.boss_id = "boss_" + this.constructor.name;
 		
@@ -1132,10 +1139,13 @@ var mod_boss = {
 	},
 	"update" : function(){
 		this._boss_is_active();
-		if( this.life <= 0 && this._death_clock < 0.7 && !this.bossdeatheffect ){
-			//Create boss death effect
-			game.addObject(new EffectItemPickup(this.position.x, this.position.y));
-			this.bossdeatheffect = true;
+		
+		if(this.bossdeatheffect){
+			if( this.life <= 0 && this._death_clock < 0.7 && !this._boss_deatheffectcreate ){
+				//Create boss death effect
+				game.addObject(new EffectItemPickup(this.position.x, this.position.y));
+				this._boss_deatheffectcreate = true;
+			}
 		}
 	},
 	"hudrender" : function(g,c){

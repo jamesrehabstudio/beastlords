@@ -7,6 +7,8 @@ class Boarbow extends GameObject{
 		this.height = 28;
 		this.sprite = "boarbow";
 		
+		this.loadSprites = ["boarbow"];
+		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
 		this.addModule( mod_creep );

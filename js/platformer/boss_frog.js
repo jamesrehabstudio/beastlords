@@ -1,199 +1,397 @@
-FrogBoss.prototype = new GameObject();
-FrogBoss.prototype.constructor = GameObject;
-function FrogBoss(x,y){
-	this.constructor();
-	this.position.x = x;
-	this.position.y = y;
-	this.width = 120;
-	this.height = 180;
-	this.team = 0;
-	this.sprite = "frogmonster";
-	
-	this.addModule(mod_rigidbody);
-	this.addModule(mod_combat);
-	
-	this.speed = 1.125;
-	this.frame = 0;
-	this.frame_row = 0;
-	this.life = Spawn.life(35,this.difficulty);
-	this.moneyDrop = Spawn.money(40,this.difficulty);
-	this.gravity = 0.5;
-	this.friction = 0.2;
-	this.mass = 20.0;
-	this.death_time = Game.DELTASECOND * 3;
-	
-	this.damage = Spawn.damage(5,this.difficulty);
-	
-	this.times = {
-		"stump" : Game.DELTASECOND * 1.1,
-		"flySpawn" : Game.DELTASECOND * 1.5,
-		"jump" : Game.DELTASECOND * 9.0,
-		"rockSpawn" : Game.DELTASECOND * 3.0,
-	};
-	this.states = {
-		"stump" : 0.0,
-		"flySpawn" : 0.0,
-		"jump" : 0.0,
-		"rockSpawn" : Game.DELTASECOND * 3.0,
-		"ceilingCollapse" : false
+class BossFrog extends GameObject {
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.initPosition = this.position.scale(1);
+		this.width = 40;
+		this.height = 40;
+		this.sprite = "pigbot";
 		
-	};
-	
-	//Find rock spawning limits
-	this.rockBox = new Line(this.position.x, this.position.y, this.position.x, this.position.y);
-	for(var i=0; i < 32; i++){
-		if( game.getTile( this.position.x, this.position.y - i*16, game.tileCollideLayer) > 0 ){
-			this.rockBox.start.y = this.position.y - i * 16 + 24;
-			break;
-		}
-	}
-	for(var i=0; i < 32; i++){
-		if( game.getTile( this.position.x - i*16, this.rockBox.start.y, game.tileCollideLayer) > 0 ){
-			this.rockBox.start.x = this.position.x - i * 16 + 24;
-			break;
-		}
-	}
-	for(var i=0; i < 32; i++){
-		if( game.getTile( this.position.x + i*16, this.rockBox.start.y, game.tileCollideLayer) > 0 ){
-			this.rockBox.end.x = this.position.x + i * 16 - 24;
-			break;
-		}
-	}
-	this.rockBox.end.y = this.rockBox.start.y + 64;
-	
-	//Array for tracking flies
-	this.flies = new Array();
-	
-	this.on("struck", EnemyStruck);
-	this.on("hurt", function(){
-		audio.play("hurt");
-	});
-
-	this.on("death", function(){
-		audio.play("kill");
+		this.head = new GameObject(x,y-40,d,ops);
+		this.body = new GameObject(x,y+32,d,ops);
 		
-		Item.drop(this);
-		this.destroy();
-	});
-}
-FrogBoss.prototype.update = function(){
-	var dir = this.position.subtract(_player.position);
-	
-	if( this.life > 0 && this.stun <= 0 ) {
-		this.flip = dir.x > 0;
+		this.head.width = 128;
+		this.head.height = 40;
+		this.head.ypos = -40;
+		this.head.shake = 0;
+		this.head.life = Spawn.life(7, this.difficulty);
+		game.addObject(this.head);
 		
-		this.states.stump += this.delta;
-		this.states.flySpawn += this.delta;
-		this.states.jump += this.delta;
+		this.body.width = 128;
+		this.body.height = 64;
+		this.body.ypos = 32;
+		this.body.shake = 0;
+		this.body.life = Spawn.life(7, this.difficulty);
+		game.addObject(this.body);
 		
-		this.states.rockSpawn -= this.delta;
+		this.body.parent = this.head.parent = this;
 		
-		if( this.states.ceilingCollapse && this.grounded ){
-			audio.play("explode1");
-			shakeCamera(new Point(0,8));
-			for(var i=0; i < 8; i++ ) {
-				var rock = new FallingRock( 
-					this.rockBox.start.x + this.rockBox.width() * Math.random(),
-					this.rockBox.start.y + this.rockBox.height() * Math.random()
-				);
-				rock.damage = Math.round(this.damage * 0.25);
-				game.addObject( rock );
+		this.addModule(mod_combat);
+		this.flip = ops.getBool("flip", false);
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.life = this.lifeMax = Spawn.life(25, this.difficulty);
+		this.damage = Spawn.damage(15, this.difficulty);
+		this.death_time = 2;
+		
+		this.force = 0;
+		this.speed = 1;
+		
+		this.alerted = false;
+		this.light = 0;
+		this.state = 0;
+		this.count = 0;
+		this.time = 1;
+		this.warmup = 0;
+		this.timeMax = 1;
+		this.setState(BossFrog.STATE_IDLE);
+		
+		this.laserAngle = 29.0;
+		this._lasers = [];
+		this._laserHurtTime = 0;
+		this._laserHurtIndex = 0;
+		
+		this.on("laser", function(obj){
+			if(obj instanceof Mech){
+				obj.trigger("hurt", this, 18);
 			}
-			this.states.ceilingCollapse = false;
+			/*
+			if(obj instanceof Player){
+				obj.life -= 2;
+				obj.isDead();
+			}
+			*/
+		});
+		
+		this.on("hurt", function(obj, damage){
+			this.force += this.forward() * -8;
+		});
+		
+		this.body.on("collideObject", function(obj){
+			this.parent.trigger("armorHit", obj, this);
+			if(obj instanceof Mech){
+				obj.position.x -= 4 * UNITS_PER_METER * obj.delta;
+			}
+		});
+		this.head.on("collideObject", function(obj){
+			this.parent.trigger("armorHit", obj, this);
+		});
+		
+		this.on("armorDeath", function(armor){
+			if(armor === this.head){
+				game.addObject(new Ragdoll(this.head.position.x, this.head.position.y, false, {
+					"flip":this.flip,
+					"sprite":"pigbot",
+					"rigidbody":false,
+					"frameX":1,
+					"frameY":0,
+					"zIndex":this.zIndex+6,
+					"deltaScale": 0.5
+					
+				}));
+			} else if(armor === this.body){
+				game.addObject(new Ragdoll(this.body.position.x, this.body.position.y-28, false, {
+					"flip":this.flip,
+					"sprite":"pigbot",
+					"rigidbody":false,
+					"zIndex":this.zIndex+6,
+					"deltaScale":0.5
+				}));
+			}
+		});
+		
+		this.on("armorHit", function(obj, armor){
+			if(obj instanceof Bullet && obj.team != this.team){
+				if(this.alerted) {
+					let damage = obj.damage;
+					let blocked = false;
+					
+					if(damage > 0){
+						if(armor === this.head) {
+							if(this.head.life > 0){
+								this.head.shake = 2.0;
+								audio.play("block", this.position);
+								damage = Math.floor(damage * 0.25);
+								blocked = true;
+								this.head.life -= damage;
+								if(this.head.life <= 0){
+									this.trigger("armorDeath", this.head);
+									
+								}
+							}
+						}
+						if(armor === this.body) {
+							if(this.body.life > 0){
+								this.body.shake = 2.0;
+								audio.play("block", this.position);
+								damage = Math.floor(damage * 0.25);
+								blocked = true;
+								this.body.life -= damage;
+								if(this.body.life <= 0){
+									this.trigger("armorDeath", this.body);
+									
+								}
+							}
+						}
+						if(!blocked){
+							obj.trigger("hurt");
+						}
+						
+						this.life -= damage;
+						this.isDead();
+						this.displayDamage(damage);
+					}
+				}
+				obj.trigger("death");
+			}
+		});
+		this.on("death", function(){
+			this.head.destroy();
+			this.body.destroy();
+			this.destroy();
+		});
+	}
+	setState(s){
+		this.state = s;
+		if(this.state == BossFrog.STATE_IDLE){
+			//Wait for player
+			this.time = this.count = 0;
+			this.timeMax = 1;
+		} else if(this.state == BossFrog.STATE_ACTIVATE){
+			//and activate
+			this.time = this.count = 0;
+			this.timeMax = 2;
+		} else if(this.state == BossFrog.STATE_CLAW){
+			//Claw attack
+			this.laserAngle = this.flip ? 180 : 0;
+			this.warmup = 2 + Math.randomRange(0.5,0.7);
+			this.time = this.count = 0;
+			this.timeMax = 5;
+		} else if(this.state == BossFrog.STATE_CARPET_BOMB){
+			//Missile spread
+			this.time = this.count = 0;
+			this.warmup = 3.0;
+			this.timeMax = 2.5;
+		} else if(this.state == BossFrog.STATE_MILLILES){
+			//Missile sequence
+			this.time = this.count = 0;
+			this.timeMax = 0.5;
 		}
-		if( this.states.jump > this.times.jump && this.grounded) {
-			this.force.y = -6;
-			this.states.jump = 0;
-			this.grounded = false;
-			this.states.ceilingCollapse = true;
-		}
-		if( this.states.flySpawn > this.times.flySpawn ) {
-			this.states.flySpawn = -Game.DELTASECOND * 2;
-			//Spawn some flies
-			for(var i=0; i < 3; i++ ){
-				if( i < this.flies.length && this.flies[i].life > 0 ) {
-					//Don't spawn a fly
+	}
+	nextState(){
+		this.setState(Math.floor(Math.randomRange(2,4)));
+		//this.setState(BossFrog.STATE_CLAW);
+	}
+	update(){
+		var fix = 32;
+		if(this.life > 0){
+			if(this.state == BossFrog.STATE_IDLE){
+				//Wait for player
+				this.head.ypos = -32+fix;
+				this.body.ypos = 16+fix;
+				if(Math.abs(this.target().position.x - this.position.x) < 160){
+					this.setState(BossFrog.STATE_ACTIVATE);
+				}
+			} else if(this.state == BossFrog.STATE_ACTIVATE){
+				//and activate
+				this.head.ypos = -32+fix;
+				this.body.ypos = 16+fix;
+				this.light = Math.lerp(0, 1, this.time / this.timeMax);
+				this.time += this.delta;
+				if(this.time > this.timeMax){
+					this.light = 1;
+					this.alerted = true;
+					this.nextState();
+				}
+			} else if(this.state == BossFrog.STATE_CLAW){
+				//Claw attack
+				this.head.ypos = -72+fix;
+				this.body.ypos = 16+fix;
+				
+				if(this.warmup > 0) {
+					if(this.warmup > 2) {
+						//move laser
+						this.laserAngle += this.delta * -90 * this.forward();
+						this.calcLaser();
+					}
+					this.warmup -= this.delta;
+				} else if(this.time < this.timeMax){
+					//FRY!
+					this.laserHurt();
+					this.time += this.delta;
 				} else {
-					var fly = new Fly( this.position.x, this.position.y - 64);
-					fly.itemDrop = false;
-					this.flies[i] = fly;
-					game.addObject( fly );
-					break;
+					this.nextState();
+				}
+			} else if(this.state == BossFrog.STATE_CARPET_BOMB){
+				//Missile spread
+				this.head.ypos = -40+fix;
+				this.body.ypos = 16+fix;
+				this.time += this.delta;
+				if(this.warmup > 0) {
+					this.warmup -= this.delta;
+				} else if(this.time > this.timeMax){
+					//Fire missile
+					if(this.count < 3){
+						this.fire();
+						this.count++;
+						this.time = this.timeMax * 0.8;
+					} else {
+						this.nextState();
+					}
+				}
+			} else if(this.state == BossFrog.STATE_MILLILES){
+				//Missile sequence
+				this.head.ypos = -32+fix;
+				this.body.ypos = 16+fix;
+				
+				this.time += this.delta;
+				if(this.time > this.timeMax){
+					//Fire missile
+					if(this.count < 3){
+						//this.fire();
+						this.count++;
+						this.time = 0;
+					} else {
+						this.nextState();
+					}
 				}
 			}
+			//Update body parts
+			this.head.position.x = this.position.x;
+			this.body.position.x = this.position.x;
+			
+			this.head.position.y = Math.lerp(this.head.position.y, this.position.y+this.head.ypos, this.delta*2);
+			this.body.position.y = Math.lerp(this.body.position.y, this.position.y+this.body.ypos, this.delta*2);
+			
+			//Apply movement
+			this.force *= 1 - 0.15 * this.delta * UNITS_PER_METER;
+			if(Math.abs(this.position.x - this.initPosition.x) > 32){
+				this.force += (this.position.x > this.initPosition.x ? -1 : 1) * this.speed * UNITS_PER_METER * this.delta;
+			}
+			this.position.x += this.force * UNITS_PER_METER * this.delta;
+			
+			if(Timer.interval(game.timeScaled, 0.3, game.delta)){
+				Background.pushSmoke(this.position.add(new Point(this.forward()*-96,0)), Math.randomRange(24,40), new Point(this.forward()*-4,-3));
+			}
 		}
-		if( this.states.stump > this.times.stump ) {
-			audio.play("explode2");
-			this.states.stump = -Game.DELTASECOND * 2;
-			this.strike( new Line(-72, 60, 72, 90) );
+		Background.pushLight(this.position, 400, [this.light, this.light, this.light, 1]);
+	}
+	fire(){
+		let ops = new Options();
+		let spawnPos = new Point(this.position.x + this.forward() * 56, this.position.y);
+		ops["team"] = this.team;
+		ops["damage"] = this.damage;
+		ops["rotation"] = this.flip ? 180 : 0;
+		if(this.state === BossFrog.STATE_CARPET_BOMB){
+			spawnPos.x = this.position.x + this.forward() * (56 - this.count * 16);
+			spawnPos.y = this.position.y + 20;
+			ops["rotation"] = 270;
+		}
+		let missile = Bullet.createHomingMissile(spawnPos.x, spawnPos.y, ops);
+		missile.zIndex = this.zIndex + 4;
+		game.addObject(missile);
+	}
+	laserHurt(){
+		this._laserHurtTime -= this.delta;
+		if (this._laserHurtTime <= 0) {
+			let l = this._lasers[this._laserHurtIndex];
+			let o = game.overlaps(l);
+			o.forEach(obj => {
+				if(l.polyInstersects(obj.bounds().toPolygon())) {
+					this.trigger("laser", obj);
+				}
+			});
+			this._laserHurtIndex = (this._laserHurtIndex + 1 ) % this._lasers.length;
+			this._laserHurtTime = 0.05;
+			shakeCamera(0.05, 3);
 		}
 	}
-	
-	this.frame = (this.frame + this.delta * 0.05) % 1.0;
+	calcLaser(){
+		var top = new Line(-9999, this.position.y-96, 9999, this.position.y-80);
+		var bot = new Line(-9999, this.position.y+80, 9999, this.position.y+96);
+		var norm = Point.fromAngle(this.laserAngle * Math.deg2rad);
+		var next = new Line(this.position.add(new Point(this.forward() * -48, 0)), this.position.add(norm.scale(9999)));
+		this._lasers = [];
+		
+		for (let i=0; i < 5; i++) {
+			let side = norm.y < 0 ? top : bot;
+			let intsec = next.getIntersectionPoint(side);
+			this._lasers.push(new Line(next.start, intsec));
+			
+			norm.y *= -1;
+			next = new Line(intsec, this.position.add(norm.scale(9999)));
+		}
+		
+	}
+	render(g,c){
+		
+		if(this.life > 0){
+			
+			if(this.state === BossFrog.STATE_CARPET_BOMB) {
+				//Render reloading missiles
+				for(let i=this.count; i < 3; i++) {
+					let offset = new Point();
+					let delay = -i;
+					offset.x = this.forward() * (56 - i * 16) ;
+					offset.y = Math.lerp(16,-20, Math.clamp01((3.0+delay)-this.warmup));
+					g.renderSprite("bullets", this.body.position.add(offset).subtract(c), this.zIndex+1, new Point(3,3), false, {rotation:270});
+				}
+			}
+			
+			if(this.state == BossFrog.STATE_CLAW){
+				//Render laser
+				let thicknessLerp 	= Math.pingpong01(this.time / this.timeMax);
+				let thickness 		= 2 + 6 * Math.clamp01(thicknessLerp * 3);
+				let color 			= Math.colorLerp(COLOR_LIGHTNING,[0.3,0.3,1.0,1.0], thicknessLerp * 4);
+				this._lasers.forEach(l => {
+					g.renderLine(l.start.subtract(c), l.end.subtract(c), thickness, color, this.zIndex+4);
+					if(this.warmup <= 0){
+						g.renderLine(l.start.subtract(c), l.end.subtract(c), 2, COLOR_WHITE, this.zIndex+5);
+					}
+				});
+				
+			}
+		}
+		
+		if(this.body.life > 0){
+			let offset = new Point(0, -28);
+			if(this.body.shake > 0) {
+				offset.x = Math.randomRange(-2,1);
+				this.body.shake -= this.delta;
+			}
+			g.renderSprite(this.sprite, this.body.position.add(offset).subtract(c), this.zIndex+2, new Point(0,0), this.flip);
+		}
+		if(this.head.life > 0){
+			let offset = new Point();
+			if(this.head.shake > 0) {
+				offset.x = Math.randomRange(-2,1);
+				this.head.shake -= this.delta;
+			}
+			g.renderSprite(this.sprite, this.head.position.add(offset).subtract(c), this.zIndex+1, new Point(1,0), this.flip);
+		}
+		
+		g.renderSprite(this.sprite, this.head.position.subtract(c), this.zIndex, new Point(0,1), this.flip);
+		g.renderSprite(this.sprite, this.body.position.add(new Point(0,-28)).subtract(c), this.zIndex-1, new Point(1,1), this.flip);
+		
+		//this.render_old(g,c);
+	}
+	render_old(g,c){
+		let corn = this.corners();
+		
+		//Core
+		g.color = [1,0,0,1];
+		g.drawRect(corn.left-c.x,corn.top-c.y, this.width, this.height, this.zIndex-3);
+		
+		//Head and body
+		g.color = [0,0,.8,1];
+		g.drawRect(this.head.position.x-this.head.width*0.5-c.x, this.head.position.y-this.head.height*0.5-c.y, this.head.width, this.head.height, this.zIndex-2);
+		g.drawRect(this.body.position.x-this.body.width*0.5-c.x, this.body.position.y-this.body.height*0.5-c.y, this.body.width, this.body.height, this.zIndex-2);
+	}
 }
-FrogBoss.prototype.render = function(g,c){
-	var llegFrame = this.frame < 0.33 ? 1 : 0;
-	var rlegFrame = this.frame >= 0.5 && this.frame < 0.833  ? 1 : 0;
-	var headFrame = 0;
-	
-	var bob1 = new Point(0, 4*Math.sin(this.frame * Math.PI + 3.0 ));
-	var bob2 = new Point(0, 2*Math.sin(this.frame * Math.PI + 1.5 ));
-	var bob3 = new Point(0, 3*Math.sin(this.frame * Math.PI));
-	
-	var larm = FrogBoss.pos.larm.add(bob2);
-	var lleg = FrogBoss.pos.lleg.add(new Point());
-	var body = FrogBoss.pos.body.add(bob3);
-	var head = FrogBoss.pos.head.add(bob1);
-	var rleg = FrogBoss.pos.rleg.add(new Point());
-	var rarm = FrogBoss.pos.rarm.add(bob2);
-	
-	var flySpawnProgress = this.states.flySpawn / this.times.flySpawn;
-	headFrame = Math.max( Math.floor(flySpawnProgress * 3), 0);
-	
-	var stumpProgress = this.states.stump / this.times.stump;
-	if( stumpProgress > 0 ) {
-		llegFrame = 2;
-		rlegFrame = 0;
-		larm.x += Math.lerp(0,-8,stumpProgress); larm.y += Math.lerp(0,-12,stumpProgress);
-		rarm.x += Math.lerp(0,-8,stumpProgress); rarm.y += Math.lerp(0,-12,stumpProgress);
-		head.x += Math.lerp(0,-8,stumpProgress); head.y += Math.lerp(0,-12,stumpProgress);
-		body.x += Math.lerp(0,-8,stumpProgress); body.y += Math.lerp(0,-12,stumpProgress);
-		lleg.x += Math.lerp(0,-6,stumpProgress); lleg.y += Math.lerp(0,-16,stumpProgress);
-	}
-	
-	if( this.force.y < 0 && !this.grounded ) {
-		llegFrame = 1;
-		rlegFrame = 1;
-		lleg.y += Math.max( 2 * this.force.y, -8);
-		rleg.y += Math.max( 2 * this.force.y, -8);
-	}
-	
-	if( this.flip ) {
-		larm.x *= -1; lleg.x *= -1; body.x *= -1;
-		head.x *= -1; rleg.x *= -1; rarm.x *= -1;
-	}
-	var f = {"shader" : this.filter};
-	g.renderSprite(this.sprite,this.position.add(larm).subtract(c),this.zIndex,new Point(0,4),this.flip,f);
-	g.renderSprite(this.sprite,this.position.add(lleg).subtract(c),this.zIndex,new Point(llegFrame,5),this.flip,f);
-	g.renderSprite(this.sprite,this.position.add(body).subtract(c),this.zIndex,new Point(0,1),this.flip,f);
-	g.renderSprite(this.sprite,this.position.add(head).subtract(c),this.zIndex,new Point(headFrame,0),this.flip,f);
-	g.renderSprite(this.sprite,this.position.add(rleg).subtract(c),this.zIndex,new Point(rlegFrame,2),this.flip,f);
-	g.renderSprite(this.sprite,this.position.add(rarm).subtract(c),this.zIndex,new Point(0,3),this.flip,f);
-	
-	//pupils
-	/*
-	if( window._player instanceof Player ) {
-		var dir = window._player.position.normalize(4)
-		this.sprite.render(g,this.position.add(head).subtract(c).subtract(dir), 0, 6, this.flip);
-	}
-	*/
-}
-
-FrogBoss.pos = {
-	"head" : new Point(36,-70),
-	"body" : new Point(0,8),
-	"larm" : new Point(56,8),
-	"rarm" : new Point(-28,-20),
-	"lleg" : new Point(40,18),
-	"rleg" : new Point(-32,18)
-}
+BossFrog.STATE_IDLE = 0;
+BossFrog.STATE_ACTIVATE = 1;
+BossFrog.STATE_CLAW = 2;
+BossFrog.STATE_CARPET_BOMB = 3;
+BossFrog.STATE_MILLILES = 4;
+BossFrog.test = 0.5;
+self["BossFrog"] = BossFrog;

@@ -3,6 +3,11 @@ var mod_hud = {
 	"ITEM_LIST" : [
 		"autodrill",
 		"baseball_bat",
+		"twin_blades",
+		"whip",
+	],
+	"KEEP_VARS" : [
+		"wedding_dress"
 	],
 	"init" : function(){
 		this.hud_moneyPos = 0.0;
@@ -16,19 +21,22 @@ var mod_hud = {
 		});
 		this.on(["unique_item_get","weapon_get"], function(item){			
 			let prevCount = this.hud_showItemCount;
-			let count = 0;
 			
-			for(let i=0; i < mod_hud.ITEM_LIST.length; i++){
-				if(NPC.get(mod_hud.ITEM_LIST[i])){
-					count++;
-				}
-			}
+			mod_hud.countItems.apply(this);
 			
-			if(count > prevCount && this.hud_showItemPercent){
+			if(this.hud_showItemCount > prevCount && this.hud_showItemPercent){
 				this.hud_showItemPos = mod_hud.POPUP_TIME;
 			}
-			this.hud_showItemCount = count;
 		});
+	},
+	"countItems" : function(){
+		let count = 0;
+		for(let i=0; i < mod_hud.ITEM_LIST.length; i++){
+			if(NPC.get(mod_hud.ITEM_LIST[i])){
+				count++;
+			}
+		}
+		this.hud_showItemCount = count;
 	},
 	"renderLifebar" : function(g,c, life, max, buffer){
 		/* Render HP */

@@ -73,7 +73,7 @@ var PlayerAttackList = [
 		"pause" : Game.DELTASECOND * 0.3,
 		"stun" : 0.5 * Game.DELTASECOND,
 		"knockback" : new Point(0.0, -8.0),
-		"force" : new Point(0, -8.0),
+		"setforcey" : -8.0,
 		"movement" : 0.3,
 		"audio" : "swing2",
 		"mesh" : "slashu",
@@ -231,6 +231,7 @@ class PlayerWeapon {
 			"standing" : 0,
 			"charged" : 3,
 			"jumpup" : 4,
+			"jumpupair" : 4,
 			"ducking" : 5,
 			"downattack" : 6,
 			"jumping" : 0,
@@ -266,6 +267,7 @@ PlayerWeapon.STATE_CHARGED = "charged";
 PlayerWeapon.STATE_JUMPING = "jumping";
 PlayerWeapon.STATE_DUCKING = "ducking";
 PlayerWeapon.STATE_JUMPUP = "jumpup";
+PlayerWeapon.STATE_JUMPUP_AIR = "jumpupair";
 PlayerWeapon.STATE_DOWNATTACK = "downattack";
 PlayerWeapon.CHARGED_INDEX = 3;
 PlayerWeapon.DOWNATTACK_INDEX = 6;
@@ -285,7 +287,7 @@ WeaponList = {
 };
 
 WeaponList.baseball_bat.combos = {};
-WeaponList.baseball_bat.attacks = {"standing" : 9, "charged" : 9, "jumpup" : 9, "ducking" : 5, "downattack" : 6, "jumping" : 9,};
+WeaponList.baseball_bat.attacks = {"standing" : 9, "charged" : 9, "jumpup" : 9, "jumpupair" : 9, "ducking" : 5, "downattack" : 6, "jumping" : 9,};
 	
 WeaponList.morningstar.combos = {
 	0 : {"standing" : 1, "jumping":1},
@@ -297,21 +299,21 @@ WeaponList.bloodsickle.combos = {
 	1 : {"standing" : 0}
 };
 WeaponList.twin_blades.twohanded = true;
-WeaponList.twin_blades.attacks = {"standing" : 0,"charged" : 3,"jumpup" : 10,"ducking" : 5,"downattack" : 6,"jumping" : 0,};
+WeaponList.twin_blades.attacks = {"standing" : 0,"charged" : 3,"jumpup" : 10, "jumpupair" : 10,"ducking" : 5,"downattack" : 6,"jumping" : 0,};
 WeaponList.twin_blades.combos = {
 	0 : {"standing" : 1, "jumping":1},
 	1 : {"standing" : 0}
 };
 WeaponList.autodrill.twohanded = true;
 WeaponList.autodrill.combos = {};
-WeaponList.autodrill.attacks = {"standing" : 11, "charged" : 11, "jumpup" : 11, "ducking" : 11, "downattack" : 11, "jumping" : 11};
+WeaponList.autodrill.attacks = {"standing" : 11, "charged" : 11, "jumpup" : 11, "jumpupair" : 11, "ducking" : 11, "downattack" : 11, "jumping" : 11};
 
 WeaponList.burningblade.onEquip = function(player){ player.perks.fireDamage += 0.05; }
 WeaponList.whip.combos = {};
-WeaponList.whip.attacks = {"standing" : 7, "charged" : 7, "jumpup" : 7, "ducking" : 7, "downattack" : 7, "jumping" : 7};
+WeaponList.whip.attacks = {"standing" : 7, "charged" : 7, "jumpup" : 7, "jumpupair" : 7, "ducking" : 7, "downattack" : 7, "jumping" : 7};
 WeaponList.whip.size = new Point(32,9);
 
 WeaponList.king_sword.twohanded = true;
 WeaponList.king_sword.combos = {};
-WeaponList.king_sword.attacks = {"standing" : 8, "charged" : 8, "jumpup" : 8, "ducking" : 8, "downattack" : 8, "jumping" : 8,};
+WeaponList.king_sword.attacks = {"standing" : 8, "charged" : 8, "jumpup" : 8, "jumpupair" : 8, "ducking" : 8, "downattack" : 8, "jumping" : 8,};
 WeaponList.king_sword.size = new Point(32,32);

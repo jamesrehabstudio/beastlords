@@ -1,5 +1,5 @@
-import SimpleHTTPServer
-import SocketServer
+import http.server
+import socketserver
 import sys
 import json
 
@@ -9,7 +9,7 @@ PORT = 8001
 if len(sys.argv) > 1:
 	PORT = int(sys.argv[1])
 	
-class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class ServerHandler(http.server.SimpleHTTPRequestHandler):
 	def do_POST(self):
 		#try:
 		length = int(self.headers.getheader('content-length'))
@@ -36,7 +36,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		#except:
 		#	print "Unexpected error:", sys.exc_info()[0]
 
-		SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+		http.server.SimpleHTTPRequestHandler.do_GET(self)
 
 Handler = ServerHandler
 Handler.extensions_map = {
@@ -50,9 +50,9 @@ Handler.extensions_map = {
 	'': 'application/octet-stream', # Default
 }
 
-httpd = SocketServer.TCPServer(("", PORT), Handler)
+httpd = socketserver.TCPServer(("", PORT), Handler)
 
-print "serving at port", PORT
+print ("serving at port %s" % PORT)
 httpd.serve_forever()
 
 """

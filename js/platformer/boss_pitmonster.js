@@ -16,11 +16,12 @@ class PitMonster extends GameObject {
 		this.addModule(mod_combat);
 		this.addModule(mod_boss);
 		
-		this.death_time = Game.DELTASECOND * 2.0;
+		this.death_time = Game.DELTASECOND * 5.0;
 		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
 		this.lightTrigger = ops.getString("lighttrigger", "")
-		this.life = this.lifeMax = Spawn.life(15, this.difficulty);
+		this.life = this.lifeMax = Spawn.life(18, this.difficulty);
 		this.damage = Spawn.damage(3, this.difficulty);
+		this.bossdeatheffect = false;
 		
 		this._boss_is_active = function(){
 			if( !this.active ) {
@@ -72,15 +73,6 @@ class PitMonster extends GameObject {
 				Combat.hit.apply(obj, [this, Options.convert({"multiplier":0.25}), new Point]);
 			}
 		});
-		this.on("player_death", function(){
-			this._phase = 0;
-			//Fill in area
-			let c = this.spikes.corners();
-			for(let x = c.left; x < c.right; x++) for(let y = c.top + 16; y < c.bottom - 16; y++) {
-				game.setTile(x,y,game.tileCollideLayer,0);
-			}
-			this.spikes.position.y = this.position.y + PitMonster.SPIKE_POS_UP;
-		});
 		this.on("pre_death", function(){
 			for(let i=0; i < this.flies.length; i++){
 				if( this.flies[i].life > 0 ){
@@ -95,6 +87,11 @@ class PitMonster extends GameObject {
 			}}
 		});
 		this.on("death", function(){
+			//Delete tiles
+			for( let y = 0; y < 128; y+=16 ){
+				game.setTile( this.initPos.x - 8, this.initPos.y + y, game.tileCollideLayer, 0 );
+				game.setTile( this.initPos.x + 8, this.initPos.y + y, game.tileCollideLayer, 0 );
+			}
 			this.destroy();
 		});
 		
@@ -155,9 +152,7 @@ class PitMonster extends GameObject {
 			}
 		}
 		
-		this.spikes = new SpikeWall(this.position.x, this.position.y - 336, [128,64], Options.convert({"horizontal":true}));
-		game.addObject(this.spikes);
-		
+		this._introground = game.addObject(new PitMonsterGround(x, y-64,[480,240],new Options()));
 		
 		this._recall_left_arm = 0.0;
 		this._recall_right_arm = 0.0;
@@ -194,11 +189,13 @@ class PitMonster extends GameObject {
 					//Room shakes and beast appears
 					let d = 0 - (this._intro - PitMonster.INTRO_WAIT) / (PitMonster.INTRO_WAIT - PitMonster.INTRO_REVEAL);
 					this.position = Point.lerp(this.initPos.add(new Point(0,64)), this.initPos, d);
+					this._introground.position = Point.lerp(this._introground.initPos, this.initPos.add(new Point(0,300)), d);
 					shakeCamera(0.1,3);
 				} else {
 					//lights come on, and a short pause
 					if(this._intro - this.delta < PitMonster.INTRO_REVEAL){
 						Trigger.activate(this.lightTrigger);
+						this._introground.destroy();
 					}
 				}
 			} else {
@@ -292,6 +289,10 @@ class PitMonster extends GameObject {
 				this.fireSlime(true);
 			}
 			
+			let d = 1 - this._death_clock / this.death_time;
+			this.position = Point.lerp(this.initPos, this.initPos.add(new Point(0,250)), d);
+			
+			shakeCamera(0.1,3);
 		}
 		
 		//Update arm positions
@@ -444,3 +445,31 @@ class PitMonsterMini extends GameObject {
 }
 
 self["PitMonsterMini"] = PitMonsterMini;
+
+class PitMonsterGround extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.initPos = new Point(x,y);
+		this.width = d[0];
+		this.height = d[1];
+		this.addModule(mod_block);
+	}
+	render(g,c){
+		let corners = this.corners();
+		g.color = [.09,.06,.05,1];
+		g.drawRect(
+			corners.left - c.x,
+			corners.top - c.y,
+			this.width,
+			this.height,
+			this.zIndex,
+			{}
+		);
+		for(let x = corners.left; x <= corners.right; x+=16){
+			g.renderSprite(game.map.tileset, new Point(x, corners.top).subtract(c), this.zIndex+1, new Point(2,0), false);
+		}
+		
+	}
+}

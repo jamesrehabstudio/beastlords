@@ -6,6 +6,8 @@ class Lamp extends Light {
 		this.size = o.getFloat("size", 180);
 		this.show = o.getBool("show", true);
 		
+		this.loadSprites = ["lamps"];
+		
 		this.idleMargin = this.size * 0.5 + 32;
 	}
 	update(){

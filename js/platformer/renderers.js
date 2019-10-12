@@ -55,7 +55,18 @@ function renderString(g,s,x,y,font="text"){
 		}
 	}
 }
-function textArea(g,s,x,y,w,h){
+var special_chars = {
+	"\x00" : {type:0, color:[1,1,1,1]},
+	"\x01" : {type:0, color:[1,0.5,0,1]},
+	"\x02" : {type:0, color:[0.5,1,0,1]},
+	"\x03" : {type:0, color:[0,0.5,1,1]},
+	"\x0F" : {type:0, color:[0,0,0,1]},
+	
+	"\x10" : {type:1, offset: function(p){ return p; }},
+	"\x11" : {type:1, offset: function(p){ p.y += Math.sin(8 * (game.time + p.x * 0.5)) * 2; return p; }},
+};
+function textArea(g,s,x,y,w,ops){
+	ops = Options.convert(ops);
 	var _x = 0;
 	var _y = 0;
 	if( w != undefined ) {
@@ -63,31 +74,43 @@ function textArea(g,s,x,y,w,h){
 		var last_space = 0;
 		var cursor = 0;
 		for(var i=0; i < s.length; i++ ){
-			if( s[i] == " " ) last_space = i;
+			if( s[i] == " " ) { last_space = i; }
 			if( cursor >= w ) {
 				//add line break
 				s = s.substr(0,last_space) +"\n"+ s.substr(last_space+1,s.length)
-				cursor = i -last_space;
+				cursor = i - last_space;
 			}
-			cursor++;
-			if( s[i] == "\n" ) cursor = 0;
+			if( !(s[i] in special_chars)){
+				cursor++;
+			}
+			if( s[i] == "\n" ) { cursor = 0; }
 		}
 	}
+	
+	var color = [1,1,1,1];
+	var offsetter = function(p){ return p; };
 	
 	for(var i=0; i < s.length; i++ ){
 		if(s[i] == CHAR_ESCAPE){
 			break;
 		} else if(s[i] == "\n") {
 			_x = 0; _y++;
+		} else if(s[i] in special_chars){
+			let effect = special_chars[s[i]];
+			switch(effect.type){
+				case 0: color = effect.color; break;
+				case 1: offsetter = effect.offset;
+			}
 		} else {
 			var index = textLookup.indexOf(s[i]);
 			if( index >= 0 ){
 				g.renderSprite(
 					"text",
-					new Point(_x * text_size + x, _y * text_height + y),
+					offsetter(new Point(_x * text_size + x, _y * text_height + y)),
 					999,
 					new Point(index%16,index/16),
-					false
+					false,
+					{"u_color": color}
 				);
 				_x++;
 			}
@@ -96,7 +119,7 @@ function textArea(g,s,x,y,w,h){
 }
 function textBox(g,s,x,y,w,h){
 	boxArea(g,x,y,w,h);
-	textArea(g,s,x+16,y+16,w-32,h-32);
+	textArea(g,s,x+16,y+16,w-32);
 }
 function renderDialog(g,s, top = 48){
 	
@@ -104,7 +127,7 @@ function renderDialog(g,s, top = 48){
 	var height = 48;
 	var left = game.resolution.x * 0.5 - width * 0.5;
 	boxArea(g,left-12,top-12,width+24,height+24);
-	textArea(g,s,left,top,width, height);
+	textArea(g,s,left,top,width);
 }
 
 DialogManager = {

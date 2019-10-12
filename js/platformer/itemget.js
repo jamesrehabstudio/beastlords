@@ -65,26 +65,28 @@ class ItemGet extends GameObject {
 		}
 	}
 }
+ItemGet.descriptions = {
+	"downstab" : {"title": "Down stab", "description" : "While in the air, press down and attack to perform a down stab", "frame":new Point(10,5),"delay":1.25},
+	"doublejump" : {"title": i18n("item_doublejump"), "description" : i18n("item_doublejump_desc"), "frame":new Point(0,5),"delay":1.25},
+	"long_sword" : {"title": i18n("item_doublejump"), "description" : "", "frame":new Point(0,5),"delay":0},
+	"burningblade" : {"title": i18n("item_doublejump"), "description" : "", "frame":new Point(0,5),"delay":0},
+	"baseball_bat" : {"title": "Baseball bat", "description" : "A bat made from petrified wood. Hold attack to put more power behind attacks.", "frame":new Point(1,2),"delay":0},
+	"whip" : {"title": "Leather whip", "description" : "A tough leather whip designed to punish foes and hold a lot of tension.", "frame":new Point(6,2),"delay":0},
+	"twin_blades" : {"title": "Twin blads", "description" : "Curved blades with a secret technique. Try using a quarter-circle attack.", "frame":new Point(8,2),"delay":0},
+	"autodrill" : {"title": "Auto drill", "description" : "A fuel powered drill. Let it rest before the fuel runs out.", "frame":new Point(7,2),"delay":0},
+	
+}
 ItemGet.create = function(name){
-	var ig = new ItemGet();
-	ig.title = name;
-	if(name == "doublejump") {
-		ig.title = i18n("item_doublejump");
-		ig.text = i18n("item_doublejump_desc");
-		ig.frame = new Point(0,5);
-		ig._delay = 1.25;
-	} else if(name == "long_sword") {
-		ig.title = "Long Sword";
-		ig.text = "";
-		ig.frame.x = 1; ig.frame.y = 2; 
-	} else if(name == "burningblade") {
-		ig.title = "Burning Blade";
-		ig.text = "";
-		ig.frame.x = 5; ig.frame.y = 2; 
-	} else if(name == "bloodsickle") {
-		ig.title = "Blood Sickle";
-		ig.text = "";
-		ig.frame.x = 4; ig.frame.y = 2; 
+	if(name in ItemGet.descriptions){
+		var desc = ItemGet.descriptions[name];
+		var ig = new ItemGet();
+		//ig.title = i18n("item_doublejump");
+		//ig.text = i18n("item_doublejump_desc");
+		
+		ig.title = desc.title;
+		ig.text = desc.description;
+		ig.frame = desc.frame;
+		ig._delay = desc.delay;
 	}
 	
 	ig.title = DialogManager.substitute(ig.title);

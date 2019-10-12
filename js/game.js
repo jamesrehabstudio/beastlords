@@ -17,207 +17,6 @@ function loop() {
 	}
 }
 
-/* Audio player */
-function AudioPlayer(list){
-	window.AudioContext = window.AudioContext || window.webkitAudioContext;
-	this.a = new AudioContext();
-	this.list = list;
-	this.alias = {};
-	
-	this.debug = false;
-	
-	this.compressor = new DynamicsCompressorNode(this.a);
-	//this.compressor.threshold.setValueAtTime(-5, this.a.currentTime);
-	this.compressor.threshold.setValueAtTime(-5, this.a.currentTime);
-	this.compressor.knee.setValueAtTime(0, this.a.currentTime);
-	this.compressor.ratio.setValueAtTime(20, this.a.currentTime);
-	this.compressor.attack.setValueAtTime(0.005, this.a.currentTime);
-	this.compressor.release.setValueAtTime(0.25, this.a.currentTime);
-	//this.compressor.reduction = -10.0;
-	
-	//this.compressor = new GainNode( this.a );
-	
-	this.analysis = new AnalyserNode(this.a, {
-		fftSize: 2048,
-		maxDecibels: -25,
-		minDecibels: -60,
-		smoothingTimeConstant: 0.5,
-	});
-	this.audiodebug = new Uint8Array(this.analysis.frequencyBinCount);
-	
-	this.sfxVolume = new GainNode( this.a ); this.sfxVolume.gain.value = 1.0;
-	this.musVolume = new GainNode( this.a ); this.musVolume.gain.value = 0.5;
-	
-	this.compressor.connect(this.sfxVolume);
-	this.sfxVolume.connect(this.analysis);
-	this.analysis.connect(this.a.destination);
-	
-	//this.sfxVolume.connect(this.a.destination);
-	this.musVolume.connect(this.a.destination);
-	
-	var self = this;
-	for(var l in this.list){
-		var request = new XMLHttpRequest();
-		request.open("GET", this.list[l].url, true);
-		request.responseType = "arraybuffer";
-		request.uniqueid = l;
-		request.onload = function(e){ 
-			var event = window.event || e;
-			var key = event.target.uniqueid;
-			self.a.decodeAudioData(event.target.response, function(b){ 
-				self.loaded(b,key); 
-			}
-		); }
-		request.send();
-	}
-}
-AudioPlayer.prototype.loaded = function(b,l){	
-	if( l in this.list ) {
-		this.list[l]["buffer"] = b;
-		this.list[l]["lastplayed"] = 0;
-		this.list[l]["playcount"] = 0;
-		
-		
-		if( "playOnLoad" in this.list[l] ){
-			this.play(l);
-		}
-	}
-}
-AudioPlayer.prototype.isReady = function(l, gain){
-	return true;
-	if(gain === undefined){
-		gain = 1;
-	}
-	var time = game.time * 1;
-	if(l in this.list){
-		if(this.list[l]["lastplayed"] + 32 > time){
-			this.list[l]["playcount"] += gain;
-			if(this.list[l]["playcount"] > 4){
-				return false;
-			} else {
-				return true;
-			}
-		} else {
-			this.list[l]["lastplayed"] = time;
-			this.list[l]["playcount"] = gain;
-			return true;
-		}
-	}
-	return false;
-}
-
-AudioPlayer.prototype.play = function(l){
-	if(l in this.list ){
-		if( "buffer" in this.list[l] ) {
-			if( this.isReady(l) ){
-				//var volume = this.a.createGain();
-				var b = this.list[l]["buffer"];
-				this.list[l]["source"] = this.a.createBufferSource();
-				this.list[l]["source"].buffer = b;
-				
-				if( "loop" in this.list[l] ) {
-					this.list[l]["source"].loop = true;
-					this.list[l]["source"].loopStart = this.list[l]["loop"];
-					this.list[l]["source"].loopEnd = b.length / b.sampleRate;
-				}
-				
-				if( "music" in this.list[l]) {
-					this.list[l]["source"].connect(this.musVolume);
-				} else {
-					this.list[l]["source"].connect(this.compressor);
-					//this.compressor.connect(this.sfxVolume);
-					//this.sfxVolume.connect(this.analysis);
-					//this.analysis.connect(this.a.destination);
-				}
-				
-				this.list[l]["source"].start();
-			}
-		} else {
-			this.list[l]["playOnLoad"] = true;
-		}
-	} else {
-		console.error("Trying to play a sound that does not exist");
-	}
-}
-AudioPlayer.prototype.playPan = function(l,balance,gain){
-	if(l in this.list ){
-		if( "buffer" in this.list[l] ) {
-			if( this.isReady(l, gain) ){
-				var b = this.list[l]["buffer"];
-				this.list[l]["source"] = this.a.createBufferSource();
-				this.list[l]["source"].buffer = b;
-				
-				var volume = this.a.createGain();
-				var stereo = audio.a.createStereoPanner();
-				volume.gain.value = gain;
-				stereo.pan.value = balance;
-				//volume.connect(stereo);
-				
-				if( "loop" in this.list[l] ) {
-					this.list[l]["source"].loop = true;
-					this.list[l]["source"].loopStart = this.list[l]["loop"];
-					this.list[l]["source"].loopEnd = b.length / b.sampleRate;
-				}
-				
-				if( "music" in this.list[l]) {
-					this.list[l]["source"].connect(this.musVolume).connect(stereo).connect(volume);
-				} else {
-					this.list[l]["source"].connect(volume);
-					volume.connect(stereo);
-					stereo.connect(this.compressor);
-					//this.compressor.connect(this.sfxVolume);
-					//this.sfxVolume.connect(this.analysis);
-					//this.analysis.connect(this.a.destination);
-				}
-				
-				this.list[l]["source"].start();
-			}
-		} else {
-			this.list[l]["playOnLoad"] = true;
-		}
-	} else {
-		console.error("Trying to play a sound that does not exist");
-	}
-}
-AudioPlayer.prototype.isPlayingAs = function(n){
-	if(n in this.alias){
-		return this.alias[n];
-	}
-	return "";
-}
-AudioPlayer.prototype.playAs = function(l,n){
-	if( n in this.alias ) 
-		this.stop(this.alias[n]);
-	this.alias[n] = l;
-	this.play(l);
-}
-AudioPlayer.prototype.playLock = function(l,t){
-	if( "lock_until" in this.list[l] ) {
-		if( new Date().getTime() < this.list[l].lock_until ) {
-			return;
-		}
-	}
-	this.list[l]["lock_until"] = new Date().getTime() + t * 1000;
-	this.play(l);
-}
-AudioPlayer.prototype.stop = function(l){
-	if(l in this.list ){
-		if( "source" in this.list[l] ) {
-			this.list[l]["source"].stop();
-		}
-	}
-}
-AudioPlayer.prototype.stopAs = function(n){
-	if( n in this.alias ) 
-		this.stop(this.alias[n]);
-}
-AudioPlayer.prototype.isLoaded = function(l){
-	if( l in this.list ) {
-		return "buffer" in this.list[l];
-	}
-	return false;
-}
-
 /* MAIN GAME OBJECT */
 
 function Game( elm ) {
@@ -350,6 +149,7 @@ Game.prototype.onmessage = function(data){
 		MapLoader.loadMapTmx("maps/" + data.loadmap);
 	}
 	if("clearAll" in data){
+		for(let i in sprites) if(sprites[i] instanceof Sprite){ sprites[i].unload(); }
 		this.map = null;
 	}
 	
@@ -381,6 +181,20 @@ Game.prototype.onmessage = function(data){
 				for(var j=0; j < data.audio[i].length; j++){
 					audio[i].apply(audio,data.audio[i][j]);
 				}
+			}
+		}
+	}
+	if("loadSprites" in data){
+		for(let i=0; i < data["loadSprites"].length; i++){
+			if(data["loadSprites"][i] in sprites){
+				sprites[ data["loadSprites"][i] ].load();
+			}
+		}
+	}
+	if("loadAudio" in data){
+		for(let i=0; i < data["loadAudio"].length; i++){
+			if(data["loadAudio"][i] in AudioPlayer.list){
+				AudioPlayer.list[ data["loadAudio"][i] ].load();
 			}
 		}
 	}

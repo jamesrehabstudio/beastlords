@@ -207,6 +207,7 @@ Bullet.createHomingMissile = function(x,y,ops){
 	missile.sleepTime = Game.DELTASECOND * ops.getFloat("sleepTime", 0.6);
 	missile.turnSpeed = ops.getFloat("turnSpeed", 90.0);
 	missile.target = _player;
+	missile.zIndex = ops.getInt("zIndex", 0);
 	missile.setDeflect();
 	
 	missile.on("death", function(){

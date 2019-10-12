@@ -202,6 +202,13 @@ Math.slerp = function(x,y,delta){
 	}
 	return Math.lerp(x,y,delta);
 }
+Math.colorLerp = function(a,b,delta) {
+	var out = [];
+	for(let i=0; i < a.length && i < b.length; i++){
+		out.push(Math.lerp(a[i], b[i], delta));
+	}
+	return out;
+}
 Math.moveTo = function(a,b,speed){
 	if(Math.abs(a-b) <= speed) {
 		return b;

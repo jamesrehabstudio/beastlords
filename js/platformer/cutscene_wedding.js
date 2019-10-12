@@ -11,6 +11,9 @@ class Wedding extends GameObject {
 		this.sprite_guests = "cutscene_wedding_guests";
 		this.lover_sprite = "bear";
 		
+		this.loadSprites = ["cutscene_wedding","cutscene_wedding_guests","bear"];
+		this.loadAudio = [];
+		
 		this.stage = -1;
 		this.lovePower = 16.0;
 		this.transitionTime = 3.0;
@@ -34,7 +37,13 @@ class Wedding extends GameObject {
 		this.on("player_death", function(){
 			this.reset();
 		});
+		this.on("sleep", function(){
+			if(this.stage >= 3 ){
+				NPC.set("wedding_dress", 3);
+			}
+		});
 	}
+	get hasItem() { return NPC.get("wedding_dress") == 2; }
 	reset(){
 		this.stage = -1;
 		this.anim = 0.0;
@@ -65,7 +74,10 @@ class Wedding extends GameObject {
 		this.shake = Point.lerp(this.shake, new Point(), this.delta * 4.0);
 		this.engine.y = Math.floor((game.time * 16) % 2);
 		
-		if(this.stage < 0){
+		if(!this.hasItem){
+			//Waiting for player to get the dress
+		} else if(this.stage < 0){
+			//Wedding animation
 			this.anim += this.delta;
 			
 			if(this.anim < 5){
@@ -101,6 +113,7 @@ class Wedding extends GameObject {
 			}
 			
 		} else if(this.stage == 0){
+			//Lover approaches player
 			this.anim += this.delta;
 			
 			let p = Math.clamp01( (this.anim-1.5) / 2 );
@@ -162,16 +175,20 @@ class Wedding extends GameObject {
 		}
 	}
 	render(g,c){
-		
-		g.renderSprite(this.sprite_guests,this.position.add(this.bouquet).subtract(c),this.zIndex+2,new Point(1,1),false);
-		
-		g.renderSprite(this.sprite_guests,this.position.add(this.bride).subtract(c),this.zIndex,new Point(0,0),false);
-		g.renderSprite(this.sprite_guests,this.position.add(this.engine).subtract(c),this.zIndex-1,new Point(1,0),false);
-		
-		g.renderSprite(this.sprite_guests,this.position.add(this.crowd).subtract(c),this.zIndex+1,new Point(0,1),false);
-		
-		if(!this.rejected){
-			g.renderSprite(this.lover_sprite,this.position.add(this.lover).subtract(c),this.zIndex+2,new Point(1,2),false);
+		if(this.hasItem){
+			//The wedding is on
+			g.renderSprite(this.sprite_guests,this.position.add(this.bouquet).subtract(c),this.zIndex+2,new Point(1,1),false);
+			
+			g.renderSprite(this.sprite_guests,this.position.add(this.bride).subtract(c),this.zIndex,new Point(0,0),false);
+			g.renderSprite(this.sprite_guests,this.position.add(this.engine).subtract(c),this.zIndex-1,new Point(1,0),false);
+			
+			g.renderSprite(this.sprite_guests,this.position.add(this.crowd).subtract(c),this.zIndex+1,new Point(0,1),false);
+			
+			if(!this.rejected){
+				g.renderSprite(this.lover_sprite,this.position.add(this.lover).subtract(c),this.zIndex+2,new Point(1,2),false);
+			}
+		} else {
+			//Waiting for the dress
 		}
 		
 	}
@@ -237,4 +254,56 @@ class Wedding extends GameObject {
 }
 Wedding.roses = [new Point(140,-16),new Point(-140,32),new Point(-64,-80),new Point(-128,-96),new Point(96,-96)]
 
+class WeddingWaiting extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.sprite = "cutscene_wedding_guests";
+		this.frame = new Point();
+		
+		this.addModule(mod_talk);
+		
+		this.on("open", function(){
+			
+			if(!NPC.get("wedding_dress")){
+				game.pause = true;
+				DialogManager.set("You know, Rex. Life really isn't fair. I was all set to get married, but we can't afford a wedding dress. Now I'm out here collecting coppers.");
+			} else if(NPC.get("wedding_dress") == 1){
+				game.pause = true;
+				DialogManager.set("I can't believe it, Rex! Is this really for me. Wow, you've made us the happiest couple in the world! See you at the wedding!");
+				NPC.set("wedding_dress", 2);
+			}
+		})
+		this.on("close", function(){
+			game.pause = false;
+			if(NPC.get("wedding_dress") >= 2){
+				this.destroy();
+			}
+		});
+		this.on("wakeup", function(){
+			if(NPC.get("wedding_dress") >= 2){
+				this.destroy();
+			}
+		});
+	}
+	update(){
+		if(this.open){
+			if( !DialogManager.show ){
+				this.close();
+			}
+		}
+	}
+	render(g,c){
+		//delete this when proper sprite is ready
+		super.render(g,c.add(new Point(48,4)));
+	}
+	hudrender(g,c){
+		if(this.open){
+			DialogManager.render(g);
+		}
+	}
+}
+
 self["Wedding"] = Wedding;
+self["WeddingWaiting"] = WeddingWaiting;

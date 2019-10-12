@@ -263,11 +263,11 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 		if(profile.id == this.cursor && this.deleteProfileTimer > 0){
 			let progress = Math.min(this.deleteProfileTimer / TitleMenu.DELETETIME, 1.0);
 			g.color = [0.8,0.1,0.0,1.0];
-			g.scaleFillRect(c.x,c.y,(180*progress),64);
+			g.drawRect(c.x,c.y,(180*progress),64,1);
 		}
 		
-		Player.renderLifebar(g,c.add(new Point(16,16)),profile.life,profile.lifeMax,0);
-		Player.renderManabar(g,c.add(new Point(16,28)),profile.mana, profile.manaMax);
+		mod_hud.renderLifebar(g,c.add(new Point(16,16)),profile.life,profile.lifeMax,0);
+		mod_hud.renderManabar(g,c.add(new Point(16,28)),profile.mana, profile.manaMax);
 		
 		var timeHour = Math.floor(profile.time/3600);
 		var timeMinute = Math.floor(profile.time/60) % 60;
@@ -276,6 +276,10 @@ TitleMenu.prototype.renderProfile = function(g,c, profile){
 		
 		textArea(g,"$"+profile.money,c.x+90,c.y+16);
 		textArea(g,"T"+timeHour+":"+timeMinute,c.x+90,c.y+28);
+		
+		for(let di=0; di < profile.base_difficulty; di++){
+			textArea(g,"+",c.x+90+di*8,c.y+40);
+		}
 		//textArea(g,profile.location,c.x+90,c.y+40);
 		
 		for(var i=0; i < 4; i++){
@@ -313,7 +317,8 @@ TitleMenu.prototype.startGame = function(profile){
 		Checkpoint.loadState();
 	} else {
 		new Player();
-		WorldLocale.loadMap("gateway.tmx");
+		//WorldLocale.loadMap("gateway.tmx");
+		WorldLocale.loadMap("demo.tmx");
 	}
 }
 TitleMenu.fetchProfiles = function(){
@@ -341,6 +346,7 @@ TitleMenu.fetchProfiles = function(){
 				"stone2" : 0,
 				"stone3" : 0,
 				"time" : 5400,
+				"base_difficulty" : d.base_difficulty,
 				"location" : map
 			};
 			

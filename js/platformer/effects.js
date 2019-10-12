@@ -773,6 +773,9 @@ self["SparkEffect"] = SparkEffect;
 
 COLOR_WHITE = [1.0,1.0,1.0,1.0];
 COLOR_BLACK = [0.0,0.0,0.0,1.0];
+COLOR_RED = [1.0,0.0,0.0,1.0];
+COLOR_GREEN = [0.0,1.0,0.0,1.0];
+COLOR_BLUE = [0.0,0.0,1.0,1.0];
 COLOR_LIGHTNING = [0.5,0.7,1.0,1.0];
 COLOR_FIRE = [1,0.8,0,1];
 COLOR_HURT = [0.8,0.1,0.2,1];

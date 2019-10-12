@@ -8,6 +8,8 @@ class ChickenDrill extends GameObject{
 		this.sprite = "chickendrill";
 		this.speed = 0.125;
 		
+		this.loadSprites = ["chickendrill"];
+		
 		this.addModule( mod_rigidbody );
 		this.addModule( mod_combat );
 		this.addModule( mod_creep );

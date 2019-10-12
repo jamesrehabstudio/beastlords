@@ -195,3 +195,119 @@ class NoltMissile extends GameObject{
 }
 
 self["NoltMissile"] = NoltMissile;
+
+
+class NoltMachineGun extends GameObject{
+	constructor(x,y,d,ops){
+		super(x,y,d,ops);
+		this.position.x = x;
+		this.position.y = y;
+		this.width = 24;
+		this.height = 32;
+		
+		this.sprite = "nolt";
+		this.addModule( mod_combat );
+	
+		this.on("wakeup", function(obj,damage){
+			this.life = this.lifeMax;
+			this.frame.x = 0;
+			this.frame.y = 0;
+			this.states.abseil = this.states.attack = this.states.cooldown = 0;
+			this.states.awake = false;
+			this.interactive = false;
+		});
+		this.on("hurt", function(obj,damage){
+			
+		});
+		this.on("death", function(obj,pos,damage){
+			Item.drop(this);
+			audio.play("kill",this.position); 
+			createExplosion(this.position, 40 );
+			this.interactive = false;
+			this.frame.x = 0;
+		});
+		
+		
+		
+		this.spawnPos = this.position.scale(1);
+		this.hidePos = this.position.scale(1/240).floor().scale(240);
+		this.hidePos.x = this.spawnPos.x;
+		
+		this.difficulty = ops.getInt("difficulty", Spawn.difficulty);
+		this.homingMissile =  ops.getBool("homing", false);
+		this.wakeDistance = ops.getFloat("wakedistance", 180);
+		
+		this.life = this.lifeMax = Spawn.life(0,this.difficulty);
+		this.damage = Spawn.damage(4,this.difficulty);
+		this.moneyDrop = Spawn.money(1,this.difficulty);
+		
+		this.states = {
+			"awake" : false,
+			"abseil" : 0.0,
+			"attack" : 0.0,
+			"cooldown" : 0.0,
+			"shots" : 0,
+			"aim" : 0,
+		};
+	}
+	update(){
+		if(this.life > 0){
+			this.visible = true;
+			
+			if(!this.states.awake){
+				this.position = this.hidePos;
+				this.interactive = this.states.awake =  Math.abs(this.target().position.x - this.position.x) < this.wakeDistance;
+			} else if(this.states.abseil < 1.0){
+				this.states.abseil += this.delta * 1.5;
+				this.position = Point.lerp(this.hidePos, this.spawnPos, this.states.abseil);
+				this.flip = this.position.x > this.target().position.x;
+			} else if(this.states.attack > 0){
+				
+				this.states.attack -= this.delta;
+				
+				if(this.states.attack <= 0){
+					this.fire();
+					
+					if(this.states.shots > 0){
+						this.states.attack = 0.2;
+						this.states.shots--;
+						this.adjustAim();
+					}
+				}
+			} else {
+				this.states.cooldown -= this.delta;
+				if(this.states.cooldown <= 0){
+					this.flip = this.position.x > this.target().position.x;
+					this.states.cooldown = Game.DELTASECOND * 3;
+					this.states.attack = Game.DELTASECOND * 1;
+					this.states.shots = 16;
+					this.states.aim = this.flip ? 180 : 0;
+				}
+			}
+			
+		} else {
+			this.frame.x += this.delta * 7.5;
+			this.frame.y = 3;
+			if(this.frame.x >= 4){
+				this.visible = false;
+			}
+		}
+	}
+	adjustAim(){
+		let targetAngle = this.target().position.subtract(this.position).toAngle() * Math.rad2deg;
+		this.states.aim = Math.slerp(this.states.aim, targetAngle, 0.15);
+	}
+	fire(){
+		let bullet = new Bullet(this.position.x + this.forward() * 16, this.position.y);
+		bullet.damage = this.damage;
+		bullet.rotation = -this.states.aim;
+		bullet.team = this.team;
+		bullet.force = Point.fromAngle(this.states.aim * Math.deg2rad).scale(6,-6);
+		bullet.frame.x = 4;
+		
+		game.addObject(bullet);
+		audio.play("bullet1", this.position);
+	}
+}
+
+self["NoltMachineGun"] = NoltMachineGun;

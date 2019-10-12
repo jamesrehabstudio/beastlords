@@ -8,6 +8,8 @@ class Slime extends GameObject{
 		this.sprite = "slime";
 		this.swrap = spriteWrap["slime"];
 		
+		this.loadSprites = ["slime"];
+		
 		this.speed = 6.0;
 		this.addModule(mod_rigidbody);
 		this.addModule(mod_combat);

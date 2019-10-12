@@ -11,6 +11,9 @@ class Checkpoint extends GameObject{
 		
 		this.addModule( mod_talk );
 		
+		this.loadSprites = ["policeman","policebox"];
+		this.loadAudio = [];
+		
 		this.on("collideObject",function(obj){
 			/*
 			if(!this.activated && obj instanceof Player){
@@ -132,14 +135,18 @@ Checkpoint.respawn = function(){
 	Checkpoint.loadState();
 }
 Checkpoint.saveState = function(obj){
-	obj.checkpoint.x = obj.position.x;
-	obj.checkpoint.y = obj.position.y;
-	
-	Checkpoint.state.money = obj.money;
-	Checkpoint.state.music = audio.alias["music"];
-	
+	//Write data
 	PauseMenu.saveMapReveal();
 	
+	game.save( Checkpoint.createSaveData(obj) );
+}
+	
+Checkpoint.createSaveData = function(obj){
+	//obj.checkpoint.x = obj.position.x;
+	//obj.checkpoint.y = obj.position.y;
+	
+	//Checkpoint.state.money = obj.money;
+	//Checkpoint.state.music = audio.alias["music"];
 	//Get quest data
 	
 	var q = {}
@@ -157,8 +164,8 @@ Checkpoint.saveState = function(obj){
 	var location = {
 		"music" : audio.alias["music"],
 		"map" : game.newmapName,
-		"x" : _player.position.x,
-		"y" : _player.position.y
+		"x" : obj.position.x,
+		"y" : obj.position.y
 		
 	}
 	
@@ -170,13 +177,13 @@ Checkpoint.saveState = function(obj){
 		"location" : location,
 		"variables" : NPC.variables,
 		"mapreveal" : WorldMap.map,
-		"player" : _player.toJson(),
+		"base_difficulty" : Spawn.base_difficulty,
+		"player" : obj.toJson(),
 		"sessionId" : sessionId,
 		"settings" : Settings
 	}
+	return data;
 	
-	//Write data
-	game.save(data);
 }
 Checkpoint.loadState = function(){
 	//obj.position.x = obj.checkpoint.x ;
@@ -189,6 +196,7 @@ Checkpoint.loadState = function(){
 			new Player();
 			_player.fromJson(data.player);
 			
+			Spawn.base_difficulty = data.base_difficulty;
 			NPC.variables = data.variables;
 			WorldMap.map = data.mapreveal;
 			

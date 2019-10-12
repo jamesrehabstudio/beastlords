@@ -1,5 +1,6 @@
 var mod_camera = {
 	"init" : function(){
+		this.camera_offset = new Point();
 		this.camera_transition = this.position.scale(1);
 		this.camera_lookat = this.position.scale(1);
 		this.camera_lookat_orig = this.position.scale(1);
@@ -80,7 +81,7 @@ var mod_camera = {
 	"update" : function(){
 		this.camera_lookat_lerp = Math.clamp01(this.camera_lookat_lerp + this.delta * this.camera_lookat_speed * (this.camera_lookat_use?1:-1));
 		
-		let lookat = Point.lerp(this.position, this.camera_lookat, this.camera_lookat_lerp);
+		let lookat = Point.lerp(this.position.add(this.camera_offset), this.camera_lookat, this.camera_lookat_lerp);
 		
 		let trule = this.cameraGetMapTileData(lookat);
 		

@@ -119,6 +119,7 @@ class Material{
 				if( details.name == "u_screen_post") { this.use_screen_post = true; }
 				if( details.name == "u_screen") { this.use_screen = true; }
 				
+				this.gl.useProgram(this.program);
 				if(details.type == WebGLRenderingContext.SAMPLER_2D){
 					this.gl.uniform1i(location, textureCount); 
 					textureCount++;
@@ -414,26 +415,31 @@ class Sprite extends Material {
 		}
 		
 		super(options);
-	
-	
 		
-	
 		this.loaded = false;
+		this.gl_tex = false;
+		this.alwaysloaded = options["alwaysloaded"] || false;
+		this.img_url = url;
 		this.img = new Image();
-		this.img.src = url;
 		this.img.sprite = this;
-		this.img.onload = function(){ 
+		this.img.onload = function(){ this.sprite.imageLoaded(); }
+		/*
 			if( this.sprite.isCorrectSize() ) {
 				this.sprite.imageLoaded(); 
 			} else {
 				this.sprite.resize(); 
 			}
 		}
+		*/
 		
 	
 		this.frame_width = options['width'] || 0;
 		this.frame_height = options['height'] || 0;
 		this.custom_offset = false;
+		
+		if(this.alwaysloaded){
+			this.load();
+		}
 		
 		if("custom_offset" in options){
 			this.custom_offset = options["custom_offset"];
@@ -448,6 +454,18 @@ class Sprite extends Material {
 		this.setOffset(offset);
 		
 		this.name = "";
+	}
+	load(){
+		if( !this.loaded ) {
+			this.img.src = this.img_url;
+		}
+	}
+	unload(){
+		if(!this.alwaysloaded){
+			this.gl.deleteTexture(this.gl_tex);
+			this.img.src = "";
+			this.loaded = false;
+		}
 	}
 	setOffset(os) {
 		//Set offset and create mesh
@@ -487,6 +505,11 @@ class Sprite extends Material {
 		var temp_c = document.createElement('canvas'); temp_c.width = size; temp_c.height = size;
 		var temp_g = temp_c.getContext('2d');
 		temp_g.drawImage( this.img,0,0,this.img.width,this.img.height);
+		
+		
+		this.img = new Image();
+		this.img.sprite = this;
+		this.img.onload = function(){ this.sprite.imageLoaded(); }
 		this.img.src = temp_c.toDataURL();
 	}
 	imageLoaded() {
@@ -519,7 +542,10 @@ class Sprite extends Material {
 	render(p, frame_x, frame_y, flip=false, shaderOps ) {
 		let gl = this.gl;
 		
-		if( !this.loaded  ) return;
+		if( !this.loaded  ) {
+			this.load();
+			return;
+		}
 		
 		shaderOps = shaderOps || {};
 		
@@ -708,9 +734,9 @@ class Tilesheet extends Material{
 		this.loaded = true;
 	}
 	
-	cropTileAsArray(pos, map, layer){
+	cropTileAsArray(pos, map, layerIndex){
 		let tiles = [];
-		let layer = map[layer];
+		let layer = map[layerIndex];
 		
 		for(var x=0; x < 27; x++) for(var y=0; y < 16; y++){
 			//let index = x + 64 * y;
@@ -1044,10 +1070,10 @@ class BackBuffer extends Material{
 		gl.bindTexture(gl.TEXTURE_2D, null);
 		gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		this.ready = true;
 	}
 	useBuffer(){
 		let gl = this.gl;
-		this.ready = true;
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.buffer);
 	}
 	reset(){

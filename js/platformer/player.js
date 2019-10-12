@@ -27,7 +27,6 @@ class Player extends GameObject{
 		this.pause = false;
 		this.canmove = true;
 		this.showplayer = true;
-		
 		this.equip_sword = WeaponList.short_sword;
 		this.equip_shield = new Item(0,0,0,{"name":"small_shield","enchantChance":0});
 		
@@ -42,6 +41,38 @@ class Player extends GameObject{
 		this.doubleJump = false;
 		this.dodgeFlash = false;
 		this.flight = false;
+		
+		this.loadSprites = ["player","swordtest","shields"];
+		this.loadAudio = [
+			"barrier",
+			"block",
+			"bounce1",
+			"charge",
+			"chargeready",
+			"critical",
+			"danger",
+			"dash",
+			"deathwarning",
+			"engine1",
+			"engine_sputter1",
+			"equip",
+			"explode3",
+			"gulp",
+			"hardland",
+			"heal",
+			"hurt",
+			"kill",
+			"lightning1",
+			"negative",
+			"playerdeath",
+			"playerhurt",
+			"land",
+			"jump",
+			"spell",
+			"swing",
+			"swing2",
+			"whiplock",
+		];
 		
 		this.states = {
 			"duck" : false,
@@ -80,7 +111,7 @@ class Player extends GameObject{
 			"damageBuffer" : 0,
 			"damageBufferTick" : 0.0,
 			"animationProgress" : 0.0,
-			"duckTime" : 0.0,
+			"holdDownTime" : 0.0,
 			"airSpinning" : false,
 			"whipSwing" : false,
 			"dashfall" : false,
@@ -127,7 +158,7 @@ class Player extends GameObject{
 			"manaRegen" : Game.DELTASECOND * 60,
 			"turn" : Game.DELTASECOND * 0.25,
 			"charge" : Game.DELTASECOND * 0.4,
-			"duckTime" : Game.DELTASECOND * 0.25,
+			"holdDownTime" : Game.DELTASECOND * 0.25,
 			"whipLenght" : 80,
 		};
 		
@@ -226,7 +257,7 @@ class Player extends GameObject{
 			
 			//obj.force.x += (dir.x > 0 ? -3 : 3) * this.delta;
 			this.force.x += (dir.x < 0 ? -kb : kb) * this.delta;
-			audio.playLock("block",0.1);
+			audio.play("block",this.position);
 			
 			var effect = new EffectBlock(this.position.x+18*this.forward(), strike_rect.center().y);
 			effect.flip = this.flip;
@@ -934,7 +965,10 @@ class Player extends GameObject{
 				
 				//Let the player queue more attacks
 				if ( attack.duck ) { this.duck(); }
-				if ( input.state('fire') == 1 ) { this.attstates.queue = true; }
+				if ( input.state('fire') == 1 ) { 
+					this.attstates.queue = true; 
+					game.deltaScaleReset = 0; 
+				}
 				
 				//Manage charge attacks
 				if ( this.attstates.chargetime > 0 && this.attstates.warmTime > 0 ){
@@ -1044,6 +1078,10 @@ class Player extends GameObject{
 					
 				}
 				
+				if(input.state("down") > 0 ) {
+					this.states.holdDownTime = this.speeds.holdDownTime;
+				}
+				
 				
 				if(this.states.turn > 0){
 					//Block disabled while turning
@@ -1137,7 +1175,6 @@ class Player extends GameObject{
 							}
 						}
 					} else if(this.states.duck){
-						this.states.duckTime = this.speeds.duckTime;
 						this.states.animationProgress = Math.min(this.states.animationProgress+this.delta*4, 1);
 						this.frame = this.swrap.frame("duck", this.states.animationProgress);
 					} else if(this.dodgeFlash && this.states.airdashReady && !this.grounded && input.state("dodge") == 1 && this.states.airdash <= 0){
@@ -1242,7 +1279,7 @@ class Player extends GameObject{
 		}
 		this.states.effectTimer += this.delta;
 		this.states.turn -= this.delta;
-		this.states.duckTime -= this.delta;
+		this.states.holdDownTime -= this.delta;
 		this.states.dash -= this.delta;
 		this.states.disableWallJump -= this.delta;
 		this.states.dash_bonus -= this.delta;
@@ -1457,6 +1494,14 @@ class Player extends GameObject{
 		
 		let attack = weapon.getAttack(attackIndex);
 		
+		if("setforcey" in attack){
+			this.force.y = attack.setforcey;
+			this.grounded = this.grounded && this.force.y >= 0;
+		}
+		if("setforcex" in attack){
+			this.force.y = attack.setforcex * this.forward();
+		}
+		
 		if("force" in attack){
 			this.force = this.force.add(attack.force.scale(this.forward(), 1));
 			this.grounded = this.grounded && this.force.y >= 0;
@@ -1472,6 +1517,7 @@ class Player extends GameObject{
 		}
 		
 		if(attack.airspin){
+			if(!this.grounded){ this.force.y = -this.speeds.jump}
 			this.grounded = false;
 			this.states.airSpinning = true;
 			if("audio" in attack){
@@ -1535,16 +1581,19 @@ class Player extends GameObject{
 	}
 	getWeaponState(){
 		var state = PlayerWeapon.STATE_STANDING;
+		var quarterCircle = this.states.holdDownTime > 0 && input.state("down") <= 0 && Math.abs(this.force.x) > 0.06;
 		if(this.downstab && !this.grounded && input.state("down") > 0){
 			state = PlayerWeapon.STATE_DOWNATTACK;
 		} else if(this.states.dash > 0){
 			state = PlayerWeapon.STATE_CHARGED;
+		} else if(quarterCircle && !this.grounded) {
+			state = PlayerWeapon.STATE_JUMPUP_AIR;
 		} else if(!this.grounded){ 
 			state = PlayerWeapon.STATE_JUMPING;
 		//} else if(this.states.duck && input.state("down") > 0){
 		} else if(input.state("down") > 0){
 			state = PlayerWeapon.STATE_DUCKING;
-		} else if(this.states.duckTime > 0 && Math.abs(this.force.x) > 0.06125) {
+		} else if(quarterCircle) {
 			state = PlayerWeapon.STATE_JUMPUP;
 		} 
 		return state;

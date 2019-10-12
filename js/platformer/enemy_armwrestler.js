@@ -11,6 +11,8 @@ function ArmWrestler(x,y,d,o){
 	this.height = 56;
 	this.sprite = "armwrestle";
 	
+	this.loadSprites = ["armwrestle","crowd01"];
+	
 	this.active = false;
 	this.defeated = false;
 	

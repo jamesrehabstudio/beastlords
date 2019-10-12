@@ -10,14 +10,14 @@ audio = {
 			audio.out["play"].push([name]);
 		} else {
 			//Apply panning and falloff
-			if(!("playPan" in audio.out)) audio.out["playPan"] = new Array();
+			if(!("playPan" in audio.out)) { audio.out["playPan"] = new Array(); }
 			if(falloff === undefined) falloff = 1;
 			
 			var scale = 180;
 			var center = game.camera.add(new Point(game.resolution.x*0.5,game.resolution.y*0.5));
 			var distance = position.subtract(center);
 			var balance = Math.max(Math.min(Math.subtractToZero(distance.x, scale)/ scale,1),-1);
-			var gain = 1.0 - Math.max(Math.min(Math.subtractToZero(distance.length(),scale) / (scale*falloff),1),0);
+			var gain = 1.0 - Math.clamp01(Math.subtractToZero(distance.length(),scale) / (scale*falloff));
 			
 			audio.out["playPan"].push([name, balance, gain]);
 		}
@@ -30,8 +30,10 @@ audio = {
 		}
 	},
 	"playLock" : function(name,duration){
-		if(!("playLock" in audio.out)) audio.out["playLock"] = new Array();
-		audio.out["playLock"].push([name,duration]);
+		console.log("LOCK "+name);
+		this.play(name);
+		//if(!("playLock" in audio.out)) audio.out["playLock"] = new Array();
+		//audio.out["playLock"].push([name,duration]);
 	},
 	"stopAs" : function(alias){
 		this.alias[alias] = "";
@@ -228,7 +230,7 @@ Renderer.renderLine = function(start,end,thickness,color,zIndex=1){
 	}
 	
 	Renderer.renderSprite(
-		"white", 
+		"whiteline", 
 		end,
 		zIndex,
 		new Point(),
@@ -263,6 +265,9 @@ function Game(){
 	this.mainThreadReady = true;
 	this.settingsUpdated = false;
 	this.notrack = false;
+	
+	this.loadSprites = new Array();
+	this.loadAudio = new Array();
 	
 	this.deltaScaleReset = 0.0;
 	this.deltaScalePause = 0;
@@ -423,8 +428,12 @@ Game.prototype.update = function(){
 			"render" : Renderer.serialize(),
 			"camera" : {"x":fCamera.x, "y":fCamera.y},
 			"times" : {"time":this.time, "timeScaled":this.timeScaled},
-			"tiles" : this.tileDelta
+			"tiles" : this.tileDelta,
+			"loadSprites" : this.loadSprites,
+			"loadAudio" : this.loadAudio,
 		});
+		this.loadSprites = new Array();
+		this.loadAudio = new Array();
 		this.tileDelta = {};
 		audio.clear();
 	}
@@ -519,6 +528,9 @@ Game.prototype.addObject = function(obj){
 			this.objects[this._firstEmptyIndex] = obj;
 			this._firstEmptyIndex = -1;
 		}
+		
+		this.loadSprites = this.loadSprites.concat(obj.loadSprites);
+		this.loadAudio = this.loadAudio.concat(obj.loadAudio);
 		
 		this.tree.push(obj);
 		obj.trigger("added");
@@ -1230,9 +1242,9 @@ tilerules.rules["default"] = {};
 //Base game object
 //////////////////
 
-function GameObject() {
+function GameObject(x,y,d,ops) {
 	this.id = -1;
-	this.position = new Point();
+	this.position = new Point(x,y);
 	this.positionPrevious = new Point();
 	this.origin = new Point(0.5, 0.5);
 	this.sprite;
@@ -1254,6 +1266,9 @@ function GameObject() {
 	this.idleMargin = 32;
 	this.buffs = new Array();
 	this.tint = [1,1,1,1];
+	
+	this.loadSprites = [];
+	this.loadAudio = [];
 	
 	this.visible = true;
 	this.modules = new Array();

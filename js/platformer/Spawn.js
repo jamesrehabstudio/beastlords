@@ -337,12 +337,17 @@ Spawn.enemies = {
 	]
 };
 
+Spawn.base_difficulty = 0;
+
 Spawn.damage = function(level,difficulty){
 	var damage = level * 2;
+	
 	
 	if(difficulty == undefined){
 		difficulty = Spawn.difficulty;
 	}
+	
+	difficulty += Spawn.base_difficulty;
 	
 	var multi = 1 + difficulty * 0.5;
 	damage = Math.floor( damage * multi );
@@ -366,6 +371,9 @@ Spawn.defence = function(level, difficulty){
 		return -9999;
 	}
 	var def = level * 3;
+	
+	difficulty += Spawn.base_difficulty;
+	
 	let multi = 1 + difficulty * 0.5;
 	return Math.floor(def*multi);
 }
@@ -376,6 +384,8 @@ Spawn.life = function(level, difficulty){
 		difficulty = Spawn.difficulty;
 	}
 	
+	difficulty += Spawn.base_difficulty;
+	
 	if( level == 0 ) return 3; //Always one shot
 	var multi = 1 + difficulty * 0.25;
 	return Math.floor( multi * level * 9 );
@@ -384,6 +394,9 @@ Spawn.xp = function(xp, difficulty){
 	if(difficulty == undefined){
 		difficulty = Spawn.difficulty;
 	}
+	
+	difficulty += Spawn.base_difficulty;
+	
 	return Math.floor( xp ** (1 + difficulty * 0.25) );
 }
 
@@ -392,6 +405,8 @@ Spawn.money = function(money, difficulty){
 	if(difficulty == undefined){
 		difficulty = Spawn.difficulty;
 	}
+	
+	difficulty += Spawn.base_difficulty;
 	
 	var base = money * 0.66666 + money * 0.4 * Math.random();
 	var multi = 1 + difficulty * 0.6;

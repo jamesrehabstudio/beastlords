@@ -140,7 +140,7 @@ class Batty extends GameObject{
 				this.states.attack -= this.delta;
 			} else {
 				this.force.y -= this.gravity * 2 * UNITS_PER_METER * this.delta;
-				if(Math.abs(this.position.x - this.target().position.x) < 160){
+				if(Math.abs(this.position.x - this.target().position.x) < 240){
 					this.states.cooldown -= this.delta;
 				}
 				if(this.states.cooldown <= 0){

@@ -1,7 +1,10 @@
 class DemoThanks extends GameObject{	
 	constructor(x,y,d,ops){
 		super(x,y,d,ops);
-	
+		this.position.x = x;
+		this.position.y = y;
+		this.width = d[0];
+		this.height = d[1];
 		this.sprite = "title";
 		this.zIndex = 999;
 		this.visible = true;
@@ -13,6 +16,7 @@ class DemoThanks extends GameObject{
 		
 		this.progress = 0;
 		this.cursor = 1;
+		this.current_player = false;
 		
 		this.starPositions = [
 			new Point(84,64),
@@ -26,23 +30,42 @@ class DemoThanks extends GameObject{
 			new Point(158,65),
 			new Point(15,5),
 			new Point(229,69)
-		]
+		];
 		
 		this.stars = [
 			{ "pos" : new Point(), "timer" : 10 },
 			{ "pos" : new Point(), "timer" : 20 },
 			{ "pos" : new Point(), "timer" : 0 }
 		];
+		
+		this.on("collideObject", function(obj){
+			if( obj instanceof Player){
+				if(!this.start){
+					mod_hud.countItems();
+					
+					this.current_player = obj;
+					//Game over, clear all
+					game.clearAll();
+					game.addObject(this);
+					
+					//Start the game over animation
+					this.start = true;
+				}
+			}
+		});
 	}
 	update(){
 		if(this.start){
 			if(this.progress >= 8.0){
 				if(input.state("pause") == 1){
 					audio.play("pause");
+					this.saveNewgamePlus();
+					
 					delete self._player;
 					game.clearAll();
 					game.pause = false;
 					game.deltaScale = 1.0;
+					
 					game_start(game);
 				}
 			} else {
@@ -54,7 +77,33 @@ class DemoThanks extends GameObject{
 			this.progress += this.delta / Game.DELTASECOND;
 		}
 	}
-	render(g,c){
+	saveNewgamePlus(){
+		this.current_player.life = this.current_player.lifeMax;
+		let savedata = Checkpoint.createSaveData(this.current_player);
+		let keep = []
+		
+		for(let _var in savedata.variables){
+			//Reset all non-item variables
+			
+			if(mod_hud.KEEP_VARS.indexOf(_var) >= 0){
+				//Do nothing, keep variable
+			} else if(mod_hud.ITEM_LIST.indexOf(_var) >= 0){
+				//Do nothing, keep variable
+			} else {
+				delete savedata.variables[_var];
+			}
+		}
+		
+		savedata.variables["short_sword"] = 1;
+		savedata.variables["small_shield"] = 1;
+		savedata["base_difficulty"] = Spawn.base_difficulty + 1;
+		savedata["location"]["map"] = game.newmapName;
+		savedata["location"]["x"] = 128.00;
+		savedata["location"]["y"] = 784.00;
+		
+		game.save( savedata );
+	}
+	postrender(g,c){
 		if(this.start){
 			var xpos = (game.resolution.x - 427) * 0.5;
 			
@@ -100,16 +149,19 @@ class DemoThanks extends GameObject{
 			var timeSeconds = Math.floor((DemoThanks.time - timeMinutes*Game.DELTAMINUTE)/ Game.DELTASECOND);
 			if(timeSeconds < 10) timeSeconds = "0"+timeSeconds;
 			
+			let item_text = this.current_player.hud_showItemCount + " / " + mod_hud.ITEM_LIST.length;
+			
 			boxArea(g,x_pos,y_pos,256,200);
 			
 			textArea(g,"Thank you for playing!",x_pos+16,y_pos+16);
 			
 			textArea(g,"Kills: "+DemoThanks.kills ,x_pos+16,y_pos+40);
-			textArea(g,"Items: "+DemoThanks.items ,x_pos+16,y_pos+64);
+			textArea(g,"Items: "+item_text ,x_pos+16,y_pos+64);
 			textArea(g,"Deaths: "+DemoThanks.deaths ,x_pos+16,y_pos+88);
 			textArea(g,"Time: "+timeMinutes+":"+timeSeconds ,x_pos+16,y_pos+112);
 			
-			textArea(g,"Press start to play again",x_pos+16,y_pos+176);
+			textArea(g,"Play again in new game plus",x_pos+16,y_pos+164);
+			textArea(g,"Press start",x_pos+16,y_pos+176);
 		}	
 	}
 }

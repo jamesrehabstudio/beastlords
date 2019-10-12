@@ -34,10 +34,10 @@ function game_start(g){
 		
 		new Player(0,0);		
 		_player.lightRadius = true;
-		_player.downstab = true;
+		//_player.downstab = true;
 		//_player.doubleJump = true;
 		//_player.walljump = true;
-		//_player.dodgeFlash = true;
+		_player.dodgeFlash = true;
 		//WorldLocale.loadMap("gateway.tmx");
 		WorldLocale.loadMap("demo.tmx", "test");
 		setTimeout(function(){

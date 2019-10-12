@@ -70,7 +70,7 @@ def concat():
 		f.close()
 		
 		date = datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")
-		print  "("+ date + ") update to " + js_saveto
+		print( "("+ date + ") update to " + js_saveto )
 		
 	if sh_previous != sh_out:
 		#only save if it has changed
@@ -79,7 +79,7 @@ def concat():
 		f.close()
 		
 		date = datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")
-		print  "("+ date + ") update to " + sh_saveto
+		print( "("+ date + ") update to " + sh_saveto)
 		
 	js_previous = js_out
 	sh_previous = sh_out

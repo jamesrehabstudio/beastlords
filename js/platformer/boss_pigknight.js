@@ -8,6 +8,9 @@ class PigbossKnight extends GameObject {
 		this.width = 64;
 		this.height = 110;
 		
+		this.loadSprites = ["pigbossknight", "cutscene_pigintro"];
+		this.loadAudio = ["music_boss01"];
+		
 		this.addModule(mod_rigidbody);
 		this.addModule(mod_combat);
 		this.addModule(mod_boss);
